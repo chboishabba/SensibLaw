@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
-
-from typing import Any, Dict, Optional, List
 import json
 
 from .provision import Provision
@@ -22,6 +20,8 @@ class DocumentMetadata:
         lpo_tags: Optional list of Legal Policy Objective tags.
         cco_tags: Optional list of cross-cultural obligation tags.
         cultural_flags: Optional list of cultural sensitivity flags.
+        jurisdiction_codes: Optional list of standardized jurisdiction codes.
+        ontology_tags: Mapping of ontology names to matched tags.
     """
 
     jurisdiction: str
@@ -31,6 +31,8 @@ class DocumentMetadata:
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
     cultural_flags: Optional[List[str]] = None
+    jurisdiction_codes: List[str] = field(default_factory=list)
+    ontology_tags: Dict[str, List[str]] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
@@ -54,6 +56,8 @@ class DocumentMetadata:
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
             cultural_flags=data.get("cultural_flags"),
+            jurisdiction_codes=list(data.get("jurisdiction_codes", [])),
+            ontology_tags=dict(data.get("ontology_tags", {})),
         )
 
 
