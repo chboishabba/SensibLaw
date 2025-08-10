@@ -14,6 +14,8 @@ BASE_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "austlii"
 JUDGMENT_DIR = BASE_DATA_DIR / "judgments"
 LEGISLATION_DIR = BASE_DATA_DIR / "legislation"
 
+# Ensure the directories exist at import time so that users of the client do
+# not need to worry about creating them manually.
 for directory in (JUDGMENT_DIR, LEGISLATION_DIR):
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -105,8 +107,13 @@ class AustLIIClient:
         response = self._get(url)
         soup = BeautifulSoup(response.content, "html.parser")
         title = soup.find("h1").get_text(strip=True) if soup.find("h1") else ""
-        text = soup.get_text(" ", strip=True)
-        data = {"url": url, "title": title, "text": text}
+        text = self._normalize_text(soup)
+        data = {
+            "url": url,
+            "title": title,
+            "text": text,
+            "retrieved_at": int(time.time()),
+        }
         filename = JUDGMENT_DIR / f"{self._slugify(title) or int(time.time())}.json"
         self._write_json(filename, data)
         return data
@@ -122,8 +129,13 @@ class AustLIIClient:
         response = self._get(url)
         soup = BeautifulSoup(response.content, "html.parser")
         title = soup.find("h1").get_text(strip=True) if soup.find("h1") else ""
-        text = soup.get_text(" ", strip=True)
-        data = {"url": url, "title": title, "text": text}
+        text = self._normalize_text(soup)
+        data = {
+            "url": url,
+            "title": title,
+            "text": text,
+            "retrieved_at": int(time.time()),
+        }
         filename = LEGISLATION_DIR / f"{self._slugify(title) or int(time.time())}.json"
         self._write_json(filename, data)
         return data
@@ -135,6 +147,14 @@ class AustLIIClient:
         """Write *data* to *path* in JSON format."""
         with path.open("w", encoding="utf-8") as fh:
             json.dump(data, fh, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _normalize_text(soup: BeautifulSoup) -> str:
+        """Return a whitespace-normalized string from a soup document."""
+        # BeautifulSoup#get_text collapses multiple spaces and removes tags.
+        text = soup.get_text(" ", strip=True)
+        # Extra normalization to ensure consistent single spacing.
+        return " ".join(text.split())
 
     @staticmethod
     def _slugify(text: str) -> str:
