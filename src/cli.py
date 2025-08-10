@@ -1,65 +1,34 @@
-import json
 import argparse
-from typing import List, Dict
+from datetime import datetime, date
 
-Document = Dict[str, str]
-
-
-def load_documents(path: str) -> List[Document]:
-    """Load documents from a JSON file.
-
-    The file should contain a list of objects with ``title``, ``citation`` and
-    ``content`` fields.
-    """
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def filter_documents(
-    docs: List[Document],
-    citation: str | None = None,
-    title: str | None = None,
-    keyword: str | None = None,
-) -> List[Document]:
-    """Return documents matching the given filter."""
-    if citation:
-        return [d for d in docs if d.get("citation") == citation]
-    if title:
-        return [d for d in docs if d.get("title") == title]
-    if keyword:
-        kw = keyword.lower()
-        return [
-            d
-            for d in docs
-            if kw in d.get("title", "").lower()
-            or kw in d.get("content", "").lower()
-        ]
-    return docs
-
-
-def render_document(doc: Document) -> str:
-    """Format a document for terminal display."""
-    title = doc.get("title", "Untitled")
-    citation = doc.get("citation", "")
-    content = doc.get("content", "")
-    return f"{title} ({citation})\n{content}\n"
+from .storage import VersionedStore
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="View stored documents")
-    parser.add_argument("path", help="Path to JSON document file")
-    parser.add_argument("--citation", help="Select document by citation")
-    parser.add_argument("--title", help="Select document by title")
-    parser.add_argument("--search", help="Keyword to filter documents")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(prog="sensiblaw")
+    sub = parser.add_subparsers(dest="command")
 
-    docs = load_documents(args.path)
-    results = filter_documents(docs, args.citation, args.title, args.search)
-    if not results:
-        print("No documents found.")
-        return
-    for doc in results:
-        print(render_document(doc))
+    get_parser = sub.add_parser("get", help="Retrieve a document by ID")
+    get_parser.add_argument("--db", default="data/store.db", help="Path to database")
+    get_parser.add_argument("--id", type=int, required=True, help="Document ID")
+    get_parser.add_argument(
+        "--as-at", help="Return version as of this date (YYYY-MM-DD)")
+
+    args = parser.parse_args()
+    if args.command == "get":
+        store = VersionedStore(args.db)
+        if args.as_at:
+            as_at = datetime.fromisoformat(args.as_at).date()
+        else:
+            as_at = date.today()
+        doc = store.snapshot(args.id, as_at)
+        if doc is None:
+            print("Not found")
+        else:
+            print(doc.to_json())
+        store.close()
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
