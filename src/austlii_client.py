@@ -12,6 +12,7 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover
     requests = None  # type: ignore
 
+
 from .models import Document, DocumentMetadata, Provision
 
 logger = logging.getLogger(__name__)
@@ -188,41 +189,6 @@ class AustLIIClient:
             stack.append((level, prov.children))
         return root
 
-        soup = BeautifulSoup(response.content, "html.parser")
-        title = soup.find("h1").get_text(strip=True) if soup.find("h1") else ""
-        text = self._normalize_text(soup)
-        data = {
-            "url": url,
-            "title": title,
-            "text": text,
-            "retrieved_at": int(time.time()),
-        }
-        filename = JUDGMENT_DIR / f"{self._slugify(title) or int(time.time())}.json"
-        self._write_json(filename, data)
-        return data
-
-    def fetch_legislation(self, url: str) -> Dict[str, Any]:
-        """Download and parse a legislation page from AustLII.
-
-        The extracted title and raw text are written to a JSON file within
-        ``data/austlii/legislation`` and returned as a dictionary.
-        """
-
-        logger.info("Fetching legislation %s", url)
-        response = self._get(url)
-        soup = BeautifulSoup(response.content, "html.parser")
-        title = soup.find("h1").get_text(strip=True) if soup.find("h1") else ""
-        text = self._normalize_text(soup)
-        data = {
-            "url": url,
-            "title": title,
-            "text": text,
-            "retrieved_at": int(time.time()),
-        }
-        filename = LEGISLATION_DIR / f"{self._slugify(title) or int(time.time())}.json"
-        self._write_json(filename, data)
-        return data
-
     # ------------------------------------------------------------------
     # Internal utilities
     # ------------------------------------------------------------------
@@ -230,14 +196,6 @@ class AustLIIClient:
         """Write *data* to *path* in JSON format."""
         with path.open("w", encoding="utf-8") as fh:
             json.dump(data, fh, ensure_ascii=False, indent=2)
-
-    @staticmethod
-    def _normalize_text(soup: BeautifulSoup) -> str:
-        """Return a whitespace-normalized string from a soup document."""
-        # BeautifulSoup#get_text collapses multiple spaces and removes tags.
-        text = soup.get_text(" ", strip=True)
-        # Extra normalization to ensure consistent single spacing.
-        return " ".join(text.split())
 
     @staticmethod
     def _slugify(text: str) -> str:
