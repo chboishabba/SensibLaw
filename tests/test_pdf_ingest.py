@@ -5,34 +5,30 @@ import types
 from pathlib import Path
 
 
-def test_extract_pdf(monkeypatch, tmp_path):
+def test_extract_pdf(tmp_path):
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
 
-    class DummyPage:
+    class DummyLTTextContainer:
         def __init__(self, text):
             self._text = text
 
-        def extract_text(self):
+        def get_text(self):
             return self._text
 
-    class DummyPDF:
-        def __init__(self, pages):
-            self.pages = pages
+    def fake_extract_pages(path):
+        return [
+            [DummyLTTextContainer("Hello  \nWorld")],
+            [DummyLTTextContainer("Second\tPage")],
+        ]
 
-        def __enter__(self):
-            return self
+    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
+        extract_pages=fake_extract_pages
+    )
+    sys.modules["pdfminer.layout"] = types.SimpleNamespace(
+        LTTextContainer=DummyLTTextContainer
+    )
 
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-    def fake_open(path):
-        return DummyPDF([
-            DummyPage("Hello  \nWorld"),
-            DummyPage("Second\tPage")
-        ])
-
-    sys.modules["pdfplumber"] = types.SimpleNamespace(open=fake_open)
     pdf_ingest = importlib.import_module("src.pdf_ingest")
 
     pdf_path = tmp_path / "sample.pdf"
@@ -40,12 +36,16 @@ def test_extract_pdf(monkeypatch, tmp_path):
 
     pages = pdf_ingest.extract_pdf_text(pdf_path)
     assert pages == [
-        {"page": 1, "text": "Hello World"},
+        {"page": 1, "text": "Hello\nWorld"},
         {"page": 2, "text": "Second Page"},
     ]
 
+    meta = pdf_ingest.build_metadata(pdf_path, pages)
     out = tmp_path / "out.json"
-    pdf_ingest.save_json(pages, out)
+    pdf_ingest.save_json(meta, out)
     with out.open() as f:
         data = json.load(f)
-    assert data == pages
+
+    assert data["source"] == "sample.pdf"
+    assert data["page_count"] == 2
+    assert data["pages"] == pages
