@@ -1,48 +1,37 @@
 import json
 import subprocess
+from datetime import date
 from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from src.models.document import Document, DocumentMetadata
+from src.storage import VersionedStore
 
 
-def make_sample_data(tmp_path: Path) -> Path:
-    data = [
-        {
-            "citation": "123 U.S. 456",
-            "title": "Example v. Sample",
-            "content": "This case discusses examples and samples.",
-        },
-        {
-            "citation": "789 U.S. 101",
-            "title": "Another v. Case",
-            "content": "Another case with different facts.",
-        },
-    ]
-    path = tmp_path / "data.json"
-    path.write_text(json.dumps(data))
-    return path
+def setup_db(tmp_path: Path) -> tuple[str, int]:
+    db = tmp_path / "store.db"
+    store = VersionedStore(str(db))
+    doc_id = store.generate_id()
+    meta = DocumentMetadata(jurisdiction="US", citation="CIT", date=date(2020, 1, 1))
+    store.add_revision(doc_id, Document(meta, "old"), date(2020, 1, 1))
+    store.add_revision(doc_id, Document(meta, "new"), date(2021, 1, 1))
+    store.close()
+    return str(db), doc_id
 
 
-def run_cli(path: Path, *args: str) -> str:
-    cmd = ["python", "-m", "src.cli", str(path), *args]
+def run_cli(db_path: str, *args: str) -> str:
+    cmd = ["python", "-m", "src.cli", "get", "--db", db_path, *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return completed.stdout
+    return completed.stdout.strip()
 
 
-def test_search(tmp_path: Path):
-    data_path = make_sample_data(tmp_path)
-    out = run_cli(data_path, "--search", "examples")
-    assert "Example v. Sample" in out
-    assert "Another v. Case" not in out
-
-
-def test_select_by_citation(tmp_path: Path):
-    data_path = make_sample_data(tmp_path)
-    out = run_cli(data_path, "--citation", "789 U.S. 101")
-    assert "Another v. Case" in out
-    assert "Example v. Sample" not in out
-
-
-def test_select_by_title(tmp_path: Path):
-    data_path = make_sample_data(tmp_path)
-    out = run_cli(data_path, "--title", "Example v. Sample")
-    assert "123 U.S. 456" in out
-    assert "Another v. Case" not in out
+def test_cli_as_at(tmp_path: Path):
+    db_path, doc_id = setup_db(tmp_path)
+    out = run_cli(db_path, "--id", str(doc_id), "--as-at", "2020-06-01")
+    data = json.loads(out)
+    assert data["body"] == "old"
+    out2 = run_cli(db_path, "--id", str(doc_id), "--as-at", "2021-06-01")
+    data2 = json.loads(out2)
+    assert data2["body"] == "new"

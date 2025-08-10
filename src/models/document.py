@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
+
+from typing import Any, Dict, Optional, List
 import json
 
 from .provision import Provision
@@ -17,12 +19,18 @@ class DocumentMetadata:
         citation: Formal citation or identifier for the document.
         date: Date the document was issued.
         court: Optional court or body issuing the document.
+        lpo_tags: Optional list of Legal Policy Objective tags.
+        cco_tags: Optional list of cross-cultural obligation tags.
+        cultural_flags: Optional list of cultural sensitivity flags.
     """
 
     jurisdiction: str
     citation: str
     date: date
     court: Optional[str] = None
+    lpo_tags: Optional[List[str]] = None
+    cco_tags: Optional[List[str]] = None
+    cultural_flags: Optional[List[str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
@@ -43,6 +51,9 @@ class DocumentMetadata:
             citation=data["citation"],
             date=parsed_date,
             court=data.get("court"),
+            lpo_tags=data.get("lpo_tags"),
+            cco_tags=data.get("cco_tags"),
+            cultural_flags=data.get("cultural_flags"),
         )
 
 
