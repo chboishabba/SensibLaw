@@ -46,4 +46,8 @@ def emit_document(record: Dict[str, Any]) -> Document:
 def emit_document_from_json(data: str) -> Document:
     """Convert a JSON string into a tagged :class:`Document` instance."""
     record = json.loads(data)
-    return emit_document(record)
+    check_consent(record)
+    doc = Document.from_json(data)
+    _apply_tags(doc)
+    _apply_jurisdiction_codes(doc)
+    return doc

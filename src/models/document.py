@@ -87,7 +87,7 @@ class Document:
 
     def to_json(self) -> str:
         """Serialize the document to a JSON string."""
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), ensure_ascii=False)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
@@ -100,3 +100,6 @@ class Document:
     def from_json(cls, data: str) -> "Document":
         """Deserialize a document from a JSON string."""
         return cls.from_dict(json.loads(data))
+
+
+__all__ = ["Document", "DocumentMetadata"]
