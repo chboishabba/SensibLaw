@@ -11,6 +11,9 @@ structure and the document body text.
 - **citation** (`str`): Formal citation or identifier for the document.
 - **date** (`date`): Date the document was issued, in ISO format (`YYYY-MM-DD`).
 - **court** (`Optional[str]`): Court or body that issued the document.
+- **lpo_tags** (`Optional[List[str]]`): Legal policy objective tags.
+- **cco_tags** (`Optional[List[str]]`): Cross-cultural obligation tags.
+- **cultural_flags** (`Optional[List[str]]`): Cultural sensitivity flags.
 
 ### Document
 - **metadata** (`DocumentMetadata`): Metadata associated with the document.
@@ -26,7 +29,10 @@ structure and the document body text.
     "jurisdiction": "US",
     "citation": "410 U.S. 113",
     "date": "1973-01-22",
-    "court": "Supreme Court"
+    "court": "Supreme Court",
+    "lpo_tags": ["example"],
+    "cco_tags": ["demo"],
+    "cultural_flags": ["public-domain"]
   },
   "body": "Full text of the opinion..."
 }
