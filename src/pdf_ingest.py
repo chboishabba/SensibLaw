@@ -5,6 +5,8 @@ from pathlib import Path
 
 from pdfminer.high_level import extract_text
 
+from .ingestion.cache import HTTPCache
+
 
 def extract_pdf_text(pdf_path: Path):
     """Extract text and headings from a PDF, returning pages with numbers."""
@@ -29,6 +31,17 @@ def save_json(pages, output_path: Path, source: Path):
     }
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
+    """Download a PDF using :class:`HTTPCache` and save to ``dest``.
+
+    The helper allows PDF ingestion to reuse the same caching logic and delay
+    configuration as other network fetchers.
+    """
+
+    dest.write_bytes(cache.fetch(url))
+    return dest
 
 
 def main():
