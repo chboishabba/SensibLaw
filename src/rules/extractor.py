@@ -5,8 +5,14 @@ from typing import List
 
 from . import Rule
 
+# Include the most common English legal modalities.  The pattern is fairly
+# permissive – it captures everything before the modality as the ``actor`` and
+# the remainder as the ``rest`` of the sentence which we later split into the
+# ``action`` and optional ``conditions``/``scope``.  Support for ``shall not``
+# was added to cover provisions expressed using the more formal "shall"
+# language often found in legislation.
 _PATTERN = re.compile(
-    r"(?P<actor>.+?)\s+(?P<modality>must not|may not|must|shall|may)\s+(?P<rest>.+)",
+    r"(?P<actor>.+?)\s+(?P<modality>must not|may not|shall not|must|shall|may)\s+(?P<rest>.+)",
     re.IGNORECASE,
 )
 
