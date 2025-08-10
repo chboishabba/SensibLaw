@@ -1,6 +1,7 @@
 import argparse
 import json
 from datetime import datetime, date
+from pathlib import Path
 
 from .storage import VersionedStore
 
@@ -20,6 +21,17 @@ def main() -> None:
 
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True, help="JSON encoded rules")
+
+    fetch_parser = sub.add_parser(
+        "pdf-fetch", help="Ingest a PDF and extract rules"
+    )
+    fetch_parser.add_argument("path", type=Path, help="Path to PDF file")
+    fetch_parser.add_argument("--output", type=Path, help="Output JSON path")
+    fetch_parser.add_argument("--jurisdiction", help="Jurisdiction metadata")
+    fetch_parser.add_argument("--citation", help="Citation metadata")
+    fetch_parser.add_argument(
+        "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
+    )
 
     args = parser.parse_args()
     if args.command == "get":
@@ -47,6 +59,17 @@ def main() -> None:
         rules = [Rule(**r) for r in data]
         issues = check_rules(rules)
         print(json.dumps(issues))
+    elif args.command == "pdf-fetch":
+        from .pdf_ingest import process_pdf
+
+        doc = process_pdf(
+            args.path,
+            output=args.output,
+            jurisdiction=args.jurisdiction,
+            citation=args.citation,
+            cultural_flags=args.cultural_flags,
+        )
+        print(doc.to_json())
     else:
         parser.print_help()
 
