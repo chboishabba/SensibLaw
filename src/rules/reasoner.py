@@ -6,24 +6,34 @@ from typing import Iterable, List
 from . import Rule
 
 
+NEGATIVE = {"must not", "may not", "shall not"}
+
+
+def _polarity(modality: str) -> str:
+    """Classify a modality as either ``negative`` or ``positive``."""
+
+    return "negative" if modality.lower() in NEGATIVE else "positive"
+
+
 def check_rules(rules: Iterable[Rule]) -> List[str]:
     """Check a set of rules for contradictions or delegation breaches."""
 
     issues: List[str] = []
-    seen: dict[tuple[str, str], Rule] = {}
+    seen: dict[tuple[str, str], tuple[str, Rule]] = {}
 
     for rule in rules:
         key = (rule.actor.lower(), rule.action.lower())
+        pol = _polarity(rule.modality)
         if key in seen:
-            other = seen[key]
-            if rule.modality != other.modality:
+            other_pol, other_rule = seen[key]
+            if pol != other_pol:
                 issues.append(
                     "Contradiction between "
-                    f"'{other.actor} {other.modality} {other.action}' and "
+                    f"'{other_rule.actor} {other_rule.modality} {other_rule.action}' and "
                     f"'{rule.actor} {rule.modality} {rule.action}'"
                 )
         else:
-            seen[key] = rule
+            seen[key] = (pol, rule)
 
     # Detect delegation breaches
     delegations: list[tuple[str, str]] = []  # (delegate, action)
@@ -41,7 +51,7 @@ def check_rules(rules: Iterable[Rule]) -> List[str]:
     for delegate, action in delegations:
         for rule in rules:
             if rule.actor.lower() == delegate and action in rule.action.lower():
-                if "must not" in rule.modality:
+                if _polarity(rule.modality) == "negative":
                     issues.append(
                         f"Delegation breach: {delegate} prohibited from {action}"
                     )
