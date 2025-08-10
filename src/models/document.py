@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import json
+
+from .provision import Provision
 
 
 @dataclass
@@ -46,14 +48,20 @@ class DocumentMetadata:
 
 @dataclass
 class Document:
-    """Representation of a legal document including metadata and body text."""
+    """Representation of a legal document including metadata, body text,
+    and any extracted provisions."""
 
     metadata: DocumentMetadata
     body: str
+    provisions: List[Provision] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the document to a dictionary."""
-        return {"metadata": self.metadata.to_dict(), "body": self.body}
+        return {
+            "metadata": self.metadata.to_dict(),
+            "body": self.body,
+            "provisions": [p.to_dict() for p in self.provisions],
+        }
 
     def to_json(self) -> str:
         """Serialize the document to a JSON string."""
@@ -63,7 +71,8 @@ class Document:
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
         """Deserialize a document from a dictionary."""
         metadata = DocumentMetadata.from_dict(data["metadata"])
-        return cls(metadata=metadata, body=data["body"])
+        provisions = [Provision.from_dict(p) for p in data.get("provisions", [])]
+        return cls(metadata=metadata, body=data["body"], provisions=provisions)
 
     @classmethod
     def from_json(cls, data: str) -> "Document":

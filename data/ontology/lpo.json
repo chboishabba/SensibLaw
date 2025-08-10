@@ -1,0 +1,7 @@
+{
+  "principles": {
+    "rule_of_law": ["law", "legal"],
+    "fairness": ["fair", "justice"],
+    "environmental_protection": ["environment", "pollution"]
+  }
+}
