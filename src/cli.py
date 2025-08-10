@@ -3,6 +3,8 @@ import json
 from datetime import datetime, date
 
 from .storage import VersionedStore
+from .austlii_client import AustLIIClient
+from .ingestion.austlii_adapter import AustLIIActAdapter
 
 
 def main() -> None:
@@ -20,6 +22,21 @@ def main() -> None:
 
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True, help="JSON encoded rules")
+
+    aust_parser = sub.add_parser(
+        "austlii-fetch", help="Fetch sections from AustLII and store them"
+    )
+    aust_parser.add_argument("--db", default="data/store.db", help="Path to database")
+    aust_parser.add_argument("--act", required=True, help="Base URL of the Act")
+    aust_parser.add_argument(
+        "--sections", required=True, help="Comma separated section identifiers"
+    )
+
+    view_parser = sub.add_parser(
+        "view", help="View stored section by canonical identifier"
+    )
+    view_parser.add_argument("--db", default="data/store.db", help="Path to database")
+    view_parser.add_argument("--id", required=True, help="Canonical ID")
 
     args = parser.parse_args()
     if args.command == "get":
@@ -47,6 +64,31 @@ def main() -> None:
         rules = [Rule(**r) for r in data]
         issues = check_rules(rules)
         print(json.dumps(issues))
+    elif args.command == "austlii-fetch":
+        sections = [s.strip() for s in args.sections.split(",") if s.strip()]
+        store = VersionedStore(args.db)
+        client = AustLIIClient()
+        adapter = AustLIIActAdapter(client, store)
+        ids = adapter.fetch_act(args.act.rstrip("/"), sections)
+        print(json.dumps(ids))
+        store.close()
+    elif args.command == "view":
+        store = VersionedStore(args.db)
+        doc = store.get_by_canonical_id(args.id)
+        if doc is None:
+            print("Not found")
+        else:
+            from .rules.extractor import extract_rules
+
+            rules = [r.__dict__ for r in extract_rules(doc.body)]
+            output = {
+                "text": doc.body,
+                "rules": rules,
+                "provenance": doc.metadata.provenance,
+                "ontology_tags": doc.metadata.ontology_tags,
+            }
+            print(json.dumps(output))
+        store.close()
     else:
         parser.print_help()
 
