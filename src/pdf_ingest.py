@@ -3,22 +3,30 @@ import json
 import re
 from pathlib import Path
 
-import pdfplumber
+from pdfminer.high_level import extract_text
 
 
 def extract_pdf_text(pdf_path: Path):
-    """Extract text from a PDF, returning list of pages with numbers."""
+    """Extract text and headings from a PDF, returning pages with numbers."""
+    raw = extract_text(str(pdf_path)) or ""
     pages = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for i, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text() or ""
-            text = re.sub(r"\s+", " ", text).strip()
-            pages.append({"page": i, "text": text})
+    for i, page_text in enumerate(raw.split("\f"), start=1):
+        lines = [re.sub(r"\s+", " ", line).strip() for line in page_text.splitlines() if line.strip()]
+        if not lines:
+            continue
+        heading = lines[0]
+        body = " ".join(lines[1:]) if len(lines) > 1 else ""
+        pages.append({"page": i, "heading": heading, "text": body})
     return pages
 
 
-def save_json(data, output_path: Path):
+def save_json(pages, output_path: Path, source: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "source": str(source),
+        "page_count": len(pages),
+        "pages": pages,
+    }
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -31,7 +39,7 @@ def main():
 
     output = args.output or Path("data/pdfs") / (args.pdf.stem + ".json")
     pages = extract_pdf_text(args.pdf)
-    save_json(pages, output)
+    save_json(pages, output, args.pdf)
 
 
 if __name__ == "__main__":
