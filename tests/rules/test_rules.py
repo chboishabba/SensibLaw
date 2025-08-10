@@ -37,3 +37,11 @@ def test_cli_extract_and_check():
     out2 = run_cli("check", "--rules", json.dumps(rules))
     issues = json.loads(out2)
     assert any("Contradiction" in i for i in issues)
+
+
+def test_shall_not_detection():
+    text = "The driver shall not park here. The driver shall park here."
+    rules = extract_rules(text)
+    assert len(rules) == 2
+    issues = check_rules(rules)
+    assert any("Contradiction" in i for i in issues)
