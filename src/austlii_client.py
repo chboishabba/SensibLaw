@@ -1,11 +1,18 @@
 import json
 import logging
+import re
 import time
+from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Dict, List
+import xml.etree.ElementTree as ET
 
-import requests
-from bs4 import BeautifulSoup
+try:  # pragma: no cover - optional dependency
+    import requests
+except Exception:  # pragma: no cover
+    requests = None  # type: ignore
+
+from .models import Document, DocumentMetadata, Provision
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +46,23 @@ class AustLIIClient:
         self.timeout = timeout
         self.max_retries = max_retries
         self.backoff = backoff
-        self.session = requests.Session()
-        # A descriptive user agent is polite when accessing free services.
-        self.session.headers.update(
-            {"User-Agent": "SensibLawBot/0.1 (+https://github.com/)"}
-        )
+        if requests is not None:
+            self.session = requests.Session()
+            # A descriptive user agent is polite when accessing free services.
+            self.session.headers.update(
+                {"User-Agent": "SensibLawBot/0.1 (+https://github.com/)"}
+            )
+        else:  # pragma: no cover - requests missing in minimal environments
+            self.session = None
 
     # ------------------------------------------------------------------
     # Network helpers
     # ------------------------------------------------------------------
-    def _get(self, url: str) -> requests.Response:
+    def _get(self, url: str) -> Any:
         """Perform a GET request with very simple retry logic."""
+        if self.session is None:
+            raise RuntimeError("requests library is required for network operations")
+
         attempt = 0
         while True:
             try:
@@ -57,7 +70,7 @@ class AustLIIClient:
                 response = self.session.get(url, timeout=self.timeout)
                 response.raise_for_status()
                 return response
-            except requests.RequestException as exc:
+            except Exception as exc:
                 attempt += 1
                 logger.warning(
                     "Error fetching %s (attempt %s/%s): %s",
@@ -88,23 +101,93 @@ class AustLIIClient:
 
         logger.info("Fetching RSS feed %s", feed_url)
         response = self._get(feed_url)
-        soup = BeautifulSoup(response.content, "xml")
+        root = ET.fromstring(response.content)
         entries: List[Dict[str, Any]] = []
-        for item in soup.find_all("item"):
-            title = item.title.text if item.title else ""
-            link = item.link.text if item.link else ""
+        for item in root.findall(".//item"):
+            title = item.findtext("title", default="")
+            link = item.findtext("link", default="")
             entries.append({"title": title, "link": link})
         return entries
 
-    def fetch_judgment(self, url: str) -> Dict[str, Any]:
-        """Download and parse a judgment page from AustLII.
-
-        The extracted title and raw text are written to a JSON file within
-        ``data/austlii/judgments`` and returned as a dictionary.
-        """
+    def fetch_judgment(self, url: str) -> Document:
+        """Download, parse, and persist a judgment page from AustLII."""
 
         logger.info("Fetching judgment %s", url)
         response = self._get(url)
+        doc = self.parse_document(url, response.content)
+        filename = JUDGMENT_DIR / f"{doc.metadata.canonical_id}.json"
+        self._write_json(filename, doc.to_dict())
+        return doc
+
+    def fetch_legislation(self, url: str) -> Document:
+        """Download, parse, and persist a legislation page from AustLII."""
+
+        logger.info("Fetching legislation %s", url)
+        response = self._get(url)
+        doc = self.parse_document(url, response.content)
+        filename = LEGISLATION_DIR / f"{doc.metadata.canonical_id}.json"
+        self._write_json(filename, doc.to_dict())
+        return doc
+
+    # ------------------------------------------------------------------
+    # Parsing helpers
+    # ------------------------------------------------------------------
+    def parse_document(self, url: str, content: bytes | str) -> Document:
+        """Parse an AustLII HTML page into a :class:`Document`."""
+
+        html = content.decode("utf-8") if isinstance(content, bytes) else content
+
+        title_match = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.IGNORECASE | re.DOTALL)
+        title = re.sub(r"<.*?>", "", title_match.group(1)).strip() if title_match else ""
+
+        date_match = re.search(
+            r"<span[^>]*class=['\"]date['\"][^>]*>(.*?)</span>",
+            html,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if date_match:
+            try:
+                doc_date = datetime.fromisoformat(
+                    re.sub(r"<.*?>", "", date_match.group(1)).strip()
+                ).date()
+            except ValueError:
+                doc_date = date.today()
+        else:
+            doc_date = date.today()
+
+        section_pattern = re.compile(
+            r"<(?:p|div|li)[^>]*>(\d+(?:\.\d+)*)\s+([^<]+)</(?:p|div|li)>",
+            re.IGNORECASE,
+        )
+        sections = section_pattern.findall(html)
+
+        provisions = self._build_hierarchy(sections)
+        body = "\n".join([f"{num} {txt}" for num, txt in sections])
+        canonical_id = self._slugify(title) or str(int(time.time()))
+        metadata = DocumentMetadata(
+            jurisdiction="AU",
+            citation=title,
+            date=doc_date,
+            canonical_id=canonical_id,
+            provenance=url,
+        )
+        return Document(metadata=metadata, body=body, provisions=provisions)
+
+    @staticmethod
+    def _build_hierarchy(sections: List[tuple[str, str]]) -> List[Provision]:
+        """Build a hierarchy of :class:`Provision` objects from numbered sections."""
+
+        root: List[Provision] = []
+        stack: List[tuple[int, List[Provision]]] = [(0, root)]
+        for num, text in sections:
+            level = num.count(".") + 1
+            prov = Provision(text=text, identifier=num)
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+            stack[-1][1].append(prov)
+            stack.append((level, prov.children))
+        return root
+
         soup = BeautifulSoup(response.content, "html.parser")
         title = soup.find("h1").get_text(strip=True) if soup.find("h1") else ""
         text = self._normalize_text(soup)
