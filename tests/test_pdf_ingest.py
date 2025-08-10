@@ -9,30 +9,10 @@ def test_extract_pdf(monkeypatch, tmp_path):
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
 
-    class DummyPage:
-        def __init__(self, text):
-            self._text = text
+    def fake_extract_text(path):
+        return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
 
-        def extract_text(self):
-            return self._text
-
-    class DummyPDF:
-        def __init__(self, pages):
-            self.pages = pages
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-    def fake_open(path):
-        return DummyPDF([
-            DummyPage("Hello  \nWorld"),
-            DummyPage("Second\tPage")
-        ])
-
-    sys.modules["pdfplumber"] = types.SimpleNamespace(open=fake_open)
+    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(extract_text=fake_extract_text)
     pdf_ingest = importlib.import_module("src.pdf_ingest")
 
     pdf_path = tmp_path / "sample.pdf"
@@ -40,12 +20,14 @@ def test_extract_pdf(monkeypatch, tmp_path):
 
     pages = pdf_ingest.extract_pdf_text(pdf_path)
     assert pages == [
-        {"page": 1, "text": "Hello World"},
-        {"page": 2, "text": "Second Page"},
+        {"page": 1, "heading": "Heading 1", "text": "Hello World"},
+        {"page": 2, "heading": "Heading2", "text": "Second Page"},
     ]
 
     out = tmp_path / "out.json"
-    pdf_ingest.save_json(pages, out)
+    pdf_ingest.save_json(pages, out, pdf_path)
     with out.open() as f:
         data = json.load(f)
-    assert data == pages
+    assert data["source"] == str(pdf_path)
+    assert data["page_count"] == 2
+    assert data["pages"] == pages

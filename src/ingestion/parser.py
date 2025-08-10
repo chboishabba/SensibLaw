@@ -5,46 +5,45 @@ from typing import Any, Dict
 
 from ..models.document import Document
 from ..ontology.tagger import tag_text
+from .consent_gate import check_consent
+
+# Mapping of human-readable jurisdictions to standard codes.
+JURISDICTION_MAP = {
+    "Australia": ["AU"],
+    "AUS": ["AU"],
+    "AU": ["AU"],
+}
+
+
+def _apply_tags(doc: Document) -> None:
+    """Populate ontology tags on the document metadata."""
+    tags = tag_text(doc.body)
+    doc.metadata.ontology_tags = tags
+    # Populate legacy fields for backward compatibility
+    if "lpo" in tags:
+        doc.metadata.lpo_tags = tags["lpo"]
+    if "cco" in tags:
+        doc.metadata.cco_tags = tags["cco"]
+
+
+def _apply_jurisdiction_codes(doc: Document) -> None:
+    """Add jurisdiction codes if they can be inferred."""
+    if not doc.metadata.jurisdiction_codes:
+        doc.metadata.jurisdiction_codes = JURISDICTION_MAP.get(
+            doc.metadata.jurisdiction, []
+        )
 
 
 def emit_document(record: Dict[str, Any]) -> Document:
     """Convert a raw record dictionary into a tagged :class:`Document` instance."""
+    check_consent(record)
     doc = Document.from_dict(record)
-    if not doc.provisions:
-        doc.provisions = [tag_text(doc.body)]
+    _apply_tags(doc)
+    _apply_jurisdiction_codes(doc)
     return doc
 
 
 def emit_document_from_json(data: str) -> Document:
     """Convert a JSON string into a tagged :class:`Document` instance."""
-    doc = Document.from_json(data)
-    if not doc.provisions:
-        doc.provisions = [tag_text(doc.body)]
-    return doc
-
-from models.document import Document
-from .consent_gate import check_consent
-
-
-def emit_document(record: Dict[str, Any]) -> Document:
-    """Convert a raw record dictionary into a :class:`Document` instance.
-
-    The record is evaluated by the consent gate before being converted to a
-    :class:`Document`. If policy checks fail, a :class:`ConsentError` is
-    raised to block unauthorized persistence or transmission.
-    """
-
-    check_consent(record)
-    return Document.from_dict(record)
-
-
-def emit_document_from_json(data: str) -> Document:
-    """Convert a JSON string into a :class:`Document` instance.
-
-    The JSON payload is decoded and passed through the consent gate before the
-    resulting record is converted to a :class:`Document`.
-    """
-
     record = json.loads(data)
-    check_consent(record)
-    return Document.from_dict(record)
+    return emit_document(record)
