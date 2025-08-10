@@ -1,0 +1,6 @@
+{
+  "customs": {
+    "trade_usage": ["trade", "usage"],
+    "business_practice": ["business", "practice"]
+  }
+}
