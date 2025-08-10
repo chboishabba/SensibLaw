@@ -13,6 +13,7 @@ def test_extract_pdf(monkeypatch, tmp_path):
         return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
 
     sys.modules["pdfminer.high_level"] = types.SimpleNamespace(extract_text=fake_extract_text)
+    sys.modules.pop("src.pdf_ingest", None)
     pdf_ingest = importlib.import_module("src.pdf_ingest")
 
     pdf_path = tmp_path / "sample.pdf"
