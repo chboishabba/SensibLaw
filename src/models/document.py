@@ -31,6 +31,8 @@ class DocumentMetadata:
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
     cultural_flags: Optional[List[str]] = None
+    canonical_id: Optional[str] = None
+    provenance: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
@@ -54,6 +56,8 @@ class DocumentMetadata:
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
             cultural_flags=data.get("cultural_flags"),
+            canonical_id=data.get("canonical_id"),
+            provenance=data.get("provenance"),
         )
 
 
