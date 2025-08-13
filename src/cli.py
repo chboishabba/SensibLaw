@@ -33,6 +33,19 @@ def main() -> None:
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
 
+    dist_parser = sub.add_parser(
+        "distinguish", help="Compare two cases and show reasoning"
+    )
+    dist_parser.add_argument(
+        "--base", type=Path, required=True, help="Base case paragraphs as JSON"
+    )
+    dist_parser.add_argument(
+        "--candidate",
+        type=Path,
+        required=True,
+        help="Candidate case paragraphs as JSON",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -70,6 +83,18 @@ def main() -> None:
             cultural_flags=args.cultural_flags,
         )
         print(doc.to_json())
+    elif args.command == "distinguish":
+        from .distinguish.engine import (
+            compare_cases,
+            extract_case_silhouette,
+        )
+
+        base_paras = json.loads(args.base.read_text())
+        cand_paras = json.loads(args.candidate.read_text())
+        base = extract_case_silhouette(base_paras)
+        cand = extract_case_silhouette(cand_paras)
+        result = compare_cases(base, cand)
+        print(json.dumps(result))
     else:
         parser.print_help()
 
