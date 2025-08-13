@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensiblaw"
+version = "0.1.0"
+description = "Legal research and reasoning toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "SensibLaw contributors"}]
+dependencies = [
+    "pdfminer.six",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "pre-commit",
+]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+sensiblaw = "src.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"src" = ["data/foundation_sources.json"]

@@ -1,6 +1,14 @@
 # SensibLaw
 Like coleslaw, it just makes sense.
 
+## Installation
+
+Install the package in editable mode to develop locally:
+
+```bash
+pip install -e .
+```
+
 ## CLI
 
 Retrieve a document revision as it existed on a given date:
