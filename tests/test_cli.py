@@ -2,9 +2,6 @@ import json
 import subprocess
 from datetime import date, datetime
 from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.models.document import Document, DocumentMetadata
 from src.storage import VersionedStore

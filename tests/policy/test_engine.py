@@ -1,8 +1,4 @@
 import json
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from src.policy.engine import CulturalFlags, PolicyEngine
 from src.graph import GraphNode, NodeType
