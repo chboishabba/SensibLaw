@@ -88,15 +88,6 @@ class SourceDispatcher:
                 results.append({"name": source["name"], "nodes": nodes, "edges": edges})
                 continue
 
-            if source["name"].lower() == "federal register of legislation":
-                api_url = base_url.rstrip("/") + "/federalregister/json/Acts"
-                try:
-                    nodes, edges = frl.fetch_acts(api_url)
-                except Exception:  # pragma: no cover - network/parse errors
-                    nodes, edges = [], []
-                results.append({"name": source["name"], "nodes": nodes, "edges": edges})
-                continue
-
             # Generic fetchers -------------------------------------------------
             fetchers: List[str] = []
             if "AUSTLII.EDU.AU" in upper_url:
