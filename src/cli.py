@@ -6,6 +6,27 @@ from pathlib import Path
 from .storage import VersionedStore
 
 
+def _cmd_tests_run(args: argparse.Namespace) -> None:
+    """Evaluate a story against a checklist template and print results."""
+
+    from .tests.evaluator import evaluate
+
+    evaluation = evaluate(
+        concept_id=args.concept,
+        story_path=args.story,
+        templates_path=args.templates,
+    )
+
+    template = evaluation.template
+    print(f"Test: {template.name} ({template.concept_id})")
+    header = f"{'Factor':20} {'Status':10} Evidence"
+    print(header)
+    print("-" * len(header))
+    for res in evaluation.results:
+        evidence = "; ".join(res.evidence)
+        print(f"{res.factor.id:20} {res.status:10} {evidence}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -56,6 +77,15 @@ def main() -> None:
         type=Path,
         help="Path to a StoryGraph JSON file representing the query",
     )
+
+    tests_parser = sub.add_parser(
+        "tests", help="Run declarative concept checklists"
+    )
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    run_parser = tests_sub.add_parser("run", help="Evaluate a story against a checklist")
+    run_parser.add_argument("--templates", type=Path, required=True, help="Path to templates JSON")
+    run_parser.add_argument("--story", type=Path, required=True, help="Path to story JSON")
+    run_parser.add_argument("--concept", required=True, help="Concept ID to evaluate")
 
     args = parser.parse_args()
     if args.command == "get":
@@ -120,6 +150,8 @@ def main() -> None:
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "tests" and args.tests_command == "run":
+        _cmd_tests_run(args)
     else:
         parser.print_help()
 
