@@ -47,15 +47,18 @@ def main() -> None:
     )
 
     query_parser = sub.add_parser(
-        "query", help="Run a concept query over the knowledge base"
+        "query", help="Run a concept query or case lookup over the knowledge base"
     )
-    group = query_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--text", help="Question or keyword query")
-    group.add_argument(
+    query_parser.add_argument("--text", help="Question or keyword query")
+    query_parser.add_argument(
         "--graph",
         type=Path,
         help="Path to a StoryGraph JSON file representing the query",
     )
+    query_sub = query_parser.add_subparsers(dest="query_command")
+    case_q = query_sub.add_parser("case", help="Look up a case by identifier")
+    case_q.add_argument("--id", required=True, help="Case identifier")
+    case_q.add_argument("--year", type=int, default=1992, help="Year of judgment")
 
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
@@ -124,19 +127,45 @@ def main() -> None:
         result = compare_cases(base, cand)
         print(json.dumps(result))
     elif args.command == "query":
-        from .pipeline import build_cloud, match_concepts, normalise
-        from .pipeline.input_handler import parse_input
+        if args.query_command == "case":
+            from .api import routes
+            from .graph.models import EdgeType, GraphEdge, GraphNode, NodeType
+            from .ingestion import hca
 
-        if args.graph:
-            data = json.loads(args.graph.read_text())
-            raw_query = parse_input(data)
+            nodes, edges = hca.crawl_year(args.year)
+            for n in nodes:
+                meta = {k: v for k, v in n.items() if k not in {"id", "type"}}
+                routes._graph.add_node(
+                    GraphNode(type=NodeType.DOCUMENT, identifier=n["id"], metadata=meta)
+                )
+            for e in edges:
+                routes._graph.add_edge(
+                    GraphEdge(type=EdgeType.CITES, source=e["from"], target=e["to"])
+                )
+            case = next((n for n in nodes if n["id"] == args.id), None)
+            if case is None:
+                print("{}")
+            else:
+                cites = [e["to"] for e in edges if e["from"] == args.id]
+                result = {
+                    "catchwords": case.get("catchwords", []),
+                    "citations": cites,
+                }
+                print(json.dumps(result))
         else:
-            raw_query = parse_input(args.text)
+            from .pipeline import build_cloud, match_concepts, normalise
+            from .pipeline.input_handler import parse_input
 
-        text = normalise(raw_query)
-        concepts = match_concepts(text)
-        cloud = build_cloud(concepts)
-        print(json.dumps({"cloud": cloud}))
+            if args.graph:
+                data = json.loads(args.graph.read_text())
+                raw_query = parse_input(data)
+            else:
+                raw_query = parse_input(args.text)
+
+            text = normalise(raw_query)
+            concepts = match_concepts(text)
+            cloud = build_cloud(concepts)
+            print(json.dumps({"cloud": cloud}))
     elif args.command == "graph":
         if args.graph_command == "subgraph":
             from .api.routes import generate_subgraph
