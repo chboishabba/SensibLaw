@@ -14,6 +14,7 @@ function arguments which avoids the need for network access.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Dict, Iterable, List, Tuple, Optional
 
 from .cache import fetch_json
@@ -27,6 +28,7 @@ from .cache import fetch_json
 class Section:
     number: str
     title: str | None = None
+    body: str | None = None
 
 
 @dataclass
@@ -112,6 +114,7 @@ def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tup
     # subset of the fields so the parser is intentionally tolerant of missing
     # keys.
     acts: List[Act] = []
+    term_definitions: Dict[str, str] = {}
     for item in data.get("results", []):
         ident = item.get("id") or item.get("identifier") or item.get("title")
         if not ident:
@@ -123,14 +126,56 @@ def fetch_acts(api_url: str, *, data: Optional[Dict[str, object]] = None) -> Tup
             or item.get("PointInTime")
         )
         sections_data = item.get("sections") or item.get("Sections") or []
-        sections = [
-            Section(number=str(s.get("number") or s.get("id")), title=s.get("title"))
-            for s in sections_data
-            if s.get("number") or s.get("id")
-        ]
+        sections: List[Section] = []
+        for s in sections_data:
+            num = s.get("number") or s.get("id")
+            if not num:
+                continue
+            num = str(num)
+            body = s.get("body")
+            sections.append(Section(number=num, title=s.get("title"), body=body))
+            if body:
+                for m in re.finditer(r'"([^"\n]+)"\s+means', body):
+                    term_definitions[m.group(1).lower()] = f"{ident}:{num}"
         acts.append(Act(identifier=str(ident), title=title, point_in_time=pit, sections=sections))
 
-    return _acts_to_graph(acts)
+    nodes, edges = _acts_to_graph(acts)
+
+    # ------------------------------------------------------------------
+    # Parse bodies for cross-references and uses of defined terms
+    # ------------------------------------------------------------------
+    for act in acts:
+        sec_map = {sec.number: f"{act.identifier}:{sec.number}" for sec in act.sections or []}
+        for sec in act.sections or []:
+            body = sec.body or ""
+            from_id = f"{act.identifier}:{sec.number}"
+
+            # Cross references to other sections within the same Act
+            for m in re.finditer(r"section\s+([0-9A-Za-z]+)", body, flags=re.IGNORECASE):
+                ref = m.group(1)
+                to_id = sec_map.get(ref)
+                if to_id:
+                    edges.append({
+                        "from": from_id,
+                        "to": to_id,
+                        "type": "cites",
+                        "text": m.group(0),
+                    })
+
+            # Usage of defined terms
+            for term, def_id in term_definitions.items():
+                if def_id == from_id:
+                    continue
+                m = re.search(rf"\b{re.escape(term)}\b", body, flags=re.IGNORECASE)
+                if m:
+                    edges.append({
+                        "from": def_id,
+                        "to": from_id,
+                        "type": "defines",
+                        "text": m.group(0),
+                    })
+
+    return nodes, edges
 
 
 __all__ = ["Act", "Section", "fetch_acts"]
