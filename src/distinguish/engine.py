@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Sequence, List
+from typing import Dict, Sequence, List, Tuple, Set
 
 
 @dataclass
@@ -37,6 +37,21 @@ def extract_case_silhouette(paragraphs: Sequence[str]) -> CaseSilhouette:
         if text.lower().startswith("held"):
             holdings[text] = idx
     return CaseSilhouette(facts, holdings, list(paragraphs))
+
+
+def extract_holding_and_facts(paragraphs: Sequence[str]) -> Tuple[Set[str], Set[str]]:
+    """Return sets of holding hints and fact tags from *paragraphs*.
+
+    This is a lightweight helper primarily intended for tests and simple
+    experiments.  It mirrors :func:`extract_case_silhouette` but returns two
+    sets rather than a dataclass so that callers can easily reason about the
+    extracted strings.
+    """
+
+    silhouette = extract_case_silhouette(paragraphs)
+    holdings = set(silhouette.holding_hints.keys())
+    facts = set(silhouette.fact_tags.keys())
+    return holdings, facts
 
 
 def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, List[dict]]:
@@ -107,4 +122,12 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
                 }
             )
 
-    return {"overlaps": overlaps, "missing": missing}
+    base_facts = set(base.fact_tags.keys())
+    cand_facts = set(candidate.fact_tags.keys())
+    return {
+        "overlaps": overlaps,
+        "missing": missing,
+        "overlap_tokens": sorted(base_facts & cand_facts),
+        "a_only_tokens": sorted(base_facts - cand_facts),
+        "b_only_tokens": sorted(cand_facts - base_facts),
+    }
