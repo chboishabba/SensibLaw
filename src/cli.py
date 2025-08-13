@@ -46,6 +46,17 @@ def main() -> None:
         help="Candidate case paragraphs as JSON",
     )
 
+    query_parser = sub.add_parser(
+        "query", help="Run a concept query over the knowledge base"
+    )
+    group = query_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--text", help="Question or keyword query")
+    group.add_argument(
+        "--graph",
+        type=Path,
+        help="Path to a StoryGraph JSON file representing the query",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -95,6 +106,20 @@ def main() -> None:
         cand = extract_case_silhouette(cand_paras)
         result = compare_cases(base, cand)
         print(json.dumps(result))
+    elif args.command == "query":
+        from .pipeline import build_cloud, match_concepts, normalise
+        from .pipeline.input_handler import parse_input
+
+        if args.graph:
+            data = json.loads(args.graph.read_text())
+            raw_query = parse_input(data)
+        else:
+            raw_query = parse_input(args.text)
+
+        text = normalise(raw_query)
+        concepts = match_concepts(text)
+        cloud = build_cloud(concepts)
+        print(json.dumps({"cloud": cloud}))
     else:
         parser.print_help()
 
