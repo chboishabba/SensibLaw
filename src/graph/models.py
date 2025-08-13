@@ -12,6 +12,7 @@ class NodeType(Enum):
     DOCUMENT = "document"
     PROVISION = "provision"
     PERSON = "person"
+    EXTRINSIC = "extrinsic"
 
 
 class EdgeType(Enum):
@@ -30,6 +31,14 @@ class GraphNode:
     identifier: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     date: Optional[date] = None
+
+
+@dataclass
+class ExtrinsicNode(GraphNode):
+    """Node representing extrinsic materials such as parliamentary debates."""
+
+    role: str = ""
+    stage: str = ""
 
 
 @dataclass
@@ -75,6 +84,7 @@ class LegalGraph:
         source: Optional[str] = None,
         target: Optional[str] = None,
         type: Optional[EdgeType] = None,
+        min_weight: Optional[float] = None,
     ) -> List[GraphEdge]:
         """Find edges matching the provided criteria."""
         results = self.edges
@@ -84,6 +94,8 @@ class LegalGraph:
             results = [e for e in results if e.target == target]
         if type is not None:
             results = [e for e in results if e.type == type]
+        if min_weight is not None:
+            results = [e for e in results if e.weight >= min_weight]
         return results
 
 
@@ -91,6 +103,7 @@ __all__ = [
     "NodeType",
     "EdgeType",
     "GraphNode",
+    "ExtrinsicNode",
     "GraphEdge",
     "LegalGraph",
 ]
