@@ -13,6 +13,7 @@ class NodeType(Enum):
     PROVISION = "provision"
     PERSON = "person"
     EXTRINSIC = "extrinsic"
+    CONCEPT = "concept"
 
 
 class EdgeType(Enum):
@@ -21,6 +22,7 @@ class EdgeType(Enum):
     CITES = "cites"
     REFERENCES = "references"
     RELATED_TO = "related_to"
+    REJECTS = "rejects"
 
 
 @dataclass
