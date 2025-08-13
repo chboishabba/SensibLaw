@@ -37,8 +37,18 @@ PERMANENT_STAY_TEST = TestTemplate(
     ],
 )
 
+S4AA_TEST = TestTemplate(
+    concept_id="s4AA",
+    name="Section 4AA Test",
+    factors=[
+        Factor("f1", "Example factor one"),
+        Factor("f2", "Example factor two"),
+    ],
+)
+
 # Registry mapping concept IDs to templates for lookup during evaluation
 TEMPLATE_REGISTRY: Dict[str, TestTemplate] = {
     PERMANENT_STAY_TEST.concept_id: PERMANENT_STAY_TEST,
+    S4AA_TEST.concept_id: S4AA_TEST,
 }
 
