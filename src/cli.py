@@ -16,8 +16,16 @@ def main() -> None:
     get_parser.add_argument(
         "--as-at", help="Return version as of this date (YYYY-MM-DD)")
 
-    extract_parser = sub.add_parser("extract", help="Extract rules from text")
-    extract_parser.add_argument("--text", required=True, help="Provision text")
+    extract_parser = sub.add_parser("extract", help="Extraction helpers")
+    extract_parser.add_argument("--text", help="Provision text")
+    extract_sub = extract_parser.add_subparsers(dest="extract_command")
+
+    extract_text = extract_sub.add_parser("rules", help="Extract rules from text")
+    extract_text.add_argument("--text", required=True, help="Provision text")
+
+    extract_frl = extract_sub.add_parser("frl", help="Fetch Acts from the FRL API")
+    extract_frl.add_argument("--data", type=Path, help="Path to JSON payload for tests")
+    extract_frl.add_argument("--api-url", default="https://example.com", help="FRL API base URL")
 
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True, help="JSON encoded rules")
@@ -62,6 +70,7 @@ def main() -> None:
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
     subgraph_parser.add_argument("--seed", required=True, help="Seed node identifier")
     subgraph_parser.add_argument("--hops", type=int, default=1, help="Number of hops")
+    subgraph_parser.add_argument("--graph-file", type=Path, help="Graph JSON file (use '-' for stdin)")
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
@@ -88,10 +97,19 @@ def main() -> None:
             print(doc.to_json())
         store.close()
     elif args.command == "extract":
-        from .rules.extractor import extract_rules
+        if args.extract_command == "rules" or (args.extract_command is None and args.text):
+            from .rules.extractor import extract_rules
 
-        rules = extract_rules(args.text)
-        print(json.dumps([r.__dict__ for r in rules]))
+            rules = extract_rules(args.text)
+            print(json.dumps([r.__dict__ for r in rules]))
+        elif args.extract_command == "frl":
+            from .ingestion.frl import fetch_acts
+
+            payload = json.loads(args.data.read_text()) if args.data else None
+            nodes, edges = fetch_acts(args.api_url, data=payload)
+            print(json.dumps({"nodes": nodes, "edges": edges}))
+        else:
+            parser.print_help()
     elif args.command == "check":
         from .rules import Rule
         from .rules.reasoner import check_rules
@@ -139,10 +157,27 @@ def main() -> None:
         print(json.dumps({"cloud": cloud}))
     elif args.command == "graph":
         if args.graph_command == "subgraph":
-            from .api.routes import generate_subgraph
+            if args.graph_file:
+                import sys
+                from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
 
-            result = generate_subgraph(args.seed, args.hops)
-            print(json.dumps(result))
+                if str(args.graph_file) == "-":
+                    data = json.load(sys.stdin)
+                else:
+                    data = json.loads(args.graph_file.read_text())
+
+                g = Graph()
+                for n in data.get("nodes", []):
+                    g.add_node(Node(n["id"], n["type"], {"label": n.get("title", n["id"])}))
+                for e in data.get("edges", []):
+                    g.add_edge(Edge(e["from"], e["to"], e["type"], {"label": e.get("type")}))
+                nodes, edges = build_subgraph(g, {args.seed}, hops=args.hops)
+                print(to_dot(nodes, edges))
+            else:
+                from .api.routes import generate_subgraph
+
+                result = generate_subgraph(args.seed, args.hops)
+                print(json.dumps(result))
         else:
             parser.print_help()
     elif args.command == "tests":
