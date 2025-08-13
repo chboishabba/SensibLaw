@@ -1,4 +1,7 @@
 # SensibLaw
+
+[![CI](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml)
+
 Like coleslaw, it just makes sense.
 
 ## CLI
