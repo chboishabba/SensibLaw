@@ -22,3 +22,29 @@ sensiblaw get --id 1 --as-at 2023-01-01
 
 See [docs/versioning.md](docs/versioning.md) for details on the versioned
 storage layer and available provenance metadata.
+
+## Development
+
+Install development dependencies:
+
+```bash
+pip install -e .[dev]
+```
+
+Run tests:
+
+```bash
+pytest
+```
+
+Run lint and type checks:
+
+```bash
+pre-commit run --all-files
+```
+
+Run the SensibLaw tests against fixture data:
+
+```bash
+sensiblaw tests run tests/fixtures/glj_permanent_stay_story.json
+```
