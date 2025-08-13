@@ -47,3 +47,32 @@ lg.add_edge(edge)
 
 The `LegalGraph` manager provides `add_node` and `add_edge` helpers along with
 query methods like `get_node` and `find_edges` for exploring the network.
+
+## Extrinsic material and weights
+
+Parliamentary contributions or other extrinsic materials can be modelled with
+an `ExtrinsicNode`. Each node records the speaker's role (e.g. *Minister*) and
+the legislative stage (e.g. *2nd reading*). The ingestion helper computes a
+weight that reflects the relative influence of the contribution.
+
+```python
+from graph import LegalGraph, NodeType, GraphNode, ingest_extrinsic
+
+graph = LegalGraph()
+bill = GraphNode(type=NodeType.DOCUMENT, identifier="bill-1")
+graph.add_node(bill)
+
+# Minister during the second reading carries more weight than a backbencher
+ingest_extrinsic(
+    graph,
+    identifier="speech-1",
+    role="Minister",
+    stage="2nd reading",
+    target=bill.identifier,
+)
+
+heavy_edges = graph.find_edges(min_weight=2.0)
+```
+
+Filtering by `min_weight` allows consumers to focus on more authoritative
+extrinsic statements when interpreting legislation.
