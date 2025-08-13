@@ -4,6 +4,8 @@ import json
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, Optional, Set
 
+from src.graph.models import GraphNode
+
 
 class CulturalFlags(Enum):
     """Flags representing culturally sensitive content."""
@@ -78,6 +80,56 @@ class PolicyEngine:
                 return action
         default_action: Action = self.policy.get("default", "allow")
         return default_action
+
+    def enforce(self, node: GraphNode, *, consent: bool = False) -> Optional[GraphNode]:
+        """Apply policy and consent rules to ``node``.
+
+        Parameters
+        ----------
+        node:
+            The :class:`GraphNode` to evaluate.
+        consent:
+            Whether explicit consent has been provided for this node.
+
+        Returns
+        -------
+        Optional[GraphNode]
+            The original node if access is permitted. If the policy dictates a
+            ``deny`` action, ``None`` is returned. When consent is required but
+            not provided, a redacted node with empty metadata is returned.
+        """
+
+        flags = []
+        for name in node.cultural_flags or []:
+            try:
+                flags.append(CulturalFlags[name.upper()])
+            except KeyError:
+                continue
+        action = self.evaluate(flags)
+        if action == "deny":
+            return None
+
+        if node.consent_required and not consent:
+            return GraphNode(
+                type=node.type,
+                identifier=node.identifier,
+                metadata={},
+                date=node.date,
+                cultural_flags=node.cultural_flags,
+                consent_required=node.consent_required,
+            )
+
+        if action == "transform":
+            return GraphNode(
+                type=node.type,
+                identifier=node.identifier,
+                metadata={},
+                date=node.date,
+                cultural_flags=node.cultural_flags,
+                consent_required=node.consent_required,
+            )
+
+        return node
 
     def _apply_hooks(self, flag: CulturalFlags, action: Action) -> None:
         """Invoke any registered hooks for ``action``."""

@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from src.policy.engine import CulturalFlags, PolicyEngine
+from src.graph import GraphNode, NodeType
 
 policy_json = json.dumps(
     {
@@ -60,3 +61,27 @@ def test_default_allow():
     engine = PolicyEngine(policy)
     action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
     assert action == "allow"
+
+
+def test_enforce_redacts_without_consent():
+    engine = PolicyEngine({})
+    node = GraphNode(
+        type=NodeType.DOCUMENT,
+        identifier="n1",
+        metadata={"secret": "x"},
+        consent_required=True,
+    )
+    redacted = engine.enforce(node, consent=False)
+    assert redacted.metadata == {}
+
+
+def test_enforce_allows_with_consent():
+    engine = PolicyEngine({})
+    node = GraphNode(
+        type=NodeType.DOCUMENT,
+        identifier="n1",
+        metadata={"secret": "x"},
+        consent_required=True,
+    )
+    allowed = engine.enforce(node, consent=True)
+    assert allowed.metadata == {"secret": "x"}

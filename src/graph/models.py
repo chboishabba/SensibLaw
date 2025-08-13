@@ -27,12 +27,31 @@ class EdgeType(Enum):
 
 @dataclass
 class GraphNode:
-    """Representation of a node in the legal graph."""
+    """Representation of a node in the legal graph.
+
+    Attributes
+    ----------
+    type:
+        The :class:`NodeType` of the node.
+    identifier:
+        Unique identifier for the node within the graph.
+    metadata:
+        Arbitrary metadata associated with the node.
+    date:
+        Optional date for the node, typically the date of the underlying
+        document or event.
+    cultural_flags:
+        Optional list of cultural sensitivity flags attached to the node.
+    consent_required:
+        Indicates whether access to this node requires explicit consent.
+    """
 
     type: NodeType
     identifier: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     date: Optional[date] = None
+    cultural_flags: Optional[List[str]] = None
+    consent_required: bool = False
 
 
 @dataclass

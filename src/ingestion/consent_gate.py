@@ -20,10 +20,12 @@ def check_consent(record: Dict[str, Any]) -> None:
     """
 
     flags = set(record.get("cultural_flags", []))
-    if flags & SENSITIVE_FLAGS:
+    consent_required = record.get("consent_required", False)
+    if flags & SENSITIVE_FLAGS or consent_required:
         if not record.get("consent"):
             logger.warning(
-                "Blocked record %s due to missing consent", record.get("metadata", {}).get("citation")
+                "Blocked record %s due to missing consent",
+                record.get("metadata", {}).get("citation"),
             )
             raise ConsentError("Consent required for records with cultural flags")
         logger.info(
