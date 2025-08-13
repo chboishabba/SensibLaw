@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {"id": "1", "type": "case", "citation": "CIT1", "tags": ["foo"]},
+    {"id": "2", "type": "statute", "citation": "CIT2", "tags": ["bar", "foo"]},
+    {"id": "3", "type": "case", "citation": "CIT3", "tags": ["baz"]}
+  ],
+  "edges": [
+    {"source": "1", "target": "2", "date": "2020-01-01", "weight": 0.5},
+    {"source": "2", "target": "3", "date": "2021-01-01", "weight": 0.8}
+  ]
+}
