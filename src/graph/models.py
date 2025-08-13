@@ -20,6 +20,10 @@ class EdgeType(Enum):
     CITES = "cites"
     REFERENCES = "references"
     RELATED_TO = "related_to"
+    PROPOSED_BY = "proposed_by"
+    EXPLAINS = "explains"
+    AMENDS = "amends"
+    INTERPRETED_BY = "interpreted_by"
 
 
 @dataclass
