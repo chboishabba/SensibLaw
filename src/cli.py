@@ -57,6 +57,11 @@ def main() -> None:
         help="Path to a StoryGraph JSON file representing the query",
     )
 
+    concepts_parser = sub.add_parser("concepts", help="Concept utilities")
+    concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
+    match_parser = concepts_sub.add_parser("match", help="Match concepts in text")
+    match_parser.add_argument("text", help="Text to analyse")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -120,6 +125,14 @@ def main() -> None:
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "concepts":
+        if args.concepts_command == "match":
+            from .concepts.matcher import MATCHER
+
+            hits = MATCHER.match(args.text)
+            print(json.dumps([h.__dict__ for h in hits]))
+        else:
+            concepts_parser.print_help()
     else:
         parser.print_help()
 
