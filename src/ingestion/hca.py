@@ -21,7 +21,8 @@ from datetime import datetime
 import html
 import re
 from typing import Iterable, List, Tuple, Dict, Optional
-from urllib.request import urlopen
+
+from .cache import fetch_html
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -135,8 +136,7 @@ def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -
         year = datetime.now().year
 
     if html_text is None:
-        with urlopen(_INDEX_URL.format(year=year)) as resp:  # pragma: no cover - network
-            html_text = resp.read().decode("utf-8", errors="ignore")
+        html_text = fetch_html(_INDEX_URL.format(year=year))
 
     nodes: List[Dict[str, object]] = []
     edges: List[Dict[str, object]] = []
