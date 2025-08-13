@@ -57,6 +57,23 @@ def main() -> None:
         help="Path to a StoryGraph JSON file representing the query",
     )
 
+    graph_parser = sub.add_parser("graph", help="Graph operations")
+    graph_sub = graph_parser.add_subparsers(dest="graph_command")
+    subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
+    subgraph_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    subgraph_parser.add_argument("--hops", type=int, default=1, help="Number of hops")
+
+    tests_parser = sub.add_parser("tests", help="Run declarative tests")
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    tests_run = tests_sub.add_parser("run", help="Run tests against a story")
+    tests_run.add_argument("--ids", nargs="+", required=True, help="Test IDs")
+    tests_run.add_argument("--story", type=Path, required=True, help="Story JSON file")
+
+    cases_parser = sub.add_parser("cases", help="Case operations")
+    cases_sub = cases_parser.add_subparsers(dest="cases_command")
+    cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
+    cases_treat.add_argument("--case-id", required=True, help="Case identifier")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -120,6 +137,31 @@ def main() -> None:
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "graph":
+        if args.graph_command == "subgraph":
+            from .api.routes import generate_subgraph
+
+            result = generate_subgraph(args.seed, args.hops)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "tests":
+        if args.tests_command == "run":
+            from .api.routes import execute_tests
+
+            story = json.loads(args.story.read_text())
+            result = execute_tests(args.ids, story)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "cases":
+        if args.cases_command == "treatment":
+            from .api.routes import fetch_case_treatment
+
+            result = fetch_case_treatment(args.case_id)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
     else:
         parser.print_help()
 

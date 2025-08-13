@@ -13,6 +13,7 @@ authors = [{name = "SensibLaw contributors"}]
 dependencies = [
     "pdfminer.six",
     "requests",
+    "fastapi",
 ]
 
 [project.optional-dependencies]
