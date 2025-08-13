@@ -7,6 +7,8 @@ and ``score_node`` to rank nodes based on heuristic signals.
 from __future__ import annotations
 
 from datetime import date
+import math
+import random
 from typing import Any, Dict, Iterable, List, Tuple
 
 from ..graph.models import GraphEdge, GraphNode, LegalGraph
@@ -70,6 +72,94 @@ def score_node(node: GraphNode, signals: Dict[str, Any]) -> float:
     return score
 
 
+def layout_cloud(
+    nodes: List[Dict[str, Any]],
+    edges: List[Dict[str, Any]],
+    iterations: int = 50,
+) -> Dict[str, Dict[str, float]]:
+    """Assign 3D coordinates to nodes using a simple force-directed layout.
+
+    The algorithm is a basic Fruchterman-Reingold implementation operating in
+    three dimensions. Only the first 300 nodes are considered to keep
+    computation tractable.
+
+    Parameters
+    ----------
+    nodes:
+        List of node dictionaries each containing an ``id`` key.
+    edges:
+        List of edge dictionaries with ``source`` and ``target`` keys.
+    iterations:
+        Number of relaxation steps to run.
+
+    Returns
+    -------
+    Dict[str, Dict[str, float]]
+        Mapping of node identifiers to ``{"x", "y", "z"}`` coordinate
+        dictionaries.
+    """
+
+    if not nodes:
+        return {}
+
+    max_nodes = 300
+    if len(nodes) > max_nodes:
+        allowed = {n["id"] for n in nodes[:max_nodes]}
+        nodes = [n for n in nodes if n["id"] in allowed]
+        edges = [e for e in edges if e["source"] in allowed and e["target"] in allowed]
+
+    # Initial random positions within unit cube centred at origin
+    pos = {n["id"]: [random.uniform(-0.5, 0.5) for _ in range(3)] for n in nodes}
+
+    volume = 1.0  # unit cube
+    k = (volume / len(pos)) ** (1 / 3)
+
+    for i in range(iterations):
+        disp = {v: [0.0, 0.0, 0.0] for v in pos}
+
+        # Repulsive forces
+        for v in pos:
+            for u in pos:
+                if u == v:
+                    continue
+                delta = [pos[v][j] - pos[u][j] for j in range(3)]
+                dist = math.sqrt(sum(d * d for d in delta)) + 1e-9
+                force = k * k / dist
+                for j in range(3):
+                    disp[v][j] += (delta[j] / dist) * force
+
+        # Attractive forces
+        for e in edges:
+            src, tgt = e["source"], e["target"]
+            if src not in pos or tgt not in pos:
+                continue
+            delta = [pos[src][j] - pos[tgt][j] for j in range(3)]
+            dist = math.sqrt(sum(d * d for d in delta)) + 1e-9
+            force = (dist * dist) / k
+            for j in range(3):
+                disp[src][j] -= (delta[j] / dist) * force
+                disp[tgt][j] += (delta[j] / dist) * force
+
+        # Cool temperature as layout stabilises
+        t = 1.0 / (i + 1)
+        for v in pos:
+            d = math.sqrt(sum(dd * dd for dd in disp[v])) + 1e-9
+            step = min(d, t)
+            for j in range(3):
+                pos[v][j] += (disp[v][j] / d) * step
+
+    # Centre coordinates around origin
+    cx = sum(p[0] for p in pos.values()) / len(pos)
+    cy = sum(p[1] for p in pos.values()) / len(pos)
+    cz = sum(p[2] for p in pos.values()) / len(pos)
+    for p in pos.values():
+        p[0] -= cx
+        p[1] -= cy
+        p[2] -= cz
+
+    return {n: {"x": p[0], "y": p[1], "z": p[2]} for n, p in pos.items()}
+
+
 def build_cloud(
     concept_hits: Iterable[Tuple[str, Dict[str, Any]]],
     graph: LegalGraph,
@@ -131,6 +221,17 @@ def build_cloud(
                     nodes[other] = other_node
                     scores.setdefault(other, 0.0)
 
+    max_nodes = 300
+    if len(nodes) > max_nodes:
+        allowed_ids = set(list(nodes.keys())[:max_nodes])
+        nodes = {nid: nodes[nid] for nid in allowed_ids}
+        scores = {nid: scores[nid] for nid in allowed_ids}
+        edge_map = {
+            k: e
+            for k, e in edge_map.items()
+            if e.source in allowed_ids and e.target in allowed_ids
+        }
+
     serialisable_nodes = [
         {
             "id": n.identifier,
@@ -153,7 +254,13 @@ def build_cloud(
         for e in edge_map.values()
     ]
 
+    coords = layout_cloud(serialisable_nodes, serialisable_edges)
+    for n in serialisable_nodes:
+        coord = coords.get(n["id"])
+        if coord:
+            n.update(coord)
+
     return {"nodes": serialisable_nodes, "edges": serialisable_edges, "scores": scores}
 
 
-__all__ = ["build_cloud", "score_node"]
+__all__ = ["build_cloud", "score_node", "layout_cloud"]
