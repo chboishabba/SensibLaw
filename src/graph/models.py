@@ -14,6 +14,7 @@ class NodeType(Enum):
     PERSON = "person"
     EXTRINSIC = "extrinsic"
     CONCEPT = "concept"
+    CASE = "case"
 
 
 class EdgeType(Enum):
@@ -23,6 +24,11 @@ class EdgeType(Enum):
     REFERENCES = "references"
     RELATED_TO = "related_to"
     REJECTS = "rejects"
+    FOLLOWS = "follows"
+    APPLIES = "applies"
+    CONSIDERS = "considers"
+    DISTINGUISHES = "distinguishes"
+    OVERRULES = "overrules"
 
 
 @dataclass
@@ -60,6 +66,15 @@ class ExtrinsicNode(GraphNode):
 
     role: str = ""
     stage: str = ""
+
+
+@dataclass(kw_only=True)
+class CaseNode(GraphNode):
+    """Node representing a judicial decision."""
+
+    court_rank: int
+    panel_size: Optional[int] = None
+    type: NodeType = field(default=NodeType.CASE, init=False)
 
 
 @dataclass
@@ -125,6 +140,7 @@ __all__ = [
     "EdgeType",
     "GraphNode",
     "ExtrinsicNode",
+    "CaseNode",
     "GraphEdge",
     "LegalGraph",
 ]
