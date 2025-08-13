@@ -1,0 +1,8 @@
+{
+  "template_id": "au:cth:family:s90SM",
+  "facts": {
+    "fraud": false,
+    "impracticable": true,
+    "public_policy": false
+  }
+}
