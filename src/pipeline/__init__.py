@@ -4,6 +4,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import List, Dict
 
+from ..concepts.matcher import MATCHER
+
 
 def normalise(text: str) -> str:
     """Basic text normalisation.
@@ -17,10 +19,10 @@ def normalise(text: str) -> str:
 def match_concepts(text: str) -> List[str]:
     """Match concepts within the text.
 
-    This stub implementation simply splits the text into whitespace
-    separated tokens.
+    Uses an Aho-Corasick automaton to locate concept triggers and returns
+    the matched concept IDs.
     """
-    return text.split()
+    return [hit.concept_id for hit in MATCHER.match(text)]
 
 
 def build_cloud(concepts: List[str]) -> Dict[str, int]:
