@@ -46,6 +46,19 @@ def main() -> None:
         help="Candidate case paragraphs as JSON",
     )
 
+    tree_parser = sub.add_parser(
+        "proof-tree", help="Expand a proof tree from a seed node",
+    )
+    tree_parser.add_argument("--graph", type=Path, required=True, help="Graph JSON file")
+    tree_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    tree_parser.add_argument("--hops", type=int, default=1, help="Traversal depth")
+    tree_parser.add_argument(
+        "--as-at", help="Consider only nodes/edges up to this date (YYYY-MM-DD)",
+    )
+    tree_parser.add_argument(
+        "--dot", action="store_true", help="Output Graphviz DOT instead of JSON",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -95,6 +108,46 @@ def main() -> None:
         cand = extract_case_silhouette(cand_paras)
         result = compare_cases(base, cand)
         print(json.dumps(result))
+    elif args.command == "proof-tree":
+        from .graph import (
+            EdgeType,
+            GraphEdge,
+            GraphNode,
+            LegalGraph,
+            NodeType,
+            expand_proof_tree,
+        )
+
+        graph_data = json.loads(args.graph.read_text())
+        graph = LegalGraph()
+        for n in graph_data.get("nodes", []):
+            node = GraphNode(
+                type=NodeType(n["type"]),
+                identifier=n["id"],
+                metadata=n.get("metadata", {}),
+                date=date.fromisoformat(n["date"]) if n.get("date") else None,
+            )
+            graph.add_node(node)
+        for e in graph_data.get("edges", []):
+            edge = GraphEdge(
+                type=EdgeType(e["type"]),
+                source=e["source"],
+                target=e["target"],
+                metadata=e.get("metadata", {}),
+                date=date.fromisoformat(e["date"]) if e.get("date") else None,
+                weight=e.get("weight", 1.0),
+            )
+            graph.add_edge(edge)
+
+        if args.as_at:
+            as_at = datetime.fromisoformat(args.as_at).date()
+        else:
+            as_at = date.today()
+        tree = expand_proof_tree(args.seed, args.hops, as_at, graph=graph)
+        if args.dot:
+            print(tree.to_dot())
+        else:
+            print(json.dumps(tree.to_dict()))
     else:
         parser.print_help()
 
