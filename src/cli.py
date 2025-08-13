@@ -1,5 +1,6 @@
 import argparse
 import json
+import subprocess
 from datetime import datetime, date
 from pathlib import Path
 
@@ -55,6 +56,35 @@ def main() -> None:
         "--graph",
         type=Path,
         help="Path to a StoryGraph JSON file representing the query",
+    )
+
+    subgraph_parser = sub.add_parser(
+        "subgraph", help="Generate a concept cloud subgraph from text"
+    )
+    subgraph_parser.add_argument("--text", required=True, help="Query text")
+    subgraph_parser.add_argument(
+        "--dot", type=Path, help="Optional path to write Graphviz DOT output"
+    )
+
+    treatment_parser = sub.add_parser(
+        "treatment", help="Extract rules from provision text"
+    )
+    treatment_parser.add_argument("--text", required=True, help="Provision text")
+    treatment_parser.add_argument(
+        "--dot", type=Path, help="Optional path to write Graphviz DOT output"
+    )
+
+    provision_parser = sub.add_parser(
+        "provision", help="Tag a provision of law"
+    )
+    provision_parser.add_argument("--text", required=True, help="Provision text")
+    provision_parser.add_argument(
+        "--dot", type=Path, help="Optional path to write Graphviz DOT output"
+    )
+
+    tests_parser = sub.add_parser("tests-run", help="Run the test suite")
+    tests_parser.add_argument(
+        "--dot", type=Path, help="Optional path to write Graphviz DOT output"
     )
 
     args = parser.parse_args()
@@ -120,6 +150,65 @@ def main() -> None:
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "subgraph":
+        from .pipeline import build_cloud, match_concepts, normalise
+
+        text = normalise(args.text)
+        concepts = match_concepts(text)
+        cloud = build_cloud(concepts)
+        result = {"cloud": cloud}
+        if args.dot:
+            dot_lines = ["digraph G {"]
+            for node, count in cloud.items():
+                dot_lines.append(f'  "{node}" [label="{node} ({count})"]')
+            dot_lines.append("}")
+            dot = "\n".join(dot_lines)
+            result["dot"] = dot
+            args.dot.write_text(dot)
+        print(json.dumps(result))
+    elif args.command == "treatment":
+        from .rules.extractor import extract_rules
+
+        rules = [r.__dict__ for r in extract_rules(args.text)]
+        result = {"rules": rules}
+        if args.dot:
+            dot_lines = ["digraph G {"]
+            for i, rule in enumerate(rules):
+                label = f"{rule['actor']} {rule['modality']} {rule['action']}"
+                dot_lines.append(f'  r{i} [label="{label}"]')
+            dot_lines.append("}")
+            dot = "\n".join(dot_lines)
+            result["dot"] = dot
+            args.dot.write_text(dot)
+        print(json.dumps(result))
+    elif args.command == "provision":
+        from .ontology.tagger import tag_text
+
+        provision = tag_text(args.text).to_dict()
+        result = {"provision": provision}
+        if args.dot:
+            dot_lines = ["digraph G {", '  prov [label="Provision"]']
+            for p in provision["principles"]:
+                dot_lines.append(f'  "{p}" [shape=box]')
+                dot_lines.append(f'  prov -> "{p}" [label="principle"]')
+            for c in provision["customs"]:
+                dot_lines.append(f'  "{c}" [shape=ellipse]')
+                dot_lines.append(f'  prov -> "{c}" [label="custom"]')
+            dot_lines.append("}")
+            dot = "\n".join(dot_lines)
+            result["dot"] = dot
+            args.dot.write_text(dot)
+        print(json.dumps(result))
+    elif args.command == "tests-run":
+        completed = subprocess.run(["pytest", "-q"], capture_output=True, text=True)
+        output = completed.stdout + completed.stderr
+        result = {"exit_code": completed.returncode, "output": output}
+        if args.dot:
+            label = "pass" if completed.returncode == 0 else "fail"
+            dot = f"digraph G {{ result [label=\"{label}\"] }}"
+            result["dot"] = dot
+            args.dot.write_text(dot)
+        print(json.dumps(result))
     else:
         parser.print_help()
 
