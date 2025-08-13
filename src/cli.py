@@ -46,6 +46,27 @@ def main() -> None:
         help="Candidate case paragraphs as JSON",
     )
 
+    # Tests evaluation command
+    tests_parser = sub.add_parser(
+        "tests", help="Evaluate legal test templates against facts"
+    )
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    tests_run = tests_sub.add_parser(
+        "run", help="Evaluate a test template with provided facts"
+    )
+    tests_run.add_argument(
+        "--template",
+        type=Path,
+        required=True,
+        help="Path to JSON template describing factors",
+    )
+    tests_run.add_argument(
+        "--facts",
+        type=Path,
+        required=True,
+        help="Path to JSON file mapping factors to evidence references",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -95,6 +116,16 @@ def main() -> None:
         cand = extract_case_silhouette(cand_paras)
         result = compare_cases(base, cand)
         print(json.dumps(result))
+    elif args.command == "tests":
+        if args.tests_command == "run":
+            from .tests.evaluator import evaluate
+
+            template_data = json.loads(args.template.read_text())
+            facts_data = json.loads(args.facts.read_text())
+            table = evaluate(template_data, facts_data)
+            print(json.dumps(table.to_json()))
+        else:
+            tests_parser.print_help()
     else:
         parser.print_help()
 
