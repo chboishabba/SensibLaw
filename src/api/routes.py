@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from typing import Dict, Any, List
+from collections import defaultdict
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from ..graph.models import LegalGraph
+from ..graph.models import LegalGraph, GraphEdge
 from ..tests.templates import TEMPLATE_REGISTRY
 
 router = APIRouter()
@@ -74,19 +75,49 @@ def tests_run_endpoint(payload: TestRunRequest) -> Dict[str, Any]:
     return execute_tests(payload.ids, payload.story)
 
 
-_FAKE_TREATMENTS: Dict[str, List[Dict[str, Any]]] = {
-    "case123": [
-        {"citation": "1 CLR 1", "treatment": "followed"},
-        {"citation": "2 CLR 50", "treatment": "distinguished"},
-    ]
-}
-
-
 def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
-    treatments = _FAKE_TREATMENTS.get(case_id)
-    if treatments is None:
+    """Aggregate treatments for ``case_id`` from the global graph.
+
+    The function scans all edges in :data:`_graph` that involve the target case
+    either as a source or a target.  Edges are expected to carry ``treatment``
+    and ``citation`` metadata along with an optional ``weight`` attribute.
+
+    For each treatment category the number of citations is counted and the
+    citation with the highest weight is selected.  The resulting categories are
+    sorted in descending order of that weight.
+    """
+
+    if case_id not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Case not found")
-    return {"case_id": case_id, "treatments": treatments}
+
+    grouped: Dict[str, List[GraphEdge]] = defaultdict(list)
+    for edge in _graph.edges:
+        if case_id not in (edge.source, edge.target):
+            continue
+        treatment = edge.metadata.get("treatment")
+        citation = edge.metadata.get("citation")
+        if not treatment or not citation:
+            continue
+        grouped[treatment].append(edge)
+
+    if not grouped:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    records: List[Dict[str, Any]] = []
+    for treatment, edges in grouped.items():
+        count = len(edges)
+        best = max(edges, key=lambda e: e.weight)
+        records.append(
+            {
+                "treatment": treatment,
+                "count": count,
+                "citation": best.metadata.get("citation"),
+                "weight": best.weight,
+            }
+        )
+
+    records.sort(key=lambda r: r["weight"], reverse=True)
+    return {"case_id": case_id, "treatments": records}
 
 
 @router.get("/cases/{case_id}/treatment")
