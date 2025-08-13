@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple, Optional
-import json
-from urllib.request import urlopen
+
+from .cache import fetch_json
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -45,10 +45,9 @@ class Act:
 
 
 def _get_json(url: str) -> Dict[str, object]:
-    """Fetch JSON from ``url`` using the standard library."""
+    """Fetch JSON from ``url`` using the cache."""
 
-    with urlopen(url) as resp:  # pragma: no cover - network
-        return json.loads(resp.read().decode("utf-8"))
+    return fetch_json(url)
 
 
 def _acts_to_graph(acts: Iterable[Act]) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
