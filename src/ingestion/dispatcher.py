@@ -3,6 +3,11 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Local adapters used by the dispatcher.  They are lightweight and avoid
+# third‑party dependencies so that unit tests can exercise the dispatch
+# logic without requiring network access.
+from . import frl, hca
+
 try:  # pragma: no cover - optional dependency
     from ..austlii_client import AustLIIClient
 except Exception:  # requests may be unavailable during tests
@@ -66,11 +71,35 @@ class SourceDispatcher:
             if names and source["name"] not in names:
                 continue
             self._throttle(source)
-            fetchers: List[str] = []
+
             base_url = source.get("base_url", "")
+            upper_url = base_url.upper()
             formats = [f.upper() for f in source.get("formats", [])]
 
-            if "AUSTLII.EDU.AU" in base_url.upper():
+            # Special adapters -------------------------------------------------
+            # Certain sources have bespoke adapters which return graph data in
+            # the form of ``nodes`` and ``edges``.  These take precedence over
+            # the simple placeholder fetchers used elsewhere.
+            if "HCOURT.GOV.AU" in upper_url:
+                try:
+                    nodes, edges = hca.crawl_year()
+                except Exception:  # pragma: no cover - network/parse errors
+                    nodes, edges = [], []
+                results.append({"name": source["name"], "nodes": nodes, "edges": edges})
+                continue
+
+            if source["name"].lower() == "federal register of legislation":
+                api_url = base_url.rstrip("/") + "/federalregister/json/Acts"
+                try:
+                    nodes, edges = frl.fetch_acts(api_url)
+                except Exception:  # pragma: no cover - network/parse errors
+                    nodes, edges = [], []
+                results.append({"name": source["name"], "nodes": nodes, "edges": edges})
+                continue
+
+            # Generic fetchers -------------------------------------------------
+            fetchers: List[str] = []
+            if "AUSTLII.EDU.AU" in upper_url:
                 fetchers.append(fetch_from_austlii(source))
             else:
                 if any("HTML" in f for f in formats):
