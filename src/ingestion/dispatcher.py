@@ -94,7 +94,17 @@ class SourceDispatcher:
                     nodes, edges = frl.fetch_acts(api_url)
                 except Exception:  # pragma: no cover - network/parse errors
                     nodes, edges = [], []
-                results.append({"name": source["name"], "nodes": nodes, "edges": edges})
+                fetchers: List[str] = []
+                if any("HTML" in f for f in formats):
+                    fetchers.append(fetch_official_register(source))
+                if "PDF" in formats:
+                    fetchers.append(fetch_pdf(source))
+                results.append({
+                    "name": source["name"],
+                    "nodes": nodes,
+                    "edges": edges,
+                    "fetchers": fetchers,
+                })
                 continue
 
             # Generic fetchers -------------------------------------------------

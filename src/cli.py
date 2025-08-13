@@ -46,6 +46,15 @@ def main() -> None:
         help="Candidate case paragraphs as JSON",
     )
 
+    concepts_parser = sub.add_parser(
+        "concepts", help="Concept matching utilities",
+    )
+    concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
+    match_parser = concepts_sub.add_parser(
+        "match", help="Match concepts in text",
+    )
+    match_parser.add_argument("--text", required=True, help="Text to match")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -95,6 +104,15 @@ def main() -> None:
         cand = extract_case_silhouette(cand_paras)
         result = compare_cases(base, cand)
         print(json.dumps(result))
+    elif args.command == "concepts":
+        if args.concepts_command == "match":
+            from .concepts import ConceptMatcher
+
+            matcher = ConceptMatcher()
+            hits = matcher.match(args.text)
+            print(json.dumps([h.__dict__ for h in hits]))
+        else:
+            concepts_parser.print_help()
     else:
         parser.print_help()
 
