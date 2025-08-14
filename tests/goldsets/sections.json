@@ -1,0 +1,14 @@
+[
+  {
+    "html": "<p>1 A person must not drive if intoxicated under s 5B.</p>",
+    "cross_refs": ["s 5B"]
+  },
+  {
+    "html": "<div>2 The authority may issue permits subject to this Part.</div>",
+    "cross_refs": ["this Part"]
+  },
+  {
+    "html": "<div>3 A body must comply unless exempt despite s 10.</div>",
+    "cross_refs": ["s 10"]
+  }
+]

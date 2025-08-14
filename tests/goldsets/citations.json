@@ -1,0 +1,25 @@
+{
+  "acts": {
+    "results": [
+      {
+        "id": "Act1",
+        "title": "Sample Act",
+        "sections": [
+          {
+            "number": "1",
+            "title": "Definitions",
+            "body": "\"Dog\" means a domesticated animal."
+          },
+          {
+            "number": "2",
+            "title": "Care",
+            "body": "A person must care for their dog. See section 1."
+          }
+        ]
+      }
+    ]
+  },
+  "citations": [
+    {"from": "Act1:2", "to": "Act1:1", "type": "cites", "text": "section 1"}
+  ]
+}
