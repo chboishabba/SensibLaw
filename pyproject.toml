@@ -14,6 +14,7 @@ dependencies = [
     "pdfminer.six",
     "requests",
     "fastapi",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
