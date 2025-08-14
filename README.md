@@ -12,6 +12,15 @@ Install the package in editable mode to develop locally:
 pip install -e .
 ```
 
+Graph rendering relies on the Graphviz toolchain. Install the system
+package separately, for example:
+
+```bash
+sudo apt-get install graphviz  # Debian/Ubuntu
+# or
+brew install graphviz          # macOS
+```
+
 ## CLI
 
 ### CLI Commands

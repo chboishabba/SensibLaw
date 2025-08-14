@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, Iterable
+import subprocess
 
-from graph.proof_tree import Edge, Node
+from graph.proof_tree import Edge, Node, to_dot
 
 try:
     import yaml  # type: ignore
@@ -70,10 +71,38 @@ def to_dot_with_harm(
     for edge in edges:
         label = str(edge.metadata.get("label", edge.type))
         attrs = [f'label="{label}"']
+        receipt = edge.metadata.get("receipt")
+        if receipt:
+            attrs.append(f'receipt="{receipt}"')
         if edge.weight is not None:
             attrs.append(f'weight="{edge.weight}"')
+        tooltip = receipt or label or "why is this here?"
+        attrs.append(f'tooltip="{tooltip}"')
         lines.append(
             f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];'
         )
     lines.append("}")
     return "\n".join(lines)
+
+
+def dot_to_svg(dot: str) -> str:
+    """Convert DOT text to an SVG string using Graphviz."""
+
+    try:
+        result = subprocess.run(
+            ["dot", "-Tsvg"],
+            input=dot.encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError("Graphviz 'dot' executable not found") from exc
+    return result.stdout.decode("utf-8")
+
+
+def to_svg(nodes: Dict[str, Node], edges: Iterable[Edge]) -> str:
+    """Render nodes and edges directly to an SVG string."""
+
+    dot = to_dot(nodes, edges)
+    return dot_to_svg(dot)
