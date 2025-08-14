@@ -32,6 +32,12 @@ CREATE TABLE IF NOT EXISTS corrections (
     data TEXT
 );
 
+CREATE TRIGGER IF NOT EXISTS prevent_corrections_delete
+BEFORE DELETE ON corrections
+BEGIN
+    SELECT RAISE(ABORT, 'corrections table is append-only');
+END;
+
 CREATE TABLE IF NOT EXISTS glossary (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     term TEXT UNIQUE NOT NULL,
