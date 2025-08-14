@@ -27,7 +27,7 @@ def setup_db(tmp_path: Path) -> tuple[str, int]:
 
 
 def run_cli(db_path: str, *args: str) -> str:
-    cmd = ["python", "-m", "src.cli", "get", "--db", db_path, *args]
+    cmd = ["python", "-m", "cli", "get", "--db", db_path, *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return completed.stdout.strip()
 

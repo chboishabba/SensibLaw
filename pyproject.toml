@@ -27,13 +27,13 @@ test = [
 ]
 
 [project.scripts]
-sensiblaw = "src.cli:main"
+sensiblaw = "cli:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "src", "cli" = "cli"}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "cli"]
 
 [tool.setuptools.package-data]
 "src" = ["data/foundation_sources.json"]
