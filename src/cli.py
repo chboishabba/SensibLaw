@@ -83,6 +83,13 @@ def main() -> None:
     tests_run.add_argument("--ids", nargs="+", required=True, help="Test IDs")
     tests_run.add_argument("--story", type=Path, required=True, help="Story JSON file")
 
+    harm_parser = sub.add_parser("harm", help="Harm assessment utilities")
+    harm_sub = harm_parser.add_subparsers(dest="harm_command")
+    harm_compute = harm_sub.add_parser("compute", help="Compute harm index")
+    harm_compute.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
+    )
+
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
@@ -214,6 +221,15 @@ def main() -> None:
 
             story = json.loads(args.story.read_text())
             result = execute_tests(args.ids, story)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "harm":
+        if args.harm_command == "compute":
+            from .harm import compute_harm
+
+            story = json.loads(args.story.read_text())
+            result = compute_harm(story)
             print(json.dumps(result))
         else:
             parser.print_help()
