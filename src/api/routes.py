@@ -9,12 +9,15 @@ from pydantic import BaseModel, Field
 
 from ..graph.models import LegalGraph, GraphEdge
 from ..tests.templates import TEMPLATE_REGISTRY
+from ..policy.engine import PolicyEngine
 
 router = APIRouter()
 _graph = LegalGraph()
 
+_policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"})
 
-def generate_subgraph(seed: str, hops: int) -> Dict[str, Any]:
+
+def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, Any]:
     """Return a subgraph around ``seed`` up to ``hops`` hops."""
     if seed not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Seed node not found")
@@ -33,18 +36,23 @@ def generate_subgraph(seed: str, hops: int) -> Dict[str, Any]:
                 visited.add(tgt)
                 nodes[tgt] = _graph.nodes[tgt]
                 frontier.append((tgt, depth + 1))
-    return {
-        "nodes": [asdict(n) for n in nodes.values()],
-        "edges": [asdict(e) for e in edges],
-    }
+    result_nodes = []
+    for n in nodes.values():
+        enforced = _policy.enforce(n, consent=consent)
+        if enforced:
+            result_nodes.append(asdict(enforced))
+    return {"nodes": result_nodes, "edges": [asdict(e) for e in edges]}
 
 
 @router.get("/subgraph")
 def subgraph_endpoint(
     seed: str = Query(..., description="Identifier for the seed node"),
     hops: int = Query(1, ge=1, le=5, description="Number of hops from seed"),
+    consent: bool = Query(
+        False, description="Consent granted to view sacred data"
+    ),
 ) -> Dict[str, Any]:
-    return generate_subgraph(seed, hops)
+    return generate_subgraph(seed, hops, consent)
 
 
 class TestRunRequest(BaseModel):

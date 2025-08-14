@@ -186,12 +186,17 @@ def main() -> None:
     elif args.command == "graph":
         if args.graph_command == "subgraph":
             if args.graph_file:
+                import os
                 import sys
                 from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = args.graph_file.stat().st_mode & 0o444
+                    if mode == 0:
+                        print("--graph-file is not readable", file=sys.stderr)
+                        sys.exit(1)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()
