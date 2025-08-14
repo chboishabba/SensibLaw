@@ -34,5 +34,43 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest
-      - name: Test
-        run: pytest
+      - name: Test and CLI smoke
+        run: |
+          set -e
+          mkdir -p stubs/pdfminer
+          cat <<'PY' > stubs/fastapi.py
+class HTTPException(Exception):
+    def __init__(self, status_code: int, detail: str):
+        self.status_code = status_code
+        self.detail = detail
+class APIRouter:
+    def __init__(self):
+        pass
+    def get(self, *a, **k):
+        def deco(fn):
+            return fn
+        return deco
+    def post(self, *a, **k):
+        def deco(fn):
+            return fn
+        return deco
+def Query(*a, **k):
+    return None
+PY
+          cat <<'PY' > stubs/pydantic.py
+class BaseModel:
+    pass
+def Field(default, **kwargs):
+    return default
+PY
+          cat <<'PY' > stubs/pdfminer/high_level.py
+def extract_text(path):
+    return ""
+PY
+          touch stubs/pdfminer/__init__.py
+          export PYTHONPATH="stubs:."
+          pytest -q
+          python -m src.cli --help
+          python scripts/generate_sample_corpus.py
+          python examples/distinguish_glj/demo.py
+          python -m src.pdf_ingest --help
