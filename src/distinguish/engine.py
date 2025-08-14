@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Sequence, List, Tuple, Set
+from typing import Dict, Sequence, List, Tuple, Set, TypedDict, Any
 
 
 @dataclass
@@ -54,15 +54,25 @@ def extract_holding_and_facts(paragraphs: Sequence[str]) -> Tuple[Set[str], Set[
     return holdings, facts
 
 
-def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, List[dict]]:
+class ComparisonResult(TypedDict):
+    """Mapping describing similarities and differences between cases."""
+
+    overlaps: List[Dict[str, Any]]
+    missing: List[Dict[str, Any]]
+    overlap_tokens: List[str]
+    a_only_tokens: List[str]
+    b_only_tokens: List[str]
+
+
+def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> ComparisonResult:
     """Compare two case silhouettes.
 
     Returns a dictionary with overlaps and missing conditions. Overlaps include
     supporting citations to paragraph indices and texts from both cases.
     """
 
-    overlaps: List[dict] = []
-    missing: List[dict] = []
+    overlaps: List[Dict[str, Any]] = []
+    missing: List[Dict[str, Any]] = []
 
     for fact, base_idx in base.fact_tags.items():
         if fact in candidate.fact_tags:
