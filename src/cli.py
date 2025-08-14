@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from datetime import datetime, date
 from pathlib import Path
 
@@ -37,14 +38,15 @@ def main() -> None:
         "distinguish", help="Compare two cases and show reasoning"
     )
     dist_parser.add_argument(
-        "--base", type=Path, required=True, help="Base case paragraphs as JSON"
+        "--base", type=Path, help="Base case paragraphs as JSON"
     )
     dist_parser.add_argument(
         "--candidate",
         type=Path,
-        required=True,
         help="Candidate case paragraphs as JSON",
     )
+    dist_parser.add_argument("--case", help="Base case citation")
+    dist_parser.add_argument("--story", type=Path, help="Story facts as JSON")
 
     query_parser = sub.add_parser(
         "query", help="Run a concept query over the knowledge base"
@@ -116,13 +118,28 @@ def main() -> None:
             compare_cases,
             extract_case_silhouette,
         )
+        from .distinguish.factor_packs import distinguish_story
 
-        base_paras = json.loads(args.base.read_text())
-        cand_paras = json.loads(args.candidate.read_text())
-        base = extract_case_silhouette(base_paras)
-        cand = extract_case_silhouette(cand_paras)
-        result = compare_cases(base, cand)
-        print(json.dumps(result))
+        if args.base and args.candidate:
+            base_paras = json.loads(args.base.read_text())
+            cand_paras = json.loads(args.candidate.read_text())
+            base = extract_case_silhouette(base_paras)
+            cand = extract_case_silhouette(cand_paras)
+            result = compare_cases(base, cand)
+            print(json.dumps(result))
+        elif args.case and args.story:
+            try:
+                result = distinguish_story(args.case, args.story)
+            except FileNotFoundError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
+                raise SystemExit(1)
+            print(json.dumps(result))
+        else:
+            print(
+                "distinguish requires --base and --candidate or --case and --story",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
     elif args.command == "query":
         from .pipeline import build_cloud, match_concepts, normalise
         from .pipeline.input_handler import parse_input
