@@ -99,9 +99,13 @@ def main() -> None:
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
-    tests_run = tests_sub.add_parser("run", help="Run tests against a story")
-    tests_run.add_argument("--ids", nargs="+", required=True, help="Test IDs")
-    tests_run.add_argument("--story", type=Path, required=True, help="Story JSON file")
+    tests_run = tests_sub.add_parser("run", help="Run checklist tests against a story")
+    tests_run.add_argument(
+        "--tests-file", type=Path, required=True, help="Checklist JSON file"
+    )
+    tests_run.add_argument(
+        "--story-file", type=Path, required=True, help="Story JSON file"
+    )
 
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
@@ -320,10 +324,12 @@ def main() -> None:
             parser.print_help()
     elif args.command == "tests":
         if args.tests_command == "run":
-            from .api.routes import execute_tests
+            from .checklists.run import evaluate
 
-            story = json.loads(args.story.read_text())
-            result = execute_tests(args.ids, story)
+            checklist = json.loads(args.tests_file.read_text())
+            story = json.loads(args.story_file.read_text())
+            tags = set(story.get("tags", []))
+            result = evaluate(checklist, tags)
             print(json.dumps(result))
         else:
             parser.print_help()
