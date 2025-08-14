@@ -1,0 +1,437 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+
+@dataclass
+class Node:
+    id: Optional[int]
+    type: str
+    data: Dict[str, Any]
+
+
+@dataclass
+class Edge:
+    id: Optional[int]
+    source: int
+    target: int
+    type: str
+    data: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class Frame:
+    id: Optional[int]
+    node_id: int
+    data: Dict[str, Any]
+
+
+@dataclass
+class ActionTemplate:
+    id: Optional[int]
+    name: str
+    template: Dict[str, Any]
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class Correction:
+    id: Optional[int]
+    node_id: int
+    suggestion: str
+    data: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class GlossaryEntry:
+    id: Optional[int]
+    term: str
+    definition: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class Receipt:
+    id: Optional[int]
+    data: Dict[str, Any]
+
+
+class Storage:
+    """SQLite backed storage with simple CRUD helpers."""
+
+    def __init__(self, path: str | Path):
+        self.path = str(path)
+        self.conn = sqlite3.connect(self.path)
+        self.conn.row_factory = sqlite3.Row
+        self._init_schema()
+
+    # ------------------------------------------------------------------
+    def _init_schema(self) -> None:
+        schema_path = Path(__file__).with_name("schema.sql")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            self.conn.executescript(f.read())
+
+    def close(self) -> None:
+        self.conn.close()
+
+    # ------------------------------------------------------------------
+    # Nodes
+    # ------------------------------------------------------------------
+    def insert_node(self, type: str, data: Dict[str, Any]) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO nodes(type, data) VALUES (?, ?)",
+                (type, json.dumps(data)),
+            )
+            return cur.lastrowid
+
+    def get_node(self, node_id: int) -> Optional[Node]:
+        row = self.conn.execute(
+            "SELECT id, type, data FROM nodes WHERE id = ?",
+            (node_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Node(id=row["id"], type=row["type"], data=json.loads(row["data"]))
+
+    def update_node(
+        self, node_id: int, *, type: Optional[str] = None, data: Optional[Dict[str, Any]] = None
+    ) -> None:
+        node = self.get_node(node_id)
+        if node is None:
+            raise KeyError(node_id)
+        type = type if type is not None else node.type
+        data = data if data is not None else node.data
+        with self.conn:
+            self.conn.execute(
+                "UPDATE nodes SET type = ?, data = ? WHERE id = ?",
+                (type, json.dumps(data), node_id),
+            )
+
+    def delete_node(self, node_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
+
+    # ------------------------------------------------------------------
+    # Edges
+    # ------------------------------------------------------------------
+    def insert_edge(
+        self,
+        source: int,
+        target: int,
+        type: str,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO edges(source, target, type, data) VALUES (?, ?, ?, ?)",
+                (source, target, type, json.dumps(data) if data is not None else None),
+            )
+            return cur.lastrowid
+
+    def get_edge(self, edge_id: int) -> Optional[Edge]:
+        row = self.conn.execute(
+            "SELECT id, source, target, type, data FROM edges WHERE id = ?",
+            (edge_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        data = json.loads(row["data"]) if row["data"] is not None else None
+        return Edge(
+            id=row["id"],
+            source=row["source"],
+            target=row["target"],
+            type=row["type"],
+            data=data,
+        )
+
+    def update_edge(
+        self,
+        edge_id: int,
+        *,
+        source: Optional[int] = None,
+        target: Optional[int] = None,
+        type: Optional[str] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        edge = self.get_edge(edge_id)
+        if edge is None:
+            raise KeyError(edge_id)
+        source = source if source is not None else edge.source
+        target = target if target is not None else edge.target
+        type = type if type is not None else edge.type
+        data = data if data is not None else edge.data
+        with self.conn:
+            self.conn.execute(
+                "UPDATE edges SET source = ?, target = ?, type = ?, data = ? WHERE id = ?",
+                (source, target, type, json.dumps(data) if data is not None else None, edge_id),
+            )
+
+    def delete_edge(self, edge_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM edges WHERE id = ?", (edge_id,))
+
+    # ------------------------------------------------------------------
+    # Frames
+    # ------------------------------------------------------------------
+    def insert_frame(self, node_id: int, data: Dict[str, Any]) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO frames(node_id, data) VALUES (?, ?)",
+                (node_id, json.dumps(data)),
+            )
+            return cur.lastrowid
+
+    def get_frame(self, frame_id: int) -> Optional[Frame]:
+        row = self.conn.execute(
+            "SELECT id, node_id, data FROM frames WHERE id = ?",
+            (frame_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Frame(id=row["id"], node_id=row["node_id"], data=json.loads(row["data"]))
+
+    def update_frame(
+        self,
+        frame_id: int,
+        *,
+        node_id: Optional[int] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        frame = self.get_frame(frame_id)
+        if frame is None:
+            raise KeyError(frame_id)
+        node_id = node_id if node_id is not None else frame.node_id
+        data = data if data is not None else frame.data
+        with self.conn:
+            self.conn.execute(
+                "UPDATE frames SET node_id = ?, data = ? WHERE id = ?",
+                (node_id, json.dumps(data), frame_id),
+            )
+
+    def delete_frame(self, frame_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM frames WHERE id = ?", (frame_id,))
+
+    # ------------------------------------------------------------------
+    # Action templates
+    # ------------------------------------------------------------------
+    def insert_action_template(
+        self,
+        name: str,
+        template: Dict[str, Any],
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO action_templates(name, template, metadata) VALUES (?, ?, ?)",
+                (
+                    name,
+                    json.dumps(template),
+                    json.dumps(metadata) if metadata is not None else None,
+                ),
+            )
+            return cur.lastrowid
+
+    def get_action_template(self, template_id: int) -> Optional[ActionTemplate]:
+        row = self.conn.execute(
+            "SELECT id, name, template, metadata FROM action_templates WHERE id = ?",
+            (template_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        metadata = json.loads(row["metadata"]) if row["metadata"] is not None else None
+        return ActionTemplate(
+            id=row["id"],
+            name=row["name"],
+            template=json.loads(row["template"]),
+            metadata=metadata,
+        )
+
+    def update_action_template(
+        self,
+        template_id: int,
+        *,
+        name: Optional[str] = None,
+        template: Optional[Dict[str, Any]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        current = self.get_action_template(template_id)
+        if current is None:
+            raise KeyError(template_id)
+        name = name if name is not None else current.name
+        template = template if template is not None else current.template
+        metadata = metadata if metadata is not None else current.metadata
+        with self.conn:
+            self.conn.execute(
+                "UPDATE action_templates SET name = ?, template = ?, metadata = ? WHERE id = ?",
+                (
+                    name,
+                    json.dumps(template),
+                    json.dumps(metadata) if metadata is not None else None,
+                    template_id,
+                ),
+            )
+
+    def delete_action_template(self, template_id: int) -> None:
+        with self.conn:
+            self.conn.execute(
+                "DELETE FROM action_templates WHERE id = ?",
+                (template_id,),
+            )
+
+    # ------------------------------------------------------------------
+    # Corrections
+    # ------------------------------------------------------------------
+    def insert_correction(
+        self,
+        node_id: int,
+        suggestion: str,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO corrections(node_id, suggestion, data) VALUES (?, ?, ?)",
+                (node_id, suggestion, json.dumps(data) if data is not None else None),
+            )
+            return cur.lastrowid
+
+    def get_correction(self, correction_id: int) -> Optional[Correction]:
+        row = self.conn.execute(
+            "SELECT id, node_id, suggestion, data FROM corrections WHERE id = ?",
+            (correction_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        data = json.loads(row["data"]) if row["data"] is not None else None
+        return Correction(
+            id=row["id"], node_id=row["node_id"], suggestion=row["suggestion"], data=data
+        )
+
+    def update_correction(
+        self,
+        correction_id: int,
+        *,
+        node_id: Optional[int] = None,
+        suggestion: Optional[str] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        current = self.get_correction(correction_id)
+        if current is None:
+            raise KeyError(correction_id)
+        node_id = node_id if node_id is not None else current.node_id
+        suggestion = suggestion if suggestion is not None else current.suggestion
+        data = data if data is not None else current.data
+        with self.conn:
+            self.conn.execute(
+                "UPDATE corrections SET node_id = ?, suggestion = ?, data = ? WHERE id = ?",
+                (
+                    node_id,
+                    suggestion,
+                    json.dumps(data) if data is not None else None,
+                    correction_id,
+                ),
+            )
+
+    def delete_correction(self, correction_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM corrections WHERE id = ?", (correction_id,))
+
+    # ------------------------------------------------------------------
+    # Glossary
+    # ------------------------------------------------------------------
+    def insert_glossary_entry(
+        self,
+        term: str,
+        definition: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO glossary(term, definition, metadata) VALUES (?, ?, ?)",
+                (
+                    term,
+                    definition,
+                    json.dumps(metadata) if metadata is not None else None,
+                ),
+            )
+            return cur.lastrowid
+
+    def get_glossary_entry(self, entry_id: int) -> Optional[GlossaryEntry]:
+        row = self.conn.execute(
+            "SELECT id, term, definition, metadata FROM glossary WHERE id = ?",
+            (entry_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        metadata = json.loads(row["metadata"]) if row["metadata"] is not None else None
+        return GlossaryEntry(
+            id=row["id"],
+            term=row["term"],
+            definition=row["definition"],
+            metadata=metadata,
+        )
+
+    def update_glossary_entry(
+        self,
+        entry_id: int,
+        *,
+        term: Optional[str] = None,
+        definition: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        current = self.get_glossary_entry(entry_id)
+        if current is None:
+            raise KeyError(entry_id)
+        term = term if term is not None else current.term
+        definition = definition if definition is not None else current.definition
+        metadata = metadata if metadata is not None else current.metadata
+        with self.conn:
+            self.conn.execute(
+                "UPDATE glossary SET term = ?, definition = ?, metadata = ? WHERE id = ?",
+                (
+                    term,
+                    definition,
+                    json.dumps(metadata) if metadata is not None else None,
+                    entry_id,
+                ),
+            )
+
+    def delete_glossary_entry(self, entry_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM glossary WHERE id = ?", (entry_id,))
+
+    # ------------------------------------------------------------------
+    # Receipts
+    # ------------------------------------------------------------------
+    def insert_receipt(self, data: Dict[str, Any]) -> int:
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO receipts(data) VALUES (?)", (json.dumps(data),)
+            )
+            return cur.lastrowid
+
+    def get_receipt(self, receipt_id: int) -> Optional[Receipt]:
+        row = self.conn.execute(
+            "SELECT id, data FROM receipts WHERE id = ?", (receipt_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Receipt(id=row["id"], data=json.loads(row["data"]))
+
+    def update_receipt(
+        self, receipt_id: int, data: Dict[str, Any]
+    ) -> None:
+        with self.conn:
+            self.conn.execute(
+                "UPDATE receipts SET data = ? WHERE id = ?",
+                (json.dumps(data), receipt_id),
+            )
+
+    def delete_receipt(self, receipt_id: int) -> None:
+        with self.conn:
+            self.conn.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
