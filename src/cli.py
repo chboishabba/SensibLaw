@@ -56,6 +56,12 @@ def main() -> None:
         help="Path to a fact-tagged story JSON file",
     )
 
+    publish_parser = sub.add_parser("publish", help="Generate a static site")
+    publish_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    publish_parser.add_argument(
+        "--out", type=Path, required=True, help="Directory to write the site"
+    )
+
     query_parser = sub.add_parser(
         "query", help="Run a concept query or case lookup over the knowledge base"
     )
@@ -192,6 +198,13 @@ def main() -> None:
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = args.graph_file.stat().st_mode
+                    if mode & 0o444 == 0:
+                        print(
+                            f"error: argument --graph-file: can't open '{args.graph_file}': Permission denied",
+                            file=sys.stderr,
+                        )
+                        sys.exit(2)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()
@@ -225,6 +238,10 @@ def main() -> None:
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "publish":
+        from .publish.mirror import generate_site
+
+        generate_site(args.seed, args.out)
     else:
         parser.print_help()
 
