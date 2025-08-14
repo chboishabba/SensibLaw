@@ -120,6 +120,12 @@ def main() -> None:
         "--story-file", type=Path, required=True, help="Story JSON file"
     )
 
+    definitions_parser = sub.add_parser("definitions", help="Definition operations")
+    definitions_sub = definitions_parser.add_subparsers(dest="definitions_command")
+    definitions_expand = definitions_sub.add_parser("expand", help="Expand term definitions")
+    definitions_expand.add_argument("--term", required=True, help="Term identifier")
+    definitions_expand.add_argument("--depth", type=int, default=1, help="Expansion depth")
+
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
@@ -369,6 +375,16 @@ def main() -> None:
             tags = set(story.get("tags", []))
             result = evaluate(checklist, tags)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "definitions":
+        if args.definitions_command == "expand":
+            from .definitions.graph import DefinitionGraph, load_default_definitions
+
+            defs = load_default_definitions()
+            graph = DefinitionGraph(defs)
+            scoped = graph.expand(args.term, depth=args.depth)
+            print(json.dumps(scoped))
         else:
             parser.print_help()
     elif args.command == "cases":
