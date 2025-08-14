@@ -16,8 +16,22 @@ def main() -> None:
     get_parser.add_argument(
         "--as-at", help="Return version as of this date (YYYY-MM-DD)")
 
-    extract_parser = sub.add_parser("extract", help="Extract rules from text")
-    extract_parser.add_argument("--text", required=True, help="Provision text")
+    extract_parser = sub.add_parser("extract", help="Extraction operations")
+    extract_parser.add_argument("--text", help="Provision text")
+    extract_sub = extract_parser.add_subparsers(dest="extract_command")
+
+    extract_rules_parser = extract_sub.add_parser(
+        "rules", help="Extract rules from text"
+    )
+    extract_rules_parser.add_argument("--text", required=True, help="Provision text")
+
+    extract_frl_parser = extract_sub.add_parser(
+        "frl", help="Fetch Acts from the Federal Register of Legislation"
+    )
+    extract_frl_parser.add_argument("--act", required=True, help="Act identifier")
+    extract_frl_parser.add_argument(
+        "--out", type=Path, required=True, help="Output JSON path"
+    )
 
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True, help="JSON encoded rules")
@@ -88,10 +102,22 @@ def main() -> None:
             print(doc.to_json())
         store.close()
     elif args.command == "extract":
-        from .rules.extractor import extract_rules
+        if args.extract_command == "rules" or (
+            args.extract_command is None and args.text
+        ):
+            from .rules.extractor import extract_rules
 
-        rules = extract_rules(args.text)
-        print(json.dumps([r.__dict__ for r in rules]))
+            rules = extract_rules(args.text)
+            print(json.dumps([r.__dict__ for r in rules]))
+        elif args.extract_command == "frl":
+            from .ingestion.frl import fetch_acts
+
+            api_url = "https://www.legislation.gov.au/federalregister/json/Acts"
+            api_url += f"?searchWithin={args.act}"
+            nodes, edges = fetch_acts(api_url)
+            args.out.write_text(json.dumps({"nodes": nodes, "edges": edges}))
+        else:
+            parser.print_help()
     elif args.command == "check":
         from .rules import Rule
         from .rules.reasoner import check_rules
