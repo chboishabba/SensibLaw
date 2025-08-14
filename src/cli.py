@@ -34,16 +34,18 @@ def main() -> None:
     )
 
     dist_parser = sub.add_parser(
-        "distinguish", help="Compare two cases and show reasoning"
+        "distinguish", help="Compare a story against a case silhouette"
     )
     dist_parser.add_argument(
-        "--base", type=Path, required=True, help="Base case paragraphs as JSON"
+        "--case",
+        required=True,
+        help="Neutral citation identifying the base case",
     )
     dist_parser.add_argument(
-        "--candidate",
+        "--story",
         type=Path,
         required=True,
-        help="Candidate case paragraphs as JSON",
+        help="Path to a fact-tagged story JSON file",
     )
 
     query_parser = sub.add_parser(
@@ -112,16 +114,13 @@ def main() -> None:
         )
         print(doc.to_json())
     elif args.command == "distinguish":
-        from .distinguish.engine import (
-            compare_cases,
-            extract_case_silhouette,
-        )
+        from .distinguish.loader import load_case_silhouette
+        from .distinguish.engine import compare_story_to_case
 
-        base_paras = json.loads(args.base.read_text())
-        cand_paras = json.loads(args.candidate.read_text())
-        base = extract_case_silhouette(base_paras)
-        cand = extract_case_silhouette(cand_paras)
-        result = compare_cases(base, cand)
+        case_sil = load_case_silhouette(args.case)
+        story_data = json.loads(args.story.read_text())
+        story_tags = story_data.get("facts", {})
+        result = compare_story_to_case(story_tags, case_sil)
         print(json.dumps(result))
     elif args.command == "query":
         from .pipeline import build_cloud, match_concepts, normalise
