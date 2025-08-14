@@ -23,6 +23,7 @@ import re
 from typing import Iterable, List, Tuple, Dict, Optional
 
 from .cache import fetch_html
+from ..graph.hierarchy import COURT_RANKS, court_weight
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -113,7 +114,12 @@ def parse_index(html_text: str) -> Iterable[HCACase]:
         yield _parse_case(block)
 
 
-def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+def crawl_year(
+    year: Optional[int] = None,
+    *,
+    html_text: Optional[str] = None,
+    panel_size: int = 1,
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Crawl a yearly index page and return graph data.
 
     Parameters
@@ -141,17 +147,25 @@ def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -
     nodes: List[Dict[str, object]] = []
     edges: List[Dict[str, object]] = []
 
+    court = "HCA"
+    rank = COURT_RANKS.get(court, 0)
+    weight = court_weight(court, panel_size)
+
     for case in parse_index(html_text):
         case_id = case.citation
-        nodes.append({
-            "id": case_id,
-            "type": "case",
-            "catchwords": case.catchwords,
-            "pdf": case.pdf_url,
-        })
+        nodes.append(
+            {
+                "id": case_id,
+                "type": "case",
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": rank,
+                "panel_size": panel_size,
+            }
+        )
         for statute in case.statutes:
             nodes.append({"id": statute, "type": "statute"})
-            edges.append({"from": case_id, "to": statute, "type": "cites"})
+            edges.append({"from": case_id, "to": statute, "type": "cites", "weight": weight})
 
     return nodes, edges
 

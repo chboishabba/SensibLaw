@@ -2,6 +2,7 @@
 
 from .ingest import compute_weight, ingest_extrinsic
 from .models import EdgeType, ExtrinsicNode, GraphEdge, GraphNode, LegalGraph, NodeType
+from .hierarchy import COURT_RANKS, court_weight
 
 __all__ = [
     "EdgeType",
@@ -12,4 +13,6 @@ __all__ = [
     "NodeType",
     "ingest_extrinsic",
     "compute_weight",
+    "court_weight",
+    "COURT_RANKS",
 ]
