@@ -1,4 +1,11 @@
 import sqlite3
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT))
 
 from src.storage.core import Storage
 
@@ -39,4 +46,38 @@ def test_schema_and_crud(tmp_path):
     receipt = store.get_receipt(rec_id)
     assert receipt is not None and receipt.data["status"] == "ok"
 
+    store.close()
+
+
+def test_duplicate_node_ids_raise_integrity_error(tmp_path):
+    db_path = tmp_path / "test.db"
+    store = Storage(db_path)
+    cur = store.conn.cursor()
+    cur.execute("INSERT INTO nodes(id, type, data) VALUES (1, 'entity', '{}')")
+    store.conn.commit()
+    with pytest.raises(sqlite3.IntegrityError):
+        cur.execute("INSERT INTO nodes(id, type, data) VALUES (1, 'entity', '{}')")
+    store.close()
+
+
+def test_malformed_json_in_props_raises_value_error(tmp_path):
+    db_path = tmp_path / "test.db"
+    store = Storage(db_path)
+    store.conn.execute(
+        "INSERT INTO nodes(id, type, data) VALUES (1, 'entity', '{bad json}')"
+    )
+    store.conn.commit()
+    with pytest.raises(ValueError):
+        store.get_node(1)
+    store.close()
+
+
+def test_correction_deletion_rejected(tmp_path):
+    db_path = tmp_path / "test.db"
+    store = Storage(db_path)
+    node_id = store.insert_node("entity", {})
+    corr_id = store.insert_correction(node_id, "fix", {})
+    with pytest.raises(sqlite3.IntegrityError):
+        store.delete_correction(corr_id)
+    assert store.get_correction(corr_id) is not None
     store.close()
