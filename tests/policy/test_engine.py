@@ -59,6 +59,17 @@ def test_default_allow():
     assert action == "allow"
 
 
+def test_nested_policy_require():
+    policy = {
+        "if": "SACRED_DATA",
+        "then": {"if": "PUBLIC_DOMAIN", "then": "allow", "else": "require"},
+        "else": "allow",
+    }
+    engine = PolicyEngine(policy)
+    action = engine.evaluate({CulturalFlags.SACRED_DATA})
+    assert action == "require"
+
+
 def test_enforce_redacts_without_consent():
     engine = PolicyEngine({})
     node = GraphNode(
@@ -68,7 +79,7 @@ def test_enforce_redacts_without_consent():
         consent_required=True,
     )
     redacted = engine.enforce(node, consent=False)
-    assert redacted.metadata == {}
+    assert redacted.metadata == {"summary": "Content withheld due to policy"}
 
 
 def test_enforce_allows_with_consent():

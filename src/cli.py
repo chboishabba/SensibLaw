@@ -252,11 +252,16 @@ def main() -> None:
             as_at = datetime.fromisoformat(args.as_at) if args.as_at else None
 
             if args.graph_file:
+                import os
                 import sys
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = args.graph_file.stat().st_mode & 0o444
+                    if mode == 0:
+                        print("--graph-file is not readable", file=sys.stderr)
+                        sys.exit(1)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()

@@ -50,7 +50,7 @@ def emit_document_from_json(data: str) -> Document:
     """Convert a JSON string into a tagged :class:`Document` instance."""
     record = json.loads(data)
     check_consent(record)
-    doc = Document.from_json(data)
+    doc = Document.from_dict(record)
     provision = Provision(text=record["body"])
     tags = tag_provision(provision)
     doc.provisions = [provision]
