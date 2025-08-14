@@ -1,9 +1,14 @@
 import logging
+from pathlib import Path
 from typing import Any, Dict
+
+from src.policy.opa_gateway import OPAGateway
 
 logger = logging.getLogger(__name__)
 
-SENSITIVE_FLAGS = {"sacred", "restricted", "no_store", "no_share"}
+# Compile the consent policy at import time
+_POLICY_PATH = Path(__file__).resolve().parents[2] / "policies" / "consent.rego"
+OPA_GATEWAY = OPAGateway(_POLICY_PATH)
 
 
 class ConsentError(Exception):
@@ -11,23 +16,22 @@ class ConsentError(Exception):
 
 
 def check_consent(record: Dict[str, Any]) -> None:
-    """Evaluate cultural flags and consent before persisting a record.
+    """Evaluate cultural policies and consent before persisting a record.
 
-    If the record contains any cultural flags deemed sensitive, consent must be
-    explicitly granted via the ``consent`` field. A consent receipt is logged
-    on success, otherwise a :class:`ConsentError` is raised to block persistence
-    or transmission.
+    The record is evaluated against the compiled Rego policies via
+    :class:`OPAGateway`.  If the policy decision is ``deny`` a
+    :class:`ConsentError` is raised to block persistence or transmission.
+    When consent is present, a receipt is logged.
     """
 
-    flags = set(record.get("cultural_flags", []))
-    consent_required = record.get("consent_required", False)
-    if flags & SENSITIVE_FLAGS or consent_required:
-        if not record.get("consent"):
-            logger.warning(
-                "Blocked record %s due to missing consent",
-                record.get("metadata", {}).get("citation"),
-            )
-            raise ConsentError("Consent required for records with cultural flags")
+    if not OPA_GATEWAY.is_allowed(record):
+        logger.warning(
+            "Blocked record %s due to missing consent",
+            record.get("metadata", {}).get("citation"),
+        )
+        raise ConsentError("Consent required for records with cultural flags")
+
+    if record.get("consent"):
         logger.info(
             "Consent receipt for record %s: %s",
             record.get("metadata", {}).get("citation"),
