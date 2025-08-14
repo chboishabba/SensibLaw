@@ -10,6 +10,7 @@ from .models import (
     LegalGraph,
     NodeType,
 )
+from .api import serialize_graph
 
 __all__ = [
     "EdgeType",
@@ -19,6 +20,7 @@ __all__ = [
     "CaseNode",
     "LegalGraph",
     "NodeType",
+    "serialize_graph",
     "ingest_extrinsic",
     "compute_weight",
 ]
