@@ -86,6 +86,15 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    tools_parser = sub.add_parser("tools", help="Utility helper commands")
+    tools_sub = tools_parser.add_subparsers(dest="tools_command")
+    counter_brief = tools_sub.add_parser(
+        "counter-brief", help="Generate a structured counter brief"
+    )
+    counter_brief.add_argument(
+        "--file", type=Path, required=True, help="Path to the input brief"
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -223,6 +232,14 @@ def main() -> None:
             from .api.routes import fetch_case_treatment
 
             result = fetch_case_treatment(args.case_id)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "tools":
+        if args.tools_command == "counter-brief":
+            from .tools.counter_brief import generate_counter_brief
+
+            result = generate_counter_brief(args.file)
             print(json.dumps(result))
         else:
             parser.print_help()
