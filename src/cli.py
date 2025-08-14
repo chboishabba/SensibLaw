@@ -73,9 +73,29 @@ def main() -> None:
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
-    subgraph_parser.add_argument("--seed", required=True, help="Seed node identifier")
-    subgraph_parser.add_argument("--hops", type=int, default=1, help="Number of hops")
-    subgraph_parser.add_argument("--graph-file", type=Path, help="Graph JSON file (use '-' for stdin)")
+    subgraph_parser.add_argument(
+        "--seeds",
+        nargs="+",
+        required=True,
+        help="Seed node identifiers",
+    )
+    subgraph_parser.add_argument(
+        "--hops", type=int, default=1, help="Number of hops"
+    )
+    subgraph_parser.add_argument(
+        "--as-at",
+        help="Only include nodes/edges on or before this date (YYYY-MM-DD)",
+    )
+    subgraph_parser.add_argument(
+        "--graph-file",
+        type=Path,
+        help="Graph JSON file (use '-' for stdin)",
+    )
+    subgraph_parser.add_argument(
+        "--dot",
+        action="store_true",
+        help="Output Graphviz DOT instead of JSON",
+    )
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
@@ -185,9 +205,12 @@ def main() -> None:
             print(json.dumps({"cloud": cloud}))
     elif args.command == "graph":
         if args.graph_command == "subgraph":
+            from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
+
+            as_at = datetime.fromisoformat(args.as_at) if args.as_at else None
+
             if args.graph_file:
                 import sys
-                from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
@@ -196,16 +219,103 @@ def main() -> None:
 
                 g = Graph()
                 for n in data.get("nodes", []):
-                    g.add_node(Node(n["id"], n["type"], {"label": n.get("title", n["id"])}))
+                    n_date = None
+                    if n.get("date"):
+                        try:
+                            n_date = datetime.fromisoformat(n["date"])
+                        except ValueError:
+                            pass
+                    g.add_node(
+                        Node(
+                            n["id"],
+                            n.get("type", ""),
+                            {"label": n.get("title", n["id"] )},
+                            n_date,
+                        )
+                    )
                 for e in data.get("edges", []):
-                    g.add_edge(Edge(e["from"], e["to"], e["type"], {"label": e.get("type")}))
-                nodes, edges = build_subgraph(g, {args.seed}, hops=args.hops)
+                    metadata = {"label": e.get("type")}
+                    if e.get("receipt"):
+                        metadata["receipt"] = e.get("receipt")
+                    e_date = None
+                    if e.get("date"):
+                        try:
+                            e_date = datetime.fromisoformat(e["date"])
+                        except ValueError:
+                            pass
+                    g.add_edge(
+                        Edge(
+                            e["from"],
+                            e["to"],
+                            e["type"],
+                            metadata,
+                            e_date,
+                            e.get("weight"),
+                        )
+                    )
+                nodes, edges = build_subgraph(
+                    g, args.seeds, hops=args.hops, as_at=as_at
+                )
                 print(to_dot(nodes, edges))
             else:
                 from .api.routes import generate_subgraph
 
-                result = generate_subgraph(args.seed, args.hops)
-                print(json.dumps(result))
+                combined_nodes = {}
+                combined_edges = {}
+                for seed in args.seeds:
+                    result = generate_subgraph(seed, args.hops)
+                    for n in result.get("nodes", []):
+                        nid = n.get("identifier") or n.get("id")
+                        combined_nodes[nid] = n
+                    for e in result.get("edges", []):
+                        key = (e.get("source"), e.get("target"), e.get("type"))
+                        combined_edges[key] = e
+                merged = {
+                    "nodes": list(combined_nodes.values()),
+                    "edges": list(combined_edges.values()),
+                }
+                if args.dot:
+                    g = Graph()
+                    for n in merged["nodes"]:
+                        nid = n.get("identifier") or n.get("id")
+                        label = n.get("metadata", {}).get("label") or n.get(
+                            "title", nid
+                        )
+                        n_date = None
+                        if n.get("date"):
+                            try:
+                                n_date = datetime.fromisoformat(n["date"])
+                            except ValueError:
+                                pass
+                        g.add_node(Node(nid, n.get("type", ""), {"label": label}, n_date))
+                    for e in merged["edges"]:
+                        src = e.get("source") or e.get("from")
+                        tgt = e.get("target") or e.get("to")
+                        typ = e.get("type")
+                        meta = e.get("metadata", {})
+                        label = meta.get("label", typ)
+                        metadata = {"label": label}
+                        receipt = meta.get("receipt") or e.get("receipt")
+                        if receipt:
+                            metadata["receipt"] = receipt
+                        e_date = None
+                        if e.get("date"):
+                            try:
+                                e_date = datetime.fromisoformat(e["date"])
+                            except ValueError:
+                                pass
+                        g.add_edge(
+                            Edge(src, tgt, typ, metadata, e_date, e.get("weight"))
+                        )
+                    if as_at:
+                        nodes, edges = build_subgraph(
+                            g, args.seeds, hops=args.hops, as_at=as_at
+                        )
+                        print(to_dot(nodes, edges))
+                    else:
+                        print(to_dot(g.nodes, g.edges))
+                else:
+                    print(json.dumps(merged))
         else:
             parser.print_help()
     elif args.command == "tests":
