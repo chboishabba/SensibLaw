@@ -86,6 +86,16 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    repro_parser = sub.add_parser("repro", help="Generate reproducibility bundles")
+    repro_sub = repro_parser.add_subparsers(dest="repro_command")
+    adv_parser = repro_sub.add_parser(
+        "adversarial", help="Compile adversarial counter-arguments"
+    )
+    adv_parser.add_argument("--topic", required=True, help="Topic identifier")
+    adv_parser.add_argument(
+        "--output", type=Path, default=Path("output"), help="Output directory"
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -188,11 +198,16 @@ def main() -> None:
         if args.graph_command == "subgraph":
             if args.graph_file:
                 import sys
+                import os
                 from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = os.stat(args.graph_file).st_mode & 0o777
+                    if mode == 0:
+                        print("--graph-file unreadable", file=sys.stderr)
+                        sys.exit(1)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()
@@ -224,6 +239,13 @@ def main() -> None:
 
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "repro":
+        if args.repro_command == "adversarial":
+            from .repro.adversarial import build_bundle
+
+            build_bundle(args.topic, args.output)
         else:
             parser.print_help()
     else:
