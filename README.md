@@ -6,10 +6,12 @@ Like coleslaw, it just makes sense.
 
 ## Installation
 
-Install the package in editable mode to develop locally:
+Install the package in editable mode along with development dependencies to develop locally:
 
 ```bash
-pip install -e .
+pip install -e .[dev]
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## CLI
