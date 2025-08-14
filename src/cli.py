@@ -142,7 +142,8 @@ def main() -> None:
         story_data = json.loads(args.story.read_text())
         story_tags = story_data.get("facts", {})
         result = compare_story_to_case(story_tags, case_sil)
-        print(json.dumps(result))
+        # Pretty-print to expose paragraph anchors in output
+        print(json.dumps(result, indent=2))
     elif args.command == "query":
         if args.query_command == "case":
             from .api import routes
