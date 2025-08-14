@@ -38,3 +38,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "src" = ["data/foundation_sources.json"]
+
+[tool.coverage.report]
+fail_under = 80
