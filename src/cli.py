@@ -125,6 +125,18 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    tools_parser = sub.add_parser("tools", help="Utility tools")
+    tools_sub = tools_parser.add_subparsers(dest="tools_command")
+    claim_builder = tools_sub.add_parser(
+        "claim-builder", help="Interactively build a claim"
+    )
+    claim_builder.add_argument(
+        "--dir",
+        type=Path,
+        default=Path("data/claims"),
+        help="Directory to save claim files",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -365,6 +377,13 @@ def main() -> None:
 
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "tools":
+        if args.tools_command == "claim-builder":
+            from .tools.claim_builder import build_claim
+
+            build_claim(args.dir)
         else:
             parser.print_help()
     else:
