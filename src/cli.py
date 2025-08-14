@@ -86,6 +86,14 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    repro_parser = sub.add_parser("repro", help="Reproducibility helpers")
+    repro_sub = repro_parser.add_subparsers(dest="repro_command")
+    repro_log = repro_sub.add_parser("log-correction", help="Log a correction entry")
+    repro_log.add_argument(
+        "--file", type=Path, required=True, help="Path to correction description file"
+    )
+    repro_sub.add_parser("list-corrections", help="List logged corrections")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -216,6 +224,20 @@ def main() -> None:
             story = json.loads(args.story.read_text())
             result = execute_tests(args.ids, story)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "repro":
+        from .repro.ledger import CorrectionLedger
+        import os
+
+        ledger = CorrectionLedger()
+        if args.repro_command == "log-correction":
+            description = args.file.read_text().strip()
+            author = os.getenv("USER", "unknown")
+            entry = ledger.append(description=description, author=author)
+            print(json.dumps(entry.__dict__))
+        elif args.repro_command == "list-corrections":
+            print(json.dumps(ledger.to_dicts()))
         else:
             parser.print_help()
     elif args.command == "cases":
