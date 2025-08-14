@@ -125,6 +125,17 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    polis_parser = sub.add_parser("polis", help="Pol.is conversation operations")
+    polis_sub = polis_parser.add_subparsers(dest="polis_command")
+    polis_import = polis_sub.add_parser("import", help="Import conversation as concepts")
+    polis_import.add_argument("--conversation", required=True, help="Conversation ID")
+    polis_import.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory to write proof packs",
+    )
+
     tools_parser = sub.add_parser("tools", help="Utility tools")
     tools_sub = tools_parser.add_subparsers(dest="tools_command")
     claim_builder = tools_sub.add_parser(
@@ -203,6 +214,18 @@ def main() -> None:
                 {"id": cid, "start": span[0], "end": span[1]} for cid, span in hits
             ]
             print(json.dumps(nodes))
+        else:
+            parser.print_help()
+    elif args.command == "polis":
+        if args.polis_command == "import":
+            from .ingest.polis import fetch_conversation
+            from .receipts import build_pack
+
+            seeds = fetch_conversation(args.conversation)
+            args.out.mkdir(parents=True, exist_ok=True)
+            for seed in seeds:
+                pack_dir = args.out / seed["id"]
+                build_pack(pack_dir, seed.get("label", ""))
         else:
             parser.print_help()
     elif args.command == "query":
