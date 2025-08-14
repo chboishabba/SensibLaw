@@ -47,9 +47,15 @@ def main() -> None:
     )
 
     query_parser = sub.add_parser(
-        "query", help="Run a concept query over the knowledge base"
+        "query", help="Run concept or case queries"
     )
-    group = query_parser.add_mutually_exclusive_group(required=True)
+    query_sub = query_parser.add_subparsers(dest="query_command")
+    treat_parser = query_sub.add_parser(
+        "treatment", help="Fetch treatment information for a case"
+    )
+    treat_parser.add_argument("--case", required=True, help="Case identifier")
+
+    group = query_parser.add_mutually_exclusive_group()
     group.add_argument("--text", help="Question or keyword query")
     group.add_argument(
         "--graph",
@@ -124,19 +130,27 @@ def main() -> None:
         result = compare_cases(base, cand)
         print(json.dumps(result))
     elif args.command == "query":
-        from .pipeline import build_cloud, match_concepts, normalise
-        from .pipeline.input_handler import parse_input
+        if args.query_command == "treatment":
+            from .api.routes import fetch_case_treatment
 
-        if args.graph:
-            data = json.loads(args.graph.read_text())
-            raw_query = parse_input(data)
+            result = fetch_case_treatment(args.case)
+            print(json.dumps(result))
         else:
-            raw_query = parse_input(args.text)
+            if not (args.text or args.graph):
+                parser.error("query requires --text or --graph")
+            from .pipeline import build_cloud, match_concepts, normalise
+            from .pipeline.input_handler import parse_input
 
-        text = normalise(raw_query)
-        concepts = match_concepts(text)
-        cloud = build_cloud(concepts)
-        print(json.dumps({"cloud": cloud}))
+            if args.graph:
+                data = json.loads(args.graph.read_text())
+                raw_query = parse_input(data)
+            else:
+                raw_query = parse_input(args.text)
+
+            text = normalise(raw_query)
+            concepts = match_concepts(text)
+            cloud = build_cloud(concepts)
+            print(json.dumps({"cloud": cloud}))
     elif args.command == "graph":
         if args.graph_command == "subgraph":
             from .api.routes import generate_subgraph

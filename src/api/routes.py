@@ -3,8 +3,36 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Dict, Any, List
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+try:  # pragma: no cover - FastAPI is optional for CLI tests
+    from fastapi import APIRouter, HTTPException, Query
+except ImportError:  # pragma: no cover
+    class HTTPException(Exception):
+        def __init__(self, status_code: int, detail: str):
+            self.status_code = status_code
+            self.detail = detail
+
+    class APIRouter:  # minimal stub for testing without FastAPI
+        def get(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+        def post(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+    def Query(*args, **kwargs):
+        return None
+
+try:  # pragma: no cover
+    from pydantic import BaseModel, Field
+except ImportError:  # pragma: no cover
+    class BaseModel:  # minimal stub when pydantic is absent
+        pass
+
+    def Field(*args, **kwargs):
+        return None
 
 from ..graph.models import LegalGraph
 from ..tests.templates import TEMPLATE_REGISTRY
@@ -76,8 +104,9 @@ def tests_run_endpoint(payload: TestRunRequest) -> Dict[str, Any]:
 
 _FAKE_TREATMENTS: Dict[str, List[Dict[str, Any]]] = {
     "case123": [
-        {"citation": "1 CLR 1", "treatment": "followed"},
+        # Intentionally out of order to exercise sorting logic
         {"citation": "2 CLR 50", "treatment": "distinguished"},
+        {"citation": "1 CLR 1", "treatment": "followed"},
     ]
 }
 
@@ -86,7 +115,9 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
     treatments = _FAKE_TREATMENTS.get(case_id)
     if treatments is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    return {"case_id": case_id, "treatments": treatments}
+    # Sort treatments deterministically by citation for stable CLI output
+    ordered = sorted(treatments, key=lambda t: t["citation"])
+    return {"case_id": case_id, "treatments": ordered}
 
 
 @router.get("/cases/{case_id}/treatment")
