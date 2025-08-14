@@ -25,6 +25,7 @@ dev = [
 ]
 test = [
     "pytest",
+    "hypothesis",
 ]
 
 [project.scripts]
