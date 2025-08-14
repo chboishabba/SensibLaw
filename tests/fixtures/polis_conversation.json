@@ -1,0 +1,10 @@
+{
+  "statements": [
+    {"id": 1, "txt": "Cats are better than dogs", "score": 5, "cluster": 0},
+    {"id": 2, "txt": "Dogs are the best pets", "score": 2, "cluster": 1}
+  ],
+  "clusters": [
+    {"id": 0, "name": "Feline Fans"},
+    {"id": 1, "name": "Canine Crew"}
+  ]
+}
