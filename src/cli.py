@@ -125,6 +125,14 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    receipts_parser = sub.add_parser("receipts", help="Receipt operations")
+    receipts_sub = receipts_parser.add_subparsers(dest="receipts_command")
+    receipts_diff = receipts_sub.add_parser(
+        "diff", help="Compare two receipt files"
+    )
+    receipts_diff.add_argument("--old", type=Path, required=True, help="Old receipt")
+    receipts_diff.add_argument("--new", type=Path, required=True, help="New receipt")
+
     tools_parser = sub.add_parser("tools", help="Utility tools")
     tools_sub = tools_parser.add_subparsers(dest="tools_command")
     claim_builder = tools_sub.add_parser(
@@ -377,6 +385,20 @@ def main() -> None:
 
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "receipts":
+        if args.receipts_command == "diff":
+            from .text.similarity import minhash, simhash
+
+            old_text = Path(args.old).read_text(encoding="utf-8")
+            new_text = Path(args.new).read_text(encoding="utf-8")
+            if old_text == new_text:
+                print("identical")
+            elif minhash(old_text) == minhash(new_text):
+                print("cosmetic")
+            else:
+                print("substantive")
         else:
             parser.print_help()
     elif args.command == "tools":
