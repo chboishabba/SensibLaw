@@ -56,6 +56,19 @@ def main() -> None:
         help="Path to a fact-tagged story JSON file",
     )
 
+    concepts_parser = sub.add_parser("concepts", help="Concept operations")
+    concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
+    concepts_match = concepts_sub.add_parser(
+        "match", help="Match concept triggers within text"
+    )
+    concepts_match.add_argument(
+        "--patterns-file",
+        type=Path,
+        required=True,
+        help="JSON file mapping phrases to concept identifiers",
+    )
+    concepts_match.add_argument("--text", required=True, help="Text to match")
+
     query_parser = sub.add_parser(
         "query", help="Run a concept query or case lookup over the knowledge base"
     )
@@ -143,6 +156,19 @@ def main() -> None:
         story_tags = story_data.get("facts", {})
         result = compare_story_to_case(story_tags, case_sil)
         print(json.dumps(result))
+    elif args.command == "concepts":
+        if args.concepts_command == "match":
+            from .concepts.matcher import ConceptMatcher, load_patterns
+
+            patterns = load_patterns(args.patterns_file)
+            matcher = ConceptMatcher(patterns)
+            hits = matcher.match(args.text)
+            nodes = [
+                {"id": cid, "start": span[0], "end": span[1]} for cid, span in hits
+            ]
+            print(json.dumps(nodes))
+        else:
+            parser.print_help()
     elif args.command == "query":
         if args.query_command == "case":
             from .api import routes
