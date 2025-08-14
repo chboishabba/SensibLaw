@@ -137,6 +137,23 @@ def main() -> None:
         help="Directory to save claim files",
     )
 
+    intake_parser = sub.add_parser("intake", help="Email intake operations")
+    intake_sub = intake_parser.add_subparsers(dest="intake_command")
+    intake_parse = intake_sub.add_parser(
+        "parse", help="Parse an email mailbox into claim stubs"
+    )
+    intake_parse.add_argument(
+        "--mailbox",
+        required=True,
+        help="IMAP URL or directory containing .eml files",
+    )
+    intake_parse.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory for generated claim stubs",
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -377,6 +394,17 @@ def main() -> None:
 
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "intake":
+        if args.intake_command == "parse":
+            from .intake.email_parser import fetch_messages, parse_email
+            from .intake.stub_builder import build_stub
+
+            messages = fetch_messages(str(args.mailbox))
+            for msg in messages:
+                data = parse_email(msg)
+                build_stub(data, args.out)
         else:
             parser.print_help()
     elif args.command == "tools":
