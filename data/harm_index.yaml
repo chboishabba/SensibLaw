@@ -1,0 +1,14 @@
+# Mapping of entities to harm weights
+# Weight values range from 0 (no harm) to 1 (maximum harm)
+person:
+  category: physical
+  weight: 1.0
+property:
+  category: economic
+  weight: 0.5
+reputation:
+  category: reputational
+  weight: 0.3
+environment:
+  category: environmental
+  weight: 0.8
