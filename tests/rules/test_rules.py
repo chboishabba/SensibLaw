@@ -1,16 +1,12 @@
 import json
 import subprocess
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from src.rules.extractor import extract_rules
 from src.rules.reasoner import check_rules
 
 
 def run_cli(*args: str) -> str:
-    cmd = ["python", "-m", "src.cli", *args]
+    cmd = ["python", "-m", "cli", *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return completed.stdout.strip()
 
