@@ -92,6 +92,7 @@ class HTTPCache:
         meta_path.write_text(json.dumps(meta))
         return body
 
+
 """HTTP caching utilities with per-host rate limiting.
 
 This module provides small helper functions for fetching web resources while

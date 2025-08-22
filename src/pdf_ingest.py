@@ -10,6 +10,7 @@ from typing import List, Optional
 from pdfminer.high_level import extract_text
 
 from .ingestion.cache import HTTPCache
+
 from .models.document import Document, DocumentMetadata, Provision
 from .rules.extractor import extract_rules
 

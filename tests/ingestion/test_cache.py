@@ -72,6 +72,7 @@ def test_cache_uses_conditional_headers_after_delay(tmp_path: Path):
     assert second == b"content"
     assert session.calls == 2
 
+
 import hashlib
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -142,4 +143,5 @@ def test_source_manifests_exist():
     hca = json.loads((base / "hca_manifest.json").read_text())
     assert frl["base_url"].startswith("https://")
     assert hca["base_url"].startswith("https://")
+
 
