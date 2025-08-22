@@ -1,87 +1,46 @@
-import json
-import sys
 from pathlib import Path
+import sys
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
-from src.policy.engine import CulturalFlags, PolicyEngine
+from src.policy.engine import PolicyEngine
 from src.graph import GraphNode, NodeType
 
-policy_json = json.dumps(
-    {
-        "name": "SacredDataGuard",
-        "rules": [
-            {"flag": "SACRED_DATA", "action": "deny"},
-            {"flag": "PERSONALLY_IDENTIFIABLE_INFORMATION", "action": "log"},
-        ],
-        "default": "allow",
-    }
-)
+RULES = ROOT / "data" / "cultural_rules.yaml"
 
 
-def test_deny_and_log():
-    logs = []
-    engine = PolicyEngine.from_json(
-        policy_json, storage_hook=lambda f, a: logs.append((f, a))
-    )
-    action = engine.evaluate({CulturalFlags.SACRED_DATA})
-    assert action == "deny"
-    assert logs == [(CulturalFlags.SACRED_DATA, "deny")]
-
-
-def test_log_action():
-    logs = []
-    engine = PolicyEngine.from_json(
-        policy_json, storage_hook=lambda f, a: logs.append((f, a))
-    )
-    action = engine.evaluate({CulturalFlags.PERSONALLY_IDENTIFIABLE_INFORMATION})
-    assert action == "log"
-    assert logs == [
-        (CulturalFlags.PERSONALLY_IDENTIFIABLE_INFORMATION, "log")
-    ]
-
-
-def test_transform_hook():
-    transformed = []
-    policy = {
-        "rules": [{"flag": "PUBLIC_DOMAIN", "action": "transform"}],
-        "default": "allow",
-    }
-    engine = PolicyEngine(policy, inference_hook=lambda f, a: transformed.append((f, a)))
-    action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
-    assert action == "transform"
-    assert transformed == [(CulturalFlags.PUBLIC_DOMAIN, "transform")]
-
-
-def test_default_allow():
-    policy = {
-        "rules": [{"flag": "SACRED_DATA", "action": "deny"}],
-        "default": "allow",
-    }
-    engine = PolicyEngine(policy)
-    action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
-    assert action == "allow"
-
-
-def test_enforce_redacts_without_consent():
-    engine = PolicyEngine({})
+def test_omit_without_override():
+    engine = PolicyEngine.from_yaml(str(RULES))
     node = GraphNode(
         type=NodeType.DOCUMENT,
         identifier="n1",
         metadata={"secret": "x"},
-        consent_required=True,
+        cultural_flags=["SACRED_DATA"],
     )
-    redacted = engine.enforce(node, consent=False)
-    assert redacted.metadata == {}
+    assert engine.enforce(node) is None
 
 
-def test_enforce_allows_with_consent():
-    engine = PolicyEngine({})
+def test_redact_without_consent():
+    engine = PolicyEngine.from_yaml(str(RULES))
     node = GraphNode(
         type=NodeType.DOCUMENT,
-        identifier="n1",
-        metadata={"secret": "x"},
-        consent_required=True,
+        identifier="n2",
+        metadata={"pii": "x"},
+        cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
     )
-    allowed = engine.enforce(node, consent=True)
-    assert allowed.metadata == {"secret": "x"}
+    redacted = engine.enforce(node)
+    assert redacted.metadata["pii"] != "x"
+
+
+def test_override_allows_original():
+    engine = PolicyEngine.from_yaml(str(RULES))
+    node = GraphNode(
+        type=NodeType.DOCUMENT,
+        identifier="n3",
+        metadata={"pii": "x"},
+        cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
+    )
+    allowed = engine.enforce(node, consent=True, phase="export")
+    assert allowed.metadata["pii"] == "x"

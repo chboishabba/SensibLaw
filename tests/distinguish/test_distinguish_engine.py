@@ -1,4 +1,9 @@
-from src.distinguish.engine import compare_cases, extract_case_silhouette
+from src.distinguish.engine import (
+    CaseSilhouette,
+    compare_cases,
+    compare_story_to_case,
+    extract_case_silhouette,
+)
 
 
 def test_extract_case_silhouette():
@@ -32,3 +37,21 @@ def test_compare_cases_overlap_and_missing():
     assert "Held: yes" in texts
     missing_texts = [m["text"] for m in result["missing"]]
     assert "Base fact" in missing_texts
+
+
+def test_compare_story_to_case_overlap_and_missing():
+    case = CaseSilhouette(
+        fact_tags={},
+        holding_hints={},
+        paragraphs=[
+            "There was a significant delay before trial.",
+            "Some evidence was lost causing prejudice to the defence.",
+        ],
+    )
+    story_tags = {"delay": True, "abuse_indicators": True, "lost_evidence": True}
+    result = compare_story_to_case(story_tags, case)
+    overlap_ids = {o["id"] for o in result["overlaps"]}
+    missing_ids = {m["id"] for m in result["missing"]}
+    assert "delay" in overlap_ids
+    assert "lost_evidence" in overlap_ids
+    assert "abuse_indicators" in missing_ids
