@@ -1,0 +1,8 @@
+{
+  "template_id": "au:cth:family:s4AA",
+  "facts": {
+    "child_wishes": true,
+    "relationship": false,
+    "safety": true
+  }
+}
