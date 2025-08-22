@@ -7,7 +7,12 @@ interface now lives in the top-level :mod:`cli` package.
 
 from __future__ import annotations
 
-from cli import main
+def main() -> None:
+    """Entry point that defers loading the heavy ``cli`` package."""
+    from cli import main as real_main
+
+    real_main()
+
 
 __all__ = ["main"]
 
