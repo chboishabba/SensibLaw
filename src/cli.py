@@ -40,6 +40,16 @@ def _cmd_tests_run(args: argparse.Namespace) -> None:
         print(f"{res.factor.id:20} {res.status:10} {evidence}")
 
 
+# graph query utilities
+from .graph.query import (
+    load_graph,
+    search_by_citation,
+    search_by_tag,
+    search_by_type,
+    traverse_edges,
+)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -85,6 +95,27 @@ def main() -> None:
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
 
+    graph_parser = sub.add_parser("graph", help="Graph utilities")
+    graph_sub = graph_parser.add_subparsers(dest="graph_command")
+
+    graph_query = graph_sub.add_parser("query", help="Query a graph JSON file")
+    graph_query.add_argument(
+        "--graph", dest="graph_path", required=True, help="Path to graph JSON"
+    )
+    group = graph_query.add_mutually_exclusive_group()
+    group.add_argument("--type", dest="node_type", help="Filter nodes by type")
+    group.add_argument("--citation", help="Filter nodes by citation")
+    group.add_argument("--tag", help="Filter nodes by tag")
+    graph_query.add_argument("--start", help="Start node for traversal")
+    graph_query.add_argument(
+        "--depth", type=int, default=1, help="Traversal depth from start node"
+    )
+    graph_query.add_argument(
+        "--since", help="Only include edges on or after this date (YYYY-MM-DD)"
+    )
+    graph_query.add_argument(
+        "--min-weight", type=float, help="Only include edges with weight >= value"
+    )
     law_parser = sub.add_parser("law", help="Law document utilities")
     law_sub = law_parser.add_subparsers(dest="law_command")
     law_redline = law_sub.add_parser(
@@ -516,6 +547,31 @@ def main() -> None:
             cultural_flags=args.cultural_flags,
         )
         print(doc.to_json())
+    elif args.command == "graph" and args.graph_command == "query":
+        graph_data = load_graph(args.graph_path)
+        if args.start:
+            since = (
+                datetime.fromisoformat(args.since).date() if args.since else None
+            )
+            result = traverse_edges(
+                graph_data,
+                args.start,
+                depth=args.depth,
+                since=since,
+                min_weight=args.min_weight,
+            )
+        else:
+            if args.node_type:
+                nodes = search_by_type(graph_data, args.node_type)
+            elif args.citation:
+                nodes = search_by_citation(graph_data, args.citation)
+            elif args.tag:
+                nodes = search_by_tag(graph_data, args.tag)
+            else:
+                nodes = []
+            result = {"nodes": nodes, "edges": []}
+        print(json.dumps(result))
+
     elif args.command == "law":
         if args.law_command == "redline":
             from .versioning.section_diff import redline
