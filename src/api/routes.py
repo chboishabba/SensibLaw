@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from ..graph.models import LegalGraph, GraphEdge
 from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
+from ..policy.engine import PolicyEngine
 
 # Ranking of courts and weighting of relations when computing treatment scores.
 # Higher values indicate greater persuasive authority.
@@ -27,6 +28,11 @@ WEIGHT: Dict[str, float] = {
 router = APIRouter()
 _graph = LegalGraph()
 
+_policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"})
+
+
+def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, Any]:
+    """Return a subgraph around ``seed`` up to ``hops`` hops."""
 
 def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, Any]:
     """Return a subgraph around ``seed`` up to ``hops`` hops.
@@ -51,6 +57,13 @@ def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, 
                 visited.add(tgt)
                 nodes[tgt] = _graph.nodes[tgt]
                 frontier.append((tgt, depth + 1))
+    result_nodes = []
+    for n in nodes.values():
+        enforced = _policy.enforce(n, consent=consent)
+        if enforced:
+            result_nodes.append(asdict(enforced))
+    return {"nodes": result_nodes, "edges": [asdict(e) for e in edges]}
+
 
     subgraph = LegalGraph()
     for node in nodes.values():
@@ -65,6 +78,12 @@ def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, 
 def subgraph_endpoint(
     seed: str = Query(..., description="Identifier for the seed node"),
     hops: int = Query(1, ge=1, le=5, description="Number of hops from seed"),
+    consent: bool = Query(
+        False, description="Consent granted to view sacred data"
+    ),
+) -> Dict[str, Any]:
+    return generate_subgraph(seed, hops, consent)
+
     reduced: bool = Query(
         False, description="Apply transitive reduction to edge set"
     ),
