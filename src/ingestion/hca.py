@@ -23,6 +23,8 @@ import io
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from .cache import fetch_html
+from ..graph.hierarchy import COURT_RANKS, court_weight
 from .cache import fetch_html, fetch_pdf
 
 # ---------------------------------------------------------------------------
@@ -184,6 +186,7 @@ def crawl_year(
     year: Optional[int] = None,
     *,
     html_text: Optional[str] = None,
+    panel_size: int = 1,
     pdfs: Optional[Dict[str, bytes]] = None,
 ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Crawl a yearly index page and return graph data.
@@ -214,6 +217,10 @@ def crawl_year(
     edges: List[Dict[str, object]] = []
     seen_nodes: Dict[str, str] = {}
 
+    court = "HCA"
+    rank = COURT_RANKS.get(court, 0)
+    weight = court_weight(court, panel_size)
+
     for case in parse_index(html_text):
         pdf_bytes: Optional[bytes] = None
         if pdfs and case.citation in pdfs:
@@ -241,6 +248,20 @@ def crawl_year(
                 seen_nodes[ident] = ntype
 
         case_id = case.citation
+        nodes.append(
+            {
+                "id": case_id,
+                "type": "case",
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": rank,
+                "panel_size": panel_size,
+            }
+        )
+        for statute in case.statutes:
+            nodes.append({"id": statute, "type": "statute"})
+            edges.append({"from": case_id, "to": statute, "type": "cites", "weight": weight})
+
         add_node(
             case_id,
             "case",
