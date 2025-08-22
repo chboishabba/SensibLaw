@@ -1,3 +1,9 @@
+import argparse
+import json
+import sys
+from datetime import datetime, date
+from pathlib import Path
+
 """Backward compatible wrapper for the new :mod:`cli` package."""
 
 from __future__ import annotations
@@ -50,6 +56,8 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         "distinguish", help="Compare a story against a case silhouette"
     )
     dist_parser.add_argument(
+        "--base", type=Path, help="Base case paragraphs as JSON"
+
         "--case",
         required=True,
         help="Neutral citation identifying the base case",
@@ -57,9 +65,13 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     dist_parser.add_argument(
         "--story",
         type=Path,
+        help="Candidate case paragraphs as JSON",
+
         required=True,
         help="Path to a fact-tagged story JSON file",
     )
+    dist_parser.add_argument("--case", help="Base case citation")
+    dist_parser.add_argument("--story", type=Path, help="Story facts as JSON")
 
     publish_parser = sub.add_parser("publish", help="Generate a static site")
     publish_parser.add_argument("--seed", required=True, help="Seed node identifier")
@@ -334,6 +346,33 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         else:
             parser.print_help()
     elif args.command == "distinguish":
+        from .distinguish.engine import (
+            compare_cases,
+            extract_case_silhouette,
+        )
+        from .distinguish.factor_packs import distinguish_story
+
+        if args.base and args.candidate:
+            base_paras = json.loads(args.base.read_text())
+            cand_paras = json.loads(args.candidate.read_text())
+            base = extract_case_silhouette(base_paras)
+            cand = extract_case_silhouette(cand_paras)
+            result = compare_cases(base, cand)
+            print(json.dumps(result))
+        elif args.case and args.story:
+            try:
+                result = distinguish_story(args.case, args.story)
+            except FileNotFoundError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
+                raise SystemExit(1)
+            print(json.dumps(result))
+        else:
+            print(
+                "distinguish requires --base and --candidate or --case and --story",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
         from .distinguish.loader import load_case_silhouette
         from .distinguish.engine import compare_story_to_case
 
