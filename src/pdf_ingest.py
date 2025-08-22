@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from pdfminer.high_level import extract_text
 
+from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .rules.extractor import extract_rules
 
@@ -52,6 +53,20 @@ def save_json(pages: List[dict], output_path: Path, source: Path) -> None:
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
+def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
+    """Download a PDF using :class:`HTTPCache` and save to ``dest``.
+
+    The helper allows PDF ingestion to reuse the same caching logic and delay
+    configuration as other network fetchers.
+    """
+
+    dest.write_bytes(cache.fetch(url))
+    return dest
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Extract text from a PDF and save as JSON")
 
 def _rules_to_strings(rules) -> List[str]:
     texts: List[str] = []
