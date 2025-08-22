@@ -1,0 +1,8 @@
+{
+  "id": "basic",
+  "factors": [
+    {"id": "has_a", "title": "Has A", "tags": ["a"]},
+    {"id": "has_b", "title": "Has B", "tags": ["b"]}
+  ],
+  "logic": "has_a and has_b"
+}
