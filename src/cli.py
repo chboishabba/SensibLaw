@@ -235,6 +235,14 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         help="Directory for generated claim stubs",
     )
 
+    tests_parser = sub.add_parser("tests", help="Evaluate declarative tests")
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    tests_run = tests_sub.add_parser("run", help="Run a test template against a story")
+    tests_run.add_argument("--tests", required=True, help="Test template ID")
+    tests_run.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -577,6 +585,23 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     elif args.command == "definitions":
         if args.definitions_command == "expand":
             from .definitions.graph import DefinitionGraph, load_default_definitions
+
+        text = normalise(raw_query)
+        concepts = match_concepts(text)
+        cloud = build_cloud(concepts)
+        print(json.dumps({"cloud": cloud}))
+    elif args.command == "tests":
+        if args.tests_command == "run":
+            from .tests import TEMPLATE_REGISTRY, evaluate
+
+            template = TEMPLATE_REGISTRY.get(args.tests)
+            if template is None:
+                raise SystemExit(f"Unknown test template '{args.tests}'")
+            data = json.loads(args.story.read_text())
+            result = evaluate(template, data)
+            print(json.dumps(result.to_dict()))
+        else:
+            tests_parser.print_help()
 
             defs = load_default_definitions()
             graph = DefinitionGraph(defs)

@@ -50,8 +50,20 @@ S90SM_TEMPLATE = _load_template(TEMPLATES_DIR / "au_cth_family_s90SM.json")
 # Backwards compatibility alias
 PERMANENT_STAY_TEST = GLJ_PERMANENT_STAY_TEST
 
+S4AA_TEST = TestTemplate(
+    concept_id="s4AA",
+    name="Section 4AA Test",
+    factors=[
+        Factor("f1", "Example factor one"),
+        Factor("f2", "Example factor two"),
+    ],
+)
+
 # Registry mapping concept IDs to templates for lookup during evaluation
 TEMPLATE_REGISTRY: Dict[str, TestTemplate] = {
+    PERMANENT_STAY_TEST.concept_id: PERMANENT_STAY_TEST,
+    S4AA_TEST.concept_id: S4AA_TEST,
+
     GLJ_PERMANENT_STAY_TEST.concept_id: GLJ_PERMANENT_STAY_TEST,
     S4AA_TEMPLATE.concept_id: S4AA_TEMPLATE,
     S90SB_TEMPLATE.concept_id: S90SB_TEMPLATE,
