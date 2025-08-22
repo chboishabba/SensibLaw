@@ -1,27 +1,21 @@
-"""Run concept matching, checklist evaluation and proof-tree generation."""
+"""Compare a short story against the GLJ case silhouette."""
 
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Sequence, Tuple, Dict, Any
 
 # Ensure the src directory is importable when running from repository root
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from distinguish.engine import (
-    CaseSilhouette,
-    compare_cases,
-    extract_case_silhouette,
-)
-from pipeline import normalise, match_concepts, build_cloud
-from tests.templates import TEMPLATE_REGISTRY
+from distinguish.engine import CaseSilhouette, extract_case_silhouette, compare_cases
 
 
-def load_base_silhouette(path: Path) -> CaseSilhouette:
+def load_silhouette(path: Path) -> CaseSilhouette:
     data = json.loads(path.read_text())
     return CaseSilhouette(
         fact_tags=data["fact_tags"],
@@ -30,54 +24,33 @@ def load_base_silhouette(path: Path) -> CaseSilhouette:
     )
 
 
-def evaluate_checklist(tokens: list[str]) -> Dict[str, bool]:
-    template = TEMPLATE_REGISTRY["permanent_stay"]
-    token_set = set(tokens)
-    results: Dict[str, bool] = {}
-    for factor in template.factors:
-        # Very naive matching: factor id split into tokens
-        keywords = factor.id.split("_")
-        results[factor.id] = any(k in token_set for k in keywords)
-    return results
-
-
-def build_proof_tree(evaluation: Dict[str, bool]) -> str:
-    lines = ["digraph ProofTree {", '  concept [label="Permanent Stay"]']
-    template = TEMPLATE_REGISTRY["permanent_stay"]
-    for factor in template.factors:
-        present = evaluation.get(factor.id, False)
-        node_label = f"{factor.description}\\n{'YES' if present else 'NO'}"
-        lines.append(f'  {factor.id} [label="{node_label}"]')
-        lines.append(f'  concept -> {factor.id}')
-    lines.append("}")
-    return "\n".join(lines)
+def compare_story_to_case(base: CaseSilhouette, story: Sequence[str]) -> Tuple[Dict[str, Any], CaseSilhouette]:
+    candidate = extract_case_silhouette(story)
+    comparison = compare_cases(base, candidate)
+    return comparison, candidate
 
 
 def main() -> None:
     here = Path(__file__).resolve().parent
-    base = load_base_silhouette(here / "glj_silhouette.json")
+    base = load_silhouette(here / "glj_silhouette.json")
+    story = json.loads((here / "story.json").read_text())
 
-    story_text = (here / "story.txt").read_text()
-    story_paragraphs = [p.strip() for p in story_text.split(".") if p.strip()]
-    candidate = extract_case_silhouette(story_paragraphs)
+    comparison, candidate = compare_story_to_case(base, story)
 
-    comparison = compare_cases(base, candidate)
+    for item in comparison["overlaps"]:
+        print(f"OVERLAP ({item['type']}): {item['text']}")
+        print(f"  GLJ \u00b6{item['base']['index'] + 1}: {item['base']['paragraph']}")
+        print(f"  Story \u00b6{item['candidate']['index'] + 1}: {item['candidate']['paragraph']}")
 
-    normalised = normalise(story_text)
-    tokens = match_concepts(normalised)
-    cloud = build_cloud(tokens)
-    evaluation = evaluate_checklist(tokens)
-    proof_tree_dot = build_proof_tree(evaluation)
+    for item in comparison["missing"]:
+        print(f"MISSING ({item['type']}): {item['text']}")
+        print(f"  GLJ \u00b6{item['base']['index'] + 1}: {item['base']['paragraph']}")
 
-    result = {
-        "concept_cloud": cloud,
-        "comparison": comparison,
-        "evaluation": evaluation,
-    }
-
-    (here / "results.json").write_text(json.dumps(result, indent=2))
-    (here / "proof_tree.dot").write_text(proof_tree_dot)
-    print("Wrote results.json and proof_tree.dot to", here)
+    for token in comparison["b_only_tokens"]:
+        idx = candidate.fact_tags[token]
+        para = candidate.paragraphs[idx]
+        print(f"EXTRA FACT: {token}")
+        print(f"  Story \u00b6{idx + 1}: {para}")
 
 
 if __name__ == "__main__":
