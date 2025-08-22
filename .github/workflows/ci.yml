@@ -74,3 +74,14 @@ PY
           python scripts/generate_sample_corpus.py
           python examples/distinguish_glj/demo.py
           python -m src.pdf_ingest --help
+
+          pip install pytest coverage[toml] pytest-cov hypothesis
+      - name: Test
+        run: pytest --cov=src --cov-report=xml
+      - name: Evaluate gold set
+        run: sensiblaw eval goldset
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
