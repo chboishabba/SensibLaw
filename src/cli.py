@@ -81,6 +81,18 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     concepts_match.add_argument("--text", required=True, help="Text to match")
 
     query_parser = sub.add_parser(
+        "query", help="Run concept or case queries"
+    )
+    query_sub = query_parser.add_subparsers(dest="query_command")
+    treat_parser = query_sub.add_parser(
+        "treatment", help="Fetch treatment information for a case"
+    )
+    treat_parser.add_argument("--case", required=True, help="Case identifier")
+
+    group = query_parser.add_mutually_exclusive_group()
+    group.add_argument("--text", help="Question or keyword query")
+    group.add_argument(
+
         "query", help="Run concept queries or case lookups"
     )
     query_parser.add_argument("--text", help="Question or keyword query")
@@ -360,6 +372,8 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         else:
             parser.print_help()
     elif args.command == "query":
+        if args.query_command == "treatment":
+
         if args.query_command == "case":
             from .api import routes
             from .graph.models import EdgeType, GraphEdge, GraphNode, NodeType
@@ -390,6 +404,10 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
 
             result = fetch_case_treatment(args.case)
             print(json.dumps(result))
+        else:
+            if not (args.text or args.graph):
+                parser.error("query requires --text or --graph")
+
 
         elif args.query_command == "timeline":
             from dataclasses import asdict
