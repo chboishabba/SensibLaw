@@ -27,7 +27,8 @@ Execute all linting and type-check hooks:
 
 ```bash
 pre-commit run --all-files
-=======
+```
+
 Install the package in editable mode along with development dependencies to develop locally:
 
 ```bash
