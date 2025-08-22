@@ -1,0 +1,10 @@
+{
+  "concepts": [
+    {"id": "terra_nullius", "label": "Terra Nullius"},
+    {"id": "mabo", "label": "Mabo"},
+    {"id": "permanent_stay", "label": "Permanent Stay"}
+  ],
+  "relations": [
+    {"source": "terra_nullius", "type": "REJECTS", "target": "mabo"}
+  ]
+}

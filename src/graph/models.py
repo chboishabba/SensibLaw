@@ -16,6 +16,9 @@ class NodeType(Enum):
     CASE = "case"
     CONCEPT = "concept"
 
+    CONCEPT = "concept"
+    CASE = "case"
+
 
 class EdgeType(Enum):
     """Enumeration of supported edge types within a legal graph."""
@@ -25,16 +28,41 @@ class EdgeType(Enum):
     RELATED_TO = "related_to"
     FOLLOWS = "follows"
     DISTINGUISHES = "distinguishes"
+    REJECTS = "rejects"
+    FOLLOWS = "follows"
+    APPLIES = "applies"
+    CONSIDERS = "considers"
+    DISTINGUISHES = "distinguishes"
+    OVERRULES = "overrules"
 
 
 @dataclass
 class GraphNode:
-    """Representation of a node in the legal graph."""
+    """Representation of a node in the legal graph.
+
+    Attributes
+    ----------
+    type:
+        The :class:`NodeType` of the node.
+    identifier:
+        Unique identifier for the node within the graph.
+    metadata:
+        Arbitrary metadata associated with the node.
+    date:
+        Optional date for the node, typically the date of the underlying
+        document or event.
+    cultural_flags:
+        Optional list of cultural sensitivity flags attached to the node.
+    consent_required:
+        Indicates whether access to this node requires explicit consent.
+    """
 
     type: NodeType
     identifier: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     date: Optional[date] = None
+    cultural_flags: Optional[List[str]] = None
+    consent_required: bool = False
 
 
 @dataclass
@@ -43,6 +71,15 @@ class ExtrinsicNode(GraphNode):
 
     role: str = ""
     stage: str = ""
+
+
+@dataclass(kw_only=True)
+class CaseNode(GraphNode):
+    """Node representing a judicial decision."""
+
+    court_rank: int
+    panel_size: Optional[int] = None
+    type: NodeType = field(default=NodeType.CASE, init=False)
 
 
 @dataclass
@@ -108,6 +145,7 @@ __all__ = [
     "EdgeType",
     "GraphNode",
     "ExtrinsicNode",
+    "CaseNode",
     "GraphEdge",
     "LegalGraph",
 ]
