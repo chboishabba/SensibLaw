@@ -15,9 +15,12 @@ pip install -e .[dev,test]
 
 ## Testing
 
-Install the test extras (which include Hypothesis) and run the suite:
+Install the test extras and run the suite. The extras include
+[Hypothesis](https://hypothesis.readthedocs.io/), which powers the
+project's property-based tests:
 
 ```bash
+pip install -e .[test]
 pytest
 ```
 
