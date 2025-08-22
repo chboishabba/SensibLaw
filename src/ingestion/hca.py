@@ -243,9 +243,6 @@ def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str,
 
     return nodes, edges
 
-
-def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
-
 def crawl_year(
     year: Optional[int] = None,
     *,
@@ -330,16 +327,6 @@ def crawl_year(
                     "type": EdgeType.CITES.value,
                 }
             )
-                "type": "case",
-                "catchwords": case.catchwords,
-                "pdf": case.pdf_url,
-                "court_rank": rank,
-                "panel_size": panel_size,
-            }
-        )
-        for statute in case.statutes:
-            nodes.append({"id": statute, "type": "statute"})
-            edges.append({"from": case_id, "to": statute, "type": "cites", "weight": weight})
 
         add_node(
             case_id,
