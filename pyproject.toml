@@ -16,6 +16,7 @@ dependencies = [
     "fastapi",
     "matplotlib",
     "graphviz",
+    "networkx",
 ]
 
 [project.optional-dependencies]
