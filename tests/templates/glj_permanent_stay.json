@@ -1,0 +1,10 @@
+{
+  "concept_id": "glj:permanent_stay",
+  "name": "GLJ Permanent Stay",
+  "threshold": 2,
+  "factors": [
+    {"id": "delay", "description": "Extent and impact of any prosecutorial delay"},
+    {"id": "abuse_of_process", "description": "Whether continuation would be an abuse of process"},
+    {"id": "fair_trial_possible", "description": "Possibility of a fair trial despite the delay"}
+  ]
+}

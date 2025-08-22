@@ -27,6 +27,17 @@ with open("data/corpus/example_act.json", "w") as f:
 4. Ensure minimal LPO/CCO tags and cultural flags are included for cultural context.
 5. Run `pytest` to verify integrity.
 
+### Sample generation script
+
+A helper script is provided to create example Act and judgment files. Run:
+
+```bash
+python scripts/generate_sample_corpus.py
+```
+
+This writes `sample_act.json` and `sample_judgment.json` into `data/corpus/`,
+demonstrating the required metadata fields.
+
 ## Directory structure
 - `data/corpus/` – JSON documents in the schema.
 

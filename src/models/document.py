@@ -22,6 +22,10 @@ class DocumentMetadata:
         cultural_flags: Optional list of cultural sensitivity flags.
         jurisdiction_codes: Optional list of standardized jurisdiction codes.
         ontology_tags: Mapping of ontology names to matched tags.
+        source_url: URL from which the document was retrieved.
+        retrieved_at: Timestamp when the document was fetched.
+        checksum: Optional checksum of the document contents.
+        licence: Licence under which the document text is distributed.
     """
 
     jurisdiction: str
@@ -31,13 +35,23 @@ class DocumentMetadata:
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
     cultural_flags: Optional[List[str]] = None
+    canonical_id: Optional[str] = None
+    provenance: Optional[str] = None
+
     jurisdiction_codes: List[str] = field(default_factory=list)
     ontology_tags: Dict[str, List[str]] = field(default_factory=dict)
+    source_url: Optional[str] = None
+    retrieved_at: Optional[datetime] = None
+    checksum: Optional[str] = None
+    licence: Optional[str] = None
+
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
         data = asdict(self)
         data["date"] = self.date.isoformat()
+        if self.retrieved_at:
+            data["retrieved_at"] = self.retrieved_at.isoformat()
         return data
 
     @classmethod
@@ -48,6 +62,10 @@ class DocumentMetadata:
             if isinstance(data["date"], date)
             else datetime.fromisoformat(data["date"]).date()
         )
+        retrieved = data.get("retrieved_at")
+        if retrieved and not isinstance(retrieved, datetime):
+            retrieved = datetime.fromisoformat(retrieved)
+
         return cls(
             jurisdiction=data["jurisdiction"],
             citation=data["citation"],
@@ -56,8 +74,15 @@ class DocumentMetadata:
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
             cultural_flags=data.get("cultural_flags"),
+            canonical_id=data.get("canonical_id"),
+            provenance=data.get("provenance"),
+
             jurisdiction_codes=list(data.get("jurisdiction_codes", [])),
             ontology_tags=dict(data.get("ontology_tags", {})),
+            source_url=data.get("source_url"),
+            retrieved_at=retrieved,
+            checksum=data.get("checksum"),
+            licence=data.get("licence"),
         )
 
 
@@ -80,7 +105,7 @@ class Document:
 
     def to_json(self) -> str:
         """Serialize the document to a JSON string."""
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), ensure_ascii=False)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
@@ -93,3 +118,6 @@ class Document:
     def from_json(cls, data: str) -> "Document":
         """Deserialize a document from a JSON string."""
         return cls.from_dict(json.loads(data))
+
+
+__all__ = ["Document", "DocumentMetadata"]

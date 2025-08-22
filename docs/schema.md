@@ -14,10 +14,13 @@ structure and the document body text.
 - **lpo_tags** (`Optional[List[str]]`): Legal policy objective tags.
 - **cco_tags** (`Optional[List[str]]`): Cross-cultural obligation tags.
 - **cultural_flags** (`Optional[List[str]]`): Cultural sensitivity flags.
+- **jurisdiction_codes** (`List[str]`): Standardised jurisdiction codes.
+- **ontology_tags** (`Dict[str, List[str]]`): Tags matched from configured ontologies.
 
 ### Document
 - **metadata** (`DocumentMetadata`): Metadata associated with the document.
 - **body** (`str`): Full body text of the document.
+- **provisions** (`List[Provision]`): Extracted provisions within the document.
 
 ## JSON Representation
 
@@ -32,9 +35,12 @@ structure and the document body text.
     "court": "Supreme Court",
     "lpo_tags": ["example"],
     "cco_tags": ["demo"],
-    "cultural_flags": ["public-domain"]
+    "cultural_flags": ["public-domain"],
+    "jurisdiction_codes": ["US"],
+    "ontology_tags": {"lpo": ["example"], "cco": ["demo"]}
   },
-  "body": "Full text of the opinion..."
+  "body": "Full text of the opinion...",
+  "provisions": []
 }
 ```
 
