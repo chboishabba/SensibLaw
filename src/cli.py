@@ -350,6 +350,14 @@ def main() -> None:
     match_parser = concepts_sub.add_parser("match", help="Match concepts in text")
     match_parser.add_argument("text", help="Text to analyse")
 
+    search_parser = sub.add_parser(
+        "search", help="Full text search over indexed graph nodes"
+    )
+    search_parser.add_argument("query", help="Search expression")
+    search_parser.add_argument(
+        "--db", default="data/search.db", help="Path to search index"
+    )
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -766,6 +774,14 @@ def main() -> None:
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "search":
+        from .storage import TextIndex
+
+        index = TextIndex(args.db)
+        results = index.search(args.query)
+        print(json.dumps(results))
+        index.close()
+
     elif args.command == "concepts":
         if args.concepts_command == "match":
             from .concepts.matcher import MATCHER
