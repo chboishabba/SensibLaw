@@ -168,6 +168,13 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     definitions_expand.add_argument("--term", required=True, help="Term identifier")
     definitions_expand.add_argument("--depth", type=int, default=1, help="Expansion depth")
 
+    harm_parser = sub.add_parser("harm", help="Harm assessment utilities")
+    harm_sub = harm_parser.add_subparsers(dest="harm_command")
+    harm_compute = harm_sub.add_parser("compute", help="Compute harm index")
+    harm_compute.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
+    )
+
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
@@ -538,6 +545,14 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "harm":
+        if args.harm_command == "compute":
+            from .harm import compute_harm
+
+            story = json.loads(args.story.read_text())
+            result = compute_harm(story)
+            print(json.dumps(result))
+
     elif args.command == "definitions":
         if args.definitions_command == "expand":
             from .definitions.graph import DefinitionGraph, load_default_definitions
