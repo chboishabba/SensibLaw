@@ -11,6 +11,7 @@ from pdfminer.high_level import extract_text
 
 from .ingestion.cache import HTTPCache
 
+
 from .models.document import Document, DocumentMetadata, Provision
 from .rules.extractor import extract_rules
 
@@ -103,6 +104,7 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 def main():
     parser = argparse.ArgumentParser(
         description="Extract text from a PDF and save as JSON"
+
 
     parser = argparse.ArgumentParser(description="Extract text from a PDF and save as JSON")
 

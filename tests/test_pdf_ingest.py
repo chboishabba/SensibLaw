@@ -30,6 +30,7 @@ def test_extract_pdf(tmp_path):
     )
 
 
+
     def fake_extract_text(path):
         return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
 
@@ -55,6 +56,7 @@ def test_extract_pdf(tmp_path):
         data = json.load(f)
 
     assert data["source"] == "sample.pdf"
+
 
     pdf_ingest.save_json(pages, out, pdf_path)
     with out.open() as f:
