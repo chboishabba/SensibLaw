@@ -1,0 +1,16 @@
+{
+  "fact_tags": {
+    "GLJ took a radio from a store": 0,
+    "Security stopped GLJ outside": 1,
+    "GLJ said he intended to pay later": 2
+  },
+  "holding_hints": {
+    "Held: intention to pay is a question for the jury": 3
+  },
+  "paragraphs": [
+    "GLJ took a radio from a store.",
+    "Security stopped GLJ outside.",
+    "GLJ said he intended to pay later.",
+    "Held: intention to pay is a question for the jury."
+  ]
+}

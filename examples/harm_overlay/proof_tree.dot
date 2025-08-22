@@ -1,0 +1,5 @@
+digraph G {
+  "claim" [label="Claim", style=filled, fillcolor="#ff0000"];
+  "evidence" [label="Evidence", style=filled, fillcolor="#7f7f00"];
+  "claim" -> "evidence" [label="supports"];
+}

@@ -1,0 +1,10 @@
+{
+  "concept_id": "au:cth:family:s90SM",
+  "name": "Setting Aside a Financial Agreement",
+  "threshold": 1,
+  "factors": [
+    {"id": "fraud", "description": "Agreement obtained by fraud"},
+    {"id": "impracticable", "description": "Impracticable for part or all of agreement to be carried out"},
+    {"id": "public_policy", "description": "Circumstances have arisen making it unjust"}
+  ]
+}
