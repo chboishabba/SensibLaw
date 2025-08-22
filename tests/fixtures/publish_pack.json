@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    {"id": "caseA", "type": "case", "metadata": {"title": "Case A"}},
+    {"id": "caseB", "type": "case", "metadata": {"title": "Case B"}}
+  ],
+  "edges": [
+    {"source": "caseA", "target": "caseB", "type": "CITES", "metadata": {}}
+  ]
+}

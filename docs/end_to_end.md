@@ -51,3 +51,11 @@ sensiblaw query --graph story.json
 
 Each of the above inputs will produce a simple concept cloud based on the
 matched tokens.
+
+### Case treatment
+
+Retrieve how later authorities have treated a given case:
+
+```bash
+sensiblaw query treatment --case case123
+```

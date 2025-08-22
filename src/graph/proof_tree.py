@@ -126,8 +126,13 @@ def to_dot(nodes: Dict[str, Node], edges: Iterable[Edge]) -> str:
     for edge in edges:
         label = str(edge.metadata.get("label", edge.type))
         attrs = [f'label="{label}"']
+        receipt = edge.metadata.get("receipt")
+        if receipt:
+            attrs.append(f'receipt="{receipt}"')
         if edge.weight is not None:
             attrs.append(f'weight="{edge.weight}"')
+        tooltip = receipt or label or "why is this here?"
+        attrs.append(f'tooltip="{tooltip}"')
         lines.append(
             f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];'
         )

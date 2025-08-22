@@ -161,22 +161,34 @@ def layout_cloud(
 
 
 def build_cloud(
-    concept_hits: Iterable[Tuple[str, Dict[str, Any]]],
+    concept_hits: Iterable[Tuple[str, Any]],
     graph: LegalGraph,
     limit: int = 50,
+    precompute_layout: bool = False,
 ) -> Dict[str, Any]:
     """Build a concept cloud around the provided hits.
+
+    ``concept_hits`` may either be an iterable of ``(node_id, signals)``
+    tuples where ``signals`` is a mapping used for scoring, or the raw output
+    from :func:`~src.concepts.matcher.ConceptMatcher.match` where each item is
+    ``(node_id, (start, end))``.  In the latter case a default ``signals``
+    mapping is constructed so that matcher results can be fed directly into
+    this function.
 
     Parameters
     ----------
     concept_hits:
-        Iterable of ``(node_id, signals)`` tuples representing candidate
-        nodes in the graph along with their associated signals.
+        Iterable of hit tuples describing candidate nodes.
     graph:
         The :class:`~SensibLaw.graph.models.LegalGraph` from which to pull
         related nodes and edges.
     limit:
         Maximum number of primary hit nodes to include.
+    precompute_layout:
+        If ``True`` compute deterministic layout coordinates based on node
+        degree/centrality instead of running the randomised force-directed
+        layout.  This can be useful for tests or environments where
+        determinism is required.
 
     Returns
     -------
@@ -186,7 +198,11 @@ def build_cloud(
     """
 
     scored: List[Tuple[float, GraphNode]] = []
-    for node_id, signals in concept_hits:
+    for node_id, data in concept_hits:
+        if isinstance(data, dict):
+            signals = data
+        else:  # assume matcher ``span`` tuple
+            signals = {"span": data, "keyword_exact": True}
         node = graph.get_node(node_id)
         if not node:
             continue
@@ -254,11 +270,23 @@ def build_cloud(
         for e in edge_map.values()
     ]
 
-    coords = layout_cloud(serialisable_nodes, serialisable_edges)
-    for n in serialisable_nodes:
-        coord = coords.get(n["id"])
-        if coord:
-            n.update(coord)
+    if precompute_layout:
+        # Deterministic layout based on degree and normalised centrality
+        degrees: Dict[str, int] = {n["id"]: 0 for n in serialisable_nodes}
+        for e in serialisable_edges:
+            degrees[e["source"]] += 1
+            degrees[e["target"]] += 1
+        max_deg = max(degrees.values()) or 1
+        for idx, n in enumerate(serialisable_nodes):
+            deg = degrees[n["id"]]
+            centrality = deg / max_deg
+            n.update({"x": float(deg), "y": float(centrality), "z": float(idx)})
+    else:
+        coords = layout_cloud(serialisable_nodes, serialisable_edges)
+        for n in serialisable_nodes:
+            coord = coords.get(n["id"])
+            if coord:
+                n.update(coord)
 
     return {"nodes": serialisable_nodes, "edges": serialisable_edges, "scores": scores}
 
