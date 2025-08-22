@@ -1,3 +1,5 @@
+# SensibLaw [![CI](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml)
+
 # SensibLaw
 [![CI](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml)
 
@@ -5,6 +7,27 @@ Like coleslaw, it just makes sense.
 
 ## Installation
 
+Install the project and its development dependencies:
+
+```bash
+pip install -e .[dev]
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+pytest
+```
+
+## Linting and type checks
+
+Execute all linting and type-check hooks:
+
+```bash
+pre-commit run --all-files
+=======
 Install the package in editable mode along with development dependencies to develop locally:
 
 ```bash
@@ -79,7 +102,7 @@ pre-commit install
 
 The configured hooks will run `ruff`, `black --check`, and `mypy` over the
 project's source code.
-=======
+
 ## CLI Commands
 
 ### Match Concepts
