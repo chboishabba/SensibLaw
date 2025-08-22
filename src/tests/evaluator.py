@@ -1,6 +1,6 @@
-"""Evaluation of legal test factors against provided facts."""
-
 from __future__ import annotations
+
+"""Evaluation of legal test factors against provided facts."""
 
 from dataclasses import dataclass, asdict
 from typing import Dict, Iterable, List, Mapping, Sequence
@@ -67,8 +67,6 @@ def evaluate(template: Mapping[str, Sequence[Mapping[str, object]]], facts: Mapp
         rows.append(ResultRow(factor=identifier, status=status, evidence=evidence))
     return ResultTable(rows)
 
-
-from __future__ import annotations
 
 """Evaluation utilities for declarative concept tests."""
 

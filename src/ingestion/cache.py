@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import time
 import hashlib
@@ -108,8 +110,6 @@ more than 30 requests per minute to any single host. This keeps the project
 polite when it needs to talk to real services but still remains deterministic
 for tests.
 """
-
-from __future__ import annotations
 
 import hashlib
 import json

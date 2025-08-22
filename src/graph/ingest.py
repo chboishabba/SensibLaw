@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Graph ingestion utilities for legal documents.
 
 This module provides a very small in-memory graph representation along with
@@ -18,8 +20,6 @@ edge types are currently emitted:
 ``CITES``
     Connects a case document to another case that it cites.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Iterable
@@ -133,7 +133,6 @@ def ingest_document(doc: Document, graph: Graph) -> None:
 
 
 __all__ = ["Graph", "Node", "Edge", "ingest_document"]
-from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
