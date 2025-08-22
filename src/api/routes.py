@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any, List
+
 from collections import defaultdict
 
 try:  # pragma: no cover - FastAPI is optional for CLI tests
@@ -33,6 +34,8 @@ except ImportError:  # pragma: no cover
 
     def Field(*args, **kwargs):
         return None
+
+from ..graph.models import LegalGraph
 
 from ..graph.models import LegalGraph, GraphEdge
 from ..graph.api import serialize_graph
@@ -169,6 +172,7 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
     # Sort treatments deterministically by citation for stable CLI output
     ordered = sorted(treatments, key=lambda t: t["citation"])
     return {"case_id": case_id, "treatments": ordered}
+
 
     totals: Dict[str, float] = defaultdict(float)
     counts: Dict[str, int] = defaultdict(int)

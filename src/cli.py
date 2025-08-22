@@ -99,6 +99,12 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     treat_parser = query_sub.add_parser(
         "treatment", help="Fetch treatment information for a case"
     )
+
+    )
+    query_sub = query_parser.add_subparsers(dest="query_command")
+    treat_parser = query_sub.add_parser(
+        "treatment", help="Fetch treatment information for a case"
+    )
     treat_parser.add_argument("--case", required=True, help="Case identifier")
 
     group = query_parser.add_mutually_exclusive_group()
@@ -413,6 +419,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     elif args.command == "query":
         if args.query_command == "treatment":
 
+
         if args.query_command == "case":
             from .api import routes
             from .graph.models import EdgeType, GraphEdge, GraphNode, NodeType
@@ -446,6 +453,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         else:
             if not (args.text or args.graph):
                 parser.error("query requires --text or --graph")
+
 
 
         elif args.query_command == "timeline":
