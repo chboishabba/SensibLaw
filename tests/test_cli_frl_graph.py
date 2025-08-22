@@ -22,7 +22,7 @@ def test_extract_frl_to_graph(tmp_path: Path) -> None:
     extract_cmd = [
         sys.executable,
         "-m",
-        "src.cli",
+        "cli",
         "extract",
         "frl",
         "--data",
@@ -33,7 +33,7 @@ def test_extract_frl_to_graph(tmp_path: Path) -> None:
     graph_cmd = [
         sys.executable,
         "-m",
-        "src.cli",
+        "cli",
         "graph",
         "subgraph",
         "--seed",

@@ -1,21 +1,16 @@
-import argparse
-import json
-from datetime import datetime, date
-from pathlib import Path
+"""Backward compatible wrapper for the new :mod:`cli` package."""
+
+from __future__ import annotations
 
 from .storage import VersionedStore
 from .proofs.render import dot_to_svg
 
+from cli import main
 
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="sensiblaw")
-    sub = parser.add_subparsers(dest="command")
+__all__ = ["main"]
 
-    get_parser = sub.add_parser("get", help="Retrieve a document by ID")
-    get_parser.add_argument("--db", default="data/store.db", help="Path to database")
-    get_parser.add_argument("--id", type=int, required=True, help="Document ID")
-    get_parser.add_argument(
-        "--as-at", help="Return version as of this date (YYYY-MM-DD)")
+
+if __name__ == "__main__":  # pragma: no cover - for direct execution
 
     extract_parser = sub.add_parser("extract", help="Extraction helpers")
     extract_parser.add_argument("--text", help="Provision text")
