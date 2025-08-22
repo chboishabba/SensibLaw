@@ -11,6 +11,20 @@ from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
 from ..policy.engine import PolicyEngine
 
+# Ranking of courts and weighting of relations when computing treatment scores.
+# Higher values indicate greater persuasive authority.
+RANK: Dict[str, float] = {
+    "HCA": 3.0,
+    "FCA": 2.0,
+    "NSWCA": 1.0,
+}
+
+WEIGHT: Dict[str, float] = {
+    "followed": 2.0,
+    "distinguished": 1.0,
+    "overruled": 3.0,
+}
+
 router = APIRouter()
 _graph = LegalGraph()
 
@@ -106,47 +120,44 @@ def tests_run_endpoint(payload: TestRunRequest) -> Dict[str, Any]:
 
 
 def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
-    """Aggregate treatments for ``case_id`` from the global graph.
+    """Aggregate treatments for ``case_id`` from incoming citations.
 
-    The function scans all edges in :data:`_graph` that involve the target case
-    either as a source or a target.  Edges are expected to carry ``treatment``
-    and ``citation`` metadata along with an optional ``weight`` attribute.
-
-    For each treatment category the number of citations is counted and the
-    citation with the highest weight is selected.  The resulting categories are
-    sorted in descending order of that weight.
+    Each incoming edge is expected to provide ``relation`` and ``court``
+    metadata.  The contribution of an edge to its relation's total score is the
+    product ``WEIGHT[relation] * RANK[court]``.  Relations are sorted in
+    descending order of their accumulated totals and returned to the caller.
     """
 
     if case_id not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    grouped: Dict[str, List[GraphEdge]] = defaultdict(list)
-    for edge in _graph.edges:
-        if case_id not in (edge.source, edge.target):
+    totals: Dict[str, float] = defaultdict(float)
+    counts: Dict[str, int] = defaultdict(int)
+    for edge in _graph.find_edges(target=case_id):
+        relation = edge.metadata.get("relation")
+        court = edge.metadata.get("court")
+        if relation is None or court is None:
             continue
-        treatment = edge.metadata.get("treatment")
-        citation = edge.metadata.get("citation")
-        if not treatment or not citation:
-            continue
-        grouped[treatment].append(edge)
+        weight = WEIGHT.get(relation, 0.0)
+        rank = RANK.get(court, 0.0)
+        contribution = weight * rank
+        totals[relation] += contribution
+        counts[relation] += 1
 
-    if not grouped:
+    if not totals:
         raise HTTPException(status_code=404, detail="Case not found")
 
     records: List[Dict[str, Any]] = []
-    for treatment, edges in grouped.items():
-        count = len(edges)
-        best = max(edges, key=lambda e: e.weight)
+    for relation, total in totals.items():
         records.append(
             {
-                "treatment": treatment,
-                "count": count,
-                "citation": best.metadata.get("citation"),
-                "weight": best.weight,
+                "treatment": relation,
+                "count": counts[relation],
+                "total": total,
             }
         )
 
-    records.sort(key=lambda r: r["weight"], reverse=True)
+    records.sort(key=lambda r: r["total"], reverse=True)
     return {"case_id": case_id, "treatments": records}
 
 

@@ -81,7 +81,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     concepts_match.add_argument("--text", required=True, help="Text to match")
 
     query_parser = sub.add_parser(
-        "query", help="Run a concept query or case lookup over the knowledge base"
+        "query", help="Run concept queries or case lookups"
     )
     query_parser.add_argument("--text", help="Question or keyword query")
     query_parser.add_argument(
@@ -93,6 +93,10 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     case_q = query_sub.add_parser("case", help="Look up a case by identifier")
     case_q.add_argument("--id", required=True, help="Case identifier")
     case_q.add_argument("--year", type=int, default=1992, help="Year of judgment")
+    treat_q = query_sub.add_parser("treatment", help="Fetch treatment for a case")
+    treat_q.add_argument(
+        "--case", required=True, help="Neutral citation identifying the case"
+    )
 
     timeline_q = query_sub.add_parser("timeline", help="Generate timeline for a case")
     timeline_q.add_argument("--case", required=True, help="Case identifier")
@@ -167,6 +171,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     definitions_expand = definitions_sub.add_parser("expand", help="Expand term definitions")
     definitions_expand.add_argument("--term", required=True, help="Term identifier")
     definitions_expand.add_argument("--depth", type=int, default=1, help="Expansion depth")
+
 
     harm_parser = sub.add_parser("harm", help="Harm assessment utilities")
     harm_sub = harm_parser.add_subparsers(dest="harm_command")
@@ -363,6 +368,12 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
                     "citations": cites,
                 }
                 print(json.dumps(result))
+        elif args.query_command == "treatment":
+            from .api.routes import fetch_case_treatment
+
+            result = fetch_case_treatment(args.case)
+            print(json.dumps(result))
+
         elif args.query_command == "timeline":
             from dataclasses import asdict
             from .reason.timeline import build_timeline, events_to_json, events_to_svg
@@ -414,6 +425,12 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    if (args.graph_file.stat().st_mode & 0o444) == 0:
+                        import sys as _sys
+
+                        print("--graph-file is unreadable", file=_sys.stderr)
+                        raise SystemExit(1)
+
                     mode = args.graph_file.stat().st_mode & 0o444
                     if mode == 0:
                         print("--graph-file is not readable", file=sys.stderr)
@@ -567,6 +584,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+
     elif args.command == "repro":
         from .repro.ledger import CorrectionLedger
         import os
