@@ -1,0 +1,7 @@
+{
+  "stakeholder": "admin",
+  "metrics": {
+    "privacy": 1,
+    "safety": 2
+  }
+}

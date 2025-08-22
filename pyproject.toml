@@ -14,6 +14,9 @@ dependencies = [
     "pdfminer.six",
     "requests",
     "fastapi",
+    "matplotlib",
+    "graphviz",
+    "networkx",
 ]
 
 [project.optional-dependencies]
@@ -24,16 +27,20 @@ dev = [
 ]
 test = [
     "pytest",
+    "hypothesis",
 ]
 
 [project.scripts]
-sensiblaw = "src.cli:main"
+sensiblaw = "cli:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "src", "cli" = "cli"}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "cli"]
 
 [tool.setuptools.package-data]
 "src" = ["data/foundation_sources.json"]
+
+[tool.coverage.report]
+fail_under = 80
