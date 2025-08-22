@@ -201,6 +201,8 @@ except ImportError:  # pragma: no cover
 
 from ..graph.models import LegalGraph
 
+from ..schema_utils import load_schema, validate
+
 from ..graph.models import LegalGraph, GraphEdge
 from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
@@ -223,6 +225,8 @@ WEIGHT: Dict[str, float] = {
 router = APIRouter()
 _graph = LegalGraph()
 
+_EVENT_SCHEMA = load_schema("event.schema.yaml")
+_RULE_CHECK_SCHEMA = load_schema("rule_check.schema.yaml")
 _policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"})
 
 
@@ -311,7 +315,12 @@ def execute_tests(ids: List[str], story: Dict[str, Any]) -> Dict[str, Any]:
 
 @router.post("/tests/run")
 def tests_run_endpoint(payload: TestRunRequest) -> Dict[str, Any]:
-    return execute_tests(payload.ids, payload.story)
+    data = payload.model_dump()
+    validate(data, _EVENT_SCHEMA)
+    result = execute_tests(payload.ids, payload.story)
+    for check in result.get("results", {}).values():
+        validate(check, _RULE_CHECK_SCHEMA)
+    return result
 
 
 _FAKE_TREATMENTS: Dict[str, List[Dict[str, Any]]] = {
