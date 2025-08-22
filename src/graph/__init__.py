@@ -1,6 +1,15 @@
 """Graph utilities for representing relationships between legal entities."""
 
 from .models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+from .proof_tree import (
+    ProofTree,
+    ProofTreeEdge,
+    ProofTreeNode,
+    Provenance,
+    ResultNode,
+    ResultTable,
+)
+
 from .proof_tree import ProofTree, expand_proof_tree
 from .ingest import compute_weight, ingest_extrinsic
 from .models import EdgeType, ExtrinsicNode, GraphEdge, GraphNode, LegalGraph, NodeType
@@ -23,6 +32,11 @@ __all__ = [
     "LegalGraph",
     "NodeType",
     "ProofTree",
+    "ProofTreeEdge",
+    "ProofTreeNode",
+    "Provenance",
+    "ResultNode",
+    "ResultTable",
     "expand_proof_tree",
     "ExtrinsicNode",
     "CaseNode",
