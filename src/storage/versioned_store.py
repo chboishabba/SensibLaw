@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import json
 import difflib
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -33,6 +33,10 @@ class VersionedStore:
                     effective_date TEXT NOT NULL,
                     metadata TEXT NOT NULL,
                     body TEXT NOT NULL,
+                    source_url TEXT,
+                    retrieved_at TEXT,
+                    checksum TEXT,
+                    licence TEXT,
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
@@ -50,9 +54,13 @@ class VersionedStore:
         """Generate and return a new unique document ID."""
         with self.conn:
             cur = self.conn.execute("INSERT INTO documents DEFAULT VALUES")
-            return cur.lastrowid
+            lastrowid = cur.lastrowid
+            assert lastrowid is not None
+            return lastrowid
 
-    def add_revision(self, doc_id: int, document: Document, effective_date: date) -> int:
+    def add_revision(
+        self, doc_id: int, document: Document, effective_date: date
+    ) -> int:
         """Add a new revision for a document.
 
         Args:
@@ -64,6 +72,11 @@ class VersionedStore:
             The revision number assigned to the stored revision.
         """
         metadata_json = json.dumps(document.metadata.to_dict())
+        retrieved_at = (
+            document.metadata.retrieved_at.isoformat()
+            if document.metadata.retrieved_at
+            else None
+        )
         with self.conn:
             cur = self.conn.execute(
                 "SELECT COALESCE(MAX(rev_id), 0) + 1 FROM revisions WHERE doc_id = ?",
@@ -72,8 +85,11 @@ class VersionedStore:
             rev_id = cur.fetchone()[0]
             self.conn.execute(
                 """
-                INSERT INTO revisions (doc_id, rev_id, effective_date, metadata, body)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO revisions (
+                    doc_id, rev_id, effective_date, metadata, body,
+                    source_url, retrieved_at, checksum, licence
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -81,6 +97,10 @@ class VersionedStore:
                     effective_date.isoformat(),
                     metadata_json,
                     document.body,
+                    document.metadata.source_url,
+                    retrieved_at,
+                    document.metadata.checksum,
+                    document.metadata.licence,
                 ),
             )
             # keep FTS table in sync

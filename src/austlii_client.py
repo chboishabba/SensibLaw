@@ -12,6 +12,7 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover
     requests = None  # type: ignore
 
+
 from .models import Document, DocumentMetadata, Provision
 from .ingestion.cache import HTTPCache
 
@@ -207,7 +208,6 @@ class AustLIIClient:
             stack[-1][1].append(prov)
             stack.append((level, prov.children))
         return root
-
 
     # ------------------------------------------------------------------
     # Internal utilities

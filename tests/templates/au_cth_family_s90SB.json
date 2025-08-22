@@ -1,0 +1,10 @@
+{
+  "concept_id": "au:cth:family:s90SB",
+  "name": "Binding Financial Agreement Requirements",
+  "threshold": 2,
+  "factors": [
+    {"id": "signed", "description": "Agreement is signed by both parties"},
+    {"id": "independent_advice", "description": "Each party received independent legal advice"},
+    {"id": "statement", "description": "Signed statement from each lawyer"}
+  ]
+}
