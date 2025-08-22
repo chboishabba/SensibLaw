@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List
+import json
 
 
 @dataclass(frozen=True)
@@ -20,22 +22,33 @@ class TestTemplate:
 
     concept_id: str
     name: str
+    threshold: int
     factors: List[Factor]
 
 
-# ---------------------------------------------------------------------------
-# Example templates
-# ---------------------------------------------------------------------------
+def _load_template(path: Path) -> TestTemplate:
+    """Load a :class:`TestTemplate` from a JSON file."""
 
-PERMANENT_STAY_TEST = TestTemplate(
-    concept_id="permanent_stay",
-    name="Permanent Stay Test",
-    factors=[
-        Factor("delay", "Extent and impact of any prosecutorial delay"),
-        Factor("abuse_of_process", "Whether continuation would be an abuse of process"),
-        Factor("fair_trial_possible", "Possibility of a fair trial despite the delay"),
-    ],
-)
+    data = json.loads(path.read_text())
+    return TestTemplate(
+        concept_id=data["concept_id"],
+        name=data["name"],
+        threshold=data["threshold"],
+        factors=[Factor(**f) for f in data.get("factors", [])],
+    )
+
+
+# Directory containing template JSON files
+TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "tests" / "templates"
+
+# Load template definitions from JSON files
+GLJ_PERMANENT_STAY_TEST = _load_template(TEMPLATES_DIR / "glj_permanent_stay.json")
+S4AA_TEMPLATE = _load_template(TEMPLATES_DIR / "au_cth_family_s4AA.json")
+S90SB_TEMPLATE = _load_template(TEMPLATES_DIR / "au_cth_family_s90SB.json")
+S90SM_TEMPLATE = _load_template(TEMPLATES_DIR / "au_cth_family_s90SM.json")
+
+# Backwards compatibility alias
+PERMANENT_STAY_TEST = GLJ_PERMANENT_STAY_TEST
 
 S4AA_TEST = TestTemplate(
     concept_id="s4AA",
@@ -50,5 +63,9 @@ S4AA_TEST = TestTemplate(
 TEMPLATE_REGISTRY: Dict[str, TestTemplate] = {
     PERMANENT_STAY_TEST.concept_id: PERMANENT_STAY_TEST,
     S4AA_TEST.concept_id: S4AA_TEST,
-}
 
+    GLJ_PERMANENT_STAY_TEST.concept_id: GLJ_PERMANENT_STAY_TEST,
+    S4AA_TEMPLATE.concept_id: S4AA_TEMPLATE,
+    S90SB_TEMPLATE.concept_id: S90SB_TEMPLATE,
+    S90SM_TEMPLATE.concept_id: S90SM_TEMPLATE,
+}
