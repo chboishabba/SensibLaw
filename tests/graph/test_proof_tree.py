@@ -1,15 +1,36 @@
 import json
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
+from src.graph import (
+    EdgeType,
+    GraphEdge,
+    GraphNode,
+    LegalGraph,
+    NodeType,
+    expand_proof_tree,
+)
 from src.graph.proof_tree import (
+    Edge,
+    Graph,
+    Node,
     ProofTree,
     Provenance,
     ResultNode,
     ResultTable,
+    build_subgraph,
+    to_dot,
 )
+
+
+# ---------------------------------------------------------------------------
+# Result table utilities
+# ---------------------------------------------------------------------------
 
 
 def _build_sample_table() -> ResultTable:
@@ -34,7 +55,7 @@ def _build_sample_table() -> ResultTable:
     return ResultTable(results=results, root_id="F0")
 
 
-def test_builds_only_satisfied_factors():
+def test_builds_only_satisfied_factors() -> None:
     table = _build_sample_table()
     tree = ProofTree.from_result_table(table)
 
@@ -51,7 +72,7 @@ def test_builds_only_satisfied_factors():
     assert edge2.provenance.section == "10"
 
 
-def test_export_formats():
+def test_export_formats() -> None:
     table = _build_sample_table()
     tree = ProofTree.from_result_table(table)
 
@@ -64,24 +85,14 @@ def test_export_formats():
     assert len(data["edges"]) == 2
     # ensure JSON serialisable
     json.dumps(data)
-=======
-from datetime import date
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[2]))
-
-from src.graph import (
-    EdgeType,
-    GraphEdge,
-    GraphNode,
-    LegalGraph,
-    NodeType,
-    expand_proof_tree,
-)
 
 
-def build_sample_graph() -> LegalGraph:
+# ---------------------------------------------------------------------------
+# expand_proof_tree tests
+# ---------------------------------------------------------------------------
+
+
+def build_legal_graph() -> LegalGraph:
     graph = LegalGraph()
     a = GraphNode(type=NodeType.DOCUMENT, identifier="A", date=date(2020, 1, 1))
     b = GraphNode(type=NodeType.DOCUMENT, identifier="B", date=date(2019, 1, 1))
@@ -107,23 +118,18 @@ def build_sample_graph() -> LegalGraph:
     return graph
 
 
-def test_expand_proof_tree_basic():
-    graph = build_sample_graph()
+def test_expand_proof_tree_basic() -> None:
+    graph = build_legal_graph()
     tree = expand_proof_tree("A", 2, date(2021, 1, 1), graph=graph)
     assert set(tree.nodes.keys()) == {"A", "B", "C"}
     assert len(tree.edges) == 2
     dot = tree.to_dot()
     assert "A" in dot and "B" in dot and "C" in dot
 
-import sys
-from datetime import datetime
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
-
-from src.graph.proof_tree import Edge, Graph, Node, build_subgraph, to_dot
+# ---------------------------------------------------------------------------
+# build_subgraph and to_dot tests
+# ---------------------------------------------------------------------------
 
 
 def build_sample_graph() -> Graph:
@@ -139,21 +145,21 @@ def build_sample_graph() -> Graph:
     return g
 
 
-def test_build_subgraph_hops():
+def test_build_subgraph_hops() -> None:
     g = build_sample_graph()
     nodes, edges = build_subgraph(g, {"A"}, hops=2)
     assert set(nodes.keys()) == {"A", "B", "C"}
     assert {(e.source, e.target) for e in edges} == {("A", "B"), ("B", "C")}
 
 
-def test_build_subgraph_as_at():
+def test_build_subgraph_as_at() -> None:
     g = build_sample_graph()
     nodes, edges = build_subgraph(g, {"A"}, hops=3, as_at=datetime(2021, 6, 1))
     assert set(nodes.keys()) == {"A", "B"}
     assert {(e.source, e.target) for e in edges} == {("A", "B")}
 
 
-def test_to_dot_output():
+def test_to_dot_output() -> None:
     g = Graph()
     g.add_node(Node("A", "case", {"label": "A"}))
     g.add_node(Node("B", "case", {"label": "B"}))
