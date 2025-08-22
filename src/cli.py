@@ -414,6 +414,25 @@ def main() -> None:
         "--dot", action="store_true", help="Output Graphviz DOT instead of JSON",
     )
 
+    # Graph and provisioning commands
+    graph_parser = sub.add_parser("graph", help="Graph operations")
+    graph_sub = graph_parser.add_subparsers(dest="graph_command")
+    sg_parser = graph_sub.add_parser("subgraph", help="Retrieve subgraph")
+    sg_parser.add_argument("--node", action="append", help="Node identifier", default=[])
+    sg_parser.add_argument("--limit", type=int, default=50)
+    sg_parser.add_argument("--offset", type=int, default=0)
+    sg_parser.add_argument("--dot", action="store_true", help="Output DOT format")
+
+    treatment_parser = sub.add_parser("treatment", help="Show treatments for a document")
+    treatment_parser.add_argument("--doc", required=True, help="Document identifier")
+    treatment_parser.add_argument("--limit", type=int, default=50)
+    treatment_parser.add_argument("--offset", type=int, default=0)
+    treatment_parser.add_argument("--dot", action="store_true", help="Output DOT format")
+
+    provision_parser = sub.add_parser("provision", help="Retrieve a provision")
+    provision_parser.add_argument("--doc", required=True, help="Document identifier")
+    provision_parser.add_argument("--id", required=True, help="Provision identifier")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -971,6 +990,38 @@ def main() -> None:
             result["dot"] = dot
             args.dot.write_text(dot)
         print(json.dumps(result))
+    elif args.command == "graph" and args.graph_command == "subgraph":
+        from .sample_data import build_subgraph, subgraph_to_dot
+
+        if args.limit < 1 or args.offset < 0:
+            raise ValueError("limit must be positive and offset non-negative")
+        data = build_subgraph(args.node, args.limit, args.offset)
+        if args.dot:
+            print(subgraph_to_dot(data))
+        else:
+            print(json.dumps(data))
+    elif args.command == "treatment":
+        from .sample_data import build_subgraph, subgraph_to_dot, treatments_for
+
+        if args.limit < 1 or args.offset < 0:
+            raise ValueError("limit must be positive and offset non-negative")
+        edges = treatments_for(args.doc, args.limit, args.offset)
+        if args.dot:
+            node_ids = {e["source"] for e in edges} | {e["target"] for e in edges}
+            graph = build_subgraph(list(node_ids), args.limit, args.offset)
+            graph["edges"] = edges
+            print(subgraph_to_dot(graph))
+        else:
+            print(json.dumps(edges))
+    elif args.command == "provision":
+        from .sample_data import get_provision
+
+        prov = get_provision(args.doc, args.id)
+        if prov is None:
+            print("Not found")
+        else:
+            print(json.dumps(prov))
+
 
     elif args.command == "search":
         from .storage import TextIndex
