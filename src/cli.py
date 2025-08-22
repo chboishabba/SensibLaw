@@ -42,17 +42,32 @@ def main() -> None:
     )
 
     dist_parser = sub.add_parser(
-        "distinguish", help="Compare two cases and show reasoning"
+        "distinguish", help="Compare a story against a case silhouette"
     )
     dist_parser.add_argument(
-        "--base", type=Path, required=True, help="Base case paragraphs as JSON"
+        "--case",
+        required=True,
+        help="Neutral citation identifying the base case",
     )
     dist_parser.add_argument(
-        "--candidate",
+        "--story",
         type=Path,
         required=True,
-        help="Candidate case paragraphs as JSON",
+        help="Path to a fact-tagged story JSON file",
     )
+
+    concepts_parser = sub.add_parser("concepts", help="Concept operations")
+    concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
+    concepts_match = concepts_sub.add_parser(
+        "match", help="Match concept triggers within text"
+    )
+    concepts_match.add_argument(
+        "--patterns-file",
+        type=Path,
+        required=True,
+        help="JSON file mapping phrases to concept identifiers",
+    )
+    concepts_match.add_argument("--text", required=True, help="Text to match")
 
     query_parser = sub.add_parser(
         "query", help="Run a concept query or case lookup over the knowledge base"
@@ -71,20 +86,56 @@ def main() -> None:
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
-    subgraph_parser.add_argument("--seed", required=True, help="Seed node identifier")
-    subgraph_parser.add_argument("--hops", type=int, default=1, help="Number of hops")
-    subgraph_parser.add_argument("--graph-file", type=Path, help="Graph JSON file (use '-' for stdin)")
+    subgraph_parser.add_argument(
+        "--seeds",
+        nargs="+",
+        required=True,
+        help="Seed node identifiers",
+    )
+    subgraph_parser.add_argument(
+        "--hops", type=int, default=1, help="Number of hops"
+    )
+    subgraph_parser.add_argument(
+        "--as-at",
+        help="Only include nodes/edges on or before this date (YYYY-MM-DD)",
+    )
+    subgraph_parser.add_argument(
+        "--graph-file",
+        type=Path,
+        help="Graph JSON file (use '-' for stdin)",
+    )
+    subgraph_parser.add_argument(
+        "--dot",
+        action="store_true",
+        help="Output Graphviz DOT instead of JSON",
+    )
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
-    tests_run = tests_sub.add_parser("run", help="Run tests against a story")
-    tests_run.add_argument("--ids", nargs="+", required=True, help="Test IDs")
-    tests_run.add_argument("--story", type=Path, required=True, help="Story JSON file")
+    tests_run = tests_sub.add_parser("run", help="Run checklist tests against a story")
+    tests_run.add_argument(
+        "--tests-file", type=Path, required=True, help="Checklist JSON file"
+    )
+    tests_run.add_argument(
+        "--story-file", type=Path, required=True, help="Story JSON file"
+    )
 
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
+
+    tools_parser = sub.add_parser("tools", help="Utility tools")
+    tools_sub = tools_parser.add_subparsers(dest="tools_command")
+    claim_builder = tools_sub.add_parser(
+        "claim-builder", help="Interactively build a claim"
+    )
+    claim_builder.add_argument(
+        "--dir",
+        type=Path,
+        default=Path("data/claims"),
+        help="Directory to save claim files",
+    )
 
     args = parser.parse_args()
     if args.command == "get":
@@ -133,17 +184,27 @@ def main() -> None:
         )
         print(doc.to_json())
     elif args.command == "distinguish":
-        from .distinguish.engine import (
-            compare_cases,
-            extract_case_silhouette,
-        )
+        from .distinguish.loader import load_case_silhouette
+        from .distinguish.engine import compare_story_to_case
 
-        base_paras = json.loads(args.base.read_text())
-        cand_paras = json.loads(args.candidate.read_text())
-        base = extract_case_silhouette(base_paras)
-        cand = extract_case_silhouette(cand_paras)
-        result = compare_cases(base, cand)
+        case_sil = load_case_silhouette(args.case)
+        story_data = json.loads(args.story.read_text())
+        story_tags = story_data.get("facts", {})
+        result = compare_story_to_case(story_tags, case_sil)
         print(json.dumps(result))
+    elif args.command == "concepts":
+        if args.concepts_command == "match":
+            from .concepts.matcher import ConceptMatcher, load_patterns
+
+            patterns = load_patterns(args.patterns_file)
+            matcher = ConceptMatcher(patterns)
+            hits = matcher.match(args.text)
+            nodes = [
+                {"id": cid, "start": span[0], "end": span[1]} for cid, span in hits
+            ]
+            print(json.dumps(nodes))
+        else:
+            parser.print_help()
     elif args.command == "query":
         if args.query_command == "case":
             from .api import routes
@@ -186,9 +247,12 @@ def main() -> None:
             print(json.dumps({"cloud": cloud}))
     elif args.command == "graph":
         if args.graph_command == "subgraph":
+            from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
+
+            as_at = datetime.fromisoformat(args.as_at) if args.as_at else None
+
             if args.graph_file:
                 import sys
-                from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
@@ -197,24 +261,113 @@ def main() -> None:
 
                 g = Graph()
                 for n in data.get("nodes", []):
-                    g.add_node(Node(n["id"], n["type"], {"label": n.get("title", n["id"])}))
+                    n_date = None
+                    if n.get("date"):
+                        try:
+                            n_date = datetime.fromisoformat(n["date"])
+                        except ValueError:
+                            pass
+                    g.add_node(
+                        Node(
+                            n["id"],
+                            n.get("type", ""),
+                            {"label": n.get("title", n["id"] )},
+                            n_date,
+                        )
+                    )
                 for e in data.get("edges", []):
-                    g.add_edge(Edge(e["from"], e["to"], e["type"], {"label": e.get("type")}))
-                nodes, edges = build_subgraph(g, {args.seed}, hops=args.hops)
+                    metadata = {"label": e.get("type")}
+                    if e.get("receipt"):
+                        metadata["receipt"] = e.get("receipt")
+                    e_date = None
+                    if e.get("date"):
+                        try:
+                            e_date = datetime.fromisoformat(e["date"])
+                        except ValueError:
+                            pass
+                    g.add_edge(
+                        Edge(
+                            e["from"],
+                            e["to"],
+                            e["type"],
+                            metadata,
+                            e_date,
+                            e.get("weight"),
+                        )
+                    )
+                nodes, edges = build_subgraph(
+                    g, args.seeds, hops=args.hops, as_at=as_at
+                )
                 print(to_dot(nodes, edges))
             else:
                 from .api.routes import generate_subgraph
 
-                result = generate_subgraph(args.seed, args.hops)
-                print(json.dumps(result))
+                combined_nodes = {}
+                combined_edges = {}
+                for seed in args.seeds:
+                    result = generate_subgraph(seed, args.hops)
+                    for n in result.get("nodes", []):
+                        nid = n.get("identifier") or n.get("id")
+                        combined_nodes[nid] = n
+                    for e in result.get("edges", []):
+                        key = (e.get("source"), e.get("target"), e.get("type"))
+                        combined_edges[key] = e
+                merged = {
+                    "nodes": list(combined_nodes.values()),
+                    "edges": list(combined_edges.values()),
+                }
+                if args.dot:
+                    g = Graph()
+                    for n in merged["nodes"]:
+                        nid = n.get("identifier") or n.get("id")
+                        label = n.get("metadata", {}).get("label") or n.get(
+                            "title", nid
+                        )
+                        n_date = None
+                        if n.get("date"):
+                            try:
+                                n_date = datetime.fromisoformat(n["date"])
+                            except ValueError:
+                                pass
+                        g.add_node(Node(nid, n.get("type", ""), {"label": label}, n_date))
+                    for e in merged["edges"]:
+                        src = e.get("source") or e.get("from")
+                        tgt = e.get("target") or e.get("to")
+                        typ = e.get("type")
+                        meta = e.get("metadata", {})
+                        label = meta.get("label", typ)
+                        metadata = {"label": label}
+                        receipt = meta.get("receipt") or e.get("receipt")
+                        if receipt:
+                            metadata["receipt"] = receipt
+                        e_date = None
+                        if e.get("date"):
+                            try:
+                                e_date = datetime.fromisoformat(e["date"])
+                            except ValueError:
+                                pass
+                        g.add_edge(
+                            Edge(src, tgt, typ, metadata, e_date, e.get("weight"))
+                        )
+                    if as_at:
+                        nodes, edges = build_subgraph(
+                            g, args.seeds, hops=args.hops, as_at=as_at
+                        )
+                        print(to_dot(nodes, edges))
+                    else:
+                        print(to_dot(g.nodes, g.edges))
+                else:
+                    print(json.dumps(merged))
         else:
             parser.print_help()
     elif args.command == "tests":
         if args.tests_command == "run":
-            from .api.routes import execute_tests
+            from .checklists.run import evaluate
 
-            story = json.loads(args.story.read_text())
-            result = execute_tests(args.ids, story)
+            checklist = json.loads(args.tests_file.read_text())
+            story = json.loads(args.story_file.read_text())
+            tags = set(story.get("tags", []))
+            result = evaluate(checklist, tags)
             print(json.dumps(result))
         else:
             parser.print_help()
@@ -224,6 +377,13 @@ def main() -> None:
 
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "tools":
+        if args.tools_command == "claim-builder":
+            from .tools.claim_builder import build_claim
+
+            build_claim(args.dir)
         else:
             parser.print_help()
     else:

@@ -1,0 +1,51 @@
+CREATE TABLE IF NOT EXISTS nodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    data TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS edges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source INTEGER NOT NULL REFERENCES nodes(id),
+    target INTEGER NOT NULL REFERENCES nodes(id),
+    type TEXT NOT NULL,
+    data TEXT
+);
+
+CREATE TABLE IF NOT EXISTS frames (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id INTEGER NOT NULL REFERENCES nodes(id),
+    data TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS action_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    template TEXT NOT NULL,
+    metadata TEXT
+);
+
+CREATE TABLE IF NOT EXISTS corrections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id INTEGER NOT NULL REFERENCES nodes(id),
+    suggestion TEXT NOT NULL,
+    data TEXT
+);
+
+CREATE TRIGGER IF NOT EXISTS prevent_corrections_delete
+BEFORE DELETE ON corrections
+BEGIN
+    SELECT RAISE(ABORT, 'corrections table is append-only');
+END;
+
+CREATE TABLE IF NOT EXISTS glossary (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    term TEXT UNIQUE NOT NULL,
+    definition TEXT NOT NULL,
+    metadata TEXT
+);
+
+CREATE TABLE IF NOT EXISTS receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    data TEXT NOT NULL
+);
