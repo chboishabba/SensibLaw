@@ -19,7 +19,7 @@ jobs:
           pip install .[test]
           pip install ruff
       - name: Lint
-        run: ruff src tests
+        run: ruff check src tests
 
   test:
     runs-on: ubuntu-latest
