@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Dict, Any, List
 from collections import defaultdict
 
@@ -8,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..graph.models import LegalGraph, GraphEdge
+from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
 
 # Ranking of courts and weighting of relations when computing treatment scores.
@@ -28,8 +28,12 @@ router = APIRouter()
 _graph = LegalGraph()
 
 
-def generate_subgraph(seed: str, hops: int) -> Dict[str, Any]:
-    """Return a subgraph around ``seed`` up to ``hops`` hops."""
+def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, Any]:
+    """Return a subgraph around ``seed`` up to ``hops`` hops.
+
+    When ``reduced`` is ``True`` the returned edge set has undergone a
+    transitive reduction to remove edges that are implied by transitivity.
+    """
     if seed not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Seed node not found")
     visited = {seed}
@@ -47,18 +51,25 @@ def generate_subgraph(seed: str, hops: int) -> Dict[str, Any]:
                 visited.add(tgt)
                 nodes[tgt] = _graph.nodes[tgt]
                 frontier.append((tgt, depth + 1))
-    return {
-        "nodes": [asdict(n) for n in nodes.values()],
-        "edges": [asdict(e) for e in edges],
-    }
+
+    subgraph = LegalGraph()
+    for node in nodes.values():
+        subgraph.add_node(node)
+    for edge in edges:
+        subgraph.add_edge(edge)
+
+    return serialize_graph(subgraph, reduced=reduced)
 
 
 @router.get("/subgraph")
 def subgraph_endpoint(
     seed: str = Query(..., description="Identifier for the seed node"),
     hops: int = Query(1, ge=1, le=5, description="Number of hops from seed"),
+    reduced: bool = Query(
+        False, description="Apply transitive reduction to edge set"
+    ),
 ) -> Dict[str, Any]:
-    return generate_subgraph(seed, hops)
+    return generate_subgraph(seed, hops, reduced)
 
 
 class TestRunRequest(BaseModel):
