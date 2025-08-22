@@ -18,6 +18,31 @@ __all__ = ["main"]
 
 if __name__ == "__main__":  # pragma: no cover - for direct execution
 
+def _cmd_tests_run(args: argparse.Namespace) -> None:
+    """Evaluate a story against a checklist template and print results."""
+
+    from .tests.evaluator import evaluate
+
+    evaluation = evaluate(
+        concept_id=args.concept,
+        story_path=args.story,
+        templates_path=args.templates,
+    )
+
+    template = evaluation.template
+    print(f"Test: {template.name} ({template.concept_id})")
+    header = f"{'Factor':20} {'Status':10} Evidence"
+    print(header)
+    print("-" * len(header))
+    for res in evaluation.results:
+        evidence = "; ".join(res.evidence)
+        print(f"{res.factor.id:20} {res.status:10} {evidence}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="sensiblaw")
+    sub = parser.add_subparsers(dest="command")
+
     extract_parser = sub.add_parser("extract", help="Extraction helpers")
     extract_parser.add_argument("--text", help="Provision text")
     extract_sub = extract_parser.add_subparsers(dest="extract_command")
@@ -310,6 +335,15 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     tests_run.add_argument(
         "--story", type=Path, required=True, help="Path to story JSON file"
     )
+
+    tests_parser = sub.add_parser(
+        "tests", help="Run declarative concept checklists"
+    )
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    run_parser = tests_sub.add_parser("run", help="Evaluate a story against a checklist")
+    run_parser.add_argument("--templates", type=Path, required=True, help="Path to templates JSON")
+    run_parser.add_argument("--story", type=Path, required=True, help="Path to story JSON")
+    run_parser.add_argument("--concept", required=True, help="Concept ID to evaluate")
 
     args = parser.parse_args()
     if args.command == "get":
@@ -727,6 +761,9 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         concepts = match_concepts(text)
         cloud = build_cloud(concepts)
         print(json.dumps({"cloud": cloud}))
+    elif args.command == "tests" and args.tests_command == "run":
+        _cmd_tests_run(args)
+
     elif args.command == "tests":
         if args.tests_command == "run":
             from .tests import TEMPLATE_REGISTRY, evaluate
@@ -804,6 +841,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             build_claim(args.dir)
         else:
             parser.print_help()
+ 
     else:
         parser.print_help()
 
