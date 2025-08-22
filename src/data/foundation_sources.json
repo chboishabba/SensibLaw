@@ -1,0 +1,174 @@
+{
+  "sources": [
+    {
+      "name": "Australian Constitution",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C2004A00757",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Australian Constitution s {{section}}",
+      "throttle": {"respect_robots": true}
+    },
+    {
+      "name": "Commonwealth of Australia Constitution Act 1900 (UK)",
+      "jurisdiction": "UK",
+      "base_url": "https://www.legislation.gov.uk/ukpga/1900/12/contents",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "63 & 64 Vict c 12 s {{section}}"
+    },
+    {
+      "name": "Statute of Westminster Adoption Act 1942 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C1942A00056",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Statute of Westminster Adoption Act 1942 (Cth) s {{section}}"
+    },
+    {
+      "name": "Australia Act 1986 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C2004A03288",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Australia Act 1986 (Cth) s {{section}}"
+    },
+    {
+      "name": "Australia Act 1986 (UK)",
+      "jurisdiction": "UK",
+      "base_url": "https://www.legislation.gov.uk/ukpga/1986/2/contents",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Australia Act 1986 (UK) s {{section}}"
+    },
+    {
+      "name": "Acts Interpretation Act 1901 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C1901A00002",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Acts Interpretation Act 1901 (Cth) s {{section}}"
+    },
+    {
+      "name": "Legislation Act 2003 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C2004A01215",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Legislation Act 2003 (Cth) s {{section}}"
+    },
+    {
+      "name": "Judiciary Act 1903 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C1903A00006",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Judiciary Act 1903 (Cth) s {{section}}"
+    },
+    {
+      "name": "Crimes Act 1914 (Cth)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/Series/C1914A00012",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Crimes Act 1914 (Cth) s {{section}}"
+    },
+    {
+      "name": "Federal Register of Legislation",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.legislation.gov.au/",
+      "collection_types": ["Acts", "Legislative Instruments", "Gazettes"],
+      "formats": ["HTML", "PDF", "XML (selected)"],
+      "throttle": {"crawl_delay_sec": 1},
+      "notes": "Authorised whole-of-government register; allows automated download per site policy."
+    },
+    {
+      "name": "Commonwealth Parliamentary Materials",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://parlinfo.aph.gov.au/",
+      "collection_types": ["Hansard", "Bills", "Explanatory Memoranda"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "Commonwealth, Parliamentary Debates, {{house}}, {{date}}, {{page}} ({{speaker}})"
+    },
+    {
+      "name": "High Court of Australia Judgments (official)",
+      "jurisdiction": "Commonwealth",
+      "base_url": "https://www.hcourt.gov.au/publications/judgments",
+      "collection_types": ["judgments"],
+      "formats": ["PDF", "HTML (summary)"]
+    },
+    {
+      "name": "AustLII (reference only)",
+      "jurisdiction": "Australia-wide",
+      "base_url": "https://www.austlii.edu.au/",
+      "collection_types": ["Legislation", "Cases", "Journals"],
+      "formats": ["HTML", "RTF (some)"],
+      "throttle": {"note": "Avoid bulk re-supply spidering; link to authoritative sources."}
+    },
+    {
+      "name": "NSW Legislation Register",
+      "jurisdiction": "New South Wales",
+      "base_url": "https://legislation.nsw.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF", "XML (export service)"],
+      "citation_template": "{{title}} (NSW) s {{section}}"
+    },
+    {
+      "name": "Victoria Legislation Register",
+      "jurisdiction": "Victoria",
+      "base_url": "https://www.legislation.vic.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "{{title}} (Vic) s {{section}}"
+    },
+    {
+      "name": "Queensland Legislation Register",
+      "jurisdiction": "Queensland",
+      "base_url": "https://www.legislation.qld.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF", "XML"],
+      "throttle": {"api": "https://www.legislation.qld.gov.au/api-docs"},
+      "citation_template": "{{title}} (Qld) s {{section}}"
+    },
+    {
+      "name": "South Australia Legislation Register",
+      "jurisdiction": "South Australia",
+      "base_url": "https://www.legislation.sa.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF", "XML (DataSA)"],
+      "citation_template": "{{title}} (SA) s {{section}}"
+    },
+    {
+      "name": "Western Australia Legislation Register",
+      "jurisdiction": "Western Australia",
+      "base_url": "https://www.legislation.wa.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "{{title}} (WA) s {{section}}"
+    },
+    {
+      "name": "Tasmania Legislation Register",
+      "jurisdiction": "Tasmania",
+      "base_url": "https://www.legislation.tas.gov.au/",
+      "collection_types": ["Acts", "Regulations"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "{{title}} (Tas) s {{section}}"
+    },
+    {
+      "name": "ACT Legislation Register",
+      "jurisdiction": "Australian Capital Territory",
+      "base_url": "https://www.legislation.act.gov.au/",
+      "collection_types": ["Acts", "Instruments"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "{{title}} (ACT) s {{section}}"
+    },
+    {
+      "name": "Northern Territory Legislation Register",
+      "jurisdiction": "Northern Territory",
+      "base_url": "https://legislation.nt.gov.au/",
+      "collection_types": ["Acts", "Instruments"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "{{title}} (NT) s {{section}}"
+    }
+  ]
+}
