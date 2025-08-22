@@ -61,6 +61,12 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         help="Path to a fact-tagged story JSON file",
     )
 
+    publish_parser = sub.add_parser("publish", help="Generate a static site")
+    publish_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    publish_parser.add_argument(
+        "--out", type=Path, required=True, help="Directory to write the site"
+    )
+
     concepts_parser = sub.add_parser("concepts", help="Concept operations")
     concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
     concepts_match = concepts_sub.add_parser(
@@ -384,6 +390,13 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = args.graph_file.stat().st_mode
+                    if mode & 0o444 == 0:
+                        print(
+                            f"error: argument --graph-file: can't open '{args.graph_file}': Permission denied",
+                            file=sys.stderr,
+                        )
+                        sys.exit(2)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()
@@ -543,6 +556,11 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "publish":
+        from .publish.mirror import generate_site
+
+        generate_site(args.seed, args.out)
+
     elif args.command == "receipts":
         if args.receipts_command == "diff":
             from .text.similarity import minhash, simhash
