@@ -9,6 +9,8 @@ pip install -e .[dev,test]
 pytest
 ```
 
+The test extras install [Hypothesis](https://hypothesis.readthedocs.io/) for property-based testing.
+
 ## Writing tests
 
 New features and fixes should include tests. A helper script is available to
