@@ -1,0 +1,11 @@
+{
+  "lost_evidence_items": 0.2,
+  "delay_months": 0.6,
+  "max_delay_months": 12,
+  "flags": {
+    "intimidation": 0.2,
+    "cooperation": -0.1
+  },
+  "medium_threshold": 0.33,
+  "high_threshold": 0.66
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Corrections Ledger</title>
+  </head>
+  <body>
+    <h1>Submit a correction</h1>
+    <form id="correction-form">
+      <label>Name: <input type="text" id="name" required></label><br>
+      <label>Message:<br><textarea id="message" rows="4" cols="40" required></textarea></label><br>
+      <button type="submit">Submit</button>
+    </form>
+    <script>
+      const form = document.getElementById('correction-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const message = document.getElementById('message').value;
+        await fetch('/ledger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, message })
+        });
+        form.reset();
+      });
+    </script>
+  </body>
+</html>
