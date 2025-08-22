@@ -22,6 +22,42 @@ def test_omit_without_override():
     assert engine.enforce(node) is None
 
 
+def test_transform_hook():
+    transformed = []
+    policy = {
+        "rules": [{"flag": "PUBLIC_DOMAIN", "action": "transform"}],
+        "default": "allow",
+    }
+    engine = PolicyEngine(policy, inference_hook=lambda f, a: transformed.append((f, a)))
+    action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
+    assert action == "transform"
+    assert transformed == [(CulturalFlags.PUBLIC_DOMAIN, "transform")]
+
+
+def test_default_allow():
+    policy = {
+        "rules": [{"flag": "SACRED_DATA", "action": "deny"}],
+        "default": "allow",
+    }
+    engine = PolicyEngine(policy)
+    action = engine.evaluate({CulturalFlags.PUBLIC_DOMAIN})
+    assert action == "allow"
+
+
+def test_nested_policy_require():
+    policy = {
+        "if": "SACRED_DATA",
+        "then": {"if": "PUBLIC_DOMAIN", "then": "allow", "else": "require"},
+        "else": "allow",
+    }
+    engine = PolicyEngine(policy)
+    action = engine.evaluate({CulturalFlags.SACRED_DATA})
+    assert action == "require"
+
+
+def test_enforce_redacts_without_consent():
+    engine = PolicyEngine({})
+
 def test_redact_without_consent():
     engine = PolicyEngine.from_yaml(str(RULES))
     node = GraphNode(
@@ -30,6 +66,9 @@ def test_redact_without_consent():
         metadata={"pii": "x"},
         cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
     )
+    redacted = engine.enforce(node, consent=False)
+    assert redacted.metadata == {"summary": "Content withheld due to policy"}
+
     redacted = engine.enforce(node)
     assert redacted.metadata["pii"] != "x"
 
