@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Dict, Any, List
 from collections import defaultdict
 
@@ -8,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..graph.models import LegalGraph, GraphEdge
+from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
 from ..policy.engine import PolicyEngine
 
@@ -19,6 +19,13 @@ _policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"}
 
 def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, Any]:
     """Return a subgraph around ``seed`` up to ``hops`` hops."""
+
+def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, Any]:
+    """Return a subgraph around ``seed`` up to ``hops`` hops.
+
+    When ``reduced`` is ``True`` the returned edge set has undergone a
+    transitive reduction to remove edges that are implied by transitivity.
+    """
     if seed not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Seed node not found")
     visited = {seed}
@@ -44,6 +51,15 @@ def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, 
     return {"nodes": result_nodes, "edges": [asdict(e) for e in edges]}
 
 
+    subgraph = LegalGraph()
+    for node in nodes.values():
+        subgraph.add_node(node)
+    for edge in edges:
+        subgraph.add_edge(edge)
+
+    return serialize_graph(subgraph, reduced=reduced)
+
+
 @router.get("/subgraph")
 def subgraph_endpoint(
     seed: str = Query(..., description="Identifier for the seed node"),
@@ -53,6 +69,12 @@ def subgraph_endpoint(
     ),
 ) -> Dict[str, Any]:
     return generate_subgraph(seed, hops, consent)
+
+    reduced: bool = Query(
+        False, description="Apply transitive reduction to edge set"
+    ),
+) -> Dict[str, Any]:
+    return generate_subgraph(seed, hops, reduced)
 
 
 class TestRunRequest(BaseModel):
