@@ -3,9 +3,6 @@ import json
 from datetime import datetime, date
 from pathlib import Path
 
-from src.storage import VersionedStore
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -102,6 +99,8 @@ def main() -> None:
         args.func(args)
         return
     if args.command == "get":
+        from src.storage import VersionedStore
+
         store = VersionedStore(args.db)
         if args.as_at:
             as_at = datetime.fromisoformat(args.as_at).date()
