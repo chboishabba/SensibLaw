@@ -91,7 +91,6 @@ def expand_proof_tree(
     seed_node = graph.get_node(seed)
     if seed_node and node_valid(seed_node):
         result_nodes[seed] = seed_node
-
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Set, Tuple
