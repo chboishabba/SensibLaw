@@ -185,6 +185,14 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    tools_parser = sub.add_parser("tools", help="Utility helper commands")
+    tools_sub = tools_parser.add_subparsers(dest="tools_command")
+    counter_brief = tools_sub.add_parser(
+        "counter-brief", help="Generate a structured counter brief"
+    )
+    counter_brief.add_argument(
+        "--file", type=Path, required=True, help="Path to the input brief"
+
     repro_parser = sub.add_parser("repro", help="Reproducibility helpers")
     repro_sub = repro_parser.add_subparsers(dest="repro_command")
     repro_log = repro_sub.add_parser("log-correction", help="Log a correction entry")
@@ -641,6 +649,13 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "tools":
+        if args.tools_command == "counter-brief":
+            from .tools.counter_brief import generate_counter_brief
+
+            result = generate_counter_brief(args.file)
+            print(json.dumps(result))
+
     elif args.command == "publish":
         from .publish.mirror import generate_site
 
