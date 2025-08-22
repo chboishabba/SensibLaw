@@ -60,5 +60,7 @@ CREATE TABLE IF NOT EXISTS glossary (
 
 CREATE TABLE IF NOT EXISTS receipts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    data TEXT NOT NULL
+    data TEXT NOT NULL,
+    simhash TEXT,
+    minhash TEXT
 );

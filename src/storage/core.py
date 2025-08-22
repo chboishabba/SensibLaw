@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from ..text.similarity import minhash as compute_minhash, simhash as compute_simhash
+
 
 @dataclass
 class Node:
@@ -66,6 +68,8 @@ class GlossaryEntry:
 class Receipt:
     id: Optional[int]
     data: Dict[str, Any]
+    simhash: str
+    minhash: str
 
 
 class Storage:
@@ -557,27 +561,40 @@ class Storage:
     # Receipts
     # ------------------------------------------------------------------
     def insert_receipt(self, data: Dict[str, Any]) -> int:
+        text = data.get("text") or json.dumps(data, sort_keys=True)
+        sim = compute_simhash(text)
+        m = compute_minhash(text)
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO receipts(data) VALUES (?)", (json.dumps(data),)
+                "INSERT INTO receipts(data, simhash, minhash) VALUES (?, ?, ?)",
+                (json.dumps(data), sim, m),
             )
             return cur.lastrowid
 
     def get_receipt(self, receipt_id: int) -> Optional[Receipt]:
         row = self.conn.execute(
-            "SELECT id, data FROM receipts WHERE id = ?", (receipt_id,)
+            "SELECT id, data, simhash, minhash FROM receipts WHERE id = ?",
+            (receipt_id,),
         ).fetchone()
         if row is None:
             return None
-        return Receipt(id=row["id"], data=json.loads(row["data"]))
+        return Receipt(
+            id=row["id"],
+            data=json.loads(row["data"]),
+            simhash=row["simhash"],
+            minhash=row["minhash"],
+        )
 
     def update_receipt(
         self, receipt_id: int, data: Dict[str, Any]
     ) -> None:
+        text = data.get("text") or json.dumps(data, sort_keys=True)
+        sim = compute_simhash(text)
+        m = compute_minhash(text)
         with self.conn:
             self.conn.execute(
-                "UPDATE receipts SET data = ? WHERE id = ?",
-                (json.dumps(data), receipt_id),
+                "UPDATE receipts SET data = ?, simhash = ?, minhash = ? WHERE id = ?",
+                (json.dumps(data), sim, m, receipt_id),
             )
 
     def delete_receipt(self, receipt_id: int) -> None:
