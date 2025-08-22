@@ -132,6 +132,18 @@ def main() -> None:
         help="Output Graphviz DOT instead of JSON",
     )
 
+    eval_parser = sub.add_parser("eval", help="Evaluation helpers")
+    eval_sub = eval_parser.add_subparsers(dest="eval_command")
+    gold_eval = eval_sub.add_parser(
+        "goldset", help="Evaluate extractors against gold sets"
+    )
+    gold_eval.add_argument(
+        "--threshold",
+        type=float,
+        default=0.9,
+        help="Minimum acceptable precision/recall",
+    )
+
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
     tests_run = tests_sub.add_parser("run", help="Run checklist tests against a story")
@@ -160,6 +172,16 @@ def main() -> None:
     )
     receipts_diff.add_argument("--old", type=Path, required=True, help="Old receipt")
     receipts_diff.add_argument("--new", type=Path, required=True, help="New receipt")
+    polis_parser = sub.add_parser("polis", help="Pol.is conversation operations")
+    polis_sub = polis_parser.add_subparsers(dest="polis_command")
+    polis_import = polis_sub.add_parser("import", help="Import conversation as concepts")
+    polis_import.add_argument("--conversation", required=True, help="Conversation ID")
+    polis_import.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory to write proof packs",
+    )
 
     tools_parser = sub.add_parser("tools", help="Utility tools")
     tools_sub = tools_parser.add_subparsers(dest="tools_command")
@@ -266,6 +288,18 @@ def main() -> None:
                 {"id": cid, "start": span[0], "end": span[1]} for cid, span in hits
             ]
             print(json.dumps(nodes))
+        else:
+            parser.print_help()
+    elif args.command == "polis":
+        if args.polis_command == "import":
+            from .ingest.polis import fetch_conversation
+            from .receipts import build_pack
+
+            seeds = fetch_conversation(args.conversation)
+            args.out.mkdir(parents=True, exist_ok=True)
+            for seed in seeds:
+                pack_dir = args.out / seed["id"]
+                build_pack(pack_dir, seed.get("label", ""))
         else:
             parser.print_help()
     elif args.command == "query":
@@ -445,6 +479,15 @@ def main() -> None:
                         print(to_dot(g.nodes, g.edges))
                 else:
                     print(json.dumps(merged))
+        else:
+            parser.print_help()
+    elif args.command == "eval":
+        if args.eval_command == "goldset":
+            from scripts.eval_goldset import evaluate
+
+            ok = evaluate(threshold=args.threshold)
+            if not ok:
+                raise SystemExit(1)
         else:
             parser.print_help()
     elif args.command == "tests":

@@ -36,6 +36,8 @@ jobs:
           pip install pytest coverage[toml] pytest-cov hypothesis
       - name: Test
         run: pytest --cov=src --cov-report=xml
+      - name: Evaluate gold set
+        run: sensiblaw eval goldset
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
