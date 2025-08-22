@@ -1,0 +1,26 @@
+name: No conflict markers
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: skip vendored/build artifacts to reduce false positives
+      - name: Scan for merge conflict markers
+        run: |
+          set -euo pipefail
+          # List tracked, text-like files; exclude common build/vendor dirs
+          git ls-files -z \
+            ':!:vendor/**' ':!:dist/**' ':!:build/**' ':!:node_modules/**' \
+            ':!:*.min.*' ':!:*.lock' ':!:*.png' ':!:*.jpg' ':!:*.jpeg' ':!:*.gif' ':!:*.pdf' \
+          | xargs -0 -r grep -nE '^(<<<<<<< |=======$|>>>>>>> )' && FOUND=1 || FOUND=0
+          if [ "$FOUND" -eq 1 ]; then
+            echo "::error::Conflict markers found. Resolve before merging."
+            exit 1
+          fi
