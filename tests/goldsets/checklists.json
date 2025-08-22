@@ -1,0 +1,18 @@
+[
+  {
+    "story": "tests/fixtures/au_cth_family_s4AA_story.json",
+    "passed_factors": ["child_wishes", "safety"]
+  },
+  {
+    "story": "tests/fixtures/au_cth_family_s90SB_story.json",
+    "passed_factors": ["signed", "independent_advice"]
+  },
+  {
+    "story": "tests/fixtures/au_cth_family_s90SM_story.json",
+    "passed_factors": ["impracticable"]
+  },
+  {
+    "story": "tests/fixtures/glj_permanent_stay_story.json",
+    "passed_factors": ["delay", "abuse_of_process"]
+  }
+]

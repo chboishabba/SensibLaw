@@ -2,9 +2,6 @@ import json
 import subprocess
 from datetime import date, datetime
 from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.models.document import Document, DocumentMetadata
 from src.storage import VersionedStore
@@ -30,7 +27,7 @@ def setup_db(tmp_path: Path) -> tuple[str, int]:
 
 
 def run_cli(db_path: str, *args: str) -> str:
-    cmd = ["python", "-m", "src.cli", "get", "--db", db_path, *args]
+    cmd = ["python", "-m", "cli", "get", "--db", db_path, *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return completed.stdout.strip()
 
