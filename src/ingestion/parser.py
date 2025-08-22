@@ -1,10 +1,11 @@
 """Utility functions for ingesting raw records into :class:`Document` objects."""
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ..models.document import Document
-from ..ontology.tagger import tag_text
+from ..models.provision import Provision
+from ..ontology.tagger import tag_provision
 from .consent_gate import check_consent
 
 # Mapping of human-readable jurisdictions to standard codes.
@@ -15,9 +16,8 @@ JURISDICTION_MAP = {
 }
 
 
-def _apply_tags(doc: Document) -> None:
+def _apply_tags(doc: Document, tags: Dict[str, List[str]]) -> None:
     """Populate ontology tags on the document metadata."""
-    tags = tag_text(doc.body)
     doc.metadata.ontology_tags = tags
     # Populate legacy fields for backward compatibility
     if "lpo" in tags:
@@ -38,7 +38,10 @@ def emit_document(record: Dict[str, Any]) -> Document:
     """Convert a raw record dictionary into a tagged :class:`Document` instance."""
     check_consent(record)
     doc = Document.from_dict(record)
-    _apply_tags(doc)
+    provision = Provision(text=record["body"])
+    tags = tag_provision(provision)
+    doc.provisions = [provision]
+    _apply_tags(doc, tags)
     _apply_jurisdiction_codes(doc)
     return doc
 
@@ -47,7 +50,10 @@ def emit_document_from_json(data: str) -> Document:
     """Convert a JSON string into a tagged :class:`Document` instance."""
     record = json.loads(data)
     check_consent(record)
-    doc = Document.from_json(data)
-    _apply_tags(doc)
+    doc = Document.from_dict(record)
+    provision = Provision(text=record["body"])
+    tags = tag_provision(provision)
+    doc.provisions = [provision]
+    _apply_tags(doc, tags)
     _apply_jurisdiction_codes(doc)
     return doc

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
+from ..models.provision import Provision
+
 # Directory where ontology JSON files are stored.
 ONTOLOGY_DIR = Path(__file__).resolve().parents[2] / "data" / "ontology"
 
@@ -40,22 +42,30 @@ def _match_terms(text: str, mapping: Dict[str, List[str]]) -> List[str]:
     return [tag for tag, kws in mapping.items() if any(kw.lower() in lower for kw in kws)]
 
 
-def tag_text(text: str) -> Dict[str, List[str]]:
-    """Tag the provided text with all loaded ontologies.
+def tag_provision(provision: Provision) -> Dict[str, List[str]]:
+    """Populate ontology tags on an existing :class:`Provision`.
 
-    Parameters
-    ----------
-    text:
-        The text to analyse.
-
-    Returns
-    -------
-    Dict[str, List[str]]
-        Mapping of ontology name to the list of matching tags.
+    The provision's ``principles`` and ``customs`` lists are updated in place
+    based on matches from the loaded ontologies.  A mapping of ontology name to
+    matching tags is returned for external use (e.g., document metadata).
     """
+
     tags: Dict[str, List[str]] = {}
     for name, mapping in ONTOLOGIES.items():
-        matched = _match_terms(text, mapping)
-        if matched:
-            tags[name] = matched
+        matched = _match_terms(provision.text, mapping)
+        if not matched:
+            continue
+        tags[name] = matched
+        if name == "lpo":
+            provision.principles = matched
+        elif name == "cco":
+            provision.customs = matched
     return tags
+
+
+def tag_text(text: str) -> Provision:
+    """Create and tag a :class:`Provision` from raw text."""
+
+    provision = Provision(text=text)
+    tag_provision(provision)
+    return provision

@@ -1,0 +1,8 @@
+{
+  "template_id": "glj:permanent_stay",
+  "facts": {
+    "delay": true,
+    "abuse_of_process": true,
+    "fair_trial_possible": false
+  }
+}
