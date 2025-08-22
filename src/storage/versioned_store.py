@@ -54,9 +54,13 @@ class VersionedStore:
         """Generate and return a new unique document ID."""
         with self.conn:
             cur = self.conn.execute("INSERT INTO documents DEFAULT VALUES")
-            return cur.lastrowid
+            lastrowid = cur.lastrowid
+            assert lastrowid is not None
+            return lastrowid
 
-    def add_revision(self, doc_id: int, document: Document, effective_date: date) -> int:
+    def add_revision(
+        self, doc_id: int, document: Document, effective_date: date
+    ) -> int:
         """Add a new revision for a document.
 
         Args:
