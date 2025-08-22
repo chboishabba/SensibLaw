@@ -41,6 +41,15 @@ def main() -> None:
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
 
+    law_parser = sub.add_parser("law", help="Law document utilities")
+    law_sub = law_parser.add_subparsers(dest="law_command")
+    law_redline = law_sub.add_parser(
+        "redline", help="Generate HTML diff between two statute versions"
+    )
+    law_redline.add_argument("--old", type=Path, required=True, help="Path to old version")
+    law_redline.add_argument("--new", type=Path, required=True, help="Path to new version")
+    law_redline.add_argument("--out", type=Path, required=True, help="Output HTML file")
+
     dist_parser = sub.add_parser(
         "distinguish", help="Compare a story against a case silhouette"
     )
@@ -183,6 +192,16 @@ def main() -> None:
             cultural_flags=args.cultural_flags,
         )
         print(doc.to_json())
+    elif args.command == "law":
+        if args.law_command == "redline":
+            from .versioning.section_diff import redline
+
+            old_text = args.old.read_text()
+            new_text = args.new.read_text()
+            html = redline(old_text, new_text, old_ref=str(args.old), new_ref=str(args.new))
+            args.out.write_text(html)
+        else:
+            parser.print_help()
     elif args.command == "distinguish":
         from .distinguish.loader import load_case_silhouette
         from .distinguish.engine import compare_story_to_case
