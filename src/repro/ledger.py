@@ -65,7 +65,6 @@ class CorrectionLedger:
 
 This module provides a minimal API for storing correction entries.
 """
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List

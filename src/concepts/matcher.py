@@ -1,7 +1,6 @@
-"""Concept matching using an Aho-Corasick automaton."""
-
-
 from __future__ import annotations
+
+"""Concept matching using an Aho-Corasick automaton."""
 
 import json
 from dataclasses import dataclass
@@ -27,8 +26,6 @@ class ConceptHit:
 Provides a :func:`match` function that uses the Aho-Corasick algorithm
 (if available) to locate multiple phrases within a body of text.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
@@ -261,7 +258,6 @@ Provides :class:`ConceptMatcher` which loads phrase→concept mappings and
 returns deterministic hit spans when matching against text.  The matcher is
 case-insensitive and orders results by appearance in the input string.
 """
-from __future__ import annotations
 
 import json
 import re
