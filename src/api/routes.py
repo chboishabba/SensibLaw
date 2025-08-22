@@ -68,8 +68,6 @@ endpoint returns JSON data and, when requested via the ``dot`` query
 parameter, includes a Graphviz DOT representation of the result.
 """
 
-from __future__ import annotations
-
 import json
 import subprocess
 from typing import Dict
@@ -162,8 +160,6 @@ def run_tests() -> Dict[str, object]:
 
 __all__ = ["router"]
 
-from __future__ import annotations
-
 from typing import Dict, Any, List
 
 from collections import defaultdict
@@ -199,11 +195,10 @@ except ImportError:  # pragma: no cover
     def Field(*args, **kwargs):
         return None
 
-from ..graph.models import LegalGraph
+from dataclasses import asdict
+from ..graph.models import LegalGraph, GraphEdge
 
 from ..schema_utils import load_schema, validate
-
-from ..graph.models import LegalGraph, GraphEdge
 from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
 from ..policy.engine import PolicyEngine
@@ -232,13 +227,6 @@ _policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"}
 
 def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, Any]:
     """Return a subgraph around ``seed`` up to ``hops`` hops."""
-
-def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, Any]:
-    """Return a subgraph around ``seed`` up to ``hops`` hops.
-
-    When ``reduced`` is ``True`` the returned edge set has undergone a
-    transitive reduction to remove edges that are implied by transitivity.
-    """
     if seed not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Seed node not found")
     visited = {seed}
@@ -264,30 +252,13 @@ def generate_subgraph(seed: str, hops: int, reduced: bool = False) -> Dict[str, 
     return {"nodes": result_nodes, "edges": [asdict(e) for e in edges]}
 
 
-    subgraph = LegalGraph()
-    for node in nodes.values():
-        subgraph.add_node(node)
-    for edge in edges:
-        subgraph.add_edge(edge)
-
-    return serialize_graph(subgraph, reduced=reduced)
-
-
 @router.get("/subgraph")
 def subgraph_endpoint(
     seed: str = Query(..., description="Identifier for the seed node"),
     hops: int = Query(1, ge=1, le=5, description="Number of hops from seed"),
-    consent: bool = Query(
-        False, description="Consent granted to view sacred data"
-    ),
+    consent: bool = Query(False, description="Consent granted to view sacred data"),
 ) -> Dict[str, Any]:
     return generate_subgraph(seed, hops, consent)
-
-    reduced: bool = Query(
-        False, description="Apply transitive reduction to edge set"
-    ),
-) -> Dict[str, Any]:
-    return generate_subgraph(seed, hops, reduced)
 
 
 class TestRunRequest(BaseModel):
