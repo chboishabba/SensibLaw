@@ -4,6 +4,7 @@ from datetime import datetime, date
 from pathlib import Path
 
 from .storage import VersionedStore
+from .proofs.render import dot_to_svg
 
 
 def main() -> None:
@@ -130,6 +131,11 @@ def main() -> None:
         "--dot",
         action="store_true",
         help="Output Graphviz DOT instead of JSON",
+    )
+    subgraph_parser.add_argument(
+        "--svg",
+        action="store_true",
+        help="Output rendered SVG",
     )
 
     eval_parser = sub.add_parser("eval", help="Evaluation helpers")
@@ -419,7 +425,11 @@ def main() -> None:
                 nodes, edges = build_subgraph(
                     g, args.seeds, hops=args.hops, as_at=as_at
                 )
-                print(to_dot(nodes, edges))
+                dot_output = to_dot(nodes, edges)
+                if args.svg:
+                    print(dot_to_svg(dot_output))
+                else:
+                    print(dot_output)
             else:
                 from .api.routes import generate_subgraph
 
@@ -437,7 +447,7 @@ def main() -> None:
                     "nodes": list(combined_nodes.values()),
                     "edges": list(combined_edges.values()),
                 }
-                if args.dot:
+                if args.dot or args.svg:
                     g = Graph()
                     for n in merged["nodes"]:
                         nid = n.get("identifier") or n.get("id")
@@ -474,9 +484,13 @@ def main() -> None:
                         nodes, edges = build_subgraph(
                             g, args.seeds, hops=args.hops, as_at=as_at
                         )
-                        print(to_dot(nodes, edges))
+                        dot_output = to_dot(nodes, edges)
                     else:
-                        print(to_dot(g.nodes, g.edges))
+                        dot_output = to_dot(g.nodes, g.edges)
+                    if args.svg:
+                        print(dot_to_svg(dot_output))
+                    else:
+                        print(dot_output)
                 else:
                     print(json.dumps(merged))
         else:
