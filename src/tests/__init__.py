@@ -1,3 +1,7 @@
+"""Legal test evaluation utilities."""
+
+from .evaluator import evaluate, ResultTable, ResultRow  # noqa: F401
+
 """Utility tests and evaluation support."""
 
 from .evaluator import FactorStatus, ResultTable, evaluate

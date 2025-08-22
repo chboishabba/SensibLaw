@@ -121,6 +121,12 @@ class SourceDispatcher:
                     nodes, edges = frl.fetch_acts(api_url)
                 except Exception:  # pragma: no cover - network/parse errors
                     nodes, edges = [], []
+                fetchers: List[str] = []
+                if any("HTML" in f for f in formats):
+                    fetchers.append(fetch_official_register(source))
+                if "PDF" in formats:
+                    fetchers.append(fetch_pdf(source))
+
 
                 # Even though a bespoke adapter is used, expose the generic
                 # fetcher information so that callers can inspect how the data
@@ -141,6 +147,7 @@ class SourceDispatcher:
                         "fetchers": fetchers,
                     }
                 )
+
                 continue
 
             if source.get("adapter") == "hansard" or source["name"].lower() == "hansard":
