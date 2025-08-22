@@ -16,9 +16,6 @@ class NodeType(Enum):
     CASE = "case"
     CONCEPT = "concept"
 
-    CONCEPT = "concept"
-    CASE = "case"
-
 
 class EdgeType(Enum):
     """Enumeration of supported edge types within a legal graph."""
@@ -33,10 +30,8 @@ class EdgeType(Enum):
     FOLLOWS = "follows"
     DISTINGUISHES = "distinguishes"
     REJECTS = "rejects"
-    FOLLOWS = "follows"
     APPLIES = "applies"
     CONSIDERS = "considers"
-    DISTINGUISHES = "distinguishes"
     OVERRULES = "overrules"
 
 
