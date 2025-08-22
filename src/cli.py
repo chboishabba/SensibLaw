@@ -296,6 +296,7 @@ def main() -> None:
             print(json.dumps(nodes))
         else:
             parser.print_help()
+
     elif args.command == "polis":
         if args.polis_command == "import":
             from .ingest.polis import fetch_conversation
