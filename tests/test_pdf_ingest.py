@@ -29,6 +29,13 @@ def test_extract_pdf(tmp_path):
         LTTextContainer=DummyLTTextContainer
     )
 
+
+
+    def fake_extract_text(path):
+        return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
+
+    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(extract_text=fake_extract_text)
+    sys.modules.pop("src.pdf_ingest", None)
     pdf_ingest = importlib.import_module("src.pdf_ingest")
 
     pdf_path = tmp_path / "sample.pdf"
@@ -38,6 +45,8 @@ def test_extract_pdf(tmp_path):
     assert pages == [
         {"page": 1, "text": "Hello\nWorld"},
         {"page": 2, "text": "Second Page"},
+        {"page": 1, "heading": "Heading 1", "text": "Hello World"},
+        {"page": 2, "heading": "Heading2", "text": "Second Page"},
     ]
 
     meta = pdf_ingest.build_metadata(pdf_path, pages)
@@ -47,5 +56,11 @@ def test_extract_pdf(tmp_path):
         data = json.load(f)
 
     assert data["source"] == "sample.pdf"
+
+
+    pdf_ingest.save_json(pages, out, pdf_path)
+    with out.open() as f:
+        data = json.load(f)
+    assert data["source"] == str(pdf_path)
     assert data["page_count"] == 2
     assert data["pages"] == pages

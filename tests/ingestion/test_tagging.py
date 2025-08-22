@@ -15,10 +15,14 @@ def test_australian_tagging():
             "citation": "ABC123",
             "date": "2023-01-01",
         },
-        "body": "The law promotes fair treatment and environmental protection.",
+        "body": "The law promotes fair treatment, common business practice, and environmental protection.",
     }
     doc = emit_document(record)
     assert "AU" in doc.metadata.jurisdiction_codes
     tags = doc.metadata.ontology_tags
     assert "lpo" in tags and "fairness" in tags["lpo"]
+    assert "cco" in tags and "business_practice" in tags["cco"]
     assert "environment" in tags and "conservation" in tags["environment"]
+    prov = doc.provisions[0]
+    assert "fairness" in prov.principles
+    assert "business_practice" in prov.customs
