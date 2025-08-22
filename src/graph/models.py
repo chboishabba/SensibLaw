@@ -13,6 +13,9 @@ class NodeType(Enum):
     PROVISION = "provision"
     PERSON = "person"
     EXTRINSIC = "extrinsic"
+    CASE = "case"
+    CONCEPT = "concept"
+
     CONCEPT = "concept"
     CASE = "case"
 
@@ -23,6 +26,12 @@ class EdgeType(Enum):
     CITES = "cites"
     REFERENCES = "references"
     RELATED_TO = "related_to"
+    PROPOSED_BY = "proposed_by"
+    EXPLAINS = "explains"
+    AMENDS = "amends"
+    INTERPRETED_BY = "interpreted_by"
+    FOLLOWS = "follows"
+    DISTINGUISHES = "distinguishes"
     REJECTS = "rejects"
     FOLLOWS = "follows"
     APPLIES = "applies"

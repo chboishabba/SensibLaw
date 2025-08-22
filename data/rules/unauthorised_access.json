@@ -1,0 +1,7 @@
+[
+  {
+    "id": "unauthorised_access",
+    "when": {"type": "unauthorised_access"},
+    "details": "Access occurred without authorisation."
+  }
+]

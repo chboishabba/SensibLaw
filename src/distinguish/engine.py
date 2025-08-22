@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Dict, Sequence, List, Tuple, Set, TypedDict, Any
+
+from dataclasses import dataclass, field
 import re
 from typing import Dict, Sequence, List, Tuple, Set
 
@@ -20,6 +23,7 @@ class CaseSilhouette:
     fact_tags: Dict[str, int]
     holding_hints: Dict[str, int]
     paragraphs: Sequence[str]
+    anchors: Dict[int, str] = field(default_factory=dict)
 
 
 def extract_case_silhouette(paragraphs: Sequence[str]) -> CaseSilhouette:
@@ -31,15 +35,33 @@ def extract_case_silhouette(paragraphs: Sequence[str]) -> CaseSilhouette:
 
     facts: Dict[str, int] = {}
     holdings: Dict[str, int] = {}
+    anchors: Dict[int, str] = {}
+
+    bracket_re = re.compile(r"\[(\d+)\]")
+    pilcrow_re = re.compile(r"¶(\d+)")
+    heading_re = re.compile(r"^\s*(\d+)[\.\)]?\s+")
+
     for idx, para in enumerate(paragraphs):
         text = para.strip()
         if not text:
             continue
+        # anchor detection
+        anchor_match = bracket_re.search(text)
+        if anchor_match:
+            anchors[idx] = anchor_match.group(0)
+        else:
+            anchor_match = pilcrow_re.search(text)
+            if anchor_match:
+                anchors[idx] = anchor_match.group(0)
+            else:
+                heading_match = heading_re.match(text)
+                if heading_match:
+                    anchors[idx] = heading_match.group(1)
         if idx < 3:
             facts[text] = idx
         if text.lower().startswith("held"):
             holdings[text] = idx
-    return CaseSilhouette(facts, holdings, list(paragraphs))
+    return CaseSilhouette(facts, holdings, list(paragraphs), anchors)
 
 
 def extract_holding_and_facts(paragraphs: Sequence[str]) -> Tuple[Set[str], Set[str]]:
@@ -57,15 +79,25 @@ def extract_holding_and_facts(paragraphs: Sequence[str]) -> Tuple[Set[str], Set[
     return holdings, facts
 
 
-def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, List[dict]]:
+class ComparisonResult(TypedDict):
+    """Mapping describing similarities and differences between cases."""
+
+    overlaps: List[Dict[str, Any]]
+    missing: List[Dict[str, Any]]
+    overlap_tokens: List[str]
+    a_only_tokens: List[str]
+    b_only_tokens: List[str]
+
+
+def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> ComparisonResult:
     """Compare two case silhouettes.
 
     Returns a dictionary with overlaps and missing conditions. Overlaps include
     supporting citations to paragraph indices and texts from both cases.
     """
 
-    overlaps: List[dict] = []
-    missing: List[dict] = []
+    overlaps: List[Dict[str, Any]] = []
+    missing: List[Dict[str, Any]] = []
 
     for fact, base_idx in base.fact_tags.items():
         if fact in candidate.fact_tags:
@@ -77,10 +109,12 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
                     "base": {
                         "index": base_idx,
                         "paragraph": base.paragraphs[base_idx],
+                        "anchor": base.anchors.get(base_idx),
                     },
                     "candidate": {
                         "index": cand_idx,
                         "paragraph": candidate.paragraphs[cand_idx],
+                        "anchor": candidate.anchors.get(cand_idx),
                     },
                 }
             )
@@ -92,6 +126,7 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
                     "base": {
                         "index": base_idx,
                         "paragraph": base.paragraphs[base_idx],
+                        "anchor": base.anchors.get(base_idx),
                     },
                 }
             )
@@ -106,10 +141,12 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
                     "base": {
                         "index": base_idx,
                         "paragraph": base.paragraphs[base_idx],
+                        "anchor": base.anchors.get(base_idx),
                     },
                     "candidate": {
                         "index": cand_idx,
                         "paragraph": candidate.paragraphs[cand_idx],
+                        "anchor": candidate.anchors.get(cand_idx),
                     },
                 }
             )
@@ -121,6 +158,7 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
                     "base": {
                         "index": base_idx,
                         "paragraph": base.paragraphs[base_idx],
+                        "anchor": base.anchors.get(base_idx),
                     },
                 }
             )
@@ -170,11 +208,21 @@ def compare_story_to_case(
             overlaps.append(
                 {
                     "id": tag,
-                    "index": match_idx,
-                    "paragraph": case.paragraphs[match_idx],
+                    "base": {"anchor": None},
+                    "candidate": {
+                        "index": match_idx,
+                        "paragraph": case.paragraphs[match_idx],
+                        "anchor": case.anchors.get(match_idx),
+                    },
                 }
             )
         else:
-            missing.append({"id": tag})
+            missing.append(
+                {
+                    "id": tag,
+                    "base": {"anchor": None},
+                    "candidate": {"anchor": None},
+                }
+            )
 
     return {"overlaps": overlaps, "missing": missing}

@@ -7,10 +7,17 @@ and typed with enumerations for clarity.
 ## Node and Edge Types
 
 `NodeType` and `EdgeType` enumerate the supported entities and relationships.
+In addition to documents, provisions and people, the graph can now capture
+case law and abstract concepts via ``CASE`` and ``CONCEPT`` node types.
+Edges may represent legal treatments between cases such as ``FOLLOWS`` and
+``DISTINGUISHES`` alongside general relationships like ``CITES`` and
+``REFERENCES``. These enumerations can be extended as the project grows.
+
 `NodeType` now includes a `CASE` variant for judicial decisions, while
 `EdgeType` offers additional relationships such as `FOLLOWS`, `APPLIES`,
 `CONSIDERS`, `DISTINGUISHES` and `OVERRULES`. These can be extended as the
 project grows.
+ 
 
 ## Creating Nodes and Edges
 
