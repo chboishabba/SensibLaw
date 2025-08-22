@@ -8,7 +8,7 @@ def test_cli_distinguish():
     cmd = [
         "python",
         "-m",
-        "src.cli",
+        "cli",
         "distinguish",
         "--case",
         "glj",

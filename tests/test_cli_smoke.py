@@ -33,7 +33,7 @@ def run_sensiblaw(tmp_path: Path, *args: str) -> subprocess.CompletedProcess:
     )
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{stubs}:{env.get('PYTHONPATH', '')}"
-    cmd = ["python", "-m", "src.cli", *args]
+    cmd = ["python", "-m", "cli", *args]
     return subprocess.run(cmd, capture_output=True, text=True, env=env)
 
 

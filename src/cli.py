@@ -1,21 +1,16 @@
-import argparse
-import json
-from datetime import datetime, date
-from pathlib import Path
+"""Backward compatible wrapper for the new :mod:`cli` package."""
+
+from __future__ import annotations
 
 from .storage import VersionedStore
 from .proofs.render import dot_to_svg
 
+from cli import main
 
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="sensiblaw")
-    sub = parser.add_subparsers(dest="command")
+__all__ = ["main"]
 
-    get_parser = sub.add_parser("get", help="Retrieve a document by ID")
-    get_parser.add_argument("--db", default="data/store.db", help="Path to database")
-    get_parser.add_argument("--id", type=int, required=True, help="Document ID")
-    get_parser.add_argument(
-        "--as-at", help="Return version as of this date (YYYY-MM-DD)")
+
+if __name__ == "__main__":  # pragma: no cover - for direct execution
 
     extract_parser = sub.add_parser("extract", help="Extraction helpers")
     extract_parser.add_argument("--text", help="Provision text")
@@ -66,6 +61,12 @@ def main() -> None:
         help="Path to a fact-tagged story JSON file",
     )
 
+    publish_parser = sub.add_parser("publish", help="Generate a static site")
+    publish_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    publish_parser.add_argument(
+        "--out", type=Path, required=True, help="Directory to write the site"
+    )
+
     concepts_parser = sub.add_parser("concepts", help="Concept operations")
     concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
     concepts_match = concepts_sub.add_parser(
@@ -80,7 +81,7 @@ def main() -> None:
     concepts_match.add_argument("--text", required=True, help="Text to match")
 
     query_parser = sub.add_parser(
-        "query", help="Run a concept query or case lookup over the knowledge base"
+        "query", help="Run concept queries or case lookups"
     )
     query_parser.add_argument("--text", help="Question or keyword query")
     query_parser.add_argument(
@@ -92,6 +93,10 @@ def main() -> None:
     case_q = query_sub.add_parser("case", help="Look up a case by identifier")
     case_q.add_argument("--id", required=True, help="Case identifier")
     case_q.add_argument("--year", type=int, default=1992, help="Year of judgment")
+    treat_q = query_sub.add_parser("treatment", help="Fetch treatment for a case")
+    treat_q.add_argument(
+        "--case", required=True, help="Neutral citation identifying the case"
+    )
 
     timeline_q = query_sub.add_parser("timeline", help="Generate timeline for a case")
     timeline_q.add_argument("--case", required=True, help="Case identifier")
@@ -132,6 +137,7 @@ def main() -> None:
         action="store_true",
         help="Output Graphviz DOT instead of JSON",
     )
+
     subgraph_parser.add_argument(
         "--svg",
         action="store_true",
@@ -166,6 +172,14 @@ def main() -> None:
     definitions_expand.add_argument("--term", required=True, help="Term identifier")
     definitions_expand.add_argument("--depth", type=int, default=1, help="Expansion depth")
 
+
+    harm_parser = sub.add_parser("harm", help="Harm assessment utilities")
+    harm_sub = harm_parser.add_subparsers(dest="harm_command")
+    harm_compute = harm_sub.add_parser("compute", help="Compute harm index")
+    harm_compute.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
+    )
+
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
@@ -178,6 +192,14 @@ def main() -> None:
     )
     counter_brief.add_argument(
         "--file", type=Path, required=True, help="Path to the input brief"
+
+    repro_parser = sub.add_parser("repro", help="Reproducibility helpers")
+    repro_sub = repro_parser.add_subparsers(dest="repro_command")
+    repro_log = repro_sub.add_parser("log-correction", help="Log a correction entry")
+    repro_log.add_argument(
+        "--file", type=Path, required=True, help="Path to correction description file"
+    )
+    repro_sub.add_parser("list-corrections", help="List logged corrections")
 
     receipts_parser = sub.add_parser("receipts", help="Receipt operations")
     receipts_sub = receipts_parser.add_subparsers(dest="receipts_command")
@@ -224,6 +246,14 @@ def main() -> None:
         type=Path,
         required=True,
         help="Directory for generated claim stubs",
+    )
+
+    tests_parser = sub.add_parser("tests", help="Evaluate declarative tests")
+    tests_sub = tests_parser.add_subparsers(dest="tests_command")
+    tests_run = tests_sub.add_parser("run", help="Run a test template against a story")
+    tests_run.add_argument("--tests", required=True, help="Test template ID")
+    tests_run.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
     )
 
     args = parser.parse_args()
@@ -290,6 +320,9 @@ def main() -> None:
         story_data = json.loads(args.story.read_text())
         story_tags = story_data.get("facts", {})
         result = compare_story_to_case(story_tags, case_sil)
+        # Pretty-print to expose paragraph anchors in output
+        print(json.dumps(result, indent=2))
+
         print(json.dumps(result))
     elif args.command == "concepts":
         if args.concepts_command == "match":
@@ -304,6 +337,7 @@ def main() -> None:
             print(json.dumps(nodes))
         else:
             parser.print_help()
+
     elif args.command == "polis":
         if args.polis_command == "import":
             from .ingest.polis import fetch_conversation
@@ -342,6 +376,12 @@ def main() -> None:
                     "citations": cites,
                 }
                 print(json.dumps(result))
+        elif args.query_command == "treatment":
+            from .api.routes import fetch_case_treatment
+
+            result = fetch_case_treatment(args.case)
+            print(json.dumps(result))
+
         elif args.query_command == "timeline":
             from dataclasses import asdict
             from .reason.timeline import build_timeline, events_to_json, events_to_svg
@@ -387,11 +427,30 @@ def main() -> None:
             as_at = datetime.fromisoformat(args.as_at) if args.as_at else None
 
             if args.graph_file:
+                import os
                 import sys
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    if (args.graph_file.stat().st_mode & 0o444) == 0:
+                        import sys as _sys
+
+                        print("--graph-file is unreadable", file=_sys.stderr)
+                        raise SystemExit(1)
+
+                    mode = args.graph_file.stat().st_mode & 0o444
+                    if mode == 0:
+                        print("--graph-file is not readable", file=sys.stderr)
+                        sys.exit(1)
+
+                    mode = args.graph_file.stat().st_mode
+                    if mode & 0o444 == 0:
+                        print(
+                            f"error: argument --graph-file: can't open '{args.graph_file}': Permission denied",
+                            file=sys.stderr,
+                        )
+                        sys.exit(2)
                     data = json.loads(args.graph_file.read_text())
 
                 g = Graph()
@@ -433,6 +492,8 @@ def main() -> None:
                 nodes, edges = build_subgraph(
                     g, args.seeds, hops=args.hops, as_at=as_at
                 )
+                print(to_dot(nodes, edges))
+
                 dot_output = to_dot(nodes, edges)
                 if args.svg:
                     print(dot_to_svg(dot_output))
@@ -455,6 +516,8 @@ def main() -> None:
                     "nodes": list(combined_nodes.values()),
                     "edges": list(combined_edges.values()),
                 }
+                if args.dot:
+
                 if args.dot or args.svg:
                     g = Graph()
                     for n in merged["nodes"]:
@@ -492,6 +555,12 @@ def main() -> None:
                         nodes, edges = build_subgraph(
                             g, args.seeds, hops=args.hops, as_at=as_at
                         )
+                        print(to_dot(nodes, edges))
+                    else:
+                        print(to_dot(g.nodes, g.edges))
+                else:
+                    print(json.dumps(merged))
+
                         dot_output = to_dot(nodes, edges)
                     else:
                         dot_output = to_dot(g.nodes, g.edges)
@@ -523,9 +592,48 @@ def main() -> None:
             print(json.dumps(result))
         else:
             parser.print_help()
+
+    elif args.command == "repro":
+        from .repro.ledger import CorrectionLedger
+        import os
+
+        ledger = CorrectionLedger()
+        if args.repro_command == "log-correction":
+            description = args.file.read_text().strip()
+            author = os.getenv("USER", "unknown")
+            entry = ledger.append(description=description, author=author)
+            print(json.dumps(entry.__dict__))
+        elif args.repro_command == "list-corrections":
+            print(json.dumps(ledger.to_dicts()))
+
+    elif args.command == "harm":
+        if args.harm_command == "compute":
+            from .harm import compute_harm
+
+            story = json.loads(args.story.read_text())
+            result = compute_harm(story)
+            print(json.dumps(result))
+
     elif args.command == "definitions":
         if args.definitions_command == "expand":
             from .definitions.graph import DefinitionGraph, load_default_definitions
+
+        text = normalise(raw_query)
+        concepts = match_concepts(text)
+        cloud = build_cloud(concepts)
+        print(json.dumps({"cloud": cloud}))
+    elif args.command == "tests":
+        if args.tests_command == "run":
+            from .tests import TEMPLATE_REGISTRY, evaluate
+
+            template = TEMPLATE_REGISTRY.get(args.tests)
+            if template is None:
+                raise SystemExit(f"Unknown test template '{args.tests}'")
+            data = json.loads(args.story.read_text())
+            result = evaluate(template, data)
+            print(json.dumps(result.to_dict()))
+        else:
+            tests_parser.print_help()
 
             defs = load_default_definitions()
             graph = DefinitionGraph(defs)
@@ -547,6 +655,11 @@ def main() -> None:
 
             result = generate_counter_brief(args.file)
             print(json.dumps(result))
+
+    elif args.command == "publish":
+        from .publish.mirror import generate_site
+
+        generate_site(args.seed, args.out)
 
     elif args.command == "receipts":
         if args.receipts_command == "diff":
