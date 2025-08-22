@@ -92,6 +92,19 @@ def main() -> None:
     case_q.add_argument("--id", required=True, help="Case identifier")
     case_q.add_argument("--year", type=int, default=1992, help="Year of judgment")
 
+    timeline_q = query_sub.add_parser("timeline", help="Generate timeline for a case")
+    timeline_q.add_argument("--case", required=True, help="Case identifier")
+    timeline_q.add_argument(
+        "--graph-file",
+        type=Path,
+        help="Graph JSON file (use '-' for stdin)",
+    )
+    timeline_q.add_argument(
+        "--svg",
+        action="store_true",
+        help="Output SVG instead of JSON",
+    )
+
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
@@ -273,6 +286,30 @@ def main() -> None:
                     "citations": cites,
                 }
                 print(json.dumps(result))
+        elif args.query_command == "timeline":
+            from dataclasses import asdict
+            from .reason.timeline import build_timeline, events_to_json, events_to_svg
+
+            if args.graph_file:
+                import sys
+
+                if str(args.graph_file) == "-":
+                    data = json.load(sys.stdin)
+                else:
+                    data = json.loads(args.graph_file.read_text())
+                nodes = data.get("nodes", [])
+                edges = data.get("edges", [])
+            else:
+                from .api import routes
+
+                nodes = [asdict(n) for n in routes._graph.nodes.values()]
+                edges = [asdict(e) for e in routes._graph.edges]
+
+            events = build_timeline(nodes, edges, args.case)
+            if args.svg:
+                print(events_to_svg(events))
+            else:
+                print(events_to_json(events))
         else:
             from .pipeline import build_cloud, match_concepts, normalise
             from .pipeline.input_handler import parse_input
