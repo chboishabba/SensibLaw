@@ -14,6 +14,9 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # requests may be unavailable during tests
     AustLIIClient = None
 
+from ..graph.ingest import Graph, ingest_document
+from .parser import emit_document
+
 
 def fetch_from_austlii(source: Dict[str, Any]) -> str:
     """Placeholder fetcher for AustLII sources.
@@ -72,6 +75,7 @@ class SourceDispatcher:
         self.config_path = config_path
         data = json.loads(config_path.read_text())
         self.sources: List[Dict[str, Any]] = data.get("sources", [])
+        self.graph = Graph()
 
     # ------------------------------------------------------------------
     def _throttle(self, source: Dict[str, Any]) -> None:
@@ -83,7 +87,11 @@ class SourceDispatcher:
             time.sleep(delay)
 
     # ------------------------------------------------------------------
-    def dispatch(self, names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def dispatch(
+        self,
+        names: Optional[List[str]] = None,
+        records: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
         """Process configured sources.
 
         Parameters
@@ -185,4 +193,11 @@ class SourceDispatcher:
                 if "PDF" in formats:
                     fetchers.append(fetch_pdf(source))
             results.append({"name": source["name"], "fetchers": fetchers})
+
+        if records:
+            for record in records:
+                doc = emit_document(record)
+                doc.cited_authorities = record.get("cited_authorities", [])
+                ingest_document(doc, self.graph)
+
         return results
