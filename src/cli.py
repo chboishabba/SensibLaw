@@ -578,7 +578,6 @@ def main() -> None:
             }
             print(json.dumps(output))
         store.close()
-=======
     elif args.command == "pdf-fetch":
         from .pdf_ingest import process_pdf
 
