@@ -132,6 +132,18 @@ def main() -> None:
         help="Output Graphviz DOT instead of JSON",
     )
 
+    eval_parser = sub.add_parser("eval", help="Evaluation helpers")
+    eval_sub = eval_parser.add_subparsers(dest="eval_command")
+    gold_eval = eval_sub.add_parser(
+        "goldset", help="Evaluate extractors against gold sets"
+    )
+    gold_eval.add_argument(
+        "--threshold",
+        type=float,
+        default=0.9,
+        help="Minimum acceptable precision/recall",
+    )
+
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
     tests_run = tests_sub.add_parser("run", help="Run checklist tests against a story")
@@ -437,6 +449,15 @@ def main() -> None:
                         print(to_dot(g.nodes, g.edges))
                 else:
                     print(json.dumps(merged))
+        else:
+            parser.print_help()
+    elif args.command == "eval":
+        if args.eval_command == "goldset":
+            from scripts.eval_goldset import evaluate
+
+            ok = evaluate(threshold=args.threshold)
+            if not ok:
+                raise SystemExit(1)
         else:
             parser.print_help()
     elif args.command == "tests":
