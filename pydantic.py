@@ -1,3 +1,8 @@
+class BaseModel:
+    pass
+
+def Field(default, **kwargs):
+
 """Minimal stubs for :mod:`pydantic` used in tests."""
 
 from __future__ import annotations

@@ -185,6 +185,15 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    repro_parser = sub.add_parser("repro", help="Generate reproducibility bundles")
+    repro_sub = repro_parser.add_subparsers(dest="repro_command")
+    adv_parser = repro_sub.add_parser(
+        "adversarial", help="Compile adversarial counter-arguments"
+    )
+    adv_parser.add_argument("--topic", required=True, help="Topic identifier")
+    adv_parser.add_argument(
+        "--output", type=Path, default=Path("output"), help="Output directory"
+
     tools_parser = sub.add_parser("tools", help="Utility helper commands")
     tools_sub = tools_parser.add_subparsers(dest="tools_command")
     counter_brief = tools_sub.add_parser(
@@ -429,10 +438,18 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             if args.graph_file:
                 import os
                 import sys
+                import os
+                from .graph.proof_tree import Graph, Node, Edge, build_subgraph, to_dot
+
 
                 if str(args.graph_file) == "-":
                     data = json.load(sys.stdin)
                 else:
+                    mode = os.stat(args.graph_file).st_mode & 0o777
+                    if mode == 0:
+                        print("--graph-file unreadable", file=sys.stderr)
+                        sys.exit(1)
+
                     if (args.graph_file.stat().st_mode & 0o444) == 0:
                         import sys as _sys
 
@@ -649,6 +666,12 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "repro":
+        if args.repro_command == "adversarial":
+            from .repro.adversarial import build_bundle
+
+            build_bundle(args.topic, args.output)
+
     elif args.command == "tools":
         if args.tools_command == "counter-brief":
             from .tools.counter_brief import generate_counter_brief
@@ -660,6 +683,7 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
         from .publish.mirror import generate_site
 
         generate_site(args.seed, args.out)
+ 
 
     elif args.command == "receipts":
         if args.receipts_command == "diff":
