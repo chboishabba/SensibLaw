@@ -1,0 +1,10 @@
+{
+  "concept_id": "au:cth:family:s4AA",
+  "name": "Best Interests of the Child",
+  "threshold": 2,
+  "factors": [
+    {"id": "child_wishes", "description": "Consideration of the child's expressed wishes"},
+    {"id": "relationship", "description": "Nature of the child's relationship with parents"},
+    {"id": "safety", "description": "Need to protect the child from harm"}
+  ]
+}

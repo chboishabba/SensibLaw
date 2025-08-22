@@ -2,9 +2,6 @@ import json
 import subprocess
 from datetime import date, datetime
 from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.models.document import Document, DocumentMetadata
 from src.storage import VersionedStore
@@ -30,7 +27,7 @@ def setup_db(tmp_path: Path) -> tuple[str, int]:
 
 
 def run_cli(db_path: str, *args: str) -> str:
-    cmd = ["python", "-m", "src.cli", "get", "--db", db_path, *args]
+    cmd = ["python", "-m", "cli", "get", "--db", db_path, *args]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return completed.stdout.strip()
 
@@ -97,3 +94,18 @@ def test_tests_run(tmp_path: Path):
     assert "delay" in out and "met" in out
     assert "abuse_of_process" in out and "not_met" in out
     assert "fair_trial_possible" in out and "unknown" in out
+def test_query_treatment_cli():
+    cmd = [
+        "python",
+        "-m",
+        "src.cli",
+        "query",
+        "treatment",
+        "--case",
+        "case123",
+    ]
+    completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    result = json.loads(completed.stdout)
+    assert result["case_id"] == "case123"
+    citations = [t["citation"] for t in result["treatments"]]
+    assert citations == ["1 CLR 1", "2 CLR 50"]
