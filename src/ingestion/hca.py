@@ -19,9 +19,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import html
+import io
 import re
-from typing import Iterable, List, Tuple, Dict, Optional
-from urllib.request import urlopen
+from typing import Dict, Iterable, List, Optional, Tuple
+
+from .cache import fetch_html
+from ..graph.hierarchy import COURT_RANKS, court_weight
+from .cache import fetch_html, fetch_pdf
+
+from ..graph.models import EdgeType, NodeType
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -34,8 +40,10 @@ class HCACase:
 
     citation: str
     pdf_url: Optional[str]
+    parties: str
     catchwords: List[str]
     statutes: List[str]
+    cases_cited: List[str]
 
 
 # Regular expressions used to pull data out of the light weight HTML.  The
@@ -49,10 +57,32 @@ _STAT_RE = re.compile(
     re.IGNORECASE,
 )
 _CITATION_RE = re.compile(r"\[\d{4}\]\s*HCA\s*\d+", re.IGNORECASE)
+_CASES_CITED_RE = re.compile(
+    r"Cases\s+cited\s*:?(?P<txt>.*?)(?:\n[A-Z][^\n]*:|\Z)",
+    re.IGNORECASE | re.DOTALL,
+)
+_LEGIS_CITED_RE = re.compile(
+    r"(?:Legislation|Statutes?)\s*(?:cited|referred to)?\s*:?(?P<txt>.*?)(?:\n[A-Z][^\n]*:|\Z)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 # Base URL for the index pages.  ``{year}`` is interpolated by
 # :func:`crawl_year` when network access is permitted.
 _INDEX_URL = "https://eresources.hcourt.gov.au/showbyYear.php?year={year}"
+
+
+# Mapping of common court abbreviations to a relative rank used when assigning
+# weights to treatment edges.  Higher courts receive a larger value.
+_COURT_RANK: Dict[str, float] = {
+    "HCA": 5.0,  # High Court of Australia
+    "FCA": 4.0,  # Federal Court of Australia
+    "FCAFC": 4.0,  # Full Court of the Federal Court
+    "NSWCA": 3.0,  # New South Wales Court of Appeal
+    "NSWSC": 2.0,  # New South Wales Supreme Court
+}
+
+# Regular expression for extracting the court abbreviation from a citation.
+_CITED_COURT_RE = re.compile(r"\[(?P<year>\d{4})\]\s*(?P<court>[A-Z]+)\s*\d+")
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +103,7 @@ def _split_list(text: str) -> List[str]:
 
 
 def _parse_case(block: str) -> HCACase:
-    """Parse a single ``<li>`` block representing a case."""
+    """Parse a single ``<li>`` block representing a case from the index."""
 
     pdf_match = _PDF_RE.search(block)
     pdf_url = pdf_match.group("pdf") if pdf_match else None
@@ -96,7 +126,63 @@ def _parse_case(block: str) -> HCACase:
     cit_match = _CITATION_RE.search(plain)
     citation = cit_match.group(0) if cit_match else plain.strip()
 
-    return HCACase(citation=citation, pdf_url=pdf_url, catchwords=catchwords, statutes=statutes)
+    parties = plain.split(citation)[0].strip() if cit_match else plain.strip()
+
+    return HCACase(
+        citation=citation,
+        pdf_url=pdf_url,
+        parties=parties,
+        catchwords=catchwords,
+        statutes=statutes,
+        cases_cited=[],
+    )
+
+
+def _extract_pdf_text(data: bytes) -> str:
+    """Best effort conversion of PDF bytes to plain text."""
+
+    try:  # pragma: no cover - pdfminer not guaranteed
+        from pdfminer.high_level import extract_text
+
+        return extract_text(io.BytesIO(data))
+    except Exception:  # pragma: no cover - fallback
+        try:
+            return data.decode("utf-8")
+        except Exception:
+            return data.decode("latin-1", errors="ignore")
+
+
+def _parse_pdf(data: bytes) -> Tuple[str, List[str], List[str]]:
+    """Parse parties, cases cited and legislation from PDF bytes."""
+
+    text = _extract_pdf_text(data)
+    text = text.replace("\r", "")
+
+    parties = ""
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    for idx, line in enumerate(lines):
+        if parties:
+            break
+        if " v " in line.lower() or " v." in line.lower():
+            parties = line.strip()
+            break
+        if _CITATION_RE.search(line) and idx > 0:
+            parties = lines[idx - 1]
+            break
+
+    cases: List[str] = []
+    m = _CASES_CITED_RE.search(text)
+    if m:
+        section = re.sub(r"\s+", " ", m.group("txt"))
+        cases = _split_list(section)
+
+    statutes: List[str] = []
+    m2 = _LEGIS_CITED_RE.search(text)
+    if m2:
+        section = re.sub(r"\s+", " ", m2.group("txt"))
+        statutes = _split_list(section)
+
+    return parties, cases, statutes
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +198,61 @@ def parse_index(html_text: str) -> Iterable[HCACase]:
         yield _parse_case(block)
 
 
+def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    """Parse a 'Cases cited' section into nodes and edges.
+
+    Parameters
+    ----------
+    section_text:
+        Raw text of the section.  Each line following the heading should be of
+        the form ``"Follows: Some Case [1992] HCA 23"``.
+    source:
+        Identifier for the case that is citing the others.
+    """
+
+    nodes: List[Dict[str, object]] = []
+    edges: List[Dict[str, object]] = []
+
+    for line in section_text.splitlines():
+        line = line.strip()
+        if not line or line.lower().startswith("cases cited"):
+            continue
+        match = re.match(r"(?P<treatment>\w+):\s*(?P<cite>.+)", line)
+        if not match:
+            continue
+        treatment = match.group("treatment").lower()
+        citation_text = match.group("cite").strip()
+        court_match = _CITED_COURT_RE.search(citation_text)
+        court = court_match.group("court") if court_match else ""
+        rank = _COURT_RANK.get(court, 1.0)
+        nodes.append({
+            "id": citation_text,
+            "type": NodeType.CASE.value,
+            "court_rank": rank,
+        })
+        try:
+            edge_type = EdgeType[treatment.upper()].value
+        except KeyError:
+            edge_type = treatment
+        edges.append({
+            "from": source,
+            "to": citation_text,
+            "type": edge_type,
+            "weight": rank,
+        })
+
+    return nodes, edges
+
+
 def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+
+def crawl_year(
+    year: Optional[int] = None,
+    *,
+    html_text: Optional[str] = None,
+    panel_size: int = 1,
+    pdfs: Optional[Dict[str, bytes]] = None,
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Crawl a yearly index page and return graph data.
 
     Parameters
@@ -135,25 +275,89 @@ def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -
         year = datetime.now().year
 
     if html_text is None:
-        with urlopen(_INDEX_URL.format(year=year)) as resp:  # pragma: no cover - network
-            html_text = resp.read().decode("utf-8", errors="ignore")
+        html_text = fetch_html(_INDEX_URL.format(year=year))
 
     nodes: List[Dict[str, object]] = []
     edges: List[Dict[str, object]] = []
+    seen_nodes: Dict[str, str] = {}
+
+    court = "HCA"
+    rank = COURT_RANKS.get(court, 0)
+    weight = court_weight(court, panel_size)
 
     for case in parse_index(html_text):
+        pdf_bytes: Optional[bytes] = None
+        if pdfs and case.citation in pdfs:
+            pdf_bytes = pdfs[case.citation]
+        elif case.pdf_url:
+            try:  # pragma: no cover - network
+                pdf_bytes = fetch_pdf(case.pdf_url)
+            except Exception:
+                pdf_bytes = None
+
+        if pdf_bytes:
+            parties, cited_cases, cited_stats = _parse_pdf(pdf_bytes)
+            if parties:
+                case.parties = parties
+            if cited_cases:
+                case.cases_cited.extend(cited_cases)
+            if cited_stats:
+                for s in cited_stats:
+                    if s not in case.statutes:
+                        case.statutes.append(s)
+
+        def add_node(ident: str, ntype: str, **metadata: object) -> None:
+            if ident not in seen_nodes:
+                nodes.append({"id": ident, "type": ntype, **metadata})
+                seen_nodes[ident] = ntype
+
         case_id = case.citation
-        nodes.append({
-            "id": case_id,
-            "type": "case",
-            "catchwords": case.catchwords,
-            "pdf": case.pdf_url,
-        })
+        nodes.append(
+            {
+                "id": case_id,
+                "type": NodeType.CASE.value,
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": _COURT_RANK.get("HCA", 1.0),
+            }
+        )
+        for statute in case.statutes:
+            nodes.append({"id": statute, "type": NodeType.CONCEPT.value})
+            edges.append(
+                {
+                    "from": case_id,
+                    "to": statute,
+                    "type": EdgeType.CITES.value,
+                }
+            )
+                "type": "case",
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": rank,
+                "panel_size": panel_size,
+            }
+        )
         for statute in case.statutes:
             nodes.append({"id": statute, "type": "statute"})
+            edges.append({"from": case_id, "to": statute, "type": "cites", "weight": weight})
+
+        add_node(
+            case_id,
+            "case",
+            parties=case.parties,
+            catchwords=case.catchwords,
+            pdf=case.pdf_url,
+        )
+
+        for statute in case.statutes:
+            add_node(statute, "statute")
             edges.append({"from": case_id, "to": statute, "type": "cites"})
+
+        for cited in case.cases_cited:
+            add_node(cited, "case")
+            edges.append({"from": case_id, "to": cited, "type": "cites"})
 
     return nodes, edges
 
 
-__all__ = ["HCACase", "parse_index", "crawl_year"]
+__all__ = ["HCACase", "parse_index", "crawl_year", "parse_cases_cited"]
