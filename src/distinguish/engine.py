@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Dict, Sequence, List, Tuple, Set
+
+from .factors import GLJ_PERMANENT_STAY_CUES
 
 
 @dataclass
@@ -131,3 +134,47 @@ def compare_cases(base: CaseSilhouette, candidate: CaseSilhouette) -> Dict[str, 
         "a_only_tokens": sorted(base_facts - cand_facts),
         "b_only_tokens": sorted(cand_facts - base_facts),
     }
+
+
+def compare_story_to_case(
+    story_tags: Dict[str, bool], case: CaseSilhouette
+) -> Dict[str, List[dict]]:
+    """Compare fact tags from a story to a case silhouette.
+
+    ``story_tags`` is a mapping of factor identifiers to booleans indicating
+    whether the fact is present in the story.  ``case`` provides the paragraphs
+    from the base case which are scanned for cues defined in
+    :mod:`src.distinguish.factors`.
+
+    The result mirrors :func:`compare_cases` but only includes overlaps and
+    missing factors referencing case paragraph indices.
+    """
+
+    overlaps: List[dict] = []
+    missing: List[dict] = []
+
+    for tag, present in story_tags.items():
+        if not present:
+            continue
+
+        pattern = GLJ_PERMANENT_STAY_CUES.get(tag)
+        match_idx = None
+        if pattern:
+            regex = re.compile(pattern, re.IGNORECASE)
+            for idx, para in enumerate(case.paragraphs):
+                if regex.search(para):
+                    match_idx = idx
+                    break
+
+        if match_idx is not None:
+            overlaps.append(
+                {
+                    "id": tag,
+                    "index": match_idx,
+                    "paragraph": case.paragraphs[match_idx],
+                }
+            )
+        else:
+            missing.append({"id": tag})
+
+    return {"overlaps": overlaps, "missing": missing}
