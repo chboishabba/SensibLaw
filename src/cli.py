@@ -180,6 +180,14 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    repro_parser = sub.add_parser("repro", help="Reproducibility helpers")
+    repro_sub = repro_parser.add_subparsers(dest="repro_command")
+    repro_log = repro_sub.add_parser("log-correction", help="Log a correction entry")
+    repro_log.add_argument(
+        "--file", type=Path, required=True, help="Path to correction description file"
+    )
+    repro_sub.add_parser("list-corrections", help="List logged corrections")
+
     receipts_parser = sub.add_parser("receipts", help="Receipt operations")
     receipts_sub = receipts_parser.add_subparsers(dest="receipts_command")
     receipts_diff = receipts_sub.add_parser(
@@ -545,6 +553,19 @@ if __name__ == "__main__":  # pragma: no cover - for direct execution
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "repro":
+        from .repro.ledger import CorrectionLedger
+        import os
+
+        ledger = CorrectionLedger()
+        if args.repro_command == "log-correction":
+            description = args.file.read_text().strip()
+            author = os.getenv("USER", "unknown")
+            entry = ledger.append(description=description, author=author)
+            print(json.dumps(entry.__dict__))
+        elif args.repro_command == "list-corrections":
+            print(json.dumps(ledger.to_dicts()))
+
     elif args.command == "harm":
         if args.harm_command == "compute":
             from .harm import compute_harm
