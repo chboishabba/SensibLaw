@@ -14,6 +14,10 @@ class Node:
     id: Optional[int]
     type: str
     data: Dict[str, Any]
+    valid_from: str | None = None
+    valid_to: str | None = None
+    recorded_from: str | None = None
+    recorded_to: str | None = None
 
 
 @dataclass
@@ -23,6 +27,10 @@ class Edge:
     target: int
     type: str
     data: Optional[Dict[str, Any]] = None
+    valid_from: str | None = None
+    valid_to: str | None = None
+    recorded_from: str | None = None
+    recorded_to: str | None = None
 
 
 @dataclass
@@ -85,40 +93,108 @@ class Storage:
     # ------------------------------------------------------------------
     # Nodes
     # ------------------------------------------------------------------
-    def insert_node(self, type: str, data: Dict[str, Any]) -> int:
+    def insert_node(
+        self,
+        type: str,
+        data: Dict[str, Any],
+        *,
+        valid_from: str | None = None,
+        valid_to: str | None = None,
+        recorded_from: str | None = None,
+        recorded_to: str | None = None,
+    ) -> int:
+        valid_from = valid_from or "1970-01-01"
+        recorded_from = recorded_from or valid_from
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO nodes(type, data) VALUES (?, ?)",
-                (type, json.dumps(data)),
+                "INSERT INTO nodes(type, data, valid_from, valid_to, recorded_from, recorded_to) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    type,
+                    json.dumps(data),
+                    valid_from,
+                    valid_to,
+                    recorded_from,
+                    recorded_to,
+                ),
             )
             return cur.lastrowid
 
     def get_node(self, node_id: int) -> Optional[Node]:
         row = self.conn.execute(
-            "SELECT id, type, data FROM nodes WHERE id = ?",
+            "SELECT id, type, data, valid_from, valid_to, recorded_from, recorded_to FROM nodes WHERE id = ?",
             (node_id,),
         ).fetchone()
         if row is None:
             return None
-        return Node(id=row["id"], type=row["type"], data=json.loads(row["data"]))
+        return Node(
+            id=row["id"],
+            type=row["type"],
+            data=json.loads(row["data"]),
+            valid_from=row["valid_from"],
+            valid_to=row["valid_to"],
+            recorded_from=row["recorded_from"],
+            recorded_to=row["recorded_to"],
+        )
 
     def update_node(
-        self, node_id: int, *, type: Optional[str] = None, data: Optional[Dict[str, Any]] = None
+        self,
+        node_id: int,
+        *,
+        type: Optional[str] = None,
+        data: Optional[Dict[str, Any]] = None,
+        valid_from: Optional[str] = None,
+        valid_to: Optional[str] = None,
+        recorded_from: Optional[str] = None,
+        recorded_to: Optional[str] = None,
     ) -> None:
         node = self.get_node(node_id)
         if node is None:
             raise KeyError(node_id)
         type = type if type is not None else node.type
         data = data if data is not None else node.data
+        valid_from = valid_from if valid_from is not None else node.valid_from
+        valid_to = valid_to if valid_to is not None else node.valid_to
+        recorded_from = recorded_from if recorded_from is not None else node.recorded_from
+        recorded_to = recorded_to if recorded_to is not None else node.recorded_to
         with self.conn:
             self.conn.execute(
-                "UPDATE nodes SET type = ?, data = ? WHERE id = ?",
-                (type, json.dumps(data), node_id),
+                "UPDATE nodes SET type = ?, data = ?, valid_from = ?, valid_to = ?, recorded_from = ?, recorded_to = ? WHERE id = ?",
+                (
+                    type,
+                    json.dumps(data),
+                    valid_from,
+                    valid_to,
+                    recorded_from,
+                    recorded_to,
+                    node_id,
+                ),
             )
 
     def delete_node(self, node_id: int) -> None:
         with self.conn:
             self.conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
+
+    def fetch_node_as_at(self, node_id: int, as_at: str) -> Optional[Node]:
+        row = self.conn.execute(
+            """
+            SELECT id, type, data, valid_from, valid_to, recorded_from, recorded_to
+            FROM nodes
+            WHERE id = ? AND valid_from <= ? AND (valid_to IS NULL OR valid_to > ?)
+            """,
+            (node_id, as_at, as_at),
+        ).fetchone()
+        if row is None:
+            return None
+        return Node(
+            id=row["id"],
+            type=row["type"],
+            data=json.loads(row["data"]),
+            valid_from=row["valid_from"],
+            valid_to=row["valid_to"],
+            recorded_from=row["recorded_from"],
+            recorded_to=row["recorded_to"],
+        )
 
     # ------------------------------------------------------------------
     # Edges
@@ -129,17 +205,34 @@ class Storage:
         target: int,
         type: str,
         data: Optional[Dict[str, Any]] = None,
+        *,
+        valid_from: str | None = None,
+        valid_to: str | None = None,
+        recorded_from: str | None = None,
+        recorded_to: str | None = None,
     ) -> int:
+        valid_from = valid_from or "1970-01-01"
+        recorded_from = recorded_from or valid_from
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO edges(source, target, type, data) VALUES (?, ?, ?, ?)",
-                (source, target, type, json.dumps(data) if data is not None else None),
+                "INSERT INTO edges(source, target, type, data, valid_from, valid_to, recorded_from, recorded_to) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    source,
+                    target,
+                    type,
+                    json.dumps(data) if data is not None else None,
+                    valid_from,
+                    valid_to,
+                    recorded_from,
+                    recorded_to,
+                ),
             )
             return cur.lastrowid
 
     def get_edge(self, edge_id: int) -> Optional[Edge]:
         row = self.conn.execute(
-            "SELECT id, source, target, type, data FROM edges WHERE id = ?",
+            "SELECT id, source, target, type, data, valid_from, valid_to, recorded_from, recorded_to FROM edges WHERE id = ?",
             (edge_id,),
         ).fetchone()
         if row is None:
@@ -151,6 +244,10 @@ class Storage:
             target=row["target"],
             type=row["type"],
             data=data,
+            valid_from=row["valid_from"],
+            valid_to=row["valid_to"],
+            recorded_from=row["recorded_from"],
+            recorded_to=row["recorded_to"],
         )
 
     def update_edge(
@@ -161,6 +258,10 @@ class Storage:
         target: Optional[int] = None,
         type: Optional[str] = None,
         data: Optional[Dict[str, Any]] = None,
+        valid_from: Optional[str] = None,
+        valid_to: Optional[str] = None,
+        recorded_from: Optional[str] = None,
+        recorded_to: Optional[str] = None,
     ) -> None:
         edge = self.get_edge(edge_id)
         if edge is None:
@@ -169,15 +270,62 @@ class Storage:
         target = target if target is not None else edge.target
         type = type if type is not None else edge.type
         data = data if data is not None else edge.data
+        valid_from = valid_from if valid_from is not None else edge.valid_from
+        valid_to = valid_to if valid_to is not None else edge.valid_to
+        recorded_from = recorded_from if recorded_from is not None else edge.recorded_from
+        recorded_to = recorded_to if recorded_to is not None else edge.recorded_to
         with self.conn:
             self.conn.execute(
-                "UPDATE edges SET source = ?, target = ?, type = ?, data = ? WHERE id = ?",
-                (source, target, type, json.dumps(data) if data is not None else None, edge_id),
+                """
+                UPDATE edges
+                SET source = ?, target = ?, type = ?, data = ?,
+                    valid_from = ?, valid_to = ?, recorded_from = ?, recorded_to = ?
+                WHERE id = ?
+                """,
+                (
+                    source,
+                    target,
+                    type,
+                    json.dumps(data) if data is not None else None,
+                    valid_from,
+                    valid_to,
+                    recorded_from,
+                    recorded_to,
+                    edge_id,
+                ),
             )
 
     def delete_edge(self, edge_id: int) -> None:
         with self.conn:
             self.conn.execute("DELETE FROM edges WHERE id = ?", (edge_id,))
+
+    def fetch_edges_as_at(self, node_id: int, as_at: str) -> list[Edge]:
+        rows = self.conn.execute(
+            """
+            SELECT id, source, target, type, data, valid_from, valid_to, recorded_from, recorded_to
+            FROM edges
+            WHERE (source = ? OR target = ?)
+              AND valid_from <= ? AND (valid_to IS NULL OR valid_to > ?)
+            """,
+            (node_id, node_id, as_at, as_at),
+        ).fetchall()
+        edges: list[Edge] = []
+        for row in rows:
+            data = json.loads(row["data"]) if row["data"] is not None else None
+            edges.append(
+                Edge(
+                    id=row["id"],
+                    source=row["source"],
+                    target=row["target"],
+                    type=row["type"],
+                    data=data,
+                    valid_from=row["valid_from"],
+                    valid_to=row["valid_to"],
+                    recorded_from=row["recorded_from"],
+                    recorded_to=row["recorded_to"],
+                )
+            )
+        return edges
 
     # ------------------------------------------------------------------
     # Frames

@@ -4,16 +4,22 @@ from __future__ import annotations
 from collections import Counter
 from typing import List, Dict
 
+from tools.glossary import rewrite_text
+=======
 from tools.harm_index import compute_harm_index as harm_index
 
 
-def normalise(text: str) -> str:
-    """Basic text normalisation.
 
-    Currently this is a placeholder that lowercases the text. Future
-    implementations may perform tokenisation, lemmatisation and more.
+def normalise(text: str) -> str:
+    """Normalise text for downstream processing.
+
+    Institutional terminology is first rewritten using the glossary's
+    movement equivalents to ensure consistent vocabulary. The rewritten text
+    is then lowercased. Future implementations may add tokenisation or
+    lemmatisation.
     """
-    return text.lower()
+    rewritten = rewrite_text(text)
+    return rewritten.lower()
 
 
 def match_concepts(text: str) -> List[str]:

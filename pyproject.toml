@@ -15,6 +15,7 @@ dependencies = [
     "requests",
     "fastapi",
     "matplotlib",
+    "networkx",
 ]
 
 [project.optional-dependencies]

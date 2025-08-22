@@ -41,6 +41,15 @@ def main() -> None:
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
 
+    law_parser = sub.add_parser("law", help="Law document utilities")
+    law_sub = law_parser.add_subparsers(dest="law_command")
+    law_redline = law_sub.add_parser(
+        "redline", help="Generate HTML diff between two statute versions"
+    )
+    law_redline.add_argument("--old", type=Path, required=True, help="Path to old version")
+    law_redline.add_argument("--new", type=Path, required=True, help="Path to new version")
+    law_redline.add_argument("--out", type=Path, required=True, help="Output HTML file")
+
     dist_parser = sub.add_parser(
         "distinguish", help="Compare a story against a case silhouette"
     )
@@ -83,6 +92,19 @@ def main() -> None:
     case_q.add_argument("--id", required=True, help="Case identifier")
     case_q.add_argument("--year", type=int, default=1992, help="Year of judgment")
 
+    timeline_q = query_sub.add_parser("timeline", help="Generate timeline for a case")
+    timeline_q.add_argument("--case", required=True, help="Case identifier")
+    timeline_q.add_argument(
+        "--graph-file",
+        type=Path,
+        help="Graph JSON file (use '-' for stdin)",
+    )
+    timeline_q.add_argument(
+        "--svg",
+        action="store_true",
+        help="Output SVG instead of JSON",
+    )
+
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
@@ -120,6 +142,12 @@ def main() -> None:
         "--story-file", type=Path, required=True, help="Story JSON file"
     )
 
+    definitions_parser = sub.add_parser("definitions", help="Definition operations")
+    definitions_sub = definitions_parser.add_subparsers(dest="definitions_command")
+    definitions_expand = definitions_sub.add_parser("expand", help="Expand term definitions")
+    definitions_expand.add_argument("--term", required=True, help="Term identifier")
+    definitions_expand.add_argument("--depth", type=int, default=1, help="Expansion depth")
+
     cases_parser = sub.add_parser("cases", help="Case operations")
     cases_sub = cases_parser.add_subparsers(dest="cases_command")
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
@@ -143,6 +171,23 @@ def main() -> None:
         type=Path,
         default=Path("data/claims"),
         help="Directory to save claim files",
+    )
+
+    intake_parser = sub.add_parser("intake", help="Email intake operations")
+    intake_sub = intake_parser.add_subparsers(dest="intake_command")
+    intake_parse = intake_sub.add_parser(
+        "parse", help="Parse an email mailbox into claim stubs"
+    )
+    intake_parse.add_argument(
+        "--mailbox",
+        required=True,
+        help="IMAP URL or directory containing .eml files",
+    )
+    intake_parse.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory for generated claim stubs",
     )
 
     args = parser.parse_args()
@@ -191,6 +236,16 @@ def main() -> None:
             cultural_flags=args.cultural_flags,
         )
         print(doc.to_json())
+    elif args.command == "law":
+        if args.law_command == "redline":
+            from .versioning.section_diff import redline
+
+            old_text = args.old.read_text()
+            new_text = args.new.read_text()
+            html = redline(old_text, new_text, old_ref=str(args.old), new_ref=str(args.new))
+            args.out.write_text(html)
+        else:
+            parser.print_help()
     elif args.command == "distinguish":
         from .distinguish.loader import load_case_silhouette
         from .distinguish.engine import compare_story_to_case
@@ -239,6 +294,30 @@ def main() -> None:
                     "citations": cites,
                 }
                 print(json.dumps(result))
+        elif args.query_command == "timeline":
+            from dataclasses import asdict
+            from .reason.timeline import build_timeline, events_to_json, events_to_svg
+
+            if args.graph_file:
+                import sys
+
+                if str(args.graph_file) == "-":
+                    data = json.load(sys.stdin)
+                else:
+                    data = json.loads(args.graph_file.read_text())
+                nodes = data.get("nodes", [])
+                edges = data.get("edges", [])
+            else:
+                from .api import routes
+
+                nodes = [asdict(n) for n in routes._graph.nodes.values()]
+                edges = [asdict(e) for e in routes._graph.edges]
+
+            events = build_timeline(nodes, edges, args.case)
+            if args.svg:
+                print(events_to_svg(events))
+            else:
+                print(events_to_json(events))
         else:
             from .pipeline import build_cloud, match_concepts, normalise
             from .pipeline.input_handler import parse_input
@@ -379,6 +458,16 @@ def main() -> None:
             print(json.dumps(result))
         else:
             parser.print_help()
+    elif args.command == "definitions":
+        if args.definitions_command == "expand":
+            from .definitions.graph import DefinitionGraph, load_default_definitions
+
+            defs = load_default_definitions()
+            graph = DefinitionGraph(defs)
+            scoped = graph.expand(args.term, depth=args.depth)
+            print(json.dumps(scoped))
+        else:
+            parser.print_help()
     elif args.command == "cases":
         if args.cases_command == "treatment":
             from .api.routes import fetch_case_treatment
@@ -399,6 +488,16 @@ def main() -> None:
                 print("cosmetic")
             else:
                 print("substantive")
+
+    elif args.command == "intake":
+        if args.intake_command == "parse":
+            from .intake.email_parser import fetch_messages, parse_email
+            from .intake.stub_builder import build_stub
+
+            messages = fetch_messages(str(args.mailbox))
+            for msg in messages:
+                data = parse_email(msg)
+                build_stub(data, args.out)
         else:
             parser.print_help()
     elif args.command == "tools":
