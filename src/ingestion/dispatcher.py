@@ -126,6 +126,13 @@ class SourceDispatcher:
                     fetchers.append(fetch_official_register(source))
                 if "PDF" in formats:
                     fetchers.append(fetch_pdf(source))
+                results.append({
+                    "name": source["name"],
+                    "nodes": nodes,
+                    "edges": edges,
+                    "fetchers": fetchers,
+                })
+
 
 
                 # Even though a bespoke adapter is used, expose the generic

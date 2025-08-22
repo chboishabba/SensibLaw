@@ -454,6 +454,15 @@ def main() -> None:
         help="Path to JSON file mapping factors to evidence references",
     )
 
+    concepts_parser = sub.add_parser(
+        "concepts", help="Concept matching utilities",
+    )
+    concepts_sub = concepts_parser.add_subparsers(dest="concepts_command")
+    match_parser = concepts_sub.add_parser(
+        "match", help="Match concepts in text",
+    )
+    match_parser.add_argument("--text", required=True, help="Text to match")
+
     args = parser.parse_args()
     if args.command == "get":
         store = VersionedStore(args.db)
@@ -1011,6 +1020,15 @@ def main() -> None:
             result["dot"] = dot
             args.dot.write_text(dot)
         print(json.dumps(result))
+    elif args.command == "concepts":
+        if args.concepts_command == "match":
+            from .concepts import ConceptMatcher
+
+            matcher = ConceptMatcher()
+            hits = matcher.match(args.text)
+            print(json.dumps([h.__dict__ for h in hits]))
+        else:
+            concepts_parser.print_help()
     elif args.command == "tests":
         if args.tests_command == "run":
             from .tests.evaluator import evaluate

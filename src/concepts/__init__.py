@@ -1,3 +1,10 @@
+"""Concept matching utilities."""
+
+from .matcher import ConceptMatcher, ConceptHit
+
+__all__ = ["ConceptMatcher", "ConceptHit"]
+
+
 """Utilities for concept-related operations."""
 
 from .cloud import build_cloud, score_node
