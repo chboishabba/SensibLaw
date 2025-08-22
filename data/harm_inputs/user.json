@@ -1,0 +1,7 @@
+{
+  "stakeholder": "user",
+  "metrics": {
+    "privacy": 3,
+    "safety": 5
+  }
+}
