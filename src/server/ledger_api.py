@@ -1,4 +1,5 @@
 """FastAPI application exposing the corrections ledger."""
+
 from __future__ import annotations
 
 from fastapi import FastAPI
@@ -6,9 +7,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.repro.ledger import LedgerEntry, ledger
+from sensiblaw.api.routes import router as api_router
 
 app = FastAPI(title="Corrections Ledger")
 app.mount("/ui", StaticFiles(directory="ui", html=True), name="ui")
+app.include_router(api_router)
 
 
 class Entry(BaseModel):
