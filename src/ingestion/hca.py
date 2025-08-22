@@ -23,7 +23,11 @@ import io
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from .cache import fetch_html
+from ..graph.hierarchy import COURT_RANKS, court_weight
 from .cache import fetch_html, fetch_pdf
+
+from ..graph.models import EdgeType, NodeType
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -65,6 +69,20 @@ _LEGIS_CITED_RE = re.compile(
 # Base URL for the index pages.  ``{year}`` is interpolated by
 # :func:`crawl_year` when network access is permitted.
 _INDEX_URL = "https://eresources.hcourt.gov.au/showbyYear.php?year={year}"
+
+
+# Mapping of common court abbreviations to a relative rank used when assigning
+# weights to treatment edges.  Higher courts receive a larger value.
+_COURT_RANK: Dict[str, float] = {
+    "HCA": 5.0,  # High Court of Australia
+    "FCA": 4.0,  # Federal Court of Australia
+    "FCAFC": 4.0,  # Full Court of the Federal Court
+    "NSWCA": 3.0,  # New South Wales Court of Appeal
+    "NSWSC": 2.0,  # New South Wales Supreme Court
+}
+
+# Regular expression for extracting the court abbreviation from a citation.
+_CITED_COURT_RE = re.compile(r"\[(?P<year>\d{4})\]\s*(?P<court>[A-Z]+)\s*\d+")
 
 
 # ---------------------------------------------------------------------------
@@ -180,10 +198,59 @@ def parse_index(html_text: str) -> Iterable[HCACase]:
         yield _parse_case(block)
 
 
+def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    """Parse a 'Cases cited' section into nodes and edges.
+
+    Parameters
+    ----------
+    section_text:
+        Raw text of the section.  Each line following the heading should be of
+        the form ``"Follows: Some Case [1992] HCA 23"``.
+    source:
+        Identifier for the case that is citing the others.
+    """
+
+    nodes: List[Dict[str, object]] = []
+    edges: List[Dict[str, object]] = []
+
+    for line in section_text.splitlines():
+        line = line.strip()
+        if not line or line.lower().startswith("cases cited"):
+            continue
+        match = re.match(r"(?P<treatment>\w+):\s*(?P<cite>.+)", line)
+        if not match:
+            continue
+        treatment = match.group("treatment").lower()
+        citation_text = match.group("cite").strip()
+        court_match = _CITED_COURT_RE.search(citation_text)
+        court = court_match.group("court") if court_match else ""
+        rank = _COURT_RANK.get(court, 1.0)
+        nodes.append({
+            "id": citation_text,
+            "type": NodeType.CASE.value,
+            "court_rank": rank,
+        })
+        try:
+            edge_type = EdgeType[treatment.upper()].value
+        except KeyError:
+            edge_type = treatment
+        edges.append({
+            "from": source,
+            "to": citation_text,
+            "type": edge_type,
+            "weight": rank,
+        })
+
+    return nodes, edges
+
+
+def crawl_year(year: Optional[int] = None, *, html_text: Optional[str] = None) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+
 def crawl_year(
     year: Optional[int] = None,
     *,
     html_text: Optional[str] = None,
+    panel_size: int = 1,
     pdfs: Optional[Dict[str, bytes]] = None,
 ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     """Crawl a yearly index page and return graph data.
@@ -214,6 +281,10 @@ def crawl_year(
     edges: List[Dict[str, object]] = []
     seen_nodes: Dict[str, str] = {}
 
+    court = "HCA"
+    rank = COURT_RANKS.get(court, 0)
+    weight = court_weight(court, panel_size)
+
     for case in parse_index(html_text):
         pdf_bytes: Optional[bytes] = None
         if pdfs and case.citation in pdfs:
@@ -241,6 +312,35 @@ def crawl_year(
                 seen_nodes[ident] = ntype
 
         case_id = case.citation
+        nodes.append(
+            {
+                "id": case_id,
+                "type": NodeType.CASE.value,
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": _COURT_RANK.get("HCA", 1.0),
+            }
+        )
+        for statute in case.statutes:
+            nodes.append({"id": statute, "type": NodeType.CONCEPT.value})
+            edges.append(
+                {
+                    "from": case_id,
+                    "to": statute,
+                    "type": EdgeType.CITES.value,
+                }
+            )
+                "type": "case",
+                "catchwords": case.catchwords,
+                "pdf": case.pdf_url,
+                "court_rank": rank,
+                "panel_size": panel_size,
+            }
+        )
+        for statute in case.statutes:
+            nodes.append({"id": statute, "type": "statute"})
+            edges.append({"from": case_id, "to": statute, "type": "cites", "weight": weight})
+
         add_node(
             case_id,
             "case",
@@ -260,4 +360,4 @@ def crawl_year(
     return nodes, edges
 
 
-__all__ = ["HCACase", "parse_index", "crawl_year"]
+__all__ = ["HCACase", "parse_index", "crawl_year", "parse_cases_cited"]

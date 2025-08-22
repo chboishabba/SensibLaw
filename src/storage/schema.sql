@@ -1,7 +1,11 @@
 CREATE TABLE IF NOT EXISTS nodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,
-    data TEXT NOT NULL
+    data TEXT NOT NULL,
+    valid_from TEXT NOT NULL DEFAULT '1970-01-01',
+    valid_to TEXT,
+    recorded_from TEXT NOT NULL DEFAULT '1970-01-01',
+    recorded_to TEXT
 );
 
 CREATE TABLE IF NOT EXISTS edges (
@@ -9,8 +13,17 @@ CREATE TABLE IF NOT EXISTS edges (
     source INTEGER NOT NULL REFERENCES nodes(id),
     target INTEGER NOT NULL REFERENCES nodes(id),
     type TEXT NOT NULL,
-    data TEXT
+    data TEXT,
+    valid_from TEXT NOT NULL DEFAULT '1970-01-01',
+    valid_to TEXT,
+    recorded_from TEXT NOT NULL DEFAULT '1970-01-01',
+    recorded_to TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_nodes_valid ON nodes(valid_from, valid_to);
+CREATE INDEX IF NOT EXISTS idx_edges_valid ON edges(valid_from, valid_to);
+CREATE INDEX IF NOT EXISTS idx_nodes_recorded ON nodes(recorded_from, recorded_to);
+CREATE INDEX IF NOT EXISTS idx_edges_recorded ON edges(recorded_from, recorded_to);
 
 CREATE TABLE IF NOT EXISTS frames (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,5 +60,7 @@ CREATE TABLE IF NOT EXISTS glossary (
 
 CREATE TABLE IF NOT EXISTS receipts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    data TEXT NOT NULL
+    data TEXT NOT NULL,
+    simhash TEXT,
+    minhash TEXT
 );

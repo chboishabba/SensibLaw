@@ -4,7 +4,7 @@ import re
 import time
 from datetime import datetime, date
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
 
 try:  # pragma: no cover - optional dependency
@@ -14,6 +14,7 @@ except Exception:  # pragma: no cover
 
 
 from .models import Document, DocumentMetadata, Provision
+from .ingestion.cache import HTTPCache
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,8 @@ class AustLIIClient:
         timeout: int = 10,
         max_retries: int = 3,
         backoff: float = 1.0,
+        cache_dir: Optional[Path] = None,
+        cache_delay: float = 0.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -53,8 +56,16 @@ class AustLIIClient:
             self.session.headers.update(
                 {"User-Agent": "SensibLawBot/0.1 (+https://github.com/)"}
             )
+            self.cache = (
+                HTTPCache(cache_dir or Path(__file__).resolve().parent.parent / "data" / "cache",
+                          delay=cache_delay,
+                          session=self.session)
+                if cache_dir is not None or cache_delay
+                else None
+            )
         else:  # pragma: no cover - requests missing in minimal environments
             self.session = None
+            self.cache = None
 
     # ------------------------------------------------------------------
     # Network helpers
@@ -63,6 +74,15 @@ class AustLIIClient:
         """Perform a GET request with very simple retry logic."""
         if self.session is None:
             raise RuntimeError("requests library is required for network operations")
+
+        if self.cache is not None:
+            logger.debug("Fetching %s via cache", url)
+            content = self.cache.fetch(url)
+            response = requests.models.Response()
+            response._content = content
+            response.status_code = 200
+            response.url = url
+            return response
 
         attempt = 0
         while True:

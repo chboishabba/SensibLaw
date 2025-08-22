@@ -45,6 +45,7 @@ def test_schema_and_crud(tmp_path):
     rec_id = store.insert_receipt({"status": "ok"})
     receipt = store.get_receipt(rec_id)
     assert receipt is not None and receipt.data["status"] == "ok"
+    assert receipt.simhash and receipt.minhash
 
     store.close()
 
