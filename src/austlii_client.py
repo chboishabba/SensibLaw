@@ -217,7 +217,6 @@ class AustLIIClient:
         with path.open("w", encoding="utf-8") as fh:
             json.dump(data, fh, ensure_ascii=False, indent=2)
 
-
     @staticmethod
     def _slugify(text: str) -> str:
         """Return a filesystem-friendly slug for *text*."""

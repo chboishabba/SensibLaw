@@ -134,6 +134,26 @@ class VersionedStore:
         metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
         return Document(metadata=metadata, body=row["body"])
 
+    def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
+        """Return the latest revision for a document by its canonical ID."""
+
+        rows = self.conn.execute(
+            """
+            SELECT r.metadata, r.body
+            FROM revisions r
+            JOIN (
+                SELECT doc_id, MAX(rev_id) AS rev_id
+                FROM revisions
+                GROUP BY doc_id
+            ) latest ON r.doc_id = latest.doc_id AND r.rev_id = latest.rev_id
+            """
+        )
+        for row in rows:
+            metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+            if metadata.canonical_id == canonical_id:
+                return Document(metadata=metadata, body=row["body"])
+        return None
+
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:
         """Return a unified diff between two revisions of a document."""
         row_a = self.conn.execute(
