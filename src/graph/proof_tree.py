@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-"""Utilities for building proof trees from rule evaluation results.
-
-The :class:`ProofTree` structure is constructed from a :class:`ResultTable`
-containing factor evaluation outcomes. Only satisfied factors are included in
-the resulting tree. Each edge captures provenance information such as the case
-paragraph, statute section, or extrinsic material that supports the factor.
-
-The tree can be exported to DOT or JSON formats for visualisation or further
-processing.
-"""
+"""Utilities for building and manipulating proof trees."""
 
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional, Set
+from datetime import date, datetime
+from typing import Dict, Iterable, List, Optional, Set, Tuple
+
+from .models import EdgeType, GraphEdge, GraphNode, LegalGraph
+
+
+# ---------------------------------------------------------------------------
+# Result table -> ProofTree utilities
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -149,20 +148,9 @@ class ProofTree:
         }
 
 
-__all__ = [
-    "Provenance",
-    "ResultNode",
-    "ResultTable",
-    "ProofTreeNode",
-    "ProofTreeEdge",
-    "ProofTree",
-]
-=======
-from dataclasses import dataclass
-from datetime import date
-from typing import Dict, List, Set
-
-from .models import EdgeType, GraphEdge, GraphNode, LegalGraph
+# ---------------------------------------------------------------------------
+# expand_proof_tree utilities working on ``LegalGraph``
+# ---------------------------------------------------------------------------
 
 ALLOWED_TYPES = {
     EdgeType.PROPOSED_BY,
@@ -170,55 +158,6 @@ ALLOWED_TYPES = {
     EdgeType.AMENDS,
     EdgeType.INTERPRETED_BY,
 }
-
-
-@dataclass
-class ProofTree:
-    """A subgraph representing the reasoning around a legal claim."""
-
-    nodes: Dict[str, GraphNode]
-    edges: List[GraphEdge]
-
-    def to_dict(self) -> Dict[str, object]:
-        """Serialise the proof tree into JSON serialisable structure."""
-
-        return {
-            "nodes": [
-                {
-                    "id": n.identifier,
-                    "type": n.type.value,
-                    "date": n.date.isoformat() if n.date else None,
-                    "metadata": n.metadata,
-                }
-                for n in self.nodes.values()
-            ],
-            "edges": [
-                {
-                    "source": e.source,
-                    "target": e.target,
-                    "type": e.type.value,
-                    "date": e.date.isoformat() if e.date else None,
-                    "metadata": e.metadata,
-                    "weight": e.weight,
-                }
-                for e in self.edges
-            ],
-        }
-
-    def to_dot(self) -> str:
-        """Export the proof tree as Graphviz DOT."""
-
-        lines = ["digraph proof_tree {"]
-        for node in self.nodes.values():
-            label = node.metadata.get("label", node.identifier)
-            lines.append(f'  "{node.identifier}" [label="{label}"];')
-        for edge in self.edges:
-            lines.append(
-                f'  "{edge.source}" -> "{edge.target}" '
-                f'[label="{edge.type.value}"];'
-            )
-        lines.append("}")
-        return "\n".join(lines)
 
 
 def expand_proof_tree(
@@ -231,7 +170,7 @@ def expand_proof_tree(
     """
 
     if seed not in graph.nodes:
-        return ProofTree({}, [])
+        return ProofTree()
 
     def node_valid(node: GraphNode) -> bool:
         return node.date is None or node.date <= as_at
@@ -241,17 +180,58 @@ def expand_proof_tree(
             edge.date is None or edge.date <= as_at
         )
 
-    result_nodes: Dict[str, GraphNode] = {}
-    result_edges: List[GraphEdge] = []
-    visited: Set[str] = set([seed])
+    tree = ProofTree()
+    visited: Set[str] = {seed}
     frontier: Set[str] = {seed}
 
     seed_node = graph.get_node(seed)
     if seed_node and node_valid(seed_node):
-        result_nodes[seed] = seed_node
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+        tree.nodes[seed] = ProofTreeNode(
+            id=seed_node.identifier,
+            label=seed_node.metadata.get("label", seed_node.identifier),
+        )
+
+    for _ in range(hops):
+        next_frontier: Set[str] = set()
+        for node_id in frontier:
+            for edge in graph.find_edges(source=node_id):
+                if not edge_valid(edge):
+                    continue
+                target = graph.get_node(edge.target)
+                if target is None or not node_valid(target):
+                    continue
+                if edge.target not in tree.nodes:
+                    tree.nodes[edge.target] = ProofTreeNode(
+                        id=target.identifier,
+                        label=target.metadata.get("label", target.identifier),
+                    )
+                if edge.source not in tree.nodes:
+                    src = graph.get_node(edge.source)
+                    if src and node_valid(src):
+                        tree.nodes[edge.source] = ProofTreeNode(
+                            id=src.identifier,
+                            label=src.metadata.get("label", src.identifier),
+                        )
+                tree.edges.append(
+                    ProofTreeEdge(
+                        source=edge.source,
+                        target=edge.target,
+                        provenance=Provenance(),
+                    )
+                )
+                if edge.target not in visited:
+                    visited.add(edge.target)
+                    next_frontier.add(edge.target)
+        if not next_frontier:
+            break
+        frontier = next_frontier
+
+    return tree
+
+
+# ---------------------------------------------------------------------------
+# Simple graph utilities used by tests
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -285,7 +265,6 @@ class Graph:
 
     def add_node(self, node: Node) -> None:
         """Add or replace a node in the graph."""
-
         self.nodes[node.id] = node
 
     def add_edge(self, edge: Edge) -> None:
@@ -293,7 +272,6 @@ class Graph:
 
         The edge is only added if both source and target nodes are present.
         """
-
         if edge.source not in self.nodes or edge.target not in self.nodes:
             raise ValueError("Both source and target nodes must exist in the graph")
         self.edges.append(edge)
@@ -305,24 +283,7 @@ def build_subgraph(
     hops: int,
     as_at: Optional[datetime] = None,
 ) -> Tuple[Dict[str, Node], List[Edge]]:
-    """Traverse the graph breadth-first from seed nodes.
-
-    Parameters
-    ----------
-    graph:
-        Graph to traverse.
-    seeds:
-        Starting node identifiers.
-    hops:
-        Maximum number of hops to traverse.
-    as_at:
-        Optional cut-off date. Nodes or edges with a date later than this are
-        ignored.
-
-    Returns
-    -------
-    tuple of (nodes, edges) that make up the subgraph.
-    """
+    """Traverse the graph breadth-first from seed nodes."""
 
     visited_nodes: Dict[str, Node] = {}
     visited_edges: List[Edge] = []
@@ -341,27 +302,6 @@ def build_subgraph(
     for _ in range(hops):
         next_frontier: Set[str] = set()
         for node_id in frontier:
-            for edge in graph.find_edges(source=node_id):
-                if not edge_valid(edge):
-                    continue
-                target = graph.get_node(edge.target)
-                if target is None or not node_valid(target):
-                    continue
-                result_edges.append(edge)
-                if edge.target not in result_nodes:
-                    result_nodes[edge.target] = target
-                if edge.target not in visited:
-                    visited.add(edge.target)
-                    next_frontier.add(edge.target)
-        frontier = next_frontier
-        if not frontier:
-            break
-
-    return ProofTree(result_nodes, result_edges)
-
-
-__all__ = ["ProofTree", "expand_proof_tree"]
-
             for edge in graph.edges:
                 if edge.source != node_id:
                     continue
@@ -401,10 +341,24 @@ def to_dot(nodes: Dict[str, Node], edges: Iterable[Edge]) -> str:
             attrs.append(f'receipt="{receipt}"')
         if edge.weight is not None:
             attrs.append(f'weight="{edge.weight}"')
-        tooltip = receipt or label or "why is this here?"
-        attrs.append(f'tooltip="{tooltip}"')
         lines.append(
             f'  "{edge.source}" -> "{edge.target}" [{", ".join(attrs)}];'
         )
     lines.append("}")
     return "\n".join(lines)
+
+
+__all__ = [
+    "Provenance",
+    "ResultNode",
+    "ResultTable",
+    "ProofTreeNode",
+    "ProofTreeEdge",
+    "ProofTree",
+    "expand_proof_tree",
+    "Node",
+    "Edge",
+    "Graph",
+    "build_subgraph",
+    "to_dot",
+]
