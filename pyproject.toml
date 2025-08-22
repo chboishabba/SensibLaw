@@ -27,7 +27,6 @@ dev = [
     "ruff",
     "mypy",
     "pre-commit",
-    "hypothesis",
 ]
 test = [
     "pytest",

@@ -7,15 +7,15 @@ Like coleslaw, it just makes sense.
 
 ## Installation
 
-Install the project and its development dependencies:
+Install the project along with the development and test dependencies:
 
 ```bash
-pip install -e .[dev]
+pip install -e .[dev,test]
 ```
 
 ## Testing
 
-Run the test suite:
+Install the test extras (which include Hypothesis) and run the suite:
 
 ```bash
 pytest
