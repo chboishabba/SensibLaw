@@ -40,12 +40,8 @@ def serialize_graph(graph: LegalGraph, reduced: bool = False) -> Dict[str, Any]:
             raise ValueError(
                 "Transitive reduction requires the graph to be a directed acyclic graph."
             )
-        reduction = nx.transitive_reduction(g)
-        for node in reduction.nodes:
-            reduction.nodes[node]["obj"] = g.nodes[node]["obj"]
-        for u, v in reduction.edges:
-            reduction.edges[u, v]["obj"] = g.edges[u, v]["obj"]
-        g = reduction
+        reduced_edges = nx.transitive_reduction(g).edges()
+        g = g.edge_subgraph(reduced_edges).copy()
 
     nodes = [asdict(data["obj"]) for _, data in g.nodes(data=True)]
     edges = [asdict(data["obj"]) for _, _, data in g.edges(data=True)]
