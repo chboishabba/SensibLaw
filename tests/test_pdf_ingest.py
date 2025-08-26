@@ -9,32 +9,12 @@ def test_extract_pdf(tmp_path):
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
 
-    class DummyLTTextContainer:
-        def __init__(self, text):
-            self._text = text
-
-        def get_text(self):
-            return self._text
-
-    def fake_extract_pages(path):
-        return [
-            [DummyLTTextContainer("Hello  \nWorld")],
-            [DummyLTTextContainer("Second\tPage")],
-        ]
-
-    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
-        extract_pages=fake_extract_pages
-    )
-    sys.modules["pdfminer.layout"] = types.SimpleNamespace(
-        LTTextContainer=DummyLTTextContainer
-    )
-
-
-
     def fake_extract_text(path):
         return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
 
-    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(extract_text=fake_extract_text)
+    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
+        extract_text=fake_extract_text
+    )
     sys.modules.pop("src.pdf_ingest", None)
     pdf_ingest = importlib.import_module("src.pdf_ingest")
 
@@ -43,21 +23,15 @@ def test_extract_pdf(tmp_path):
 
     pages = pdf_ingest.extract_pdf_text(pdf_path)
     assert pages == [
-        {"page": 1, "text": "Hello\nWorld"},
-        {"page": 2, "text": "Second Page"},
         {"page": 1, "heading": "Heading 1", "text": "Hello World"},
         {"page": 2, "heading": "Heading2", "text": "Second Page"},
     ]
 
     meta = pdf_ingest.build_metadata(pdf_path, pages)
+    assert meta["source"] == "sample.pdf"
+    assert meta["page_count"] == 2
+
     out = tmp_path / "out.json"
-    pdf_ingest.save_json(meta, out)
-    with out.open() as f:
-        data = json.load(f)
-
-    assert data["source"] == "sample.pdf"
-
-
     pdf_ingest.save_json(pages, out, pdf_path)
     with out.open() as f:
         data = json.load(f)
