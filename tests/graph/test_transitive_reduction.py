@@ -47,6 +47,12 @@ def test_edges_reappear_when_not_reduced():
     )
 
 
+def test_cyclic_graph_serializes_without_reduction():
+    g = build_cyclic_graph()
+    serialised = serialize_graph(g, reduced=False)
+    assert len(serialised["edges"]) == 2
+
+
 def test_transitive_reduction_requires_acyclic_graph():
     g = build_cyclic_graph()
     with pytest.raises(ValueError):
