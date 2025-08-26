@@ -32,6 +32,7 @@ dev = [
 test = [
     "pytest",
     "hypothesis",
+    "networkx",
 ]
 
 [project.scripts]
