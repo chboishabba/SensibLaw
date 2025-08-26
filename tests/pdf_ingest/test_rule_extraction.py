@@ -11,8 +11,11 @@ def test_rule_extraction(monkeypatch, tmp_path):
     def fake_extract_text(path):
         return "Heading\nThe agent must file reports."
 
-    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(extract_text=fake_extract_text)
+    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
+        extract_text=fake_extract_text
+    )
 
+    sys.modules.pop("src.pdf_ingest", None)
     from src.models.provision import Provision
     import src.pdf_ingest as pdf_ingest
 

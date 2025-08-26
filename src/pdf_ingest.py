@@ -10,46 +10,11 @@ from typing import List, Optional
 from pdfminer.high_level import extract_text
 
 from .ingestion.cache import HTTPCache
-
-
 from .models.document import Document, DocumentMetadata, Provision
 from .rules.extractor import extract_rules
 
-from pdfminer.high_level import extract_pages
-from pdfminer.layout import LTTextContainer
 
-
-def extract_pdf_text(pdf_path: Path):
-    """Extract normalized text from a PDF, keeping page numbers and headings."""
-    pages = []
-    for page_num, page_layout in enumerate(extract_pages(pdf_path), start=1):
-        text_chunks = []
-        for element in page_layout:
-            if isinstance(element, LTTextContainer):
-                text_chunks.append(element.get_text())
-        raw_text = "".join(text_chunks)
-        lines = [
-            re.sub(r"\s+", " ", line).strip()
-            for line in raw_text.splitlines()
-            if line.strip()
-        ]
-        normalized = "\n".join(lines)
-        pages.append({"page": page_num, "text": normalized})
-    return pages
-
-
-def build_metadata(pdf_path: Path, pages):
-    """Create metadata wrapper for extracted pages."""
-    return {
-        "source": pdf_path.name,
-        "page_count": len(pages),
-        "pages": pages,
-    }
-
-
-def save_json(data, output_path: Path):
-
-# ``section_parser`` is optional – tests may monkeypatch it.  If it's not
+# ``section_parser`` is optional – tests may monkeypatch it. If it's not
 # available, a trivial fallback is used which treats the entire body as a single
 # provision.
 try:  # pragma: no cover - executed conditionally
@@ -62,7 +27,7 @@ def extract_pdf_text(pdf_path: Path) -> List[dict]:
     """Extract text and headings from a PDF, returning pages with numbers."""
 
     raw = extract_text(str(pdf_path)) or ""
-    pages = []
+    pages: List[dict] = []
     for i, page_text in enumerate(raw.split("\f"), start=1):
         lines = [
             re.sub(r"\s+", " ", line).strip()
@@ -77,8 +42,18 @@ def extract_pdf_text(pdf_path: Path) -> List[dict]:
     return pages
 
 
+def build_metadata(pdf_path: Path, pages: List[dict]) -> dict:
+    """Create metadata wrapper for extracted pages."""
+
+    return {
+        "source": pdf_path.name,
+        "page_count": len(pages),
+        "pages": pages,
+    }
+
+
 def save_json(pages: List[dict], output_path: Path, source: Path) -> None:
-    """Legacy helper to save extracted pages as JSON."""
+    """Save extracted pages as JSON."""
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     data = {
@@ -91,22 +66,11 @@ def save_json(pages: List[dict], output_path: Path, source: Path) -> None:
 
 
 def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
-    """Download a PDF using :class:`HTTPCache` and save to ``dest``.
-
-    The helper allows PDF ingestion to reuse the same caching logic and delay
-    configuration as other network fetchers.
-    """
+    """Download a PDF using :class:`HTTPCache` and save to ``dest``."""
 
     dest.write_bytes(cache.fetch(url))
     return dest
 
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Extract text from a PDF and save as JSON"
-
-
-    parser = argparse.ArgumentParser(description="Extract text from a PDF and save as JSON")
 
 def _rules_to_strings(rules) -> List[str]:
     texts: List[str] = []
@@ -189,11 +153,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    pages = extract_pdf_text(args.pdf)
-    data = build_metadata(args.pdf, pages)
-    output = args.output or Path("data/pdfs") / (args.pdf.stem + ".json")
-    save_json(data, output)
-
     doc = process_pdf(
         args.pdf,
         output=args.output,
@@ -206,4 +165,3 @@ def main() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-
