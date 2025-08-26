@@ -7,6 +7,12 @@ Like coleslaw, it just makes sense.
 
 ## Installation
 
+Install the runtime dependencies for a quick setup:
+
+```bash
+pip install -r requirements.txt
+```
+
 Install the project along with the development and test dependencies:
 
 ```bash

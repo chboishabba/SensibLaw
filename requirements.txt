@@ -1,0 +1,16 @@
+pdfminer.six
+requests
+fastapi
+matplotlib
+jsonschema
+pyyaml
+graphviz
+networkx
+
+# dev/test
+pytest
+hypothesis
+black
+ruff
+mypy
+pre-commit
