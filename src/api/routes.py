@@ -188,6 +188,7 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
     """Aggregate treatments for ``case_id`` from incoming citations."""
     if case_id not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Case not found")
+
     totals: Dict[str, float] = defaultdict(float)
     counts: Dict[str, int] = defaultdict(int)
     for edge in _graph.find_edges(target=case_id):
@@ -201,18 +202,17 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
         totals[relation] += contribution
         counts[relation] += 1
 
-    if not totals:
-        raise HTTPException(status_code=404, detail="Case not found")
+    records: List[Dict[str, Any]] = [
+        {
+            "treatment": relation,
+            "count": counts[relation],
+            "total": total,
+        }
+        for relation, total in totals.items()
+    ]
 
-    records: List[Dict[str, Any]] = []
-    for relation, total in totals.items():
-        records.append(
-            {
-                "treatment": relation,
-                "count": counts[relation],
-                "total": total,
-            }
-        )
+    if not records:
+        raise HTTPException(status_code=404, detail="Case not found")
 
     # Sort by total descending and treatment name for deterministic order
     records.sort(key=lambda r: (-r["total"], r["treatment"]))
