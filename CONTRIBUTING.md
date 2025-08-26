@@ -2,10 +2,10 @@
 
 Contributions to SensibLaw are welcome. For a high-level roadmap linking tools
 to implementation areas, see [todo.md](todo.md). To get started, install the
-development dependencies and run the test suite:
+test dependencies and run the suite:
 
 ```bash
-pip install -e .[dev,test]
+pip install -e .[test]
 pytest
 ```
 
