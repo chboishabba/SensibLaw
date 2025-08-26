@@ -50,6 +50,31 @@ def setup_graph():
     return target
 
 
+def setup_graph_tie():
+    """Create a graph where treatments have equal totals."""
+    _graph.nodes.clear()
+    _graph.edges.clear()
+    target = "case_tie"
+    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=target))
+
+    # Insert edges in non-alphabetical order to ensure sorting is deterministic
+    edges = [
+        ("caseB", "overruled", "FCA"),  # 3 * 2 = 6
+        ("caseA", "followed", "HCA"),   # 2 * 3 = 6
+    ]
+    for src, relation, court in edges:
+        _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=src))
+        _graph.add_edge(
+            GraphEdge(
+                type=EdgeType.CITES,
+                source=src,
+                target=target,
+                metadata={"relation": relation, "court": court},
+            )
+        )
+    return target
+
+
 def test_fetch_case_treatment_aggregates_and_sorts():
     target = setup_graph()
     result = fetch_case_treatment(target)
@@ -61,6 +86,17 @@ def test_fetch_case_treatment_aggregates_and_sorts():
     assert result["treatments"] == [
         {"treatment": "followed", "count": 2, "total": followed_total},
         {"treatment": "distinguished", "count": 2, "total": distinguished_total},
+    ]
+
+
+def test_fetch_case_treatment_deterministic_order():
+    target = setup_graph_tie()
+    result = fetch_case_treatment(target)
+
+    total = WEIGHT["followed"] * RANK["HCA"]
+    assert result["treatments"] == [
+        {"treatment": "followed", "count": 1, "total": total},
+        {"treatment": "overruled", "count": 1, "total": total},
     ]
 
 
