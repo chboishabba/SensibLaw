@@ -94,6 +94,16 @@ def main() -> None:
     cases_treat = cases_sub.add_parser("treatment", help="Fetch case treatment")
     cases_treat.add_argument("--case-id", required=True, help="Case identifier")
 
+    harm_parser = sub.add_parser("harm", help="Harm index utilities")
+    harm_sub = harm_parser.add_subparsers(dest="harm_command")
+    harm_compute = harm_sub.add_parser("compute", help="Compute harm index scores")
+    harm_compute.add_argument(
+        "--story", type=Path, required=True, help="Path to story JSON file"
+    )
+    harm_compute.add_argument(
+        "--out", type=Path, help="Optional path to write JSON results"
+    )
+
     args = parser.parse_args()
     if hasattr(args, "func"):
         args.func(args)
@@ -235,6 +245,53 @@ def main() -> None:
             from src.api.routes import fetch_case_treatment
 
             result = fetch_case_treatment(args.case_id)
+            print(json.dumps(result))
+        else:
+            parser.print_help()
+    elif args.command == "harm":
+        if args.harm_command == "compute":
+            from tempfile import TemporaryDirectory
+
+            from src.harm.index import _load_weights, _classify
+            from src.tools.harm_index import compute_harm_index
+
+            story = json.loads(args.story.read_text())
+            weights_cfg = _load_weights()
+            metrics: dict[str, float] = {
+                "lost_evidence_items": story.get("lost_evidence_items", 0),
+            }
+            delay = min(
+                story.get("delay_months", 0), weights_cfg.get("max_delay_months", 1)
+            )
+            metrics["delay_months"] = (
+                delay / float(weights_cfg.get("max_delay_months", 1))
+            )
+            for flag in story.get("flags", []):
+                metrics[flag] = 1.0
+
+            weights = {
+                "lost_evidence_items": weights_cfg.get("lost_evidence_items", 0),
+                "delay_months": weights_cfg.get("delay_months", 0),
+            }
+            for flag, w in weights_cfg.get("flags", {}).items():
+                weights[flag] = w
+
+            with TemporaryDirectory() as tmpdir:
+                tmp_path = Path(tmpdir) / "story.json"
+                tmp_path.write_text(
+                    json.dumps({"stakeholder": "story", "metrics": metrics})
+                )
+                scores = compute_harm_index(data_dir=Path(tmpdir), weights=weights)
+
+            score = scores.get("story", 0.0)
+            level = _classify(
+                score,
+                weights_cfg.get("medium_threshold", 0.33),
+                weights_cfg.get("high_threshold", 0.66),
+            )
+            result = {"score": score, "level": level}
+            if args.out:
+                Path(args.out).write_text(json.dumps(result))
             print(json.dumps(result))
         else:
             parser.print_help()
