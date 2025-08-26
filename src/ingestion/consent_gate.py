@@ -42,6 +42,7 @@ def check_consent(record: Dict[str, Any]) -> None:
 
     storage_consent = record.get("storage_consent", record.get("consent", False))
     inference_consent = record.get("inference_consent", record.get("consent", False))
+    record["consent"] = storage_consent and inference_consent
     citation = record.get("metadata", {}).get("citation")
 
     if record.get("consent_required") and not (storage_consent and inference_consent):
@@ -72,9 +73,16 @@ def check_consent(record: Dict[str, Any]) -> None:
         )
         raise ConsentError("Consent required for records with cultural flags")
 
-    if record.get("consent"):
-        logger.info(
-            "Consent receipt for record %s: %s",
-            citation,
-            record.get("consent_receipt", "consent granted"),
-        )
+    if storage_consent and inference_consent:
+        receipt = record.get("consent_receipt")
+        if receipt:
+            logger.info(
+                "Consent receipt for record %s: %s",
+                citation,
+                receipt,
+            )
+        else:
+            logger.info(
+                "Consent receipt for record %s: consent granted",
+                citation,
+            )
