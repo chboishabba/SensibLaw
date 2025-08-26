@@ -1,3 +1,5 @@
+"""Tests for text similarity helpers exposed via the receipts CLI."""
+
 import subprocess
 from pathlib import Path
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 from typing import Any, Dict
 
 from src.receipts.build import build_receipt
@@ -23,6 +24,11 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     verify.add_argument("receipt", help="JSON encoded receipt")
     verify.set_defaults(func=_handle_verify)
 
+    diff = sub.add_parser("diff", help="Compare two text files")
+    diff.add_argument("--old", type=Path, required=True, help="Original text file")
+    diff.add_argument("--new", type=Path, required=True, help="Revised text file")
+    diff.set_defaults(func=_handle_diff)
+
 
 def _handle_build(args: argparse.Namespace) -> None:
     data: Dict[str, Any] = json.loads(args.data)
@@ -34,6 +40,17 @@ def _handle_verify(args: argparse.Namespace) -> None:
     receipt: Dict[str, Any] = json.loads(args.receipt)
     ok = verify_receipt(receipt)
     print("valid" if ok else "invalid")
+
+
+def _handle_diff(args: argparse.Namespace) -> None:
+    from src.text import similarity
+
+    old_text = Path(args.old).read_text()
+    new_text = Path(args.new).read_text()
+    if similarity.simhash(old_text) == similarity.simhash(new_text):
+        print("cosmetic")
+    else:
+        print("substantive")
 
 
 __all__ = ["register"]
