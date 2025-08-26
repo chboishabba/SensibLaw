@@ -1,66 +1,98 @@
-"""HTTP routes exposing sample data via FastAPI."""
+"""Sample FastAPI routes for text analysis endpoints."""
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List
 
-try:  # pragma: no cover - fallback when FastAPI isn't available
-    from fastapi import FastAPI, HTTPException, Query
+try:  # pragma: no cover - FastAPI is optional
+    from fastapi import APIRouter, HTTPException, Query
 except Exception:  # pragma: no cover
-    # Minimal shims so the module can be imported without FastAPI installed.
     class HTTPException(Exception):
         def __init__(self, status_code: int, detail: str) -> None:
             self.status_code = status_code
             self.detail = detail
 
-    class Query:  # type: ignore[misc]
-        def __init__(self, default=None, **_: object) -> None:
-            self.default = default
-
-    class FastAPI:  # type: ignore[misc]
-        def __init__(self) -> None:
-            pass
-
-        def get(self, _path: str):
+    class APIRouter:  # minimal stub for testing without FastAPI
+        def get(self, *args, **kwargs):
             def decorator(func):
                 return func
-
             return decorator
 
-from ..sample_data import build_subgraph, get_provision, treatments_for
+    def Query(*args, **kwargs):  # type: ignore[misc]
+        return None
 
-app = FastAPI()
+from ..pipeline import build_cloud, match_concepts, normalise
+from ..rules.extractor import extract_rules
+from ..ontology.tagger import tag_text
+
+router = APIRouter()
 
 
-@app.get("/subgraph")
+def _cloud_to_dot(cloud: Dict[str, int]) -> str:
+    lines = ["digraph G {"]
+    for node, count in cloud.items():
+        lines.append(f'  "{node}" [label="{node} ({count})"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _rules_to_dot(rules: List[Dict[str, str]]) -> str:
+    lines = ["digraph G {"]
+    for i, rule in enumerate(rules):
+        label = f"{rule['actor']} {rule['modality']} {rule['action']}"
+        lines.append(f'  r{i} [label="{label}"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _provision_to_dot(provision: Dict[str, Any]) -> str:
+    lines = ["digraph G {", '  prov [label="Provision"]']
+    for p in provision.get("principles", []):
+        lines.append(f'  "{p}" [shape=box]')
+        lines.append(f'  prov -> "{p}" [label="principle"]')
+    for c in provision.get("customs", []):
+        lines.append(f'  "{c}" [shape=ellipse]')
+        lines.append(f'  prov -> "{c}" [label="custom"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+@router.get("/subgraph")
 def api_subgraph(
-    node: Optional[List[str]] = Query(None),
-    limit: int = Query(50, ge=1),
-    offset: int = Query(0, ge=0),
-):
-    """Return a subgraph of the sample graph."""
-    return build_subgraph(node, limit, offset)
+    text: str = Query(..., description="Query text"), *, dot: bool = False
+) -> Dict[str, Any]:
+    """Return a simple concept cloud for ``text``."""
+    normalised = normalise(text)
+    concepts = match_concepts(normalised)
+    cloud = build_cloud(concepts)
+    result: Dict[str, Any] = {"cloud": cloud}
+    if dot:
+        result["dot"] = _cloud_to_dot(cloud)
+    return result
 
 
-@app.get("/treatment")
+@router.get("/treatment")
 def api_treatment(
-    doc: str = Query(..., description="Document identifier"),
-    limit: int = Query(50, ge=1),
-    offset: int = Query(0, ge=0),
-):
-    """Return edges involving a document."""
-    edges = treatments_for(doc, limit, offset)
-    return {"treatments": edges}
+    text: str = Query(..., description="Provision text"), *, dot: bool = False
+) -> Dict[str, Any]:
+    """Extract rules from provision ``text``."""
+    rules = [r.__dict__ for r in extract_rules(text)]
+    result: Dict[str, Any] = {"rules": rules}
+    if dot:
+        result["dot"] = _rules_to_dot(rules)
+    return result
 
 
-@app.get("/provision")
-def api_provision(doc: str = Query(...), id: str = Query(...)):
-    """Return a provision from the sample documents."""
-    prov = get_provision(doc, id)
-    if prov is None:
-        raise HTTPException(status_code=404, detail="Provision not found")
-    return prov
+@router.get("/provision")
+def api_provision(
+    text: str = Query(..., description="Provision text"), *, dot: bool = False
+) -> Dict[str, Any]:
+    """Tag a provision of law and return structured data."""
+    provision = tag_text(text).to_dict()
+    result: Dict[str, Any] = {"provision": provision}
+    if dot:
+        result["dot"] = _provision_to_dot(provision)
+    return result
 
 
-__all__ = ["app", "api_subgraph", "api_treatment", "api_provision"]
-
+__all__ = ["router", "api_subgraph", "api_treatment", "api_provision"]
