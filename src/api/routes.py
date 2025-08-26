@@ -212,7 +212,8 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
             }
         )
 
-    records.sort(key=lambda r: r["total"], reverse=True)
+    # Sort by total descending and treatment name for deterministic order
+    records.sort(key=lambda r: (-r["total"], r["treatment"]))
     return {"case_id": case_id, "treatments": records}
 
 
