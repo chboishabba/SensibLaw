@@ -10,7 +10,7 @@ import json
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Iterable, Optional
 
 try:  # pragma: no cover - optional dependency
     import ahocorasick  # type: ignore
@@ -31,9 +31,9 @@ class _Node:
     __slots__ = ("children", "fail", "outputs")
 
     def __init__(self) -> None:
-        self.children: Dict[str, _Node] = {}
+        self.children: dict[str, _Node] = {}
         self.fail: _Node | None = None
-        self.outputs: List[Tuple[str, int]] = []
+        self.outputs: list[tuple[str, int]] = []
 
 
 class ConceptMatcher:
@@ -82,10 +82,10 @@ class ConceptMatcher:
                 child.fail = fail.children.get(ch, self.root)
                 child.outputs.extend(child.fail.outputs)
 
-    def match(self, text: str) -> List[ConceptHit]:
+    def match(self, text: str) -> list[ConceptHit]:
         """Return concept hits within the text."""
 
-        hits: List[ConceptHit] = []
+        hits: list[ConceptHit] = []
         node = self.root
         text = text.lower()
         for i, ch in enumerate(text):
@@ -116,8 +116,8 @@ class Match:
 class MatchResult:
     """Holds the result of a matching operation."""
 
-    matches: List[Match]
-    unmatched_spans: Optional[List[Tuple[int, int]]] = None
+    matches: list[Match]
+    unmatched_spans: Optional[list[tuple[int, int]]] = None
 
 
 def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) -> MatchResult:
@@ -125,7 +125,7 @@ def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) ->
 
     pattern_map = {p.lower(): p for p in patterns}
     lowered_patterns = list(pattern_map.keys())
-    matches: List[Match] = []
+    matches: list[Match] = []
 
     if ahocorasick:
         automaton = ahocorasick.Automaton()
@@ -148,7 +148,7 @@ def match(text: str, patterns: Iterable[str], return_unmatched: bool = False) ->
 
     matches.sort(key=lambda m: (m.start, m.end))
 
-    unmatched: Optional[List[Tuple[int, int]]] = None
+    unmatched: Optional[list[tuple[int, int]]] = None
     if return_unmatched:
         unmatched = []
         last_end = 0
