@@ -75,6 +75,34 @@ def setup_graph_tie():
     return target
 
 
+def setup_graph_all_tie():
+    """Create a graph where three treatments have equal totals."""
+    _graph.nodes.clear()
+    _graph.edges.clear()
+    target = "case_all_tie"
+    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=target))
+
+    # Edges inserted out of alphabetical order to test deterministic sorting
+    edges = [
+        ("caseB", "overruled", "FCA"),  # 3 * 2 = 6
+        ("caseA", "followed", "HCA"),   # 2 * 3 = 6
+        ("caseC1", "distinguished", "HCA"),  # 1 * 3 = 3
+        ("caseC2", "distinguished", "FCA"),  # 1 * 2 = 2
+        ("caseC3", "distinguished", "NSWCA"),  # 1 * 1 = 1
+    ]
+    for src, relation, court in edges:
+        _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=src))
+        _graph.add_edge(
+            GraphEdge(
+                type=EdgeType.CITES,
+                source=src,
+                target=target,
+                metadata={"relation": relation, "court": court},
+            )
+        )
+    return target
+
+
 def test_fetch_case_treatment_aggregates_and_sorts():
     target = setup_graph()
     result = fetch_case_treatment(target)
@@ -106,3 +134,16 @@ def test_fetch_case_treatment_not_found():
     with pytest.raises(HTTPException) as exc:
         fetch_case_treatment("missing")
     assert exc.value.status_code == 404
+
+
+def test_fetch_case_treatment_deterministic_order_multiple():
+    target = setup_graph_all_tie()
+    result = fetch_case_treatment(target)
+
+    total = 6.0
+    assert result["treatments"] == [
+        {"treatment": "distinguished", "count": 3, "total": total},
+        {"treatment": "followed", "count": 1, "total": total},
+        {"treatment": "overruled", "count": 1, "total": total},
+    ]
+
