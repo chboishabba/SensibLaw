@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.api.routes import api_provision, api_subgraph, api_treatment
+from src.api.sample_routes import api_provision, api_subgraph, api_treatment
 
 
 def test_subgraph_endpoint():

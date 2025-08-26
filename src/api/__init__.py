@@ -1,14 +1,11 @@
-"""API package providing FastAPI application."""
+"""API package providing FastAPI application and route definitions."""
 
-from .routes import app
-
-__all__ = ["app"]
-"""API package providing route definitions."""
+from .sample_routes import app
 
 try:  # pragma: no cover - optional dependency
     from .routes import router
-
-    __all__ = ["router"]
 except Exception:  # ImportError if FastAPI is missing
     router = None  # type: ignore
-    __all__ = ["router"]
+
+__all__ = ["app", "router"]
+

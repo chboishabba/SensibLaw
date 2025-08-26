@@ -1,174 +1,18 @@
-"""HTTP routes exposed via FastAPI."""
+"""REST API route definitions using FastAPI."""
 
 from __future__ import annotations
 
-from typing import List, Optional
-
-try:  # pragma: no cover - fallback when FastAPI isn't available
-    from fastapi import FastAPI, HTTPException, Query
-except Exception:  # pragma: no cover
-    # Minimal shims so the module can be imported without FastAPI installed.
-    class HTTPException(Exception):
-        def __init__(self, status_code: int, detail: str) -> None:
-            self.status_code = status_code
-            self.detail = detail
-
-    class Query:  # type: ignore[misc]
-        def __init__(self, default=None, **_: object) -> None:
-            self.default = default
-
-    class FastAPI:  # type: ignore[misc]
-        def __init__(self) -> None:
-            pass
-
-        def get(self, _path: str):
-            def decorator(func):
-                return func
-
-            return decorator
-
-from ..sample_data import build_subgraph, get_provision, treatments_for
-
-app = FastAPI()
-
-
-@app.get("/subgraph")
-def api_subgraph(
-    node: Optional[List[str]] = Query(None),
-    limit: int = Query(50, ge=1),
-    offset: int = Query(0, ge=0),
-):
-    """Return a subgraph of the sample graph."""
-    return build_subgraph(node, limit, offset)
-
-
-@app.get("/treatment")
-def api_treatment(
-    doc: str = Query(..., description="Document identifier"),
-    limit: int = Query(50, ge=1),
-    offset: int = Query(0, ge=0),
-):
-    """Return edges involving a document."""
-    edges = treatments_for(doc, limit, offset)
-    return {"treatments": edges}
-
-
-@app.get("/provision")
-def api_provision(doc: str = Query(...), id: str = Query(...)):
-    """Return a provision from the sample documents."""
-    prov = get_provision(doc, id)
-    if prov is None:
-        raise HTTPException(status_code=404, detail="Provision not found")
-    return prov
-
-"""REST API route definitions using FastAPI.
-
-This module exposes endpoints that mirror selected CLI commands. Each
-endpoint returns JSON data and, when requested via the ``dot`` query
-parameter, includes a Graphviz DOT representation of the result.
-"""
-
 import json
 import subprocess
-from typing import Dict
-
-from fastapi import APIRouter, Query
-
-from ..ontology.tagger import tag_text
-from ..pipeline import build_cloud, match_concepts, normalise
-from ..rules.extractor import extract_rules
-
-router = APIRouter()
-
-
-def _cloud_to_dot(cloud: Dict[str, int]) -> str:
-    lines = ["digraph G {"]
-    for node, count in cloud.items():
-        lines.append(f'  "{node}" [label="{node} ({count})"]')
-    lines.append("}")
-    return "\n".join(lines)
-
-
-def _rules_to_dot(rules: list[Dict[str, str]]) -> str:
-    lines = ["digraph G {"]
-    for i, rule in enumerate(rules):
-        label = f"{rule['actor']} {rule['modality']} {rule['action']}"
-        lines.append(f'  r{i} [label="{label}"]')
-    lines.append("}")
-    return "\n".join(lines)
-
-
-def _provision_to_dot(provision: Dict[str, object]) -> str:
-    lines = ["digraph G {", '  prov [label="Provision"]']
-    for p in provision.get("principles", []):
-        lines.append(f'  "{p}" [shape=box]')
-        lines.append(f'  prov -> "{p}" [label="principle"]')
-    for c in provision.get("customs", []):
-        lines.append(f'  "{c}" [shape=ellipse]')
-        lines.append(f'  prov -> "{c}" [label="custom"]')
-    lines.append("}")
-    return "\n".join(lines)
-
-
-@router.get("/subgraph")
-def get_subgraph(text: str = Query(..., description="Query text"), *, dot: bool = False) -> Dict[str, object]:
-    """Return a simple concept cloud for ``text``.
-
-    Parameters
-    ----------
-    text:
-        Free-form query text.
-    dot:
-        When ``True`` include a Graphviz DOT representation.
-    """
-    normalised = normalise(text)
-    concepts = match_concepts(normalised)
-    cloud = build_cloud(concepts)
-    result: Dict[str, object] = {"cloud": cloud}
-    if dot:
-        result["dot"] = _cloud_to_dot(cloud)
-    return result
-
-
-@router.get("/treatment")
-def get_treatment(text: str = Query(..., description="Provision text"), *, dot: bool = False) -> Dict[str, object]:
-    """Extract rules from provision ``text``."""
-    rules = [r.__dict__ for r in extract_rules(text)]
-    result: Dict[str, object] = {"rules": rules}
-    if dot:
-        result["dot"] = _rules_to_dot(rules)
-    return result
-
-
-@router.get("/provision")
-def get_provision(text: str = Query(..., description="Provision text"), *, dot: bool = False) -> Dict[str, object]:
-    """Tag a provision of law and return structured data."""
-    provision = tag_text(text).to_dict()
-    result: Dict[str, object] = {"provision": provision}
-    if dot:
-        result["dot"] = _provision_to_dot(provision)
-    return result
-
-
-@router.post("/tests/run")
-def run_tests() -> Dict[str, object]:
-    """Execute the pytest suite and return the result."""
-    completed = subprocess.run(["pytest", "-q"], capture_output=True, text=True)
-    output = completed.stdout + completed.stderr
-    return {"exit_code": completed.returncode, "output": output}
-
-
-__all__ = ["router"]
-
-from typing import Dict, Any, List
-
 from collections import defaultdict
+from dataclasses import asdict
+from typing import Any, Dict, List
 
 try:  # pragma: no cover - FastAPI is optional for CLI tests
     from fastapi import APIRouter, HTTPException, Query
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     class HTTPException(Exception):
-        def __init__(self, status_code: int, detail: str):
+        def __init__(self, status_code: int, detail: str) -> None:
             self.status_code = status_code
             self.detail = detail
 
@@ -188,23 +32,93 @@ except ImportError:  # pragma: no cover
 
 try:  # pragma: no cover
     from pydantic import BaseModel, Field
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     class BaseModel:  # minimal stub when pydantic is absent
         pass
 
-    def Field(*args, **kwargs):
+    def Field(*args, **kwargs):  # type: ignore[misc]
         return None
 
-from dataclasses import asdict
+from ..ontology.tagger import tag_text
+from ..pipeline import build_cloud, match_concepts, normalise
+from ..rules.extractor import extract_rules
 from ..graph.models import LegalGraph, GraphEdge
-
-from ..schema_utils import load_schema, validate
-from ..graph.api import serialize_graph
 from ..tests.templates import TEMPLATE_REGISTRY
 from ..policy.engine import PolicyEngine
 
-# Ranking of courts and weighting of relations when computing treatment scores.
-# Higher values indicate greater persuasive authority.
+router = APIRouter()
+
+
+def _cloud_to_dot(cloud: Dict[str, int]) -> str:
+    lines = ["digraph G {"]
+    for node, count in cloud.items():
+        lines.append(f'  "{node}" [label="{node} ({count})"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _rules_to_dot(rules: List[Dict[str, str]]) -> str:
+    lines = ["digraph G {"]
+    for i, rule in enumerate(rules):
+        label = f"{rule['actor']} {rule['modality']} {rule['action']}"
+        lines.append(f'  r{i} [label="{label}"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _provision_to_dot(provision: Dict[str, Any]) -> str:
+    lines = ["digraph G {", '  prov [label="Provision"]']
+    for p in provision.get("principles", []):
+        lines.append(f'  "{p}" [shape=box]')
+        lines.append(f'  prov -> "{p}" [label="principle"]')
+    for c in provision.get("customs", []):
+        lines.append(f'  "{c}" [shape=ellipse]')
+        lines.append(f'  prov -> "{c}" [label="custom"]')
+    lines.append("}")
+    return "\n".join(lines)
+
+
+@router.get("/subgraph")
+def get_subgraph(text: str = Query(..., description="Query text"), *, dot: bool = False) -> Dict[str, Any]:
+    """Return a simple concept cloud for ``text``."""
+    normalised = normalise(text)
+    concepts = match_concepts(normalised)
+    cloud = build_cloud(concepts)
+    result: Dict[str, Any] = {"cloud": cloud}
+    if dot:
+        result["dot"] = _cloud_to_dot(cloud)
+    return result
+
+
+@router.get("/treatment")
+def get_treatment(text: str = Query(..., description="Provision text"), *, dot: bool = False) -> Dict[str, Any]:
+    """Extract rules from provision ``text``."""
+    rules = [r.__dict__ for r in extract_rules(text)]
+    result: Dict[str, Any] = {"rules": rules}
+    if dot:
+        result["dot"] = _rules_to_dot(rules)
+    return result
+
+
+@router.get("/provision")
+def get_provision(text: str = Query(..., description="Provision text"), *, dot: bool = False) -> Dict[str, Any]:
+    """Tag a provision of law and return structured data."""
+    provision = tag_text(text).to_dict()
+    result: Dict[str, Any] = {"provision": provision}
+    if dot:
+        result["dot"] = _provision_to_dot(provision)
+    return result
+
+
+@router.post("/tests/run")
+def run_tests() -> Dict[str, Any]:
+    """Execute the pytest suite and return the result."""
+    completed = subprocess.run(["pytest", "-q"], capture_output=True, text=True)
+    output = completed.stdout + completed.stderr
+    return {"exit_code": completed.returncode, "output": output}
+
+
+# Additional utility functions used by the CLI and tests
 RANK: Dict[str, float] = {
     "HCA": 3.0,
     "FCA": 2.0,
@@ -217,11 +131,7 @@ WEIGHT: Dict[str, float] = {
     "overruled": 3.0,
 }
 
-router = APIRouter()
 _graph = LegalGraph()
-
-_EVENT_SCHEMA = load_schema("event.schema.yaml")
-_RULE_CHECK_SCHEMA = load_schema("rule_check.schema.yaml")
 _policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"})
 
 
@@ -231,7 +141,7 @@ def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, 
         raise HTTPException(status_code=404, detail="Seed node not found")
     visited = {seed}
     nodes = {seed: _graph.nodes[seed]}
-    edges = []
+    edges: List[GraphEdge] = []
     frontier = [(seed, 0)]
     while frontier:
         current, depth = frontier.pop(0)
@@ -252,15 +162,6 @@ def generate_subgraph(seed: str, hops: int, consent: bool = False) -> Dict[str, 
     return {"nodes": result_nodes, "edges": [asdict(e) for e in edges]}
 
 
-@router.get("/subgraph")
-def subgraph_endpoint(
-    seed: str = Query(..., description="Identifier for the seed node"),
-    hops: int = Query(1, ge=1, le=5, description="Number of hops from seed"),
-    consent: bool = Query(False, description="Consent granted to view sacred data"),
-) -> Dict[str, Any]:
-    return generate_subgraph(seed, hops, consent)
-
-
 class TestRunRequest(BaseModel):
     ids: List[str] = Field(..., description="List of test IDs to run")
     story: Dict[str, Any] = Field(..., description="Story data for evaluation")
@@ -272,10 +173,7 @@ def execute_tests(ids: List[str], story: Dict[str, Any]) -> Dict[str, Any]:
         template = TEMPLATE_REGISTRY.get(test_id)
         if not template:
             raise HTTPException(status_code=404, detail=f"Unknown test '{test_id}'")
-        factors = {
-            f.id: bool(story.get(f.id))
-            for f in template.factors
-        }
+        factors = {f.id: bool(story.get(f.id)) for f in template.factors}
         results[test_id] = {
             "name": template.name,
             "factors": factors,
@@ -284,40 +182,10 @@ def execute_tests(ids: List[str], story: Dict[str, Any]) -> Dict[str, Any]:
     return {"results": results}
 
 
-@router.post("/tests/run")
-def tests_run_endpoint(payload: TestRunRequest) -> Dict[str, Any]:
-    data = payload.model_dump()
-    validate(data, _EVENT_SCHEMA)
-    result = execute_tests(payload.ids, payload.story)
-    for check in result.get("results", {}).values():
-        validate(check, _RULE_CHECK_SCHEMA)
-    return result
-
-
-_FAKE_TREATMENTS: Dict[str, List[Dict[str, Any]]] = {
-    "case123": [
-        # Intentionally out of order to exercise sorting logic
-        {"citation": "2 CLR 50", "treatment": "distinguished"},
-        {"citation": "1 CLR 1", "treatment": "followed"},
-    ]
-}
-
 def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
-    """Aggregate treatments for ``case_id`` from incoming citations.
-
-    Each incoming edge is expected to provide ``relation`` and ``court``
-    metadata.  The contribution of an edge to its relation's total score is the
-    product ``WEIGHT[relation] * RANK[court]``.  Relations are sorted in
-    descending order of their accumulated totals and returned to the caller.
-    """
-
+    """Aggregate treatments for ``case_id`` from incoming citations."""
     if case_id not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Case not found")
-    # Sort treatments deterministically by citation for stable CLI output
-    ordered = sorted(treatments, key=lambda t: t["citation"])
-    return {"case_id": case_id, "treatments": ordered}
-
-
     totals: Dict[str, float] = defaultdict(float)
     counts: Dict[str, int] = defaultdict(int)
     for edge in _graph.find_edges(target=case_id):
@@ -351,3 +219,15 @@ def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
 @router.get("/cases/{case_id}/treatment")
 def case_treatment_endpoint(case_id: str) -> Dict[str, Any]:
     return fetch_case_treatment(case_id)
+
+
+__all__ = [
+    "router",
+    "generate_subgraph",
+    "execute_tests",
+    "fetch_case_treatment",
+    "_graph",
+    "WEIGHT",
+    "RANK",
+]
+
