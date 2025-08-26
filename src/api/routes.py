@@ -101,7 +101,9 @@ def get_treatment(text: str = Query(..., description="Provision text"), *, dot: 
 
 
 @router.get("/provision")
-def get_provision(text: str = Query(..., description="Provision text"), *, dot: bool = False) -> Dict[str, Any]:
+def parse_provision(
+    text: str = Query(..., description="Provision text"), *, dot: bool = False
+) -> Dict[str, Any]:
     """Tag a provision of law and return structured data."""
     provision = tag_text(text).to_dict()
     result: Dict[str, Any] = {"provision": provision}
