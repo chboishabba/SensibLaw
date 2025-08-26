@@ -1,12 +1,5 @@
-"""Graph utilities and lightweight in-memory structures.
+"""Graph utilities and lightweight in-memory structures."""
 
-This package exposes a minimal set of data structures for representing legal
-graphs together with helpers to ingest documents, build proof trees and
-serialise the resulting graph structures.
-"""
-
-from .api import serialize_graph
-from .hierarchy import COURT_RANKS, court_weight
 from .ingest import Graph, compute_weight, ingest_document, ingest_extrinsic
 from .models import (
     CaseNode,
@@ -44,10 +37,7 @@ __all__ = [
     "expand_proof_tree",
     "ExtrinsicNode",
     "CaseNode",
-    "serialize_graph",
     "ingest_extrinsic",
     "compute_weight",
-    "court_weight",
-    "COURT_RANKS",
 ]
 
