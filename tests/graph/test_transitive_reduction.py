@@ -13,12 +13,39 @@ from src.graph.models import LegalGraph, GraphNode, GraphEdge, NodeType, EdgeTyp
 
 def build_sample_graph() -> LegalGraph:
     g = LegalGraph()
-    g.add_node(GraphNode(type=NodeType.CASE, identifier="A"))
-    g.add_node(GraphNode(type=NodeType.CASE, identifier="B"))
-    g.add_node(GraphNode(type=NodeType.CASE, identifier="C"))
-    g.add_edge(GraphEdge(type=EdgeType.CITES, source="A", target="B"))
-    g.add_edge(GraphEdge(type=EdgeType.CITES, source="B", target="C"))
-    g.add_edge(GraphEdge(type=EdgeType.CITES, source="A", target="C"))
+    g.add_node(
+        GraphNode(type=NodeType.CASE, identifier="A", metadata={"label": "A"})
+    )
+    g.add_node(
+        GraphNode(type=NodeType.CASE, identifier="B", metadata={"label": "B"})
+    )
+    g.add_node(
+        GraphNode(type=NodeType.CASE, identifier="C", metadata={"label": "C"})
+    )
+    g.add_edge(
+        GraphEdge(
+            type=EdgeType.CITES,
+            source="A",
+            target="B",
+            metadata={"note": "AB"},
+        )
+    )
+    g.add_edge(
+        GraphEdge(
+            type=EdgeType.CITES,
+            source="B",
+            target="C",
+            metadata={"note": "BC"},
+        )
+    )
+    g.add_edge(
+        GraphEdge(
+            type=EdgeType.CITES,
+            source="A",
+            target="C",
+            metadata={"note": "AC"},
+        )
+    )
     return g
 
 
@@ -55,5 +82,15 @@ def test_cyclic_graph_serializes_without_reduction():
 
 def test_transitive_reduction_requires_acyclic_graph():
     g = build_cyclic_graph()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="graph with cycles"):
         serialize_graph(g, reduced=True)
+
+
+def test_attributes_preserved_after_reduction():
+    g = build_sample_graph()
+    reduced = serialize_graph(g, reduced=True)
+    node_lookup = {n["identifier"]: n for n in reduced["nodes"]}
+    assert node_lookup["A"]["metadata"]["label"] == "A"
+    edge_lookup = {(e["source"], e["target"]): e for e in reduced["edges"]}
+    assert edge_lookup[("A", "B")]["metadata"]["note"] == "AB"
+    assert edge_lookup[("B", "C")]["metadata"]["note"] == "BC"
