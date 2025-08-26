@@ -191,7 +191,7 @@ class PolicyEngine:
             return None
 
         metadata = node.metadata
-        if transform:
+        if transform and phase != "export":
             metadata = {
                 k: self._transform_value(v, transform) for k, v in metadata.items()
             }

@@ -65,26 +65,16 @@ def check_consent(record: Dict[str, Any]) -> None:
         record["body"] = SUMMARY_NOTE
         logger.info("Transformed record %s per policy", citation)
         return
+    if not OPA_GATEWAY.is_allowed(record):
+        logger.warning(
+            "Blocked record %s due to missing consent",
+            record.get("metadata", {}).get("citation"),
+        )
+        raise ConsentError("Consent required for records with cultural flags")
 
-    if storage_consent and inference_consent:
-        """Evaluate cultural policies and consent before persisting a record.
-
-        The record is evaluated against the compiled Rego policies via
-        :class:`OPAGateway`.  If the policy decision is ``deny`` a
-        :class:`ConsentError` is raised to block persistence or transmission.
-        When consent is present, a receipt is logged.
-        """
-
-        if not OPA_GATEWAY.is_allowed(record):
-            logger.warning(
-                "Blocked record %s due to missing consent",
-                record.get("metadata", {}).get("citation"),
-            )
-            raise ConsentError("Consent required for records with cultural flags")
-
-        if record.get("consent"):
-            logger.info(
-                "Consent receipt for record %s: %s",
-                citation,
-                record.get("consent_receipt", "consent granted"),
-            )
+    if record.get("consent"):
+        logger.info(
+            "Consent receipt for record %s: %s",
+            citation,
+            record.get("consent_receipt", "consent granted"),
+        )

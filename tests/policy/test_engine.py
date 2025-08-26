@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from src.policy.engine import PolicyEngine
+from src.policy.engine import CulturalFlags, PolicyEngine
 from src.graph import GraphNode, NodeType
 
 RULES = ROOT / "data" / "cultural_rules.yaml"
@@ -17,7 +17,7 @@ def test_omit_without_override():
         type=NodeType.DOCUMENT,
         identifier="n1",
         metadata={"secret": "x"},
-        cultural_flags=["SACRED_DATA"],
+        cultural_flags=[CulturalFlags.SACRED_DATA.value],
     )
     assert engine.enforce(node) is None
 
@@ -25,7 +25,9 @@ def test_omit_without_override():
 def test_transform_hook():
     transformed = []
     policy = {
-        "rules": [{"flag": "PUBLIC_DOMAIN", "action": "transform"}],
+        "rules": [
+            {"flag": CulturalFlags.PUBLIC_DOMAIN.name, "action": "transform"}
+        ],
         "default": "allow",
     }
     engine = PolicyEngine(policy, inference_hook=lambda f, a: transformed.append((f, a)))
@@ -36,7 +38,7 @@ def test_transform_hook():
 
 def test_default_allow():
     policy = {
-        "rules": [{"flag": "SACRED_DATA", "action": "deny"}],
+        "rules": [{"flag": CulturalFlags.SACRED_DATA.name, "action": "deny"}],
         "default": "allow",
     }
     engine = PolicyEngine(policy)
@@ -46,8 +48,12 @@ def test_default_allow():
 
 def test_nested_policy_require():
     policy = {
-        "if": "SACRED_DATA",
-        "then": {"if": "PUBLIC_DOMAIN", "then": "allow", "else": "require"},
+        "if": CulturalFlags.SACRED_DATA.name,
+        "then": {
+            "if": CulturalFlags.PUBLIC_DOMAIN.name,
+            "then": "allow",
+            "else": "require",
+        },
         "else": "allow",
     }
     engine = PolicyEngine(policy)
@@ -64,7 +70,7 @@ def test_redact_without_consent():
         type=NodeType.DOCUMENT,
         identifier="n2",
         metadata={"pii": "x"},
-        cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
+        cultural_flags=[CulturalFlags.PERSONALLY_IDENTIFIABLE_INFORMATION.value],
     )
     redacted = engine.enforce(node, consent=False)
     assert redacted.metadata == {"summary": "Content withheld due to policy"}
@@ -79,7 +85,7 @@ def test_override_allows_original():
         type=NodeType.DOCUMENT,
         identifier="n3",
         metadata={"pii": "x"},
-        cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
+        cultural_flags=[CulturalFlags.PERSONALLY_IDENTIFIABLE_INFORMATION.value],
     )
     allowed = engine.enforce(node, consent=True, phase="export")
     assert allowed.metadata["pii"] == "x"
