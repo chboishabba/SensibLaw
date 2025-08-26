@@ -35,7 +35,7 @@ pre-commit run --all-files
 Install the package in editable mode along with development dependencies to develop locally:
 
 ```bash
-pip install -e .[dev]
+pip install -e .[dev,test]
 pre-commit install
 pre-commit run --all-files
 ```
@@ -48,7 +48,7 @@ dependencies:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+pip install -e .[dev,test]
 ```
 
 Run the test suite and pre-commit hooks:
@@ -167,7 +167,7 @@ Sample output:
 Install development dependencies:
 
 ```bash
-pip install -e .[dev]
+pip install -e .[dev,test]
 ```
 
 Run tests:
