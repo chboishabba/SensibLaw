@@ -3,6 +3,12 @@
 The CI workflow runs a small acceptance suite after unit tests to ensure
 that command-line entry points are wired correctly.
 
+Install the test extras before running the suite:
+
+```bash
+pip install -e .[test]
+```
+
 The following commands are executed:
 
 ```bash

@@ -57,10 +57,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[test]
-
+          pip install -e .[test] coverage[toml] pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest
       - name: Test and CLI smoke
         run: |
           set -e
@@ -101,8 +99,6 @@ PY
           python scripts/generate_sample_corpus.py
           python examples/distinguish_glj/demo.py
           python -m src.pdf_ingest --help
-
-          pip install pytest coverage[toml] pytest-cov hypothesis
       - name: Test
         run: pytest --cov=src --cov-report=xml
       - name: Evaluate gold set
