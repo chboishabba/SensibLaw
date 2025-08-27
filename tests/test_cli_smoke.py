@@ -53,7 +53,7 @@ def test_graph_subgraph_unreadable_graph_file(tmp_path: Path):
         "subgraph",
         "--graph-file",
         str(graph_file),
-        "--seed",
+        "--node",
         "seed",
     )
     assert completed.returncode != 0
