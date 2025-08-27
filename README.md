@@ -140,7 +140,7 @@ Generates a DOT-format subgraph around seed nodes within the knowledge graph.
 *Required files*: pre-built graph data (e.g., ontology and case sources under `data/`).
 
 ```bash
-sensiblaw graph subgraph --seeds Concept#TerraNullius Case#Mabo1992 --hops 2 --dot
+sensiblaw graph subgraph --node Concept#TerraNullius --node Case#Mabo1992 --hops 2 --dot
 ```
 
 Sample output:
@@ -207,7 +207,7 @@ The command writes a JSON representation of the Native Title Act 1993 to
 `data/frl/nta1993.json`.
 
 ```bash
-python -m src.cli graph subgraph --graph-file data/frl/nta1993.json --seeds Provision#NTA:s223 --hops 1 --dot
+python -m src.cli graph subgraph --graph-file data/frl/nta1993.json --node Provision#NTA:s223 --hops 1 --dot
 ```
 
 This prints a DOT description of the one-hop neighbourhood around
@@ -237,7 +237,7 @@ The result includes the test name, evaluated factors, and whether the test
 Extract a portion of the legal knowledge graph:
 
 ```bash
-sensiblaw graph subgraph --seed case123 --hops 2
+sensiblaw graph subgraph --node case123 --hops 2
 ```
 
 This returns a JSON object with arrays of `"nodes"` and `"edges"` representing

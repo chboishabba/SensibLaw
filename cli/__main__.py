@@ -79,9 +79,16 @@ def main() -> None:
     graph_parser = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph_parser.add_subparsers(dest="graph_command")
     subgraph_parser = graph_sub.add_parser("subgraph", help="Extract subgraph")
-    subgraph_parser.add_argument("--seed", required=True, help="Seed node identifier")
+    subgraph_parser.add_argument(
+        "--node",
+        action="append",
+        required=True,
+        help="Node identifier to include; may be repeated",
+    )
     subgraph_parser.add_argument("--hops", type=int, default=1, help="Number of hops")
-    subgraph_parser.add_argument("--graph-file", type=Path, help="Graph JSON file (use '-' for stdin)")
+    subgraph_parser.add_argument(
+        "--graph-file", type=Path, help="Graph JSON file (use '-' for stdin)"
+    )
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")
@@ -222,12 +229,14 @@ def main() -> None:
                     g.add_node(Node(n["id"], n["type"], {"label": n.get("title", n["id"])}))
                 for e in data.get("edges", []):
                     g.add_edge(Edge(e["from"], e["to"], e["type"], {"label": e.get("type")}))
-                nodes, edges = build_subgraph(g, {args.seed}, hops=args.hops)
+                nodes, edges = build_subgraph(g, args.node, hops=args.hops)
                 print(to_dot(nodes, edges))
             else:
                 from src.api.routes import generate_subgraph
 
-                result = generate_subgraph(args.seed, args.hops)
+                # generate_subgraph currently accepts a single seed node; use the
+                # first node provided on the command line
+                result = generate_subgraph(args.node[0], args.hops)
                 print(json.dumps(result))
         else:
             parser.print_help()

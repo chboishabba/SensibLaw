@@ -36,7 +36,7 @@ def test_extract_frl_to_graph(tmp_path: Path) -> None:
         "cli",
         "graph",
         "subgraph",
-        "--seed",
+        "--node",
         "NTA1993",
         "--graph-file",
         "-",
