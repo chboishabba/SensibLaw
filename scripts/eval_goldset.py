@@ -35,7 +35,14 @@ def evaluate(threshold: float = 0.9) -> bool:
     for case in section_cases:
         exp_refs.append(set(case.get("cross_refs", [])))
         data = fetch_section(case["html"])
-        pred_refs.append(set(data["rules"]["references"]))
+        pred_refs.append(
+            {
+                ref[-1]
+                if isinstance(ref, (list, tuple)) and ref
+                else ref
+                for ref in data["rules"]["references"]
+            }
+        )
     refs_p, refs_r = _pr(exp_refs, pred_refs)
 
     # Citations
