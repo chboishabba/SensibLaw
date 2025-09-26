@@ -5,9 +5,10 @@ import json
 import difflib
 from collections import defaultdict
 import hashlib
+import re
 from datetime import date
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from ..models.document import Document, DocumentMetadata
 from ..models.provision import (
@@ -60,6 +61,7 @@ class VersionedStore:
                     node_type TEXT,
                     identifier TEXT,
                     title TEXT,
+                    stable_id TEXT,
                     position INTEGER NOT NULL,
                     PRIMARY KEY (doc_id, rev_id, toc_id),
                     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
@@ -129,6 +131,7 @@ class VersionedStore:
                     rule_id INTEGER NOT NULL,
                     text_hash TEXT NOT NULL,
                     toc_id INTEGER,
+                    stable_id TEXT,
                     atom_type TEXT,
                     role TEXT,
                     party TEXT,
@@ -152,12 +155,6 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
-
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
-
-                CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
-                ON rule_atoms(doc_id, rev_id, toc_id);
 
                 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
                     doc_id INTEGER NOT NULL,
@@ -301,6 +298,7 @@ class VersionedStore:
 
         self._backfill_rule_tables()
         self._backfill_glossary_ids()
+        self._backfill_toc_stable_ids()
 
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
         cur = self.conn.execute(f"PRAGMA table_info({table})")
@@ -577,7 +575,6 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
-
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
 
@@ -731,7 +728,7 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
+        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
@@ -838,6 +835,116 @@ class VersionedStore:
         )
 
     # ------------------------------------------------------------------
+    def _backfill_toc_stable_ids(self) -> None:
+        """Ensure TOC rows and rule atoms have deterministic stable identifiers."""
+
+        self._ensure_column("toc", "stable_id", "TEXT")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_toc_stable ON toc(doc_id, rev_id, stable_id)"
+        )
+        self._ensure_column("rule_atoms", "stable_id", "TEXT")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rule_atoms_stable ON rule_atoms(doc_id, rev_id, stable_id)"
+        )
+
+        toc_pending = self.conn.execute(
+            """
+            SELECT doc_id, rev_id
+            FROM toc
+            WHERE stable_id IS NULL OR stable_id = ''
+            GROUP BY doc_id, rev_id
+            """
+        ).fetchall()
+        rule_pending = self.conn.execute(
+            """
+            SELECT doc_id, rev_id
+            FROM rule_atoms
+            WHERE stable_id IS NULL OR stable_id = ''
+            GROUP BY doc_id, rev_id
+            """
+        ).fetchall()
+
+        targets = {(row["doc_id"], row["rev_id"]) for row in toc_pending}
+        targets.update((row["doc_id"], row["rev_id"]) for row in rule_pending)
+        if not targets:
+            return
+
+        for doc_id, rev_id in sorted(targets):
+            metadata_row = self.conn.execute(
+                "SELECT metadata FROM revisions WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            ).fetchone()
+            metadata_dict: dict[str, Any] = {}
+            if metadata_row and metadata_row["metadata"]:
+                try:
+                    metadata_dict = json.loads(metadata_row["metadata"])
+                except json.JSONDecodeError:
+                    metadata_dict = {}
+
+            toc_rows = self.conn.execute(
+                """
+                SELECT toc_id, parent_id, node_type, identifier, title, position
+                FROM toc
+                WHERE doc_id = ? AND rev_id = ?
+                ORDER BY toc_id
+                """,
+                (doc_id, rev_id),
+            ).fetchall()
+            if not toc_rows:
+                continue
+
+            sibling_counters: defaultdict[Tuple[Optional[int], str], int] = defaultdict(
+                int
+            )
+            path_segments: dict[Optional[int], List[str]] = {None: []}
+            stable_lookup: dict[int, str] = {}
+            doc_prefix = self._document_stable_prefix(metadata_dict)
+
+            for toc_row in toc_rows:
+                parent_id = toc_row["parent_id"]
+                position = toc_row["position"] if "position" in toc_row.keys() else 0
+                component = self._stable_component(
+                    parent_id,
+                    toc_row["node_type"],
+                    toc_row["identifier"],
+                    toc_row["title"],
+                    position,
+                    sibling_counters,
+                )
+                parent_path = path_segments.get(parent_id, [])
+                path = [*parent_path, component]
+                path_segments[toc_row["toc_id"]] = path
+                stable_id = self._compose_stable_id(doc_prefix, path)
+                stable_lookup[toc_row["toc_id"]] = stable_id
+
+            if not stable_lookup:
+                continue
+
+            ordered_toc_ids = sorted(stable_lookup)
+            update_values = [
+                (stable_lookup[toc_id], doc_id, rev_id, toc_id)
+                for toc_id in ordered_toc_ids
+            ]
+            rule_update_values = [
+                (stable_lookup[toc_id], doc_id, rev_id, toc_id)
+                for toc_id in ordered_toc_ids
+            ]
+
+            with self.conn:
+                self.conn.executemany(
+                    "UPDATE toc SET stable_id = ? WHERE doc_id = ? AND rev_id = ? AND toc_id = ?",
+                    update_values,
+                )
+                self.conn.executemany(
+                    """
+                    UPDATE rule_atoms
+                    SET stable_id = ?
+                    WHERE doc_id = ? AND rev_id = ? AND toc_id = ?
+                      AND (stable_id IS NULL OR stable_id = '')
+                    """,
+                    rule_update_values,
+                )
+
     # ID generation and revision storage
     # ------------------------------------------------------------------
     def generate_id(self) -> int:
@@ -861,7 +968,7 @@ class VersionedStore:
         Returns:
             The revision number assigned to the stored revision.
         """
-        toc_entries = self._build_toc_entries(document.provisions)
+        toc_entries = self._build_toc_entries(document.metadata, document.provisions)
         metadata_json = json.dumps(document.metadata.to_dict())
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
@@ -901,7 +1008,9 @@ class VersionedStore:
                 "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
                 (document.body, metadata_json),
             )
-            self._store_provisions(doc_id, rev_id, document.provisions, toc_entries)
+            self._store_provisions(
+                doc_id, rev_id, document.provisions, toc_entries, document.metadata
+            )
         return rev_id
 
     # ------------------------------------------------------------------
@@ -979,26 +1088,40 @@ class VersionedStore:
         return Document(metadata=metadata, body=body)
 
     def _build_toc_entries(
-        self, provisions: List[Provision]
-    ) -> List[Tuple[int, Optional[int], int, Provision]]:
-        """Assign sequential TOC identifiers to provisions and capture hierarchy."""
+        self, metadata: DocumentMetadata, provisions: List[Provision]
+    ) -> List[Tuple[int, Optional[int], int, str, Provision]]:
+        """Assign sequential TOC identifiers and deterministic stable IDs."""
 
-        entries: List[Tuple[int, Optional[int], int, Provision]] = []
+        entries: List[Tuple[int, Optional[int], int, str, Provision]] = []
         if not provisions:
             return entries
 
         counter = 0
         position_counters: defaultdict[Optional[int], int] = defaultdict(int)
+        sibling_counters: defaultdict[Tuple[Optional[int], str], int] = defaultdict(int)
+        path_segments: dict[Optional[int], List[str]] = {None: []}
+        doc_prefix = self._document_stable_prefix(metadata)
 
         def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
             nonlocal counter
             counter += 1
             toc_id = counter
             position_counters[parent_toc_id] += 1
+            position = position_counters[parent_toc_id]
             provision.toc_id = toc_id
-            entries.append(
-                (toc_id, parent_toc_id, position_counters[parent_toc_id], provision)
+            component = self._stable_component(
+                parent_toc_id,
+                provision.node_type,
+                provision.identifier,
+                provision.heading,
+                position,
+                sibling_counters,
             )
+            path = [*path_segments[parent_toc_id], component]
+            path_segments[toc_id] = path
+            stable_id = self._compose_stable_id(doc_prefix, path)
+            provision.stable_id = stable_id
+            entries.append((toc_id, parent_toc_id, position, stable_id, provision))
             for child in provision.children:
                 traverse(child, toc_id)
 
@@ -1007,12 +1130,72 @@ class VersionedStore:
 
         return entries
 
+    def _slugify(self, value: Optional[str]) -> str:
+        if value is None:
+            return ""
+        text = value.strip().lower()
+        text = re.sub(r"[^a-z0-9]+", "-", text)
+        text = re.sub(r"-+", "-", text)
+        return text.strip("-")
+
+    def _document_stable_prefix(
+        self, metadata: DocumentMetadata | Mapping[str, Any]
+    ) -> str:
+        if isinstance(metadata, DocumentMetadata):
+            jurisdiction_value: Any = metadata.jurisdiction
+            citation_value: Any = metadata.citation
+        else:
+            jurisdiction_value = metadata.get("jurisdiction") if metadata else None
+            citation_value = metadata.get("citation") if metadata else None
+        jurisdiction = self._slugify(
+            str(jurisdiction_value) if jurisdiction_value else None
+        )
+        citation = self._slugify(str(citation_value) if citation_value else None)
+        if not jurisdiction:
+            jurisdiction = "unknown-jurisdiction"
+        if not citation:
+            citation = "unknown-citation"
+        return f"{jurisdiction}/{citation}"
+
+    def _stable_component(
+        self,
+        parent_id: Optional[int],
+        node_type: Optional[str],
+        identifier: Optional[str],
+        heading: Optional[str],
+        position: int,
+        sibling_counters: defaultdict[Tuple[Optional[int], str], int],
+    ) -> str:
+        slug_type = self._slugify(node_type) or "node"
+        slug_identifier = self._slugify(identifier)
+        slug_heading = self._slugify(heading)
+        if slug_identifier:
+            base = f"{slug_type}-{slug_identifier}"
+        elif slug_heading:
+            base = f"{slug_type}-{slug_heading}"
+        else:
+            base = f"{slug_type}-pos{position}"
+        key = (parent_id, base)
+        sibling_counters[key] += 1
+        occurrence = sibling_counters[key]
+        if occurrence > 1:
+            base = f"{base}-{occurrence}"
+        return base
+
+    def _compose_stable_id(self, prefix: str, path: List[str]) -> str:
+        segments = [prefix]
+        segments.extend(segment for segment in path if segment)
+        return "/".join(segments)
+
     def _store_provisions(
         self,
         doc_id: int,
         rev_id: int,
         provisions: List[Provision],
-        toc_entries: Optional[List[Tuple[int, Optional[int], int, Provision]]] = None,
+        toc_entries: Optional[
+            List[Tuple[int, Optional[int], int, str, Provision]]
+        ] = None,
+        metadata: Optional[DocumentMetadata] = None,
     ) -> None:
         """Persist provision and atom data for a revision."""
 
@@ -1061,15 +1244,18 @@ class VersionedStore:
             return
 
         if toc_entries is None:
-            toc_entries = self._build_toc_entries(provisions)
+            if metadata is None:
+                raise ValueError("Document metadata is required to build TOC entries")
+            toc_entries = self._build_toc_entries(metadata, provisions)
 
-        for toc_id, parent_toc_id, position, provision in toc_entries:
+        for toc_id, parent_toc_id, position, stable_id, provision in toc_entries:
+            provision.stable_id = stable_id
             self.conn.execute(
                 """
                 INSERT INTO toc (
-                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position
+                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, stable_id, position
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -1079,6 +1265,7 @@ class VersionedStore:
                     provision.node_type,
                     provision.identifier,
                     provision.heading,
+                    stable_id,
                     position,
                 ),
             )
@@ -1141,7 +1328,12 @@ class VersionedStore:
 
             if provision.rule_atoms:
                 self._persist_rule_structures(
-                    doc_id, rev_id, current_id, provision.rule_atoms, provision.toc_id
+                    doc_id,
+                    rev_id,
+                    current_id,
+                    provision.rule_atoms,
+                    provision.toc_id,
+                    provision.stable_id,
                 )
 
             unique_atoms: list[Atom] = []
@@ -1283,12 +1475,23 @@ class VersionedStore:
         if not provision_rows:
             return [], False
 
+        toc_rows = self.conn.execute(
+            """
+            SELECT toc_id, stable_id
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ?
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        toc_stable_map = {row["toc_id"]: row["stable_id"] for row in toc_rows}
+
         rule_atom_rows = self.conn.execute(
             """
             SELECT
                 ra.provision_id,
                 ra.rule_id,
                 ra.toc_id,
+                ra.stable_id,
                 ra.atom_type,
                 ra.role,
                 ra.party,
@@ -1418,6 +1621,7 @@ class VersionedStore:
                 ]
                 rule_atom = RuleAtom(
                     toc_id=row["toc_id"],
+                    stable_id=row["stable_id"],
                     atom_type=row["atom_type"],
                     role=row["role"],
                     party=row["party"],
@@ -1434,6 +1638,8 @@ class VersionedStore:
                     glossary_id=row["rule_glossary_id"],
                     references=references,
                 )
+                if not rule_atom.stable_id and row["toc_id"] is not None:
+                    rule_atom.stable_id = toc_stable_map.get(row["toc_id"])
 
                 subject_metadata = (
                     json.loads(row["subject_gloss_metadata_json"])
@@ -1640,6 +1846,7 @@ class VersionedStore:
                 principles=list(principles),
                 customs=list(customs),
             )
+            provision.stable_id = toc_stable_map.get(row["toc_id"])
             if using_structured:
                 provision.rule_atoms.extend(
                     rule_atoms_by_provision.get(row["provision_id"], [])
@@ -1674,6 +1881,7 @@ class VersionedStore:
         provision_id: int,
         rule_atoms: List[RuleAtom],
         toc_id: Optional[int],
+        stable_id: Optional[str],
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -1694,6 +1902,8 @@ class VersionedStore:
                 rule_atom.toc_id if rule_atom.toc_id is not None else toc_id
             )
             rule_atom.toc_id = current_toc_id
+            if rule_atom.stable_id is None:
+                rule_atom.stable_id = stable_id
             subject_metadata_json = (
                 json.dumps(subject_atom.gloss_metadata)
                 if subject_atom.gloss_metadata is not None
@@ -1722,11 +1932,11 @@ class VersionedStore:
             self.conn.execute(
                 """
                 INSERT INTO rule_atoms (
-                    doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, atom_type, role, party,
+                    doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, stable_id, atom_type, role, party,
                     who, who_text, actor, modality, action, conditions, scope,
                     text, subject_gloss, subject_gloss_metadata, glossary_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -1735,6 +1945,7 @@ class VersionedStore:
                     rule_index,
                     atom_hash,
                     current_toc_id,
+                    rule_atom.stable_id,
                     rule_atom.atom_type,
                     rule_atom.role,
                     rule_atom.party,
@@ -2010,7 +2221,12 @@ class VersionedStore:
                     continue
                 if needs_rule_atoms:
                     self._persist_rule_structures(
-                        doc_id, rev_id, provision_id, provision.rule_atoms, None
+                        doc_id,
+                        rev_id,
+                        provision_id,
+                        provision.rule_atoms,
+                        None,
+                        None,
                     )
                 elif needs_subjects:
                     for rule_index, rule_atom in enumerate(

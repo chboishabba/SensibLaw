@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS toc (
     node_type TEXT,
     identifier TEXT,
     title TEXT,
+    stable_id TEXT,
     position INTEGER NOT NULL,
     PRIMARY KEY (doc_id, rev_id, toc_id),
     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
@@ -104,6 +105,7 @@ ON toc(doc_id, rev_id, toc_id);
 
 CREATE INDEX IF NOT EXISTS idx_toc_parent
 ON toc(doc_id, rev_id, parent_id);
+
 
 CREATE TABLE IF NOT EXISTS provisions (
     doc_id INTEGER NOT NULL,
