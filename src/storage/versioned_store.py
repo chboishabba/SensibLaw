@@ -98,30 +98,6 @@ class VersionedStore:
                 ON provisions(doc_id, rev_id, provision_id);
 
 
-                CREATE TABLE IF NOT EXISTS atoms (
-                    doc_id INTEGER NOT NULL,
-                    rev_id INTEGER NOT NULL,
-                    provision_id INTEGER NOT NULL,
-                    atom_id INTEGER NOT NULL,
-                    type TEXT,
-                    role TEXT,
-                    party TEXT,
-                    who TEXT,
-                    who_text TEXT,
-                    text TEXT,
-                    conditions TEXT,
-                    refs TEXT,
-                    gloss TEXT,
-                    gloss_metadata TEXT,
-                    glossary_id INTEGER,
-                    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
-                    FOREIGN KEY (doc_id, rev_id, provision_id)
-                        REFERENCES provisions(doc_id, rev_id, provision_id)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
-                ON atoms(doc_id, rev_id, provision_id);
-
                 CREATE TABLE IF NOT EXISTS rule_atoms (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -152,12 +128,6 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
-
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
-
-                CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
-                ON rule_atoms(doc_id, rev_id, toc_id);
 
                 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
                     doc_id INTEGER NOT NULL,
@@ -294,15 +264,17 @@ class VersionedStore:
         self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
-        self._ensure_column("atoms", "glossary_id", "INTEGER")
+        self._backfill_rule_tables()
+        self._ensure_atoms_view()
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
         self._ensure_column("rule_elements", "glossary_id", "INTEGER")
 
-        self._backfill_rule_tables()
         self._backfill_glossary_ids()
 
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
+        if self._object_type(table) != "table":
+            return
         cur = self.conn.execute(f"PRAGMA table_info({table})")
         existing = {row["name"] for row in cur.fetchall()}
         if column not in existing:
@@ -623,7 +595,8 @@ class VersionedStore:
                     COALESCE(rs.conditions, ra.conditions) AS conditions,
                     rs.refs AS refs,
                     COALESCE(rs.gloss, ra.subject_gloss) AS gloss,
-                    COALESCE(rs.gloss_metadata, ra.subject_gloss_metadata) AS gloss_metadata
+                    COALESCE(rs.gloss_metadata, ra.subject_gloss_metadata) AS gloss_metadata,
+                    COALESCE(rs.glossary_id, ra.glossary_id) AS glossary_id
                 FROM rule_atoms AS ra
                 LEFT JOIN rule_atom_subjects AS rs
                     ON ra.doc_id = rs.doc_id
@@ -666,7 +639,8 @@ class VersionedStore:
                     re.conditions AS conditions,
                     er.refs AS refs,
                     re.gloss AS gloss,
-                    re.gloss_metadata AS gloss_metadata
+                    re.gloss_metadata AS gloss_metadata,
+                    COALESCE(re.glossary_id, ra.glossary_id) AS glossary_id
                 FROM rule_elements AS re
                 JOIN rule_atoms AS ra
                     ON ra.doc_id = re.doc_id
@@ -696,7 +670,8 @@ class VersionedStore:
                     NULL AS conditions,
                     NULL AS refs,
                     ra.subject_gloss AS gloss,
-                    rl.metadata AS gloss_metadata
+                    rl.metadata AS gloss_metadata,
+                    ra.glossary_id AS glossary_id
                 FROM rule_lints AS rl
                 JOIN rule_atoms AS ra
                     ON rl.doc_id = ra.doc_id
@@ -721,7 +696,8 @@ class VersionedStore:
                 conditions,
                 refs,
                 gloss,
-                gloss_metadata
+                gloss_metadata,
+                glossary_id
             FROM (
                 SELECT * FROM subject_rows
                 UNION ALL
@@ -732,21 +708,6 @@ class VersionedStore:
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
             )
-        # Migration: ensure the revisions table has a document_json column
-        columns = {
-            row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
-        }
-        if "document_json" not in columns:
-            self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
-
-        self._ensure_column("atoms", "glossary_id", "INTEGER")
-        self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
-        self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
-        self._ensure_column("rule_elements", "glossary_id", "INTEGER")
-
-        self._backfill_rule_tables()
-        self._backfill_glossary_ids()
-
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
         cur = self.conn.execute(f"PRAGMA table_info({table})")
         existing = {row["name"] for row in cur.fetchall()}
@@ -795,6 +756,8 @@ class VersionedStore:
         ]
 
         for table, key_columns, gloss_column in update_targets:
+            if self._object_type(table) != "table":
+                continue
             query = (
                 f"SELECT {', '.join(key_columns)}, {gloss_column} AS gloss, glossary_id "
                 f"FROM {table} WHERE {gloss_column} IS NOT NULL AND glossary_id IS NULL"
@@ -1016,6 +979,8 @@ class VersionedStore:
     ) -> None:
         """Persist provision and atom data for a revision."""
 
+        atoms_is_table = self._object_type("atoms") == "table"
+
         self.conn.execute(
             "DELETE FROM rule_element_references WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
@@ -1044,10 +1009,11 @@ class VersionedStore:
             "DELETE FROM atom_references WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
         )
-        self.conn.execute(
-            "DELETE FROM atoms WHERE doc_id = ? AND rev_id = ?",
-            (doc_id, rev_id),
-        )
+        if atoms_is_table:
+            self.conn.execute(
+                "DELETE FROM atoms WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
         self.conn.execute(
             "DELETE FROM provisions WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
@@ -1144,119 +1110,120 @@ class VersionedStore:
                     doc_id, rev_id, current_id, provision.rule_atoms, provision.toc_id
                 )
 
-            unique_atoms: list[Atom] = []
-            seen_atom_keys: set[tuple[Any, ...]] = set()
+            if atoms_is_table:
+                unique_atoms: list[Atom] = []
+                seen_atom_keys: set[tuple[Any, ...]] = set()
 
-            for atom in provision.atoms:
-                metadata_json = (
-                    json.dumps(atom.gloss_metadata, sort_keys=True)
-                    if atom.gloss_metadata is not None
-                    else None
-                )
-                key = (
-                    atom.type,
-                    atom.role,
-                    atom.party,
-                    atom.who,
-                    atom.who_text,
-                    atom.conditions,
-                    atom.text,
-                    tuple(atom.refs),
-                    atom.gloss,
-                    metadata_json,
-                )
-                if key in seen_atom_keys:
-                    continue
-                seen_atom_keys.add(key)
-                unique_atoms.append(atom)
-
-            for atom_index, atom in enumerate(unique_atoms, start=1):
-                gloss_metadata_json = (
-                    json.dumps(atom.gloss_metadata)
-                    if atom.gloss_metadata is not None
-                    else None
-                )
-                refs_json = json.dumps(atom.refs) if atom.refs else None
-                self.conn.execute(
-                    """
-                    INSERT INTO atoms (
-                        doc_id, rev_id, provision_id, atom_id, type, role,
-                        party, who, who_text, text, conditions, refs, gloss,
-                        gloss_metadata, glossary_id
+                for atom in provision.atoms:
+                    metadata_json = (
+                        json.dumps(atom.gloss_metadata, sort_keys=True)
+                        if atom.gloss_metadata is not None
+                        else None
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        doc_id,
-                        rev_id,
-                        current_id,
-                        atom_index,
+                    key = (
                         atom.type,
                         atom.role,
                         atom.party,
                         atom.who,
                         atom.who_text,
-                        atom.text,
                         atom.conditions,
-                        refs_json,
+                        atom.text,
+                        tuple(atom.refs),
                         atom.gloss,
-                        gloss_metadata_json,
-                        atom.glossary_id,
-                    ),
-                )
+                        metadata_json,
+                    )
+                    if key in seen_atom_keys:
+                        continue
+                    seen_atom_keys.add(key)
+                    unique_atoms.append(atom)
 
-                if atom.refs:
-                    for ref_index, ref in enumerate(atom.refs, start=1):
-                        work = None
-                        section = None
-                        pinpoint = None
-                        citation_text = None
-
-                        if isinstance(ref, dict):
-                            work = ref.get("work")
-                            section = ref.get("section")
-                            pinpoint = ref.get("pinpoint")
-                            citation_text = (
-                                ref.get("citation_text")
-                                or ref.get("text")
-                                or ref.get("citation")
-                            )
-                        elif isinstance(ref, (list, tuple)):
-                            # Support positional data when provided as an iterable.
-                            parts = list(ref)
-                            if parts:
-                                work = parts[0]
-                            if len(parts) > 1:
-                                section = parts[1]
-                            if len(parts) > 2:
-                                pinpoint = parts[2]
-                            if len(parts) > 3:
-                                citation_text = parts[3]
-                            elif len(parts) == 3:
-                                citation_text = parts[2]
-                        else:
-                            citation_text = str(ref)
-
-                        self.conn.execute(
-                            """
-                            INSERT INTO atom_references (
-                                doc_id, rev_id, provision_id, atom_id, ref_index,
-                                work, section, pinpoint, citation_text
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                doc_id,
-                                rev_id,
-                                current_id,
-                                atom_index,
-                                ref_index,
-                                work,
-                                section,
-                                pinpoint,
-                                citation_text,
-                            ),
+                for atom_index, atom in enumerate(unique_atoms, start=1):
+                    gloss_metadata_json = (
+                        json.dumps(atom.gloss_metadata)
+                        if atom.gloss_metadata is not None
+                        else None
+                    )
+                    refs_json = json.dumps(atom.refs) if atom.refs else None
+                    self.conn.execute(
+                        """
+                        INSERT INTO atoms (
+                            doc_id, rev_id, provision_id, atom_id, type, role,
+                            party, who, who_text, text, conditions, refs, gloss,
+                            gloss_metadata, glossary_id
                         )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            doc_id,
+                            rev_id,
+                            current_id,
+                            atom_index,
+                            atom.type,
+                            atom.role,
+                            atom.party,
+                            atom.who,
+                            atom.who_text,
+                            atom.text,
+                            atom.conditions,
+                            refs_json,
+                            atom.gloss,
+                            gloss_metadata_json,
+                            atom.glossary_id,
+                        ),
+                    )
+
+                    if atom.refs:
+                        for ref_index, ref in enumerate(atom.refs, start=1):
+                            work = None
+                            section = None
+                            pinpoint = None
+                            citation_text = None
+
+                            if isinstance(ref, dict):
+                                work = ref.get("work")
+                                section = ref.get("section")
+                                pinpoint = ref.get("pinpoint")
+                                citation_text = (
+                                    ref.get("citation_text")
+                                    or ref.get("text")
+                                    or ref.get("citation")
+                                )
+                            elif isinstance(ref, (list, tuple)):
+                                # Support positional data when provided as an iterable.
+                                parts = list(ref)
+                                if parts:
+                                    work = parts[0]
+                                if len(parts) > 1:
+                                    section = parts[1]
+                                if len(parts) > 2:
+                                    pinpoint = parts[2]
+                                if len(parts) > 3:
+                                    citation_text = parts[3]
+                                elif len(parts) == 3:
+                                    citation_text = parts[2]
+                            else:
+                                citation_text = str(ref)
+
+                            self.conn.execute(
+                                """
+                                INSERT INTO atom_references (
+                                    doc_id, rev_id, provision_id, atom_id, ref_index,
+                                    work, section, pinpoint, citation_text
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    doc_id,
+                                    rev_id,
+                                    current_id,
+                                    atom_index,
+                                    ref_index,
+                                    work,
+                                    section,
+                                    pinpoint,
+                                    citation_text,
+                                ),
+                            )
 
             for child in provision.children:
                 visit(child, current_id)
@@ -1929,6 +1896,10 @@ class VersionedStore:
 
         needs_rule_atoms = rule_atom_count == 0
         needs_subjects = subject_count == 0
+
+        object_type = self._object_type("atoms")
+        if object_type is None:
+            return
 
         legacy_count = self.conn.execute("SELECT COUNT(*) FROM atoms").fetchone()[0]
         if legacy_count == 0:
