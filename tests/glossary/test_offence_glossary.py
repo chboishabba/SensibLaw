@@ -29,6 +29,7 @@ def test_offence_elements_receive_curated_gloss():
         "case": "R v Smith",
         "citation": "[2001] HCA 12",
     }
+    assert fault_element.glossary_id is not None
 
     result_element = elements["resulting in grievous bodily harm"]
     assert (
@@ -39,6 +40,8 @@ def test_offence_elements_receive_curated_gloss():
         "case": "Brown v R",
         "citation": "[1995] HCA 34",
     }
+    assert result_element.glossary_id is not None
+    assert result_element.glossary_id != fault_element.glossary_id
 
 
 def test_offence_element_without_gloss_remains_unannotated():
@@ -51,5 +54,6 @@ def test_offence_element_without_gloss_remains_unannotated():
         for element in rule_atom.elements:
             assert element.text != "with intent to cause death"
             assert element.gloss_metadata is None
+            assert element.glossary_id is None
             if element.gloss is not None:
                 assert element.gloss == rule_atom.subject_gloss

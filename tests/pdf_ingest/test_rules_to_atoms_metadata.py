@@ -47,6 +47,7 @@ def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
     assert element.gloss == "Request condition"
     assert element.gloss_metadata == metadata
     assert element.gloss_metadata is not metadata
+    assert element.glossary_id is not None
 
     flattened = structured.to_atoms()
     legacy_rule = flattened[0]
@@ -57,6 +58,7 @@ def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
     assert legacy_element.role == "circumstance"
     assert legacy_element.text == "if requested"
     assert legacy_element.gloss == "Request condition"
+    assert legacy_element.glossary_id == element.glossary_id
 
 
 def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
@@ -78,9 +80,11 @@ def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
     element = structured.elements[0]
     assert element.gloss == "the court"
     assert element.gloss_metadata is None
+    assert element.glossary_id is None
 
     legacy_element = structured.to_atoms()[1]
     assert legacy_element.gloss == "the court"
+    assert legacy_element.glossary_id is None
 
 
 def test_unknown_party_lint_atom_inherits_party_metadata(monkeypatch):

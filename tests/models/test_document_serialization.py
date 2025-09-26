@@ -32,6 +32,7 @@ def test_document_serialization_round_trip():
         refs=["ref1"],
         gloss="A guiding principle",
         gloss_metadata={"source": "example"},
+        glossary_id=7,
     )
     provision = Provision(
         text="Sample provision",

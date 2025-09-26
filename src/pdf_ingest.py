@@ -5,9 +5,10 @@ import json
 import logging
 import re
 import sys
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from pdfminer.high_level import extract_text
 
@@ -18,12 +19,208 @@ from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom, RuleAtom, RuleElement, RuleLint
 from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
+from .storage.core import Storage
 from .storage.versioned_store import VersionedStore
 
 
 logger = logging.getLogger(__name__)
 
 _CULTURAL_OVERLAY = get_default_overlay()
+
+
+_QUOTE_CHARS = "\"'“”‘’"
+_DEFINITION_START_RE = re.compile(
+    r"^\s*(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+"
+    r"(?P<verb>means|includes)\s+(?P<definition>.+)$",
+    re.IGNORECASE,
+)
+
+
+def _normalise_term_key(term: str) -> str:
+    return " ".join(term.strip().split()).lower()
+
+
+def _normalise_definition_key(definition: str) -> str:
+    return " ".join(definition.strip().split()).lower()
+
+
+def _strip_quotes(value: str) -> str:
+    return value.strip().strip(_QUOTE_CHARS)
+
+
+def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if metadata is None:
+        return None
+    return dict(metadata)
+
+
+@dataclass(frozen=True)
+class GlossaryRecord:
+    id: int
+    term: str
+    definition: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class GlossaryRegistry:
+    """Manage glossary entries backed by :class:`Storage`."""
+
+    def __init__(self, storage: Optional[Storage] = None):
+        self._storage = storage or Storage(":memory:")
+        self._owns_storage = storage is None
+        self._cache_by_term: Dict[str, GlossaryRecord] = {}
+        self._cache_by_definition: Dict[str, GlossaryRecord] = {}
+
+    def close(self) -> None:
+        if self._owns_storage and self._storage is not None:
+            self._storage.close()
+            self._storage = None
+
+    def _ensure_storage(self) -> Storage:
+        if self._storage is None:
+            raise RuntimeError("GlossaryRegistry has been closed")
+        return self._storage
+
+    def _cache_record(self, record: GlossaryRecord) -> GlossaryRecord:
+        term_key = _normalise_term_key(record.term)
+        definition_key = _normalise_definition_key(record.definition)
+        self._cache_by_term[term_key] = record
+        if definition_key:
+            self._cache_by_definition[definition_key] = record
+        return record
+
+    def _record_from_entry(self, entry) -> GlossaryRecord:
+        return self._cache_record(
+            GlossaryRecord(
+                id=entry.id or 0,
+                term=entry.term,
+                definition=entry.definition,
+                metadata=_clone_metadata(entry.metadata),
+            )
+        )
+
+    def register_definition(
+        self,
+        term: str,
+        definition: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Optional[GlossaryRecord]:
+        term = term.strip()
+        definition = definition.strip()
+        if not term or not definition:
+            return None
+
+        metadata_copy = _clone_metadata(metadata)
+        term_key = _normalise_term_key(term)
+        definition_key = _normalise_definition_key(definition)
+
+        cached = self._cache_by_term.get(term_key)
+        if cached and _normalise_definition_key(cached.definition) == definition_key:
+            if metadata_copy is not None and cached.metadata != metadata_copy:
+                cached = GlossaryRecord(
+                    id=cached.id,
+                    term=cached.term,
+                    definition=cached.definition,
+                    metadata=metadata_copy,
+                )
+                self._cache_record(cached)
+            return cached
+
+        storage = self._ensure_storage()
+        entry = storage.get_glossary_entry_by_term(term)
+        if entry is None:
+            entry_id = storage.insert_glossary_entry(term, definition, metadata_copy)
+            entry = storage.get_glossary_entry(entry_id)
+        else:
+            stored_definition_key = _normalise_definition_key(entry.definition)
+            desired_metadata = (
+                metadata_copy
+                if metadata_copy is not None
+                else _clone_metadata(entry.metadata)
+            )
+            if stored_definition_key != definition_key or (
+                metadata_copy is not None
+                and _clone_metadata(entry.metadata) != metadata_copy
+            ):
+                storage.update_glossary_entry(
+                    entry.id,
+                    term=entry.term,
+                    definition=definition,
+                    metadata=desired_metadata,
+                )
+                entry = storage.get_glossary_entry(entry.id)
+
+        if entry is None:
+            return None
+
+        return self._record_from_entry(entry)
+
+    def resolve(self, term: Optional[str]) -> Optional[GlossaryRecord]:
+        if not term:
+            return None
+        term_key = _normalise_term_key(term)
+        cached = self._cache_by_term.get(term_key)
+        if cached:
+            return cached
+        entry = self._ensure_storage().get_glossary_entry_by_term(term)
+        if entry is None:
+            return None
+        return self._record_from_entry(entry)
+
+    def resolve_by_definition(
+        self, definition: Optional[str]
+    ) -> Optional[GlossaryRecord]:
+        if not definition:
+            return None
+        definition_key = _normalise_definition_key(definition)
+        cached = self._cache_by_definition.get(definition_key)
+        if cached:
+            return cached
+        entry = self._ensure_storage().find_glossary_entry_by_definition(definition)
+        if entry is None:
+            return None
+        return self._record_from_entry(entry)
+
+
+def _finalise_definition(parts: List[str]) -> str:
+    joined = " ".join(part.strip().rstrip(";") for part in parts if part.strip())
+    return re.sub(r"\s+", " ", joined).strip()
+
+
+def _extract_definition_entries(text: str) -> Dict[str, str]:
+    entries: Dict[str, str] = {}
+    current_term: Optional[str] = None
+    collected: List[str] = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            if current_term and collected:
+                entries[current_term] = _finalise_definition(collected)
+            current_term = None
+            collected = []
+            continue
+
+        cleaned = _PRINCIPLE_LEADING_NUMBERS.sub("", line)
+        cleaned = _PRINCIPLE_LEADING_ENUM.sub("", cleaned)
+        match = _DEFINITION_START_RE.match(cleaned)
+        if match:
+            if current_term and collected:
+                entries[current_term] = _finalise_definition(collected)
+            current_term = _strip_quotes(match.group("term"))
+            collected = [match.group("definition").strip()]
+            continue
+
+        if current_term:
+            collected.append(cleaned)
+
+    if current_term and collected:
+        entries[current_term] = _finalise_definition(collected)
+
+    return entries
+
+
+_DEFAULT_GLOSSARY_REGISTRY = GlossaryRegistry()
 
 
 # ``section_parser`` is optional – tests may monkeypatch it. If it's not
@@ -127,10 +324,15 @@ def _dedupe_principles(values: Iterable[str]) -> List[str]:
     return unique
 
 
-def _rules_to_atoms(rules) -> List[RuleAtom]:
+def _rules_to_atoms(
+    rules, glossary_registry: Optional[GlossaryRegistry] = None
+) -> List[RuleAtom]:
     rule_atoms: List[RuleAtom] = []
     module_lookup_gloss = getattr(
         sys.modules.get(__name__), "lookup_gloss", lookup_gloss
+    )
+    registry = (
+        glossary_registry if glossary_registry is not None else GlossaryRegistry()
     )
     for r in rules:
         actor = getattr(r, "actor", None)
@@ -151,6 +353,21 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
         text = " ".join(part.strip() for part in text_parts if part).strip() or None
         text = _normalize_principle_text(text)
 
+        subject_gloss = who_text or actor or None
+        subject_metadata: Optional[Dict[str, Any]] = None
+        subject_glossary_id: Optional[int] = None
+        if registry is not None:
+            subject_entry: Optional[GlossaryRecord] = None
+            for candidate in (who_text, actor, party):
+                if candidate:
+                    subject_entry = registry.resolve(candidate)
+                    if subject_entry:
+                        break
+            if subject_entry:
+                subject_gloss = subject_entry.definition
+                subject_metadata = _clone_metadata(subject_entry.metadata)
+                subject_glossary_id = subject_entry.id
+
         rule_atom = RuleAtom(
             atom_type="rule",
             role="principle",
@@ -163,7 +380,9 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
             conditions=conditions,
             scope=scope,
             text=text,
-            subject_gloss=who_text or actor or None,
+            subject_gloss=subject_gloss,
+            subject_gloss_metadata=subject_metadata,
+            glossary_id=subject_glossary_id,
         )
 
         rule_atom.subject = Atom(
@@ -176,6 +395,7 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
             text=rule_atom.text,
             gloss=rule_atom.subject_gloss,
             gloss_metadata=rule_atom.subject_gloss_metadata,
+            glossary_id=rule_atom.glossary_id,
         )
 
         for role, fragments in (getattr(r, "elements", None) or {}).items():
@@ -183,9 +403,24 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
                 if not fragment:
                     continue
                 gloss_entry = module_lookup_gloss(fragment)
+                resolved_entry: Optional[GlossaryRecord] = None
+                if registry is not None and gloss_entry:
+                    resolved_entry = registry.register_definition(
+                        gloss_entry.phrase,
+                        gloss_entry.text,
+                        gloss_entry.metadata,
+                    )
+                if registry is not None and resolved_entry is None:
+                    resolved_entry = registry.resolve(fragment)
+
                 gloss_text = who_text or fragment
                 gloss_metadata = None
-                if gloss_entry:
+                glossary_id = None
+                if resolved_entry:
+                    gloss_text = resolved_entry.definition
+                    gloss_metadata = _clone_metadata(resolved_entry.metadata)
+                    glossary_id = resolved_entry.id
+                elif gloss_entry:
                     gloss_text = gloss_entry.text
                     if gloss_entry.metadata is not None:
                         gloss_metadata = dict(gloss_entry.metadata)
@@ -196,6 +431,7 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
                         conditions=conditions if role == "circumstance" else None,
                         gloss=gloss_text,
                         gloss_metadata=gloss_metadata,
+                        glossary_id=glossary_id,
                         atom_type="element",
                     )
                 )
@@ -334,6 +570,7 @@ def build_document(
     jurisdiction: Optional[str] = None,
     citation: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
+    glossary_registry: Optional[GlossaryRegistry] = None,
 ) -> Document:
     """Create a :class:`Document` from extracted pages."""
 
@@ -345,6 +582,12 @@ def build_document(
         cultural_flags=cultural_flags,
         provenance=str(source),
     )
+
+    registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
+
+    definitions = _extract_definition_entries(body)
+    for term, definition in definitions.items():
+        registry.register_definition(term, definition)
 
     provisions = parse_sections(body)
     if not provisions:
@@ -381,7 +624,7 @@ def build_document(
     for prov in provisions:
         prov.ensure_rule_atoms()
         rules = extract_rules(prov.text)
-        rule_atoms = _rules_to_atoms(rules)
+        rule_atoms = _rules_to_atoms(rules, glossary_registry=registry)
         prov.rule_atoms.extend(rule_atoms)
         prov.sync_legacy_atoms()
         existing = _dedupe_principles(prov.principles)
@@ -419,8 +662,26 @@ def process_pdf(
     if doc_id is not None and db_path is None:
         raise ValueError("A database path must be provided when specifying --doc-id")
 
-    pages = extract_pdf_text(pdf)
-    doc = build_document(pages, pdf, jurisdiction, citation, cultural_flags)
+    storage: Optional[Storage] = None
+    registry: Optional[GlossaryRegistry] = None
+    try:
+        if db_path:
+            storage = Storage(db_path)
+        registry = GlossaryRegistry(storage)
+        pages = extract_pdf_text(pdf)
+        doc = build_document(
+            pages,
+            pdf,
+            jurisdiction,
+            citation,
+            cultural_flags,
+            glossary_registry=registry,
+        )
+    finally:
+        if registry is not None:
+            registry.close()
+        if storage is not None:
+            storage.close()
     out = output or Path("data/pdfs") / (pdf.stem + ".json")
 
     stored_doc_id: Optional[int] = None
