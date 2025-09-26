@@ -18,6 +18,7 @@ class Atom:
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
     gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the atom to a dictionary."""
@@ -35,6 +36,7 @@ class Atom:
             "gloss_metadata": (
                 dict(self.gloss_metadata) if self.gloss_metadata is not None else None
             ),
+            "glossary_id": self.glossary_id,
         }
 
     @classmethod
@@ -56,6 +58,7 @@ class Atom:
                 if "gloss_metadata" in data and data["gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
         )
 
 
@@ -103,6 +106,7 @@ class RuleElement:
     conditions: Optional[str] = None
     gloss: Optional[str] = None
     gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
     references: List[RuleReference] = field(default_factory=list)
     atom_type: Optional[str] = None
 
@@ -115,6 +119,7 @@ class RuleElement:
             "gloss_metadata": (
                 dict(self.gloss_metadata) if self.gloss_metadata is not None else None
             ),
+            "glossary_id": self.glossary_id,
             "references": [ref.to_dict() for ref in self.references],
             "atom_type": self.atom_type,
         }
@@ -131,6 +136,7 @@ class RuleElement:
                 if "gloss_metadata" in data and data["gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             atom_type=data.get("atom_type"),
         )
@@ -185,6 +191,7 @@ class RuleAtom:
     text: Optional[str] = None
     subject_gloss: Optional[str] = None
     subject_gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
     subject: Optional[Atom] = None
     references: List[RuleReference] = field(default_factory=list)
     elements: List[RuleElement] = field(default_factory=list)
@@ -210,6 +217,7 @@ class RuleAtom:
                 if self.subject_gloss_metadata is not None
                 else None
             ),
+            "glossary_id": self.glossary_id,
             "subject": self.subject.to_dict() if self.subject is not None else None,
             "references": [ref.to_dict() for ref in self.references],
             "elements": [element.to_dict() for element in self.elements],
@@ -238,6 +246,7 @@ class RuleAtom:
                 and data["subject_gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
             subject=(Atom.from_dict(data["subject"]) if data.get("subject") else None),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             elements=[RuleElement.from_dict(e) for e in data.get("elements", [])],
@@ -285,6 +294,11 @@ class RuleAtom:
             if base_atom and base_atom.gloss_metadata is not None
             else self.subject_gloss_metadata
         )
+        glossary_id = (
+            base_atom.glossary_id
+            if base_atom and base_atom.glossary_id is not None
+            else self.glossary_id
+        )
         if base_atom and base_atom.refs:
             refs = list(base_atom.refs)
         else:
@@ -300,6 +314,7 @@ class RuleAtom:
             refs=refs,
             gloss=gloss,
             gloss_metadata=gloss_metadata,
+            glossary_id=glossary_id,
         )
 
     def to_atoms(self) -> List[Atom]:
@@ -320,6 +335,7 @@ class RuleAtom:
                 refs=list(subject_atom.refs),
                 gloss=subject_atom.gloss,
                 gloss_metadata=subject_atom.gloss_metadata,
+                glossary_id=subject_atom.glossary_id,
             )
         )
 
@@ -336,6 +352,7 @@ class RuleAtom:
                     refs=[ref.to_legacy_text() for ref in element.references],
                     gloss=element.gloss,
                     gloss_metadata=element.gloss_metadata,
+                    glossary_id=element.glossary_id,
                 )
             )
 
@@ -350,6 +367,7 @@ class RuleAtom:
                     text=lint.message,
                     gloss=subject_atom.gloss,
                     gloss_metadata=lint.metadata,
+                    glossary_id=subject_atom.glossary_id,
                 )
             )
 

@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS atoms (
     refs TEXT,
     gloss TEXT,
     gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
     FOREIGN KEY (doc_id, rev_id, provision_id)
         REFERENCES provisions(doc_id, rev_id, provision_id)
@@ -174,6 +175,7 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
     text TEXT,
     subject_gloss TEXT,
     subject_gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
     FOREIGN KEY (doc_id, rev_id, provision_id)
         REFERENCES provisions(doc_id, rev_id, provision_id),
@@ -202,6 +204,7 @@ CREATE TABLE IF NOT EXISTS rule_atom_subjects (
     refs TEXT,
     gloss TEXT,
     gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -240,6 +243,7 @@ CREATE TABLE IF NOT EXISTS rule_elements (
     conditions TEXT,
     gloss TEXT,
     gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)

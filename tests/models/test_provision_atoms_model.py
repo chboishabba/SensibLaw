@@ -12,6 +12,7 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
         text="must pay damages",
         refs=["s 10"],
         gloss="Obligation to compensate",
+        glossary_id=3,
     )
     provision = Provision(text="Damages provision", atoms=[atom])
 
