@@ -182,6 +182,7 @@ class RuleAtom:
     """A richer representation of a rule with associated fragments."""
 
     toc_id: Optional[int] = None
+    stable_id: Optional[str] = None
     atom_type: Optional[str] = "rule"
     role: Optional[str] = None
     party: Optional[str] = None
@@ -204,6 +205,7 @@ class RuleAtom:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "toc_id": self.toc_id,
+            "stable_id": self.stable_id,
             "atom_type": self.atom_type,
             "role": self.role,
             "party": self.party,
@@ -232,6 +234,7 @@ class RuleAtom:
     def from_dict(cls, data: Dict[str, Any]) -> "RuleAtom":
         return cls(
             toc_id=data.get("toc_id"),
+            stable_id=data.get("stable_id"),
             atom_type=data.get("atom_type"),
             role=data.get("role"),
             party=data.get("party"),
@@ -387,6 +390,7 @@ class Provision:
     heading: Optional[str] = None
     node_type: Optional[str] = None
     toc_id: Optional[int] = None
+    stable_id: Optional[str] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
     cultural_flags: List[str] = field(default_factory=list)
     references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
@@ -410,6 +414,7 @@ class Provision:
             "heading": self.heading,
             "node_type": self.node_type,
             "toc_id": self.toc_id,
+            "stable_id": self.stable_id,
             "rule_tokens": dict(self.rule_tokens),
             "cultural_flags": list(self.cultural_flags),
             "references": [tuple(ref) for ref in self.references],
@@ -429,6 +434,7 @@ class Provision:
             heading=data.get("heading"),
             node_type=data.get("node_type"),
             toc_id=data.get("toc_id"),
+            stable_id=data.get("stable_id"),
             rule_tokens=dict(data.get("rule_tokens", {})),
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
@@ -490,6 +496,8 @@ class Provision:
             for rule_atom in self.rule_atoms:
                 if rule_atom.toc_id is None:
                     rule_atom.toc_id = self.toc_id
+                if rule_atom.stable_id is None:
+                    rule_atom.stable_id = self.stable_id
 
     def sync_legacy_atoms(self) -> None:
         """Refresh ``atoms`` based on the structured rule representation."""
