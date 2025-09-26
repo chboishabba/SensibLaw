@@ -25,7 +25,7 @@ _CULTURAL_OVERLAY = get_default_overlay()
 # available, a trivial fallback is used which treats the entire body as a single
 # provision.
 try:  # pragma: no cover - executed conditionally
-    from . import section_parser  # type: ignore
+    from .ingestion import section_parser  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     section_parser = None  # type: ignore
 from . import section_parser
@@ -157,6 +157,68 @@ def _build_provisions_from_nodes(nodes) -> List[Provision]:
     return [_build_provision_from_node(node) for node in nodes]
 
 
+_SECTION_HEADING_RE = re.compile(
+    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
+)
+
+
+def _iter_section_provisions(provisions: List[Provision]):
+    for provision in provisions:
+        if provision.node_type == "section":
+            yield provision
+        for child in _iter_section_provisions(provision.children):
+            yield child
+
+
+def _fallback_parse_sections(text: str) -> List[Provision]:
+    matches = list(_SECTION_HEADING_RE.finditer(text))
+    if not matches:
+        return [Provision(text=text)]
+
+    sections: List[Provision] = []
+    prefix = text[: matches[0].start()].strip()
+
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+
+        identifier = match.group("identifier").strip()
+        heading = match.group("heading").strip()
+
+        parts: List[str] = []
+        if index == 0 and prefix:
+            parts.append(prefix)
+        parts.append(heading)
+        if body:
+            parts.append(body)
+
+        section_text = "\n".join(parts).strip()
+        sections.append(
+            Provision(
+                text=section_text,
+                identifier=identifier or None,
+                heading=heading or None,
+                node_type="section",
+            )
+        )
+
+    return sections
+
+
+def parse_sections(text: str) -> List[Provision]:
+    """Split ``text`` into individual section provisions."""
+
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        structured = _build_provisions_from_nodes(nodes)
+        sections = list(_iter_section_provisions(structured))
+        if sections:
+            return sections
+
+    return _fallback_parse_sections(text)
+
+
 def build_document(
     pages: List[dict],
     source: Path,
@@ -175,6 +237,7 @@ def build_document(
         provenance=str(source),
     )
 
+    provisions = parse_sections(body)
     if hasattr(section_parser, "parse_sections"):
         provisions = section_parser.parse_sections(body)
         if not provisions:
