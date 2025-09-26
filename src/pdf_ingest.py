@@ -267,22 +267,16 @@ def parse_sections(text: str) -> List[Provision]:
         return []
 
     parser_available = _has_section_parser()
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        pass
-
     if parser_available and section_parser and hasattr(
         section_parser, "parse_sections"
     ):
-    if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-        structured = _build_provisions_from_nodes(nodes)
+        structured = _build_provisions_from_nodes(nodes or [])
         sections = list(_iter_section_provisions(structured))
         if sections:
             return sections
         if structured:
             return structured
-
-    parser_available = _has_section_parser()
 
     logger.debug(
         "Falling back to regex-based section parsing (section_parser_available=%s, "
@@ -323,7 +317,7 @@ def build_document(
 
         parser_available = _has_section_parser()
         logger.debug(
-            "Section parsing yielded no provisions; using single provision fallback "
+            "Section parsing yielded no provisions; evaluating fallback options "
             "(section_parser_available=%s, optional_import_failed=%s, "
             "root_import_failed=%s, body_length=%s)",
             parser_available,
@@ -338,12 +332,19 @@ def build_document(
             },
         )
 
-        provisions = [Provision(text=body)]
-        if hasattr(section_parser, "parse_sections"):
-            provisions = section_parser.parse_sections(body)
-            if not provisions:
-                provisions = [Provision(text=body)]
-        else:  # Fallback: single provision containing entire body
+        if parser_available and section_parser:
+            try:
+                nodes = section_parser.parse_sections(body)
+            except Exception:  # pragma: no cover - defensive guard
+                nodes = []
+            structured = _build_provisions_from_nodes(nodes or [])
+            sections = list(_iter_section_provisions(structured))
+            if sections:
+                provisions = sections
+            elif structured:
+                provisions = structured
+
+        if not provisions:  # Fallback: single provision containing entire body
             provisions = [Provision(text=body)]
 
     for prov in provisions:
