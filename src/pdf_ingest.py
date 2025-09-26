@@ -9,11 +9,24 @@ from typing import List, Optional
 
 from pdfminer.high_level import extract_text
 
+from .culture.overlay import get_default_overlay
 from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
 from .rules.extractor import extract_rules
+
+
+_CULTURAL_OVERLAY = get_default_overlay()
+
+
+# ``section_parser`` is optional – tests may monkeypatch it. If it's not
+# available, a trivial fallback is used which treats the entire body as a single
+# provision.
+try:  # pragma: no cover - executed conditionally
+    from . import section_parser  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    section_parser = None  # type: ignore
 from . import section_parser
 
 
@@ -134,7 +147,9 @@ def build_document(
         prov.atoms.extend(atoms)
         prov.principles.extend([atom.text for atom in atoms if atom.text])
 
-    return Document(metadata=metadata, body=body, provisions=provisions)
+    document = Document(metadata=metadata, body=body, provisions=provisions)
+    _CULTURAL_OVERLAY.apply(document)
+    return document
 
 
 def save_document(doc: Document, output_path: Path) -> None:
