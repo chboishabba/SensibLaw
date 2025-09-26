@@ -286,6 +286,7 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "text_hash", "TEXT")
         self._ensure_column("rule_elements", "text_hash", "TEXT")
         self._populate_text_hashes()
+        self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
         self._backfill_rule_tables()
@@ -413,6 +414,99 @@ class VersionedStore:
                         row["rule_id"],
                         row["element_id"],
                     ),
+                )
+
+    def _deduplicate_rule_atoms(self) -> None:
+        """Remove duplicated rule atoms prior to enforcing uniqueness."""
+
+        with self.conn:
+            duplicate_groups = self.conn.execute(
+                """
+                SELECT doc_id, rev_id, provision_id, text_hash
+                FROM rule_atoms
+                GROUP BY doc_id, rev_id, provision_id, text_hash
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+
+            for group in duplicate_groups:
+                doc_id = group["doc_id"]
+                rev_id = group["rev_id"]
+                provision_id = group["provision_id"]
+
+                rule_rows = self.conn.execute(
+                    """
+                    SELECT rule_id
+                    FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND text_hash = ?
+                    ORDER BY rule_id
+                    """,
+                    (doc_id, rev_id, provision_id, group["text_hash"]),
+                ).fetchall()
+
+                if not rule_rows:
+                    continue
+
+                duplicate_rule_ids = [row["rule_id"] for row in rule_rows[1:]]
+
+                if not duplicate_rule_ids:
+                    continue
+
+                placeholders = ",".join("?" for _ in duplicate_rule_ids)
+                params = (
+                    doc_id,
+                    rev_id,
+                    provision_id,
+                    *duplicate_rule_ids,
+                )
+
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_element_references
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_elements
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atom_references
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_lints
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atom_subjects
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
                 )
 
     def _compute_rule_atom_hash(
@@ -653,7 +747,8 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            # Migration: ensure the revisions table has a document_json column
+            )
+        # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
         }
