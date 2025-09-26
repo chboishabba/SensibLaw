@@ -13,15 +13,7 @@ from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
 from .rules.extractor import extract_rules
-
-
-# ``section_parser`` is optional – tests may monkeypatch it. If it's not
-# available, a trivial fallback is used which treats the entire body as a single
-# provision.
-try:  # pragma: no cover - executed conditionally
-    from . import section_parser  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
-    section_parser = None  # type: ignore
+from . import section_parser
 
 
 def extract_pdf_text(pdf_path: Path) -> List[dict]:
@@ -103,26 +95,6 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     )
                 )
     return atoms
-
-
-def _build_provision_from_node(node) -> Provision:
-    provision = Provision(
-        text=getattr(node, "text", ""),
-        identifier=getattr(node, "identifier", None),
-        heading=getattr(node, "heading", None),
-        node_type=getattr(node, "node_type", None),
-        rule_tokens=dict(getattr(node, "rule_tokens", {})),
-    )
-    provision.children = [
-        _build_provision_from_node(child) for child in getattr(node, "children", [])
-    ]
-    return provision
-
-
-def _build_provisions_from_nodes(nodes) -> List[Provision]:
-    return [_build_provision_from_node(node) for node in nodes]
-
-
 def build_document(
     pages: List[dict],
     source: Path,
@@ -141,9 +113,10 @@ def build_document(
         provenance=str(source),
     )
 
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        structured = section_parser.parse_sections(body)  # type: ignore[attr-defined]
-        provisions = _build_provisions_from_nodes(structured)
+    if hasattr(section_parser, "parse_sections"):
+        provisions = section_parser.parse_sections(body)
+        if not provisions:
+            provisions = [Provision(text=body)]
     else:  # Fallback: single provision containing entire body
         provisions = [Provision(text=body)]
 
