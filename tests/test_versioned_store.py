@@ -119,9 +119,9 @@ def test_atom_references_join_table(tmp_path: Path):
         rows = store.conn.execute(
             """
             SELECT citation_text
-            FROM atom_references
+            FROM rule_atom_references
             WHERE doc_id = ? AND rev_id = ?
-            ORDER BY provision_id, atom_id, ref_index
+            ORDER BY provision_id, rule_id, ref_index
             """,
             (doc_id, 2),
         ).fetchall()
@@ -178,17 +178,28 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         assert provision_rows
         assert provision_rows[0]["identifier"] in {"1", None}
 
-        atom_rows = store.conn.execute(
+        rule_atom_rows = store.conn.execute(
             """
-            SELECT type, text
-            FROM atoms
+            SELECT atom_type, text
+            FROM rule_atoms
             WHERE doc_id = ? AND rev_id = ?
-            ORDER BY atom_id
+            ORDER BY rule_id
             """,
             (stored_doc_id, 1),
         ).fetchall()
-        assert atom_rows
-        assert any(row["type"] == "rule" for row in atom_rows)
+        assert rule_atom_rows
+        assert any(row["atom_type"] == "rule" for row in rule_atom_rows)
+
+        rule_element_rows = store.conn.execute(
+            """
+            SELECT role, text
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY rule_id, element_id
+            """,
+            (stored_doc_id, 1),
+        ).fetchall()
+        assert rule_element_rows
 
         snapshot = store.snapshot(stored_doc_id, document.metadata.date)
         assert snapshot is not None

@@ -15,7 +15,7 @@ from .culture.overlay import get_default_overlay
 from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
-from .models.provision import Atom
+from .models.provision import RuleAtom, RuleElement, RuleLint
 from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
 from .storage.versioned_store import VersionedStore
@@ -127,9 +127,11 @@ def _dedupe_principles(values: Iterable[str]) -> List[str]:
     return unique
 
 
-def _rules_to_atoms(rules) -> List[Atom]:
-    atoms: List[Atom] = []
-    module_lookup_gloss = getattr(sys.modules.get(__name__), "lookup_gloss", lookup_gloss)
+def _rules_to_atoms(rules) -> List[RuleAtom]:
+    rule_atoms: List[RuleAtom] = []
+    module_lookup_gloss = getattr(
+        sys.modules.get(__name__), "lookup_gloss", lookup_gloss
+    )
     for r in rules:
         actor = getattr(r, "actor", None)
         party = getattr(r, "party", None) or UNKNOWN_PARTY
@@ -149,17 +151,19 @@ def _rules_to_atoms(rules) -> List[Atom]:
         text = " ".join(part.strip() for part in text_parts if part).strip() or None
         text = _normalize_principle_text(text)
 
-        atoms.append(
-            Atom(
-                type="rule",
-                role="principle",
-                party=party,
-                who=party,
-                who_text=who_text,
-                conditions=conditions,
-                text=text,
-                gloss=who_text or actor or None,
-            )
+        rule_atom = RuleAtom(
+            atom_type="rule",
+            role="principle",
+            party=party,
+            who=party,
+            who_text=who_text,
+            actor=actor,
+            modality=getattr(r, "modality", None),
+            action=getattr(r, "action", None),
+            conditions=conditions,
+            scope=scope,
+            text=text,
+            subject_gloss=who_text or actor or None,
         )
 
         for role, fragments in (getattr(r, "elements", None) or {}).items():
@@ -173,32 +177,27 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     gloss_text = gloss_entry.text
                     if gloss_entry.metadata is not None:
                         gloss_metadata = dict(gloss_entry.metadata)
-                atoms.append(
-                    Atom(
-                        type="element",
+                rule_atom.elements.append(
+                    RuleElement(
                         role=role,
-                        party=party,
-                        who=party,
-                        who_text=who_text,
-                        conditions=conditions if role == "circumstance" else None,
                         text=fragment,
+                        conditions=conditions if role == "circumstance" else None,
                         gloss=gloss_text,
                         gloss_metadata=gloss_metadata,
+                        atom_type="element",
                     )
                 )
         if party == UNKNOWN_PARTY:
-            atoms.append(
-                Atom(
-                    type="lint",
-                    role="unknown_party",
-                    text=f"Unclassified actor: {actor}".strip(),
-                    party=UNKNOWN_PARTY,
-                    who=UNKNOWN_PARTY,
-                    who_text=who_text or actor or None,
-                    gloss=who_text or actor or None,
+            rule_atom.lints.append(
+                RuleLint(
+                    code="unknown_party",
+                    message=f"Unclassified actor: {actor}".strip(),
+                    atom_type="lint",
                 )
             )
-    return atoms
+        rule_atoms.append(rule_atom)
+
+    return rule_atoms
 
 
 def _build_provision_from_node(node) -> Provision:
@@ -368,13 +367,15 @@ def build_document(
             )
 
     for prov in provisions:
+        prov.ensure_rule_atoms()
         rules = extract_rules(prov.text)
-        atoms = _rules_to_atoms(rules)
-        prov.atoms.extend(atoms)
+        rule_atoms = _rules_to_atoms(rules)
+        prov.rule_atoms.extend(rule_atoms)
+        prov.sync_legacy_atoms()
         existing = _dedupe_principles(prov.principles)
         prov.principles = existing
         rule_principles = _dedupe_principles(
-            atom.text for atom in atoms if atom.type == "rule" and atom.text
+            atom.text for atom in prov.atoms if atom.type == "rule" and atom.text
         )
         merged = _dedupe_principles([*existing, *rule_principles])
         prov.principles = merged

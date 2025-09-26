@@ -12,8 +12,9 @@ from src.rules.extractor import extract_rules
 
 def _rules_and_atoms(text: str):
     rules = extract_rules(text)
-    atoms = _rules_to_atoms(rules)
-    return rules, atoms
+    rule_atoms = _rules_to_atoms(rules)
+    legacy_atoms = [atom for rule in rule_atoms for atom in rule.to_atoms()]
+    return rules, rule_atoms, legacy_atoms
 
 
 def _first_atom_of_type(atoms, atom_type):
@@ -22,13 +23,16 @@ def _first_atom_of_type(atoms, atom_type):
 
 def test_offence_clause_classified_as_defence():
     text = "A person is guilty of theft if they dishonestly appropriate property."
-    rules, atoms = _rules_and_atoms(text)
+    rules, rule_atoms, atoms = _rules_and_atoms(text)
 
     assert rules
     rule = rules[0]
     assert rule.party == "defence"
     assert rule.role == "accused"
     assert rule.who_text == "the accused"
+
+    assert rule_atoms[0].party == "defence"
+    assert rule_atoms[0].subject_gloss == "the accused"
 
     principle = _first_atom_of_type(atoms, "rule")
     assert principle.who == "defence"
@@ -37,13 +41,16 @@ def test_offence_clause_classified_as_defence():
 
 def test_sentencing_clause_classified_as_court():
     text = "The court must consider the victim impact statement before sentencing."
-    rules, atoms = _rules_and_atoms(text)
+    rules, rule_atoms, atoms = _rules_and_atoms(text)
 
     assert rules
     rule = rules[0]
     assert rule.party == "court"
     assert rule.role == "decision_maker"
     assert rule.who_text == "the court"
+
+    assert rule_atoms[0].party == "court"
+    assert rule_atoms[0].subject_gloss == "the court"
 
     principle = _first_atom_of_type(atoms, "rule")
     assert principle.who == "court"
@@ -52,11 +59,13 @@ def test_sentencing_clause_classified_as_court():
 
 def test_unknown_actor_triggers_lint_atom():
     text = "The spaceship must register with the ministry."
-    rules, atoms = _rules_and_atoms(text)
+    rules, rule_atoms, atoms = _rules_and_atoms(text)
 
     assert rules
     rule = rules[0]
     assert rule.party == UNKNOWN_PARTY
+
+    assert rule_atoms[0].party == UNKNOWN_PARTY
 
     principle = _first_atom_of_type(atoms, "rule")
     assert principle.who == UNKNOWN_PARTY
