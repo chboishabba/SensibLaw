@@ -154,6 +154,29 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
 ON rule_atoms(doc_id, rev_id, provision_id);
 
+CREATE TABLE IF NOT EXISTS rule_atom_subjects (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    type TEXT,
+    role TEXT,
+    party TEXT,
+    who TEXT,
+    who_text TEXT,
+    text TEXT,
+    conditions TEXT,
+    refs TEXT,
+    gloss TEXT,
+    gloss_metadata TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+        REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
+ON rule_atom_subjects(doc_id, rev_id, provision_id);
+
 CREATE TABLE IF NOT EXISTS rule_atom_references (
     doc_id INTEGER NOT NULL,
     rev_id INTEGER NOT NULL,

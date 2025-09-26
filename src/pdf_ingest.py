@@ -15,7 +15,7 @@ from .culture.overlay import get_default_overlay
 from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
-from .models.provision import RuleAtom, RuleElement, RuleLint
+from .models.provision import Atom, RuleAtom, RuleElement, RuleLint
 from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
 from .storage.versioned_store import VersionedStore
@@ -164,6 +164,18 @@ def _rules_to_atoms(rules) -> List[RuleAtom]:
             scope=scope,
             text=text,
             subject_gloss=who_text or actor or None,
+        )
+
+        rule_atom.subject = Atom(
+            type=rule_atom.atom_type,
+            role=rule_atom.role,
+            party=rule_atom.party,
+            who=rule_atom.who,
+            who_text=rule_atom.who_text,
+            conditions=rule_atom.conditions,
+            text=rule_atom.text,
+            gloss=rule_atom.subject_gloss,
+            gloss_metadata=rule_atom.subject_gloss_metadata,
         )
 
         for role, fragments in (getattr(r, "elements", None) or {}).items():
