@@ -21,7 +21,15 @@ def test_rule_extraction(monkeypatch, tmp_path):
 
     def fake_parse_sections(text):
         body = text.split("\n", 1)[1] if "\n" in text else text
-        return [Provision(text=body)]
+        node = types.SimpleNamespace(
+            text=body,
+            identifier="1",
+            heading="Heading",
+            node_type="section",
+            rule_tokens={"modality": "must", "conditions": [], "references": []},
+            children=[],
+        )
+        return [node]
 
     monkeypatch.setattr(
         pdf_ingest,

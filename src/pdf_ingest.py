@@ -84,6 +84,24 @@ def _rules_to_strings(rules) -> List[str]:
     return texts
 
 
+def _build_provision_from_node(node) -> Provision:
+    provision = Provision(
+        text=getattr(node, "text", ""),
+        identifier=getattr(node, "identifier", None),
+        heading=getattr(node, "heading", None),
+        node_type=getattr(node, "node_type", None),
+        rule_tokens=dict(getattr(node, "rule_tokens", {})),
+    )
+    provision.children = [
+        _build_provision_from_node(child) for child in getattr(node, "children", [])
+    ]
+    return provision
+
+
+def _build_provisions_from_nodes(nodes) -> List[Provision]:
+    return [_build_provision_from_node(node) for node in nodes]
+
+
 def build_document(
     pages: List[dict],
     source: Path,
@@ -103,7 +121,8 @@ def build_document(
     )
 
     if section_parser and hasattr(section_parser, "parse_sections"):
-        provisions = section_parser.parse_sections(body)  # type: ignore[attr-defined]
+        structured = section_parser.parse_sections(body)  # type: ignore[attr-defined]
+        provisions = _build_provisions_from_nodes(structured)
     else:  # Fallback: single provision containing entire body
         provisions = [Provision(text=body)]
 
