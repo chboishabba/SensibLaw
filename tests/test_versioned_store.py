@@ -322,6 +322,87 @@ def test_rule_atoms_deduplicated_by_text_hash(tmp_path: Path):
         store.close()
 
 
+def test_migration_removes_duplicate_rule_atoms(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    db_path = store.path
+    try:
+        provision_row = store.conn.execute(
+            """
+            SELECT provision_id, rule_id
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            LIMIT 1
+            """,
+            (doc_id, 2),
+        ).fetchone()
+        assert provision_row is not None
+        provision_id = provision_row["provision_id"]
+        base_rule_id = provision_row["rule_id"]
+
+        store.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
+
+        duplicate_rule_id = base_rule_id + 100
+
+        store.conn.execute(
+            """
+            INSERT INTO rule_atoms (
+                doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, atom_type,
+                role, party, who, who_text, actor, modality, action, conditions,
+                scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+            )
+            SELECT doc_id, rev_id, provision_id, ?, text_hash, toc_id, atom_type,
+                   role, party, who, who_text, actor, modality, action, conditions,
+                   scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+            """,
+            (duplicate_rule_id, doc_id, 2, provision_id, base_rule_id),
+        )
+
+        store.conn.execute(
+            """
+            INSERT INTO rule_atom_subjects (
+                doc_id, rev_id, provision_id, rule_id, type, role, party, who,
+                who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
+            )
+            SELECT doc_id, rev_id, provision_id, ?, type, role, party, who,
+                   who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+            """,
+            (duplicate_rule_id, doc_id, 2, provision_id, base_rule_id),
+        )
+
+        store.conn.commit()
+    finally:
+        store.close()
+
+    migrated = VersionedStore(db_path)
+    try:
+        rule_atom_count = migrated.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+            """,
+            (doc_id, 2, provision_id),
+        ).fetchone()[0]
+        assert rule_atom_count == 1
+
+        subject_count = migrated.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+            """,
+            (doc_id, 2, provision_id),
+        ).fetchone()[0]
+        assert subject_count == 1
+    finally:
+        migrated.close()
+
+
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 sample")
