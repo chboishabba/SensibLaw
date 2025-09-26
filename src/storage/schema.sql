@@ -128,6 +128,24 @@ CREATE TABLE IF NOT EXISTS atoms (
 CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
 ON atoms(doc_id, rev_id, provision_id);
 
+CREATE TABLE IF NOT EXISTS atom_references (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    atom_id INTEGER NOT NULL,
+    ref_index INTEGER NOT NULL,
+    work TEXT,
+    section TEXT,
+    pinpoint TEXT,
+    citation_text TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id, ref_index),
+    FOREIGN KEY (doc_id, rev_id, provision_id, atom_id)
+        REFERENCES atoms(doc_id, rev_id, provision_id, atom_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
+ON atom_references(doc_id, rev_id, provision_id, atom_id);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
     body, metadata, content='revisions', content_rowid='rowid'
 );

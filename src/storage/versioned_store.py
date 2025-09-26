@@ -88,6 +88,24 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
                 ON atoms(doc_id, rev_id, provision_id);
 
+                CREATE TABLE IF NOT EXISTS atom_references (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    atom_id INTEGER NOT NULL,
+                    ref_index INTEGER NOT NULL,
+                    work TEXT,
+                    section TEXT,
+                    pinpoint TEXT,
+                    citation_text TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id, ref_index),
+                    FOREIGN KEY (doc_id, rev_id, provision_id, atom_id)
+                        REFERENCES atoms(doc_id, rev_id, provision_id, atom_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
+                ON atom_references(doc_id, rev_id, provision_id, atom_id);
+
                 CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
                     body, metadata, content='revisions', content_rowid='rowid'
                 );
@@ -101,13 +119,10 @@ class VersionedStore:
 
             # Migration: ensure the revisions table has a document_json column
             columns = {
-                row["name"]
-                for row in self.conn.execute("PRAGMA table_info(revisions)")
+                row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
             }
             if "document_json" not in columns:
-                self.conn.execute(
-                    "ALTER TABLE revisions ADD COLUMN document_json TEXT"
-                )
+                self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
     # ------------------------------------------------------------------
     # ID generation and revision storage
@@ -256,6 +271,10 @@ class VersionedStore:
         """Persist provision and atom data for a revision."""
 
         self.conn.execute(
+            "DELETE FROM atom_references WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
+        self.conn.execute(
             "DELETE FROM atoms WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
         )
@@ -276,18 +295,14 @@ class VersionedStore:
 
             references_json = None
             if provision.references:
-                references_json = json.dumps([
-                    list(ref) for ref in provision.references
-                ])
+                references_json = json.dumps(
+                    [list(ref) for ref in provision.references]
+                )
             principles_json = (
-                json.dumps(list(provision.principles))
-                if provision.principles
-                else None
+                json.dumps(list(provision.principles)) if provision.principles else None
             )
             customs_json = (
-                json.dumps(list(provision.customs))
-                if provision.customs
-                else None
+                json.dumps(list(provision.customs)) if provision.customs else None
             )
             cultural_flags_json = (
                 json.dumps(list(provision.cultural_flags))
@@ -313,7 +328,9 @@ class VersionedStore:
                     provision.heading,
                     provision.node_type,
                     provision.text,
-                    json.dumps(provision.rule_tokens) if provision.rule_tokens else None,
+                    json.dumps(provision.rule_tokens)
+                    if provision.rule_tokens
+                    else None,
                     references_json,
                     principles_json,
                     customs_json,
@@ -322,7 +339,6 @@ class VersionedStore:
             )
 
             for atom_index, atom in enumerate(provision.atoms, start=1):
-                refs_json = json.dumps(list(atom.refs)) if atom.refs else None
                 gloss_metadata_json = (
                     json.dumps(atom.gloss_metadata)
                     if atom.gloss_metadata is not None
@@ -349,11 +365,64 @@ class VersionedStore:
                         atom.who_text,
                         atom.text,
                         atom.conditions,
-                        refs_json,
+                        None,
                         atom.gloss,
                         gloss_metadata_json,
                     ),
                 )
+
+                if atom.refs:
+                    for ref_index, ref in enumerate(atom.refs, start=1):
+                        work = None
+                        section = None
+                        pinpoint = None
+                        citation_text = None
+
+                        if isinstance(ref, dict):
+                            work = ref.get("work")
+                            section = ref.get("section")
+                            pinpoint = ref.get("pinpoint")
+                            citation_text = (
+                                ref.get("citation_text")
+                                or ref.get("text")
+                                or ref.get("citation")
+                            )
+                        elif isinstance(ref, (list, tuple)):
+                            # Support positional data when provided as an iterable.
+                            parts = list(ref)
+                            if parts:
+                                work = parts[0]
+                            if len(parts) > 1:
+                                section = parts[1]
+                            if len(parts) > 2:
+                                pinpoint = parts[2]
+                            if len(parts) > 3:
+                                citation_text = parts[3]
+                            elif len(parts) == 3:
+                                citation_text = parts[2]
+                        else:
+                            citation_text = str(ref)
+
+                        self.conn.execute(
+                            """
+                            INSERT INTO atom_references (
+                                doc_id, rev_id, provision_id, atom_id, ref_index,
+                                work, section, pinpoint, citation_text
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                doc_id,
+                                rev_id,
+                                current_id,
+                                atom_index,
+                                ref_index,
+                                work,
+                                section,
+                                pinpoint,
+                                citation_text,
+                            ),
+                        )
 
             for child in provision.children:
                 visit(child, current_id)
@@ -391,9 +460,36 @@ class VersionedStore:
             (doc_id, rev_id),
         ).fetchall()
 
+        atom_reference_rows = self.conn.execute(
+            """
+            SELECT provision_id, atom_id, ref_index, work, section, pinpoint, citation_text
+            FROM atom_references
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, atom_id, ref_index
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+
+        refs_by_atom: dict[tuple[int, int], List[str]] = {}
+        for ref_row in atom_reference_rows:
+            key = (ref_row["provision_id"], ref_row["atom_id"])
+            ref_text = ref_row["citation_text"]
+            if not ref_text:
+                parts = [
+                    ref_row["work"],
+                    ref_row["section"],
+                    ref_row["pinpoint"],
+                ]
+                ref_text = " ".join(part for part in parts if part)
+            refs_by_atom.setdefault(key, []).append(ref_text or "")
+
         atoms_by_provision: dict[int, List[Atom]] = defaultdict(list)
         for atom_row in atom_rows:
-            refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
+            key = (atom_row["provision_id"], atom_row["atom_id"])
+            if key in refs_by_atom:
+                refs = list(refs_by_atom[key])
+            else:
+                refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
             gloss_metadata = (
                 json.loads(atom_row["gloss_metadata"])
                 if atom_row["gloss_metadata"]
@@ -419,7 +515,9 @@ class VersionedStore:
 
         for row in provision_rows:
             rule_tokens = json.loads(row["rule_tokens"]) if row["rule_tokens"] else {}
-            references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = []
+            references: List[
+                Tuple[str, Optional[str], Optional[str], Optional[str], str]
+            ] = []
             if row["references_json"]:
                 for ref in json.loads(row["references_json"]):
                     if isinstance(ref, list):
