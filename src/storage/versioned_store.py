@@ -3,11 +3,13 @@ from __future__ import annotations
 import sqlite3
 import json
 import difflib
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from ..models.document import Document, DocumentMetadata
+from ..models.provision import Atom, Provision
 
 
 class VersionedStore:
@@ -41,6 +43,50 @@ class VersionedStore:
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
+
+                CREATE TABLE IF NOT EXISTS provisions (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    identifier TEXT,
+                    heading TEXT,
+                    node_type TEXT,
+                    text TEXT,
+                    rule_tokens TEXT,
+                    references_json TEXT,
+                    principles TEXT,
+                    customs TEXT,
+                    cultural_flags TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
+                ON provisions(doc_id, rev_id, provision_id);
+
+                CREATE TABLE IF NOT EXISTS atoms (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    atom_id INTEGER NOT NULL,
+                    type TEXT,
+                    role TEXT,
+                    party TEXT,
+                    who TEXT,
+                    who_text TEXT,
+                    text TEXT,
+                    conditions TEXT,
+                    refs TEXT,
+                    gloss TEXT,
+                    gloss_metadata TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
+                    FOREIGN KEY (doc_id, rev_id, provision_id)
+                        REFERENCES provisions(doc_id, rev_id, provision_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
+                ON atoms(doc_id, rev_id, provision_id);
 
                 CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
                     body, metadata, content='revisions', content_rowid='rowid'
@@ -127,6 +173,7 @@ class VersionedStore:
                 "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
                 (document.body, metadata_json),
             )
+            self._store_provisions(doc_id, rev_id, document.provisions)
         return rev_id
 
     # ------------------------------------------------------------------
@@ -141,7 +188,8 @@ class VersionedStore:
         """
         row = self.conn.execute(
             """
-            SELECT metadata, body, document_json FROM revisions
+            SELECT rev_id, metadata, body, document_json
+            FROM revisions
             WHERE doc_id = ? AND effective_date <= ?
             ORDER BY effective_date DESC
             LIMIT 1
@@ -150,18 +198,20 @@ class VersionedStore:
         ).fetchone()
         if row is None:
             return None
-        if row["document_json"]:
-            return Document.from_json(row["document_json"])
-        metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
-        return Document(metadata=metadata, body=row["body"])
-        return self._document_from_row(row)
+        return self._load_document(
+            doc_id,
+            row["rev_id"],
+            row["metadata"],
+            row["body"],
+            row["document_json"],
+        )
 
     def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
         """Return the latest revision for a document by its canonical ID."""
 
         rows = self.conn.execute(
             """
-            SELECT r.metadata, r.body, r.document_json
+            SELECT r.doc_id, r.rev_id, r.metadata, r.body, r.document_json
             FROM revisions r
             JOIN (
                 SELECT doc_id, MAX(rev_id) AS rev_id
@@ -171,30 +221,250 @@ class VersionedStore:
             """
         )
         for row in rows:
-            if row["document_json"]:
-                document = Document.from_json(row["document_json"])
-                if document.metadata.canonical_id == canonical_id:
-                    return document
-                continue
-            metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
-            if metadata.canonical_id == canonical_id:
-                return Document(metadata=metadata, body=row["body"])
-            document = self._document_from_row(row)
+            document = self._load_document(
+                row["doc_id"],
+                row["rev_id"],
+                row["metadata"],
+                row["body"],
+                row["document_json"],
+            )
             if document.metadata.canonical_id == canonical_id:
                 return document
         return None
 
-    def _document_from_row(self, row: sqlite3.Row) -> Document:
-        """Deserialize a document row, preferring the stored JSON payload."""
+    def _load_document(
+        self,
+        doc_id: int,
+        rev_id: int,
+        metadata_json: str,
+        body: str,
+        document_json: Optional[str],
+    ) -> Document:
+        """Reconstruct a :class:`Document` from stored state."""
 
-        keys = row.keys() if hasattr(row, "keys") else []
-        document_json = row["document_json"] if "document_json" in keys else None
-
+        metadata = DocumentMetadata.from_dict(json.loads(metadata_json))
+        provisions, has_rows = self._load_provisions(doc_id, rev_id)
+        if has_rows:
+            return Document(metadata=metadata, body=body, provisions=provisions)
         if document_json:
             return Document.from_json(document_json)
+        return Document(metadata=metadata, body=body)
 
-        metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
-        return Document(metadata=metadata, body=row["body"])
+    def _store_provisions(
+        self, doc_id: int, rev_id: int, provisions: List[Provision]
+    ) -> None:
+        """Persist provision and atom data for a revision."""
+
+        self.conn.execute(
+            "DELETE FROM atoms WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
+        self.conn.execute(
+            "DELETE FROM provisions WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
+
+        if not provisions:
+            return
+
+        provision_counter = 0
+
+        def visit(provision: Provision, parent_id: Optional[int]) -> None:
+            nonlocal provision_counter
+            provision_counter += 1
+            current_id = provision_counter
+
+            references_json = None
+            if provision.references:
+                references_json = json.dumps([
+                    list(ref) for ref in provision.references
+                ])
+            principles_json = (
+                json.dumps(list(provision.principles))
+                if provision.principles
+                else None
+            )
+            customs_json = (
+                json.dumps(list(provision.customs))
+                if provision.customs
+                else None
+            )
+            cultural_flags_json = (
+                json.dumps(list(provision.cultural_flags))
+                if provision.cultural_flags
+                else None
+            )
+
+            self.conn.execute(
+                """
+                INSERT INTO provisions (
+                    doc_id, rev_id, provision_id, parent_id, identifier,
+                    heading, node_type, text, rule_tokens, references_json,
+                    principles, customs, cultural_flags
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    doc_id,
+                    rev_id,
+                    current_id,
+                    parent_id,
+                    provision.identifier,
+                    provision.heading,
+                    provision.node_type,
+                    provision.text,
+                    json.dumps(provision.rule_tokens) if provision.rule_tokens else None,
+                    references_json,
+                    principles_json,
+                    customs_json,
+                    cultural_flags_json,
+                ),
+            )
+
+            for atom_index, atom in enumerate(provision.atoms, start=1):
+                refs_json = json.dumps(list(atom.refs)) if atom.refs else None
+                gloss_metadata_json = (
+                    json.dumps(atom.gloss_metadata)
+                    if atom.gloss_metadata is not None
+                    else None
+                )
+                self.conn.execute(
+                    """
+                    INSERT INTO atoms (
+                        doc_id, rev_id, provision_id, atom_id, type, role,
+                        party, who, who_text, text, conditions, refs, gloss,
+                        gloss_metadata
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        doc_id,
+                        rev_id,
+                        current_id,
+                        atom_index,
+                        atom.type,
+                        atom.role,
+                        atom.party,
+                        atom.who,
+                        atom.who_text,
+                        atom.text,
+                        atom.conditions,
+                        refs_json,
+                        atom.gloss,
+                        gloss_metadata_json,
+                    ),
+                )
+
+            for child in provision.children:
+                visit(child, current_id)
+
+        for provision in provisions:
+            visit(provision, None)
+
+    def _load_provisions(
+        self, doc_id: int, rev_id: int
+    ) -> Tuple[List[Provision], bool]:
+        """Load provisions and atoms for a revision."""
+
+        provision_rows = self.conn.execute(
+            """
+            SELECT doc_id, rev_id, provision_id, parent_id, identifier, heading,
+                   node_type, text, rule_tokens, references_json, principles, customs,
+                   cultural_flags
+            FROM provisions
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        if not provision_rows:
+            return [], False
+
+        atom_rows = self.conn.execute(
+            """
+            SELECT provision_id, atom_id, type, role, party, who, who_text, text,
+                   conditions, refs, gloss, gloss_metadata
+            FROM atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, atom_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+
+        atoms_by_provision: dict[int, List[Atom]] = defaultdict(list)
+        for atom_row in atom_rows:
+            refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
+            gloss_metadata = (
+                json.loads(atom_row["gloss_metadata"])
+                if atom_row["gloss_metadata"]
+                else None
+            )
+            atoms_by_provision[atom_row["provision_id"]].append(
+                Atom(
+                    type=atom_row["type"],
+                    role=atom_row["role"],
+                    party=atom_row["party"],
+                    who=atom_row["who"],
+                    who_text=atom_row["who_text"],
+                    conditions=atom_row["conditions"],
+                    text=atom_row["text"],
+                    refs=refs,
+                    gloss=atom_row["gloss"],
+                    gloss_metadata=gloss_metadata,
+                )
+            )
+
+        provisions: dict[int, Provision] = {}
+        root_ids: List[int] = []
+
+        for row in provision_rows:
+            rule_tokens = json.loads(row["rule_tokens"]) if row["rule_tokens"] else {}
+            references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = []
+            if row["references_json"]:
+                for ref in json.loads(row["references_json"]):
+                    if isinstance(ref, list):
+                        references.append(tuple(ref))  # type: ignore[arg-type]
+                    elif isinstance(ref, tuple):
+                        references.append(ref)
+                    else:
+                        # fall back to treating as string reference id
+                        references.append((str(ref), None, None, None, str(ref)))
+
+            principles = json.loads(row["principles"]) if row["principles"] else []
+            customs = json.loads(row["customs"]) if row["customs"] else []
+            cultural_flags = (
+                json.loads(row["cultural_flags"]) if row["cultural_flags"] else []
+            )
+
+            provision = Provision(
+                text=row["text"] or "",
+                identifier=row["identifier"],
+                heading=row["heading"],
+                node_type=row["node_type"],
+                rule_tokens=rule_tokens,
+                cultural_flags=cultural_flags,
+                references=references,
+                principles=list(principles),
+                customs=list(customs),
+            )
+            provision.atoms.extend(atoms_by_provision.get(row["provision_id"], []))
+            provisions[row["provision_id"]] = provision
+
+        for row in provision_rows:
+            parent_id = row["parent_id"]
+            current_id = row["provision_id"]
+            provision = provisions[current_id]
+            if parent_id is None:
+                root_ids.append(current_id)
+            else:
+                parent = provisions.get(parent_id)
+                if parent is None:
+                    root_ids.append(current_id)
+                else:
+                    parent.children.append(provision)
+
+        ordered_roots = [provisions[pid] for pid in root_ids]
+        return ordered_roots, True
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:
         """Return a unified diff between two revisions of a document."""

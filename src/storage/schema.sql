@@ -84,6 +84,50 @@ CREATE TABLE IF NOT EXISTS revisions (
     FOREIGN KEY (doc_id) REFERENCES documents(id)
 );
 
+CREATE TABLE IF NOT EXISTS provisions (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    identifier TEXT,
+    heading TEXT,
+    node_type TEXT,
+    text TEXT,
+    rule_tokens TEXT,
+    references_json TEXT,
+    principles TEXT,
+    customs TEXT,
+    cultural_flags TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id),
+    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
+ON provisions(doc_id, rev_id, provision_id);
+
+CREATE TABLE IF NOT EXISTS atoms (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    atom_id INTEGER NOT NULL,
+    type TEXT,
+    role TEXT,
+    party TEXT,
+    who TEXT,
+    who_text TEXT,
+    text TEXT,
+    conditions TEXT,
+    refs TEXT,
+    gloss TEXT,
+    gloss_metadata TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id)
+        REFERENCES provisions(doc_id, rev_id, provision_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
+ON atoms(doc_id, rev_id, provision_id);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
     body, metadata, content='revisions', content_rowid='rowid'
 );

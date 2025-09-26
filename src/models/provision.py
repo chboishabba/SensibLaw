@@ -70,6 +70,7 @@ class Provision:
     heading: Optional[str] = None
     node_type: Optional[str] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
+    cultural_flags: List[str] = field(default_factory=list)
     references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
         field(default_factory=list)
     )
@@ -86,6 +87,7 @@ class Provision:
             "heading": self.heading,
             "node_type": self.node_type,
             "rule_tokens": dict(self.rule_tokens),
+            "cultural_flags": list(self.cultural_flags),
             "references": [tuple(ref) for ref in self.references],
             "children": [c.to_dict() for c in self.children],
             "principles": list(self.principles),
@@ -102,6 +104,7 @@ class Provision:
             heading=data.get("heading"),
             node_type=data.get("node_type"),
             rule_tokens=dict(data.get("rule_tokens", {})),
+            cultural_flags=list(data.get("cultural_flags", [])),
             references=[
                 tuple(ref) if isinstance(ref, (list, tuple)) else tuple(ref)
                 for ref in data.get("references", [])
