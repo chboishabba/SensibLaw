@@ -115,8 +115,6 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         text=fragment,
                         who=who,
                         conditions=r.conditions if role == "circumstance" else None,
-                        gloss=who_text or None,
-
                         gloss=gloss_entry.text if gloss_entry else None,
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
@@ -169,6 +167,19 @@ def parse_sections(text: str) -> List[Provision]:
 
     if not text.strip():
         return []
+
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        structured = _build_provisions_from_nodes(nodes)
+        sections = list(_iter_section_provisions(structured))
+        if sections:
+            return sections
+        if structured:
+            return structured
+
+    return _fallback_parse_sections(text)
+
+
 _SECTION_HEADING_RE = re.compile(
     r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
 )
@@ -218,28 +229,6 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
     return sections
 
 
-def parse_sections(text: str) -> List[Provision]:
-    """Split ``text`` into individual section provisions."""
-
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-        structured = _build_provisions_from_nodes(nodes)
-        sections: List[Provision] = []
-        for prov in structured:
-            _collect_section_provisions(prov, sections)
-        if sections:
-            return sections
-        if structured:
-            return structured
-
-    return [Provision(text=text)]
-        sections = list(_iter_section_provisions(structured))
-        if sections:
-            return sections
-
-    return _fallback_parse_sections(text)
-
-
 def build_document(
     pages: List[dict],
     source: Path,
@@ -260,11 +249,6 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
-    if hasattr(section_parser, "parse_sections"):
-        provisions = section_parser.parse_sections(body)
-        if not provisions:
-            provisions = [Provision(text=body)]
-    else:  # Fallback: single provision containing entire body
         provisions = [Provision(text=body)]
 
     for prov in provisions:
