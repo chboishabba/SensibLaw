@@ -99,29 +99,50 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
     for r in rules:
+        actor = getattr(r, "actor", None)
         who = getattr(r, "party", None) or UNKNOWN_PARTY
-        who_text = getattr(r, "who_text", None) or getattr(r, "actor", None)
+        who_text = getattr(r, "who_text", None) or actor or None
         text = f"{r.actor} {r.modality} {r.action}".strip()
         if r.conditions:
             text += f" {r.conditions}"
         if r.scope:
             text += f" {r.scope}"
-        atoms.append(
-            Atom(
-                type="rule",
-                role="principle",
-                party=r.actor or None,
-                who=who,
-                who_text=r.actor or None,
-                conditions=r.conditions,
-                text=text.strip() or None,
-                gloss=who_text or None,
-            )
-        )
+
+        rule_atom_kwargs = {
+            "type": "rule",
+            "role": "principle",
+            "party": who,
+            "who": who,
+            "who_text": who_text,
+            "conditions": r.conditions,
+            "text": text.strip() or None,
+            "gloss": who_text,
+        }
+        atoms.append(Atom(**rule_atom_kwargs))
 
         for role, fragments in (r.elements or {}).items():
             for fragment in fragments:
                 gloss_entry = lookup_gloss(fragment)
+                gloss_text = who_text
+                gloss_metadata = None
+                if gloss_entry:
+                    gloss_text = gloss_entry.text
+                    if gloss_entry.metadata is not None:
+                        gloss_metadata = dict(gloss_entry.metadata)
+
+                element_atom_kwargs = {
+                    "type": "element",
+                    "role": role,
+                    "party": who,
+                    "who": who,
+                    "who_text": who_text,
+                    "conditions": r.conditions if role == "circumstance" else None,
+                    "text": fragment,
+                    "gloss": gloss_text,
+                    "gloss_metadata": gloss_metadata,
+                }
+                atoms.append(Atom(**element_atom_kwargs))
+
                 atoms.append(
                     Atom(
                         type="element",
@@ -142,15 +163,14 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     )
                 )
         if who == UNKNOWN_PARTY:
-            atoms.append(
-                Atom(
-                    type="lint",
-                    role="unknown_party",
-                    text=f"Unclassified actor: {r.actor}".strip(),
-                    who=UNKNOWN_PARTY,
-                    gloss=who_text or None,
-                )
-            )
+            lint_atom_kwargs = {
+                "type": "lint",
+                "role": "unknown_party",
+                "text": f"Unclassified actor: {actor}".strip(),
+                "who": UNKNOWN_PARTY,
+                "gloss": who_text,
+            }
+            atoms.append(Atom(**lint_atom_kwargs))
     return atoms
 
 
@@ -247,6 +267,13 @@ def parse_sections(text: str) -> List[Provision]:
     if not text.strip():
         return []
 
+    parser_available = _has_section_parser()
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        pass
+
+    if parser_available and section_parser and hasattr(
+        section_parser, "parse_sections"
+    ):
     if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)

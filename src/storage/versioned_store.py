@@ -53,6 +53,16 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
+            # Migration: ensure the revisions table has a document_json column
+            columns = {
+                row["name"]
+                for row in self.conn.execute("PRAGMA table_info(revisions)")
+            }
+            if "document_json" not in columns:
+                self.conn.execute(
+                    "ALTER TABLE revisions ADD COLUMN document_json TEXT"
+                )
+
     # ------------------------------------------------------------------
     # ID generation and revision storage
     # ------------------------------------------------------------------
@@ -84,6 +94,7 @@ class VersionedStore:
             if document.metadata.retrieved_at
             else None
         )
+        document_json = document.to_json()
         with self.conn:
             cur = self.conn.execute(
                 "SELECT COALESCE(MAX(rev_id), 0) + 1 FROM revisions WHERE doc_id = ?",
@@ -143,6 +154,7 @@ class VersionedStore:
             return Document.from_json(row["document_json"])
         metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
         return Document(metadata=metadata, body=row["body"])
+        return self._document_from_row(row)
 
     def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
         """Return the latest revision for a document by its canonical ID."""
@@ -167,7 +179,22 @@ class VersionedStore:
             metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
             if metadata.canonical_id == canonical_id:
                 return Document(metadata=metadata, body=row["body"])
+            document = self._document_from_row(row)
+            if document.metadata.canonical_id == canonical_id:
+                return document
         return None
+
+    def _document_from_row(self, row: sqlite3.Row) -> Document:
+        """Deserialize a document row, preferring the stored JSON payload."""
+
+        keys = row.keys() if hasattr(row, "keys") else []
+        document_json = row["document_json"] if "document_json" in keys else None
+
+        if document_json:
+            return Document.from_json(document_json)
+
+        metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+        return Document(metadata=metadata, body=row["body"])
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:
         """Return a unified diff between two revisions of a document."""
