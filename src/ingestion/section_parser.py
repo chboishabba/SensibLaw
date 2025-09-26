@@ -129,6 +129,7 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
     references: List[ReferenceTuple] = []
+    seen_conditions: set[str] = set()
 
     for match in TOKEN_RE.finditer(text):
         token = match.group().strip()
@@ -136,11 +137,32 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
         if group == "modality" and modality is None:
             modality = token.lower()
         elif group == "condition":
-            conditions.append(token.lower())
+            lowered = token.lower()
+            if lowered not in seen_conditions:
+                seen_conditions.add(lowered)
+                conditions.append(lowered)
 
     references.extend(_extract_references(text))
+    deduped_refs: List[ReferenceTuple] = []
+    seen_refs: set[tuple[Optional[str], Optional[str], Optional[str], Optional[str]]] = set()
+    for ref in references:
+        kind, subject, label, target, original = ref
+        key = (
+            kind.lower() if kind else None,
+            subject.lower() if subject else None,
+            label.lower() if label else None,
+            target.lower() if target else None,
+        )
+        if key in seen_refs:
+            continue
+        seen_refs.add(key)
+        deduped_refs.append(ref)
 
-    return {"modality": modality, "conditions": conditions, "references": references}
+    return {
+        "modality": modality,
+        "conditions": conditions,
+        "references": deduped_refs,
+    }
 
 
 def _empty_tokens() -> Dict[str, object]:

@@ -7,7 +7,7 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from pdfminer.high_level import extract_text
 
@@ -97,6 +97,36 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
     return dest
 
 
+_PRINCIPLE_LEADING_NUMBERS = re.compile(r"^(?:\d+(?:\.\d+)?\s+){2,}")
+_PRINCIPLE_LEADING_ENUM = re.compile(r"^(?:\([a-z0-9]+\)\s+)+", re.IGNORECASE)
+
+
+def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
+    """Collapse whitespace and trim structural numbering from ``text``."""
+
+    if not text:
+        return None
+    normalized = re.sub(r"\s+", " ", text).strip()
+    normalized = _PRINCIPLE_LEADING_NUMBERS.sub("", normalized)
+    normalized = _PRINCIPLE_LEADING_ENUM.sub("", normalized)
+    return normalized or None
+
+
+def _dedupe_principles(values: Iterable[str]) -> List[str]:
+    seen: set[str] = set()
+    unique: List[str] = []
+    for value in values:
+        normalised = _normalize_principle_text(value)
+        if not normalised:
+            continue
+        key = normalised.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(normalised)
+    return unique
+
+
 def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
     module_lookup_gloss = getattr(sys.modules.get(__name__), "lookup_gloss", lookup_gloss)
@@ -117,6 +147,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
         if scope:
             text_parts.append(scope)
         text = " ".join(part.strip() for part in text_parts if part).strip() or None
+        text = _normalize_principle_text(text)
 
         atoms.append(
             Atom(
@@ -340,9 +371,13 @@ def build_document(
         rules = extract_rules(prov.text)
         atoms = _rules_to_atoms(rules)
         prov.atoms.extend(atoms)
-        prov.principles.extend(
-            [atom.text for atom in atoms if atom.type == "rule" and atom.text]
+        existing = _dedupe_principles(prov.principles)
+        prov.principles = existing
+        rule_principles = _dedupe_principles(
+            atom.text for atom in atoms if atom.type == "rule" and atom.text
         )
+        merged = _dedupe_principles([*existing, *rule_principles])
+        prov.principles = merged
 
     document = Document(metadata=metadata, body=body, provisions=provisions)
     _CULTURAL_OVERLAY.apply(document)

@@ -36,6 +36,8 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
     references: List[str] = []
+    seen_conditions: set[str] = set()
+    seen_refs: set[str] = set()
 
     for match in TOKEN_RE.finditer(text):
         token = match.group().strip()
@@ -43,8 +45,15 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
         if group == "modality" and modality is None:
             modality = token.lower()
         elif group == "condition":
-            conditions.append(token.lower())
+            lowered = token.lower()
+            if lowered not in seen_conditions:
+                seen_conditions.add(lowered)
+                conditions.append(lowered)
         elif group == "xref":
+            lowered = token.lower()
+            if lowered in seen_refs:
+                continue
+            seen_refs.add(lowered)
             references.append(token)
 
     return {"modality": modality, "conditions": conditions, "references": references}
