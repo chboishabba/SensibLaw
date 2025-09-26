@@ -110,10 +110,10 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 type="rule",
                 role="principle",
                 party=r.actor or None,
-                who_text=r.actor or None,
-                text=text.strip() or None,
                 who=who,
+                who_text=r.actor or None,
                 conditions=r.conditions,
+                text=text.strip() or None,
                 gloss=who_text or None,
             )
         )
@@ -126,14 +126,11 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         type="element",
                         role=role,
                         party=r.actor or None,
-                        who_text=r.actor or None,
-                        text=fragment,
                         who=who,
+                        who_text=r.actor or None,
                         conditions=r.conditions if role == "circumstance" else None,
-                        gloss=(
-                            gloss_entry.text if gloss_entry else who_text or None
-                        ),
-                        gloss=gloss_entry.text if gloss_entry else None,
+                        text=fragment,
+                        gloss=(gloss_entry.text if gloss_entry else None),
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
                             if gloss_entry and gloss_entry.metadata is not None
@@ -249,8 +246,9 @@ def parse_sections(text: str) -> List[Provision]:
 
     parser_available = _has_section_parser()
 
-    if parser_available:
-    if section_parser and hasattr(section_parser, "parse_sections"):
+    if parser_available and section_parser and hasattr(
+        section_parser, "parse_sections"
+    ):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)
         sections = list(_iter_section_provisions(structured))

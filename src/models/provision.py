@@ -11,7 +11,9 @@ class Atom:
     type: Optional[str] = None
     role: Optional[str] = None
     party: Optional[str] = None
+    who: Optional[str] = None
     who_text: Optional[str] = None
+    conditions: Optional[str] = None
     text: Optional[str] = None
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
@@ -24,7 +26,9 @@ class Atom:
             "type": self.type,
             "role": self.role,
             "party": self.party,
+            "who": self.who,
             "who_text": self.who_text,
+            "conditions": self.conditions,
             "text": self.text,
             "refs": list(self.refs),
             "gloss": self.gloss,
@@ -43,7 +47,9 @@ class Atom:
             type=data.get("type"),
             role=data.get("role"),
             party=data.get("party"),
+            who=data.get("who"),
             who_text=data.get("who_text"),
+            conditions=data.get("conditions"),
             text=data.get("text"),
             refs=list(data.get("refs", [])),
             gloss=data.get("gloss"),
