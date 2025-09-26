@@ -291,6 +291,7 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "text_hash", "TEXT")
         self._ensure_column("rule_elements", "text_hash", "TEXT")
         self._populate_text_hashes()
+        self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
         self._ensure_column("atoms", "glossary_id", "INTEGER")
@@ -392,6 +393,99 @@ class VersionedStore:
                     ),
                 )
 
+    def _deduplicate_rule_atoms(self) -> None:
+        """Remove duplicated rule atoms prior to enforcing uniqueness."""
+
+        with self.conn:
+            duplicate_groups = self.conn.execute(
+                """
+                SELECT doc_id, rev_id, provision_id, text_hash
+                FROM rule_atoms
+                GROUP BY doc_id, rev_id, provision_id, text_hash
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+
+            for group in duplicate_groups:
+                doc_id = group["doc_id"]
+                rev_id = group["rev_id"]
+                provision_id = group["provision_id"]
+
+                rule_rows = self.conn.execute(
+                    """
+                    SELECT rule_id
+                    FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND text_hash = ?
+                    ORDER BY rule_id
+                    """,
+                    (doc_id, rev_id, provision_id, group["text_hash"]),
+                ).fetchall()
+
+                if not rule_rows:
+                    continue
+
+                duplicate_rule_ids = [row["rule_id"] for row in rule_rows[1:]]
+
+                if not duplicate_rule_ids:
+                    continue
+
+                placeholders = ",".join("?" for _ in duplicate_rule_ids)
+                params = (
+                    doc_id,
+                    rev_id,
+                    provision_id,
+                    *duplicate_rule_ids,
+                )
+
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_element_references
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_elements
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atom_references
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_lints
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atom_subjects
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+                self.conn.execute(
+                    f"""
+                    DELETE FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                        AND rule_id IN ({placeholders})
+                    """,
+                    params,
+                )
+
     def _compute_rule_atom_hash(
         self,
         *,
@@ -482,6 +576,185 @@ class VersionedStore:
         if "document_json" not in columns:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+
+
+    def _object_type(self, name: str) -> Optional[str]:
+        """Return the SQLite object type for ``name`` if it exists."""
+
+        row = self.conn.execute(
+            "SELECT type FROM sqlite_master WHERE name = ?", (name,)
+        ).fetchone()
+        if row is None:
+            return None
+        return row["type"]
+
+    def _ensure_atoms_view(self) -> None:
+        """Replace the legacy atoms table with a compatibility view."""
+
+        object_type = self._object_type("atoms")
+        with self.conn:
+            if object_type == "table":
+                self.conn.execute("DROP TABLE atoms")
+            elif object_type == "view":
+                self.conn.execute("DROP VIEW atoms")
+            self.conn.execute("DROP INDEX IF EXISTS idx_atoms_doc_rev")
+            self._create_atoms_view()
+
+    def _create_atoms_view(self) -> None:
+        """Create the atoms compatibility view."""
+
+        self.conn.executescript(
+            """
+            CREATE VIEW IF NOT EXISTS atoms AS
+            WITH subject_rows AS (
+                SELECT
+                    ra.doc_id AS doc_id,
+                    ra.rev_id AS rev_id,
+                    ra.provision_id AS provision_id,
+                    ra.rule_id AS rule_id,
+                    0 AS group_order,
+                    0 AS sequence_order,
+                    COALESCE(rs.type, ra.atom_type, 'rule') AS type,
+                    COALESCE(rs.role, ra.role) AS role,
+                    COALESCE(rs.party, ra.party) AS party,
+                    COALESCE(rs.who, ra.who) AS who,
+                    COALESCE(rs.who_text, ra.who_text) AS who_text,
+                    COALESCE(rs.text, ra.text) AS text,
+                    COALESCE(rs.conditions, ra.conditions) AS conditions,
+                    rs.refs AS refs,
+                    COALESCE(rs.gloss, ra.subject_gloss) AS gloss,
+                    COALESCE(rs.gloss_metadata, ra.subject_gloss_metadata) AS gloss_metadata
+                FROM rule_atoms AS ra
+                LEFT JOIN rule_atom_subjects AS rs
+                    ON ra.doc_id = rs.doc_id
+                    AND ra.rev_id = rs.rev_id
+                    AND ra.provision_id = rs.provision_id
+                    AND ra.rule_id = rs.rule_id
+            ), element_reference_json AS (
+                SELECT
+                    doc_id,
+                    rev_id,
+                    provision_id,
+                    rule_id,
+                    element_id,
+                    json_group_array(
+                        COALESCE(
+                            citation_text,
+                            TRIM(
+                                (CASE WHEN work IS NOT NULL AND work <> '' THEN work || ' ' ELSE '' END) ||
+                                (CASE WHEN section IS NOT NULL AND section <> '' THEN section || ' ' ELSE '' END) ||
+                                COALESCE(pinpoint, '')
+                            )
+                        )
+                    ) AS refs
+                FROM rule_element_references
+                GROUP BY doc_id, rev_id, provision_id, rule_id, element_id
+            ), element_rows AS (
+                SELECT
+                    ra.doc_id AS doc_id,
+                    ra.rev_id AS rev_id,
+                    ra.provision_id AS provision_id,
+                    re.rule_id AS rule_id,
+                    1 AS group_order,
+                    re.element_id AS sequence_order,
+                    COALESCE(re.atom_type, 'element') AS type,
+                    re.role AS role,
+                    ra.party AS party,
+                    ra.who AS who,
+                    ra.who_text AS who_text,
+                    re.text AS text,
+                    re.conditions AS conditions,
+                    er.refs AS refs,
+                    re.gloss AS gloss,
+                    re.gloss_metadata AS gloss_metadata
+                FROM rule_elements AS re
+                JOIN rule_atoms AS ra
+                    ON ra.doc_id = re.doc_id
+                    AND ra.rev_id = re.rev_id
+                    AND ra.provision_id = re.provision_id
+                    AND ra.rule_id = re.rule_id
+                LEFT JOIN element_reference_json AS er
+                    ON re.doc_id = er.doc_id
+                    AND re.rev_id = er.rev_id
+                    AND re.provision_id = er.provision_id
+                    AND re.rule_id = er.rule_id
+                    AND re.element_id = er.element_id
+            ), lint_rows AS (
+                SELECT
+                    ra.doc_id AS doc_id,
+                    ra.rev_id AS rev_id,
+                    ra.provision_id AS provision_id,
+                    rl.rule_id AS rule_id,
+                    2 AS group_order,
+                    rl.lint_id AS sequence_order,
+                    COALESCE(rl.atom_type, 'lint') AS type,
+                    rl.code AS role,
+                    ra.party AS party,
+                    ra.who AS who,
+                    ra.who_text AS who_text,
+                    rl.message AS text,
+                    NULL AS conditions,
+                    NULL AS refs,
+                    ra.subject_gloss AS gloss,
+                    rl.metadata AS gloss_metadata
+                FROM rule_lints AS rl
+                JOIN rule_atoms AS ra
+                    ON rl.doc_id = ra.doc_id
+                    AND rl.rev_id = ra.rev_id
+                    AND rl.provision_id = ra.provision_id
+                    AND rl.rule_id = ra.rule_id
+            )
+            SELECT
+                doc_id,
+                rev_id,
+                provision_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY doc_id, rev_id, provision_id
+                    ORDER BY rule_id, group_order, sequence_order
+                ) AS atom_id,
+                type,
+                role,
+                party,
+                who,
+                who_text,
+                text,
+                conditions,
+                refs,
+                gloss,
+                gloss_metadata
+            FROM (
+                SELECT * FROM subject_rows
+                UNION ALL
+                SELECT * FROM element_rows
+                UNION ALL
+                SELECT * FROM lint_rows
+            )
+            ORDER BY doc_id, rev_id, provision_id, atom_id;
+            """
+            )
+        # Migration: ensure the revisions table has a document_json column
+        columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
+        }
+        if "document_json" not in columns:
+            self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+
+        self._ensure_column("atoms", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
+        self._ensure_column("rule_elements", "glossary_id", "INTEGER")
+
+        self._backfill_rule_tables()
+        self._backfill_glossary_ids()
+
+    def _ensure_column(self, table: str, column: str, definition: str) -> None:
+        cur = self.conn.execute(f"PRAGMA table_info({table})")
+        existing = {row["name"] for row in cur.fetchall()}
+        if column not in existing:
+            with self.conn:
+                self.conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                )
 
     # ------------------------------------------------------------------
     def _backfill_glossary_ids(self) -> None:
