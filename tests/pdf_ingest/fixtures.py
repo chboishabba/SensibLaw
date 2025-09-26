@@ -7,3 +7,14 @@ Division 1 Introductory
 2 Application of Act
 The Minister must not delay action if urgent circumstances exist.
 """
+
+
+MULTI_LEVEL_STATUTE_WITH_DEFINITIONS = """Part 1 Preliminary Matters
+Division 1 Introductory
+1 Definitions
+"Authority" includes a board established under this Act.
+"Minister" means the person holding office as Minister for Justice.
+
+2 Application of Act
+The Minister must not delay action if urgent circumstances exist.
+"""

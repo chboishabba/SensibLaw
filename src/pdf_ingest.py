@@ -34,6 +34,15 @@ _DEFINITION_START_RE = re.compile(
     r"(?P<verb>means|includes)\s+(?P<definition>.+)$",
     re.IGNORECASE,
 )
+_DEFINITION_START_INLINE_RE = re.compile(
+    r"(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+(?P<verb>means|includes)\s+",
+    re.IGNORECASE,
+)
+_DEFINITION_HEADING_RE = re.compile(
+    r"\b(definitions?|interpretation|defined terms)\b",
+    re.IGNORECASE,
+)
+_SCOPE_NODE_TYPES = {"part", "division", "section"}
 
 
 def _normalise_term_key(term: str) -> str:
@@ -187,32 +196,54 @@ def _finalise_definition(parts: List[str]) -> str:
     return re.sub(r"\s+", " ", joined).strip()
 
 
+def _split_definition_line(raw_line: str) -> List[str]:
+    matches = list(_DEFINITION_START_INLINE_RE.finditer(raw_line))
+    if len(matches) <= 1:
+        return [raw_line]
+
+    segments: List[str] = []
+    first_start = matches[0].start()
+    prefix = raw_line[:first_start].strip()
+    if prefix:
+        segments.append(prefix)
+
+    for index, match in enumerate(matches):
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(raw_line)
+        segment = raw_line[start:end].strip()
+        if segment:
+            segments.append(segment)
+
+    return segments or [raw_line]
+
+
 def _extract_definition_entries(text: str) -> Dict[str, str]:
     entries: Dict[str, str] = {}
     current_term: Optional[str] = None
     collected: List[str] = []
 
     for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            if current_term and collected:
-                entries[current_term] = _finalise_definition(collected)
-            current_term = None
-            collected = []
-            continue
+        for segment in _split_definition_line(raw_line):
+            line = segment.strip()
+            if not line:
+                if current_term and collected:
+                    entries[current_term] = _finalise_definition(collected)
+                current_term = None
+                collected = []
+                continue
 
-        cleaned = _PRINCIPLE_LEADING_NUMBERS.sub("", line)
-        cleaned = _PRINCIPLE_LEADING_ENUM.sub("", cleaned)
-        match = _DEFINITION_START_RE.match(cleaned)
-        if match:
-            if current_term and collected:
-                entries[current_term] = _finalise_definition(collected)
-            current_term = _strip_quotes(match.group("term"))
-            collected = [match.group("definition").strip()]
-            continue
+            cleaned = _PRINCIPLE_LEADING_NUMBERS.sub("", line)
+            cleaned = _PRINCIPLE_LEADING_ENUM.sub("", cleaned)
+            match = _DEFINITION_START_RE.match(cleaned)
+            if match:
+                if current_term and collected:
+                    entries[current_term] = _finalise_definition(collected)
+                current_term = _strip_quotes(match.group("term"))
+                collected = [match.group("definition").strip()]
+                continue
 
-        if current_term:
-            collected.append(cleaned)
+            if current_term:
+                collected.append(cleaned)
 
     if current_term and collected:
         entries[current_term] = _finalise_definition(collected)
@@ -221,6 +252,108 @@ def _extract_definition_entries(text: str) -> Dict[str, str]:
 
 
 _DEFAULT_GLOSSARY_REGISTRY = GlossaryRegistry()
+
+
+def _is_definition_heading(heading: Optional[str]) -> bool:
+    if not heading:
+        return False
+    return bool(_DEFINITION_HEADING_RE.search(heading))
+
+
+def _iter_provisions_with_ancestors(
+    provisions: List[Provision],
+    ancestors: Optional[List[Provision]] = None,
+):
+    if ancestors is None:
+        ancestors = []
+    for provision in provisions:
+        yield provision, list(ancestors)
+        if provision.children:
+            ancestors.append(provision)
+            yield from _iter_provisions_with_ancestors(provision.children, ancestors)
+            ancestors.pop()
+
+
+def _collect_definition_text(provision: Provision) -> str:
+    parts: List[str] = []
+    if provision.heading:
+        parts.append(provision.heading)
+    if provision.text:
+        parts.append(provision.text)
+    for child in provision.children:
+        child_text = _collect_definition_text(child)
+        if not child_text:
+            continue
+        if child.identifier:
+            parts.append(f"{child.identifier} {child_text}".strip())
+        else:
+            parts.append(child_text)
+    return "\n".join(part for part in parts if part.strip()).strip()
+
+
+def _build_scope_entries(
+    ancestors: List[Provision], provision: Provision
+) -> List[Dict[str, Optional[str]]]:
+    scope_entries: List[Dict[str, Optional[str]]] = []
+    for node in ancestors:
+        if node.node_type in _SCOPE_NODE_TYPES:
+            scope_entries.append(
+                {
+                    "node_type": node.node_type,
+                    "identifier": node.identifier,
+                    "heading": node.heading,
+                }
+            )
+    if provision.node_type in _SCOPE_NODE_TYPES:
+        scope_entries.append(
+            {
+                "node_type": provision.node_type,
+                "identifier": provision.identifier,
+                "heading": provision.heading,
+            }
+        )
+    return scope_entries
+
+
+def _register_definition_provisions(
+    provisions: List[Provision],
+    registry: GlossaryRegistry,
+) -> None:
+    if not provisions:
+        return
+
+    for provision, ancestors in _iter_provisions_with_ancestors(provisions):
+        if provision.node_type != "section" or not _is_definition_heading(
+            provision.heading
+        ):
+            continue
+
+        definition_text = _collect_definition_text(provision)
+        if not definition_text:
+            continue
+
+        entries = _extract_definition_entries(definition_text)
+        if not entries:
+            continue
+
+        scope_entries = _build_scope_entries(ancestors, provision)
+        metadata: Optional[Dict[str, Any]] = None
+        if scope_entries:
+            metadata = {"scope": [dict(entry) for entry in scope_entries]}
+
+        for term, definition in entries.items():
+            registry.register_definition(term, definition, metadata)
+
+
+def _resolve_definition_roots(body: str, fallback: List[Provision]) -> List[Provision]:
+    if not _has_section_parser():
+        return fallback
+    try:  # pragma: no cover - defensive guard around optional dependency
+        nodes = section_parser.parse_sections(body)  # type: ignore[attr-defined]
+    except Exception:
+        return fallback
+    structured = _build_provisions_from_nodes(nodes or [])
+    return structured or fallback
 
 
 # ``section_parser`` is optional – tests may monkeypatch it. If it's not
@@ -585,11 +718,8 @@ def build_document(
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
-    definitions = _extract_definition_entries(body)
-    for term, definition in definitions.items():
-        registry.register_definition(term, definition)
-
     provisions = parse_sections(body)
+    structured_for_definitions: Optional[List[Provision]] = None
     if not provisions:
         parser_available = _has_section_parser()
         if parser_available:
@@ -598,6 +728,8 @@ def build_document(
             except Exception:  # pragma: no cover - defensive guard
                 nodes = []
             structured = _build_provisions_from_nodes(nodes or [])
+            if structured:
+                structured_for_definitions = structured
             sections = list(_iter_section_provisions(structured))
             if sections:
                 provisions = sections
@@ -620,6 +752,20 @@ def build_document(
                     "body_length": len(body),
                 },
             )
+
+    needs_structured_definitions = not provisions or any(
+        getattr(prov, "node_type", None) == "section"
+        and _is_definition_heading(getattr(prov, "heading", None))
+        for prov in provisions
+    )
+
+    if structured_for_definitions is None:
+        if needs_structured_definitions:
+            structured_for_definitions = _resolve_definition_roots(body, provisions)
+        else:
+            structured_for_definitions = provisions
+
+    _register_definition_provisions(structured_for_definitions, registry)
 
     for prov in provisions:
         prov.ensure_rule_atoms()
