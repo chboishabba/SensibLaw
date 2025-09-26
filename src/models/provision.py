@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -10,11 +10,12 @@ class Atom:
 
     type: Optional[str] = None
     role: Optional[str] = None
+    party: Optional[str] = None
+    who_text: Optional[str] = None
     text: Optional[str] = None
-    who: Optional[str] = None
-    conditions: Optional[str] = None
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
+    gloss_metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the atom to a dictionary."""
@@ -22,11 +23,16 @@ class Atom:
         return {
             "type": self.type,
             "role": self.role,
+            "party": self.party,
+            "who_text": self.who_text,
             "text": self.text,
-            "who": self.who,
-            "conditions": self.conditions,
             "refs": list(self.refs),
             "gloss": self.gloss,
+            "gloss_metadata": (
+                dict(self.gloss_metadata)
+                if self.gloss_metadata is not None
+                else None
+            ),
         }
 
     @classmethod
@@ -36,11 +42,16 @@ class Atom:
         return cls(
             type=data.get("type"),
             role=data.get("role"),
+            party=data.get("party"),
+            who_text=data.get("who_text"),
             text=data.get("text"),
-            who=data.get("who"),
-            conditions=data.get("conditions"),
             refs=list(data.get("refs", [])),
             gloss=data.get("gloss"),
+            gloss_metadata=(
+                dict(data["gloss_metadata"])
+                if "gloss_metadata" in data and data["gloss_metadata"] is not None
+                else None
+            ),
         )
 
 
@@ -53,6 +64,9 @@ class Provision:
     heading: Optional[str] = None
     node_type: Optional[str] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
+    references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
+        field(default_factory=list)
+    )
     children: List["Provision"] = field(default_factory=list)
     principles: List[str] = field(default_factory=list)
     customs: List[str] = field(default_factory=list)
@@ -66,6 +80,7 @@ class Provision:
             "heading": self.heading,
             "node_type": self.node_type,
             "rule_tokens": dict(self.rule_tokens),
+            "references": [tuple(ref) for ref in self.references],
             "children": [c.to_dict() for c in self.children],
             "principles": list(self.principles),
             "customs": list(self.customs),
@@ -81,6 +96,10 @@ class Provision:
             heading=data.get("heading"),
             node_type=data.get("node_type"),
             rule_tokens=dict(data.get("rule_tokens", {})),
+            references=[
+                tuple(ref) if isinstance(ref, (list, tuple)) else tuple(ref)
+                for ref in data.get("references", [])
+            ],
             children=[cls.from_dict(c) for c in data.get("children", [])],
             principles=list(data.get("principles", [])),
             customs=list(data.get("customs", [])),

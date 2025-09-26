@@ -26,11 +26,12 @@ def test_document_serialization_round_trip():
     atom = Atom(
         type="ontology",
         role="principle",
+        party="legislature",
+        who_text="The legislature",
         text="principle",
-        who="legislature",
-        conditions="if relevant",
         refs=["ref1"],
         gloss="A guiding principle",
+        gloss_metadata={"source": "example"},
     )
     provision = Provision(
         text="Sample provision",
