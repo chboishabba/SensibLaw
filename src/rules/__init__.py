@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -11,4 +11,5 @@ class Rule:
     action: str
     conditions: Optional[str] = None
     scope: Optional[str] = None
+    elements: Dict[str, List[str]] = field(default_factory=dict)
 
