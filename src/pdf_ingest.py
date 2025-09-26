@@ -112,6 +112,7 @@ def _build_provision_from_node(node) -> Provision:
         heading=getattr(node, "heading", None),
         node_type=getattr(node, "node_type", None),
         rule_tokens=dict(getattr(node, "rule_tokens", {})),
+        references=list(getattr(node, "references", [])),
     )
     provision.children = [
         _build_provision_from_node(child) for child in getattr(node, "children", [])

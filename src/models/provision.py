@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -53,6 +53,9 @@ class Provision:
     heading: Optional[str] = None
     node_type: Optional[str] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
+    references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
+        field(default_factory=list)
+    )
     children: List["Provision"] = field(default_factory=list)
     principles: List[str] = field(default_factory=list)
     customs: List[str] = field(default_factory=list)
@@ -66,6 +69,7 @@ class Provision:
             "heading": self.heading,
             "node_type": self.node_type,
             "rule_tokens": dict(self.rule_tokens),
+            "references": [tuple(ref) for ref in self.references],
             "children": [c.to_dict() for c in self.children],
             "principles": list(self.principles),
             "customs": list(self.customs),
@@ -81,6 +85,10 @@ class Provision:
             heading=data.get("heading"),
             node_type=data.get("node_type"),
             rule_tokens=dict(data.get("rule_tokens", {})),
+            references=[
+                tuple(ref) if isinstance(ref, (list, tuple)) else tuple(ref)
+                for ref in data.get("references", [])
+            ],
             children=[cls.from_dict(c) for c in data.get("children", [])],
             principles=list(data.get("principles", [])),
             customs=list(data.get("customs", [])),

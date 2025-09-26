@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
@@ -18,10 +18,36 @@ SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
 # Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
 TOKEN_RE = re.compile(
     r"(?P<modality>must not|must|may)|"
-    r"(?P<condition>if|unless|subject to|despite)|"
-    r"(?P<xref>s\s+\d+[A-Za-z]?|this\s+Part)",
+    r"(?P<condition>if|unless|subject to|despite)",
     re.IGNORECASE,
 )
+
+INTERNAL_REF_RE = re.compile(
+    r"\b(?P<label>s|ss|section|sections|regulation|regulations|rule|rules)\s+"
+    r"(?P<target>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?)",
+    re.IGNORECASE,
+)
+
+STRUCTURE_REF_RE = re.compile(
+    r"\b(?P<label>Part|Division|Chapter|Schedule)\s+"
+    r"(?P<identifier>[A-Z0-9IVXLC]+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+
+SELF_REF_RE = re.compile(
+    r"\bthis\s+(?P<label>Act|Part|Division|Chapter|Schedule)\b",
+    re.IGNORECASE,
+)
+
+EXTERNAL_STATUTE_RE = re.compile(
+    r"(?P<act>"
+    r"(?:(?:(?-i:[A-Z])[A-Za-z'&-]*)|\([^)]+\))(?:\s+(?:(?:(?-i:[A-Z])[A-Za-z'&-]*)|\([^)]+\)))*\s+"
+    r"(?i:(?:Act|Ordinance|Regulation|Regulations|Code))\s+\d{4}(?:\s*\([A-Za-z]+\))?)"
+    r"(?:\s+(?P<section_label>(?i:s|ss|section|sections|part|division|chapter|schedule))\s+"
+    r"(?P<section_id>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?))?",
+)
+
+ReferenceTuple = Tuple[str, Optional[str], Optional[str], Optional[str], str]
 
 
 def _strip_tags(html: str) -> str:
@@ -29,10 +55,80 @@ def _strip_tags(html: str) -> str:
     return re.sub(r"<[^>]+>", "", html).strip()
 
 
+def _normalize_label(raw: Optional[str]) -> Optional[str]:
+    if raw is None:
+        return None
+    lowered = raw.strip().lower()
+    mapping = {
+        "s": "section",
+        "ss": "sections",
+    }
+    return mapping.get(lowered, lowered)
+
+
+def _clean_identifier(raw: Optional[str]) -> Optional[str]:
+    if raw is None:
+        return None
+    return re.sub(r"\s+", " ", raw.strip()) or None
+
+
+def _extract_references(text: str) -> List[ReferenceTuple]:
+    references: List[ReferenceTuple] = []
+    spans: List[Tuple[int, int]] = []
+
+    def overlaps(span: Tuple[int, int]) -> bool:
+        for start, end in spans:
+            if not (span[1] <= start or span[0] >= end):
+                return True
+        return False
+
+    def add_reference(
+        kind: str,
+        subject: Optional[str],
+        label: Optional[str],
+        target: Optional[str],
+        match: re.Match[str],
+    ) -> None:
+        span = match.span()
+        if overlaps(span):
+            return
+        original = text[span[0] : span[1]].strip()
+        if not original:
+            return
+        spans.append(span)
+        references.append(
+            (
+                kind,
+                subject.strip() if subject else None,
+                _normalize_label(label),
+                _clean_identifier(target),
+                original,
+            )
+        )
+
+    for match in EXTERNAL_STATUTE_RE.finditer(text):
+        act = match.group("act")
+        label = match.group("section_label")
+        section_id = match.group("section_id")
+        kind = "external" if label else "statute"
+        add_reference(kind, act, label, section_id, match)
+
+    for match in STRUCTURE_REF_RE.finditer(text):
+        add_reference("structure", None, match.group("label"), match.group("identifier"), match)
+
+    for match in INTERNAL_REF_RE.finditer(text):
+        add_reference("internal", None, match.group("label"), match.group("target"), match)
+
+    for match in SELF_REF_RE.finditer(text):
+        add_reference("internal", "this", match.group("label"), None, match)
+
+    return references
+
+
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
-    references: List[str] = []
+    references: List[ReferenceTuple] = []
 
     for match in TOKEN_RE.finditer(text):
         token = match.group().strip()
@@ -41,8 +137,8 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
             modality = token.lower()
         elif group == "condition":
             conditions.append(token.lower())
-        elif group == "xref":
-            references.append(token)
+
+    references.extend(_extract_references(text))
 
     return {"modality": modality, "conditions": conditions, "references": references}
 
@@ -60,6 +156,7 @@ class ParsedNode:
     heading: Optional[str] = None
     text: str = ""
     rule_tokens: Dict[str, object] = field(default_factory=_empty_tokens)
+    references: List[ReferenceTuple] = field(default_factory=list)
     children: List["ParsedNode"] = field(default_factory=list)
     _buffer: List[str] = field(default_factory=list, repr=False)
 
@@ -74,6 +171,7 @@ class ParsedNode:
                 "conditions": list(self.rule_tokens.get("conditions", [])),
                 "references": list(self.rule_tokens.get("references", [])),
             },
+            "references": list(self.references),
             "children": [child.to_dict() for child in self.children],
         }
 
@@ -87,7 +185,7 @@ class Section:
     text: str
     modality: Optional[str]
     conditions: List[str]
-    references: List[str]
+    references: List[ReferenceTuple]
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -107,8 +205,10 @@ def parse_html_section(html: str) -> Section:
 
     The extractor runs a single combined regex over the text to detect
     modalities (``must``, ``must not``, ``may``), conditional triggers
-    (``if``, ``unless``, ``subject to``, ``despite``) and simple
-    cross references (e.g. ``s 5B``, ``this Part``).
+    (``if``, ``unless``, ``subject to``, ``despite``) and cross references
+    ranging from intra-Act markers (``s 5B``, ``this Part``) to structural
+    headings and external statute citations (e.g. ``Native Title Act 1993 (Cth)
+    s 223``).
     """
 
     text = _strip_tags(html)
@@ -141,6 +241,7 @@ def fetch_section(html: str) -> Dict[str, object]:
 def _finalize_node(node: ParsedNode) -> None:
     node.text = " ".join(part for part in node._buffer if part).strip()
     node.rule_tokens = _extract_rule_tokens(node.text)
+    node.references = list(node.rule_tokens.get("references", []))
     node._buffer.clear()
     for child in node.children:
         _finalize_node(child)

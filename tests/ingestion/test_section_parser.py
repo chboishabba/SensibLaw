@@ -14,7 +14,9 @@ def test_extract_modality_conditions_and_refs():
     assert data["number"] == "1"
     assert data["rules"]["modality"] == "must not"
     assert data["rules"]["conditions"] == ["if"]
-    assert data["rules"]["references"] == ["s 5B"]
+    assert data["rules"]["references"] == [
+        ("internal", None, "section", "5B", "s 5B")
+    ]
 
 
 def test_subject_to_and_this_part():
@@ -23,7 +25,9 @@ def test_subject_to_and_this_part():
     assert data["number"] == "2"
     assert data["rules"]["modality"] == "may"
     assert data["rules"]["conditions"] == ["subject to"]
-    assert data["rules"]["references"] == ["this Part"]
+    assert data["rules"]["references"] == [
+        ("internal", "this", "part", None, "this Part")
+    ]
 
 
 def test_multiple_conditions_and_references():
@@ -32,4 +36,29 @@ def test_multiple_conditions_and_references():
     assert data["number"] == "3"
     assert data["rules"]["modality"] == "must"
     assert data["rules"]["conditions"] == ["unless", "despite"]
-    assert data["rules"]["references"] == ["s 10"]
+    assert data["rules"]["references"] == [
+        ("internal", None, "section", "10", "s 10")
+    ]
+
+
+def test_structure_markers_are_detected():
+    html = "<p>Part III — Indigenous land use agreements</p>"
+    data = fetch_section(html)
+    assert data["rules"]["references"] == [
+        ("structure", None, "part", "III", "Part III")
+    ]
+
+
+def test_cross_act_reference_with_section():
+    html = (
+        "<p>4 The tribunal must consider Native Title Act 1993 (Cth) s 223 when deciding.</p>"
+    )
+    data = fetch_section(html)
+    assert data["rules"]["modality"] == "must"
+    assert (
+        "external",
+        "Native Title Act 1993 (Cth)",
+        "section",
+        "223",
+        "Native Title Act 1993 (Cth) s 223",
+    ) in data["rules"]["references"]
