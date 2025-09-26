@@ -153,12 +153,6 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
 
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
-
-                CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
-                ON rule_atoms(doc_id, rev_id, toc_id);
-
                 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -577,7 +571,6 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
-
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
 
@@ -731,7 +724,7 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
+        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
@@ -1727,6 +1720,23 @@ class VersionedStore:
                     text, subject_gloss, subject_gloss_metadata, glossary_id
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (doc_id, rev_id, provision_id, rule_id) DO UPDATE SET
+                    text_hash = excluded.text_hash,
+                    toc_id = excluded.toc_id,
+                    atom_type = excluded.atom_type,
+                    role = excluded.role,
+                    party = excluded.party,
+                    who = excluded.who,
+                    who_text = excluded.who_text,
+                    actor = excluded.actor,
+                    modality = excluded.modality,
+                    action = excluded.action,
+                    conditions = excluded.conditions,
+                    scope = excluded.scope,
+                    text = excluded.text,
+                    subject_gloss = excluded.subject_gloss,
+                    subject_gloss_metadata = excluded.subject_gloss_metadata,
+                    glossary_id = excluded.glossary_id
                 """,
                 (
                     doc_id,
@@ -1760,6 +1770,18 @@ class VersionedStore:
                     who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (doc_id, rev_id, provision_id, rule_id) DO UPDATE SET
+                    type = excluded.type,
+                    role = excluded.role,
+                    party = excluded.party,
+                    who = excluded.who,
+                    who_text = excluded.who_text,
+                    text = excluded.text,
+                    conditions = excluded.conditions,
+                    refs = excluded.refs,
+                    gloss = excluded.gloss,
+                    gloss_metadata = excluded.gloss_metadata,
+                    glossary_id = excluded.glossary_id
                 """,
                 (
                     doc_id,
@@ -1788,6 +1810,11 @@ class VersionedStore:
                         work, section, pinpoint, citation_text
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (doc_id, rev_id, provision_id, rule_id, ref_index) DO UPDATE SET
+                        work = excluded.work,
+                        section = excluded.section,
+                        pinpoint = excluded.pinpoint,
+                        citation_text = excluded.citation_text
                     """,
                     (
                         doc_id,
@@ -1808,28 +1835,38 @@ class VersionedStore:
                     if element.gloss_metadata is not None
                     else None
                 )
+                element_hash = self._compute_element_hash(
+                    atom_type=element.atom_type,
+                    role=element.role,
+                    text=element.text,
+                    conditions=element.conditions,
+                    gloss=element.gloss,
+                    gloss_metadata=element_metadata_json,
+                )
                 self.conn.execute(
                     """
                     INSERT INTO rule_elements (
                         doc_id, rev_id, provision_id, rule_id, element_id, text_hash, atom_type,
                         role, text, conditions, gloss, gloss_metadata, glossary_id
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (doc_id, rev_id, provision_id, rule_id, element_id) DO UPDATE SET
+                        text_hash = excluded.text_hash,
+                        atom_type = excluded.atom_type,
+                        role = excluded.role,
+                        text = excluded.text,
+                        conditions = excluded.conditions,
+                        gloss = excluded.gloss,
+                        gloss_metadata = excluded.gloss_metadata,
+                        glossary_id = excluded.glossary_id
+                    """,
                     (
                         doc_id,
                         rev_id,
                         provision_id,
                         rule_index,
                         element_index,
-                        self._compute_element_hash(
-                            atom_type=element.atom_type,
-                            role=element.role,
-                            text=element.text,
-                            conditions=element.conditions,
-                            gloss=element.gloss,
-                            gloss_metadata=element_metadata_json,
-                        ),
+                        element_hash,
                         element.atom_type,
                         element.role,
                         element.text,
@@ -1848,6 +1885,13 @@ class VersionedStore:
                             work, section, pinpoint, citation_text
                         )
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (
+                            doc_id, rev_id, provision_id, rule_id, element_id, ref_index
+                        ) DO UPDATE SET
+                            work = excluded.work,
+                            section = excluded.section,
+                            pinpoint = excluded.pinpoint,
+                            citation_text = excluded.citation_text
                         """,
                         (
                             doc_id,
@@ -1874,6 +1918,11 @@ class VersionedStore:
                         code, message, metadata
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (doc_id, rev_id, provision_id, rule_id, lint_id) DO UPDATE SET
+                        atom_type = excluded.atom_type,
+                        code = excluded.code,
+                        message = excluded.message,
+                        metadata = excluded.metadata
                     """,
                     (
                         doc_id,

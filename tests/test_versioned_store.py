@@ -1,5 +1,6 @@
 """Tests for the versioned store implementation."""
 
+import json
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -14,7 +15,14 @@ if str(ROOT / "src") not in sys.path:
 
 import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata
-from src.models.provision import Atom, Provision, RuleAtom
+from src.models.provision import (
+    Atom,
+    Provision,
+    RuleAtom,
+    RuleElement,
+    RuleLint,
+    RuleReference,
+)
 from src.storage import VersionedStore
 
 
@@ -218,6 +226,274 @@ def test_toc_join(tmp_path: Path):
             (doc_id, 2),
         ).fetchall()
         assert {row["toc_id"] for row in rule_rows} == {rows[0]["toc_id"]}
+    finally:
+        store.close()
+
+
+def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
+    store = VersionedStore(str(tmp_path / "store.db"))
+    try:
+        doc_id = store.generate_id()
+        metadata = DocumentMetadata(
+            jurisdiction="AU",
+            citation="[2024] ABC 1",
+            date=date(2024, 1, 1),
+            source_url="http://example.com",
+            checksum="checksum",
+            licence="CC",
+            canonical_id="canon-upsert",
+        )
+        subject = Atom(
+            type="rule",
+            role="initial-role",
+            party="Initial party",
+            who="Initial who",
+            who_text="Initial who text",
+            conditions="Initial conditions",
+            text="Initial subject text",
+            refs=["Initial ref"],
+            gloss="Initial gloss",
+            gloss_metadata={"stage": "initial"},
+            glossary_id=3,
+        )
+        initial_rule_atom = RuleAtom(
+            atom_type="rule",
+            role="initial-role",
+            party="Initial party",
+            who="Initial who",
+            who_text="Initial who text",
+            actor="Initial actor",
+            modality="must",
+            action="Initial action",
+            conditions="Initial conditions",
+            scope="Initial scope",
+            text="Initial rule text",
+            subject=subject,
+            references=[RuleReference(citation_text="Initial citation")],
+            elements=[
+                RuleElement(
+                    role="initial element",
+                    text="Initial element text",
+                    conditions="Initial element conditions",
+                    gloss="Initial element gloss",
+                    gloss_metadata={"stage": "initial"},
+                    glossary_id=5,
+                    references=[
+                        RuleReference(citation_text="Initial element citation")
+                    ],
+                    atom_type="requirement",
+                )
+            ],
+            lints=[
+                RuleLint(
+                    atom_type="rule",
+                    code="initial",
+                    message="Initial lint",
+                    metadata={"severity": "low"},
+                )
+            ],
+        )
+        provision = Provision(
+            text="Provision body",
+            identifier="s 1",
+            heading="Heading",
+            node_type="section",
+            rule_atoms=[initial_rule_atom],
+            atoms=[subject],
+        )
+        document = Document(metadata, "Body text", provisions=[provision])
+
+        rev_id = store.add_revision(doc_id, document, date(2024, 1, 1))
+
+        provision_id = store.conn.execute(
+            "SELECT provision_id FROM provisions WHERE doc_id = ? AND rev_id = ? LIMIT 1",
+            (doc_id, rev_id),
+        ).fetchone()[0]
+        toc_id = store.conn.execute(
+            "SELECT toc_id FROM toc WHERE doc_id = ? AND rev_id = ? LIMIT 1",
+            (doc_id, rev_id),
+        ).fetchone()[0]
+        initial_hash = store.conn.execute(
+            """
+            SELECT text_hash
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()[0]
+        initial_element_hash = store.conn.execute(
+            """
+            SELECT text_hash
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1 AND element_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()[0]
+
+        updated_subject = Atom(
+            type="rule",
+            role="updated-role",
+            party="Updated party",
+            who="Updated who",
+            who_text="Updated who text",
+            conditions="Updated subject conditions",
+            text="Updated subject text",
+            refs=["Updated subject ref"],
+            gloss="Updated gloss",
+            gloss_metadata={"stage": "updated"},
+            glossary_id=11,
+        )
+        updated_rule_atom = RuleAtom(
+            toc_id=toc_id,
+            atom_type="rule",
+            role="updated-role",
+            party="Updated party",
+            who="Updated who",
+            who_text="Updated who text",
+            actor="Updated actor",
+            modality="may",
+            action="Updated action",
+            conditions="Updated rule conditions",
+            scope="Updated scope",
+            text="Updated rule text",
+            subject=updated_subject,
+            subject_gloss="Updated gloss",
+            subject_gloss_metadata={"stage": "updated"},
+            glossary_id=11,
+            references=[
+                RuleReference(
+                    work="Updated Work",
+                    section="S2",
+                    pinpoint="p.5",
+                    citation_text="Updated citation",
+                )
+            ],
+            elements=[
+                RuleElement(
+                    role="updated element",
+                    text="Updated element text",
+                    conditions="Updated element conditions",
+                    gloss="Updated element gloss",
+                    gloss_metadata={"stage": "updated"},
+                    glossary_id=13,
+                    references=[
+                        RuleReference(
+                            work="Elem Work",
+                            section="1",
+                            pinpoint="p.10",
+                            citation_text="Updated element citation",
+                        )
+                    ],
+                    atom_type="requirement",
+                )
+            ],
+            lints=[
+                RuleLint(
+                    atom_type="rule",
+                    code="updated",
+                    message="Updated lint message",
+                    metadata={"severity": "high"},
+                )
+            ],
+        )
+
+        with store.conn:
+            store._persist_rule_structures(
+                doc_id, rev_id, provision_id, [updated_rule_atom], toc_id
+            )
+
+        rule_row = store.conn.execute(
+            """
+            SELECT modality, action, scope, text, text_hash, subject_gloss, subject_gloss_metadata
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert rule_row["modality"] == "may"
+        assert rule_row["action"] == "Updated action"
+        assert rule_row["scope"] == "Updated scope"
+        assert rule_row["text"] == "Updated subject text"
+        assert rule_row["text_hash"] != initial_hash
+        assert rule_row["subject_gloss"] == "Updated gloss"
+        assert json.loads(rule_row["subject_gloss_metadata"]) == {"stage": "updated"}
+
+        subject_row = store.conn.execute(
+            """
+            SELECT text, refs, gloss, gloss_metadata, glossary_id
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert subject_row["text"] == "Updated subject text"
+        assert json.loads(subject_row["refs"]) == ["Updated subject ref"]
+        assert subject_row["gloss"] == "Updated gloss"
+        assert json.loads(subject_row["gloss_metadata"]) == {"stage": "updated"}
+        assert subject_row["glossary_id"] == 11
+
+        ref_row = store.conn.execute(
+            """
+            SELECT work, section, pinpoint, citation_text
+            FROM rule_atom_references
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1 AND ref_index = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert ref_row["work"] == "Updated Work"
+        assert ref_row["section"] == "S2"
+        assert ref_row["pinpoint"] == "p.5"
+        assert ref_row["citation_text"] == "Updated citation"
+
+        element_row = store.conn.execute(
+            """
+            SELECT text, conditions, gloss, text_hash
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1 AND element_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert element_row["text"] == "Updated element text"
+        assert element_row["conditions"] == "Updated element conditions"
+        assert element_row["gloss"] == "Updated element gloss"
+        assert element_row["text_hash"] != initial_element_hash
+
+        element_ref_row = store.conn.execute(
+            """
+            SELECT work, section, pinpoint, citation_text
+            FROM rule_element_references
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+              AND rule_id = 1 AND element_id = 1 AND ref_index = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert element_ref_row["work"] == "Elem Work"
+        assert element_ref_row["section"] == "1"
+        assert element_ref_row["pinpoint"] == "p.10"
+        assert element_ref_row["citation_text"] == "Updated element citation"
+
+        lint_row = store.conn.execute(
+            """
+            SELECT code, message, metadata
+            FROM rule_lints
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = 1 AND lint_id = 1
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()
+        assert lint_row["code"] == "updated"
+        assert lint_row["message"] == "Updated lint message"
+        assert json.loads(lint_row["metadata"]) == {"severity": "high"}
+
+        atom_count = store.conn.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+            """,
+            (doc_id, rev_id, provision_id),
+        ).fetchone()["count"]
+        assert atom_count == 1
+
     finally:
         store.close()
 
