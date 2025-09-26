@@ -13,7 +13,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 import src.pdf_ingest as pdf_ingest
-from src.models.document import Document, DocumentMetadata
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import Atom, Provision, RuleAtom
 from src.storage import VersionedStore
 
@@ -58,6 +58,12 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
             )
         ],
     )
+    toc_entry = DocumentTOCEntry(
+        node_type="section",
+        identifier="s 2",
+        title="Second heading",
+        page_number=42,
+    )
     store.add_revision(
         doc_id,
         Document(meta, "first", provisions=[first_provision]),
@@ -65,7 +71,12 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     )
     store.add_revision(
         doc_id,
-        Document(meta, "second", provisions=[second_provision]),
+        Document(
+            meta,
+            "second",
+            provisions=[second_provision],
+            toc_entries=[toc_entry],
+        ),
         date(2021, 1, 1),
     )
     return store, doc_id
@@ -188,6 +199,19 @@ def test_rule_atom_subjects_loaded(tmp_path: Path):
         store.close()
 
 
+def test_atoms_view_created_for_new_store(tmp_path: Path):
+    db_path = tmp_path / "store.db"
+    store = VersionedStore(str(db_path))
+    try:
+        row = store.conn.execute(
+            "SELECT type FROM sqlite_master WHERE name = 'atoms'"
+        ).fetchone()
+        assert row is not None
+        assert row["type"] == "view"
+    finally:
+        store.close()
+
+
 def test_toc_join(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
@@ -218,6 +242,24 @@ def test_toc_join(tmp_path: Path):
             (doc_id, 2),
         ).fetchall()
         assert {row["toc_id"] for row in rule_rows} == {rows[0]["toc_id"]}
+    finally:
+        store.close()
+
+
+def test_toc_page_numbers_persisted(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        rows = store.conn.execute(
+            "SELECT page_number FROM toc WHERE doc_id = ? AND rev_id = ? ORDER BY toc_id",
+            (doc_id, 2),
+        ).fetchall()
+        assert rows, "expected toc rows for revision"
+        assert rows[-1]["page_number"] == 42
+
+        snapshot = store.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        assert snapshot.toc_entries
+        assert snapshot.toc_entries[0].page_number == 42
     finally:
         store.close()
 
@@ -280,6 +322,40 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
         assert first["role"] is None
         assert first["text"] == "Perform the second duty"
         assert first["refs"] == '["Second reference"]'
+    finally:
+        store.close()
+
+
+def test_legacy_atoms_loaded_from_view_when_structured_absent(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        store.conn.execute("ALTER TABLE atoms RENAME TO atoms_legacy")
+        store.conn.execute("CREATE VIEW atoms AS SELECT * FROM atoms_legacy")
+
+        for table in (
+            "rule_element_references",
+            "rule_elements",
+            "rule_atom_references",
+            "rule_lints",
+            "rule_atom_subjects",
+            "rule_atoms",
+        ):
+            store.conn.execute(
+                f"DELETE FROM {table} WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, 1),
+            )
+        store.conn.commit()
+
+        snapshot = store.snapshot(doc_id, date(2020, 6, 1))
+        assert snapshot is not None
+        provision = snapshot.provisions[0]
+
+        assert provision.rule_atoms, (
+            "expected rule atoms to be derived from legacy view"
+        )
+        assert provision.atoms, "expected atoms to load from compatibility view"
+        assert provision.atoms[0].text == "Perform the first duty"
+        assert provision.atoms[0].refs == ["First reference"]
     finally:
         store.close()
 

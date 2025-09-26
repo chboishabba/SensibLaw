@@ -23,8 +23,18 @@ def test_extract_pdf(tmp_path):
 
     pages = pdf_ingest.extract_pdf_text(pdf_path)
     assert pages == [
-        {"page": 1, "heading": "Heading 1", "text": "Hello World"},
-        {"page": 2, "heading": "Heading2", "text": "Second Page"},
+        {
+            "page": 1,
+            "heading": "Heading 1",
+            "text": "Hello World",
+            "lines": ["Heading 1", "Hello", "World"],
+        },
+        {
+            "page": 2,
+            "heading": "Heading2",
+            "text": "Second Page",
+            "lines": ["Heading2", "Second Page"],
+        },
     ]
 
     meta = pdf_ingest.build_metadata(pdf_path, pages)
