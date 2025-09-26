@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import re
+import sys
 from datetime import date
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -98,97 +99,74 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 
 def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
+    module_lookup_gloss = getattr(sys.modules.get(__name__), "lookup_gloss", lookup_gloss)
     for r in rules:
         actor = getattr(r, "actor", None)
-        who = getattr(r, "party", UNKNOWN_PARTY) or UNKNOWN_PARTY
+        party = getattr(r, "party", None) or UNKNOWN_PARTY
         who_text = getattr(r, "who_text", None) or actor or None
-        parts = [getattr(r, "actor", None), getattr(r, "modality", None), getattr(r, "action", None)]
-        if getattr(r, "conditions", None):
-            parts.append(r.conditions)
-        if getattr(r, "scope", None):
-            parts.append(r.scope)
-        text = " ".join(part.strip() for part in parts if part)
-        who = getattr(r, "party", None) or UNKNOWN_PARTY
-        who_text = getattr(r, "who_text", None) or actor or None
-        text = f"{r.actor} {r.modality} {r.action}".strip()
-        if r.conditions:
-            text += f" {r.conditions}"
-        if r.scope:
-            text += f" {r.scope}"
+        conditions = getattr(r, "conditions", None)
+        scope = getattr(r, "scope", None)
 
-        rule_atom_kwargs = {
-            "type": "rule",
-            "role": "principle",
-            "party": who,
-            "who": who,
-            "who_text": who_text,
-            "conditions": r.conditions,
-            "text": text or None,
-            "gloss": who_text or actor or None,
-            "text": text.strip() or None,
-            "gloss": who_text,
-        }
-        atoms.append(Atom(**rule_atom_kwargs))
+        text_parts = [
+            getattr(r, "actor", None),
+            getattr(r, "modality", None),
+            getattr(r, "action", None),
+        ]
+        if conditions:
+            text_parts.append(conditions)
+        if scope:
+            text_parts.append(scope)
+        text = " ".join(part.strip() for part in text_parts if part).strip() or None
 
-        for role, fragments in (r.elements or {}).items():
+        atoms.append(
+            Atom(
+                type="rule",
+                role="principle",
+                party=party,
+                who=party,
+                who_text=who_text,
+                conditions=conditions,
+                text=text,
+                gloss=who_text or actor or None,
+            )
+        )
+
+        for role, fragments in (getattr(r, "elements", None) or {}).items():
             for fragment in fragments:
                 if not fragment:
                     continue
-                gloss_entry = lookup_gloss(fragment)
+                gloss_entry = module_lookup_gloss(fragment)
                 gloss_text = who_text or fragment
-                gloss_text = who_text
                 gloss_metadata = None
                 if gloss_entry:
                     gloss_text = gloss_entry.text
                     if gloss_entry.metadata is not None:
                         gloss_metadata = dict(gloss_entry.metadata)
-
-                element_atom_kwargs = {
-                    "type": "element",
-                    "role": role,
-                    "party": who,
-                    "who": who,
-                    "who_text": who_text,
-                    "conditions": r.conditions if role == "circumstance" else None,
-                    "text": fragment,
-                    "gloss": gloss_text,
-                    "gloss_metadata": gloss_metadata,
-                }
-                atoms.append(Atom(**element_atom_kwargs))
-
-
                 atoms.append(
                     Atom(
                         type="element",
                         role=role,
-                        party=r.actor or None,
-                        who=who,
-                        who_text=r.actor or None,
-                        conditions=r.conditions if role == "circumstance" else None,
+                        party=party,
+                        who=party,
+                        who_text=who_text,
+                        conditions=conditions if role == "circumstance" else None,
                         text=fragment,
-                        gloss=(
-                            gloss_entry.text if gloss_entry else who_text or None
-                        ),
-                        gloss_metadata=(
-                            dict(gloss_entry.metadata)
-                            if gloss_entry and gloss_entry.metadata is not None
-                            else None
-                        ),
+                        gloss=gloss_text,
+                        gloss_metadata=gloss_metadata,
                     )
                 )
-        if who == UNKNOWN_PARTY:
-            lint_atom_kwargs = {
-                "type": "lint",
-                "role": "unknown_party",
-                "text": f"Unclassified actor: {actor}".strip(),
-                "party": UNKNOWN_PARTY,
-                "who": UNKNOWN_PARTY,
-                "who_text": who_text or actor or None,
-                "gloss": who_text or actor or None,
-                "who": UNKNOWN_PARTY,
-                "gloss": who_text,
-            }
-            atoms.append(Atom(**lint_atom_kwargs))
+        if party == UNKNOWN_PARTY:
+            atoms.append(
+                Atom(
+                    type="lint",
+                    role="unknown_party",
+                    text=f"Unclassified actor: {actor}".strip(),
+                    party=UNKNOWN_PARTY,
+                    who=UNKNOWN_PARTY,
+                    who_text=who_text or actor or None,
+                    gloss=who_text or actor or None,
+                )
+            )
     return atoms
 
 
@@ -223,7 +201,6 @@ _SECTION_HEADING_RE = re.compile(
 )
 
 
-
 def _iter_section_provisions(provisions: List[Provision]):
     """Yield every section provision from a list of provisions."""
 
@@ -236,11 +213,6 @@ def _iter_section_provisions(provisions: List[Provision]):
 
 def _has_section_parser() -> bool:
     return bool(section_parser and hasattr(section_parser, "parse_sections"))
-
-
-_SECTION_HEADING_RE = re.compile(
-    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
-)
 
 
 def _fallback_parse_sections(text: str) -> List[Provision]:
@@ -286,10 +258,11 @@ def parse_sections(text: str) -> List[Provision]:
         return []
 
     parser_available = _has_section_parser()
-    if parser_available and section_parser and hasattr(
-        section_parser, "parse_sections"
-    ):
-        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+    if parser_available:
+        try:
+            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        except Exception:  # pragma: no cover - defensive guard
+            nodes = []
         structured = _build_provisions_from_nodes(nodes or [])
         sections = list(_iter_section_provisions(structured))
         if sections:
@@ -333,27 +306,10 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
-
         parser_available = _has_section_parser()
-        logger.debug(
-            "Section parsing yielded no provisions; evaluating fallback options "
-            "(section_parser_available=%s, optional_import_failed=%s, "
-            "root_import_failed=%s, body_length=%s)",
-            parser_available,
-            _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
-            _ROOT_SECTION_PARSER_IMPORT_FAILED,
-            len(body),
-            extra={
-                "section_parser_available": parser_available,
-                "section_parser_optional_import_failed": _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
-                "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
-                "body_length": len(body),
-            },
-        )
-
-        if parser_available and section_parser:
+        if parser_available:
             try:
-                nodes = section_parser.parse_sections(body)
+                nodes = section_parser.parse_sections(body)  # type: ignore[attr-defined]
             except Exception:  # pragma: no cover - defensive guard
                 nodes = []
             structured = _build_provisions_from_nodes(nodes or [])
@@ -363,14 +319,30 @@ def build_document(
             elif structured:
                 provisions = structured
 
-        if not provisions:  # Fallback: single provision containing entire body
-            provisions = [Provision(text=body)]
+        if not provisions:
+            logger.debug(
+                "Section parsing yielded no provisions after structured fallback "
+                "(section_parser_available=%s, optional_import_failed=%s, "
+                "root_import_failed=%s, body_length=%s)",
+                parser_available,
+                _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+                _ROOT_SECTION_PARSER_IMPORT_FAILED,
+                len(body),
+                extra={
+                    "section_parser_available": parser_available,
+                    "section_parser_optional_import_failed": _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+                    "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
+                    "body_length": len(body),
+                },
+            )
 
     for prov in provisions:
         rules = extract_rules(prov.text)
         atoms = _rules_to_atoms(rules)
         prov.atoms.extend(atoms)
-        prov.principles.extend([atom.text for atom in atoms if atom.text])
+        prov.principles.extend(
+            [atom.text for atom in atoms if atom.type == "rule" and atom.text]
+        )
 
     document = Document(metadata=metadata, body=body, provisions=provisions)
     _CULTURAL_OVERLAY.apply(document)
