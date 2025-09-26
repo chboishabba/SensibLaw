@@ -19,7 +19,7 @@ from .rules.extractor import extract_rules
 # available, a trivial fallback is used which treats the entire body as a single
 # provision.
 try:  # pragma: no cover - executed conditionally
-    from . import section_parser  # type: ignore
+    from .ingestion import section_parser  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     section_parser = None  # type: ignore
 
@@ -123,6 +123,33 @@ def _build_provisions_from_nodes(nodes) -> List[Provision]:
     return [_build_provision_from_node(node) for node in nodes]
 
 
+def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -> None:
+    if provision.node_type == "section":
+        bucket.append(provision)
+    for child in provision.children:
+        _collect_section_provisions(child, bucket)
+
+
+def parse_sections(text: str) -> List[Provision]:
+    """Return a list of provisions representing individual sections."""
+
+    if not text.strip():
+        return []
+
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        structured = _build_provisions_from_nodes(nodes)
+        sections: List[Provision] = []
+        for prov in structured:
+            _collect_section_provisions(prov, sections)
+        if sections:
+            return sections
+        if structured:
+            return structured
+
+    return [Provision(text=text)]
+
+
 def build_document(
     pages: List[dict],
     source: Path,
@@ -141,10 +168,8 @@ def build_document(
         provenance=str(source),
     )
 
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        structured = section_parser.parse_sections(body)  # type: ignore[attr-defined]
-        provisions = _build_provisions_from_nodes(structured)
-    else:  # Fallback: single provision containing entire body
+    provisions = parse_sections(body)
+    if not provisions:
         provisions = [Provision(text=body)]
 
     for prov in provisions:
