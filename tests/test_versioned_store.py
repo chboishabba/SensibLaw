@@ -1,6 +1,14 @@
 from datetime import date, datetime
 from pathlib import Path
+import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
+
+import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata
 from src.models.provision import Atom, Provision
 from src.storage import VersionedStore
@@ -84,3 +92,72 @@ def test_get_by_canonical_id(tmp_path: Path):
     assert doc.body == "second"
     assert doc.provisions[0].atoms[0].text == "Perform the second duty"
     store.close()
+
+
+def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 sample")
+    db_path = tmp_path / "store.db"
+    output_path = tmp_path / "out.json"
+
+    monkeypatch.setattr(
+        pdf_ingest,
+        "extract_text",
+        lambda _: "1 Heading\nAlice must pay Bob.",
+    )
+    monkeypatch.setattr(pdf_ingest, "section_parser", None)
+
+    document, stored_doc_id = pdf_ingest.process_pdf(
+        pdf_path,
+        output=output_path,
+        jurisdiction="TestState",
+        citation="Test Act",
+        db_path=db_path,
+    )
+
+    assert stored_doc_id is not None
+
+    store = VersionedStore(str(db_path))
+    try:
+        provision_rows = store.conn.execute(
+            """
+            SELECT provision_id, identifier, text
+            FROM provisions
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id
+            """,
+            (stored_doc_id, 1),
+        ).fetchall()
+        assert provision_rows
+        assert provision_rows[0]["identifier"] in {"1", None}
+
+        atom_rows = store.conn.execute(
+            """
+            SELECT type, text
+            FROM atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY atom_id
+            """,
+            (stored_doc_id, 1),
+        ).fetchall()
+        assert atom_rows
+        assert any(row["type"] == "rule" for row in atom_rows)
+
+        snapshot = store.snapshot(stored_doc_id, document.metadata.date)
+        assert snapshot is not None
+        assert snapshot.provisions
+        assert snapshot.provisions[0].atoms
+
+        # Removing JSON payload should still allow reconstruction from normalized tables.
+        store.conn.execute(
+            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
+            (stored_doc_id, 1),
+        )
+        store.conn.commit()
+
+        snapshot_no_json = store.snapshot(stored_doc_id, document.metadata.date)
+        assert snapshot_no_json is not None
+        assert snapshot_no_json.provisions
+        assert snapshot_no_json.provisions[0].atoms
+    finally:
+        store.close()
