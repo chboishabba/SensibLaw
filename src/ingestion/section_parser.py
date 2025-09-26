@@ -13,6 +13,10 @@ DIVISION_RE = re.compile(
     r"^Division\s+(?P<number>[A-Za-z0-9]+)(?:\s*(?:[-–:]\s*)?(?P<heading>.+))?$",
     re.IGNORECASE,
 )
+SUBDIVISION_RE = re.compile(
+    r"^Subdivision(?:\s+(?P<number>[A-Za-z0-9]+))?(?:\s*(?:[-–:]\s*)?(?P<heading>.+))?$",
+    re.IGNORECASE,
+)
 SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
 
 # Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
@@ -114,10 +118,14 @@ def _extract_references(text: str) -> List[ReferenceTuple]:
         add_reference(kind, act, label, section_id, match)
 
     for match in STRUCTURE_REF_RE.finditer(text):
-        add_reference("structure", None, match.group("label"), match.group("identifier"), match)
+        add_reference(
+            "structure", None, match.group("label"), match.group("identifier"), match
+        )
 
     for match in INTERNAL_REF_RE.finditer(text):
-        add_reference("internal", None, match.group("label"), match.group("target"), match)
+        add_reference(
+            "internal", None, match.group("label"), match.group("target"), match
+        )
 
     for match in SELF_REF_RE.finditer(text):
         add_reference("internal", "this", match.group("label"), None, match)
@@ -144,7 +152,9 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
 
     references.extend(_extract_references(text))
     deduped_refs: List[ReferenceTuple] = []
-    seen_refs: set[tuple[Optional[str], Optional[str], Optional[str], Optional[str]]] = set()
+    seen_refs: set[
+        tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
+    ] = set()
     for ref in references:
         kind, subject, label, target, original = ref
         key = (
@@ -286,6 +296,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
     current_part: Optional[ParsedNode] = None
     current_division: Optional[ParsedNode] = None
     current_section: Optional[ParsedNode] = None
+    current_subdivision: Optional[ParsedNode] = None
     current_subsection: Optional[ParsedNode] = None
 
     for raw_line in text.splitlines():
@@ -303,6 +314,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
             _attach_node(nodes, None, current_part)
             current_division = None
             current_section = None
+            current_subdivision = None
             current_subsection = None
             continue
 
@@ -315,13 +327,27 @@ def parse_sections(text: str) -> List[ParsedNode]:
                 heading=division_match.group("heading"),
             )
             _attach_node(nodes, parent, current_division)
+            current_subdivision = None
+            current_section = None
+            current_subsection = None
+            continue
+
+        subdivision_match = SUBDIVISION_RE.match(line)
+        if subdivision_match:
+            parent = current_division or current_part
+            current_subdivision = ParsedNode(
+                node_type="subdivision",
+                identifier=subdivision_match.group("number"),
+                heading=subdivision_match.group("heading"),
+            )
+            _attach_node(nodes, parent, current_subdivision)
             current_section = None
             current_subsection = None
             continue
 
         section_match = HEADING_RE.match(line)
         if section_match:
-            parent = current_division or current_part
+            parent = current_subdivision or current_division or current_part
             current_section = ParsedNode(
                 node_type="section",
                 identifier=section_match.group("number"),
@@ -341,13 +367,20 @@ def parse_sections(text: str) -> List[ParsedNode]:
             _attach_node(nodes, current_section, current_subsection)
             continue
 
-        target = current_subsection or current_section or current_division or current_part
+        target = (
+            current_subsection
+            or current_section
+            or current_subdivision
+            or current_division
+            or current_part
+        )
         if target is None:
             target = ParsedNode(node_type="section", identifier=None)
             _attach_node(nodes, None, target)
             current_part = None
             current_division = None
             current_section = target
+            current_subdivision = None
             current_subsection = None
 
         target._buffer.append(line)

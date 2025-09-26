@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
@@ -393,7 +394,7 @@ class Provision:
     customs: List[str] = field(default_factory=list)
     rule_atoms: List[RuleAtom] = field(default_factory=list)
     atoms: List[Atom] = field(default_factory=list)
-    legacy_atoms_factory: Optional[Callable[[], List[Atom]]] = field(
+    legacy_atoms_factory: Optional[Callable[..., List[Atom]]] = field(
         default=None, repr=False, compare=False
     )
 
@@ -454,11 +455,21 @@ class Provision:
             flattened.extend(rule_atom.to_atoms())
         return flattened
 
-    def _resolve_legacy_atoms(self) -> List[Atom]:
+    def _resolve_legacy_atoms(self, context: Any | None = None) -> List[Atom]:
         """Load legacy atoms from the compatibility view if needed."""
 
         if not self.atoms and self.legacy_atoms_factory is not None:
-            self.atoms = list(self.legacy_atoms_factory())
+            factory = self.legacy_atoms_factory
+            try:
+                signature = inspect.signature(factory)
+            except (TypeError, ValueError):
+                signature = None
+
+            if signature is None or len(signature.parameters) == 0:
+                atoms = factory()  # type: ignore[misc]
+            else:
+                atoms = factory(context)
+            self.atoms = list(atoms)
         return self.atoms
 
     def ensure_rule_atoms(self) -> None:

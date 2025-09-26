@@ -9,6 +9,36 @@ from .provision import Provision
 
 
 @dataclass
+class DocumentTOCEntry:
+    """Structured representation of a table-of-contents entry."""
+
+    node_type: Optional[str] = None
+    identifier: Optional[str] = None
+    title: Optional[str] = None
+    page_number: Optional[int] = None
+    children: List["DocumentTOCEntry"] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "node_type": self.node_type,
+            "identifier": self.identifier,
+            "title": self.title,
+            "page_number": self.page_number,
+            "children": [child.to_dict() for child in self.children],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentTOCEntry":
+        return cls(
+            node_type=data.get("node_type"),
+            identifier=data.get("identifier"),
+            title=data.get("title"),
+            page_number=data.get("page_number"),
+            children=[cls.from_dict(child) for child in data.get("children", [])],
+        )
+
+
+@dataclass
 class DocumentMetadata:
     """Metadata about a legal document.
 
@@ -51,7 +81,6 @@ class DocumentMetadata:
     checksum: Optional[str] = None
     licence: Optional[str] = None
 
-
     def to_dict(self) -> Dict[str, Any]:
         """Serialize metadata to a dictionary."""
         data = asdict(self)
@@ -82,10 +111,11 @@ class DocumentMetadata:
             cultural_flags=data.get("cultural_flags"),
             cultural_annotations=list(data.get("cultural_annotations", [])),
             cultural_redactions=list(data.get("cultural_redactions", [])),
-            cultural_consent_required=bool(data.get("cultural_consent_required", False)),
+            cultural_consent_required=bool(
+                data.get("cultural_consent_required", False)
+            ),
             canonical_id=data.get("canonical_id"),
             provenance=data.get("provenance"),
-
             jurisdiction_codes=list(data.get("jurisdiction_codes", [])),
             ontology_tags=dict(data.get("ontology_tags", {})),
             source_url=data.get("source_url"),
@@ -103,6 +133,7 @@ class Document:
     metadata: DocumentMetadata
     body: str
     provisions: List[Provision] = field(default_factory=list)
+    toc_entries: List[DocumentTOCEntry] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the document to a dictionary."""
@@ -110,6 +141,7 @@ class Document:
             "metadata": self.metadata.to_dict(),
             "body": self.body,
             "provisions": [p.to_dict() for p in self.provisions],
+            "toc_entries": [entry.to_dict() for entry in self.toc_entries],
         }
 
     def to_json(self) -> str:
@@ -121,7 +153,15 @@ class Document:
         """Deserialize a document from a dictionary."""
         metadata = DocumentMetadata.from_dict(data["metadata"])
         provisions = [Provision.from_dict(p) for p in data.get("provisions", [])]
-        return cls(metadata=metadata, body=data["body"], provisions=provisions)
+        toc_entries = [
+            DocumentTOCEntry.from_dict(entry) for entry in data.get("toc_entries", [])
+        ]
+        return cls(
+            metadata=metadata,
+            body=data["body"],
+            provisions=provisions,
+            toc_entries=toc_entries,
+        )
 
     @classmethod
     def from_json(cls, data: str) -> "Document":
@@ -129,4 +169,4 @@ class Document:
         return cls.from_dict(json.loads(data))
 
 
-__all__ = ["Document", "DocumentMetadata"]
+__all__ = ["Document", "DocumentMetadata", "DocumentTOCEntry"]
