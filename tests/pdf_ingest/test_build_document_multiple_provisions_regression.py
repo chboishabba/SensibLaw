@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+# ruff: noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -64,12 +66,55 @@ def test_build_document_section_parser_fallback_returns_provisions_with_atoms():
         def parse_sections(self, _text):
             return nodes
 
-    with patch("src.pdf_ingest.parse_sections", return_value=[]), patch(
-        "src.pdf_ingest.section_parser",
-        DummyParser(),
+    with (
+        patch("src.pdf_ingest.parse_sections", return_value=[]),
+        patch(
+            "src.pdf_ingest.section_parser",
+            DummyParser(),
+        ),
     ):
         document = build_document(pages, Path("dummy.pdf"))
 
     assert [prov.identifier for prov in document.provisions] == ["1", "2"]
     assert all(isinstance(prov.atoms, list) for prov in document.provisions)
     assert all(isinstance(prov.principles, list) for prov in document.provisions)
+
+
+def test_build_document_parses_table_of_contents():
+    pages = [
+        {
+            "page": 1,
+            "heading": "Contents",
+            "text": (
+                "Part 1 Preliminary............................ 3\n"
+                "Section 1 Short title............... 4\n"
+                "Section 2 Definitions............... 5"
+            ),
+            "lines": [
+                "Contents",
+                "Part 1 Preliminary............................ 3",
+                "Section 1 Short title............... 4",
+                "Section 2 Definitions............... 5",
+            ],
+        },
+        {
+            "page": 2,
+            "heading": "Part 1 Preliminary",
+            "text": "Section 1 Short title\nShort title text",
+        },
+    ]
+
+    document = build_document(pages, Path("toc.pdf"))
+
+    assert document.toc_entries, "expected parsed TOC entries"
+    part_entry = document.toc_entries[0]
+    assert part_entry.node_type == "part"
+    assert part_entry.identifier == "1"
+    assert part_entry.title == "Preliminary"
+    assert part_entry.page_number == 3
+    assert len(part_entry.children) == 2
+    first_section = part_entry.children[0]
+    assert first_section.node_type == "section"
+    assert first_section.identifier == "1"
+    assert first_section.title == "Short title"
+    assert first_section.page_number == 4
