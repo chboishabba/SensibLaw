@@ -1,6 +1,10 @@
+"""Tests for the versioned store implementation."""
+
 from datetime import date, datetime
 from pathlib import Path
 import sys
+
+# ruff: noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -31,12 +35,24 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     first_provision = Provision(
         text="First provision",
         identifier="s 1",
-        atoms=[Atom(type="duty", text="Perform the first duty")],
+        atoms=[
+            Atom(
+                type="duty",
+                text="Perform the first duty",
+                refs=["First reference"],
+            )
+        ],
     )
     second_provision = Provision(
         text="Second provision",
         identifier="s 2",
-        atoms=[Atom(type="duty", text="Perform the second duty")],
+        atoms=[
+            Atom(
+                type="duty",
+                text="Perform the second duty",
+                refs=["Second reference"],
+            )
+        ],
     )
     store.add_revision(
         doc_id,
@@ -58,9 +74,11 @@ def test_snapshot(tmp_path: Path):
     assert snap.body == "first"
     assert snap.provisions
     assert snap.provisions[0].atoms[0].text == "Perform the first duty"
+    assert snap.provisions[0].atoms[0].refs == ["First reference"]
     snap2 = store.snapshot(doc_id, date(2022, 1, 1))
     assert snap2.body == "second"
     assert snap2.provisions[0].atoms[0].text == "Perform the second duty"
+    assert snap2.provisions[0].atoms[0].refs == ["Second reference"]
     store.close()
 
 
@@ -91,7 +109,36 @@ def test_get_by_canonical_id(tmp_path: Path):
     assert doc is not None
     assert doc.body == "second"
     assert doc.provisions[0].atoms[0].text == "Perform the second duty"
+    assert doc.provisions[0].atoms[0].refs == ["Second reference"]
     store.close()
+
+
+def test_atom_references_join_table(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        rows = store.conn.execute(
+            """
+            SELECT citation_text
+            FROM atom_references
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, atom_id, ref_index
+            """,
+            (doc_id, 2),
+        ).fetchall()
+        assert [row["citation_text"] for row in rows] == ["Second reference"]
+
+        store.conn.execute(
+            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, 2),
+        )
+        store.conn.commit()
+
+        snapshot = store.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        atom = snapshot.provisions[0].atoms[0]
+        assert atom.refs == ["Second reference"]
+    finally:
+        store.close()
 
 
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
