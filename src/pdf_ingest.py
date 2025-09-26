@@ -131,6 +131,9 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         conditions=r.conditions if role == "circumstance" else None,
                         text=fragment,
                         gloss=(gloss_entry.text if gloss_entry else None),
+                        gloss=(
+                            gloss_entry.text if gloss_entry else who_text or None
+                        ),
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
                             if gloss_entry and gloss_entry.metadata is not None
@@ -177,24 +180,18 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
         _collect_section_provisions(child, bucket)
 
 
+def _iter_section_provisions(provisions: List[Provision]):
+    """Yield every section provision from a list of provisions."""
+
+    for provision in provisions:
+        if provision.node_type == "section":
+            yield provision
+        if provision.children:
+            yield from _iter_section_provisions(provision.children)
+
+
 def _has_section_parser() -> bool:
     return bool(section_parser and hasattr(section_parser, "parse_sections"))
-
-
-    if not text.strip():
-        return []
-
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-        structured = _build_provisions_from_nodes(nodes)
-        sections = list(_iter_section_provisions(structured))
-        if sections:
-            return sections
-        if structured:
-            return structured
-
-    return _fallback_parse_sections(text)
-
 
 
 _SECTION_HEADING_RE = re.compile(
@@ -256,6 +253,15 @@ def parse_sections(text: str) -> List[Provision]:
             return sections
         if structured:
             return structured
+    if parser_available:
+        if section_parser and hasattr(section_parser, "parse_sections"):
+            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+            structured = _build_provisions_from_nodes(nodes)
+            sections = list(_iter_section_provisions(structured))
+            if sections:
+                return sections
+            if structured:
+                return structured
 
     logger.debug(
         "Falling back to regex-based section parsing (section_parser_available=%s, "
