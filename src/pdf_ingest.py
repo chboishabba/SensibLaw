@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from pdfminer.high_level import extract_text
 
+from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
@@ -93,6 +94,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
 
         for role, fragments in (r.elements or {}).items():
             for fragment in fragments:
+                gloss_entry = lookup_gloss(fragment)
                 atoms.append(
                     Atom(
                         type="element",
@@ -100,6 +102,12 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         text=fragment,
                         who=r.actor or None,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=gloss_entry.text if gloss_entry else None,
+                        gloss_metadata=(
+                            dict(gloss_entry.metadata)
+                            if gloss_entry and gloss_entry.metadata is not None
+                            else None
+                        ),
                     )
                 )
     return atoms

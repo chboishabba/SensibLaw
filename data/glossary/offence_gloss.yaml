@@ -1,0 +1,11 @@
+elements:
+  with intent to cause death:
+    text: "R v Smith [2001] HCA 12 confirmed that murder requires an intention to kill."
+    metadata:
+      case: "R v Smith"
+      citation: "[2001] HCA 12"
+  resulting in grievous bodily harm:
+    text: "Brown v R [1995] HCA 34 treated grievous bodily harm as a qualifying result for serious offences."
+    metadata:
+      case: "Brown v R"
+      citation: "[1995] HCA 34"
