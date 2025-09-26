@@ -51,6 +51,27 @@ class VersionedStore:
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
 
+                CREATE TABLE IF NOT EXISTS toc (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    toc_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    node_type TEXT,
+                    identifier TEXT,
+                    title TEXT,
+                    position INTEGER NOT NULL,
+                    PRIMARY KEY (doc_id, rev_id, toc_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                    FOREIGN KEY (doc_id, rev_id, parent_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_toc_doc_rev
+                ON toc(doc_id, rev_id, toc_id);
+
+                CREATE INDEX IF NOT EXISTS idx_toc_parent
+                ON toc(doc_id, rev_id, parent_id);
+
                 CREATE TABLE IF NOT EXISTS provisions (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -59,6 +80,7 @@ class VersionedStore:
                     identifier TEXT,
                     heading TEXT,
                     node_type TEXT,
+                    toc_id INTEGER,
                     text TEXT,
                     rule_tokens TEXT,
                     references_json TEXT,
@@ -66,11 +88,14 @@ class VersionedStore:
                     customs TEXT,
                     cultural_flags TEXT,
                     PRIMARY KEY (doc_id, rev_id, provision_id),
-                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                    FOREIGN KEY (doc_id, rev_id, toc_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
                 ON provisions(doc_id, rev_id, provision_id);
+
 
                 CREATE TABLE IF NOT EXISTS atoms (
                     doc_id INTEGER NOT NULL,
@@ -100,6 +125,7 @@ class VersionedStore:
                     rev_id INTEGER NOT NULL,
                     provision_id INTEGER NOT NULL,
                     rule_id INTEGER NOT NULL,
+                    toc_id INTEGER,
                     atom_type TEXT,
                     role TEXT,
                     party TEXT,
@@ -115,11 +141,14 @@ class VersionedStore:
                     subject_gloss_metadata TEXT,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id)
-                        REFERENCES provisions(doc_id, rev_id, provision_id)
+                        REFERENCES provisions(doc_id, rev_id, provision_id),
+                    FOREIGN KEY (doc_id, rev_id, toc_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
+
 
                 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
                     doc_id INTEGER NOT NULL,
@@ -249,13 +278,33 @@ class VersionedStore:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
             # Migration: ensure the revisions table has a document_json column
-            columns = {
-                row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
-            }
-            if "document_json" not in columns:
-                self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+        columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
+        }
+        if "document_json" not in columns:
+            self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
         self._backfill_rule_tables()
+
+        provision_columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(provisions)")
+        }
+        if "toc_id" not in provision_columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE provisions ADD COLUMN toc_id INTEGER")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_provisions_toc ON provisions(doc_id, rev_id, toc_id)"
+        )
+
+        rule_atom_columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(rule_atoms)")
+        }
+        if "toc_id" not in rule_atom_columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE rule_atoms ADD COLUMN toc_id INTEGER")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc ON rule_atoms(doc_id, rev_id, toc_id)"
+        )
 
     # ------------------------------------------------------------------
     # ID generation and revision storage
@@ -281,8 +330,8 @@ class VersionedStore:
         Returns:
             The revision number assigned to the stored revision.
         """
+        toc_entries = self._build_toc_entries(document.provisions)
         metadata_json = json.dumps(document.metadata.to_dict())
-        document_json = document.to_json()
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
             if document.metadata.retrieved_at
@@ -321,7 +370,7 @@ class VersionedStore:
                 "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
                 (document.body, metadata_json),
             )
-            self._store_provisions(doc_id, rev_id, document.provisions)
+            self._store_provisions(doc_id, rev_id, document.provisions, toc_entries)
         return rev_id
 
     # ------------------------------------------------------------------
@@ -398,8 +447,41 @@ class VersionedStore:
             return Document.from_json(document_json)
         return Document(metadata=metadata, body=body)
 
+    def _build_toc_entries(
+        self, provisions: List[Provision]
+    ) -> List[Tuple[int, Optional[int], int, Provision]]:
+        """Assign sequential TOC identifiers to provisions and capture hierarchy."""
+
+        entries: List[Tuple[int, Optional[int], int, Provision]] = []
+        if not provisions:
+            return entries
+
+        counter = 0
+        position_counters: defaultdict[Optional[int], int] = defaultdict(int)
+
+        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
+            nonlocal counter
+            counter += 1
+            toc_id = counter
+            position_counters[parent_toc_id] += 1
+            provision.toc_id = toc_id
+            entries.append(
+                (toc_id, parent_toc_id, position_counters[parent_toc_id], provision)
+            )
+            for child in provision.children:
+                traverse(child, toc_id)
+
+        for provision in provisions:
+            traverse(provision, None)
+
+        return entries
+
     def _store_provisions(
-        self, doc_id: int, rev_id: int, provisions: List[Provision]
+        self,
+        doc_id: int,
+        rev_id: int,
+        provisions: List[Provision],
+        toc_entries: Optional[List[Tuple[int, Optional[int], int, Provision]]] = None,
     ) -> None:
         """Persist provision and atom data for a revision."""
 
@@ -439,9 +521,36 @@ class VersionedStore:
             "DELETE FROM provisions WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
         )
+        self.conn.execute(
+            "DELETE FROM toc WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
 
         if not provisions:
             return
+
+        if toc_entries is None:
+            toc_entries = self._build_toc_entries(provisions)
+
+        for toc_id, parent_toc_id, position, provision in toc_entries:
+            self.conn.execute(
+                """
+                INSERT INTO toc (
+                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    doc_id,
+                    rev_id,
+                    toc_id,
+                    parent_toc_id,
+                    provision.node_type,
+                    provision.identifier,
+                    provision.heading,
+                    position,
+                ),
+            )
 
         provision_counter = 0
 
@@ -474,10 +583,10 @@ class VersionedStore:
                 """
                 INSERT INTO provisions (
                     doc_id, rev_id, provision_id, parent_id, identifier,
-                    heading, node_type, text, rule_tokens, references_json,
+                    heading, node_type, toc_id, text, rule_tokens, references_json,
                     principles, customs, cultural_flags
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -487,6 +596,7 @@ class VersionedStore:
                     provision.identifier,
                     provision.heading,
                     provision.node_type,
+                    provision.toc_id,
                     provision.text,
                     json.dumps(provision.rule_tokens)
                     if provision.rule_tokens
@@ -500,7 +610,7 @@ class VersionedStore:
 
             if provision.rule_atoms:
                 self._persist_rule_structures(
-                    doc_id, rev_id, current_id, provision.rule_atoms
+                    doc_id, rev_id, current_id, provision.rule_atoms, provision.toc_id
                 )
 
             for atom_index, atom in enumerate(provision.atoms, start=1):
@@ -603,7 +713,7 @@ class VersionedStore:
         provision_rows = self.conn.execute(
             """
             SELECT doc_id, rev_id, provision_id, parent_id, identifier, heading,
-                   node_type, text, rule_tokens, references_json, principles, customs,
+                   node_type, toc_id, text, rule_tokens, references_json, principles, customs,
                    cultural_flags
             FROM provisions
             WHERE doc_id = ? AND rev_id = ?
@@ -619,6 +729,7 @@ class VersionedStore:
             SELECT
                 ra.provision_id,
                 ra.rule_id,
+                ra.toc_id,
                 ra.atom_type,
                 ra.role,
                 ra.party,
@@ -745,6 +856,7 @@ class VersionedStore:
                     )
                 ]
                 rule_atom = RuleAtom(
+                    toc_id=row["toc_id"],
                     atom_type=row["atom_type"],
                     role=row["role"],
                     party=row["party"],
@@ -956,6 +1068,7 @@ class VersionedStore:
                 identifier=row["identifier"],
                 heading=row["heading"],
                 node_type=row["node_type"],
+                toc_id=row["toc_id"],
                 rule_tokens=rule_tokens,
                 cultural_flags=cultural_flags,
                 references=references,
@@ -995,6 +1108,7 @@ class VersionedStore:
         rev_id: int,
         provision_id: int,
         rule_atoms: List[RuleAtom],
+        toc_id: Optional[int],
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -1008,6 +1122,10 @@ class VersionedStore:
             rule_atom.who_text = subject_atom.who_text
             rule_atom.text = subject_atom.text
             rule_atom.conditions = subject_atom.conditions
+            current_toc_id = (
+                rule_atom.toc_id if rule_atom.toc_id is not None else toc_id
+            )
+            rule_atom.toc_id = current_toc_id
             subject_metadata_json = (
                 json.dumps(subject_atom.gloss_metadata)
                 if subject_atom.gloss_metadata is not None
@@ -1016,17 +1134,18 @@ class VersionedStore:
             self.conn.execute(
                 """
                 INSERT INTO rule_atoms (
-                    doc_id, rev_id, provision_id, rule_id, atom_type, role, party,
+                    doc_id, rev_id, provision_id, rule_id, toc_id, atom_type, role, party,
                     who, who_text, actor, modality, action, conditions, scope,
                     text, subject_gloss, subject_gloss_metadata
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
                     rev_id,
                     provision_id,
                     rule_index,
+                    current_toc_id,
                     rule_atom.atom_type,
                     rule_atom.role,
                     rule_atom.party,
@@ -1288,7 +1407,7 @@ class VersionedStore:
                     continue
                 if needs_rule_atoms:
                     self._persist_rule_structures(
-                        doc_id, rev_id, provision_id, provision.rule_atoms
+                        doc_id, rev_id, provision_id, provision.rule_atoms, None
                     )
                 elif needs_subjects:
                     for rule_index, rule_atom in enumerate(
