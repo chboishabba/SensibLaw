@@ -199,6 +199,19 @@ def test_rule_atom_subjects_loaded(tmp_path: Path):
         store.close()
 
 
+def test_atoms_view_created_for_new_store(tmp_path: Path):
+    db_path = tmp_path / "store.db"
+    store = VersionedStore(str(db_path))
+    try:
+        row = store.conn.execute(
+            "SELECT type FROM sqlite_master WHERE name = 'atoms'"
+        ).fetchone()
+        assert row is not None
+        assert row["type"] == "view"
+    finally:
+        store.close()
+
+
 def test_toc_join(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
