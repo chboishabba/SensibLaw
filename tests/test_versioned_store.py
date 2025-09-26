@@ -313,6 +313,40 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
         store.close()
 
 
+def test_legacy_atoms_loaded_from_view_when_structured_absent(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        store.conn.execute("ALTER TABLE atoms RENAME TO atoms_legacy")
+        store.conn.execute("CREATE VIEW atoms AS SELECT * FROM atoms_legacy")
+
+        for table in (
+            "rule_element_references",
+            "rule_elements",
+            "rule_atom_references",
+            "rule_lints",
+            "rule_atom_subjects",
+            "rule_atoms",
+        ):
+            store.conn.execute(
+                f"DELETE FROM {table} WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, 1),
+            )
+        store.conn.commit()
+
+        snapshot = store.snapshot(doc_id, date(2020, 6, 1))
+        assert snapshot is not None
+        provision = snapshot.provisions[0]
+
+        assert provision.rule_atoms, (
+            "expected rule atoms to be derived from legacy view"
+        )
+        assert provision.atoms, "expected atoms to load from compatibility view"
+        assert provision.atoms[0].text == "Perform the first duty"
+        assert provision.atoms[0].refs == ["First reference"]
+    finally:
+        store.close()
+
+
 def test_rule_atoms_deduplicated_by_text_hash(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
