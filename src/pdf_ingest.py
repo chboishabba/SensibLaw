@@ -162,6 +162,25 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
         _collect_section_provisions(child, bucket)
 
 
+def parse_sections(text: str) -> List[Provision]:
+    """Return a list of provisions representing individual sections."""
+
+    if not text.strip():
+        return []
+
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        structured = _build_provisions_from_nodes(nodes)
+        sections = list(_iter_section_provisions(structured))
+        if sections:
+            return sections
+        if structured:
+            return structured
+
+    return _fallback_parse_sections(text)
+
+
+
 _SECTION_HEADING_RE = re.compile(
     r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
 )
@@ -249,6 +268,7 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
+        provisions = [Provision(text=body)]
         if hasattr(section_parser, "parse_sections"):
             provisions = section_parser.parse_sections(body)
             if not provisions:
