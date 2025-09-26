@@ -15,6 +15,7 @@ class Atom:
     conditions: Optional[str] = None
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
+    gloss_metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the atom to a dictionary."""
@@ -27,6 +28,11 @@ class Atom:
             "conditions": self.conditions,
             "refs": list(self.refs),
             "gloss": self.gloss,
+            "gloss_metadata": (
+                dict(self.gloss_metadata)
+                if self.gloss_metadata is not None
+                else None
+            ),
         }
 
     @classmethod
@@ -41,6 +47,11 @@ class Atom:
             conditions=data.get("conditions"),
             refs=list(data.get("refs", [])),
             gloss=data.get("gloss"),
+            gloss_metadata=(
+                dict(data["gloss_metadata"])
+                if "gloss_metadata" in data and data["gloss_metadata"] is not None
+                else None
+            ),
         )
 
 
