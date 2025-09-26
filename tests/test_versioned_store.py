@@ -479,6 +479,100 @@ def test_migration_removes_duplicate_rule_atoms(tmp_path: Path):
         migrated.close()
 
 
+def test_migration_preserves_rule_atoms_with_distinct_party_role(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    db_path = store.path
+    try:
+        base_row = store.conn.execute(
+            """
+            SELECT provision_id, rule_id, party, role
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            LIMIT 1
+            """,
+            (doc_id, 2),
+        ).fetchone()
+        assert base_row is not None
+        provision_id = base_row["provision_id"]
+        base_rule_id = base_row["rule_id"]
+        base_party = base_row["party"]
+        base_role = base_row["role"]
+
+        store.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
+
+        distinct_rule_id = base_rule_id + 200
+
+        store.conn.execute(
+            """
+            INSERT INTO rule_atoms (
+                doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, atom_type,
+                role, party, who, who_text, actor, modality, action, conditions,
+                scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+            )
+            SELECT doc_id, rev_id, provision_id, ?, text_hash, toc_id, atom_type,
+                   ?, ?, who, who_text, actor, modality, action, conditions,
+                   scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+            """,
+            (
+                distinct_rule_id,
+                "alternate-role",
+                "Party B",
+                doc_id,
+                2,
+                provision_id,
+                base_rule_id,
+            ),
+        )
+
+        store.conn.execute(
+            """
+            INSERT INTO rule_atom_subjects (
+                doc_id, rev_id, provision_id, rule_id, type, role, party, who,
+                who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
+            )
+            SELECT doc_id, rev_id, provision_id, ?, type, ?, ?, who,
+                   who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+            """,
+            (
+                distinct_rule_id,
+                "alternate-role",
+                "Party B",
+                doc_id,
+                2,
+                provision_id,
+                base_rule_id,
+            ),
+        )
+
+        store.conn.commit()
+    finally:
+        store.close()
+
+    migrated = VersionedStore(db_path)
+    try:
+        rows = migrated.conn.execute(
+            """
+            SELECT party, role
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+            ORDER BY rule_id
+            """,
+            (doc_id, 2, provision_id),
+        ).fetchall()
+        assert len(rows) == 2
+        parties = {row["party"] for row in rows}
+        roles = {row["role"] for row in rows}
+        assert parties == {base_party, "Party B"}
+        assert roles == {base_role, "alternate-role"}
+    finally:
+        migrated.close()
+
+
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 sample")
