@@ -14,7 +14,7 @@ if str(ROOT / "src") not in sys.path:
 
 import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata
-from src.models.provision import Atom, Provision
+from src.models.provision import Atom, Provision, RuleAtom
 from src.storage import VersionedStore
 
 
@@ -250,6 +250,74 @@ def test_rule_atom_subjects_backfill(tmp_path: Path):
         ).fetchall()
         assert rows
         assert rows[0]["text"] == "Perform the second duty"
+    finally:
+        store.close()
+
+
+def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        store.conn.execute(
+            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, 2),
+        )
+        store.conn.commit()
+
+        rows = store.conn.execute(
+            """
+            SELECT atom_id, type, role, text, refs
+            FROM atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY atom_id
+            """,
+            (doc_id, 2),
+        ).fetchall()
+
+        assert rows, "expected reconstructed atoms"
+        first = rows[0]
+        assert first["atom_id"] == 1
+        assert first["type"] == "duty"
+        assert first["role"] is None
+        assert first["text"] == "Perform the second duty"
+        assert first["refs"] == '["Second reference"]'
+    finally:
+        store.close()
+
+
+def test_rule_atoms_deduplicated_by_text_hash(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        snapshot = store.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        meta = snapshot.metadata
+
+        subject_a = Atom(type="duty", text="Consistent duty")
+        subject_b = Atom(type="duty", text="Consistent duty")
+        duplicate_rule_atoms = [
+            RuleAtom(atom_type="duty", text="Consistent duty", subject=subject_a),
+            RuleAtom(atom_type="duty", text="Consistent duty", subject=subject_b),
+        ]
+
+        provision = Provision(
+            text="Duplicate rule atoms provision",
+            identifier="s 3",
+            rule_atoms=duplicate_rule_atoms,
+        )
+
+        document = Document(meta, "third", provisions=[provision])
+        store.add_revision(doc_id, document, date(2023, 1, 1))
+
+        rule_atom_count = store.conn.execute(
+            "SELECT COUNT(*) FROM rule_atoms WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, 3),
+        ).fetchone()[0]
+        assert rule_atom_count == 1
+
+        legacy_atom_count = store.conn.execute(
+            "SELECT COUNT(*) FROM atoms WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, 3),
+        ).fetchone()[0]
+        assert legacy_atom_count == 1
     finally:
         store.close()
 

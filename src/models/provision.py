@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass
@@ -393,6 +393,9 @@ class Provision:
     customs: List[str] = field(default_factory=list)
     rule_atoms: List[RuleAtom] = field(default_factory=list)
     atoms: List[Atom] = field(default_factory=list)
+    legacy_atoms_factory: Optional[Callable[[], List[Atom]]] = field(
+        default=None, repr=False, compare=False
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the provision to a dictionary."""
@@ -443,16 +446,28 @@ class Provision:
     def flatten_rule_atoms(self) -> List[Atom]:
         """Return the flattened legacy atoms generated from ``rule_atoms``."""
 
+        if not self.rule_atoms:
+            return list(self._resolve_legacy_atoms())
+
         flattened: List[Atom] = []
         for rule_atom in self.rule_atoms:
             flattened.extend(rule_atom.to_atoms())
         return flattened
 
+    def _resolve_legacy_atoms(self) -> List[Atom]:
+        """Load legacy atoms from the compatibility view if needed."""
+
+        if not self.atoms and self.legacy_atoms_factory is not None:
+            self.atoms = list(self.legacy_atoms_factory())
+        return self.atoms
+
     def ensure_rule_atoms(self) -> None:
         """Ensure that ``rule_atoms`` exists, deriving from legacy atoms when necessary."""
 
-        if not self.rule_atoms and self.atoms:
-            self.rule_atoms = self._derive_rule_atoms_from_legacy(self.atoms)
+        legacy_atoms = self._resolve_legacy_atoms()
+
+        if not self.rule_atoms and legacy_atoms:
+            self.rule_atoms = self._derive_rule_atoms_from_legacy(legacy_atoms)
 
         if self.rule_atoms and not self.atoms:
             self.atoms = self.flatten_rule_atoms()
@@ -467,6 +482,7 @@ class Provision:
 
         if self.rule_atoms:
             self.atoms = self.flatten_rule_atoms()
+            self.legacy_atoms_factory = None
 
     @staticmethod
     def _derive_rule_atoms_from_legacy(atoms: Iterable[Atom]) -> List[RuleAtom]:
