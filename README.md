@@ -100,6 +100,28 @@ sensiblaw query treatment --case case123
 See [docs/versioning.md](docs/versioning.md) for details on the versioned
 storage layer and available provenance metadata.
 
+#### Ingest PDF documents
+
+Extract provisions and atoms from a PDF while writing the structured
+[`Document`](src/models/document.py) payload into the SQLite store:
+
+```bash
+sensiblaw pdf-fetch data/example.pdf --jurisdiction "NSW" --citation "Act 1994" \
+  --db data/store.db
+```
+
+To reuse an existing document identifier when appending a new revision:
+
+```bash
+sensiblaw pdf-fetch data/amendment.pdf --jurisdiction "NSW" --citation "Act 1994" \
+  --db data/store.db --doc-id 42
+```
+
+Both commands emit the parsed structure to stdout (and optionally `--output`)
+so that downstream tooling can inspect the [`Provision`](src/models/provision.py)
+hierarchy, while the `--db/--doc-id` options persist the same structure in the
+versioned store.
+
 ## Development
 
 Optionally install [pre-commit](https://pre-commit.com/) to run linters and
