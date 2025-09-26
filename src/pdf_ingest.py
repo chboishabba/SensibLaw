@@ -94,6 +94,8 @@ def _rules_to_atoms(rules) -> List[Atom]:
             Atom(
                 type="rule",
                 role="principle",
+                party=r.actor or None,
+                who_text=r.actor or None,
                 text=text.strip() or None,
                 who=who,
                 conditions=r.conditions,
@@ -108,6 +110,8 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     Atom(
                         type="element",
                         role=role,
+                        party=r.actor or None,
+                        who_text=r.actor or None,
                         text=fragment,
                         who=who,
                         conditions=r.conditions if role == "circumstance" else None,

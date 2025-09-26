@@ -10,9 +10,9 @@ class Atom:
 
     type: Optional[str] = None
     role: Optional[str] = None
+    party: Optional[str] = None
+    who_text: Optional[str] = None
     text: Optional[str] = None
-    who: Optional[str] = None
-    conditions: Optional[str] = None
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
     gloss_metadata: Optional[Dict[str, Any]] = None
@@ -23,9 +23,9 @@ class Atom:
         return {
             "type": self.type,
             "role": self.role,
+            "party": self.party,
+            "who_text": self.who_text,
             "text": self.text,
-            "who": self.who,
-            "conditions": self.conditions,
             "refs": list(self.refs),
             "gloss": self.gloss,
             "gloss_metadata": (
@@ -42,9 +42,9 @@ class Atom:
         return cls(
             type=data.get("type"),
             role=data.get("role"),
+            party=data.get("party"),
+            who_text=data.get("who_text"),
             text=data.get("text"),
-            who=data.get("who"),
-            conditions=data.get("conditions"),
             refs=list(data.get("refs", [])),
             gloss=data.get("gloss"),
             gloss_metadata=(
