@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS toc (
     identifier TEXT,
     title TEXT,
     position INTEGER NOT NULL,
+    page_number INTEGER,
     PRIMARY KEY (doc_id, rev_id, toc_id),
     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
     FOREIGN KEY (doc_id, rev_id, parent_id)
