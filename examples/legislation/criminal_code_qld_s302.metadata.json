@@ -1,0 +1,14 @@
+{
+  "dataset": "criminal_code_qld_s302",
+  "act": "Criminal Code Act 1899 (Qld)",
+  "section": "302",
+  "source_url": "https://www.legislation.qld.gov.au/view/html/inforce/current/act-1899-009#sec.302",
+  "last_reviewed": "2024-07-01",
+  "compiler": "SensibLaw demo team",
+  "cleaning_notes": [
+    "Extracted the operative definition of murder from s 302 and split elements into practitioner-ready checklists.",
+    "Annotated common partial and complete defences for quick cross-reference.",
+    "Added recent Queensland Court of Appeal authorities illustrating the element pathways."
+  ],
+  "usage": "Supports showcase queries about the murder elements checklist and related defences."
+}
