@@ -17,6 +17,7 @@ def test_pdf_fetch_cli(tmp_path):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
     out_path = tmp_path / "out.json"
+    db_path = tmp_path / "store.db"
 
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{stub_pkg}:{env.get('PYTHONPATH', '')}"
@@ -32,11 +33,16 @@ def test_pdf_fetch_cli(tmp_path):
         "US",
         "--citation",
         "CIT",
+        "--db",
+        str(db_path),
     ]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True, env=env)
-    data = json.loads(completed.stdout)
-    assert data["metadata"]["jurisdiction"] == "US"
-    provisions = data["provisions"]
+    payload = json.loads(completed.stdout)
+    assert "document" in payload
+    assert payload.get("doc_id") is not None
+    document = payload["document"]
+    assert document["metadata"]["jurisdiction"] == "US"
+    provisions = document["provisions"]
     assert [prov["identifier"] for prov in provisions] == ["1", "2"]
     assert [prov["heading"] for prov in provisions] == ["Heading One", "Heading Two"]
     for provision in provisions:
@@ -55,3 +61,19 @@ def test_pdf_fetch_cli(tmp_path):
     for provision in saved_provisions:
         assert provision["principles"], "expected principles persisted to disk"
         assert provision["atoms"], "expected atoms persisted to disk"
+
+    get_cmd = [
+        "python",
+        "-m",
+        "cli",
+        "get",
+        "--db",
+        str(db_path),
+        "--id",
+        str(payload["doc_id"]),
+    ]
+    got = subprocess.run(get_cmd, capture_output=True, text=True, check=True, env=env)
+    retrieved = json.loads(got.stdout)
+    assert retrieved["provisions"], "expected provisions from stored document"
+    for provision in retrieved["provisions"]:
+        assert provision["atoms"], "expected atoms persisted in database"

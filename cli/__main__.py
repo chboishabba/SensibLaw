@@ -46,6 +46,8 @@ def main() -> None:
     fetch_parser.add_argument(
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
+    fetch_parser.add_argument("--db", type=Path, help="Path to versioned store DB")
+    fetch_parser.add_argument("--doc-id", type=int, help="Document ID to reuse")
 
     dist_parser = sub.add_parser(
         "distinguish", help="Compare a story against a case silhouette"
@@ -154,14 +156,19 @@ def main() -> None:
     elif args.command == "pdf-fetch":
         from src.pdf_ingest import process_pdf
 
-        doc = process_pdf(
+        doc, stored_id = process_pdf(
             args.path,
             output=args.output,
             jurisdiction=args.jurisdiction,
             citation=args.citation,
             cultural_flags=args.cultural_flags,
+            db_path=args.db,
+            doc_id=args.doc_id,
         )
-        print(doc.to_json())
+        result = {"document": doc.to_dict()}
+        if stored_id is not None:
+            result["doc_id"] = stored_id
+        print(json.dumps(result, ensure_ascii=False))
     elif args.command == "distinguish":
         from src.distinguish.loader import load_case_silhouette
         from src.distinguish.engine import compare_story_to_case
