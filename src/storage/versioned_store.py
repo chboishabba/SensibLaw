@@ -154,7 +154,7 @@ class VersionedStore:
                 ON rule_atoms(doc_id, rev_id, provision_id);
 
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
+                ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash);
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
                 ON rule_atoms(doc_id, rev_id, toc_id);
@@ -399,9 +399,9 @@ class VersionedStore:
         with self.conn:
             duplicate_groups = self.conn.execute(
                 """
-                SELECT doc_id, rev_id, provision_id, text_hash
+                SELECT doc_id, rev_id, provision_id, party, role, text_hash
                 FROM rule_atoms
-                GROUP BY doc_id, rev_id, provision_id, text_hash
+                GROUP BY doc_id, rev_id, provision_id, party, role, text_hash
                 HAVING COUNT(*) > 1
                 """
             ).fetchall()
@@ -410,15 +410,33 @@ class VersionedStore:
                 doc_id = group["doc_id"]
                 rev_id = group["rev_id"]
                 provision_id = group["provision_id"]
+                party = group["party"]
+                role = group["role"]
+                text_hash = group["text_hash"]
 
                 rule_rows = self.conn.execute(
                     """
                     SELECT rule_id
                     FROM rule_atoms
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND text_hash = ?
+                    WHERE doc_id = ?
+                      AND rev_id = ?
+                      AND provision_id = ?
+                      AND (party = ? OR (party IS NULL AND ? IS NULL))
+                      AND (role = ? OR (role IS NULL AND ? IS NULL))
+                      AND (text_hash = ? OR (text_hash IS NULL AND ? IS NULL))
                     ORDER BY rule_id
                     """,
-                    (doc_id, rev_id, provision_id, group["text_hash"]),
+                    (
+                        doc_id,
+                        rev_id,
+                        provision_id,
+                        party,
+                        party,
+                        role,
+                        role,
+                        text_hash,
+                        text_hash,
+                    ),
                 ).fetchall()
 
                 if not rule_rows:
@@ -558,7 +576,7 @@ class VersionedStore:
             self.conn.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash)
+                ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash)
                 """
             )
             self.conn.execute(
@@ -576,7 +594,6 @@ class VersionedStore:
         if "document_json" not in columns:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
-
 
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
@@ -731,7 +748,7 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
+        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")

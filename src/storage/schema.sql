@@ -189,7 +189,7 @@ CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
 ON rule_atoms(doc_id, rev_id, provision_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
+ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash);
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
 ON rule_atoms(doc_id, rev_id, toc_id);
 
