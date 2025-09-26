@@ -14,6 +14,7 @@ from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
+from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
 
 
@@ -82,6 +83,8 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
     for r in rules:
+        who = getattr(r, "party", None) or UNKNOWN_PARTY
+        who_text = getattr(r, "who_text", None) or getattr(r, "actor", None)
         text = f"{r.actor} {r.modality} {r.action}".strip()
         if r.conditions:
             text += f" {r.conditions}"
@@ -92,8 +95,9 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 type="rule",
                 role="principle",
                 text=text.strip() or None,
-                who=r.actor or None,
+                who=who,
                 conditions=r.conditions,
+                gloss=who_text or None,
             )
         )
 
@@ -105,8 +109,10 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         type="element",
                         role=role,
                         text=fragment,
-                        who=r.actor or None,
+                        who=who,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=who_text or None,
+
                         gloss=gloss_entry.text if gloss_entry else None,
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
@@ -115,6 +121,16 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         ),
                     )
                 )
+        if who == UNKNOWN_PARTY:
+            atoms.append(
+                Atom(
+                    type="lint",
+                    role="unknown_party",
+                    text=f"Unclassified actor: {r.actor}".strip(),
+                    who=UNKNOWN_PARTY,
+                    gloss=who_text or None,
+                )
+            )
     return atoms
 
 
