@@ -129,9 +129,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         who=who,
                         who_text=r.actor or None,
                         conditions=r.conditions if role == "circumstance" else None,
-                        gloss=gloss_entry.text if gloss_entry else None,
                         text=fragment,
-                        gloss=(gloss_entry.text if gloss_entry else None),
                         gloss=(
                             gloss_entry.text if gloss_entry else who_text or None
                         ),
@@ -249,12 +247,6 @@ def parse_sections(text: str) -> List[Provision]:
         return []
 
     if section_parser and hasattr(section_parser, "parse_sections"):
-
-    parser_available = _has_section_parser()
-
-    if parser_available and section_parser and hasattr(
-        section_parser, "parse_sections"
-    ):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)
         sections = list(_iter_section_provisions(structured))
@@ -263,15 +255,7 @@ def parse_sections(text: str) -> List[Provision]:
         if structured:
             return structured
 
-    if parser_available:
-        if section_parser and hasattr(section_parser, "parse_sections"):
-            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-            structured = _build_provisions_from_nodes(nodes)
-            sections = list(_iter_section_provisions(structured))
-            if sections:
-                return sections
-            if structured:
-                return structured
+    parser_available = _has_section_parser()
 
     logger.debug(
         "Falling back to regex-based section parsing (section_parser_available=%s, "
