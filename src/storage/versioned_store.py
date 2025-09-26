@@ -47,6 +47,11 @@ class VersionedStore:
                 );
                 """
             )
+        cur = self.conn.execute("PRAGMA table_info(revisions)")
+        columns = {row["name"] for row in cur.fetchall()}
+        if "document_json" not in columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
             # Migration: ensure the revisions table has a document_json column
             columns = {
@@ -83,6 +88,7 @@ class VersionedStore:
             The revision number assigned to the stored revision.
         """
         metadata_json = json.dumps(document.metadata.to_dict())
+        document_json = document.to_json()
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
             if document.metadata.retrieved_at
@@ -144,6 +150,10 @@ class VersionedStore:
         ).fetchone()
         if row is None:
             return None
+        if row["document_json"]:
+            return Document.from_json(row["document_json"])
+        metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+        return Document(metadata=metadata, body=row["body"])
         return self._document_from_row(row)
 
     def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
@@ -161,6 +171,14 @@ class VersionedStore:
             """
         )
         for row in rows:
+            if row["document_json"]:
+                document = Document.from_json(row["document_json"])
+                if document.metadata.canonical_id == canonical_id:
+                    return document
+                continue
+            metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+            if metadata.canonical_id == canonical_id:
+                return Document(metadata=metadata, body=row["body"])
             document = self._document_from_row(row)
             if document.metadata.canonical_id == canonical_id:
                 return document
