@@ -2,7 +2,7 @@ from datetime import date, datetime
 import json
 
 from src.models.document import Document, DocumentMetadata
-from src.models.provision import Provision
+from src.models.provision import Atom, Provision
 
 
 def test_document_serialization_round_trip():
@@ -23,11 +23,21 @@ def test_document_serialization_round_trip():
         checksum="checksum",
         licence="CC0",
     )
+    atom = Atom(
+        type="ontology",
+        role="principle",
+        text="principle",
+        who="legislature",
+        conditions="if relevant",
+        refs=["ref1"],
+        gloss="A guiding principle",
+    )
     provision = Provision(
         text="Sample provision",
         identifier="p1",
         principles=["principle"],
         customs=["custom"],
+        atoms=[atom],
     )
     document = Document(metadata=metadata, body="Body text", provisions=[provision])
 
@@ -41,3 +51,5 @@ def test_document_serialization_round_trip():
     json_data = document.to_json()
     assert json.loads(json_data) == doc_dict
     assert Document.from_json(json_data) == document
+    round_trip = Document.from_json(json_data)
+    assert round_trip.provisions[0].atoms[0] == atom

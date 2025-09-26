@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
-from ..models.provision import Provision
+from ..models.provision import Atom, Provision
 
 # Directory where ontology JSON files are stored.
 ONTOLOGY_DIR = Path(__file__).resolve().parents[2] / "data" / "ontology"
@@ -58,6 +58,15 @@ def tag_provision(provision: Provision) -> Dict[str, List[str]]:
         tags[name] = matched
         if name == "lpo":
             provision.principles = matched
+            provision.atoms = [
+                atom
+                for atom in provision.atoms
+                if not (atom.role == "principle" and atom.type == "ontology")
+            ]
+            provision.atoms.extend(
+                Atom(type="ontology", role="principle", text=tag)
+                for tag in matched
+            )
         elif name == "cco":
             provision.customs = matched
     return tags
