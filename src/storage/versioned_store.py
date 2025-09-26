@@ -52,6 +52,27 @@ class VersionedStore:
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
 
+                CREATE TABLE IF NOT EXISTS toc (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    toc_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    node_type TEXT,
+                    identifier TEXT,
+                    title TEXT,
+                    position INTEGER NOT NULL,
+                    PRIMARY KEY (doc_id, rev_id, toc_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                    FOREIGN KEY (doc_id, rev_id, parent_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_toc_doc_rev
+                ON toc(doc_id, rev_id, toc_id);
+
+                CREATE INDEX IF NOT EXISTS idx_toc_parent
+                ON toc(doc_id, rev_id, parent_id);
+
                 CREATE TABLE IF NOT EXISTS provisions (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -60,6 +81,7 @@ class VersionedStore:
                     identifier TEXT,
                     heading TEXT,
                     node_type TEXT,
+                    toc_id INTEGER,
                     text TEXT,
                     rule_tokens TEXT,
                     references_json TEXT,
@@ -67,11 +89,38 @@ class VersionedStore:
                     customs TEXT,
                     cultural_flags TEXT,
                     PRIMARY KEY (doc_id, rev_id, provision_id),
-                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                    FOREIGN KEY (doc_id, rev_id, toc_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
                 ON provisions(doc_id, rev_id, provision_id);
+
+
+                CREATE TABLE IF NOT EXISTS atoms (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    atom_id INTEGER NOT NULL,
+                    type TEXT,
+                    role TEXT,
+                    party TEXT,
+                    who TEXT,
+                    who_text TEXT,
+                    text TEXT,
+                    conditions TEXT,
+                    refs TEXT,
+                    gloss TEXT,
+                    gloss_metadata TEXT,
+                    glossary_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
+                    FOREIGN KEY (doc_id, rev_id, provision_id)
+                        REFERENCES provisions(doc_id, rev_id, provision_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
+                ON atoms(doc_id, rev_id, provision_id);
 
                 CREATE TABLE IF NOT EXISTS rule_atoms (
                     doc_id INTEGER NOT NULL,
@@ -79,6 +128,7 @@ class VersionedStore:
                     provision_id INTEGER NOT NULL,
                     rule_id INTEGER NOT NULL,
                     text_hash TEXT NOT NULL,
+                    toc_id INTEGER,
                     atom_type TEXT,
                     role TEXT,
                     party TEXT,
@@ -92,13 +142,17 @@ class VersionedStore:
                     text TEXT,
                     subject_gloss TEXT,
                     subject_gloss_metadata TEXT,
+                    glossary_id INTEGER,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id)
-                        REFERENCES provisions(doc_id, rev_id, provision_id)
+                        REFERENCES provisions(doc_id, rev_id, provision_id),
+                    FOREIGN KEY (doc_id, rev_id, toc_id)
+                        REFERENCES toc(doc_id, rev_id, toc_id)
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
+
 
                 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
                     doc_id INTEGER NOT NULL,
@@ -115,6 +169,7 @@ class VersionedStore:
                     refs TEXT,
                     gloss TEXT,
                     gloss_metadata TEXT,
+                    glossary_id INTEGER,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -154,6 +209,7 @@ class VersionedStore:
                     conditions TEXT,
                     gloss TEXT,
                     gloss_metadata TEXT,
+                    glossary_id INTEGER,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -180,6 +236,13 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_element_refs_doc_rev
                 ON rule_element_references(doc_id, rev_id, provision_id, rule_id, element_id);
+
+                CREATE TABLE IF NOT EXISTS glossary (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    term TEXT UNIQUE NOT NULL,
+                    definition TEXT NOT NULL,
+                    metadata TEXT
+                );
 
                 CREATE TABLE IF NOT EXISTS rule_lints (
                     doc_id INTEGER NOT NULL,
@@ -590,6 +653,109 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
+            # Migration: ensure the revisions table has a document_json column
+        columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
+        }
+        if "document_json" not in columns:
+            self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+
+        self._ensure_column("atoms", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
+        self._ensure_column("rule_elements", "glossary_id", "INTEGER")
+
+        self._backfill_rule_tables()
+        self._backfill_glossary_ids()
+
+    def _ensure_column(self, table: str, column: str, definition: str) -> None:
+        cur = self.conn.execute(f"PRAGMA table_info({table})")
+        existing = {row["name"] for row in cur.fetchall()}
+        if column not in existing:
+            with self.conn:
+                self.conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                )
+
+    # ------------------------------------------------------------------
+    def _backfill_glossary_ids(self) -> None:
+        """Populate glossary identifiers on stored atoms when possible."""
+
+        rows = self.conn.execute(
+            "SELECT id, definition FROM glossary WHERE definition IS NOT NULL"
+        ).fetchall()
+        if not rows:
+            return
+
+        def normalise(text: str) -> str:
+            return " ".join(text.strip().split()).lower()
+
+        definition_map = {
+            normalise(row["definition"]): row["id"] for row in rows if row["definition"]
+        }
+        if not definition_map:
+            return
+
+        update_targets = [
+            ("atoms", ("doc_id", "rev_id", "provision_id", "atom_id"), "gloss"),
+            (
+                "rule_atoms",
+                ("doc_id", "rev_id", "provision_id", "rule_id"),
+                "subject_gloss",
+            ),
+            (
+                "rule_atom_subjects",
+                ("doc_id", "rev_id", "provision_id", "rule_id"),
+                "gloss",
+            ),
+            (
+                "rule_elements",
+                ("doc_id", "rev_id", "provision_id", "rule_id", "element_id"),
+                "gloss",
+            ),
+        ]
+
+        for table, key_columns, gloss_column in update_targets:
+            query = (
+                f"SELECT {', '.join(key_columns)}, {gloss_column} AS gloss, glossary_id "
+                f"FROM {table} WHERE {gloss_column} IS NOT NULL AND glossary_id IS NULL"
+            )
+            pending = self.conn.execute(query).fetchall()
+            if not pending:
+                continue
+            for row in pending:
+                gloss_value = row["gloss"]
+                if not gloss_value:
+                    continue
+                gloss_id = definition_map.get(normalise(gloss_value))
+                if not gloss_id:
+                    continue
+                where_clause = " AND ".join(f"{col} = ?" for col in key_columns)
+                params = [row[col] for col in key_columns]
+                with self.conn:
+                    self.conn.execute(
+                        f"UPDATE {table} SET glossary_id = ? WHERE {where_clause}",
+                        [gloss_id, *params],
+                    )
+
+        provision_columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(provisions)")
+        }
+        if "toc_id" not in provision_columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE provisions ADD COLUMN toc_id INTEGER")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_provisions_toc ON provisions(doc_id, rev_id, toc_id)"
+        )
+
+        rule_atom_columns = {
+            row["name"] for row in self.conn.execute("PRAGMA table_info(rule_atoms)")
+        }
+        if "toc_id" not in rule_atom_columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE rule_atoms ADD COLUMN toc_id INTEGER")
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc ON rule_atoms(doc_id, rev_id, toc_id)"
         )
 
     # ------------------------------------------------------------------
@@ -616,8 +782,8 @@ class VersionedStore:
         Returns:
             The revision number assigned to the stored revision.
         """
+        toc_entries = self._build_toc_entries(document.provisions)
         metadata_json = json.dumps(document.metadata.to_dict())
-        document_json = document.to_json()
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
             if document.metadata.retrieved_at
@@ -656,7 +822,7 @@ class VersionedStore:
                 "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
                 (document.body, metadata_json),
             )
-            self._store_provisions(doc_id, rev_id, document.provisions)
+            self._store_provisions(doc_id, rev_id, document.provisions, toc_entries)
         return rev_id
 
     # ------------------------------------------------------------------
@@ -733,8 +899,41 @@ class VersionedStore:
             return Document.from_json(document_json)
         return Document(metadata=metadata, body=body)
 
+    def _build_toc_entries(
+        self, provisions: List[Provision]
+    ) -> List[Tuple[int, Optional[int], int, Provision]]:
+        """Assign sequential TOC identifiers to provisions and capture hierarchy."""
+
+        entries: List[Tuple[int, Optional[int], int, Provision]] = []
+        if not provisions:
+            return entries
+
+        counter = 0
+        position_counters: defaultdict[Optional[int], int] = defaultdict(int)
+
+        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
+            nonlocal counter
+            counter += 1
+            toc_id = counter
+            position_counters[parent_toc_id] += 1
+            provision.toc_id = toc_id
+            entries.append(
+                (toc_id, parent_toc_id, position_counters[parent_toc_id], provision)
+            )
+            for child in provision.children:
+                traverse(child, toc_id)
+
+        for provision in provisions:
+            traverse(provision, None)
+
+        return entries
+
     def _store_provisions(
-        self, doc_id: int, rev_id: int, provisions: List[Provision]
+        self,
+        doc_id: int,
+        rev_id: int,
+        provisions: List[Provision],
+        toc_entries: Optional[List[Tuple[int, Optional[int], int, Provision]]] = None,
     ) -> None:
         """Persist provision and atom data for a revision."""
 
@@ -770,9 +969,36 @@ class VersionedStore:
             "DELETE FROM provisions WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
         )
+        self.conn.execute(
+            "DELETE FROM toc WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
 
         if not provisions:
             return
+
+        if toc_entries is None:
+            toc_entries = self._build_toc_entries(provisions)
+
+        for toc_id, parent_toc_id, position, provision in toc_entries:
+            self.conn.execute(
+                """
+                INSERT INTO toc (
+                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    doc_id,
+                    rev_id,
+                    toc_id,
+                    parent_toc_id,
+                    provision.node_type,
+                    provision.identifier,
+                    provision.heading,
+                    position,
+                ),
+            )
 
         provision_counter = 0
 
@@ -805,10 +1031,10 @@ class VersionedStore:
                 """
                 INSERT INTO provisions (
                     doc_id, rev_id, provision_id, parent_id, identifier,
-                    heading, node_type, text, rule_tokens, references_json,
+                    heading, node_type, toc_id, text, rule_tokens, references_json,
                     principles, customs, cultural_flags
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -818,6 +1044,7 @@ class VersionedStore:
                     provision.identifier,
                     provision.heading,
                     provision.node_type,
+                    provision.toc_id,
                     provision.text,
                     json.dumps(provision.rule_tokens)
                     if provision.rule_tokens
@@ -831,8 +1058,96 @@ class VersionedStore:
 
             if provision.rule_atoms:
                 self._persist_rule_structures(
-                    doc_id, rev_id, current_id, provision.rule_atoms
+                    doc_id, rev_id, current_id, provision.rule_atoms, provision.toc_id
                 )
+
+
+            for atom_index, atom in enumerate(provision.atoms, start=1):
+                gloss_metadata_json = (
+                    json.dumps(atom.gloss_metadata)
+                    if atom.gloss_metadata is not None
+                    else None
+                )
+                self.conn.execute(
+                    """
+                    INSERT INTO atoms (
+                        doc_id, rev_id, provision_id, atom_id, type, role,
+                        party, who, who_text, text, conditions, refs, gloss,
+                        gloss_metadata, glossary_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        doc_id,
+                        rev_id,
+                        current_id,
+                        atom_index,
+                        atom.type,
+                        atom.role,
+                        atom.party,
+                        atom.who,
+                        atom.who_text,
+                        atom.text,
+                        atom.conditions,
+                        None,
+                        atom.gloss,
+                        gloss_metadata_json,
+                        atom.glossary_id,
+                    ),
+                )
+
+                if atom.refs:
+                    for ref_index, ref in enumerate(atom.refs, start=1):
+                        work = None
+                        section = None
+                        pinpoint = None
+                        citation_text = None
+
+                        if isinstance(ref, dict):
+                            work = ref.get("work")
+                            section = ref.get("section")
+                            pinpoint = ref.get("pinpoint")
+                            citation_text = (
+                                ref.get("citation_text")
+                                or ref.get("text")
+                                or ref.get("citation")
+                            )
+                        elif isinstance(ref, (list, tuple)):
+                            # Support positional data when provided as an iterable.
+                            parts = list(ref)
+                            if parts:
+                                work = parts[0]
+                            if len(parts) > 1:
+                                section = parts[1]
+                            if len(parts) > 2:
+                                pinpoint = parts[2]
+                            if len(parts) > 3:
+                                citation_text = parts[3]
+                            elif len(parts) == 3:
+                                citation_text = parts[2]
+                        else:
+                            citation_text = str(ref)
+
+                        self.conn.execute(
+                            """
+                            INSERT INTO atom_references (
+                                doc_id, rev_id, provision_id, atom_id, ref_index,
+                                work, section, pinpoint, citation_text
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                doc_id,
+                                rev_id,
+                                current_id,
+                                atom_index,
+                                ref_index,
+                                work,
+                                section,
+                                pinpoint,
+                                citation_text,
+                            ),
+                        )
 
             for child in provision.children:
                 visit(child, current_id)
@@ -848,7 +1163,7 @@ class VersionedStore:
         provision_rows = self.conn.execute(
             """
             SELECT doc_id, rev_id, provision_id, parent_id, identifier, heading,
-                   node_type, text, rule_tokens, references_json, principles, customs,
+                   node_type, toc_id, text, rule_tokens, references_json, principles, customs,
                    cultural_flags
             FROM provisions
             WHERE doc_id = ? AND rev_id = ?
@@ -864,6 +1179,7 @@ class VersionedStore:
             SELECT
                 ra.provision_id,
                 ra.rule_id,
+                ra.toc_id,
                 ra.atom_type,
                 ra.role,
                 ra.party,
@@ -877,6 +1193,7 @@ class VersionedStore:
                 ra.text,
                 ra.subject_gloss,
                 ra.subject_gloss_metadata,
+                ra.glossary_id AS rule_glossary_id,
                 rs.type AS subject_type,
                 rs.role AS subject_role,
                 rs.party AS subject_party,
@@ -886,7 +1203,8 @@ class VersionedStore:
                 rs.conditions AS subject_conditions,
                 rs.refs AS subject_refs,
                 rs.gloss AS subject_gloss_value,
-                rs.gloss_metadata AS subject_gloss_metadata_json
+                rs.gloss_metadata AS subject_gloss_metadata_json,
+                rs.glossary_id AS subject_glossary_id
             FROM rule_atoms AS ra
             LEFT JOIN rule_atom_subjects AS rs
                 ON ra.doc_id = rs.doc_id
@@ -917,7 +1235,7 @@ class VersionedStore:
             element_rows = self.conn.execute(
                 """
                 SELECT provision_id, rule_id, element_id, atom_type, role, text, conditions,
-                       gloss, gloss_metadata
+                       gloss, gloss_metadata, glossary_id
                 FROM rule_elements
                 WHERE doc_id = ? AND rev_id = ?
                 ORDER BY provision_id, rule_id, element_id
@@ -989,6 +1307,7 @@ class VersionedStore:
 
             for row in rule_atom_rows:
                 rule_atom = RuleAtom(
+                    toc_id=row["toc_id"],
                     atom_type=row["atom_type"],
                     role=row["role"],
                     party=row["party"],
@@ -1009,6 +1328,9 @@ class VersionedStore:
                     references=list(
                         atom_refs_map.get((row["provision_id"], row["rule_id"]), [])
                     ),
+                    subject_gloss_metadata=metadata,
+                    glossary_id=row["rule_glossary_id"],
+                    references=references,
                 )
 
                 subject_metadata = (
@@ -1053,6 +1375,7 @@ class VersionedStore:
                         refs=subject_refs,
                         gloss=row["subject_gloss_value"],
                         gloss_metadata=subject_metadata,
+                        glossary_id=row["subject_glossary_id"],
                     )
                     rule_atom.subject = subject_atom
                     if subject_atom.type is not None:
@@ -1099,6 +1422,7 @@ class VersionedStore:
                     conditions=row["conditions"],
                     gloss=row["gloss"],
                     gloss_metadata=metadata,
+                    glossary_id=row["glossary_id"],
                     references=references,
                 )
                 parent = rule_lookup.get((row["provision_id"], row["rule_id"]))
@@ -1127,6 +1451,26 @@ class VersionedStore:
             """,
             (doc_id, rev_id),
         ).fetchall()
+        else:
+            atom_rows = self.conn.execute(
+                """
+                SELECT provision_id, atom_id, type, role, party, who, who_text, text,
+                       conditions, refs, gloss, gloss_metadata, glossary_id
+                FROM atoms
+                WHERE doc_id = ? AND rev_id = ?
+                ORDER BY provision_id, atom_id
+                """,
+                (doc_id, rev_id),
+            ).fetchall()
+            atom_reference_rows = self.conn.execute(
+                """
+                SELECT provision_id, atom_id, ref_index, work, section, pinpoint, citation_text
+                FROM atom_references
+                WHERE doc_id = ? AND rev_id = ?
+                ORDER BY provision_id, atom_id, ref_index
+                """,
+                (doc_id, rev_id),
+            ).fetchall()
 
         atoms_by_provision: dict[int, List[Atom]] = defaultdict(list)
         for atom_row in atom_rows:
@@ -1164,6 +1508,26 @@ class VersionedStore:
                     refs=refs,
                     gloss=atom_row["gloss"],
                     gloss_metadata=gloss_metadata,
+                    refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
+                gloss_metadata = (
+                    json.loads(atom_row["gloss_metadata"])
+                    if atom_row["gloss_metadata"]
+                    else None
+                )
+                atoms_by_provision[atom_row["provision_id"]].append(
+                    Atom(
+                        type=atom_row["type"],
+                        role=atom_row["role"],
+                        party=atom_row["party"],
+                        who=atom_row["who"],
+                        who_text=atom_row["who_text"],
+                        conditions=atom_row["conditions"],
+                        text=atom_row["text"],
+                        refs=refs,
+                        gloss=atom_row["gloss"],
+                        gloss_metadata=gloss_metadata,
+                        glossary_id=atom_row["glossary_id"],
+                    )
                 )
             )
 
@@ -1195,6 +1559,7 @@ class VersionedStore:
                 identifier=row["identifier"],
                 heading=row["heading"],
                 node_type=row["node_type"],
+                toc_id=row["toc_id"],
                 rule_tokens=rule_tokens,
                 cultural_flags=cultural_flags,
                 references=references,
@@ -1241,6 +1606,7 @@ class VersionedStore:
         rev_id: int,
         provision_id: int,
         rule_atoms: List[RuleAtom],
+        toc_id: Optional[int],
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -1257,6 +1623,10 @@ class VersionedStore:
             rule_atom.who_text = subject_atom.who_text
             rule_atom.text = subject_atom.text
             rule_atom.conditions = subject_atom.conditions
+            current_toc_id = (
+                rule_atom.toc_id if rule_atom.toc_id is not None else toc_id
+            )
+            rule_atom.toc_id = current_toc_id
             subject_metadata_json = (
                 json.dumps(subject_atom.gloss_metadata)
                 if subject_atom.gloss_metadata is not None
@@ -1295,8 +1665,9 @@ class VersionedStore:
                 """
                 INSERT INTO rule_atoms (
                     doc_id, rev_id, provision_id, rule_id, text_hash, atom_type, role, party,
+                    doc_id, rev_id, provision_id, rule_id, toc_id, atom_type, role, party,
                     who, who_text, actor, modality, action, conditions, scope,
-                    text, subject_gloss, subject_gloss_metadata
+                    text, subject_gloss, subject_gloss_metadata, glossary_id
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -1306,6 +1677,7 @@ class VersionedStore:
                     provision_id,
                     rule_index,
                     text_hash,
+                    current_toc_id,
                     rule_atom.atom_type,
                     rule_atom.role,
                     rule_atom.party,
@@ -1319,6 +1691,7 @@ class VersionedStore:
                     rule_atom.text,
                     rule_atom.subject_gloss,
                     subject_metadata_json,
+                    rule_atom.glossary_id,
                 ),
             )
 
@@ -1326,9 +1699,9 @@ class VersionedStore:
                 """
                 INSERT INTO rule_atom_subjects (
                     doc_id, rev_id, provision_id, rule_id, type, role, party, who,
-                    who_text, text, conditions, refs, gloss, gloss_metadata
+                    who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -1345,6 +1718,7 @@ class VersionedStore:
                     refs_json,
                     subject_atom.gloss,
                     subject_metadata_json,
+                    subject_atom.glossary_id,
                 ),
             )
 
@@ -1389,6 +1763,8 @@ class VersionedStore:
                     INSERT INTO rule_elements (
                         doc_id, rev_id, provision_id, rule_id, element_id, text_hash, atom_type,
                         role, text, conditions, gloss, gloss_metadata
+                        doc_id, rev_id, provision_id, rule_id, element_id, atom_type,
+                        role, text, conditions, gloss, gloss_metadata, glossary_id
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -1405,6 +1781,7 @@ class VersionedStore:
                         element.conditions,
                         element.gloss,
                         element_metadata_json,
+                        element.glossary_id,
                     ),
                 )
 
@@ -1629,7 +2006,7 @@ class VersionedStore:
         atom_rows = self.conn.execute(
             """
             SELECT doc_id, rev_id, provision_id, atom_id, type, role, party, who, who_text,
-                   text, conditions, refs, gloss, gloss_metadata
+                   text, conditions, refs, gloss, gloss_metadata, glossary_id
             FROM atoms
             ORDER BY doc_id, rev_id, provision_id, atom_id
             """
@@ -1685,6 +2062,9 @@ class VersionedStore:
                     refs=list(refs or []),
                     gloss=row["gloss"],
                     gloss_metadata=metadata,
+                    glossary_id=(
+                        row["glossary_id"] if "glossary_id" in row.keys() else None
+                    ),
                 )
             )
 
@@ -1699,7 +2079,7 @@ class VersionedStore:
                     continue
                 if needs_rule_atoms:
                     self._persist_rule_structures(
-                        doc_id, rev_id, provision_id, provision.rule_atoms
+                        doc_id, rev_id, provision_id, provision.rule_atoms, None
                     )
                 elif needs_subjects:
                     for rule_index, rule_atom in enumerate(
@@ -1716,23 +2096,24 @@ class VersionedStore:
                         )
                         self.conn.execute(
                             """
-                            INSERT INTO rule_atom_subjects (
-                                doc_id, rev_id, provision_id, rule_id, type, role, party,
-                                who, who_text, text, conditions, refs, gloss, gloss_metadata
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            ON CONFLICT(doc_id, rev_id, provision_id, rule_id)
-                            DO UPDATE SET
-                                type=excluded.type,
-                                role=excluded.role,
-                                party=excluded.party,
-                                who=excluded.who,
-                                who_text=excluded.who_text,
-                                text=excluded.text,
-                                conditions=excluded.conditions,
-                                refs=excluded.refs,
-                                gloss=excluded.gloss,
-                                gloss_metadata=excluded.gloss_metadata
+                                INSERT INTO rule_atom_subjects (
+                                    doc_id, rev_id, provision_id, rule_id, type, role, party,
+                                    who, who_text, text, conditions, refs, gloss, gloss_metadata, glossary_id
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                ON CONFLICT(doc_id, rev_id, provision_id, rule_id)
+                                DO UPDATE SET
+                                    type=excluded.type,
+                                    role=excluded.role,
+                                    party=excluded.party,
+                                    who=excluded.who,
+                                    who_text=excluded.who_text,
+                                    text=excluded.text,
+                                    conditions=excluded.conditions,
+                                    refs=excluded.refs,
+                                    gloss=excluded.gloss,
+                                    gloss_metadata=excluded.gloss_metadata,
+                                    glossary_id=excluded.glossary_id
                             """,
                             (
                                 doc_id,
@@ -1749,5 +2130,6 @@ class VersionedStore:
                                 refs_json,
                                 subject_atom.gloss,
                                 metadata_json,
+                                subject_atom.glossary_id,
                             ),
                         )

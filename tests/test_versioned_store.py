@@ -35,6 +35,8 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     first_provision = Provision(
         text="First provision",
         identifier="s 1",
+        heading="First heading",
+        node_type="section",
         atoms=[
             Atom(
                 type="duty",
@@ -46,6 +48,8 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     second_provision = Provision(
         text="Second provision",
         identifier="s 2",
+        heading="Second heading",
+        node_type="section",
         atoms=[
             Atom(
                 type="duty",
@@ -75,10 +79,13 @@ def test_snapshot(tmp_path: Path):
     assert snap.provisions
     assert snap.provisions[0].atoms[0].text == "Perform the first duty"
     assert snap.provisions[0].atoms[0].refs == ["First reference"]
+    assert snap.provisions[0].toc_id is not None
     snap2 = store.snapshot(doc_id, date(2022, 1, 1))
     assert snap2.body == "second"
     assert snap2.provisions[0].atoms[0].text == "Perform the second duty"
     assert snap2.provisions[0].atoms[0].refs == ["Second reference"]
+    assert snap2.provisions[0].toc_id is not None
+    assert snap2.provisions[0].rule_atoms[0].toc_id == snap2.provisions[0].toc_id
     store.close()
 
 
@@ -175,7 +182,42 @@ def test_rule_atom_subjects_loaded(tmp_path: Path):
         assert rule_atom.subject is not None
         assert rule_atom.subject.text == "Perform the second duty"
         assert rule_atom.subject.type == "duty"
+        assert rule_atom.toc_id == provision.toc_id
         assert provision.atoms[0].text == "Perform the second duty"
+    finally:
+        store.close()
+
+
+def test_toc_join(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        rows = store.conn.execute(
+            """
+            SELECT p.provision_id, p.identifier, p.toc_id, t.title, t.position
+            FROM provisions AS p
+            JOIN toc AS t
+              ON p.doc_id = t.doc_id
+             AND p.rev_id = t.rev_id
+             AND p.toc_id = t.toc_id
+            WHERE p.doc_id = ? AND p.rev_id = ?
+            ORDER BY p.provision_id
+            """,
+            (doc_id, 2),
+        ).fetchall()
+        assert rows, "expected provisions joined to toc"
+        assert [row["identifier"] for row in rows] == ["s 2"]
+        assert rows[0]["position"] == 1
+
+        rule_rows = store.conn.execute(
+            """
+            SELECT DISTINCT toc_id
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY toc_id
+            """,
+            (doc_id, 2),
+        ).fetchall()
+        assert {row["toc_id"] for row in rule_rows} == {rows[0]["toc_id"]}
     finally:
         store.close()
 

@@ -84,6 +84,27 @@ CREATE TABLE IF NOT EXISTS revisions (
     FOREIGN KEY (doc_id) REFERENCES documents(id)
 );
 
+CREATE TABLE IF NOT EXISTS toc (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    toc_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    node_type TEXT,
+    identifier TEXT,
+    title TEXT,
+    position INTEGER NOT NULL,
+    PRIMARY KEY (doc_id, rev_id, toc_id),
+    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+    FOREIGN KEY (doc_id, rev_id, parent_id)
+        REFERENCES toc(doc_id, rev_id, toc_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_toc_doc_rev
+ON toc(doc_id, rev_id, toc_id);
+
+CREATE INDEX IF NOT EXISTS idx_toc_parent
+ON toc(doc_id, rev_id, parent_id);
+
 CREATE TABLE IF NOT EXISTS provisions (
     doc_id INTEGER NOT NULL,
     rev_id INTEGER NOT NULL,
@@ -98,12 +119,43 @@ CREATE TABLE IF NOT EXISTS provisions (
     principles TEXT,
     customs TEXT,
     cultural_flags TEXT,
+    toc_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id),
-    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+    FOREIGN KEY (doc_id, rev_id, toc_id)
+        REFERENCES toc(doc_id, rev_id, toc_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
 ON provisions(doc_id, rev_id, provision_id);
+
+
+CREATE INDEX IF NOT EXISTS idx_provisions_toc
+ON provisions(doc_id, rev_id, toc_id);
+
+CREATE TABLE IF NOT EXISTS atoms (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    atom_id INTEGER NOT NULL,
+    type TEXT,
+    role TEXT,
+    party TEXT,
+    who TEXT,
+    who_text TEXT,
+    text TEXT,
+    conditions TEXT,
+    refs TEXT,
+    gloss TEXT,
+    gloss_metadata TEXT,
+    glossary_id INTEGER,
+    PRIMARY KEY (doc_id, rev_id, provision_id, atom_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id)
+        REFERENCES provisions(doc_id, rev_id, provision_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
+ON atoms(doc_id, rev_id, provision_id);
 
 CREATE TABLE IF NOT EXISTS rule_atoms (
     doc_id INTEGER NOT NULL,
@@ -111,6 +163,7 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
     provision_id INTEGER NOT NULL,
     rule_id INTEGER NOT NULL,
     text_hash TEXT NOT NULL,
+    toc_id INTEGER,
     atom_type TEXT,
     role TEXT,
     party TEXT,
@@ -124,9 +177,12 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
     text TEXT,
     subject_gloss TEXT,
     subject_gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
     FOREIGN KEY (doc_id, rev_id, provision_id)
-        REFERENCES provisions(doc_id, rev_id, provision_id)
+        REFERENCES provisions(doc_id, rev_id, provision_id),
+    FOREIGN KEY (doc_id, rev_id, toc_id)
+        REFERENCES toc(doc_id, rev_id, toc_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
@@ -134,6 +190,8 @@ ON rule_atoms(doc_id, rev_id, provision_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
 ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
+CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
+ON rule_atoms(doc_id, rev_id, toc_id);
 
 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
     doc_id INTEGER NOT NULL,
@@ -150,6 +208,7 @@ CREATE TABLE IF NOT EXISTS rule_atom_subjects (
     refs TEXT,
     gloss TEXT,
     gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -189,6 +248,7 @@ CREATE TABLE IF NOT EXISTS rule_elements (
     conditions TEXT,
     gloss TEXT,
     gloss_metadata TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)

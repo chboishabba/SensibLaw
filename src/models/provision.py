@@ -18,6 +18,7 @@ class Atom:
     refs: List[str] = field(default_factory=list)
     gloss: Optional[str] = None
     gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the atom to a dictionary."""
@@ -35,6 +36,7 @@ class Atom:
             "gloss_metadata": (
                 dict(self.gloss_metadata) if self.gloss_metadata is not None else None
             ),
+            "glossary_id": self.glossary_id,
         }
 
     @classmethod
@@ -56,6 +58,7 @@ class Atom:
                 if "gloss_metadata" in data and data["gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
         )
 
 
@@ -103,6 +106,7 @@ class RuleElement:
     conditions: Optional[str] = None
     gloss: Optional[str] = None
     gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
     references: List[RuleReference] = field(default_factory=list)
     atom_type: Optional[str] = None
 
@@ -115,6 +119,7 @@ class RuleElement:
             "gloss_metadata": (
                 dict(self.gloss_metadata) if self.gloss_metadata is not None else None
             ),
+            "glossary_id": self.glossary_id,
             "references": [ref.to_dict() for ref in self.references],
             "atom_type": self.atom_type,
         }
@@ -131,6 +136,7 @@ class RuleElement:
                 if "gloss_metadata" in data and data["gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             atom_type=data.get("atom_type"),
         )
@@ -171,6 +177,7 @@ class RuleLint:
 class RuleAtom:
     """A richer representation of a rule with associated fragments."""
 
+    toc_id: Optional[int] = None
     atom_type: Optional[str] = "rule"
     role: Optional[str] = None
     party: Optional[str] = None
@@ -184,6 +191,7 @@ class RuleAtom:
     text: Optional[str] = None
     subject_gloss: Optional[str] = None
     subject_gloss_metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
     subject: Optional[Atom] = None
     references: List[RuleReference] = field(default_factory=list)
     elements: List[RuleElement] = field(default_factory=list)
@@ -191,6 +199,7 @@ class RuleAtom:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "toc_id": self.toc_id,
             "atom_type": self.atom_type,
             "role": self.role,
             "party": self.party,
@@ -208,6 +217,7 @@ class RuleAtom:
                 if self.subject_gloss_metadata is not None
                 else None
             ),
+            "glossary_id": self.glossary_id,
             "subject": self.subject.to_dict() if self.subject is not None else None,
             "references": [ref.to_dict() for ref in self.references],
             "elements": [element.to_dict() for element in self.elements],
@@ -217,6 +227,7 @@ class RuleAtom:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RuleAtom":
         return cls(
+            toc_id=data.get("toc_id"),
             atom_type=data.get("atom_type"),
             role=data.get("role"),
             party=data.get("party"),
@@ -235,6 +246,7 @@ class RuleAtom:
                 and data["subject_gloss_metadata"] is not None
                 else None
             ),
+            glossary_id=data.get("glossary_id"),
             subject=(Atom.from_dict(data["subject"]) if data.get("subject") else None),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             elements=[RuleElement.from_dict(e) for e in data.get("elements", [])],
@@ -282,6 +294,11 @@ class RuleAtom:
             if base_atom and base_atom.gloss_metadata is not None
             else self.subject_gloss_metadata
         )
+        glossary_id = (
+            base_atom.glossary_id
+            if base_atom and base_atom.glossary_id is not None
+            else self.glossary_id
+        )
         if base_atom and base_atom.refs:
             refs = list(base_atom.refs)
         else:
@@ -297,6 +314,7 @@ class RuleAtom:
             refs=refs,
             gloss=gloss,
             gloss_metadata=gloss_metadata,
+            glossary_id=glossary_id,
         )
 
     def to_atoms(self) -> List[Atom]:
@@ -317,6 +335,7 @@ class RuleAtom:
                 refs=list(subject_atom.refs),
                 gloss=subject_atom.gloss,
                 gloss_metadata=subject_atom.gloss_metadata,
+                glossary_id=subject_atom.glossary_id,
             )
         )
 
@@ -333,6 +352,7 @@ class RuleAtom:
                     refs=[ref.to_legacy_text() for ref in element.references],
                     gloss=element.gloss,
                     gloss_metadata=element.gloss_metadata,
+                    glossary_id=element.glossary_id,
                 )
             )
 
@@ -347,6 +367,7 @@ class RuleAtom:
                     text=lint.message,
                     gloss=subject_atom.gloss,
                     gloss_metadata=lint.metadata,
+                    glossary_id=subject_atom.glossary_id,
                 )
             )
 
@@ -361,6 +382,7 @@ class Provision:
     identifier: Optional[str] = None
     heading: Optional[str] = None
     node_type: Optional[str] = None
+    toc_id: Optional[int] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
     cultural_flags: List[str] = field(default_factory=list)
     references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
@@ -383,6 +405,7 @@ class Provision:
             "identifier": self.identifier,
             "heading": self.heading,
             "node_type": self.node_type,
+            "toc_id": self.toc_id,
             "rule_tokens": dict(self.rule_tokens),
             "cultural_flags": list(self.cultural_flags),
             "references": [tuple(ref) for ref in self.references],
@@ -401,6 +424,7 @@ class Provision:
             identifier=data.get("identifier"),
             heading=data.get("heading"),
             node_type=data.get("node_type"),
+            toc_id=data.get("toc_id"),
             rule_tokens=dict(data.get("rule_tokens", {})),
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
@@ -447,6 +471,11 @@ class Provision:
 
         if self.rule_atoms and not self.atoms:
             self.atoms = self.flatten_rule_atoms()
+
+        if self.rule_atoms:
+            for rule_atom in self.rule_atoms:
+                if rule_atom.toc_id is None:
+                    rule_atom.toc_id = self.toc_id
 
     def sync_legacy_atoms(self) -> None:
         """Refresh ``atoms`` based on the structured rule representation."""

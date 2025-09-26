@@ -155,7 +155,9 @@ class Storage:
         data = data if data is not None else node.data
         valid_from = valid_from if valid_from is not None else node.valid_from
         valid_to = valid_to if valid_to is not None else node.valid_to
-        recorded_from = recorded_from if recorded_from is not None else node.recorded_from
+        recorded_from = (
+            recorded_from if recorded_from is not None else node.recorded_from
+        )
         recorded_to = recorded_to if recorded_to is not None else node.recorded_to
         with self.conn:
             self.conn.execute(
@@ -272,7 +274,9 @@ class Storage:
         data = data if data is not None else edge.data
         valid_from = valid_from if valid_from is not None else edge.valid_from
         valid_to = valid_to if valid_to is not None else edge.valid_to
-        recorded_from = recorded_from if recorded_from is not None else edge.recorded_from
+        recorded_from = (
+            recorded_from if recorded_from is not None else edge.recorded_from
+        )
         recorded_to = recorded_to if recorded_to is not None else edge.recorded_to
         with self.conn:
             self.conn.execute(
@@ -461,7 +465,10 @@ class Storage:
             return None
         data = json.loads(row["data"]) if row["data"] is not None else None
         return Correction(
-            id=row["id"], node_id=row["node_id"], suggestion=row["suggestion"], data=data
+            id=row["id"],
+            node_id=row["node_id"],
+            suggestion=row["suggestion"],
+            data=data,
         )
 
     def update_correction(
@@ -517,6 +524,44 @@ class Storage:
         row = self.conn.execute(
             "SELECT id, term, definition, metadata FROM glossary WHERE id = ?",
             (entry_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        metadata = json.loads(row["metadata"]) if row["metadata"] is not None else None
+        return GlossaryEntry(
+            id=row["id"],
+            term=row["term"],
+            definition=row["definition"],
+            metadata=metadata,
+        )
+
+    def get_glossary_entry_by_term(self, term: str) -> Optional[GlossaryEntry]:
+        term = term.strip()
+        if not term:
+            return None
+        row = self.conn.execute(
+            "SELECT id, term, definition, metadata FROM glossary WHERE lower(term) = lower(?)",
+            (term,),
+        ).fetchone()
+        if row is None:
+            return None
+        metadata = json.loads(row["metadata"]) if row["metadata"] is not None else None
+        return GlossaryEntry(
+            id=row["id"],
+            term=row["term"],
+            definition=row["definition"],
+            metadata=metadata,
+        )
+
+    def find_glossary_entry_by_definition(
+        self, definition: str
+    ) -> Optional[GlossaryEntry]:
+        definition = definition.strip()
+        if not definition:
+            return None
+        row = self.conn.execute(
+            "SELECT id, term, definition, metadata FROM glossary WHERE lower(definition) = lower(?)",
+            (definition,),
         ).fetchone()
         if row is None:
             return None
@@ -585,9 +630,7 @@ class Storage:
             minhash=row["minhash"],
         )
 
-    def update_receipt(
-        self, receipt_id: int, data: Dict[str, Any]
-    ) -> None:
+    def update_receipt(self, receipt_id: int, data: Dict[str, Any]) -> None:
         text = data.get("text") or json.dumps(data, sort_keys=True)
         sim = compute_simhash(text)
         m = compute_minhash(text)
