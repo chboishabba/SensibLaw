@@ -15,8 +15,11 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
 
 def _handle(args: argparse.Namespace) -> None:
-    definition = lookup(args.term)
-    print(definition)
+    entry = lookup(args.term)
+    if entry is None:
+        print(args.term)
+    else:
+        print(entry.text)
 
 
 __all__ = ["register"]

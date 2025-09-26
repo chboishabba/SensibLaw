@@ -1,0 +1,14 @@
+{
+  "dataset": "penalties_and_sentences_part_2",
+  "act": "Penalties and Sentences Act 1992 (Qld)",
+  "part": "Part 2 - Sentencing Guidelines",
+  "source_url": "https://www.legislation.qld.gov.au/view/html/inforce/current/act-1992-048",
+  "last_reviewed": "2024-07-01",
+  "compiler": "SensibLaw demo team",
+  "cleaning_notes": [
+    "Removed amending schedules and preserved only operative subsections relevant to sentencing principles.",
+    "Grouped subsections into thematic principle statements for quick reference.",
+    "Normalised headings, trimmed whitespace and harmonised citation references."
+  ],
+  "usage": "Supports showcase queries about sentencing purposes and mandatory considerations."
+}
