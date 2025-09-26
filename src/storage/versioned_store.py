@@ -5,11 +5,12 @@ import json
 import difflib
 from collections import defaultdict
 import hashlib
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-from ..models.document import Document, DocumentMetadata
+from ..models.document import Document, DocumentMetadata, DocumentTOCEntry
 from ..models.provision import (
     Atom,
     Provision,
@@ -28,6 +29,7 @@ class VersionedStore:
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
         self._init_schema()
+        self._ensure_toc_page_number_column()
 
     def _init_schema(self) -> None:
         with self.conn:
@@ -61,6 +63,7 @@ class VersionedStore:
                     identifier TEXT,
                     title TEXT,
                     position INTEGER NOT NULL,
+                    page_number INTEGER,
                     PRIMARY KEY (doc_id, rev_id, toc_id),
                     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
                     FOREIGN KEY (doc_id, rev_id, parent_id)
@@ -301,6 +304,14 @@ class VersionedStore:
 
         self._backfill_rule_tables()
         self._backfill_glossary_ids()
+
+    def _ensure_toc_page_number_column(self) -> None:
+        cur = self.conn.execute("PRAGMA table_info(toc)")
+        existing = {row["name"] for row in cur.fetchall()}
+        if "page_number" in existing:
+            return
+        with self.conn:
+            self.conn.execute("ALTER TABLE toc ADD COLUMN page_number INTEGER")
 
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
         cur = self.conn.execute(f"PRAGMA table_info({table})")
@@ -577,7 +588,6 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
-
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
 
@@ -731,7 +741,7 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
+        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
@@ -861,7 +871,7 @@ class VersionedStore:
         Returns:
             The revision number assigned to the stored revision.
         """
-        toc_entries = self._build_toc_entries(document.provisions)
+        toc_entries = self._build_toc_entries(document.provisions, document.toc_entries)
         metadata_json = json.dumps(document.metadata.to_dict())
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
@@ -971,48 +981,207 @@ class VersionedStore:
         """Reconstruct a :class:`Document` from stored state."""
 
         metadata = DocumentMetadata.from_dict(json.loads(metadata_json))
+        toc_entries = self._load_toc_entries(doc_id, rev_id)
         provisions, has_rows = self._load_provisions(doc_id, rev_id)
         if has_rows:
-            return Document(metadata=metadata, body=body, provisions=provisions)
+            return Document(
+                metadata=metadata,
+                body=body,
+                provisions=provisions,
+                toc_entries=toc_entries,
+            )
         if document_json:
-            return Document.from_json(document_json)
-        return Document(metadata=metadata, body=body)
+            document = Document.from_json(document_json)
+            if not document.toc_entries and toc_entries:
+                document.toc_entries = toc_entries
+            return document
+        return Document(metadata=metadata, body=body, toc_entries=toc_entries)
 
     def _build_toc_entries(
-        self, provisions: List[Provision]
-    ) -> List[Tuple[int, Optional[int], int, Provision]]:
-        """Assign sequential TOC identifiers to provisions and capture hierarchy."""
+        self,
+        provisions: List[Provision],
+        toc_structure: Optional[List[DocumentTOCEntry]] = None,
+    ) -> List[
+        Tuple[
+            int,
+            Optional[int],
+            int,
+            Optional[str],
+            Optional[str],
+            Optional[str],
+            Optional[int],
+        ]
+    ]:
+        """Assign sequential TOC identifiers, merging parsed TOC structure."""
 
-        entries: List[Tuple[int, Optional[int], int, Provision]] = []
-        if not provisions:
-            return entries
+        entries: List[dict[str, Any]] = []
+        if not provisions and not toc_structure:
+            return []
 
         counter = 0
         position_counters: defaultdict[Optional[int], int] = defaultdict(int)
+        toc_map: dict[Tuple[str, str], int] = {}
+        rows_by_id: dict[int, dict[str, Any]] = {}
 
-        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
+        def normalise_identifier(value: Optional[str]) -> Optional[str]:
+            if not value:
+                return None
+            collapsed = re.sub(r"\s+", "", value).strip().lower()
+            collapsed = collapsed.rstrip(".")
+            return collapsed or None
+
+        def make_key(
+            node_type: Optional[str], identifier: Optional[str]
+        ) -> Optional[Tuple[str, str]]:
+            if not node_type:
+                return None
+            normalised_type = node_type.strip().lower()
+            normalised_identifier = normalise_identifier(identifier)
+            if not normalised_type or normalised_identifier is None:
+                return None
+            return normalised_type, normalised_identifier
+
+        def register_entry(
+            parent_id: Optional[int],
+            node_type: Optional[str],
+            identifier: Optional[str],
+            title: Optional[str],
+            page_number: Optional[int],
+        ) -> int:
             nonlocal counter
             counter += 1
+            position_counters[parent_id] += 1
             toc_id = counter
-            position_counters[parent_toc_id] += 1
+            row = {
+                "toc_id": toc_id,
+                "parent_id": parent_id,
+                "position": position_counters[parent_id],
+                "node_type": node_type,
+                "identifier": identifier,
+                "title": title,
+                "page_number": page_number,
+            }
+            entries.append(row)
+            rows_by_id[toc_id] = row
+            key = make_key(node_type, identifier)
+            if key:
+                toc_map[key] = toc_id
+            return toc_id
+
+        def flatten_toc(
+            nodes: List[DocumentTOCEntry], parent_id: Optional[int]
+        ) -> None:
+            for node in nodes:
+                toc_id = register_entry(
+                    parent_id,
+                    node.node_type,
+                    node.identifier,
+                    node.title,
+                    node.page_number,
+                )
+                flatten_toc(node.children, toc_id)
+
+        if toc_structure:
+            flatten_toc(toc_structure, None)
+
+        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
+            key = make_key(provision.node_type, provision.identifier)
+            toc_id = toc_map.get(key)
+            if toc_id is None:
+                toc_id = register_entry(
+                    parent_toc_id,
+                    provision.node_type,
+                    provision.identifier,
+                    provision.heading,
+                    None,
+                )
+            else:
+                row = rows_by_id.get(toc_id)
+                if row is not None:
+                    if row.get("title") is None and provision.heading:
+                        row["title"] = provision.heading
+                    if row.get("node_type") is None and provision.node_type:
+                        row["node_type"] = provision.node_type
+                    if row.get("identifier") is None and provision.identifier:
+                        row["identifier"] = provision.identifier
             provision.toc_id = toc_id
-            entries.append(
-                (toc_id, parent_toc_id, position_counters[parent_toc_id], provision)
-            )
             for child in provision.children:
                 traverse(child, toc_id)
 
         for provision in provisions:
             traverse(provision, None)
 
-        return entries
+        return [
+            (
+                row["toc_id"],
+                row["parent_id"],
+                row["position"],
+                row.get("node_type"),
+                row.get("identifier"),
+                row.get("title"),
+                row.get("page_number"),
+            )
+            for row in entries
+        ]
+
+    def _load_toc_entries(self, doc_id: int, rev_id: int) -> List[DocumentTOCEntry]:
+        rows = self.conn.execute(
+            """
+            SELECT toc_id, parent_id, node_type, identifier, title, position, page_number
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY toc_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        if not rows:
+            return []
+
+        nodes: dict[int, DocumentTOCEntry] = {}
+        children: defaultdict[Optional[int], List[Tuple[int, int]]] = defaultdict(list)
+
+        for row in rows:
+            entry = DocumentTOCEntry(
+                node_type=row["node_type"],
+                identifier=row["identifier"],
+                title=row["title"],
+                page_number=row["page_number"],
+                children=[],
+            )
+            nodes[row["toc_id"]] = entry
+            children[row["parent_id"]].append((row["position"], row["toc_id"]))
+
+        def build(parent_id: Optional[int]) -> List[DocumentTOCEntry]:
+            ordered = sorted(
+                children.get(parent_id, []), key=lambda item: (item[0], item[1])
+            )
+            result: List[DocumentTOCEntry] = []
+            for _, child_id in ordered:
+                node = nodes[child_id]
+                node.children = build(child_id)
+                result.append(node)
+            return result
+
+        return build(None)
 
     def _store_provisions(
         self,
         doc_id: int,
         rev_id: int,
         provisions: List[Provision],
-        toc_entries: Optional[List[Tuple[int, Optional[int], int, Provision]]] = None,
+        toc_entries: Optional[
+            List[
+                Tuple[
+                    int,
+                    Optional[int],
+                    int,
+                    Optional[str],
+                    Optional[str],
+                    Optional[str],
+                    Optional[int],
+                ]
+            ]
+        ] = None,
     ) -> None:
         """Persist provision and atom data for a revision."""
 
@@ -1063,23 +1232,32 @@ class VersionedStore:
         if toc_entries is None:
             toc_entries = self._build_toc_entries(provisions)
 
-        for toc_id, parent_toc_id, position, provision in toc_entries:
+        for (
+            toc_id,
+            parent_toc_id,
+            position,
+            node_type,
+            identifier,
+            title,
+            page_number,
+        ) in toc_entries:
             self.conn.execute(
                 """
                 INSERT INTO toc (
-                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position
+                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position, page_number
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
                     rev_id,
                     toc_id,
                     parent_toc_id,
-                    provision.node_type,
-                    provision.identifier,
-                    provision.heading,
+                    node_type,
+                    identifier,
+                    title,
                     position,
+                    page_number,
                 ),
             )
 
