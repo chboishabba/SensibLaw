@@ -90,6 +90,18 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 conditions=r.conditions,
             )
         )
+
+        for role, fragments in (r.elements or {}).items():
+            for fragment in fragments:
+                atoms.append(
+                    Atom(
+                        type="element",
+                        role=role,
+                        text=fragment,
+                        who=r.actor or None,
+                        conditions=r.conditions if role == "circumstance" else None,
+                    )
+                )
     return atoms
 
 
