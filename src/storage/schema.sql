@@ -334,6 +334,7 @@ CREATE TABLE IF NOT EXISTS rule_atom_references (
     section TEXT,
     pinpoint TEXT,
     citation_text TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, ref_index),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -375,6 +376,7 @@ CREATE TABLE IF NOT EXISTS rule_element_references (
     section TEXT,
     pinpoint TEXT,
     citation_text TEXT,
+    glossary_id INTEGER,
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id, ref_index),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id, element_id)
         REFERENCES rule_elements(doc_id, rev_id, provision_id, rule_id, element_id)

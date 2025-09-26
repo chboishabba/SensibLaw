@@ -173,6 +173,7 @@ class VersionedStore:
                     section TEXT,
                     pinpoint TEXT,
                     citation_text TEXT,
+                    glossary_id INTEGER,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, ref_index),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -214,6 +215,7 @@ class VersionedStore:
                     section TEXT,
                     pinpoint TEXT,
                     citation_text TEXT,
+                    glossary_id INTEGER,
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id, ref_index),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id, element_id)
                         REFERENCES rule_elements(doc_id, rev_id, provision_id, rule_id, element_id)
@@ -279,6 +281,8 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
         self._ensure_column("rule_elements", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atom_references", "glossary_id", "INTEGER")
+        self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
 
         self._backfill_glossary_ids()
 
@@ -755,6 +759,8 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
         self._ensure_column("rule_elements", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atom_references", "glossary_id", "INTEGER")
+        self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
 
         self._backfill_rule_tables()
         self._backfill_glossary_ids()
@@ -1519,7 +1525,7 @@ class VersionedStore:
         if using_structured:
             atom_reference_rows = self.conn.execute(
                 """
-                SELECT provision_id, rule_id, ref_index, work, section, pinpoint, citation_text
+                SELECT provision_id, rule_id, ref_index, work, section, pinpoint, citation_text, glossary_id
                 FROM rule_atom_references
                 WHERE doc_id = ? AND rev_id = ?
                 ORDER BY provision_id, rule_id, ref_index
@@ -1538,7 +1544,7 @@ class VersionedStore:
             ).fetchall()
             element_reference_rows = self.conn.execute(
                 """
-                SELECT provision_id, rule_id, element_id, ref_index, work, section, pinpoint, citation_text
+                SELECT provision_id, rule_id, element_id, ref_index, work, section, pinpoint, citation_text, glossary_id
                 FROM rule_element_references
                 WHERE doc_id = ? AND rev_id = ?
                 ORDER BY provision_id, rule_id, element_id, ref_index
@@ -1565,6 +1571,7 @@ class VersionedStore:
                         section=row["section"],
                         pinpoint=row["pinpoint"],
                         citation_text=row["citation_text"],
+                        glossary_id=row["glossary_id"],
                     )
                 )
 
@@ -1580,6 +1587,7 @@ class VersionedStore:
                         section=row["section"],
                         pinpoint=row["pinpoint"],
                         citation_text=row["citation_text"],
+                        glossary_id=row["glossary_id"],
                     )
                 )
 
@@ -1596,6 +1604,7 @@ class VersionedStore:
                         section=ref.section,
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
+                        glossary_id=ref.glossary_id,
                     )
                     for ref in atom_refs_map.get(
                         (row["provision_id"], row["rule_id"]), []
@@ -1697,6 +1706,7 @@ class VersionedStore:
                         section=ref.section,
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
+                        glossary_id=ref.glossary_id,
                     )
                     for ref in element_refs_map.get(
                         (row["provision_id"], row["rule_id"], row["element_id"]), []
@@ -1882,6 +1892,16 @@ class VersionedStore:
     ) -> None:
         """Persist structured rule data for a provision."""
 
+        def ensure_glossary_reference(
+            references: List[RuleReference], glossary_id: Optional[int]
+        ) -> List[RuleReference]:
+            if glossary_id is None:
+                return references
+            for reference in references:
+                if getattr(reference, "glossary_id", None) == glossary_id:
+                    return references
+            return [*references, RuleReference(glossary_id=glossary_id)]
+
         seen_hashes: set[str] = set()
         rule_counter = 0
 
@@ -2014,13 +2034,17 @@ class VersionedStore:
                 ),
             )
 
+            rule_atom.references = ensure_glossary_reference(
+                list(rule_atom.references), rule_atom.glossary_id
+            )
             for ref_index, ref in enumerate(rule_atom.references, start=1):
                 self.conn.execute(
                     """
                     INSERT INTO rule_atom_references (
                         doc_id, rev_id, provision_id, rule_id, ref_index,
-                        work, section, pinpoint, citation_text
+                        work, section, pinpoint, citation_text, glossary_id
                     )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (doc_id, rev_id, provision_id, rule_id, ref_index) DO UPDATE SET
                         work = excluded.work,
@@ -2038,6 +2062,7 @@ class VersionedStore:
                         ref.section,
                         ref.pinpoint,
                         ref.citation_text,
+                        ref.glossary_id,
                     ),
                 )
 
@@ -2089,13 +2114,17 @@ class VersionedStore:
                     ),
                 )
 
+                element.references = ensure_glossary_reference(
+                    list(element.references), element.glossary_id
+                )
                 for ref_index, ref in enumerate(element.references, start=1):
                     self.conn.execute(
                         """
                         INSERT INTO rule_element_references (
                             doc_id, rev_id, provision_id, rule_id, element_id, ref_index,
-                            work, section, pinpoint, citation_text
+                            work, section, pinpoint, citation_text, glossary_id
                         )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT (
                             doc_id, rev_id, provision_id, rule_id, element_id, ref_index
@@ -2116,6 +2145,7 @@ class VersionedStore:
                             ref.section,
                             ref.pinpoint,
                             ref.citation_text,
+                            ref.glossary_id,
                         ),
                     )
 
