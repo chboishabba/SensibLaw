@@ -133,6 +133,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         gloss=(
                             gloss_entry.text if gloss_entry else who_text or None
                         ),
+                        gloss=gloss_entry.text if gloss_entry else None,
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
                             if gloss_entry and gloss_entry.metadata is not None
@@ -181,6 +182,22 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
 
 def _has_section_parser() -> bool:
     return bool(section_parser and hasattr(section_parser, "parse_sections"))
+
+
+    if not text.strip():
+        return []
+
+    if section_parser and hasattr(section_parser, "parse_sections"):
+        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+        structured = _build_provisions_from_nodes(nodes)
+        sections = list(_iter_section_provisions(structured))
+        if sections:
+            return sections
+        if structured:
+            return structured
+
+    return _fallback_parse_sections(text)
+
 
 
 _SECTION_HEADING_RE = re.compile(
@@ -233,11 +250,10 @@ def parse_sections(text: str) -> List[Provision]:
     parser_available = _has_section_parser()
 
     if parser_available:
+    if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)
-        sections: List[Provision] = []
-        for prov in structured:
-            _collect_section_provisions(prov, sections)
+        sections = list(_iter_section_provisions(structured))
         if sections:
             return sections
         if structured:
@@ -255,6 +271,7 @@ def parse_sections(text: str) -> List[Provision]:
             "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
         },
     )
+
     return _fallback_parse_sections(text)
 
 
@@ -294,7 +311,14 @@ def build_document(
                 "body_length": len(body),
             },
         )
+
         provisions = [Provision(text=body)]
+        if hasattr(section_parser, "parse_sections"):
+            provisions = section_parser.parse_sections(body)
+            if not provisions:
+                provisions = [Provision(text=body)]
+        else:  # Fallback: single provision containing entire body
+            provisions = [Provision(text=body)]
 
     for prov in provisions:
         rules = extract_rules(prov.text)
