@@ -7,7 +7,7 @@ from collections import defaultdict
 import hashlib
 from datetime import date
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from ..models.document import Document, DocumentMetadata
 from ..models.provision import (
@@ -152,9 +152,6 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
-
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
                 ON rule_atoms(doc_id, rev_id, toc_id);
@@ -577,7 +574,6 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
-
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
 
@@ -731,7 +727,7 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
+        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
@@ -1329,7 +1325,6 @@ class VersionedStore:
         using_structured = bool(rule_atom_rows)
 
         rule_atoms_by_provision: dict[int, List[RuleAtom]] = defaultdict(list)
-        atoms_by_provision: dict[int, List[Atom]] = defaultdict(list)
 
         if using_structured:
             atom_reference_rows = self.conn.execute(
@@ -1544,65 +1539,7 @@ class VersionedStore:
                     parent.lints.append(lint)
 
         else:
-            atom_rows = self.conn.execute(
-                """
-                SELECT provision_id, atom_id, type, role, party, who, who_text, text,
-                       conditions, refs, gloss, gloss_metadata, glossary_id
-                FROM atoms
-                WHERE doc_id = ? AND rev_id = ?
-                ORDER BY provision_id, atom_id
-                """,
-                (doc_id, rev_id),
-            ).fetchall()
-            atom_reference_rows = self.conn.execute(
-                """
-                SELECT provision_id, atom_id, ref_index, work, section, pinpoint, citation_text
-                FROM atom_references
-                WHERE doc_id = ? AND rev_id = ?
-                ORDER BY provision_id, atom_id, ref_index
-                """,
-                (doc_id, rev_id),
-            ).fetchall()
-
-            refs_by_atom: dict[tuple[int, int], List[str]] = {}
-            for ref_row in atom_reference_rows:
-                key = (ref_row["provision_id"], ref_row["atom_id"])
-                ref_text = ref_row["citation_text"]
-                if not ref_text:
-                    parts = [
-                        ref_row["work"],
-                        ref_row["section"],
-                        ref_row["pinpoint"],
-                    ]
-                    ref_text = " ".join(part for part in parts if part)
-                refs_by_atom.setdefault(key, []).append(ref_text or "")
-
-            for atom_row in atom_rows:
-                key = (atom_row["provision_id"], atom_row["atom_id"])
-                if key in refs_by_atom:
-                    refs = list(refs_by_atom[key])
-                else:
-                    refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
-                gloss_metadata = (
-                    json.loads(atom_row["gloss_metadata"])
-                    if atom_row["gloss_metadata"]
-                    else None
-                )
-                atoms_by_provision[atom_row["provision_id"]].append(
-                    Atom(
-                        type=atom_row["type"],
-                        role=atom_row["role"],
-                        party=atom_row["party"],
-                        who=atom_row["who"],
-                        who_text=atom_row["who_text"],
-                        conditions=atom_row["conditions"],
-                        text=atom_row["text"],
-                        refs=refs,
-                        gloss=atom_row["gloss"],
-                        gloss_metadata=gloss_metadata,
-                        glossary_id=atom_row["glossary_id"],
-                    )
-                )
+            pass
 
         provisions: dict[int, Provision] = {}
         root_ids: List[int] = []
@@ -1646,7 +1583,9 @@ class VersionedStore:
                 )
                 provision.sync_legacy_atoms()
             else:
-                provision.atoms.extend(atoms_by_provision.get(row["provision_id"], []))
+                provision.legacy_atoms_factory = self._make_legacy_atoms_factory(
+                    doc_id, rev_id, row["provision_id"]
+                )
                 provision.ensure_rule_atoms()
             provisions[row["provision_id"]] = provision
 
@@ -1664,8 +1603,84 @@ class VersionedStore:
                     parent.children.append(provision)
 
         ordered_roots = [provisions[pid] for pid in root_ids]
-        has_rows = using_structured or any(atoms_by_provision.values())
+        has_legacy_atoms = self._revision_has_atoms(doc_id, rev_id)
+        has_rows = bool(provision_rows) and (using_structured or has_legacy_atoms)
         return ordered_roots, has_rows
+
+    def _make_legacy_atoms_factory(
+        self, doc_id: int, rev_id: int, provision_id: int
+    ) -> Callable[[Optional[Any]], List[Atom]]:
+        """Return a callable that lazily loads legacy atoms from the compatibility view."""
+
+        def factory(_: Optional[Any] = None) -> List[Atom]:
+            atom_rows = self.conn.execute(
+                """
+                SELECT atom_id, type, role, party, who, who_text, text,
+                       conditions, refs, gloss, gloss_metadata, glossary_id
+                FROM atoms
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                ORDER BY atom_id
+                """,
+                (doc_id, rev_id, provision_id),
+            ).fetchall()
+            if not atom_rows:
+                return []
+
+            atom_reference_rows = self.conn.execute(
+                """
+                SELECT atom_id, ref_index, work, section, pinpoint, citation_text
+                FROM atom_references
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                ORDER BY atom_id, ref_index
+                """,
+                (doc_id, rev_id, provision_id),
+            ).fetchall()
+
+            refs_by_atom: dict[int, List[str]] = {}
+            for ref_row in atom_reference_rows:
+                ref_text = ref_row["citation_text"]
+                if not ref_text:
+                    parts = [ref_row["work"], ref_row["section"], ref_row["pinpoint"]]
+                    ref_text = " ".join(part for part in parts if part)
+                refs_by_atom.setdefault(ref_row["atom_id"], []).append(ref_text or "")
+
+            atoms: List[Atom] = []
+            for atom_row in atom_rows:
+                refs = refs_by_atom.get(atom_row["atom_id"])
+                if refs is None:
+                    refs = json.loads(atom_row["refs"]) if atom_row["refs"] else []
+                gloss_metadata = (
+                    json.loads(atom_row["gloss_metadata"])
+                    if atom_row["gloss_metadata"]
+                    else None
+                )
+                atoms.append(
+                    Atom(
+                        type=atom_row["type"],
+                        role=atom_row["role"],
+                        party=atom_row["party"],
+                        who=atom_row["who"],
+                        who_text=atom_row["who_text"],
+                        conditions=atom_row["conditions"],
+                        text=atom_row["text"],
+                        refs=list(refs),
+                        gloss=atom_row["gloss"],
+                        gloss_metadata=gloss_metadata,
+                        glossary_id=atom_row["glossary_id"],
+                    )
+                )
+            return atoms
+
+        return factory
+
+    def _revision_has_atoms(self, doc_id: int, rev_id: int) -> bool:
+        """Return ``True`` when legacy atoms exist for the revision."""
+
+        row = self.conn.execute(
+            "SELECT 1 FROM atoms WHERE doc_id = ? AND rev_id = ? LIMIT 1",
+            (doc_id, rev_id),
+        ).fetchone()
+        return row is not None
 
     def _persist_rule_structures(
         self,
