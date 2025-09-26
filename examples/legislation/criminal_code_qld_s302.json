@@ -1,0 +1,54 @@
+{
+  "act": "Criminal Code Act 1899 (Qld)",
+  "section": "s 302 - Definition of Murder",
+  "jurisdiction": "Queensland",
+  "version": "Reprint current to 1 July 2024",
+  "elements": [
+    {
+      "element": "Unlawful killing",
+      "description": "The accused caused the death of another person without lawful justification or excuse.",
+      "checklist": [
+        "Confirm the victim is dead and identify cause of death.",
+        "Establish a causal link between the accused's conduct and the death.",
+        "Exclude statutory or common law justifications such as self-defence."]
+    },
+    {
+      "element": "Intention to cause death or grievous bodily harm",
+      "description": "The accused intended to cause the death or grievous bodily harm to the victim or another.",
+      "checklist": [
+        "Identify admissions, threats or conduct showing intent.",
+        "Assess use of deadly weapons or targeting of vital areas.",
+        "Consider circumstantial evidence demonstrating foresight of death or grievous harm."]
+    },
+    {
+      "element": "Other bases for murder",
+      "description": "Intent can be inferred where death resulted from an act done with reckless indifference to human life, in prosecution of an unlawful purpose likely to endanger life, or during resisting lawful arrest.",
+      "checklist": [
+        "Determine whether the act was done with reckless indifference to human life.",
+        "If relying on unlawful purpose, confirm the underlying felony and its dangerous character.",
+        "If death occurred during resistance to arrest, confirm the arrest was lawful and the act was intended to prevent it."]
+    }
+  ],
+  "defences": [
+    {
+      "name": "Self-defence",
+      "statutory_reference": "Criminal Code (Qld) ss 271-272",
+      "summary": "Complete defence if accused responded to an unlawful assault with force reasonably necessary for defence."
+    },
+    {
+      "name": "Provocation",
+      "statutory_reference": "Criminal Code (Qld) s 304",
+      "summary": "Reduces murder to manslaughter if accused lost self-control suddenly in response to provocation of a high order."
+    }
+  ],
+  "related_cases": [
+    {
+      "name": "R v Kirkman [2022] QCA 55",
+      "proposition": "Reaffirms that intent can be inferred from deliberate use of a lethal weapon aimed at a vital region."
+    },
+    {
+      "name": "R v Sebo [2007] QCA 426",
+      "proposition": "Explains the elements of reckless indifference to human life."
+    }
+  ]
+}
