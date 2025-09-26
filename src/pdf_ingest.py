@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import re
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,8 @@ from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
 
 
+logger = logging.getLogger(__name__)
+
 _CULTURAL_OVERLAY = get_default_overlay()
 
 
@@ -25,10 +28,22 @@ _CULTURAL_OVERLAY = get_default_overlay()
 # available, a trivial fallback is used which treats the entire body as a single
 # provision.
 try:  # pragma: no cover - executed conditionally
-    from .ingestion import section_parser  # type: ignore
+    from .ingestion import section_parser as _ingestion_section_parser  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
-    section_parser = None  # type: ignore
-from . import section_parser
+    _ingestion_section_parser = None  # type: ignore
+    _SECTION_PARSER_OPTIONAL_IMPORT_FAILED = True
+else:  # pragma: no cover - only executed when optional import succeeds
+    _SECTION_PARSER_OPTIONAL_IMPORT_FAILED = False
+
+try:  # pragma: no cover - executed conditionally
+    from . import section_parser as _root_section_parser  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    _root_section_parser = None  # type: ignore
+    _ROOT_SECTION_PARSER_IMPORT_FAILED = True
+else:  # pragma: no cover - only executed when import succeeds
+    _ROOT_SECTION_PARSER_IMPORT_FAILED = False
+
+section_parser = _root_section_parser or _ingestion_section_parser  # type: ignore
 
 
 def extract_pdf_text(pdf_path: Path) -> List[dict]:
@@ -115,6 +130,9 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         text=fragment,
                         who=who,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=(
+                            gloss_entry.text if gloss_entry else who_text or None
+                        ),
                         gloss=gloss_entry.text if gloss_entry else None,
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
@@ -162,8 +180,9 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
         _collect_section_provisions(child, bucket)
 
 
-def parse_sections(text: str) -> List[Provision]:
-    """Return a list of provisions representing individual sections."""
+def _has_section_parser() -> bool:
+    return bool(section_parser and hasattr(section_parser, "parse_sections"))
+
 
     if not text.strip():
         return []
@@ -184,14 +203,6 @@ def parse_sections(text: str) -> List[Provision]:
 _SECTION_HEADING_RE = re.compile(
     r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
 )
-
-
-def _iter_section_provisions(provisions: List[Provision]):
-    for provision in provisions:
-        if provision.node_type == "section":
-            yield provision
-        for child in _iter_section_provisions(provision.children):
-            yield child
 
 
 def _fallback_parse_sections(text: str) -> List[Provision]:
@@ -236,6 +247,9 @@ def parse_sections(text: str) -> List[Provision]:
     if not text.strip():
         return []
 
+    parser_available = _has_section_parser()
+
+    if parser_available:
     if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)
@@ -244,6 +258,19 @@ def parse_sections(text: str) -> List[Provision]:
             return sections
         if structured:
             return structured
+
+    logger.debug(
+        "Falling back to regex-based section parsing (section_parser_available=%s, "
+        "optional_import_failed=%s, root_import_failed=%s)",
+        parser_available,
+        _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+        _ROOT_SECTION_PARSER_IMPORT_FAILED,
+        extra={
+            "section_parser_available": parser_available,
+            "section_parser_optional_import_failed": _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+            "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
+        },
+    )
 
     return _fallback_parse_sections(text)
 
@@ -268,6 +295,23 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
+        parser_available = _has_section_parser()
+        logger.debug(
+            "Section parsing yielded no provisions; using single provision fallback "
+            "(section_parser_available=%s, optional_import_failed=%s, "
+            "root_import_failed=%s, body_length=%s)",
+            parser_available,
+            _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+            _ROOT_SECTION_PARSER_IMPORT_FAILED,
+            len(body),
+            extra={
+                "section_parser_available": parser_available,
+                "section_parser_optional_import_failed": _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
+                "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
+                "body_length": len(body),
+            },
+        )
+
         provisions = [Provision(text=body)]
         if hasattr(section_parser, "parse_sections"):
             provisions = section_parser.parse_sections(body)
