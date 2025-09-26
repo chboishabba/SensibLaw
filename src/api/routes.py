@@ -99,6 +99,81 @@ class TestRunRequest(BaseModel):
     story: Dict[str, Any] = Field(..., description="Story data for evaluation")
 
 
+_PROVISION_ATOMS: Dict[str, Dict[str, Any]] = {
+    "Provision#NTA:s223": {
+        "provision_id": "Provision#NTA:s223",
+        "title": "Native Title Act 1993 (Cth) s 223",
+        "atoms": [
+            {
+                "id": "nta-s223-principle",
+                "label": "Native title is recognised if laws and customs are acknowledged",
+                "role": "principle",
+                "proof": {"status": "proven", "confidence": 0.91, "evidenceCount": 3},
+                "principle": {
+                    "id": "nta-principle-1",
+                    "title": "Continuity of traditional laws",
+                    "summary": "Claimants must show continued acknowledgment of traditional laws and customs since sovereignty.",
+                    "citation": "#/proof-tree/statute/Provision#NTA:s223",
+                    "tags": ["continuity", "custom"],
+                },
+                "children": [
+                    {
+                        "id": "nta-s223-fact-1",
+                        "label": "Elders gave testimony about ongoing ceremonies",
+                        "role": "fact",
+                        "proof": {"status": "proven", "confidence": 0.87},
+                    },
+                    {
+                        "id": "nta-s223-fact-2",
+                        "label": "Anthropological report contested on methodology",
+                        "role": "fact",
+                        "proof": {"status": "contested", "evidenceCount": 1},
+                        "notes": "The opposing expert challenges the time depth of the survey interviews.",
+                    },
+                ],
+            },
+            {
+                "id": "nta-s223-principle-2",
+                "label": "The society must have a normative system",
+                "role": "principle",
+                "proof": {"status": "pending", "evidenceCount": 0},
+                "principle": {
+                    "id": "nta-principle-2",
+                    "title": "Normative society",
+                    "summary": "Proof requires demonstrating a body of rules that binds the claim group.",
+                    "tags": ["society", "normative"],
+                },
+            },
+        ],
+    },
+    "Provision#NTA:s225": {
+        "provision_id": "Provision#NTA:s225",
+        "title": "Native Title Act 1993 (Cth) s 225",
+        "atoms": [
+            {
+                "id": "nta-s225-principle",
+                "label": "Determinations must describe the nature and extent of native title rights",
+                "role": "principle",
+                "proof": {"status": "proven", "confidence": 0.78, "evidenceCount": 2},
+                "principle": {
+                    "id": "nta-principle-3",
+                    "title": "Determination particulars",
+                    "summary": "Orders identify rights, interests, and relationship to other interests in the determination area.",
+                    "tags": ["determination", "interests"],
+                },
+            },
+            {
+                "id": "nta-s225-fact",
+                "label": "Overlap with pastoral lease requires clarification",
+                "role": "fact",
+                "proof": {"status": "contested", "evidenceCount": 2},
+                "notes": "Negotiations with the leaseholder are ongoing and unresolved.",
+            },
+        ],
+    },
+}
+
+
 def execute_tests(ids: List[str], story: Dict[str, Any]) -> Dict[str, Any]:
     results: Dict[str, Any] = {}
     for test_id in ids:
@@ -112,6 +187,15 @@ def execute_tests(ids: List[str], story: Dict[str, Any]) -> Dict[str, Any]:
             "passed": all(factors.values()),
         }
     return {"results": results}
+
+
+def fetch_provision_atoms(provision_id: str) -> Dict[str, Any]:
+    """Return provision atoms ready for checklist rendering."""
+
+    provision = _PROVISION_ATOMS.get(provision_id)
+    if not provision:
+        raise HTTPException(status_code=404, detail="Provision not found")
+    return provision
 
 
 def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
@@ -154,11 +238,17 @@ def case_treatment_endpoint(case_id: str) -> Dict[str, Any]:
     return fetch_case_treatment(case_id)
 
 
+@router.get("/provisions/{provision_id}/atoms")
+def provision_atoms_endpoint(provision_id: str) -> Dict[str, Any]:
+    return fetch_provision_atoms(provision_id)
+
+
 __all__ = [
     "router",
     "generate_subgraph",
     "execute_tests",
     "fetch_case_treatment",
+    "fetch_provision_atoms",
     "_graph",
     "WEIGHT",
     "RANK",

@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
+
+from .models.provision import Provision
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
@@ -18,117 +20,22 @@ SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
 # Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
 TOKEN_RE = re.compile(
     r"(?P<modality>must not|must|may)|"
-    r"(?P<condition>if|unless|subject to|despite)",
+    r"(?P<condition>if|unless|subject to|despite)|"
+    r"(?P<xref>s\s+\d+[A-Za-z]?|this\s+Part)",
     re.IGNORECASE,
 )
-
-INTERNAL_REF_RE = re.compile(
-    r"\b(?P<label>s|ss|section|sections|regulation|regulations|rule|rules)\s+"
-    r"(?P<target>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?)",
-    re.IGNORECASE,
-)
-
-STRUCTURE_REF_RE = re.compile(
-    r"\b(?P<label>Part|Division|Chapter|Schedule)\s+"
-    r"(?P<identifier>[A-Z0-9IVXLC]+(?:\.\d+)?)",
-    re.IGNORECASE,
-)
-
-SELF_REF_RE = re.compile(
-    r"\bthis\s+(?P<label>Act|Part|Division|Chapter|Schedule)\b",
-    re.IGNORECASE,
-)
-
-EXTERNAL_STATUTE_RE = re.compile(
-    r"(?P<act>"
-    r"(?:(?:(?-i:[A-Z])[A-Za-z'&-]*)|\([^)]+\))(?:\s+(?:(?:(?-i:[A-Z])[A-Za-z'&-]*)|\([^)]+\)))*\s+"
-    r"(?i:(?:Act|Ordinance|Regulation|Regulations|Code))\s+\d{4}(?:\s*\([A-Za-z]+\))?)"
-    r"(?:\s+(?P<section_label>(?i:s|ss|section|sections|part|division|chapter|schedule))\s+"
-    r"(?P<section_id>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?))?",
-)
-
-ReferenceTuple = Tuple[str, Optional[str], Optional[str], Optional[str], str]
 
 
 def _strip_tags(html: str) -> str:
     """Remove simple HTML tags, returning the text content."""
+
     return re.sub(r"<[^>]+>", "", html).strip()
-
-
-def _normalize_label(raw: Optional[str]) -> Optional[str]:
-    if raw is None:
-        return None
-    lowered = raw.strip().lower()
-    mapping = {
-        "s": "section",
-        "ss": "sections",
-    }
-    return mapping.get(lowered, lowered)
-
-
-def _clean_identifier(raw: Optional[str]) -> Optional[str]:
-    if raw is None:
-        return None
-    return re.sub(r"\s+", " ", raw.strip()) or None
-
-
-def _extract_references(text: str) -> List[ReferenceTuple]:
-    references: List[ReferenceTuple] = []
-    spans: List[Tuple[int, int]] = []
-
-    def overlaps(span: Tuple[int, int]) -> bool:
-        for start, end in spans:
-            if not (span[1] <= start or span[0] >= end):
-                return True
-        return False
-
-    def add_reference(
-        kind: str,
-        subject: Optional[str],
-        label: Optional[str],
-        target: Optional[str],
-        match: re.Match[str],
-    ) -> None:
-        span = match.span()
-        if overlaps(span):
-            return
-        original = text[span[0] : span[1]].strip()
-        if not original:
-            return
-        spans.append(span)
-        references.append(
-            (
-                kind,
-                subject.strip() if subject else None,
-                _normalize_label(label),
-                _clean_identifier(target),
-                original,
-            )
-        )
-
-    for match in EXTERNAL_STATUTE_RE.finditer(text):
-        act = match.group("act")
-        label = match.group("section_label")
-        section_id = match.group("section_id")
-        kind = "external" if label else "statute"
-        add_reference(kind, act, label, section_id, match)
-
-    for match in STRUCTURE_REF_RE.finditer(text):
-        add_reference("structure", None, match.group("label"), match.group("identifier"), match)
-
-    for match in INTERNAL_REF_RE.finditer(text):
-        add_reference("internal", None, match.group("label"), match.group("target"), match)
-
-    for match in SELF_REF_RE.finditer(text):
-        add_reference("internal", "this", match.group("label"), None, match)
-
-    return references
 
 
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
-    references: List[ReferenceTuple] = []
+    references: List[str] = []
 
     for match in TOKEN_RE.finditer(text):
         token = match.group().strip()
@@ -137,8 +44,8 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
             modality = token.lower()
         elif group == "condition":
             conditions.append(token.lower())
-
-    references.extend(_extract_references(text))
+        elif group == "xref":
+            references.append(token)
 
     return {"modality": modality, "conditions": conditions, "references": references}
 
@@ -148,7 +55,7 @@ def _empty_tokens() -> Dict[str, object]:
 
 
 @dataclass
-class ParsedNode:
+class _ParsedNode:
     """Structured representation of a legislative unit."""
 
     node_type: str
@@ -156,24 +63,8 @@ class ParsedNode:
     heading: Optional[str] = None
     text: str = ""
     rule_tokens: Dict[str, object] = field(default_factory=_empty_tokens)
-    references: List[ReferenceTuple] = field(default_factory=list)
-    children: List["ParsedNode"] = field(default_factory=list)
+    children: List["_ParsedNode"] = field(default_factory=list)
     _buffer: List[str] = field(default_factory=list, repr=False)
-
-    def to_dict(self) -> Dict[str, object]:
-        return {
-            "type": self.node_type,
-            "identifier": self.identifier,
-            "heading": self.heading,
-            "text": self.text,
-            "rule_tokens": {
-                "modality": self.rule_tokens.get("modality"),
-                "conditions": list(self.rule_tokens.get("conditions", [])),
-                "references": list(self.rule_tokens.get("references", [])),
-            },
-            "references": list(self.references),
-            "children": [child.to_dict() for child in self.children],
-        }
 
 
 @dataclass
@@ -185,7 +76,7 @@ class Section:
     text: str
     modality: Optional[str]
     conditions: List[str]
-    references: List[ReferenceTuple]
+    references: List[str]
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -205,10 +96,8 @@ def parse_html_section(html: str) -> Section:
 
     The extractor runs a single combined regex over the text to detect
     modalities (``must``, ``must not``, ``may``), conditional triggers
-    (``if``, ``unless``, ``subject to``, ``despite``) and cross references
-    ranging from intra-Act markers (``s 5B``, ``this Part``) to structural
-    headings and external statute citations (e.g. ``Native Title Act 1993 (Cth)
-    s 223``).
+    (``if``, ``unless``, ``subject to``, ``despite``) and simple
+    cross references (e.g. ``s 5B``, ``this Part``).
     """
 
     text = _strip_tags(html)
@@ -234,37 +123,49 @@ def parse_html_section(html: str) -> Section:
 
 def fetch_section(html: str) -> Dict[str, object]:
     """Parse *html* and return raw text together with extracted rule metadata."""
+
     section = parse_html_section(html)
     return section.to_dict()
 
 
-def _finalize_node(node: ParsedNode) -> None:
+def _finalize_node(node: _ParsedNode) -> None:
     node.text = " ".join(part for part in node._buffer if part).strip()
     node.rule_tokens = _extract_rule_tokens(node.text)
-    node.references = list(node.rule_tokens.get("references", []))
     node._buffer.clear()
     for child in node.children:
         _finalize_node(child)
 
 
 def _attach_node(
-    collection: List[ParsedNode],
-    parent: Optional[ParsedNode],
-    node: ParsedNode,
-) -> ParsedNode:
+    collection: List[_ParsedNode],
+    parent: Optional[_ParsedNode],
+    node: _ParsedNode,
+) -> _ParsedNode:
     target = parent.children if parent else collection
     target.append(node)
     return node
 
 
-def parse_sections(text: str) -> List[ParsedNode]:
-    """Parse free-form text into a hierarchy of structured nodes."""
+def _node_to_provision(node: _ParsedNode) -> Provision:
+    provision = Provision(
+        text=node.text,
+        identifier=node.identifier,
+        heading=node.heading,
+        node_type=node.node_type,
+        rule_tokens=dict(node.rule_tokens),
+    )
+    provision.children = [_node_to_provision(child) for child in node.children]
+    return provision
 
-    nodes: List[ParsedNode] = []
-    current_part: Optional[ParsedNode] = None
-    current_division: Optional[ParsedNode] = None
-    current_section: Optional[ParsedNode] = None
-    current_subsection: Optional[ParsedNode] = None
+
+def parse_sections(text: str) -> List[Provision]:
+    """Parse free-form text into a hierarchy of :class:`Provision` instances."""
+
+    nodes: List[_ParsedNode] = []
+    current_part: Optional[_ParsedNode] = None
+    current_division: Optional[_ParsedNode] = None
+    current_section: Optional[_ParsedNode] = None
+    current_subsection: Optional[_ParsedNode] = None
 
     for raw_line in text.splitlines():
         line = raw_line.strip()
@@ -273,7 +174,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
         part_match = PART_RE.match(line)
         if part_match:
-            current_part = ParsedNode(
+            current_part = _ParsedNode(
                 node_type="part",
                 identifier=part_match.group("number"),
                 heading=part_match.group("heading"),
@@ -287,7 +188,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
         division_match = DIVISION_RE.match(line)
         if division_match:
             parent = current_part
-            current_division = ParsedNode(
+            current_division = _ParsedNode(
                 node_type="division",
                 identifier=division_match.group("number"),
                 heading=division_match.group("heading"),
@@ -300,7 +201,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
         section_match = HEADING_RE.match(line)
         if section_match:
             parent = current_division or current_part
-            current_section = ParsedNode(
+            current_section = _ParsedNode(
                 node_type="section",
                 identifier=section_match.group("number"),
                 heading=section_match.group("heading"),
@@ -311,7 +212,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
         subsection_match = SUBSECTION_RE.match(line)
         if subsection_match and current_section:
-            current_subsection = ParsedNode(
+            current_subsection = _ParsedNode(
                 node_type="subsection",
                 identifier=f"({subsection_match.group('number')})",
             )
@@ -321,7 +222,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
         target = current_subsection or current_section or current_division or current_part
         if target is None:
-            target = ParsedNode(node_type="section", identifier=None)
+            target = _ParsedNode(node_type="section", identifier=None)
             _attach_node(nodes, None, target)
             current_part = None
             current_division = None
@@ -333,10 +234,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
     for node in nodes:
         _finalize_node(node)
 
-    return nodes
+    return [_node_to_provision(node) for node in nodes]
 
 
-__all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
-"""Compatibility re-export for :mod:`src.section_parser`."""
-
-from ..section_parser import *  # noqa: F401,F403
+__all__ = ["parse_sections", "parse_html_section", "fetch_section", "Section"]

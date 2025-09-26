@@ -14,13 +14,11 @@ assert spec.loader is not None
 spec.loader.exec_module(fixtures)
 MULTI_LEVEL_STATUTE = fixtures.MULTI_LEVEL_STATUTE
 
-from src.ingestion.section_parser import parse_sections
-from src.pdf_ingest import _build_provisions_from_nodes
+from src.section_parser import parse_sections
 
 
 def test_multi_level_provision_hierarchy():
-    nodes = parse_sections(MULTI_LEVEL_STATUTE)
-    provisions = _build_provisions_from_nodes(nodes)
+    provisions = parse_sections(MULTI_LEVEL_STATUTE)
 
     assert len(provisions) == 1
 

@@ -1,0 +1,66 @@
+{
+  "act": "Penalties and Sentences Act 1992 (Qld)",
+  "part": "Part 2 - Sentencing Guidelines",
+  "jurisdiction": "Queensland",
+  "version": "Reprint current to 1 July 2024",
+  "provisions": [
+    {
+      "section": "9(1)",
+      "heading": "Purposes of sentencing",
+      "summary": "Courts must sentence to punish offenders, deter future offending, protect the community and help offenders rehabilitate where appropriate.",
+      "principles": [
+        "Sentences must balance punishment, deterrence, rehabilitation and community protection.",
+        "Offending circumstances and harm guide proportionality in punishment.",
+        "Rehabilitation should be considered if consistent with community safety."
+      ],
+      "notes": "Section 9 is the primary statement of sentencing purposes and applies unless displaced by a specific statutory regime.",
+      "citations": ["Penalties and Sentences Act 1992 (Qld) s 9(1)"]
+    },
+    {
+      "section": "9(2)",
+      "heading": "Matters to have regard to",
+      "summary": "Courts must consider the nature of the offence, harm, offender character, pleas, cooperation, and any mitigating or aggravating factors.",
+      "principles": [
+        "Objective seriousness captures harm, violence level and victim vulnerability.",
+        "Mitigation factors include plea timing, cooperation, youth and prospects of rehabilitation.",
+        "Aggravation arises from prior convictions, planning and offending on bail or probation."
+      ],
+      "notes": "The list is inclusive and lets judges weigh all relevant matters; community protection can justify heavier sentences for serious violence.",
+      "citations": ["Penalties and Sentences Act 1992 (Qld) s 9(2)"]
+    },
+    {
+      "section": "9(3)",
+      "heading": "Imprisonment as last resort",
+      "summary": "Except for serious violent offences, imprisonment should be imposed only when no lesser sentence is adequate, particularly for young or first-time offenders.",
+      "principles": [
+        "A non-custodial option must be considered before ordering imprisonment.",
+        "Youth and limited criminal history weigh against imprisonment unless community safety would be compromised.",
+        "Community-based orders can satisfy denunciation and deterrence when combined with strict conditions."
+      ],
+      "notes": "Specialist provisions displace this principle for serious violent and sexual offences.",
+      "citations": ["Penalties and Sentences Act 1992 (Qld) s 9(3)"]
+    },
+    {
+      "section": "9(4)",
+      "heading": "Domestic violence considerations",
+      "summary": "In domestic violence contexts the court must treat prior offending, victim safety and deterrence as heightened considerations.",
+      "principles": [
+        "Prior domestic violence history aggravates sentence even without convictions.",
+        "Protection of the aggrieved is central and may justify imprisonment.",
+        "Deterrence and denunciation typically outweigh mitigation in sustained abuse scenarios."
+      ],
+      "notes": "Inserted by the Domestic and Family Violence Protection (Combating Coercive Control) and Other Legislation Amendment Act 2022 (Qld).",
+      "citations": ["Penalties and Sentences Act 1992 (Qld) s 9(10A)-(12)"]
+    }
+  ],
+  "cross_references": [
+    {
+      "instrument": "Youth Justice Act 1992 (Qld)",
+      "relevance": "Modifies sentencing discretion for child offenders and incorporates Part 2 principles by reference."
+    },
+    {
+      "instrument": "Serious Violent Offences scheme",
+      "relevance": "Overrides imprisonment as last resort for qualifying offences under ss 161A-161D."
+    }
+  ]
+}

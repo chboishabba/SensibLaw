@@ -9,10 +9,16 @@ from typing import List, Optional
 
 from pdfminer.high_level import extract_text
 
+from .culture.overlay import get_default_overlay
+from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
+from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
+
+
+_CULTURAL_OVERLAY = get_default_overlay()
 
 
 # ``section_parser`` is optional – tests may monkeypatch it. If it's not
@@ -22,6 +28,7 @@ try:  # pragma: no cover - executed conditionally
     from .ingestion import section_parser  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     section_parser = None  # type: ignore
+from . import section_parser
 
 
 def extract_pdf_text(pdf_path: Path) -> List[dict]:
@@ -76,6 +83,8 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
     for r in rules:
+        who = getattr(r, "party", None) or UNKNOWN_PARTY
+        who_text = getattr(r, "who_text", None) or getattr(r, "actor", None)
         text = f"{r.actor} {r.modality} {r.action}".strip()
         if r.conditions:
             text += f" {r.conditions}"
@@ -85,23 +94,47 @@ def _rules_to_atoms(rules) -> List[Atom]:
             Atom(
                 type="rule",
                 role="principle",
+                party=r.actor or None,
+                who_text=r.actor or None,
                 text=text.strip() or None,
-                who=r.actor or None,
+                who=who,
                 conditions=r.conditions,
+                gloss=who_text or None,
             )
         )
 
         for role, fragments in (r.elements or {}).items():
             for fragment in fragments:
+                gloss_entry = lookup_gloss(fragment)
                 atoms.append(
                     Atom(
                         type="element",
                         role=role,
+                        party=r.actor or None,
+                        who_text=r.actor or None,
                         text=fragment,
-                        who=r.actor or None,
+                        who=who,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=who_text or None,
+
+                        gloss=gloss_entry.text if gloss_entry else None,
+                        gloss_metadata=(
+                            dict(gloss_entry.metadata)
+                            if gloss_entry and gloss_entry.metadata is not None
+                            else None
+                        ),
                     )
                 )
+        if who == UNKNOWN_PARTY:
+            atoms.append(
+                Atom(
+                    type="lint",
+                    role="unknown_party",
+                    text=f"Unclassified actor: {r.actor}".strip(),
+                    who=UNKNOWN_PARTY,
+                    gloss=who_text or None,
+                )
+            )
     return atoms
 
 
@@ -112,6 +145,7 @@ def _build_provision_from_node(node) -> Provision:
         heading=getattr(node, "heading", None),
         node_type=getattr(node, "node_type", None),
         rule_tokens=dict(getattr(node, "rule_tokens", {})),
+        references=list(getattr(node, "references", [])),
     )
     provision.children = [
         _build_provision_from_node(child) for child in getattr(node, "children", [])
@@ -135,6 +169,57 @@ def parse_sections(text: str) -> List[Provision]:
 
     if not text.strip():
         return []
+_SECTION_HEADING_RE = re.compile(
+    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
+)
+
+
+def _iter_section_provisions(provisions: List[Provision]):
+    for provision in provisions:
+        if provision.node_type == "section":
+            yield provision
+        for child in _iter_section_provisions(provision.children):
+            yield child
+
+
+def _fallback_parse_sections(text: str) -> List[Provision]:
+    matches = list(_SECTION_HEADING_RE.finditer(text))
+    if not matches:
+        return [Provision(text=text)]
+
+    sections: List[Provision] = []
+    prefix = text[: matches[0].start()].strip()
+
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+
+        identifier = match.group("identifier").strip()
+        heading = match.group("heading").strip()
+
+        parts: List[str] = []
+        if index == 0 and prefix:
+            parts.append(prefix)
+        parts.append(heading)
+        if body:
+            parts.append(body)
+
+        section_text = "\n".join(parts).strip()
+        sections.append(
+            Provision(
+                text=section_text,
+                identifier=identifier or None,
+                heading=heading or None,
+                node_type="section",
+            )
+        )
+
+    return sections
+
+
+def parse_sections(text: str) -> List[Provision]:
+    """Split ``text`` into individual section provisions."""
 
     if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
@@ -148,6 +233,11 @@ def parse_sections(text: str) -> List[Provision]:
             return structured
 
     return [Provision(text=text)]
+        sections = list(_iter_section_provisions(structured))
+        if sections:
+            return sections
+
+    return _fallback_parse_sections(text)
 
 
 def build_document(
@@ -170,6 +260,11 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
+    if hasattr(section_parser, "parse_sections"):
+        provisions = section_parser.parse_sections(body)
+        if not provisions:
+            provisions = [Provision(text=body)]
+    else:  # Fallback: single provision containing entire body
         provisions = [Provision(text=body)]
 
     for prov in provisions:
@@ -178,7 +273,9 @@ def build_document(
         prov.atoms.extend(atoms)
         prov.principles.extend([atom.text for atom in atoms if atom.text])
 
-    return Document(metadata=metadata, body=body, provisions=provisions)
+    document = Document(metadata=metadata, body=body, provisions=provisions)
+    _CULTURAL_OVERLAY.apply(document)
+    return document
 
 
 def save_document(doc: Document, output_path: Path) -> None:
