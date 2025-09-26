@@ -33,3 +33,26 @@ def test_build_document_creates_multiple_sections(monkeypatch):
     assert "may be cited as the Sample Act" in first.text
     assert second.heading == "Application of Act"
     assert "must not delay action" in second.text
+
+
+def test_parse_sections_logs_fallback(monkeypatch, caplog):
+    from src import pdf_ingest
+
+    monkeypatch.setattr(pdf_ingest, "section_parser", None, raising=False)
+
+    sample_text = "1 Short title\nThis Act may be cited as the Sample Act."
+
+    with caplog.at_level("DEBUG", logger="src.pdf_ingest"):
+        sections = pdf_ingest.parse_sections(sample_text)
+
+    assert sections
+    matching_records = [
+        record
+        for record in caplog.records
+        if record.name == "src.pdf_ingest"
+        and "Falling back to regex-based section parsing" in record.message
+    ]
+    assert matching_records, "Expected fallback log message was not emitted"
+    record = matching_records[-1]
+    assert record.section_parser_available is False
+    assert "section_parser_available=False" in record.message
