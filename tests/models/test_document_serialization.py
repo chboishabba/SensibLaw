@@ -1,7 +1,7 @@
 from datetime import date, datetime
 import json
 
-from src.models.document import Document, DocumentMetadata
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import Atom, Provision
 
 
@@ -41,7 +41,18 @@ def test_document_serialization_round_trip():
         customs=["custom"],
         atoms=[atom],
     )
-    document = Document(metadata=metadata, body="Body text", provisions=[provision])
+    toc_entry = DocumentTOCEntry(
+        node_type="section",
+        identifier="p1",
+        title="Sample provision",
+        page_number=7,
+    )
+    document = Document(
+        metadata=metadata,
+        body="Body text",
+        provisions=[provision],
+        toc_entries=[toc_entry],
+    )
 
     # Dictionary round trip
     doc_dict = document.to_dict()

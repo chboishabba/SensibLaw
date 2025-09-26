@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
@@ -70,6 +71,7 @@ class RuleReference:
     section: Optional[str] = None
     pinpoint: Optional[str] = None
     citation_text: Optional[str] = None
+    glossary_id: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -77,6 +79,7 @@ class RuleReference:
             "section": self.section,
             "pinpoint": self.pinpoint,
             "citation_text": self.citation_text,
+            "glossary_id": self.glossary_id,
         }
 
     @classmethod
@@ -86,6 +89,7 @@ class RuleReference:
             section=data.get("section"),
             pinpoint=data.get("pinpoint"),
             citation_text=data.get("citation_text"),
+            glossary_id=data.get("glossary_id"),
         )
 
     def to_legacy_text(self) -> str:
@@ -397,7 +401,7 @@ class Provision:
     customs: List[str] = field(default_factory=list)
     rule_atoms: List[RuleAtom] = field(default_factory=list)
     atoms: List[Atom] = field(default_factory=list)
-    legacy_atoms_factory: Optional[Callable[[], List[Atom]]] = field(
+    legacy_atoms_factory: Optional[Callable[..., List[Atom]]] = field(
         default=None, repr=False, compare=False
     )
 
@@ -460,11 +464,21 @@ class Provision:
             flattened.extend(rule_atom.to_atoms())
         return flattened
 
-    def _resolve_legacy_atoms(self) -> List[Atom]:
+    def _resolve_legacy_atoms(self, context: Any | None = None) -> List[Atom]:
         """Load legacy atoms from the compatibility view if needed."""
 
         if not self.atoms and self.legacy_atoms_factory is not None:
-            self.atoms = list(self.legacy_atoms_factory())
+            factory = self.legacy_atoms_factory
+            try:
+                signature = inspect.signature(factory)
+            except (TypeError, ValueError):
+                signature = None
+
+            if signature is None or len(signature.parameters) == 0:
+                atoms = factory()  # type: ignore[misc]
+            else:
+                atoms = factory(context)
+            self.atoms = list(atoms)
         return self.atoms
 
     def ensure_rule_atoms(self) -> None:
@@ -506,6 +520,7 @@ class Provision:
                     section=value.section,
                     pinpoint=value.pinpoint,
                     citation_text=value.citation_text,
+                    glossary_id=value.glossary_id,
                 )
             if isinstance(value, dict):
                 return RuleReference(
@@ -517,6 +532,7 @@ class Provision:
                         or value.get("text")
                         or value.get("citation")
                     ),
+                    glossary_id=value.get("glossary_id"),
                 )
             if isinstance(value, (list, tuple)):
                 parts = list(value)
@@ -552,6 +568,7 @@ class Provision:
                     if base_atom.gloss_metadata is not None
                     else None
                 ),
+                glossary_id=base_atom.glossary_id,
             )
             rule = RuleAtom(
                 atom_type=base_atom.type or "rule",
@@ -565,6 +582,7 @@ class Provision:
                 subject_gloss_metadata=base_atom.gloss_metadata,
                 subject=subject_atom,
                 references=[build_reference(ref) for ref in base_atom.refs],
+                glossary_id=base_atom.glossary_id,
             )
             structured.append(rule)
             return rule
@@ -599,6 +617,7 @@ class Provision:
                         gloss=atom.gloss,
                         gloss_metadata=atom.gloss_metadata,
                         references=[build_reference(ref) for ref in atom.refs],
+                        glossary_id=atom.glossary_id,
                         atom_type=atom.type,
                     )
                 )

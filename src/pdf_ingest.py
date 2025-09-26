@@ -15,8 +15,8 @@ from pdfminer.high_level import extract_text
 from .culture.overlay import get_default_overlay
 from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
-from .models.document import Document, DocumentMetadata, Provision
-from .models.provision import Atom, RuleAtom, RuleElement, RuleLint
+from .models.document import Document, DocumentMetadata, DocumentTOCEntry
+from .models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
 from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
 from .storage.core import Storage
@@ -29,11 +29,29 @@ _CULTURAL_OVERLAY = get_default_overlay()
 
 
 _QUOTE_CHARS = "\"'“”‘’"
+_TOC_PREFIX_RE = re.compile(
+    r"^(?P<type>Part|Division|Subdivision|Section)\b", re.IGNORECASE
+)
+_TOC_LINE_RE = re.compile(
+    r"^(?P<type>Part|Division|Subdivision|Section)\s+(?P<content>.+?)\s*(?P<page>\d+)$",
+    re.IGNORECASE,
+)
+_TOC_DOT_LEADER_RE = re.compile(r"[.·⋅•●∙]{2,}")
+_TOC_TITLE_SPLIT_RE = re.compile(r"\s*[-–—:]\s*")
 _DEFINITION_START_RE = re.compile(
     r"^\s*(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+"
     r"(?P<verb>means|includes)\s+(?P<definition>.+)$",
     re.IGNORECASE,
 )
+_DEFINITION_START_INLINE_RE = re.compile(
+    r"(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+(?P<verb>means|includes)\s+",
+    re.IGNORECASE,
+)
+_DEFINITION_HEADING_RE = re.compile(
+    r"\b(definitions?|interpretation|defined terms)\b",
+    re.IGNORECASE,
+)
+_SCOPE_NODE_TYPES = {"part", "division", "section"}
 
 
 def _normalise_term_key(term: str) -> str:
@@ -187,32 +205,54 @@ def _finalise_definition(parts: List[str]) -> str:
     return re.sub(r"\s+", " ", joined).strip()
 
 
+def _split_definition_line(raw_line: str) -> List[str]:
+    matches = list(_DEFINITION_START_INLINE_RE.finditer(raw_line))
+    if len(matches) <= 1:
+        return [raw_line]
+
+    segments: List[str] = []
+    first_start = matches[0].start()
+    prefix = raw_line[:first_start].strip()
+    if prefix:
+        segments.append(prefix)
+
+    for index, match in enumerate(matches):
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(raw_line)
+        segment = raw_line[start:end].strip()
+        if segment:
+            segments.append(segment)
+
+    return segments or [raw_line]
+
+
 def _extract_definition_entries(text: str) -> Dict[str, str]:
     entries: Dict[str, str] = {}
     current_term: Optional[str] = None
     collected: List[str] = []
 
     for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            if current_term and collected:
-                entries[current_term] = _finalise_definition(collected)
-            current_term = None
-            collected = []
-            continue
+        for segment in _split_definition_line(raw_line):
+            line = segment.strip()
+            if not line:
+                if current_term and collected:
+                    entries[current_term] = _finalise_definition(collected)
+                current_term = None
+                collected = []
+                continue
 
-        cleaned = _PRINCIPLE_LEADING_NUMBERS.sub("", line)
-        cleaned = _PRINCIPLE_LEADING_ENUM.sub("", cleaned)
-        match = _DEFINITION_START_RE.match(cleaned)
-        if match:
-            if current_term and collected:
-                entries[current_term] = _finalise_definition(collected)
-            current_term = _strip_quotes(match.group("term"))
-            collected = [match.group("definition").strip()]
-            continue
+            cleaned = _PRINCIPLE_LEADING_NUMBERS.sub("", line)
+            cleaned = _PRINCIPLE_LEADING_ENUM.sub("", cleaned)
+            match = _DEFINITION_START_RE.match(cleaned)
+            if match:
+                if current_term and collected:
+                    entries[current_term] = _finalise_definition(collected)
+                current_term = _strip_quotes(match.group("term"))
+                collected = [match.group("definition").strip()]
+                continue
 
-        if current_term:
-            collected.append(cleaned)
+            if current_term:
+                collected.append(cleaned)
 
     if current_term and collected:
         entries[current_term] = _finalise_definition(collected)
@@ -221,6 +261,108 @@ def _extract_definition_entries(text: str) -> Dict[str, str]:
 
 
 _DEFAULT_GLOSSARY_REGISTRY = GlossaryRegistry()
+
+
+def _is_definition_heading(heading: Optional[str]) -> bool:
+    if not heading:
+        return False
+    return bool(_DEFINITION_HEADING_RE.search(heading))
+
+
+def _iter_provisions_with_ancestors(
+    provisions: List[Provision],
+    ancestors: Optional[List[Provision]] = None,
+):
+    if ancestors is None:
+        ancestors = []
+    for provision in provisions:
+        yield provision, list(ancestors)
+        if provision.children:
+            ancestors.append(provision)
+            yield from _iter_provisions_with_ancestors(provision.children, ancestors)
+            ancestors.pop()
+
+
+def _collect_definition_text(provision: Provision) -> str:
+    parts: List[str] = []
+    if provision.heading:
+        parts.append(provision.heading)
+    if provision.text:
+        parts.append(provision.text)
+    for child in provision.children:
+        child_text = _collect_definition_text(child)
+        if not child_text:
+            continue
+        if child.identifier:
+            parts.append(f"{child.identifier} {child_text}".strip())
+        else:
+            parts.append(child_text)
+    return "\n".join(part for part in parts if part.strip()).strip()
+
+
+def _build_scope_entries(
+    ancestors: List[Provision], provision: Provision
+) -> List[Dict[str, Optional[str]]]:
+    scope_entries: List[Dict[str, Optional[str]]] = []
+    for node in ancestors:
+        if node.node_type in _SCOPE_NODE_TYPES:
+            scope_entries.append(
+                {
+                    "node_type": node.node_type,
+                    "identifier": node.identifier,
+                    "heading": node.heading,
+                }
+            )
+    if provision.node_type in _SCOPE_NODE_TYPES:
+        scope_entries.append(
+            {
+                "node_type": provision.node_type,
+                "identifier": provision.identifier,
+                "heading": provision.heading,
+            }
+        )
+    return scope_entries
+
+
+def _register_definition_provisions(
+    provisions: List[Provision],
+    registry: GlossaryRegistry,
+) -> None:
+    if not provisions:
+        return
+
+    for provision, ancestors in _iter_provisions_with_ancestors(provisions):
+        if provision.node_type != "section" or not _is_definition_heading(
+            provision.heading
+        ):
+            continue
+
+        definition_text = _collect_definition_text(provision)
+        if not definition_text:
+            continue
+
+        entries = _extract_definition_entries(definition_text)
+        if not entries:
+            continue
+
+        scope_entries = _build_scope_entries(ancestors, provision)
+        metadata: Optional[Dict[str, Any]] = None
+        if scope_entries:
+            metadata = {"scope": [dict(entry) for entry in scope_entries]}
+
+        for term, definition in entries.items():
+            registry.register_definition(term, definition, metadata)
+
+
+def _resolve_definition_roots(body: str, fallback: List[Provision]) -> List[Provision]:
+    if not _has_section_parser():
+        return fallback
+    try:  # pragma: no cover - defensive guard around optional dependency
+        nodes = section_parser.parse_sections(body)  # type: ignore[attr-defined]
+    except Exception:
+        return fallback
+    structured = _build_provisions_from_nodes(nodes or [])
+    return structured or fallback
 
 
 # ``section_parser`` is optional – tests may monkeypatch it. If it's not
@@ -260,8 +402,124 @@ def extract_pdf_text(pdf_path: Path) -> List[dict]:
             continue
         heading = lines[0]
         body = " ".join(lines[1:]) if len(lines) > 1 else ""
-        pages.append({"page": i, "heading": heading, "text": body})
+        pages.append({"page": i, "heading": heading, "text": body, "lines": lines})
     return pages
+
+
+def _normalise_toc_candidate(parts: List[str]) -> str:
+    joined = " ".join(parts)
+    joined = _TOC_DOT_LEADER_RE.sub(" ", joined)
+    return re.sub(r"\s+", " ", joined).strip()
+
+
+def _split_toc_identifier(content: str) -> Tuple[Optional[str], Optional[str]]:
+    content = content.strip()
+    if not content:
+        return None, None
+
+    split = _TOC_TITLE_SPLIT_RE.split(content, maxsplit=1)
+    if len(split) == 2 and split[1].strip():
+        identifier_part, title_part = split
+    else:
+        pieces = content.split(" ", 1)
+        identifier_part = pieces[0]
+        title_part = pieces[1] if len(pieces) > 1 else None
+
+    identifier = identifier_part.strip().rstrip(".") or None
+    title = title_part.strip() if title_part and title_part.strip() else None
+    return identifier, title
+
+
+def _parse_toc_page(lines: List[str]) -> List[DocumentTOCEntry]:
+    entries: List[DocumentTOCEntry] = []
+    buffer: List[str] = []
+
+    for raw_line in lines:
+        cleaned = re.sub(r"\s+", " ", raw_line).strip()
+        if not cleaned:
+            continue
+
+        candidate_parts = buffer + [cleaned] if buffer else [cleaned]
+        normalised = _normalise_toc_candidate(candidate_parts)
+        match = _TOC_LINE_RE.match(normalised)
+        if match:
+            node_type = match.group("type").lower()
+            content = match.group("content").strip()
+            page_str = match.group("page")
+            try:
+                page_number = int(page_str)
+            except ValueError:
+                page_number = None
+            identifier, title = _split_toc_identifier(content)
+            entries.append(
+                DocumentTOCEntry(
+                    node_type=node_type,
+                    identifier=identifier,
+                    title=title,
+                    page_number=page_number,
+                )
+            )
+            buffer = []
+            continue
+
+        if buffer:
+            buffer.append(cleaned)
+            continue
+
+        if _TOC_PREFIX_RE.match(cleaned):
+            buffer = [cleaned]
+
+    return entries
+
+
+def _page_lines_for_toc(page: Dict[str, Any]) -> List[str]:
+    lines = page.get("lines")
+    if isinstance(lines, list):
+        return [str(line) for line in lines]
+
+    collected: List[str] = []
+    heading = page.get("heading")
+    if heading:
+        collected.append(str(heading))
+    text = page.get("text")
+    if text:
+        collected.extend(str(text).splitlines())
+    return collected
+
+
+def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
+    """Parse table-of-contents pages into a hierarchical structure."""
+
+    flat_entries: List[DocumentTOCEntry] = []
+    for page in pages:
+        lines = _page_lines_for_toc(page)
+        parsed = _parse_toc_page(lines)
+        if len(parsed) >= 2:
+            flat_entries.extend(parsed)
+
+    if not flat_entries:
+        return []
+
+    hierarchy_order = {
+        "part": 0,
+        "division": 1,
+        "subdivision": 2,
+        "section": 3,
+    }
+    root_entries: List[DocumentTOCEntry] = []
+    stack: List[Tuple[int, DocumentTOCEntry]] = []
+
+    for entry in flat_entries:
+        level = hierarchy_order.get(entry.node_type or "", len(hierarchy_order))
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+        if stack:
+            stack[-1][1].children.append(entry)
+        else:
+            root_entries.append(entry)
+        stack.append((level, entry))
+
+    return root_entries
 
 
 def build_metadata(pdf_path: Path, pages: List[dict]) -> dict:
@@ -585,11 +843,15 @@ def build_document(
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
+
     definitions = _extract_definition_entries(body)
     for term, definition in definitions.items():
         registry.register_definition(term, definition)
 
+    toc_entries = parse_table_of_contents(pages)
+
     provisions = parse_sections(body)
+    structured_for_definitions: Optional[List[Provision]] = None
     if not provisions:
         parser_available = _has_section_parser()
         if parser_available:
@@ -598,6 +860,8 @@ def build_document(
             except Exception:  # pragma: no cover - defensive guard
                 nodes = []
             structured = _build_provisions_from_nodes(nodes or [])
+            if structured:
+                structured_for_definitions = structured
             sections = list(_iter_section_provisions(structured))
             if sections:
                 provisions = sections
@@ -621,6 +885,20 @@ def build_document(
                 },
             )
 
+    needs_structured_definitions = not provisions or any(
+        getattr(prov, "node_type", None) == "section"
+        and _is_definition_heading(getattr(prov, "heading", None))
+        for prov in provisions
+    )
+
+    if structured_for_definitions is None:
+        if needs_structured_definitions:
+            structured_for_definitions = _resolve_definition_roots(body, provisions)
+        else:
+            structured_for_definitions = provisions
+
+    _register_definition_provisions(structured_for_definitions, registry)
+
     for prov in provisions:
         prov.ensure_rule_atoms()
         rules = extract_rules(prov.text)
@@ -635,7 +913,12 @@ def build_document(
         merged = _dedupe_principles([*existing, *rule_principles])
         prov.principles = merged
 
-    document = Document(metadata=metadata, body=body, provisions=provisions)
+    document = Document(
+        metadata=metadata,
+        body=body,
+        provisions=provisions,
+        toc_entries=toc_entries,
+    )
     _CULTURAL_OVERLAY.apply(document)
     return document
 
