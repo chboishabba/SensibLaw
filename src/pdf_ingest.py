@@ -9,10 +9,15 @@ from typing import List, Optional
 
 from pdfminer.high_level import extract_text
 
+from .culture.overlay import get_default_overlay
+from .glossary.service import lookup as lookup_gloss
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
 from .rules.extractor import extract_rules
+
+
+_CULTURAL_OVERLAY = get_default_overlay()
 
 
 # ``section_parser`` is optional – tests may monkeypatch it. If it's not
@@ -22,6 +27,7 @@ try:  # pragma: no cover - executed conditionally
     from . import section_parser  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     section_parser = None  # type: ignore
+from . import section_parser
 
 
 def extract_pdf_text(pdf_path: Path) -> List[dict]:
@@ -93,6 +99,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
 
         for role, fragments in (r.elements or {}).items():
             for fragment in fragments:
+                gloss_entry = lookup_gloss(fragment)
                 atoms.append(
                     Atom(
                         type="element",
@@ -100,6 +107,12 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         text=fragment,
                         who=r.actor or None,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=gloss_entry.text if gloss_entry else None,
+                        gloss_metadata=(
+                            dict(gloss_entry.metadata)
+                            if gloss_entry and gloss_entry.metadata is not None
+                            else None
+                        ),
                     )
                 )
     return atoms
@@ -142,9 +155,10 @@ def build_document(
         provenance=str(source),
     )
 
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        structured = section_parser.parse_sections(body)  # type: ignore[attr-defined]
-        provisions = _build_provisions_from_nodes(structured)
+    if hasattr(section_parser, "parse_sections"):
+        provisions = section_parser.parse_sections(body)
+        if not provisions:
+            provisions = [Provision(text=body)]
     else:  # Fallback: single provision containing entire body
         provisions = [Provision(text=body)]
 
@@ -154,7 +168,9 @@ def build_document(
         prov.atoms.extend(atoms)
         prov.principles.extend([atom.text for atom in atoms if atom.text])
 
-    return Document(metadata=metadata, body=body, provisions=provisions)
+    document = Document(metadata=metadata, body=body, provisions=provisions)
+    _CULTURAL_OVERLAY.apply(document)
+    return document
 
 
 def save_document(doc: Document, output_path: Path) -> None:
