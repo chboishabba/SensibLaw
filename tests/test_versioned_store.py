@@ -14,7 +14,7 @@ if str(ROOT / "src") not in sys.path:
 
 import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata
-from src.models.provision import Atom, Provision, RuleAtom
+from src.models.provision import Atom, Provision, RuleAtom, RuleElement
 from src.storage import VersionedStore
 
 
@@ -218,6 +218,105 @@ def test_toc_join(tmp_path: Path):
             (doc_id, 2),
         ).fetchall()
         assert {row["toc_id"] for row in rule_rows} == {rows[0]["toc_id"]}
+    finally:
+        store.close()
+
+
+def test_glossary_references_persist(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        with store.conn:
+            cur = store.conn.execute(
+                "INSERT INTO glossary(term, definition, metadata) VALUES (?, ?, ?)",
+                ("Example term", "Example definition", None),
+            )
+        glossary_id = cur.lastrowid
+        assert glossary_id is not None
+
+        meta = DocumentMetadata(
+            jurisdiction="US",
+            citation="123",
+            date=date(2022, 2, 1),
+            source_url="http://example.com",
+            retrieved_at=datetime(2020, 1, 2, 3, 4, 5),
+            checksum="abc123",
+            licence="CC-BY",
+            canonical_id="canon-123",
+        )
+
+        subject_atom = Atom(
+            type="rule",
+            text="Example subject",
+            refs=[],
+            gloss="Example term",
+            glossary_id=glossary_id,
+        )
+
+        rule_atom = RuleAtom(
+            subject=subject_atom,
+            glossary_id=glossary_id,
+            references=[],
+            elements=[
+                RuleElement(
+                    text="Element referencing term",
+                    glossary_id=glossary_id,
+                    references=[],
+                )
+            ],
+        )
+
+        provision = Provision(
+            text="Provision with glossary",
+            identifier="s 3",
+            heading="Third heading",
+            node_type="section",
+            rule_atoms=[rule_atom],
+        )
+
+        new_rev = store.add_revision(
+            doc_id,
+            Document(meta, "third", provisions=[provision]),
+            date(2022, 2, 1),
+        )
+
+        atom_rows = store.conn.execute(
+            """
+            SELECT rar.glossary_id, g.term
+            FROM rule_atom_references AS rar
+            JOIN glossary AS g ON g.id = rar.glossary_id
+            WHERE rar.doc_id = ? AND rar.rev_id = ?
+            ORDER BY rar.ref_index
+            """,
+            (doc_id, new_rev),
+        ).fetchall()
+        assert atom_rows, "expected glossary-backed atom reference"
+        assert {row["glossary_id"] for row in atom_rows} == {glossary_id}
+
+        element_rows = store.conn.execute(
+            """
+            SELECT rer.glossary_id, g.term
+            FROM rule_element_references AS rer
+            JOIN glossary AS g ON g.id = rer.glossary_id
+            WHERE rer.doc_id = ? AND rer.rev_id = ?
+            ORDER BY rer.element_id, rer.ref_index
+            """,
+            (doc_id, new_rev),
+        ).fetchall()
+        assert element_rows, "expected glossary-backed element reference"
+        assert {row["glossary_id"] for row in element_rows} == {glossary_id}
+
+        snapshot = store.snapshot(doc_id, date(2022, 2, 2))
+        assert snapshot is not None
+        provision_snapshot = snapshot.provisions[0]
+        rule_atom_snapshot = provision_snapshot.rule_atoms[0]
+        assert any(
+            ref.glossary_id == glossary_id for ref in rule_atom_snapshot.references
+        )
+        assert rule_atom_snapshot.elements
+        assert any(
+            ref.glossary_id == glossary_id
+            for ref in rule_atom_snapshot.elements[0].references
+        )
     finally:
         store.close()
 
