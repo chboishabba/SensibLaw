@@ -10,6 +10,9 @@ class Provision:
 
     text: str
     identifier: Optional[str] = None
+    heading: Optional[str] = None
+    node_type: Optional[str] = None
+    rule_tokens: Dict[str, Any] = field(default_factory=dict)
     children: List["Provision"] = field(default_factory=list)
     principles: List[str] = field(default_factory=list)
     customs: List[str] = field(default_factory=list)
@@ -19,6 +22,9 @@ class Provision:
         return {
             "text": self.text,
             "identifier": self.identifier,
+            "heading": self.heading,
+            "node_type": self.node_type,
+            "rule_tokens": dict(self.rule_tokens),
             "children": [c.to_dict() for c in self.children],
             "principles": list(self.principles),
             "customs": list(self.customs),
@@ -30,6 +36,9 @@ class Provision:
         return cls(
             text=data["text"],
             identifier=data.get("identifier"),
+            heading=data.get("heading"),
+            node_type=data.get("node_type"),
+            rule_tokens=dict(data.get("rule_tokens", {})),
             children=[cls.from_dict(c) for c in data.get("children", [])],
             principles=list(data.get("principles", [])),
             customs=list(data.get("customs", [])),
