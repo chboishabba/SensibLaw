@@ -129,6 +129,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         who=who,
                         who_text=r.actor or None,
                         conditions=r.conditions if role == "circumstance" else None,
+                        gloss=gloss_entry.text if gloss_entry else None,
                         text=fragment,
                         gloss=(gloss_entry.text if gloss_entry else None),
                         gloss=(
@@ -178,6 +179,12 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
         bucket.append(provision)
     for child in provision.children:
         _collect_section_provisions(child, bucket)
+
+
+_SECTION_HEADING_RE = re.compile(
+    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
+)
+
 
 
 def _iter_section_provisions(provisions: List[Provision]):
@@ -241,6 +248,8 @@ def parse_sections(text: str) -> List[Provision]:
     if not text.strip():
         return []
 
+    if section_parser and hasattr(section_parser, "parse_sections"):
+
     parser_available = _has_section_parser()
 
     if parser_available and section_parser and hasattr(
@@ -253,6 +262,7 @@ def parse_sections(text: str) -> List[Provision]:
             return sections
         if structured:
             return structured
+
     if parser_available:
         if section_parser and hasattr(section_parser, "parse_sections"):
             nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
@@ -299,6 +309,7 @@ def build_document(
 
     provisions = parse_sections(body)
     if not provisions:
+
         parser_available = _has_section_parser()
         logger.debug(
             "Section parsing yielded no provisions; using single provision fallback "
