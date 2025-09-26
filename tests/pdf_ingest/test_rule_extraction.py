@@ -51,8 +51,11 @@ def test_rule_extraction(monkeypatch, tmp_path):
     assert doc.provisions
     assert doc.provisions[0].principles
     assert "must file reports" in doc.provisions[0].principles[0]
+    atoms = [a for a in doc.provisions[0].atoms if a.role == "principle"]
+    assert any("must file reports" in (a.text or "") for a in atoms)
 
     with out.open() as f:
         saved = json.load(f)
     assert saved["metadata"]["provenance"] == str(pdf_path)
     assert saved["provisions"][0]["principles"]
+    assert saved["provisions"][0]["atoms"]

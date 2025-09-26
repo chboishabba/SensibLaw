@@ -26,3 +26,4 @@ def test_australian_tagging():
     prov = doc.provisions[0]
     assert "fairness" in prov.principles
     assert "business_practice" in prov.customs
+    assert any(atom.role == "principle" and atom.text == "fairness" for atom in prov.atoms)

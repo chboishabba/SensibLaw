@@ -11,6 +11,7 @@ from pdfminer.high_level import extract_text
 
 from .ingestion.cache import HTTPCache
 from .models.document import Document, DocumentMetadata, Provision
+from .models.provision import Atom
 from .rules.extractor import extract_rules
 
 
@@ -72,16 +73,24 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
     return dest
 
 
-def _rules_to_strings(rules) -> List[str]:
-    texts: List[str] = []
+def _rules_to_atoms(rules) -> List[Atom]:
+    atoms: List[Atom] = []
     for r in rules:
-        t = f"{r.actor} {r.modality} {r.action}".strip()
+        text = f"{r.actor} {r.modality} {r.action}".strip()
         if r.conditions:
-            t += f" {r.conditions}"
+            text += f" {r.conditions}"
         if r.scope:
-            t += f" {r.scope}"
-        texts.append(t.strip())
-    return texts
+            text += f" {r.scope}"
+        atoms.append(
+            Atom(
+                type="rule",
+                role="principle",
+                text=text.strip() or None,
+                who=r.actor or None,
+                conditions=r.conditions,
+            )
+        )
+    return atoms
 
 
 def _build_provision_from_node(node) -> Provision:
@@ -128,7 +137,9 @@ def build_document(
 
     for prov in provisions:
         rules = extract_rules(prov.text)
-        prov.principles.extend(_rules_to_strings(rules))
+        atoms = _rules_to_atoms(rules)
+        prov.atoms.extend(atoms)
+        prov.principles.extend([atom.text for atom in atoms if atom.text])
 
     return Document(metadata=metadata, body=body, provisions=provisions)
 
