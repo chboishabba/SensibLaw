@@ -20,7 +20,9 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
     assert data["atoms"][0]["who"] == "defence"
     assert data["atoms"][0]["who_text"] == "The respondent"
     assert data["atoms"][0]["conditions"] == "if ordered"
+    assert data["rule_atoms"], "structured rule atoms should be serialised"
 
     round_tripped = Provision.from_dict(data)
     assert round_tripped.atoms == [atom]
     assert round_tripped.atoms[0].refs == ["s 10"]
+    assert round_tripped.rule_atoms, "structured rule atoms should be reconstructed"

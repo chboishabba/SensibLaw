@@ -128,6 +128,107 @@ CREATE TABLE IF NOT EXISTS atoms (
 CREATE INDEX IF NOT EXISTS idx_atoms_doc_rev
 ON atoms(doc_id, rev_id, provision_id);
 
+CREATE TABLE IF NOT EXISTS rule_atoms (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    atom_type TEXT,
+    role TEXT,
+    party TEXT,
+    who TEXT,
+    who_text TEXT,
+    actor TEXT,
+    modality TEXT,
+    action TEXT,
+    conditions TEXT,
+    scope TEXT,
+    text TEXT,
+    subject_gloss TEXT,
+    subject_gloss_metadata TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id)
+        REFERENCES provisions(doc_id, rev_id, provision_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
+ON rule_atoms(doc_id, rev_id, provision_id);
+
+CREATE TABLE IF NOT EXISTS rule_atom_references (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    ref_index INTEGER NOT NULL,
+    work TEXT,
+    section TEXT,
+    pinpoint TEXT,
+    citation_text TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, ref_index),
+    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+        REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_atom_refs_doc_rev
+ON rule_atom_references(doc_id, rev_id, provision_id, rule_id);
+
+CREATE TABLE IF NOT EXISTS rule_elements (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    element_id INTEGER NOT NULL,
+    atom_type TEXT,
+    role TEXT,
+    text TEXT,
+    conditions TEXT,
+    gloss TEXT,
+    gloss_metadata TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+        REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
+ON rule_elements(doc_id, rev_id, provision_id, rule_id);
+
+CREATE TABLE IF NOT EXISTS rule_element_references (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    element_id INTEGER NOT NULL,
+    ref_index INTEGER NOT NULL,
+    work TEXT,
+    section TEXT,
+    pinpoint TEXT,
+    citation_text TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id, ref_index),
+    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id, element_id)
+        REFERENCES rule_elements(doc_id, rev_id, provision_id, rule_id, element_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_element_refs_doc_rev
+ON rule_element_references(doc_id, rev_id, provision_id, rule_id, element_id);
+
+CREATE TABLE IF NOT EXISTS rule_lints (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    provision_id INTEGER NOT NULL,
+    rule_id INTEGER NOT NULL,
+    lint_id INTEGER NOT NULL,
+    atom_type TEXT,
+    code TEXT,
+    message TEXT,
+    metadata TEXT,
+    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, lint_id),
+    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+        REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rule_lints_doc_rev
+ON rule_lints(doc_id, rev_id, provision_id, rule_id);
+
 CREATE TABLE IF NOT EXISTS atom_references (
     doc_id INTEGER NOT NULL,
     rev_id INTEGER NOT NULL,

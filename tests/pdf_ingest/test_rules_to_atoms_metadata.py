@@ -28,26 +28,35 @@ def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
         who_text="the court",
     )
 
-    atoms = _rules_to_atoms([rule])
+    rule_atoms = _rules_to_atoms([rule])
 
-    rule_atom = next(atom for atom in atoms if atom.type == "rule")
-    assert rule_atom.party == "court"
-    assert rule_atom.who == "court"
-    assert rule_atom.who_text == "the court"
-    assert rule_atom.conditions == "if requested"
-    assert rule_atom.gloss == "the court"
-    assert rule_atom.text == "The court must consider the evidence if requested"
+    assert rule_atoms, "expected structured rule atoms"
+    structured = rule_atoms[0]
+    assert structured.party == "court"
+    assert structured.who == "court"
+    assert structured.who_text == "the court"
+    assert structured.conditions == "if requested"
+    assert structured.subject_gloss == "the court"
+    assert structured.text == "The court must consider the evidence if requested"
 
-    element_atom = next(atom for atom in atoms if atom.type == "element")
-    assert element_atom.role == "circumstance"
-    assert element_atom.text == "if requested"
-    assert element_atom.party == "court"
-    assert element_atom.who == "court"
-    assert element_atom.who_text == "the court"
-    assert element_atom.conditions == "if requested"
-    assert element_atom.gloss == "Request condition"
-    assert element_atom.gloss_metadata == metadata
-    assert element_atom.gloss_metadata is not metadata
+    assert structured.elements, "expected rule elements"
+    element = structured.elements[0]
+    assert element.role == "circumstance"
+    assert element.text == "if requested"
+    assert element.conditions == "if requested"
+    assert element.gloss == "Request condition"
+    assert element.gloss_metadata == metadata
+    assert element.gloss_metadata is not metadata
+
+    flattened = structured.to_atoms()
+    legacy_rule = flattened[0]
+    assert legacy_rule.type == "rule"
+    assert legacy_rule.party == "court"
+    assert legacy_rule.text == structured.text
+    legacy_element = next(atom for atom in flattened if atom.type == "element")
+    assert legacy_element.role == "circumstance"
+    assert legacy_element.text == "if requested"
+    assert legacy_element.gloss == "Request condition"
 
 
 def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
@@ -62,11 +71,16 @@ def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
         who_text="the court",
     )
 
-    atoms = _rules_to_atoms([rule])
+    rule_atoms = _rules_to_atoms([rule])
 
-    element_atom = next(atom for atom in atoms if atom.type == "element")
-    assert element_atom.gloss == "the court"
-    assert element_atom.gloss_metadata is None
+    structured = rule_atoms[0]
+    assert structured.elements, "expected rule elements"
+    element = structured.elements[0]
+    assert element.gloss == "the court"
+    assert element.gloss_metadata is None
+
+    legacy_element = structured.to_atoms()[1]
+    assert legacy_element.gloss == "the court"
 
 
 def test_unknown_party_lint_atom_inherits_party_metadata(monkeypatch):
@@ -80,9 +94,15 @@ def test_unknown_party_lint_atom_inherits_party_metadata(monkeypatch):
         who_text="The spaceship",
     )
 
-    atoms = _rules_to_atoms([rule])
+    rule_atoms = _rules_to_atoms([rule])
 
-    lint_atom = next(atom for atom in atoms if atom.type == "lint")
+    structured = rule_atoms[0]
+    assert structured.lints, "expected lint records for unknown party"
+    lint = structured.lints[0]
+    assert lint.code == "unknown_party"
+
+    flattened = structured.to_atoms()
+    lint_atom = next(atom for atom in flattened if atom.type == "lint")
     assert lint_atom.party == UNKNOWN_PARTY
     assert lint_atom.who == UNKNOWN_PARTY
     assert lint_atom.who_text == "The spaceship"
