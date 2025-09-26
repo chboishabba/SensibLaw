@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import date
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from pdfminer.high_level import extract_text
 
@@ -17,6 +17,7 @@ from .models.document import Document, DocumentMetadata, Provision
 from .models.provision import Atom
 from .rules import UNKNOWN_PARTY
 from .rules.extractor import extract_rules
+from .storage.versioned_store import VersionedStore
 
 
 logger = logging.getLogger(__name__)
@@ -107,6 +108,13 @@ def _rules_to_atoms(rules) -> List[Atom]:
         if getattr(r, "scope", None):
             parts.append(r.scope)
         text = " ".join(part.strip() for part in parts if part)
+        who = getattr(r, "party", None) or UNKNOWN_PARTY
+        who_text = getattr(r, "who_text", None) or actor or None
+        text = f"{r.actor} {r.modality} {r.action}".strip()
+        if r.conditions:
+            text += f" {r.conditions}"
+        if r.scope:
+            text += f" {r.scope}"
 
         rule_atom_kwargs = {
             "type": "rule",
@@ -117,6 +125,8 @@ def _rules_to_atoms(rules) -> List[Atom]:
             "conditions": r.conditions,
             "text": text or None,
             "gloss": who_text or actor or None,
+            "text": text.strip() or None,
+            "gloss": who_text,
         }
         atoms.append(Atom(**rule_atom_kwargs))
 
@@ -126,6 +136,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     continue
                 gloss_entry = lookup_gloss(fragment)
                 gloss_text = who_text or fragment
+                gloss_text = who_text
                 gloss_metadata = None
                 if gloss_entry:
                     gloss_text = gloss_entry.text
@@ -145,6 +156,26 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 }
                 atoms.append(Atom(**element_atom_kwargs))
 
+
+                atoms.append(
+                    Atom(
+                        type="element",
+                        role=role,
+                        party=r.actor or None,
+                        who=who,
+                        who_text=r.actor or None,
+                        conditions=r.conditions if role == "circumstance" else None,
+                        text=fragment,
+                        gloss=(
+                            gloss_entry.text if gloss_entry else who_text or None
+                        ),
+                        gloss_metadata=(
+                            dict(gloss_entry.metadata)
+                            if gloss_entry and gloss_entry.metadata is not None
+                            else None
+                        ),
+                    )
+                )
         if who == UNKNOWN_PARTY:
             lint_atom_kwargs = {
                 "type": "lint",
@@ -154,6 +185,8 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 "who": UNKNOWN_PARTY,
                 "who_text": who_text or actor or None,
                 "gloss": who_text or actor or None,
+                "who": UNKNOWN_PARTY,
+                "gloss": who_text,
             }
             atoms.append(Atom(**lint_atom_kwargs))
     return atoms
@@ -259,6 +292,7 @@ def parse_sections(text: str) -> List[Provision]:
     if parser_available and section_parser and hasattr(
         section_parser, "parse_sections"
     ):
+    if section_parser and hasattr(section_parser, "parse_sections"):
         nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
         structured = _build_provisions_from_nodes(nodes)
         sections = list(_iter_section_provisions(structured))
@@ -267,15 +301,7 @@ def parse_sections(text: str) -> List[Provision]:
         if structured:
             return structured
 
-    if parser_available:
-        if section_parser and hasattr(section_parser, "parse_sections"):
-            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-            structured = _build_provisions_from_nodes(nodes)
-            sections = list(_iter_section_provisions(structured))
-            if sections:
-                return sections
-            if structured:
-                return structured
+    parser_available = _has_section_parser()
 
     logger.debug(
         "Falling back to regex-based section parsing (section_parser_available=%s, "
@@ -364,14 +390,32 @@ def process_pdf(
     jurisdiction: Optional[str] = None,
     citation: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
-) -> Document:
+    db_path: Optional[Path] = None,
+    doc_id: Optional[int] = None,
+) -> Tuple[Document, Optional[int]]:
     """Extract text, parse sections, run rule extraction and persist."""
+
+    if doc_id is not None and db_path is None:
+        raise ValueError("A database path must be provided when specifying --doc-id")
 
     pages = extract_pdf_text(pdf)
     doc = build_document(pages, pdf, jurisdiction, citation, cultural_flags)
     out = output or Path("data/pdfs") / (pdf.stem + ".json")
+
+    stored_doc_id: Optional[int] = None
+    if db_path:
+        store = VersionedStore(db_path)
+        try:
+            actual_doc_id = doc_id if doc_id is not None else store.generate_id()
+            if not doc.metadata.canonical_id:
+                doc.metadata.canonical_id = str(actual_doc_id)
+            store.add_revision(actual_doc_id, doc, doc.metadata.date)
+            stored_doc_id = actual_doc_id
+        finally:
+            store.close()
+
     save_document(doc, out)
-    return doc
+    return doc, stored_doc_id
 
 
 def main() -> None:
@@ -389,7 +433,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    doc = process_pdf(
+    doc, _ = process_pdf(
         args.pdf,
         output=args.output,
         jurisdiction=args.jurisdiction,

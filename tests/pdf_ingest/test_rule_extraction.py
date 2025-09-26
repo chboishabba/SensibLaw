@@ -45,12 +45,14 @@ def test_rule_extraction(monkeypatch, tmp_path):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
     out = tmp_path / "out.json"
-    doc = pdf_ingest.process_pdf(
+    doc, stored_id = pdf_ingest.process_pdf(
         pdf_path,
         output=out,
         jurisdiction="US",
         citation="CIT",
     )
+
+    assert stored_id is None
 
     assert doc.provisions
     assert doc.provisions[0].principles

@@ -37,6 +37,7 @@ class VersionedStore:
                     retrieved_at TEXT,
                     checksum TEXT,
                     licence TEXT,
+                    document_json TEXT,
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
@@ -46,6 +47,21 @@ class VersionedStore:
                 );
                 """
             )
+        cur = self.conn.execute("PRAGMA table_info(revisions)")
+        columns = {row["name"] for row in cur.fetchall()}
+        if "document_json" not in columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+
+            # Migration: ensure the revisions table has a document_json column
+            columns = {
+                row["name"]
+                for row in self.conn.execute("PRAGMA table_info(revisions)")
+            }
+            if "document_json" not in columns:
+                self.conn.execute(
+                    "ALTER TABLE revisions ADD COLUMN document_json TEXT"
+                )
 
     # ------------------------------------------------------------------
     # ID generation and revision storage
@@ -72,11 +88,13 @@ class VersionedStore:
             The revision number assigned to the stored revision.
         """
         metadata_json = json.dumps(document.metadata.to_dict())
+        document_json = document.to_json()
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
             if document.metadata.retrieved_at
             else None
         )
+        document_json = document.to_json()
         with self.conn:
             cur = self.conn.execute(
                 "SELECT COALESCE(MAX(rev_id), 0) + 1 FROM revisions WHERE doc_id = ?",
@@ -87,9 +105,9 @@ class VersionedStore:
                 """
                 INSERT INTO revisions (
                     doc_id, rev_id, effective_date, metadata, body,
-                    source_url, retrieved_at, checksum, licence
+                    source_url, retrieved_at, checksum, licence, document_json
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -101,6 +119,7 @@ class VersionedStore:
                     retrieved_at,
                     document.metadata.checksum,
                     document.metadata.licence,
+                    document_json,
                 ),
             )
             # keep FTS table in sync
@@ -122,7 +141,7 @@ class VersionedStore:
         """
         row = self.conn.execute(
             """
-            SELECT metadata, body FROM revisions
+            SELECT metadata, body, document_json FROM revisions
             WHERE doc_id = ? AND effective_date <= ?
             ORDER BY effective_date DESC
             LIMIT 1
@@ -131,15 +150,18 @@ class VersionedStore:
         ).fetchone()
         if row is None:
             return None
+        if row["document_json"]:
+            return Document.from_json(row["document_json"])
         metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
         return Document(metadata=metadata, body=row["body"])
+        return self._document_from_row(row)
 
     def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
         """Return the latest revision for a document by its canonical ID."""
 
         rows = self.conn.execute(
             """
-            SELECT r.metadata, r.body
+            SELECT r.metadata, r.body, r.document_json
             FROM revisions r
             JOIN (
                 SELECT doc_id, MAX(rev_id) AS rev_id
@@ -149,10 +171,30 @@ class VersionedStore:
             """
         )
         for row in rows:
+            if row["document_json"]:
+                document = Document.from_json(row["document_json"])
+                if document.metadata.canonical_id == canonical_id:
+                    return document
+                continue
             metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
             if metadata.canonical_id == canonical_id:
                 return Document(metadata=metadata, body=row["body"])
+            document = self._document_from_row(row)
+            if document.metadata.canonical_id == canonical_id:
+                return document
         return None
+
+    def _document_from_row(self, row: sqlite3.Row) -> Document:
+        """Deserialize a document row, preferring the stored JSON payload."""
+
+        keys = row.keys() if hasattr(row, "keys") else []
+        document_json = row["document_json"] if "document_json" in keys else None
+
+        if document_json:
+            return Document.from_json(document_json)
+
+        metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+        return Document(metadata=metadata, body=row["body"])
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:
         """Return a unified diff between two revisions of a document."""
