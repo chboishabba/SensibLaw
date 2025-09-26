@@ -171,6 +171,7 @@ class RuleLint:
 class RuleAtom:
     """A richer representation of a rule with associated fragments."""
 
+    toc_id: Optional[int] = None
     atom_type: Optional[str] = "rule"
     role: Optional[str] = None
     party: Optional[str] = None
@@ -191,6 +192,7 @@ class RuleAtom:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "toc_id": self.toc_id,
             "atom_type": self.atom_type,
             "role": self.role,
             "party": self.party,
@@ -217,6 +219,7 @@ class RuleAtom:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RuleAtom":
         return cls(
+            toc_id=data.get("toc_id"),
             atom_type=data.get("atom_type"),
             role=data.get("role"),
             party=data.get("party"),
@@ -361,6 +364,7 @@ class Provision:
     identifier: Optional[str] = None
     heading: Optional[str] = None
     node_type: Optional[str] = None
+    toc_id: Optional[int] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
     cultural_flags: List[str] = field(default_factory=list)
     references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
@@ -380,6 +384,7 @@ class Provision:
             "identifier": self.identifier,
             "heading": self.heading,
             "node_type": self.node_type,
+            "toc_id": self.toc_id,
             "rule_tokens": dict(self.rule_tokens),
             "cultural_flags": list(self.cultural_flags),
             "references": [tuple(ref) for ref in self.references],
@@ -398,6 +403,7 @@ class Provision:
             identifier=data.get("identifier"),
             heading=data.get("heading"),
             node_type=data.get("node_type"),
+            toc_id=data.get("toc_id"),
             rule_tokens=dict(data.get("rule_tokens", {})),
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
@@ -432,6 +438,11 @@ class Provision:
 
         if self.rule_atoms and not self.atoms:
             self.atoms = self.flatten_rule_atoms()
+
+        if self.rule_atoms:
+            for rule_atom in self.rule_atoms:
+                if rule_atom.toc_id is None:
+                    rule_atom.toc_id = self.toc_id
 
     def sync_legacy_atoms(self) -> None:
         """Refresh ``atoms`` based on the structured rule representation."""
