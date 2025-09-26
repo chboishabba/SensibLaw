@@ -121,6 +121,29 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
 
+                CREATE TABLE IF NOT EXISTS rule_atom_subjects (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    type TEXT,
+                    role TEXT,
+                    party TEXT,
+                    who TEXT,
+                    who_text TEXT,
+                    text TEXT,
+                    conditions TEXT,
+                    refs TEXT,
+                    gloss TEXT,
+                    gloss_metadata TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
+                    FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+                        REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
+                ON rule_atom_subjects(doc_id, rev_id, provision_id);
+
                 CREATE TABLE IF NOT EXISTS rule_atom_references (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -397,6 +420,10 @@ class VersionedStore:
             (doc_id, rev_id),
         )
         self.conn.execute(
+            "DELETE FROM rule_atom_subjects WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, rev_id),
+        )
+        self.conn.execute(
             "DELETE FROM rule_atoms WHERE doc_id = ? AND rev_id = ?",
             (doc_id, rev_id),
         )
@@ -589,12 +616,40 @@ class VersionedStore:
 
         rule_atom_rows = self.conn.execute(
             """
-            SELECT provision_id, rule_id, atom_type, role, party, who, who_text,
-                   actor, modality, action, conditions, scope, text, subject_gloss,
-                   subject_gloss_metadata
-            FROM rule_atoms
-            WHERE doc_id = ? AND rev_id = ?
-            ORDER BY provision_id, rule_id
+            SELECT
+                ra.provision_id,
+                ra.rule_id,
+                ra.atom_type,
+                ra.role,
+                ra.party,
+                ra.who,
+                ra.who_text,
+                ra.actor,
+                ra.modality,
+                ra.action,
+                ra.conditions,
+                ra.scope,
+                ra.text,
+                ra.subject_gloss,
+                ra.subject_gloss_metadata,
+                rs.type AS subject_type,
+                rs.role AS subject_role,
+                rs.party AS subject_party,
+                rs.who AS subject_who,
+                rs.who_text AS subject_who_text,
+                rs.text AS subject_text,
+                rs.conditions AS subject_conditions,
+                rs.refs AS subject_refs,
+                rs.gloss AS subject_gloss_value,
+                rs.gloss_metadata AS subject_gloss_metadata_json
+            FROM rule_atoms AS ra
+            LEFT JOIN rule_atom_subjects AS rs
+                ON ra.doc_id = rs.doc_id
+                AND ra.rev_id = rs.rev_id
+                AND ra.provision_id = rs.provision_id
+                AND ra.rule_id = rs.rule_id
+            WHERE ra.doc_id = ? AND ra.rev_id = ?
+            ORDER BY ra.provision_id, ra.rule_id
             """,
             (doc_id, rev_id),
         ).fetchall()
@@ -705,6 +760,70 @@ class VersionedStore:
                     subject_gloss_metadata=metadata,
                     references=references,
                 )
+
+                subject_metadata = (
+                    json.loads(row["subject_gloss_metadata_json"])
+                    if row["subject_gloss_metadata_json"]
+                    else None
+                )
+                raw_subject_refs = row["subject_refs"]
+                subject_refs: List[str] = []
+                if raw_subject_refs:
+                    try:
+                        parsed_refs = json.loads(raw_subject_refs)
+                    except json.JSONDecodeError:
+                        parsed_refs = [raw_subject_refs]
+                    if isinstance(parsed_refs, list):
+                        subject_refs = [str(ref) for ref in parsed_refs]
+                    else:
+                        subject_refs = [str(parsed_refs)]
+
+                if any(
+                    row[column] is not None
+                    for column in (
+                        "subject_type",
+                        "subject_role",
+                        "subject_party",
+                        "subject_who",
+                        "subject_who_text",
+                        "subject_text",
+                        "subject_conditions",
+                        "subject_gloss_value",
+                        "subject_gloss_metadata_json",
+                    )
+                ):
+                    subject_atom = Atom(
+                        type=row["subject_type"],
+                        role=row["subject_role"],
+                        party=row["subject_party"],
+                        who=row["subject_who"],
+                        who_text=row["subject_who_text"],
+                        text=row["subject_text"],
+                        conditions=row["subject_conditions"],
+                        refs=subject_refs,
+                        gloss=row["subject_gloss_value"],
+                        gloss_metadata=subject_metadata,
+                    )
+                    rule_atom.subject = subject_atom
+                    if subject_atom.type is not None:
+                        rule_atom.atom_type = subject_atom.type
+                    if subject_atom.role is not None:
+                        rule_atom.role = subject_atom.role
+                    if subject_atom.party is not None:
+                        rule_atom.party = subject_atom.party
+                    if subject_atom.who is not None:
+                        rule_atom.who = subject_atom.who
+                    if subject_atom.who_text is not None:
+                        rule_atom.who_text = subject_atom.who_text
+                    if subject_atom.text is not None:
+                        rule_atom.text = subject_atom.text
+                    if subject_atom.conditions is not None:
+                        rule_atom.conditions = subject_atom.conditions
+                    if subject_atom.gloss is not None:
+                        rule_atom.subject_gloss = subject_atom.gloss
+                    if subject_atom.gloss_metadata is not None:
+                        rule_atom.subject_gloss_metadata = subject_atom.gloss_metadata
+
                 rule_atoms_by_provision[row["provision_id"]].append(rule_atom)
                 rule_lookup[(row["provision_id"], row["rule_id"])] = rule_atom
 
@@ -880,9 +999,18 @@ class VersionedStore:
         """Persist structured rule data for a provision."""
 
         for rule_index, rule_atom in enumerate(rule_atoms, start=1):
+            subject_atom = rule_atom.get_subject_atom()
+            rule_atom.subject = subject_atom
+            rule_atom.subject_gloss = subject_atom.gloss
+            rule_atom.subject_gloss_metadata = subject_atom.gloss_metadata
+            rule_atom.party = subject_atom.party
+            rule_atom.who = subject_atom.who
+            rule_atom.who_text = subject_atom.who_text
+            rule_atom.text = subject_atom.text
+            rule_atom.conditions = subject_atom.conditions
             subject_metadata_json = (
-                json.dumps(rule_atom.subject_gloss_metadata)
-                if rule_atom.subject_gloss_metadata is not None
+                json.dumps(subject_atom.gloss_metadata)
+                if subject_atom.gloss_metadata is not None
                 else None
             )
             self.conn.execute(
@@ -911,6 +1039,33 @@ class VersionedStore:
                     rule_atom.scope,
                     rule_atom.text,
                     rule_atom.subject_gloss,
+                    subject_metadata_json,
+                ),
+            )
+
+            refs_json = json.dumps(subject_atom.refs) if subject_atom.refs else None
+            self.conn.execute(
+                """
+                INSERT INTO rule_atom_subjects (
+                    doc_id, rev_id, provision_id, rule_id, type, role, party, who,
+                    who_text, text, conditions, refs, gloss, gloss_metadata
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    doc_id,
+                    rev_id,
+                    provision_id,
+                    rule_index,
+                    subject_atom.type,
+                    subject_atom.role,
+                    subject_atom.party,
+                    subject_atom.who,
+                    subject_atom.who_text,
+                    subject_atom.text,
+                    subject_atom.conditions,
+                    refs_json,
+                    subject_atom.gloss,
                     subject_metadata_json,
                 ),
             )
@@ -1047,8 +1202,14 @@ class VersionedStore:
         """Populate structured rule tables from legacy atom storage if needed."""
 
         cur = self.conn.execute("SELECT COUNT(*) FROM rule_atoms")
-        if cur.fetchone()[0]:
+        rule_atom_count = cur.fetchone()[0]
+        cur = self.conn.execute("SELECT COUNT(*) FROM rule_atom_subjects")
+        subject_count = cur.fetchone()[0]
+        if rule_atom_count and subject_count:
             return
+
+        needs_rule_atoms = rule_atom_count == 0
+        needs_subjects = subject_count == 0
 
         legacy_count = self.conn.execute("SELECT COUNT(*) FROM atoms").fetchone()[0]
         if legacy_count == 0:
@@ -1125,6 +1286,57 @@ class VersionedStore:
                 provision.ensure_rule_atoms()
                 if not provision.rule_atoms:
                     continue
-                self._persist_rule_structures(
-                    doc_id, rev_id, provision_id, provision.rule_atoms
-                )
+                if needs_rule_atoms:
+                    self._persist_rule_structures(
+                        doc_id, rev_id, provision_id, provision.rule_atoms
+                    )
+                elif needs_subjects:
+                    for rule_index, rule_atom in enumerate(
+                        provision.rule_atoms, start=1
+                    ):
+                        subject_atom = rule_atom.get_subject_atom()
+                        metadata_json = (
+                            json.dumps(subject_atom.gloss_metadata)
+                            if subject_atom.gloss_metadata is not None
+                            else None
+                        )
+                        refs_json = (
+                            json.dumps(subject_atom.refs) if subject_atom.refs else None
+                        )
+                        self.conn.execute(
+                            """
+                            INSERT INTO rule_atom_subjects (
+                                doc_id, rev_id, provision_id, rule_id, type, role, party,
+                                who, who_text, text, conditions, refs, gloss, gloss_metadata
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(doc_id, rev_id, provision_id, rule_id)
+                            DO UPDATE SET
+                                type=excluded.type,
+                                role=excluded.role,
+                                party=excluded.party,
+                                who=excluded.who,
+                                who_text=excluded.who_text,
+                                text=excluded.text,
+                                conditions=excluded.conditions,
+                                refs=excluded.refs,
+                                gloss=excluded.gloss,
+                                gloss_metadata=excluded.gloss_metadata
+                            """,
+                            (
+                                doc_id,
+                                rev_id,
+                                provision_id,
+                                rule_index,
+                                subject_atom.type,
+                                subject_atom.role,
+                                subject_atom.party,
+                                subject_atom.who,
+                                subject_atom.who_text,
+                                subject_atom.text,
+                                subject_atom.conditions,
+                                refs_json,
+                                subject_atom.gloss,
+                                metadata_json,
+                            ),
+                        )

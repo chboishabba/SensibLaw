@@ -184,6 +184,7 @@ class RuleAtom:
     text: Optional[str] = None
     subject_gloss: Optional[str] = None
     subject_gloss_metadata: Optional[Dict[str, Any]] = None
+    subject: Optional[Atom] = None
     references: List[RuleReference] = field(default_factory=list)
     elements: List[RuleElement] = field(default_factory=list)
     lints: List[RuleLint] = field(default_factory=list)
@@ -207,6 +208,7 @@ class RuleAtom:
                 if self.subject_gloss_metadata is not None
                 else None
             ),
+            "subject": self.subject.to_dict() if self.subject is not None else None,
             "references": [ref.to_dict() for ref in self.references],
             "elements": [element.to_dict() for element in self.elements],
             "lints": [lint.to_dict() for lint in self.lints],
@@ -233,9 +235,68 @@ class RuleAtom:
                 and data["subject_gloss_metadata"] is not None
                 else None
             ),
+            subject=(Atom.from_dict(data["subject"]) if data.get("subject") else None),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             elements=[RuleElement.from_dict(e) for e in data.get("elements", [])],
-            lints=[RuleLint.from_dict(l) for l in data.get("lints", [])],
+            lints=[
+                RuleLint.from_dict(lint_data) for lint_data in data.get("lints", [])
+            ],
+        )
+
+    def get_subject_atom(self) -> Atom:
+        """Return the canonical subject representation for this rule atom."""
+
+        base_atom = self.subject
+        atom_type = (
+            (base_atom.type if base_atom and base_atom.type is not None else None)
+            or self.atom_type
+            or "rule"
+        )
+        role = (
+            base_atom.role if base_atom and base_atom.role is not None else None
+        ) or (self.role if self.role is not None else None)
+        if role is None and atom_type == "rule":
+            role = "principle"
+        party = (
+            base_atom.party if base_atom and base_atom.party is not None else self.party
+        )
+        who = base_atom.who if base_atom and base_atom.who is not None else self.who
+        who_text = (
+            base_atom.who_text
+            if base_atom and base_atom.who_text is not None
+            else self.who_text
+        )
+        conditions = (
+            base_atom.conditions
+            if base_atom and base_atom.conditions is not None
+            else self.conditions
+        )
+        text = base_atom.text if base_atom and base_atom.text is not None else self.text
+        gloss = (
+            base_atom.gloss
+            if base_atom and base_atom.gloss is not None
+            else self.subject_gloss
+        )
+        gloss_metadata = (
+            base_atom.gloss_metadata
+            if base_atom and base_atom.gloss_metadata is not None
+            else self.subject_gloss_metadata
+        )
+        if base_atom and base_atom.refs:
+            refs = list(base_atom.refs)
+        else:
+            refs = [ref.to_legacy_text() for ref in self.references]
+        return Atom(
+            type=atom_type,
+            role=role,
+            party=party,
+            who=who,
+            who_text=who_text,
+            conditions=conditions,
+            text=text,
+            refs=refs,
+            gloss=gloss,
+            gloss_metadata=gloss_metadata,
         )
 
     def to_atoms(self) -> List[Atom]:
@@ -243,21 +304,19 @@ class RuleAtom:
 
         flattened: List[Atom] = []
 
-        atom_type = self.atom_type or "rule"
+        subject_atom = self.get_subject_atom()
         flattened.append(
             Atom(
-                type=atom_type,
-                role=self.role
-                if self.role is not None
-                else ("principle" if atom_type == "rule" else None),
-                party=self.party,
-                who=self.who,
-                who_text=self.who_text,
-                conditions=self.conditions,
-                text=self.text,
-                refs=[ref.to_legacy_text() for ref in self.references],
-                gloss=self.subject_gloss,
-                gloss_metadata=self.subject_gloss_metadata,
+                type=subject_atom.type,
+                role=subject_atom.role,
+                party=subject_atom.party,
+                who=subject_atom.who,
+                who_text=subject_atom.who_text,
+                conditions=subject_atom.conditions,
+                text=subject_atom.text,
+                refs=list(subject_atom.refs),
+                gloss=subject_atom.gloss,
+                gloss_metadata=subject_atom.gloss_metadata,
             )
         )
 
@@ -266,9 +325,9 @@ class RuleAtom:
                 Atom(
                     type=element.atom_type or "element",
                     role=element.role,
-                    party=self.party,
-                    who=self.who,
-                    who_text=self.who_text,
+                    party=subject_atom.party,
+                    who=subject_atom.who,
+                    who_text=subject_atom.who_text,
                     conditions=element.conditions,
                     text=element.text,
                     refs=[ref.to_legacy_text() for ref in element.references],
@@ -282,11 +341,11 @@ class RuleAtom:
                 Atom(
                     type=lint.atom_type or "lint",
                     role=lint.code,
-                    party=self.party,
-                    who=self.who,
-                    who_text=self.who_text,
+                    party=subject_atom.party,
+                    who=subject_atom.who,
+                    who_text=subject_atom.who_text,
                     text=lint.message,
-                    gloss=self.subject_gloss,
+                    gloss=subject_atom.gloss,
                     gloss_metadata=lint.metadata,
                 )
             )
@@ -425,6 +484,22 @@ class Provision:
             return RuleReference(citation_text=str(value))
 
         def start_new_rule(base_atom: Atom) -> RuleAtom:
+            subject_atom = Atom(
+                type=base_atom.type,
+                role=base_atom.role,
+                party=base_atom.party,
+                who=base_atom.who,
+                who_text=base_atom.who_text,
+                conditions=base_atom.conditions,
+                text=base_atom.text,
+                refs=list(base_atom.refs),
+                gloss=base_atom.gloss,
+                gloss_metadata=(
+                    dict(base_atom.gloss_metadata)
+                    if base_atom.gloss_metadata is not None
+                    else None
+                ),
+            )
             rule = RuleAtom(
                 atom_type=base_atom.type or "rule",
                 role=base_atom.role,
@@ -435,6 +510,7 @@ class Provision:
                 text=base_atom.text,
                 subject_gloss=base_atom.gloss,
                 subject_gloss_metadata=base_atom.gloss_metadata,
+                subject=subject_atom,
                 references=[build_reference(ref) for ref in base_atom.refs],
             )
             structured.append(rule)

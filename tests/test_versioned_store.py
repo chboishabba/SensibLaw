@@ -141,6 +141,77 @@ def test_atom_references_join_table(tmp_path: Path):
         store.close()
 
 
+def test_rule_atom_subjects_persisted(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        rows = store.conn.execute(
+            """
+            SELECT type, role, party, who, who_text, text, gloss
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            """,
+            (doc_id, 2),
+        ).fetchall()
+        assert rows, "expected subject aggregation rows"
+        row = rows[0]
+        assert row["type"] == "duty"
+        assert row["role"] is None
+        assert row["who_text"] is None
+        assert row["text"] == "Perform the second duty"
+        assert row["gloss"] is None
+    finally:
+        store.close()
+
+
+def test_rule_atom_subjects_loaded(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        snapshot = store.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        provision = snapshot.provisions[0]
+        assert provision.rule_atoms, "expected structured rule atoms"
+        rule_atom = provision.rule_atoms[0]
+        assert rule_atom.subject is not None
+        assert rule_atom.subject.text == "Perform the second duty"
+        assert rule_atom.subject.type == "duty"
+        assert provision.atoms[0].text == "Perform the second duty"
+    finally:
+        store.close()
+
+
+def test_rule_atom_subjects_backfill(tmp_path: Path):
+    store, doc_id = make_store(tmp_path)
+    try:
+        store.conn.execute(
+            "DELETE FROM rule_atom_subjects WHERE doc_id = ?",
+            (doc_id,),
+        )
+        store.conn.commit()
+
+        count = store.conn.execute(
+            "SELECT COUNT(*) FROM rule_atom_subjects WHERE doc_id = ?",
+            (doc_id,),
+        ).fetchone()[0]
+        assert count == 0
+
+        store._backfill_rule_tables()
+
+        rows = store.conn.execute(
+            """
+            SELECT text
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            """,
+            (doc_id, 2),
+        ).fetchall()
+        assert rows
+        assert rows[0]["text"] == "Perform the second duty"
+    finally:
+        store.close()
+
+
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 sample")
