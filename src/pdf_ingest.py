@@ -116,6 +116,27 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     )
                 )
     return atoms
+
+
+def _build_provision_from_node(node) -> Provision:
+    provision = Provision(
+        text=getattr(node, "text", ""),
+        identifier=getattr(node, "identifier", None),
+        heading=getattr(node, "heading", None),
+        node_type=getattr(node, "node_type", None),
+        rule_tokens=dict(getattr(node, "rule_tokens", {})),
+        references=list(getattr(node, "references", [])),
+    )
+    provision.children = [
+        _build_provision_from_node(child) for child in getattr(node, "children", [])
+    ]
+    return provision
+
+
+def _build_provisions_from_nodes(nodes) -> List[Provision]:
+    return [_build_provision_from_node(node) for node in nodes]
+
+
 def build_document(
     pages: List[dict],
     source: Path,
