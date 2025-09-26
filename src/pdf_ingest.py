@@ -100,6 +100,14 @@ def _rules_to_atoms(rules) -> List[Atom]:
     atoms: List[Atom] = []
     for r in rules:
         actor = getattr(r, "actor", None)
+        who = getattr(r, "party", UNKNOWN_PARTY) or UNKNOWN_PARTY
+        who_text = getattr(r, "who_text", None) or actor or None
+        parts = [getattr(r, "actor", None), getattr(r, "modality", None), getattr(r, "action", None)]
+        if getattr(r, "conditions", None):
+            parts.append(r.conditions)
+        if getattr(r, "scope", None):
+            parts.append(r.scope)
+        text = " ".join(part.strip() for part in parts if part)
         who = getattr(r, "party", None) or UNKNOWN_PARTY
         who_text = getattr(r, "who_text", None) or actor or None
         text = f"{r.actor} {r.modality} {r.action}".strip()
@@ -115,6 +123,8 @@ def _rules_to_atoms(rules) -> List[Atom]:
             "who": who,
             "who_text": who_text,
             "conditions": r.conditions,
+            "text": text or None,
+            "gloss": who_text or actor or None,
             "text": text.strip() or None,
             "gloss": who_text,
         }
@@ -122,7 +132,10 @@ def _rules_to_atoms(rules) -> List[Atom]:
 
         for role, fragments in (r.elements or {}).items():
             for fragment in fragments:
+                if not fragment:
+                    continue
                 gloss_entry = lookup_gloss(fragment)
+                gloss_text = who_text or fragment
                 gloss_text = who_text
                 gloss_metadata = None
                 if gloss_entry:
@@ -142,6 +155,7 @@ def _rules_to_atoms(rules) -> List[Atom]:
                     "gloss_metadata": gloss_metadata,
                 }
                 atoms.append(Atom(**element_atom_kwargs))
+
 
                 atoms.append(
                     Atom(
@@ -167,6 +181,10 @@ def _rules_to_atoms(rules) -> List[Atom]:
                 "type": "lint",
                 "role": "unknown_party",
                 "text": f"Unclassified actor: {actor}".strip(),
+                "party": UNKNOWN_PARTY,
+                "who": UNKNOWN_PARTY,
+                "who_text": who_text or actor or None,
+                "gloss": who_text or actor or None,
                 "who": UNKNOWN_PARTY,
                 "gloss": who_text,
             }

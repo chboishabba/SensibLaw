@@ -1,6 +1,6 @@
 from src.glossary.service import GlossEntry
 from src.pdf_ingest import _rules_to_atoms
-from src.rules import Rule
+from src.rules import Rule, UNKNOWN_PARTY
 
 
 def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
@@ -67,3 +67,23 @@ def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
     element_atom = next(atom for atom in atoms if atom.type == "element")
     assert element_atom.gloss == "the court"
     assert element_atom.gloss_metadata is None
+
+
+def test_unknown_party_lint_atom_inherits_party_metadata(monkeypatch):
+    monkeypatch.setattr("src.pdf_ingest.lookup_gloss", lambda term: None)
+
+    rule = Rule(
+        actor="The spaceship",
+        modality="must",
+        action="register with the ministry",
+        party=UNKNOWN_PARTY,
+        who_text="The spaceship",
+    )
+
+    atoms = _rules_to_atoms([rule])
+
+    lint_atom = next(atom for atom in atoms if atom.type == "lint")
+    assert lint_atom.party == UNKNOWN_PARTY
+    assert lint_atom.who == UNKNOWN_PARTY
+    assert lint_atom.who_text == "The spaceship"
+    assert lint_atom.gloss == "The spaceship"
