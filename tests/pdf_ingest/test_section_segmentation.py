@@ -15,7 +15,10 @@ def _pdf_ingest_module(monkeypatch):
     sys.modules.pop("src.pdf_ingest", None)
     module = importlib.import_module("src.pdf_ingest")
 
+    section_parser_calls = []
+
     def fake_parse_sections(text):
+        section_parser_calls.append(text)
         def _node(identifier: str, heading: str, body: str):
             return types.SimpleNamespace(
                 text=body,
@@ -37,6 +40,7 @@ def _pdf_ingest_module(monkeypatch):
         types.SimpleNamespace(parse_sections=fake_parse_sections),
         raising=False,
     )
+    module._fake_section_parser_calls = section_parser_calls
 
     from src.rules import Rule
 
@@ -66,3 +70,22 @@ def test_build_document_splits_sections(pdf_ingest):
     ]
     assert document.provisions[0].principles == ["Agent must file reports"]
     assert document.provisions[1].principles == ["Director may refuse permits"]
+
+
+def test_build_document_avoids_fallback_when_sections_present(pdf_ingest):
+    pages = [
+        {"page": 1, "heading": "Section 1", "text": "The agent must file reports."},
+        {
+            "page": 2,
+            "heading": "Section 2",
+            "text": "The director may refuse permits.",
+        },
+    ]
+
+    document = pdf_ingest.build_document(pages, source=Path("dummy.pdf"))
+
+    assert len(document.provisions) == 2
+    assert len(pdf_ingest._fake_section_parser_calls) == 1
+    assert pdf_ingest._fake_section_parser_calls == [
+        "Section 1\nThe agent must file reports.\n\nSection 2\nThe director may refuse permits."
+    ]
