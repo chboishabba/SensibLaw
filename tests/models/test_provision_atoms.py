@@ -6,7 +6,9 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
         type="rule",
         role="obligation",
         party="respondent",
+        who="defence",
         who_text="The respondent",
+        conditions="if ordered",
         text="must pay damages",
         refs=["s 10"],
         gloss="Obligation to compensate",
@@ -15,7 +17,9 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
 
     data = provision.to_dict()
     assert data["atoms"][0]["party"] == "respondent"
+    assert data["atoms"][0]["who"] == "defence"
     assert data["atoms"][0]["who_text"] == "The respondent"
+    assert data["atoms"][0]["conditions"] == "if ordered"
 
     round_tripped = Provision.from_dict(data)
     assert round_tripped.atoms == [atom]
