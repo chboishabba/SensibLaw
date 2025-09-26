@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from src.models.document import Document, DocumentMetadata
+from src.models.provision import Atom, Provision
 from src.storage import VersionedStore
 
 
@@ -19,9 +20,19 @@ def setup_db(tmp_path: Path) -> tuple[str, int]:
         retrieved_at=datetime(2020, 1, 2, 0, 0, 0),
         checksum="xyz",
         licence="CC0",
+        canonical_id="cli-123",
     )
-    store.add_revision(doc_id, Document(meta, "old"), date(2020, 1, 1))
-    store.add_revision(doc_id, Document(meta, "new"), date(2021, 1, 1))
+    provision = Provision(
+        text="CLI provision",
+        identifier="clause 1",
+        atoms=[Atom(type="duty", text="Preserve CLI atoms")],
+    )
+    store.add_revision(
+        doc_id, Document(meta, "old", provisions=[provision]), date(2020, 1, 1)
+    )
+    store.add_revision(
+        doc_id, Document(meta, "new", provisions=[provision]), date(2021, 1, 1)
+    )
     store.close()
     return str(db), doc_id
 
@@ -45,9 +56,11 @@ def test_cli_as_at(tmp_path: Path):
     assert data["body"] == "old"
     assert data["metadata"]["source_url"] == "http://example.com"
     assert data["metadata"]["checksum"] == "xyz"
+    assert data["provisions"][0]["atoms"][0]["text"] == "Preserve CLI atoms"
     out2 = run_cli(db_path, "--id", str(doc_id), "--as-at", "2021-06-01")
     data2 = json.loads(out2)
     assert data2["body"] == "new"
+    assert data2["provisions"][0]["atoms"][0]["text"] == "Preserve CLI atoms"
 
 
 def test_tests_run(tmp_path: Path):

@@ -64,3 +64,26 @@ CREATE TABLE IF NOT EXISTS receipts (
     simhash TEXT,
     minhash TEXT
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE IF NOT EXISTS revisions (
+    doc_id INTEGER NOT NULL,
+    rev_id INTEGER NOT NULL,
+    effective_date TEXT NOT NULL,
+    metadata TEXT NOT NULL,
+    body TEXT NOT NULL,
+    source_url TEXT,
+    retrieved_at TEXT,
+    checksum TEXT,
+    licence TEXT,
+    document_json TEXT,
+    PRIMARY KEY (doc_id, rev_id),
+    FOREIGN KEY (doc_id) REFERENCES documents(id)
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
+    body, metadata, content='revisions', content_rowid='rowid'
+);
