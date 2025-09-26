@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 from typing import Dict, List
 
-from . import Rule
+from . import Rule, derive_party_metadata
 
 # Include the most common English legal modalities.  The patterns capture
 # normative "must/may" statements as well as offence formulations such as
@@ -222,6 +222,8 @@ def extract_rules(text: str) -> List[Rule]:
 
         elements = _classify_fragments(action, conditions, scope)
 
+        party, role, who_text = derive_party_metadata(actor, modality)
+
         rules.append(
             Rule(
                 actor=actor,
@@ -230,6 +232,9 @@ def extract_rules(text: str) -> List[Rule]:
                 conditions=conditions,
                 scope=scope,
                 elements=elements,
+                party=party,
+                role=role,
+                who_text=who_text,
             )
         )
     return rules
