@@ -14,8 +14,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 import src.pdf_ingest as pdf_ingest
-from src.models.document import Document, DocumentMetadata
-from src.models.provision import Atom, Provision, RuleAtom, RuleElement
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
     Provision,
@@ -24,8 +23,6 @@ from src.models.provision import (
     RuleLint,
     RuleReference,
 )
-from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
-from src.models.provision import Atom, Provision, RuleAtom
 from src.storage import VersionedStore
 
 
@@ -352,6 +349,10 @@ def test_glossary_references_persist(tmp_path: Path):
             ref.glossary_id == glossary_id
             for ref in rule_atom_snapshot.elements[0].references
         )
+    finally:
+        store.close()
+
+
 def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
     store = VersionedStore(str(tmp_path / "store.db"))
     try:
@@ -615,6 +616,9 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             (doc_id, rev_id, provision_id),
         ).fetchone()["count"]
         assert atom_count == 1
+    finally:
+        store.close()
+
 
 def test_toc_page_numbers_persisted(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
@@ -1019,5 +1023,83 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         assert snapshot_no_json is not None
         assert snapshot_no_json.provisions
         assert snapshot_no_json.provisions[0].atoms
+    finally:
+        store.close()
+
+
+def test_toc_entries_round_trip(tmp_path: Path) -> None:
+    db_path = tmp_path / "toc_store.db"
+    store = VersionedStore(str(db_path))
+    doc_id = store.generate_id()
+    metadata = DocumentMetadata(
+        jurisdiction="Test", citation="Doc 1", date=date(2023, 1, 1)
+    )
+    section = Provision(
+        text="Child provision",
+        identifier="s 1",
+        heading="Section 1",
+        node_type="section",
+    )
+    part = Provision(
+        text="Parent provision",
+        identifier="Part 1",
+        heading="Part 1",
+        node_type="part",
+        children=[section],
+    )
+    toc_structure = [
+        DocumentTOCEntry(
+            node_type="part",
+            identifier="Part 1",
+            title="Part 1",
+            page_number=5,
+            children=[
+                DocumentTOCEntry(
+                    node_type="section",
+                    identifier="s 1",
+                    title="Section 1",
+                    page_number=6,
+                )
+            ],
+        )
+    ]
+
+    store.add_revision(
+        doc_id,
+        Document(
+            metadata,
+            "body",
+            provisions=[part],
+            toc_entries=toc_structure,
+        ),
+        date(2023, 1, 1),
+    )
+
+    try:
+        rows = store.conn.execute(
+            """
+            SELECT toc_id, parent_id, node_type, identifier, title, position, page_number, stable_id
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY toc_id
+            """,
+            (doc_id, 1),
+        ).fetchall()
+        assert len(rows) == 2
+        parent_row, child_row = rows
+        assert parent_row["page_number"] == 5
+        assert child_row["page_number"] == 6
+        assert child_row["parent_id"] == parent_row["toc_id"]
+        assert parent_row["stable_id"]
+        assert child_row["stable_id"].startswith(parent_row["stable_id"])
+
+        snapshot = store.snapshot(doc_id, date(2023, 1, 1))
+        assert snapshot is not None
+        assert snapshot.toc_entries
+        assert snapshot.toc_entries[0].page_number == 5
+        assert snapshot.toc_entries[0].children
+        assert snapshot.toc_entries[0].children[0].page_number == 6
+        assert snapshot.provisions[0].stable_id == parent_row["stable_id"]
+        assert snapshot.provisions[0].children[0].stable_id == child_row["stable_id"]
     finally:
         store.close()

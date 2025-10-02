@@ -6,10 +6,10 @@ import difflib
 from collections import defaultdict
 import hashlib
 import re
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Tuple
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Tuple
 
 from ..models.document import Document, DocumentMetadata, DocumentTOCEntry
 from ..models.provision import (
@@ -31,6 +31,27 @@ class VersionedStore:
         self.conn.row_factory = sqlite3.Row
         self._init_schema()
         self._ensure_toc_page_number_column()
+
+    @contextmanager
+    def _temporary_doc_prefix(
+        self, metadata: Optional[DocumentMetadata | Mapping[str, Any]]
+    ) -> Any:
+        """Temporarily expose the stable ID prefix derived from ``metadata``."""
+
+        previous = getattr(self, "_active_doc_prefix", None)
+        if metadata is not None:
+            self._active_doc_prefix = self._document_stable_prefix(metadata)
+        try:
+            yield
+        finally:
+            if metadata is not None:
+                if previous is None:
+                    try:
+                        delattr(self, "_active_doc_prefix")
+                    except AttributeError:
+                        pass
+                else:
+                    self._active_doc_prefix = previous
 
     def _init_schema(self) -> None:
         with self.conn:
@@ -750,7 +771,6 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
         )
         # Migration: ensure the revisions table has a document_json column
         columns = {
@@ -995,8 +1015,10 @@ class VersionedStore:
         Returns:
             The revision number assigned to the stored revision.
         """
-        toc_entries = self._build_toc_entries(document.metadata, document.provisions)
-        toc_entries = self._build_toc_entries(document.provisions, document.toc_entries)
+        with self._temporary_doc_prefix(document.metadata):
+            toc_entries = self._build_toc_entries(
+                document.provisions, document.toc_entries
+            )
         metadata_json = json.dumps(document.metadata.to_dict())
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
@@ -1125,21 +1147,6 @@ class VersionedStore:
         return Document(metadata=metadata, body=body, toc_entries=toc_entries)
 
     def _build_toc_entries(
-        self, metadata: DocumentMetadata, provisions: List[Provision]
-    ) -> List[Tuple[int, Optional[int], int, str, Provision]]:
-        """Assign sequential TOC identifiers and deterministic stable IDs."""
-
-        entries: List[Tuple[int, Optional[int], int, str, Provision]] = []
-        if not provisions:
-            return entries
-
-        counter = 0
-        position_counters: defaultdict[Optional[int], int] = defaultdict(int)
-        sibling_counters: defaultdict[Tuple[Optional[int], str], int] = defaultdict(int)
-        path_segments: dict[Optional[int], List[str]] = {None: []}
-        doc_prefix = self._document_stable_prefix(metadata)
-
-        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
         self,
         provisions: List[Provision],
         toc_structure: Optional[List[DocumentTOCEntry]] = None,
@@ -1148,6 +1155,7 @@ class VersionedStore:
             int,
             Optional[int],
             int,
+            str,
             Optional[str],
             Optional[str],
             Optional[str],
@@ -1156,14 +1164,20 @@ class VersionedStore:
     ]:
         """Assign sequential TOC identifiers, merging parsed TOC structure."""
 
-        entries: List[dict[str, Any]] = []
         if not provisions and not toc_structure:
             return []
 
+        entries: List[dict[str, Any]] = []
         counter = 0
         position_counters: defaultdict[Optional[int], int] = defaultdict(int)
+        sibling_counters: defaultdict[Tuple[Optional[int], str], int] = defaultdict(int)
+        path_segments: dict[Optional[int], List[str]] = {None: []}
         toc_map: dict[Tuple[str, str], int] = {}
         rows_by_id: dict[int, dict[str, Any]] = {}
+
+        doc_prefix = getattr(self, "_active_doc_prefix", None)
+        if not doc_prefix:
+            doc_prefix = self._document_stable_prefix({})
 
         def normalise_identifier(value: Optional[str]) -> Optional[str]:
             if not value:
@@ -1192,28 +1206,25 @@ class VersionedStore:
         ) -> int:
             nonlocal counter
             counter += 1
-            position_counters[parent_id] += 1
             toc_id = counter
-            position_counters[parent_toc_id] += 1
-            position = position_counters[parent_toc_id]
-            provision.toc_id = toc_id
+            position_counters[parent_id] += 1
+            position = position_counters[parent_id]
             component = self._stable_component(
-                parent_toc_id,
-                provision.node_type,
-                provision.identifier,
-                provision.heading,
+                parent_id,
+                node_type,
+                identifier,
+                title,
                 position,
                 sibling_counters,
             )
-            path = [*path_segments[parent_toc_id], component]
+            path = [*path_segments.get(parent_id, []), component]
             path_segments[toc_id] = path
             stable_id = self._compose_stable_id(doc_prefix, path)
-            provision.stable_id = stable_id
-            entries.append((toc_id, parent_toc_id, position, stable_id, provision))
             row = {
                 "toc_id": toc_id,
                 "parent_id": parent_id,
-                "position": position_counters[parent_id],
+                "position": position,
+                "stable_id": stable_id,
                 "node_type": node_type,
                 "identifier": identifier,
                 "title": title,
@@ -1253,16 +1264,18 @@ class VersionedStore:
                     provision.heading,
                     None,
                 )
-            else:
-                row = rows_by_id.get(toc_id)
-                if row is not None:
-                    if row.get("title") is None and provision.heading:
-                        row["title"] = provision.heading
-                    if row.get("node_type") is None and provision.node_type:
-                        row["node_type"] = provision.node_type
-                    if row.get("identifier") is None and provision.identifier:
-                        row["identifier"] = provision.identifier
+            row = rows_by_id[toc_id]
+            if row.get("title") is None and provision.heading:
+                row["title"] = provision.heading
+            if row.get("node_type") is None and provision.node_type:
+                row["node_type"] = provision.node_type
+            if row.get("identifier") is None and provision.identifier:
+                row["identifier"] = provision.identifier
+                new_key = make_key(row.get("node_type"), row.get("identifier"))
+                if new_key:
+                    toc_map[new_key] = toc_id
             provision.toc_id = toc_id
+            provision.stable_id = row["stable_id"]
             for child in provision.children:
                 traverse(child, toc_id)
 
@@ -1274,6 +1287,7 @@ class VersionedStore:
                 row["toc_id"],
                 row["parent_id"],
                 row["position"],
+                row["stable_id"],
                 row.get("node_type"),
                 row.get("identifier"),
                 row.get("title"),
@@ -1385,14 +1399,12 @@ class VersionedStore:
         rev_id: int,
         provisions: List[Provision],
         toc_entries: Optional[
-            List[Tuple[int, Optional[int], int, str, Provision]]
-        ] = None,
-        metadata: Optional[DocumentMetadata] = None,
             List[
                 Tuple[
                     int,
                     Optional[int],
                     int,
+                    str,
                     Optional[str],
                     Optional[str],
                     Optional[str],
@@ -1400,6 +1412,7 @@ class VersionedStore:
                 ]
             ]
         ] = None,
+        metadata: Optional[DocumentMetadata] = None,
     ) -> None:
         """Persist provision and atom data for a revision."""
 
@@ -1453,46 +1466,58 @@ class VersionedStore:
         if toc_entries is None:
             if metadata is None:
                 raise ValueError("Document metadata is required to build TOC entries")
-            toc_entries = self._build_toc_entries(metadata, provisions)
+            with self._temporary_doc_prefix(metadata):
+                toc_entries = self._build_toc_entries(provisions)
 
-        for toc_id, parent_toc_id, position, stable_id, provision in toc_entries:
-            provision.stable_id = stable_id
-            self.conn.execute(
-                """
-                INSERT INTO toc (
-                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, stable_id, position
-
+        toc_values: List[
+            Tuple[
+                int,
+                int,
+                int,
+                Optional[int],
+                Optional[str],
+                Optional[str],
+                Optional[str],
+                str,
+                int,
+                Optional[int],
+            ]
+        ] = []
         for (
             toc_id,
             parent_toc_id,
             position,
+            stable_id,
             node_type,
             identifier,
             title,
             page_number,
         ) in toc_entries:
-            self.conn.execute(
-                """
-                INSERT INTO toc (
-                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title, position, page_number
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+            toc_values.append(
                 (
                     doc_id,
                     rev_id,
                     toc_id,
                     parent_toc_id,
-                    provision.node_type,
-                    provision.identifier,
-                    provision.heading,
-                    stable_id,
                     node_type,
                     identifier,
                     title,
+                    stable_id,
                     position,
                     page_number,
-                ),
+                )
+            )
+
+        if toc_values:
+            self.conn.executemany(
+                """
+                INSERT INTO toc (
+                    doc_id, rev_id, toc_id, parent_id, node_type, identifier, title,
+                    stable_id, position, page_number
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                toc_values,
             )
 
         provision_counter = 0
