@@ -78,6 +78,10 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_toc_parent
                 ON toc(doc_id, rev_id, parent_id);
 
+                DROP INDEX IF EXISTS idx_toc_stable;
+                CREATE UNIQUE INDEX idx_toc_stable
+                ON toc(doc_id, stable_id);
+
                 CREATE TABLE IF NOT EXISTS provisions (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -135,8 +139,9 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
 
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash);
+                DROP INDEX IF EXISTS idx_rule_atoms_unique_text;
+                CREATE UNIQUE INDEX idx_rule_atoms_unique_text
+                ON rule_atoms(doc_id, stable_id, party, role, text_hash);
 
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
@@ -276,6 +281,7 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "text_hash", "TEXT")
         self._ensure_column("rule_elements", "text_hash", "TEXT")
         self._populate_text_hashes()
+        self._backfill_toc_stable_ids()
         self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
@@ -288,7 +294,6 @@ class VersionedStore:
         self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
 
         self._backfill_glossary_ids()
-        self._backfill_toc_stable_ids()
 
     def _ensure_toc_page_number_column(self) -> None:
         cur = self.conn.execute("PRAGMA table_info(toc)")
@@ -323,8 +328,9 @@ class VersionedStore:
             ).fetchall()
 
             for row in atom_rows:
-                if row["text_hash"]:
-                    continue
+                normalised_metadata = self._normalise_json_text(
+                    row["subject_gloss_metadata"]
+                )
                 text_hash = self._compute_rule_atom_hash(
                     atom_type=row["atom_type"],
                     role=row["role"],
@@ -338,16 +344,22 @@ class VersionedStore:
                     scope=row["scope"],
                     text=row["text"],
                     gloss=row["subject_gloss"],
-                    gloss_metadata=row["subject_gloss_metadata"],
+                    gloss_metadata=normalised_metadata,
                 )
+                if (
+                    row["text_hash"] == text_hash
+                    and row["subject_gloss_metadata"] == normalised_metadata
+                ):
+                    continue
                 self.conn.execute(
                     """
                     UPDATE rule_atoms
-                    SET text_hash = ?
+                    SET text_hash = ?, subject_gloss_metadata = ?
                     WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
                     """,
                     (
                         text_hash,
+                        normalised_metadata,
                         row["doc_id"],
                         row["rev_id"],
                         row["provision_id"],
@@ -364,25 +376,30 @@ class VersionedStore:
             ).fetchall()
 
             for row in element_rows:
-                if row["text_hash"]:
-                    continue
+                normalised_metadata = self._normalise_json_text(row["gloss_metadata"])
                 text_hash = self._compute_element_hash(
                     atom_type=row["atom_type"],
                     role=row["role"],
                     text=row["text"],
                     conditions=row["conditions"],
                     gloss=row["gloss"],
-                    gloss_metadata=row["gloss_metadata"],
+                    gloss_metadata=normalised_metadata,
                 )
+                if (
+                    row["text_hash"] == text_hash
+                    and row["gloss_metadata"] == normalised_metadata
+                ):
+                    continue
                 self.conn.execute(
                     """
                     UPDATE rule_elements
-                    SET text_hash = ?
+                    SET text_hash = ?, gloss_metadata = ?
                     WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
                       AND rule_id = ? AND element_id = ?
                     """,
                     (
                         text_hash,
+                        normalised_metadata,
                         row["doc_id"],
                         row["rev_id"],
                         row["provision_id"],
@@ -397,37 +414,35 @@ class VersionedStore:
         with self.conn:
             duplicate_groups = self.conn.execute(
                 """
-                SELECT doc_id, rev_id, provision_id, party, role, text_hash
+                SELECT doc_id, stable_id, party, role, text_hash
                 FROM rule_atoms
-                GROUP BY doc_id, rev_id, provision_id, party, role, text_hash
+                GROUP BY doc_id, stable_id, party, role, text_hash
                 HAVING COUNT(*) > 1
                 """
             ).fetchall()
 
             for group in duplicate_groups:
                 doc_id = group["doc_id"]
-                rev_id = group["rev_id"]
-                provision_id = group["provision_id"]
+                stable_id = group["stable_id"]
                 party = group["party"]
                 role = group["role"]
                 text_hash = group["text_hash"]
 
                 rule_rows = self.conn.execute(
                     """
-                    SELECT rule_id
+                    SELECT rev_id, provision_id, rule_id
                     FROM rule_atoms
                     WHERE doc_id = ?
-                      AND rev_id = ?
-                      AND provision_id = ?
+                      AND (stable_id = ? OR (stable_id IS NULL AND ? IS NULL))
                       AND (party = ? OR (party IS NULL AND ? IS NULL))
                       AND (role = ? OR (role IS NULL AND ? IS NULL))
                       AND (text_hash = ? OR (text_hash IS NULL AND ? IS NULL))
-                    ORDER BY rule_id
+                    ORDER BY rev_id, provision_id, rule_id
                     """,
                     (
                         doc_id,
-                        rev_id,
-                        provision_id,
+                        stable_id,
+                        stable_id,
                         party,
                         party,
                         role,
@@ -437,70 +452,58 @@ class VersionedStore:
                     ),
                 ).fetchall()
 
-                if not rule_rows:
+                if len(rule_rows) <= 1:
                     continue
 
-                duplicate_rule_ids = [row["rule_id"] for row in rule_rows[1:]]
-
-                if not duplicate_rule_ids:
-                    continue
-
-                placeholders = ",".join("?" for _ in duplicate_rule_ids)
-                params = (
-                    doc_id,
-                    rev_id,
-                    provision_id,
-                    *duplicate_rule_ids,
-                )
-
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_element_references
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_elements
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_atom_references
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_lints
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_atom_subjects
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
-                self.conn.execute(
-                    f"""
-                    DELETE FROM rule_atoms
-                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
-                        AND rule_id IN ({placeholders})
-                    """,
-                    params,
-                )
+                for duplicate in rule_rows[1:]:
+                    params = (
+                        doc_id,
+                        duplicate["rev_id"],
+                        duplicate["provision_id"],
+                        duplicate["rule_id"],
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_element_references
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_elements
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_atom_references
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_lints
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_atom_subjects
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_atoms
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        """,
+                        params,
+                    )
 
     def _compute_rule_atom_hash(
         self,
@@ -567,14 +570,42 @@ class VersionedStore:
         payload = "\u241f".join(normalised)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _normalise_json_text(value: Optional[Any]) -> Optional[str]:
+        """Return a normalised JSON string or ``None`` if no value is present."""
+
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            parsed = json.loads(text)
+        except (TypeError, json.JSONDecodeError):
+            return text
+        return json.dumps(parsed, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _serialise_metadata(metadata: Optional[Any]) -> Optional[str]:
+        """Serialise metadata values into a deterministic JSON string."""
+
+        if metadata is None:
+            return None
+        if isinstance(metadata, (str, bytes)):
+            return VersionedStore._normalise_json_text(metadata)
+        return json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+
     def _ensure_unique_indexes(self) -> None:
         """Create the uniqueness constraint for structured rule atoms."""
 
         with self.conn:
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
             self.conn.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash)
+                CREATE UNIQUE INDEX idx_rule_atoms_unique_text
+                ON rule_atoms(doc_id, stable_id, party, role, text_hash)
                 """
             )
             self.conn.execute(
@@ -750,7 +781,6 @@ class VersionedStore:
             )
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
-            )
         )
         # Migration: ensure the revisions table has a document_json column
         columns = {
@@ -768,15 +798,6 @@ class VersionedStore:
 
         self._backfill_rule_tables()
         self._backfill_glossary_ids()
-
-    def _ensure_column(self, table: str, column: str, definition: str) -> None:
-        cur = self.conn.execute(f"PRAGMA table_info({table})")
-        existing = {row["name"] for row in cur.fetchall()}
-        if column not in existing:
-            with self.conn:
-                self.conn.execute(
-                    f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
-                )
 
     # ------------------------------------------------------------------
     def _backfill_glossary_ids(self) -> None:
@@ -818,6 +839,12 @@ class VersionedStore:
 
         for table, key_columns, gloss_column in update_targets:
             if self._object_type(table) != "table":
+                continue
+            table_columns = {
+                row["name"]
+                for row in self.conn.execute(f"PRAGMA table_info({table})")
+            }
+            if "glossary_id" not in table_columns or gloss_column not in table_columns:
                 continue
             query = (
                 f"SELECT {', '.join(key_columns)}, {gloss_column} AS gloss, glossary_id "
@@ -866,12 +893,14 @@ class VersionedStore:
         """Ensure TOC rows and rule atoms have deterministic stable identifiers."""
 
         self._ensure_column("toc", "stable_id", "TEXT")
+        self.conn.execute("DROP INDEX IF EXISTS idx_toc_stable")
         self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_toc_stable ON toc(doc_id, rev_id, stable_id)"
+            "CREATE UNIQUE INDEX idx_toc_stable ON toc(doc_id, stable_id)"
         )
         self._ensure_column("rule_atoms", "stable_id", "TEXT")
+        self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_stable")
         self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_rule_atoms_stable ON rule_atoms(doc_id, rev_id, stable_id)"
+            "CREATE INDEX idx_rule_atoms_stable ON rule_atoms(doc_id, stable_id)"
         )
 
         toc_pending = self.conn.execute(
@@ -1566,11 +1595,7 @@ class VersionedStore:
                 seen_atom_keys: set[tuple[Any, ...]] = set()
 
                 for atom in provision.atoms:
-                    metadata_json = (
-                        json.dumps(atom.gloss_metadata, sort_keys=True)
-                        if atom.gloss_metadata is not None
-                        else None
-                    )
+                    metadata_json = self._serialise_metadata(atom.gloss_metadata)
                     key = (
                         atom.type,
                         atom.role,
@@ -1589,10 +1614,8 @@ class VersionedStore:
                     unique_atoms.append(atom)
 
                 for atom_index, atom in enumerate(unique_atoms, start=1):
-                    gloss_metadata_json = (
-                        json.dumps(atom.gloss_metadata)
-                        if atom.gloss_metadata is not None
-                        else None
+                    gloss_metadata_json = self._serialise_metadata(
+                        atom.gloss_metadata
                     )
                     refs_json = json.dumps(atom.refs) if atom.refs else None
                     self.conn.execute(
@@ -2163,10 +2186,8 @@ class VersionedStore:
             rule_atom.toc_id = current_toc_id
             if rule_atom.stable_id is None:
                 rule_atom.stable_id = stable_id
-            subject_metadata_json = (
-                json.dumps(subject_atom.gloss_metadata)
-                if subject_atom.gloss_metadata is not None
-                else None
+            subject_metadata_json = self._serialise_metadata(
+                subject_atom.gloss_metadata
             )
             atom_hash = self._compute_rule_atom_hash(
                 atom_type=rule_atom.atom_type,
@@ -2313,10 +2334,8 @@ class VersionedStore:
                 )
 
             for element_index, element in enumerate(rule_atom.elements, start=1):
-                element_metadata_json = (
-                    json.dumps(element.gloss_metadata)
-                    if element.gloss_metadata is not None
-                    else None
+                element_metadata_json = self._serialise_metadata(
+                    element.gloss_metadata
                 )
                 element_hash = self._compute_element_hash(
                     atom_type=element.atom_type,
@@ -2563,10 +2582,8 @@ class VersionedStore:
                         provision.rule_atoms, start=1
                     ):
                         subject_atom = rule_atom.get_subject_atom()
-                        metadata_json = (
-                            json.dumps(subject_atom.gloss_metadata)
-                            if subject_atom.gloss_metadata is not None
-                            else None
+                        metadata_json = self._serialise_metadata(
+                            subject_atom.gloss_metadata
                         )
                         refs_json = (
                             json.dumps(subject_atom.refs) if subject_atom.refs else None
