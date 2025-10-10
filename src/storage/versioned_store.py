@@ -80,7 +80,7 @@ class VersionedStore:
 
                 DROP INDEX IF EXISTS idx_toc_stable;
                 CREATE UNIQUE INDEX idx_toc_stable
-                ON toc(doc_id, stable_id);
+                ON toc(doc_id, rev_id, stable_id);
 
                 CREATE TABLE IF NOT EXISTS provisions (
                     doc_id INTEGER NOT NULL,
@@ -141,7 +141,7 @@ class VersionedStore:
 
                 DROP INDEX IF EXISTS idx_rule_atoms_unique_text;
                 CREATE UNIQUE INDEX idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, stable_id, party, role, text_hash);
+                ON rule_atoms(doc_id, rev_id, provision_id, stable_id, party, role, text_hash);
 
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
@@ -414,15 +414,17 @@ class VersionedStore:
         with self.conn:
             duplicate_groups = self.conn.execute(
                 """
-                SELECT doc_id, stable_id, party, role, text_hash
+                SELECT doc_id, rev_id, provision_id, stable_id, party, role, text_hash
                 FROM rule_atoms
-                GROUP BY doc_id, stable_id, party, role, text_hash
+                GROUP BY doc_id, rev_id, provision_id, stable_id, party, role, text_hash
                 HAVING COUNT(*) > 1
                 """
             ).fetchall()
 
             for group in duplicate_groups:
                 doc_id = group["doc_id"]
+                rev_id = group["rev_id"]
+                provision_id = group["provision_id"]
                 stable_id = group["stable_id"]
                 party = group["party"]
                 role = group["role"]
@@ -433,6 +435,8 @@ class VersionedStore:
                     SELECT rev_id, provision_id, rule_id
                     FROM rule_atoms
                     WHERE doc_id = ?
+                      AND rev_id = ?
+                      AND provision_id = ?
                       AND (stable_id = ? OR (stable_id IS NULL AND ? IS NULL))
                       AND (party = ? OR (party IS NULL AND ? IS NULL))
                       AND (role = ? OR (role IS NULL AND ? IS NULL))
@@ -441,6 +445,8 @@ class VersionedStore:
                     """,
                     (
                         doc_id,
+                        rev_id,
+                        provision_id,
                         stable_id,
                         stable_id,
                         party,
