@@ -273,6 +273,7 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
     rule_id INTEGER NOT NULL,
     text_hash TEXT NOT NULL,
     toc_id INTEGER,
+    stable_id TEXT,
     atom_type TEXT,
     role TEXT,
     party TEXT,
@@ -301,6 +302,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
 ON rule_atoms(doc_id, rev_id, provision_id, party, role, text_hash);
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
 ON rule_atoms(doc_id, rev_id, toc_id);
+CREATE INDEX IF NOT EXISTS idx_rule_atoms_stable
+ON rule_atoms(doc_id, rev_id, stable_id);
 
 CREATE TABLE IF NOT EXISTS rule_atom_subjects (
     doc_id INTEGER NOT NULL,
