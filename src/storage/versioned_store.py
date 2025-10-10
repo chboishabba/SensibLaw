@@ -286,6 +286,7 @@ class VersionedStore:
         self._ensure_column("rule_atoms", "text_hash", "TEXT")
         self._ensure_column("rule_elements", "text_hash", "TEXT")
         self._populate_text_hashes()
+        self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
         self._backfill_rule_tables()
@@ -479,6 +480,84 @@ class VersionedStore:
                 normalised.append(str(value).strip())
         payload = "\u241f".join(normalised)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _deduplicate_rule_atoms(self) -> None:
+        """Remove duplicate rule atom rows before enforcing uniqueness."""
+
+        with self.conn:
+            duplicates = self.conn.execute(
+                """
+                SELECT
+                    doc_id,
+                    rev_id,
+                    provision_id,
+                    text_hash,
+                    MIN(rule_id) AS keep_rule_id,
+                    GROUP_CONCAT(rule_id) AS all_rule_ids
+                FROM rule_atoms
+                WHERE text_hash IS NOT NULL
+                GROUP BY doc_id, rev_id, provision_id, text_hash
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+
+            for row in duplicates:
+                keep_rule_id = row["keep_rule_id"]
+                all_rule_ids = {
+                    int(rule_id)
+                    for rule_id in row["all_rule_ids"].split(",")
+                    if rule_id
+                }
+                all_rule_ids.discard(keep_rule_id)
+                if not all_rule_ids:
+                    continue
+
+                doc_id = row["doc_id"]
+                rev_id = row["rev_id"]
+                provision_id = row["provision_id"]
+
+                for duplicate_rule_id in all_rule_ids:
+                    params = (doc_id, rev_id, provision_id, duplicate_rule_id)
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_elements
+                        WHERE doc_id = ?
+                            AND rev_id = ?
+                            AND provision_id = ?
+                            AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_element_references
+                        WHERE doc_id = ?
+                            AND rev_id = ?
+                            AND provision_id = ?
+                            AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_lints
+                        WHERE doc_id = ?
+                            AND rev_id = ?
+                            AND provision_id = ?
+                            AND rule_id = ?
+                        """,
+                        params,
+                    )
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_atoms
+                        WHERE doc_id = ?
+                            AND rev_id = ?
+                            AND provision_id = ?
+                            AND rule_id = ?
+                        """,
+                        params,
+                    )
 
     def _ensure_unique_indexes(self) -> None:
         """Create the uniqueness constraint for structured rule atoms."""
