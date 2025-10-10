@@ -14,6 +14,7 @@ DIVISION_RE = re.compile(
     re.IGNORECASE,
 )
 SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
+NOTE_RE = re.compile(r"^(Note|Notes|Example|Penalty)\b", re.IGNORECASE)
 
 # Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
 TOKEN_RE = re.compile(
@@ -165,10 +166,16 @@ def parse_sections(text: str) -> List[ParsedNode]:
     current_section: Optional[ParsedNode] = None
     current_subsection: Optional[ParsedNode] = None
 
+    last_line_was_blank = False
+
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
+            last_line_was_blank = True
             continue
+
+        blank_preceded = last_line_was_blank
+        last_line_was_blank = False
 
         part_match = PART_RE.match(line)
         if part_match:
@@ -217,6 +224,9 @@ def parse_sections(text: str) -> List[ParsedNode]:
             current_subsection._buffer.append(subsection_match.group("text"))
             _attach_node(nodes, current_section, current_subsection)
             continue
+
+        if current_subsection and (blank_preceded or NOTE_RE.match(line)):
+            current_subsection = None
 
         target = current_subsection or current_section or current_division or current_part
         if target is None:
