@@ -1884,6 +1884,10 @@ class VersionedStore:
 
         seen_hashes: set[str] = set()
         rule_counter = 0
+        rule_reference_counts: dict[int, int] = {}
+        rule_element_counts: dict[int, int] = {}
+        rule_lint_counts: dict[int, int] = {}
+        element_reference_counts: dict[tuple[int, int], int] = {}
 
         for rule_atom in rule_atoms:
             subject_atom = rule_atom.get_subject_atom()
@@ -1924,6 +1928,9 @@ class VersionedStore:
             seen_hashes.add(atom_hash)
             rule_counter += 1
             rule_index = rule_counter
+            rule_reference_counts[rule_index] = len(rule_atom.references)
+            rule_element_counts[rule_index] = len(rule_atom.elements)
+            rule_lint_counts[rule_index] = len(rule_atom.lints)
             self.conn.execute(
                 """
                 INSERT INTO rule_atoms (
@@ -2055,6 +2062,9 @@ class VersionedStore:
                     gloss=element.gloss,
                     gloss_metadata=element_metadata_json,
                 )
+                element_reference_counts[(rule_index, element_index)] = len(
+                    element.references
+                )
                 self.conn.execute(
                     """
                     INSERT INTO rule_elements (
@@ -2148,6 +2158,82 @@ class VersionedStore:
                         lint_metadata_json,
                     ),
                 )
+
+        params = (doc_id, rev_id, provision_id)
+        if rule_counter == 0:
+            for table in (
+                "rule_element_references",
+                "rule_elements",
+                "rule_atom_references",
+                "rule_lints",
+                "rule_atom_subjects",
+                "rule_atoms",
+            ):
+                self.conn.execute(
+                    f"DELETE FROM {table} WHERE doc_id = ? AND rev_id = ? AND provision_id = ?",
+                    params,
+                )
+            return
+
+        trimmed_params = (*params, rule_counter)
+        for table in (
+            "rule_element_references",
+            "rule_elements",
+            "rule_atom_references",
+            "rule_lints",
+            "rule_atom_subjects",
+            "rule_atoms",
+        ):
+            self.conn.execute(
+                f"""
+                DELETE FROM {table}
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id > ?
+                """,
+                trimmed_params,
+            )
+
+        for rule_id, ref_count in rule_reference_counts.items():
+            self.conn.execute(
+                """
+                DELETE FROM rule_atom_references
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ? AND ref_index > ?
+                """,
+                (*params, rule_id, ref_count),
+            )
+
+        for rule_id, element_count in rule_element_counts.items():
+            self.conn.execute(
+                """
+                DELETE FROM rule_elements
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ? AND element_id > ?
+                """,
+                (*params, rule_id, element_count),
+            )
+            self.conn.execute(
+                """
+                DELETE FROM rule_element_references
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ? AND element_id > ?
+                """,
+                (*params, rule_id, element_count),
+            )
+
+        for (rule_id, element_id), ref_count in element_reference_counts.items():
+            self.conn.execute(
+                """
+                DELETE FROM rule_element_references
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ? AND element_id = ? AND ref_index > ?
+                """,
+                (*params, rule_id, element_id, ref_count),
+            )
+
+        for rule_id, lint_count in rule_lint_counts.items():
+            self.conn.execute(
+                """
+                DELETE FROM rule_lints
+                WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ? AND lint_id > ?
+                """,
+                (*params, rule_id, lint_count),
+            )
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:
         """Return a unified diff between two revisions of a document."""
