@@ -39,11 +39,36 @@ class Atom:
     def from_dict(cls, data: Dict[str, Any]) -> "Atom":
         """Deserialise an :class:`Atom` from ``data``."""
 
+        party = data.get("party")
+        who_text = data.get("who_text")
+
+        legacy_who = data.get("who")
+        legacy_conditions = data.get("conditions")
+
+        if party is None and isinstance(legacy_who, dict):
+            party = legacy_who.get("party")
+
+        if who_text is None:
+            if isinstance(legacy_who, dict):
+                who_text = legacy_who.get("text") or legacy_who.get("who_text")
+            elif isinstance(legacy_who, str):
+                who_text = legacy_who
+            elif legacy_who is not None:
+                who_text = str(legacy_who)
+
+        if who_text is None and legacy_conditions:
+            if isinstance(legacy_conditions, str):
+                who_text = legacy_conditions
+            elif isinstance(legacy_conditions, (list, tuple)):
+                who_text = " ".join(str(cond) for cond in legacy_conditions if cond)
+            else:
+                who_text = str(legacy_conditions)
+
         return cls(
             type=data.get("type"),
             role=data.get("role"),
-            party=data.get("party"),
-            who_text=data.get("who_text"),
+            party=party,
+            who_text=who_text,
             text=data.get("text"),
             refs=list(data.get("refs", [])),
             gloss=data.get("gloss"),
