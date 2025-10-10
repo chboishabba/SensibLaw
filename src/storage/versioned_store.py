@@ -270,11 +270,12 @@ class VersionedStore:
         self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
-        self._backfill_rule_tables()
-        self._ensure_atoms_view()
+        self._ensure_column("atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
         self._ensure_column("rule_elements", "glossary_id", "INTEGER")
+        self._backfill_rule_tables()
+        self._ensure_atoms_view()
 
         self._backfill_glossary_ids()
 
@@ -721,7 +722,6 @@ class VersionedStore:
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
             )
-        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
@@ -738,6 +738,8 @@ class VersionedStore:
         self._backfill_glossary_ids()
 
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
+        if self._object_type(table) != "table":
+            return
         cur = self.conn.execute(f"PRAGMA table_info({table})")
         existing = {row["name"] for row in cur.fetchall()}
         if column not in existing:
