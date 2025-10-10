@@ -72,6 +72,24 @@ def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
     return dict(metadata)
 
 
+def _merge_metadata(
+    existing: Optional[Dict[str, Any]],
+    new: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    existing_copy = _clone_metadata(existing)
+    new_copy = _clone_metadata(new)
+
+    if not existing_copy and not new_copy:
+        return None
+
+    merged: Dict[str, Any] = {}
+    if existing_copy:
+        merged.update(existing_copy)
+    if new_copy:
+        merged.update(new_copy)
+    return merged or None
+
+
 @dataclass(frozen=True)
 class GlossaryRecord:
     id: int
@@ -662,12 +680,21 @@ def _rules_to_atoms(
                     continue
                 gloss_entry = module_lookup_gloss(fragment)
                 resolved_entry: Optional[GlossaryRecord] = None
+                existing_entry: Optional[GlossaryRecord] = None
+                metadata_to_register: Optional[Dict[str, Any]] = None
                 if registry is not None and gloss_entry:
+                    existing_entry = registry.resolve(gloss_entry.phrase)
+                    metadata_to_register = _merge_metadata(
+                        existing_entry.metadata if existing_entry else None,
+                        gloss_entry.metadata,
+                    )
                     resolved_entry = registry.register_definition(
                         gloss_entry.phrase,
                         gloss_entry.text,
-                        gloss_entry.metadata,
+                        metadata_to_register,
                     )
+                    if resolved_entry is None:
+                        resolved_entry = existing_entry
                 if registry is not None and resolved_entry is None:
                     resolved_entry = registry.resolve(fragment)
 
@@ -842,7 +869,6 @@ def build_document(
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
-
 
     definitions = _extract_definition_entries(body)
     for term, definition in definitions.items():
