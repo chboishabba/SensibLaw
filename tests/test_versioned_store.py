@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from pathlib import Path
+import sqlite3
 import sys
 
 # ruff: noqa: E402
@@ -329,7 +330,14 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
 def test_legacy_atoms_loaded_from_view_when_structured_absent(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
-        store.conn.execute("ALTER TABLE atoms RENAME TO atoms_legacy")
+        try:
+            store.conn.execute("ALTER TABLE atoms RENAME TO atoms_legacy")
+        except sqlite3.OperationalError as exc:
+            if "view" not in str(exc).lower():
+                raise
+            store.conn.execute("CREATE TABLE atoms_legacy AS SELECT * FROM atoms")
+            store.conn.execute("DROP VIEW atoms")
+
         store.conn.execute("CREATE VIEW atoms AS SELECT * FROM atoms_legacy")
 
         for table in (
