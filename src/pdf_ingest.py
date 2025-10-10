@@ -133,7 +133,6 @@ def _rules_to_atoms(rules) -> List[Atom]:
                         gloss=(
                             gloss_entry.text if gloss_entry else who_text or None
                         ),
-                        gloss=gloss_entry.text if gloss_entry else None,
                         gloss_metadata=(
                             dict(gloss_entry.metadata)
                             if gloss_entry and gloss_entry.metadata is not None
@@ -250,14 +249,14 @@ def parse_sections(text: str) -> List[Provision]:
     parser_available = _has_section_parser()
 
     if parser_available:
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
-        structured = _build_provisions_from_nodes(nodes)
-        sections = list(_iter_section_provisions(structured))
-        if sections:
-            return sections
-        if structured:
-            return structured
+        if section_parser and hasattr(section_parser, "parse_sections"):
+            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+            structured = _build_provisions_from_nodes(nodes)
+            sections = list(_iter_section_provisions(structured))
+            if sections:
+                return sections
+            if structured:
+                return structured
 
     logger.debug(
         "Falling back to regex-based section parsing (section_parser_available=%s, "
