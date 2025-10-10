@@ -1046,31 +1046,52 @@ class VersionedStore:
     def _backfill_rule_tables(self) -> None:
         """Populate structured rule tables from legacy atom storage if needed."""
 
-        cur = self.conn.execute("SELECT COUNT(*) FROM rule_atoms")
-        if cur.fetchone()[0]:
-            return
-
         legacy_count = self.conn.execute("SELECT COUNT(*) FROM atoms").fetchone()[0]
         if legacy_count == 0:
             return
 
-        atom_rows = self.conn.execute(
+        missing_provisions = self.conn.execute(
             """
+            SELECT DISTINCT a.doc_id AS doc_id, a.rev_id AS rev_id, a.provision_id AS provision_id
+            FROM atoms AS a
+            LEFT JOIN rule_atoms AS r
+                ON r.doc_id = a.doc_id
+                AND r.rev_id = a.rev_id
+                AND r.provision_id = a.provision_id
+            WHERE r.doc_id IS NULL
+            """
+        ).fetchall()
+        if not missing_provisions:
+            return
+
+        conditions = " OR ".join(
+            "(doc_id = ? AND rev_id = ? AND provision_id = ?)" for _ in missing_provisions
+        )
+        params: list[int] = []
+        for row in missing_provisions:
+            params.extend([row["doc_id"], row["rev_id"], row["provision_id"]])
+
+        atom_rows = self.conn.execute(
+            f"""
             SELECT doc_id, rev_id, provision_id, atom_id, type, role, party, who, who_text,
                    text, conditions, refs, gloss, gloss_metadata
             FROM atoms
+            WHERE {conditions}
             ORDER BY doc_id, rev_id, provision_id, atom_id
-            """
+            """,
+            params,
         ).fetchall()
         if not atom_rows:
             return
 
         reference_rows = self.conn.execute(
-            """
+            f"""
             SELECT doc_id, rev_id, provision_id, atom_id, work, section, pinpoint, citation_text
             FROM atom_references
+            WHERE {conditions}
             ORDER BY doc_id, rev_id, provision_id, atom_id, ref_index
-            """
+            """,
+            params,
         ).fetchall()
 
         refs_by_atom: dict[tuple[int, int, int, int], List[Any]] = defaultdict(list)
