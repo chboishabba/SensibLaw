@@ -1,6 +1,6 @@
+import importlib
 import sys
 from pathlib import Path
-from types import ModuleType
 
 import pytest
 
@@ -11,89 +11,8 @@ def pdf_ingest(monkeypatch):
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
-    module_name = "src.pdf_ingest"
-    module_path = root / "src" / "pdf_ingest.py"
-
-    if module_name in sys.modules:
-        del sys.modules[module_name]
-
-    module = ModuleType(module_name)
-    module.__package__ = "src"
-    module.__file__ = str(module_path)
-    module_source = """
-import re
-from typing import List
-
-from src.models.provision import Provision
-
-section_parser = None
-
-_SECTION_HEADING_RE = re.compile(
-    r"(?m)^(?P<identifier>\\d+[A-Za-z0-9]*)\\s+(?P<heading>[^\\n]+)"
-)
-
-
-def _fallback_parse_sections(text: str) -> List[Provision]:
-    matches = list(_SECTION_HEADING_RE.finditer(text))
-    if not matches:
-        return [Provision(text=text)]
-
-    sections = []
-    prefix = text[: matches[0].start()].strip()
-
-    for index, match in enumerate(matches):
-        start = match.end()
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        body = text[start:end].strip()
-
-        identifier = match.group("identifier").strip()
-        heading = match.group("heading").strip()
-
-        parts = []
-        if index == 0 and prefix:
-            parts.append(prefix)
-        parts.append(heading)
-        if body:
-            parts.append(body)
-
-        section_text = "\\n".join(parts).strip()
-        sections.append(
-            Provision(
-                text=section_text,
-                identifier=identifier or None,
-                heading=heading or None,
-                node_type="section",
-            )
-        )
-
-    return sections
-
-
-def parse_sections(text: str) -> List[Provision]:
-    if not text.strip():
-        return []
-
-    if section_parser and hasattr(section_parser, "parse_sections"):
-        nodes = section_parser.parse_sections(text)
-        provisions = [
-            Provision(
-                text=getattr(node, "text", ""),
-                identifier=getattr(node, "identifier", None),
-                heading=getattr(node, "heading", None),
-                node_type=getattr(node, "node_type", None),
-                rule_tokens=dict(getattr(node, "rule_tokens", {})),
-                references=list(getattr(node, "references", [])),
-            )
-            for node in nodes
-        ]
-        if provisions:
-            return provisions
-
-    return _fallback_parse_sections(text)
-"""
-
-    exec(module_source, module.__dict__)
-    sys.modules[module_name] = module
+    module = importlib.import_module("src.pdf_ingest")
+    importlib.reload(module)
 
     monkeypatch.setattr(module, "section_parser", None, raising=False)
     return module
