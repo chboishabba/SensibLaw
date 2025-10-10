@@ -1020,8 +1020,9 @@ class VersionedStore:
 
         counter = 0
         position_counters: defaultdict[Optional[int], int] = defaultdict(int)
-        toc_map: dict[Tuple[str, str], int] = {}
+        toc_map: dict[Tuple[Tuple[str, str], ...], int] = {}
         rows_by_id: dict[int, dict[str, Any]] = {}
+        path_by_id: dict[int, Tuple[Tuple[str, str], ...]] = {}
 
         def normalise_identifier(value: Optional[str]) -> Optional[str]:
             if not value:
@@ -1030,7 +1031,7 @@ class VersionedStore:
             collapsed = collapsed.rstrip(".")
             return collapsed or None
 
-        def make_key(
+        def make_key_component(
             node_type: Optional[str], identifier: Optional[str]
         ) -> Optional[Tuple[str, str]]:
             if not node_type:
@@ -1047,11 +1048,18 @@ class VersionedStore:
             identifier: Optional[str],
             title: Optional[str],
             page_number: Optional[int],
-        ) -> int:
+            parent_path: Tuple[Tuple[str, str], ...],
+        ) -> Tuple[int, Tuple[Tuple[str, str], ...]]:
             nonlocal counter
             counter += 1
             position_counters[parent_id] += 1
             toc_id = counter
+            key_component = make_key_component(node_type, identifier)
+            if key_component is None:
+                path = parent_path
+            else:
+                path = parent_path + (key_component,)
+                toc_map[path] = toc_id
             row = {
                 "toc_id": toc_id,
                 "parent_id": parent_id,
@@ -1063,37 +1071,51 @@ class VersionedStore:
             }
             entries.append(row)
             rows_by_id[toc_id] = row
-            key = make_key(node_type, identifier)
-            if key:
-                toc_map[key] = toc_id
-            return toc_id
+            path_by_id[toc_id] = path
+            return toc_id, path
 
         def flatten_toc(
-            nodes: List[DocumentTOCEntry], parent_id: Optional[int]
+            nodes: List[DocumentTOCEntry],
+            parent_id: Optional[int],
+            parent_path: Tuple[Tuple[str, str], ...],
         ) -> None:
             for node in nodes:
-                toc_id = register_entry(
+                toc_id, path = register_entry(
                     parent_id,
                     node.node_type,
                     node.identifier,
                     node.title,
                     node.page_number,
+                    parent_path,
                 )
-                flatten_toc(node.children, toc_id)
+                flatten_toc(node.children, toc_id, path)
 
         if toc_structure:
-            flatten_toc(toc_structure, None)
+            flatten_toc(toc_structure, None, tuple())
 
-        def traverse(provision: Provision, parent_toc_id: Optional[int]) -> None:
-            key = make_key(provision.node_type, provision.identifier)
-            toc_id = toc_map.get(key)
+        def traverse(
+            provision: Provision,
+            parent_toc_id: Optional[int],
+            parent_path: Tuple[Tuple[str, str], ...],
+        ) -> None:
+            key_component = make_key_component(
+                provision.node_type, provision.identifier
+            )
+            toc_id: Optional[int] = None
+            path = parent_path
+            if key_component is not None:
+                candidate_path = parent_path + (key_component,)
+                toc_id = toc_map.get(candidate_path)
+                if toc_id is not None:
+                    path = path_by_id.get(toc_id, candidate_path)
             if toc_id is None:
-                toc_id = register_entry(
+                toc_id, path = register_entry(
                     parent_toc_id,
                     provision.node_type,
                     provision.identifier,
                     provision.heading,
                     None,
+                    parent_path,
                 )
             else:
                 row = rows_by_id.get(toc_id)
@@ -1106,10 +1128,10 @@ class VersionedStore:
                         row["identifier"] = provision.identifier
             provision.toc_id = toc_id
             for child in provision.children:
-                traverse(child, toc_id)
+                traverse(child, toc_id, path)
 
         for provision in provisions:
-            traverse(provision, None)
+            traverse(provision, None, tuple())
 
         return [
             (
