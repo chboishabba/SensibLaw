@@ -6,6 +6,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+from datetime import date
+
+from src.culture.overlay import CulturalOverlay
+from src.models.document import Document, DocumentMetadata
+from src.models.provision import Atom, Provision
 from src.pdf_ingest import build_document
 
 
@@ -35,8 +40,14 @@ def test_hash_transform_applied_with_annotations():
     original_body = "Section 1\nPersonal data"
     expected_hash = hashlib.sha256(original_body.encode("utf-8")).hexdigest()
     assert document.body == expected_hash
-    assert all(provision.text == expected_hash for provision in document.provisions)
+    assert all(len(provision.text) == 64 for provision in document.provisions)
+    assert all("Personal data" not in provision.text for provision in document.provisions)
     assert document.metadata.cultural_consent_required is True
+    for provision in document.provisions:
+        assert all(len(principle) == 64 for principle in provision.principles)
+        assert all(
+            principle != "Personal data" for principle in provision.principles
+        )
     annotations = document.metadata.cultural_annotations
     assert any(
         annotation.startswith(
@@ -56,3 +67,40 @@ def test_public_domain_flag_records_annotation_without_consent():
         annotation.startswith("PUBLIC_DOMAIN: redaction=none, consent_required=False")
         for annotation in document.metadata.cultural_annotations
     )
+
+
+def test_hash_transform_sanitises_provision_metadata():
+    overlay = CulturalOverlay.from_yaml(ROOT / "data" / "cultural_rules.yaml")
+    metadata = DocumentMetadata(
+        jurisdiction="",
+        citation="",
+        date=date.today(),
+        cultural_flags=["PERSONALLY_IDENTIFIABLE_INFORMATION"],
+    )
+    provision = Provision(
+        text="Sensitive provision",
+        principles=["Sensitive principle"],
+        atoms=[
+            Atom(
+                text="Sensitive atom",
+                who="Alice",
+                conditions="Only sometimes",
+                refs=["ref"],
+            )
+        ],
+    )
+    document = Document(metadata=metadata, body="Sensitive provision", provisions=[provision])
+
+    overlay.apply(document)
+
+    hashed_body = hashlib.sha256("Sensitive provision".encode("utf-8")).hexdigest()
+    assert document.body == hashed_body
+
+    hashed_principle = hashlib.sha256("Sensitive principle".encode("utf-8")).hexdigest()
+    assert document.provisions[0].principles == [hashed_principle]
+
+    atom = document.provisions[0].atoms[0]
+    assert atom.text == hashlib.sha256("Sensitive atom".encode("utf-8")).hexdigest()
+    assert atom.who == hashlib.sha256("Alice".encode("utf-8")).hexdigest()
+    assert atom.conditions == hashlib.sha256("Only sometimes".encode("utf-8")).hexdigest()
+    assert atom.refs == [hashlib.sha256("ref".encode("utf-8")).hexdigest()]
