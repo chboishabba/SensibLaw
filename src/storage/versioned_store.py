@@ -31,6 +31,12 @@ class VersionedStore:
 
     def _init_schema(self) -> None:
         with self.conn:
+            existing_atoms = self.conn.execute(
+                "SELECT type FROM sqlite_master WHERE name = ?",
+                ("atoms",),
+            ).fetchone()
+            if existing_atoms and existing_atoms["type"].lower() == "view":
+                self.conn.execute("DROP VIEW atoms")
             self.conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS documents (
@@ -152,9 +158,6 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
-
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
-                ON rule_atoms(doc_id, rev_id, provision_id, text_hash);
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
                 ON rule_atoms(doc_id, rev_id, toc_id);
@@ -1153,6 +1156,11 @@ class VersionedStore:
                     if atom.gloss_metadata is not None
                     else None
                 )
+                refs_key = (
+                    json.dumps(atom.refs, sort_keys=True)
+                    if atom.refs is not None
+                    else None
+                )
                 key = (
                     atom.type,
                     atom.role,
@@ -1161,7 +1169,7 @@ class VersionedStore:
                     atom.who_text,
                     atom.conditions,
                     atom.text,
-                    tuple(atom.refs),
+                    refs_key,
                     atom.gloss,
                     metadata_json,
                 )
