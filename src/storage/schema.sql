@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS atom_references (
     section TEXT,
     pinpoint TEXT,
     citation_text TEXT,
+    payload_json TEXT,
     PRIMARY KEY (doc_id, rev_id, provision_id, atom_id, ref_index),
     FOREIGN KEY (doc_id, rev_id, provision_id, atom_id)
         REFERENCES atoms(doc_id, rev_id, provision_id, atom_id)

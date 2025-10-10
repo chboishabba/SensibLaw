@@ -1,5 +1,6 @@
 """Tests for the versioned store implementation."""
 
+import json
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -137,6 +138,59 @@ def test_atom_references_join_table(tmp_path: Path):
         assert snapshot is not None
         atom = snapshot.provisions[0].atoms[0]
         assert atom.refs == ["Second reference"]
+    finally:
+        store.close()
+
+
+def test_preserves_unknown_atom_reference_payload(tmp_path: Path):
+    store = VersionedStore(str(tmp_path / "store.db"))
+    try:
+        doc_id = store.generate_id()
+        meta = DocumentMetadata(
+            jurisdiction="US",
+            citation="Unknown",
+            date=date(2023, 1, 1),
+            source_url="http://example.com/unknown",
+            retrieved_at=datetime(2023, 1, 2, 3, 4, 5),
+            checksum="checksum",
+            licence="CC",
+            canonical_id="canon-unknown",
+        )
+        provision = Provision(
+            text="Provision with custom reference",
+            identifier="s 1",
+            atoms=[
+                Atom(
+                    type="duty",
+                    text="Perform the custom duty",
+                    refs=[{"ref_id": "S123"}],
+                )
+            ],
+        )
+        document = Document(meta, "Body", provisions=[provision])
+        store.add_revision(doc_id, document, meta.date)
+
+        row = store.conn.execute(
+            """
+            SELECT payload_json
+            FROM atom_references
+            WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND atom_id = ? AND ref_index = ?
+            """,
+            (doc_id, 1, 1, 1, 1),
+        ).fetchone()
+        assert row is not None
+        assert row["payload_json"] == json.dumps({"ref_id": "S123"}, ensure_ascii=False)
+
+        store.conn.execute(
+            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
+            (doc_id, 1),
+        )
+        store.conn.commit()
+
+        snapshot = store.snapshot(doc_id, meta.date)
+        assert snapshot is not None
+        refs = snapshot.provisions[0].atoms[0].refs
+        assert refs == [{"ref_id": "S123"}]
     finally:
         store.close()
 

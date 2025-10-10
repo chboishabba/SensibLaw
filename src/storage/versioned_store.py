@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import sqlite3
 import json
+import sqlite3
 import difflib
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from ..models.document import Document, DocumentMetadata
 from ..models.provision import Atom, Provision
@@ -98,6 +98,7 @@ class VersionedStore:
                     section TEXT,
                     pinpoint TEXT,
                     citation_text TEXT,
+                    payload_json TEXT,
                     PRIMARY KEY (doc_id, rev_id, provision_id, atom_id, ref_index),
                     FOREIGN KEY (doc_id, rev_id, provision_id, atom_id)
                         REFERENCES atoms(doc_id, rev_id, provision_id, atom_id)
@@ -123,6 +124,16 @@ class VersionedStore:
             }
             if "document_json" not in columns:
                 self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+
+        atom_reference_columns = {
+            row["name"]
+            for row in self.conn.execute("PRAGMA table_info(atom_references)")
+        }
+        if "payload_json" not in atom_reference_columns:
+            with self.conn:
+                self.conn.execute(
+                    "ALTER TABLE atom_references ADD COLUMN payload_json TEXT"
+                )
 
     # ------------------------------------------------------------------
     # ID generation and revision storage
@@ -377,8 +388,19 @@ class VersionedStore:
                         section = None
                         pinpoint = None
                         citation_text = None
+                        payload_json = None
+                        recognized = False
 
                         if isinstance(ref, dict):
+                            recognized_keys = {
+                                "work",
+                                "section",
+                                "pinpoint",
+                                "citation_text",
+                                "text",
+                                "citation",
+                            }
+                            recognized = any(key in ref for key in recognized_keys)
                             work = ref.get("work")
                             section = ref.get("section")
                             pinpoint = ref.get("pinpoint")
@@ -387,6 +409,14 @@ class VersionedStore:
                                 or ref.get("text")
                                 or ref.get("citation")
                             )
+                            if not recognized:
+                                try:
+                                    payload_json = json.dumps(ref, ensure_ascii=False)
+                                except (TypeError, ValueError):
+                                    payload_json = None
+                                    citation_text = str(ref)
+                                else:
+                                    citation_text = citation_text or payload_json
                         elif isinstance(ref, (list, tuple)):
                             # Support positional data when provided as an iterable.
                             parts = list(ref)
@@ -407,9 +437,9 @@ class VersionedStore:
                             """
                             INSERT INTO atom_references (
                                 doc_id, rev_id, provision_id, atom_id, ref_index,
-                                work, section, pinpoint, citation_text
+                                work, section, pinpoint, citation_text, payload_json
                             )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 doc_id,
@@ -421,6 +451,7 @@ class VersionedStore:
                                 section,
                                 pinpoint,
                                 citation_text,
+                                payload_json,
                             ),
                         )
 
@@ -462,7 +493,8 @@ class VersionedStore:
 
         atom_reference_rows = self.conn.execute(
             """
-            SELECT provision_id, atom_id, ref_index, work, section, pinpoint, citation_text
+            SELECT provision_id, atom_id, ref_index, work, section, pinpoint,
+                   citation_text, payload_json
             FROM atom_references
             WHERE doc_id = ? AND rev_id = ?
             ORDER BY provision_id, atom_id, ref_index
@@ -470,9 +502,18 @@ class VersionedStore:
             (doc_id, rev_id),
         ).fetchall()
 
-        refs_by_atom: dict[tuple[int, int], List[str]] = {}
+        refs_by_atom: dict[tuple[int, int], List[Any]] = {}
         for ref_row in atom_reference_rows:
             key = (ref_row["provision_id"], ref_row["atom_id"])
+            payload_json = ref_row["payload_json"]
+            if payload_json:
+                try:
+                    value = json.loads(payload_json)
+                except json.JSONDecodeError:
+                    value = ref_row["citation_text"] or payload_json
+                refs_by_atom.setdefault(key, []).append(value)
+                continue
+
             ref_text = ref_row["citation_text"]
             if not ref_text:
                 parts = [
