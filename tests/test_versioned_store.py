@@ -251,6 +251,127 @@ def test_toc_page_numbers_persisted(tmp_path: Path):
         store.close()
 
 
+def test_toc_merge_uses_parent_context(tmp_path: Path):
+    store = VersionedStore(str(tmp_path / "toc.db"))
+    try:
+        doc_id = store.generate_id()
+        meta = DocumentMetadata(
+            jurisdiction="AU",
+            citation="Context Act",
+            date=date(2022, 1, 1),
+            source_url=None,
+            retrieved_at=None,
+            checksum=None,
+            licence=None,
+            canonical_id="context-act",
+        )
+
+        part_one_section = Provision(
+            text="Part 1 Section 1 text",
+            identifier="s 1",
+            heading="Section 1",
+            node_type="section",
+        )
+        part_two_section = Provision(
+            text="Part 2 Section 1 text",
+            identifier="s 1",
+            heading="Section 1",
+            node_type="section",
+        )
+        provisions = [
+            Provision(
+                text="Part 1 text",
+                identifier="Part 1",
+                heading="Part 1",
+                node_type="part",
+                children=[part_one_section],
+            ),
+            Provision(
+                text="Part 2 text",
+                identifier="Part 2",
+                heading="Part 2",
+                node_type="part",
+                children=[part_two_section],
+            ),
+        ]
+
+        toc_entries = [
+            DocumentTOCEntry(
+                node_type="part",
+                identifier="Part 1",
+                title="Part 1",
+                children=[
+                    DocumentTOCEntry(
+                        node_type="section",
+                        identifier="s 1",
+                        title="Section 1",
+                        page_number=3,
+                    )
+                ],
+            ),
+            DocumentTOCEntry(
+                node_type="part",
+                identifier="Part 2",
+                title="Part 2",
+                children=[
+                    DocumentTOCEntry(
+                        node_type="section",
+                        identifier="s 1",
+                        title="Section 1",
+                        page_number=5,
+                    )
+                ],
+            ),
+        ]
+
+        store.add_revision(
+            doc_id,
+            Document(meta, "body", provisions=provisions, toc_entries=toc_entries),
+            date(2022, 1, 1),
+        )
+
+        rows = store.conn.execute(
+            """
+            SELECT toc_id, parent_id, node_type, identifier, page_number
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY toc_id
+            """,
+            (doc_id, 1),
+        ).fetchall()
+        assert len(rows) == 4
+        part_rows = [row for row in rows if row["node_type"] == "part"]
+        section_rows = [row for row in rows if row["node_type"] == "section"]
+        assert {row["identifier"] for row in part_rows} == {"Part 1", "Part 2"}
+        assert len(section_rows) == 2
+        section_rows.sort(key=lambda row: row["page_number"])
+        section_one_row, section_two_row = section_rows
+        part_one_row = next(
+            row for row in part_rows if row["identifier"] == "Part 1"
+        )
+        part_two_row = next(
+            row for row in part_rows if row["identifier"] == "Part 2"
+        )
+        assert section_one_row["identifier"] == "s 1"
+        assert section_two_row["identifier"] == "s 1"
+        assert section_one_row["parent_id"] == part_one_row["toc_id"]
+        assert section_two_row["parent_id"] == part_two_row["toc_id"]
+        assert section_one_row["page_number"] == 3
+        assert section_two_row["page_number"] == 5
+
+        snapshot = store.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        assert len(snapshot.provisions) == 2
+        part_one_snap = snapshot.provisions[0]
+        part_two_snap = snapshot.provisions[1]
+        assert part_one_snap.toc_id != part_two_snap.toc_id
+        assert part_one_snap.children[0].toc_id != part_two_snap.children[0].toc_id
+        assert part_one_snap.children[0].toc_id == section_one_row["toc_id"]
+        assert part_two_snap.children[0].toc_id == section_two_row["toc_id"]
+    finally:
+        store.close()
+
+
 def test_rule_atom_subjects_backfill(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
