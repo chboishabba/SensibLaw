@@ -559,10 +559,36 @@ class VersionedStore:
         payload = "\u241f".join(normalised)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    def _index_columns(self, index_name: str) -> Optional[list[str]]:
+        """Return the list of columns backing ``index_name`` if it exists."""
+
+        row = self.conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?",
+            (index_name,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        pragma = self.conn.execute(f'PRAGMA index_info("{index_name}")')
+        return [column_info["name"] for column_info in pragma.fetchall()]
+
     def _ensure_unique_indexes(self) -> None:
         """Create the uniqueness constraint for structured rule atoms."""
 
+        desired_columns = [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "party",
+            "role",
+            "text_hash",
+        ]
+        existing_columns = self._index_columns("idx_rule_atoms_unique_text")
+
         with self.conn:
+            if existing_columns is not None and existing_columns != desired_columns:
+                self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
+
             self.conn.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
@@ -743,7 +769,6 @@ class VersionedStore:
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
             )
-        )
         # Migration: ensure the revisions table has a document_json column
         columns = {
             row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
