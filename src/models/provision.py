@@ -441,8 +441,7 @@ class Provision:
 
         if self.rule_atoms:
             for rule_atom in self.rule_atoms:
-                if rule_atom.toc_id is None:
-                    rule_atom.toc_id = self.toc_id
+                rule_atom.toc_id = self.toc_id
 
     def sync_legacy_atoms(self) -> None:
         """Refresh ``atoms`` based on the structured rule representation."""
