@@ -237,4 +237,15 @@ def parse_sections(text: str) -> List[Provision]:
     return [_node_to_provision(node) for node in nodes]
 
 
-__all__ = ["parse_sections", "parse_html_section", "fetch_section", "Section"]
+__all__ = [
+    "parse_sections",
+    "parse_html_section",
+    "fetch_section",
+    "Section",
+    # Regex constants used by legacy callers
+    "HEADING_RE",
+    "PART_RE",
+    "DIVISION_RE",
+    "SUBSECTION_RE",
+    "TOKEN_RE",
+]
