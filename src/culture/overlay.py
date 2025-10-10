@@ -10,7 +10,7 @@ from typing import Dict, Optional, Sequence, Tuple
 import yaml
 
 from ..models.document import Document
-from ..models.provision import Provision
+from ..models.provision import Atom, Provision
 
 
 @dataclass(frozen=True)
@@ -74,7 +74,8 @@ class CulturalOverlay:
             if rule.consent_required:
                 metadata.cultural_consent_required = True
 
-        document.body, _ = self._apply_rules_to_text(document.body, flags)
+        transformed_body, _, _ = self._apply_rules_to_text(document.body, flags)
+        document.body = transformed_body
 
         for provision in document.provisions:
             self._apply_to_provision(provision, flags)
@@ -84,21 +85,25 @@ class CulturalOverlay:
     def _apply_to_provision(self, provision: Provision, flags: Sequence[str]) -> None:
         """Apply overlay rules recursively to provisions."""
 
-        transformed, redacted_flag = self._apply_rules_to_text(provision.text, flags)
+        transformed, redacted_flag, transforms = self._apply_rules_to_text(
+            provision.text, flags
+        )
         provision.text = transformed
         if redacted_flag:
-            provision.principles.clear()
-            provision.atoms.clear()
+            self._clear_provision_metadata(provision)
+        elif transforms:
+            self._transform_provision_metadata(provision, transforms)
         for child in provision.children:
             self._apply_to_provision(child, flags)
 
     def _apply_rules_to_text(
         self, text: str, flags: Sequence[str]
-    ) -> Tuple[str, Optional[str]]:
+    ) -> Tuple[str, Optional[str], Sequence[str]]:
         """Apply rules for ``flags`` to ``text`` returning the new text."""
 
         result = text
         redacted_by: Optional[str] = None
+        transforms_applied: list[str] = []
         for flag in flags:
             rule = self._rules.get(flag)
             if not rule:
@@ -108,8 +113,57 @@ class CulturalOverlay:
                 redacted_by = flag
                 break
             if rule.transform == "hash":
-                result = hashlib.sha256(result.encode("utf-8")).hexdigest()
-        return result, redacted_by
+                result = self._apply_transform(rule.transform, result)
+                transforms_applied.append(rule.transform)
+        return result, redacted_by, transforms_applied
+
+    def _clear_provision_metadata(self, provision: Provision) -> None:
+        """Remove extracted metadata from ``provision``."""
+
+        provision.principles.clear()
+        provision.atoms.clear()
+
+    def _transform_provision_metadata(
+        self, provision: Provision, transforms: Sequence[str]
+    ) -> None:
+        """Keep provision metadata in sync with applied transforms."""
+
+        for transform in transforms:
+            if transform == "hash":
+                self._hash_provision_metadata(provision)
+            else:
+                self._clear_provision_metadata(provision)
+                break
+
+    def _hash_provision_metadata(self, provision: Provision) -> None:
+        """Hash all extracted metadata for ``provision``."""
+
+        provision.principles = [
+            self._apply_transform("hash", principle)
+            for principle in provision.principles
+        ]
+        for atom in provision.atoms:
+            self._hash_atom_fields(atom)
+
+    def _hash_atom_fields(self, atom: Atom) -> None:
+        """Hash sensitive text fields on ``atom`` in-place."""
+
+        if atom.text is not None:
+            atom.text = self._apply_transform("hash", atom.text)
+        if atom.who is not None:
+            atom.who = self._apply_transform("hash", atom.who)
+        if atom.conditions is not None:
+            atom.conditions = self._apply_transform("hash", atom.conditions)
+        if atom.refs:
+            atom.refs = [self._apply_transform("hash", ref) for ref in atom.refs]
+
+    @staticmethod
+    def _apply_transform(transform: str, value: str) -> str:
+        """Apply ``transform`` to ``value`` returning the transformed string."""
+
+        if transform == "hash":
+            return hashlib.sha256(value.encode("utf-8")).hexdigest()
+        return value
 
     @staticmethod
     def _build_annotation(flag: str, rule: CulturalRule) -> str:
