@@ -8,10 +8,12 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     # Register commands provided in this package
+    from . import brief as brief_cmd
     from . import frame as frame_cmd
     from . import glossary as glossary_cmd
     from . import receipts as receipts_cmd
 
+    brief_cmd.register(sub)
     frame_cmd.register(sub)
     glossary_cmd.register(sub)
     receipts_cmd.register(sub)
