@@ -174,6 +174,18 @@ sensiblaw pdf-fetch data/example.pdf --jurisdiction "NSW" --citation "Act 1994" 
   --db data/store.db
 ```
 
+#### Build a brief prep pack for counsel
+
+Compile the submission skeletons, coverage grid, counter-argument bank, and
+bundle check into a single directory with a counsel-facing PDF:
+
+```bash
+sensiblaw brief pack --matter matter.json --out out/brief
+```
+
+The command writes `brief_pack.json`, `first_cut_brief.txt`, and the PDF inside
+`out/brief`.
+
 To reuse an existing document identifier when appending a new revision:
 
 ```bash
