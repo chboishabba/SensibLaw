@@ -19,6 +19,8 @@ dependencies = [
     "pyyaml",
     "graphviz",
     "networkx",
+    "streamlit>=1.30",
+    "pandas>=1.5",
 ]
 
 [project.optional-dependencies]
