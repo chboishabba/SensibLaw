@@ -18,4 +18,12 @@ Welcome! These guidelines apply to the entire repository.
 - Avoid committing secrets or large binary assets unless necessary.
 - Ensure new files include appropriate licenses or headers if required.
 
+Please also check ROADMAP.md and README.md
+
+Update these with any progress you make, and with instructions on how to use the software.
+
+Ensure tests are added along with features to prevent regressions.
+
+Make sure you run the tests relevant to the code you're editing too!
+
 Thank you for contributing!
