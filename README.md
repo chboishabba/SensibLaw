@@ -79,6 +79,21 @@ versioned store so negotiators can:
 See [docs/automation_intelligence.md](docs/automation_intelligence.md) for the
 full walkthrough of these automation capabilities.
 
+## Reading-Fatigue Killers
+
+Bundles annotated with issues, factors, and deadlines can now be piped through
+the reading-focussed utilities in
+[docs/reading_fatigue_killers.md](docs/reading_fatigue_killers.md):
+
+- Generate a keyboard-first pin-cite navigator using
+  ``build_pin_cite_navigator``.
+- Collapse redundant paragraphs across drafts with ``DuplicateDetector``.
+- Toggle a "focus lane" view via ``focus_lane`` to keep attention on live
+  decision points.
+
+The trio is tuned for the "50-page bundle to first decision in under ten
+minutes" workflow and can be wired into bespoke UI layers or console scripts.
+
 ## Linting and type checks
 
 Execute all linting and type-check hooks:
