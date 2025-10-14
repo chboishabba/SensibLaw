@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import subprocess
-from collections import defaultdict
 from dataclasses import asdict
-from typing import Any, Dict, List
+from datetime import date
+from math import exp
+from typing import Any, Dict, List, Optional, Tuple
 
 try:  # pragma: no cover - FastAPI is optional for CLI tests
     from fastapi import APIRouter, HTTPException
@@ -35,7 +36,7 @@ except Exception:  # pragma: no cover
     def Field(*args, **kwargs):  # type: ignore[misc]
         return None
 
-from ..graph.models import LegalGraph, GraphEdge
+from ..graph.models import EdgeType, LegalGraph, GraphEdge, GraphNode, NodeType
 from ..tests.templates import TEMPLATE_REGISTRY
 from ..policy.engine import PolicyEngine
 
@@ -51,17 +52,62 @@ def run_tests() -> Dict[str, Any]:
 
 
 # Additional utility functions used by the CLI and tests
-RANK: Dict[str, float] = {
-    "HCA": 3.0,
-    "FCA": 2.0,
-    "NSWCA": 1.0,
+# Ranking configuration -----------------------------------------------------
+
+COURT_RANK: Dict[str, float] = {
+    "HCA": 5.0,
+    "FCAFC": 4.0,
+    "FCA": 3.0,
+    "FCCA": 3.0,
+    "FCC": 3.0,
+    "FEDCRTS": 3.0,
+    "FAMILY COURT": 4.0,
+    "FAMCA": 4.0,
+    "FAMCAFC": 4.0,
+    "FAMCT": 4.0,
+    "SINGLE-JUDGE": 3.0,
+    "TRIAL": 3.0,
+    "MAG": 2.0,
 }
 
-WEIGHT: Dict[str, float] = {
-    "followed": 2.0,
-    "distinguished": 1.0,
-    "overruled": 3.0,
+RELATION_WEIGHT: Dict[str, float] = {
+    "FOLLOWS": 3.0,
+    "APPLIES": 2.0,
+    "CONSIDERS": 1.0,
+    "DISTINGUISHES": -1.0,
+    "OVERRULES": -3.0,
 }
+
+# Backwards compatible aliases retained for tests importing the legacy names.
+RANK = COURT_RANK
+WEIGHT = RELATION_WEIGHT
+
+_COURT_FAMILY: Dict[str, str] = {
+    "HCA": "HCA",
+    "FCA": "Federal",
+    "FCAFC": "Federal",
+    "FCC": "Federal",
+    "FCCA": "Federal",
+    "FEDCRTS": "Federal",
+    "FAMILY COURT": "Family",
+    "FAMCA": "Family",
+    "FAMCAFC": "Family",
+    "FAMCT": "Family",
+    "SINGLE-JUDGE": "Trial",
+    "TRIAL": "Trial",
+    "MAG": "Magistrates",
+}
+
+_ADJACENT_FAMILIES: Dict[str, Tuple[str, ...]] = {
+    "HCA": ("Federal", "Family"),
+    "Federal": ("HCA", "Family", "Trial"),
+    "Family": ("HCA", "Federal"),
+    "Trial": ("Federal", "Magistrates"),
+    "Magistrates": ("Trial",),
+}
+
+POSTURE_MATCH_BOOST = 1.2
+POSTURE_MISMATCH_FACTOR = 0.8
 
 _graph = LegalGraph()
 _policy = PolicyEngine({"if": "SACRED_DATA", "then": "require", "else": "allow"})
@@ -198,39 +244,254 @@ def fetch_provision_atoms(provision_id: str) -> Dict[str, Any]:
     return provision
 
 
+def _normalise_court(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    return value.strip().upper()
+
+
+def _court_rank(court: Optional[str]) -> float:
+    if court is None:
+        return 0.0
+    return COURT_RANK.get(court, COURT_RANK.get(court.replace(" ", ""), 0.0))
+
+
+def _court_family_for(court: Optional[str]) -> Optional[str]:
+    if court is None:
+        return None
+    key = court.replace(" ", "").upper()
+    return _COURT_FAMILY.get(key, None)
+
+
+def _jurisdiction_fit(source_court: Optional[str], target_court: Optional[str]) -> float:
+    source_family = _court_family_for(source_court)
+    target_family = _court_family_for(target_court)
+    if source_family is None or target_family is None:
+        return 0.4
+    if source_family == target_family:
+        return 1.0
+    adjacent = _ADJACENT_FAMILIES.get(source_family, ())
+    if target_family in adjacent:
+        return 0.7
+    return 0.4
+
+
+def _posture_fit(source_posture: Optional[str], target_posture: Optional[str]) -> float:
+    if not source_posture or not target_posture:
+        return 1.0
+    if source_posture.lower() == target_posture.lower():
+        return POSTURE_MATCH_BOOST
+    return POSTURE_MISMATCH_FACTOR
+
+
+def _relation_value(relation: Optional[str]) -> float:
+    if relation is None:
+        return 0.0
+    return RELATION_WEIGHT.get(relation.upper(), 0.0)
+
+
+def _recency_decay(
+    source_date: Optional[date], target_date: Optional[date]
+) -> Tuple[float, float]:
+    if not source_date or not target_date:
+        return 1.0, 0.0
+    days = (source_date - target_date).days
+    years = max(0.0, days / 365.25)
+    return exp(-years / 6.0), years
+
+
+def _pinpoint_from_metadata(meta: Dict[str, Any]) -> Optional[str]:
+    for key in ("pinpoint", "pin_cite", "pin", "paragraph", "paragraphs"):
+        if key in meta:
+            value = meta[key]
+            if isinstance(value, (list, tuple)):
+                return ", ".join(str(v) for v in value)
+            return str(value)
+    return None
+
+
+def _factor_alignment(meta: Dict[str, Any]) -> Optional[str]:
+    for key in ("factor_alignment", "factor", "s60cc"):
+        if key in meta and meta[key]:
+            return str(meta[key])
+    return None
+
+
 def fetch_case_treatment(case_id: str) -> Dict[str, Any]:
     """Aggregate treatments for ``case_id`` from incoming citations."""
     if case_id not in _graph.nodes:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    totals: Dict[str, float] = defaultdict(float)
-    counts: Dict[str, int] = defaultdict(int)
+    target_node = _graph.get_node(case_id)
+    target_court = None
+    target_posture = None
+    target_date = None
+    if target_node:
+        target_court = _normalise_court(target_node.metadata.get("court"))
+        target_posture = target_node.metadata.get("posture")
+        target_date = target_node.date
+
+    authorities: List[Dict[str, Any]] = []
     for edge in _graph.find_edges(target=case_id):
         relation = edge.metadata.get("relation")
-        court = edge.metadata.get("court")
+        court = _normalise_court(edge.metadata.get("court") or edge.metadata.get("jurisdiction"))
         if relation is None or court is None:
             continue
-        weight = WEIGHT.get(relation, 0.0)
-        rank = RANK.get(court, 0.0)
-        contribution = weight * rank
-        totals[relation] += contribution
-        counts[relation] += 1
 
-    records: List[Dict[str, Any]] = [
-        {
-            "treatment": relation,
-            "count": counts[relation],
-            "total": total,
+        source_node = _graph.get_node(edge.source)
+        source_date = source_node.date if source_node else None
+        recency, years = _recency_decay(source_date, target_date)
+        relation_weight = _relation_value(relation)
+        court_rank = _court_rank(court)
+        jurisdiction_fit = _jurisdiction_fit(court, target_court)
+        posture_fit = _posture_fit(
+            edge.metadata.get("posture") or (source_node.metadata.get("posture") if source_node else None),
+            target_posture,
+        )
+
+        score = court_rank * relation_weight * recency * jurisdiction_fit * posture_fit
+
+        if source_node is not None:
+            citation = source_node.metadata.get("citation")
+            title = source_node.metadata.get("title")
+        else:
+            citation = None
+            title = None
+        pinpoint = _pinpoint_from_metadata(edge.metadata)
+        factor = _factor_alignment(edge.metadata)
+        components = {
+            "court_rank": court_rank,
+            "relation_weight": relation_weight,
+            "recency_decay": recency,
+            "jurisdiction_fit": jurisdiction_fit,
+            "posture_fit": posture_fit,
         }
-        for relation, total in totals.items()
-    ]
 
-    if not records:
+        authorities.append(
+            {
+                "authority_id": edge.source,
+                "neutral_citation": citation,
+                "title": title,
+                "relationship": relation.upper(),
+                "score": score,
+                "components": components,
+                "pinpoint": pinpoint,
+                "factor_alignment": factor,
+                "years_since": years,
+                "flag_inapposite": jurisdiction_fit <= 0.4 or posture_fit < 1.0,
+                "court": court,
+                "posture": edge.metadata.get("posture")
+                or (source_node.metadata.get("posture") if source_node else None),
+            }
+        )
+
+    if not authorities:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    # Sort by total descending and treatment name for deterministic order
-    records.sort(key=lambda r: (-r["total"], r["treatment"]))
-    return {"case_id": case_id, "treatments": records}
+    authorities.sort(
+        key=lambda record: (
+            -record["score"],
+            -record["components"]["court_rank"],
+            -record["components"]["relation_weight"],
+            record.get("neutral_citation") or record["authority_id"],
+        )
+    )
+
+    supportive = [rec for rec in authorities if rec["score"] > 0]
+    if supportive:
+        lines = ["Consider emphasising:"]
+        for rec in supportive[:3]:
+            cite = rec.get("neutral_citation") or rec["authority_id"]
+            factor = rec.get("factor_alignment") or "overall discretion"
+            lines.append(
+                f"- {cite} ({rec['relationship'].lower()} – supports {factor}, score {rec['score']:.2f})"
+            )
+        what_to_cite_next = "\n".join(lines)
+    else:
+        what_to_cite_next = "No supportive authorities met the ranking criteria."
+
+    return {
+        "case_id": case_id,
+        "authorities": authorities,
+        "what_to_cite_next": what_to_cite_next,
+    }
+
+
+def ensure_sample_treatment_graph() -> None:
+    """Populate the in-memory graph with sample treatment data if empty."""
+
+    if _graph.nodes:
+        return
+
+    target_id = "case123"
+    _graph.add_node(
+        GraphNode(
+            type=NodeType.DOCUMENT,
+            identifier=target_id,
+            metadata={
+                "citation": "[2014] FamCA 1",
+                "title": "Sample Parenting Matter",
+                "court": "FamCA",
+                "posture": "final",
+            },
+            date=date(2014, 1, 1),
+        )
+    )
+
+    citing_cases = [
+        (
+            "caseA",
+            {
+                "citation": "[2015] HCA 10",
+                "title": "High Court guidance",
+                "court": "HCA",
+                "posture": "final",
+            },
+            {
+                "relation": "FOLLOWS",
+                "court": "HCA",
+                "pinpoint": "¶ 42",
+                "factor": "s 60CC(2)(a)",
+                "posture": "final",
+            },
+            date(2015, 6, 1),
+        ),
+        (
+            "caseB",
+            {
+                "citation": "[2016] FamCAFC 50",
+                "title": "Family Court of Appeal consideration",
+                "court": "FAMCAFC",
+                "posture": "final",
+            },
+            {
+                "relation": "APPLIES",
+                "court": "FAMCAFC",
+                "pinpoint": "¶¶ 12-15",
+                "factor": "s 60CC(2)(b)",
+                "posture": "final",
+            },
+            date(2016, 3, 15),
+        ),
+    ]
+
+    for identifier, node_meta, edge_meta, node_date in citing_cases:
+        _graph.add_node(
+            GraphNode(
+                type=NodeType.DOCUMENT,
+                identifier=identifier,
+                metadata=node_meta,
+                date=node_date,
+            )
+        )
+        _graph.add_edge(
+            GraphEdge(
+                type=EdgeType.CITES,
+                source=identifier,
+                target=target_id,
+                metadata=edge_meta,
+            )
+        )
 
 
 @router.get("/cases/{case_id}/treatment")
@@ -248,9 +509,14 @@ __all__ = [
     "generate_subgraph",
     "execute_tests",
     "fetch_case_treatment",
+    "ensure_sample_treatment_graph",
     "fetch_provision_atoms",
     "_graph",
     "WEIGHT",
     "RANK",
+    "COURT_RANK",
+    "RELATION_WEIGHT",
+    "POSTURE_MATCH_BOOST",
+    "POSTURE_MISMATCH_FACTOR",
 ]
 

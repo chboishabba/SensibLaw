@@ -1,4 +1,6 @@
+import math
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -8,124 +10,149 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 pytest.importorskip("fastapi")
-from fastapi import HTTPException
+from fastapi import HTTPException  # noqa: E402
 
-from src.api.routes import fetch_case_treatment, _graph, WEIGHT, RANK
-from src.graph.models import GraphEdge, GraphNode, EdgeType, NodeType
+from src.api.routes import (  # noqa: E402
+    COURT_RANK,
+    POSTURE_MATCH_BOOST,
+    RELATION_WEIGHT,
+    fetch_case_treatment,
+    _graph,
+)
+from src.graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
 
 
-def setup_graph():
+def setup_rank_graph() -> str:
+    """Create a deterministic graph with rich metadata for ranking tests."""
+
     _graph.nodes.clear()
     _graph.edges.clear()
-    target = "case123"
-    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=target))
-
-    sources = {
-        "caseA": ("followed", "HCA"),
-        "caseB": ("followed", "FCA"),
-        "caseC": ("distinguished", "NSWCA"),
-        "caseD": ("distinguished", "FCA"),
-    }
-    for src, (relation, court) in sources.items():
-        _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=src))
-        _graph.add_edge(
-            GraphEdge(
-                type=EdgeType.CITES,
-                source=src,
-                target=target,
-                metadata={"relation": relation, "court": court},
-            )
-        )
-
-    # Outgoing edge which should be ignored
-    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier="other"))
-    _graph.add_edge(
-        GraphEdge(
-            type=EdgeType.CITES,
-            source=target,
-            target="other",
-            metadata={"relation": "followed", "court": "HCA"},
+    target = "case_target"
+    _graph.add_node(
+        GraphNode(
+            type=NodeType.DOCUMENT,
+            identifier=target,
+            metadata={"court": "FamCA", "posture": "final"},
+            date=date(2020, 1, 1),
         )
     )
-    return target
 
-
-def setup_graph_tie():
-    """Create a graph where treatments have equal totals."""
-    _graph.nodes.clear()
-    _graph.edges.clear()
-    target = "case_tie"
-    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=target))
-
-    # Insert edges in non-alphabetical order to ensure sorting is deterministic
-    edges = [
-        ("caseB", "overruled", "FCA"),  # 3 * 2 = 6
-        ("caseA", "followed", "HCA"),   # 2 * 3 = 6
+    citing_cases = [
+        (
+            "case_follow",
+            {
+                "citation": "[2022] HCA 1",
+                "title": "Recent High Court authority",
+                "court": "HCA",
+                "posture": "final",
+            },
+            {
+                "relation": "FOLLOWS",
+                "court": "HCA",
+                "pinpoint": "¶ 12",
+                "factor": "s 60CC(2)(a)",
+                "posture": "final",
+            },
+            date(2022, 1, 1),
+        ),
+        (
+            "case_applies",
+            {
+                "citation": "[2021] FamCAFC 50",
+                "title": "Full Court parenting principles",
+                "court": "FAMCAFC",
+                "posture": "final",
+            },
+            {
+                "relation": "APPLIES",
+                "court": "FAMCAFC",
+                "pinpoint": "¶¶ 45-50",
+                "factor": "s 60CC(2)(b)",
+                "posture": "final",
+            },
+            date(2021, 6, 1),
+        ),
+        (
+            "case_distinguish",
+            {
+                "citation": "[2023] Mag 15",
+                "title": "Magistrates' view",
+                "court": "MAG",
+                "posture": "interim",
+            },
+            {
+                "relation": "DISTINGUISHES",
+                "court": "MAG",
+                "pinpoint": "¶ 5",
+                "factor": "s 60CC(3)(c)",
+                "posture": "interim",
+            },
+            date(2023, 3, 1),
+        ),
     ]
-    for src, relation, court in edges:
-        _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=src))
+
+    for identifier, node_meta, edge_meta, node_date in citing_cases:
+        _graph.add_node(
+            GraphNode(
+                type=NodeType.DOCUMENT,
+                identifier=identifier,
+                metadata=node_meta,
+                date=node_date,
+            )
+        )
         _graph.add_edge(
             GraphEdge(
                 type=EdgeType.CITES,
-                source=src,
+                source=identifier,
                 target=target,
-                metadata={"relation": relation, "court": court},
+                metadata=edge_meta,
             )
         )
+
     return target
 
 
-def setup_graph_all_tie():
-    """Create a graph where three treatments have equal totals."""
-    _graph.nodes.clear()
-    _graph.edges.clear()
-    target = "case_all_tie"
-    _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=target))
-
-    # Edges inserted out of alphabetical order to test deterministic sorting
-    edges = [
-        ("caseB", "overruled", "FCA"),  # 3 * 2 = 6
-        ("caseA", "followed", "HCA"),   # 2 * 3 = 6
-        ("caseC1", "distinguished", "HCA"),  # 1 * 3 = 3
-        ("caseC2", "distinguished", "FCA"),  # 1 * 2 = 2
-        ("caseC3", "distinguished", "NSWCA"),  # 1 * 1 = 1
-    ]
-    for src, relation, court in edges:
-        _graph.add_node(GraphNode(type=NodeType.DOCUMENT, identifier=src))
-        _graph.add_edge(
-            GraphEdge(
-                type=EdgeType.CITES,
-                source=src,
-                target=target,
-                metadata={"relation": relation, "court": court},
-            )
-        )
-    return target
-
-
-def test_fetch_case_treatment_aggregates_and_sorts():
-    target = setup_graph()
+def test_fetch_case_treatment_scores_and_components():
+    target = setup_rank_graph()
     result = fetch_case_treatment(target)
 
-    followed_total = WEIGHT["followed"] * (RANK["HCA"] + RANK["FCA"])
-    distinguished_total = WEIGHT["distinguished"] * (RANK["NSWCA"] + RANK["FCA"])
-
-    assert result["case_id"] == target
-    assert result["treatments"] == [
-        {"treatment": "followed", "count": 2, "total": followed_total},
-        {"treatment": "distinguished", "count": 2, "total": distinguished_total},
+    authorities = result["authorities"]
+    assert [a["authority_id"] for a in authorities] == [
+        "case_follow",
+        "case_applies",
+        "case_distinguish",
     ]
 
+    first = authorities[0]
+    years = first["years_since"]
+    recency = first["components"]["recency_decay"]
+    jurisdiction_fit = first["components"]["jurisdiction_fit"]
+    expected_score = (
+        COURT_RANK["HCA"]
+        * RELATION_WEIGHT["FOLLOWS"]
+        * recency
+        * jurisdiction_fit
+        * POSTURE_MATCH_BOOST
+    )
+    assert math.isclose(first["score"], expected_score, rel_tol=1e-9)
+    assert first["pinpoint"] == "¶ 12"
+    assert first["factor_alignment"] == "s 60CC(2)(a)"
+    assert not first["flag_inapposite"]
+    assert math.isclose(first["components"]["recency_decay"], recency, rel_tol=1e-12)
+    assert math.isclose(first["components"]["jurisdiction_fit"], jurisdiction_fit, rel_tol=1e-12)
+    assert math.isclose(first["components"]["posture_fit"], POSTURE_MATCH_BOOST, rel_tol=1e-12)
+    assert math.isclose(first["years_since"], years, rel_tol=1e-12)
+    assert "Consider emphasising" in result["what_to_cite_next"]
 
-def test_fetch_case_treatment_deterministic_order():
-    target = setup_graph_tie()
+
+def test_fetch_case_treatment_flags_and_negative_scores():
+    target = setup_rank_graph()
     result = fetch_case_treatment(target)
 
-    total = WEIGHT["followed"] * RANK["HCA"]
-    assert result["treatments"] == [
-        {"treatment": "followed", "count": 1, "total": total},
-        {"treatment": "overruled", "count": 1, "total": total},
-    ]
+    negative = next(a for a in result["authorities"] if a["relationship"] == "DISTINGUISHES")
+    assert negative["score"] < 0
+    assert negative["flag_inapposite"]
+    assert negative["pinpoint"] == "¶ 5"
 
 
 def test_fetch_case_treatment_not_found():
@@ -134,16 +161,4 @@ def test_fetch_case_treatment_not_found():
     with pytest.raises(HTTPException) as exc:
         fetch_case_treatment("missing")
     assert exc.value.status_code == 404
-
-
-def test_fetch_case_treatment_deterministic_order_multiple():
-    target = setup_graph_all_tie()
-    result = fetch_case_treatment(target)
-
-    total = 6.0
-    assert result["treatments"] == [
-        {"treatment": "distinguished", "count": 3, "total": total},
-        {"treatment": "followed", "count": 1, "total": total},
-        {"treatment": "overruled", "count": 1, "total": total},
-    ]
 

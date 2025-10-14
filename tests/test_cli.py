@@ -22,16 +22,21 @@ def setup_db(tmp_path: Path) -> tuple[str, int]:
         licence="CC0",
         canonical_id="cli-123",
     )
-    provision = Provision(
+    provision_v1 = Provision(
         text="CLI provision",
         identifier="clause 1",
         atoms=[Atom(type="duty", text="Preserve CLI atoms")],
     )
-    store.add_revision(
-        doc_id, Document(meta, "old", provisions=[provision]), date(2020, 1, 1)
+    provision_v2 = Provision(
+        text="CLI provision",
+        identifier="clause 1 rev2",
+        atoms=[Atom(type="duty", text="Preserve CLI atoms")],
     )
     store.add_revision(
-        doc_id, Document(meta, "new", provisions=[provision]), date(2021, 1, 1)
+        doc_id, Document(meta, "old", provisions=[provision_v1]), date(2020, 1, 1)
+    )
+    store.add_revision(
+        doc_id, Document(meta, "new", provisions=[provision_v2]), date(2021, 1, 1)
     )
     store.close()
     return str(db), doc_id
@@ -64,61 +69,43 @@ def test_cli_as_at(tmp_path: Path):
 
 
 def test_tests_run(tmp_path: Path):
-    templates = [
-        {
-            "concept_id": "permanent_stay",
-            "name": "Permanent Stay Test",
-            "factors": [
-                {"id": "delay", "description": "Extent and impact of any prosecutorial delay"},
-                {
-                    "id": "abuse_of_process",
-                    "description": "Whether continuation would be an abuse of process",
-                },
-                {
-                    "id": "fair_trial_possible",
-                    "description": "Possibility of a fair trial despite the delay",
-                },
-            ],
-        }
-    ]
-    tmpl_path = tmp_path / "templates.json"
-    tmpl_path.write_text(json.dumps(templates))
-
     story = {
-        "concept_id": "permanent_stay",
-        "facts": [
-            {"factor": "delay", "met": True, "evidence": "para 1"},
-            {"factor": "abuse_of_process", "met": False, "evidence": "para 2"},
-        ],
+        "delay": True,
+        "abuse_of_process": False,
+        "fair_trial_possible": False,
     }
     story_path = tmp_path / "story.json"
     story_path.write_text(json.dumps(story))
 
     out = run_tests_cli(
-        "--templates",
-        str(tmpl_path),
+        "--ids",
+        "glj:permanent_stay",
         "--story",
         str(story_path),
-        "--concept",
-        "permanent_stay",
     )
 
-    # Ensure the output lists each factor with the correct status
-    assert "delay" in out and "met" in out
-    assert "abuse_of_process" in out and "not_met" in out
-    assert "fair_trial_possible" in out and "unknown" in out
+    data = json.loads(out)
+    result = data["results"]["glj:permanent_stay"]
+    assert result["name"] == "GLJ Permanent Stay"
+    assert result["passed"] is False
+    assert result["factors"] == {
+        "delay": True,
+        "abuse_of_process": False,
+        "fair_trial_possible": False,
+    }
 def test_query_treatment_cli():
     cmd = [
         "python",
         "-m",
         "src.cli",
-        "query",
+        "cases",
         "treatment",
-        "--case",
+        "--case-id",
         "case123",
     ]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
     result = json.loads(completed.stdout)
     assert result["case_id"] == "case123"
-    citations = [t["citation"] for t in result["treatments"]]
-    assert citations == ["1 CLR 1", "2 CLR 50"]
+    citations = [t["neutral_citation"] for t in result["authorities"]]
+    assert citations[:2] == ["[2015] HCA 10", "[2016] FamCAFC 50"]
+    assert "what_to_cite_next" in result

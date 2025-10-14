@@ -258,8 +258,9 @@ def main() -> None:
             parser.print_help()
     elif args.command == "cases":
         if args.cases_command == "treatment":
-            from src.api.routes import fetch_case_treatment
+            from src.api.routes import ensure_sample_treatment_graph, fetch_case_treatment
 
+            ensure_sample_treatment_graph()
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
         else:
