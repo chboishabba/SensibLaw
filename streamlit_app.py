@@ -11,7 +11,7 @@ from datetime import date
 from enum import Enum
 from html import escape
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -189,6 +189,7 @@ def _collect_provisions(
 
     anchors: List[Tuple[Provision, str]] = []
     anchor_lookup: Dict[str, str] = {}
+    used_anchors: Set[str] = set()
 
     def register(key: Optional[str], anchor: str) -> None:
         normalised = _normalise_anchor_key(key)
@@ -197,10 +198,35 @@ def _collect_provisions(
 
     counter = 0
 
+    def ensure_unique(slug: str) -> str:
+        candidate = slug
+        suffix = 2
+        while candidate in used_anchors:
+            candidate = f"{slug}-{suffix}"
+            suffix += 1
+        used_anchors.add(candidate)
+        return candidate
+
+    def derive_anchor(node: Provision, fallback: str) -> str:
+        candidates = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+            f"{node.identifier}-{node.heading}"
+            if node.identifier and node.heading
+            else None,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate) if candidate else None
+            if slug:
+                return ensure_unique(slug)
+        return ensure_unique(fallback)
+
     def walk(node: Provision) -> None:
         nonlocal counter
         counter += 1
-        anchor = f"segment-{counter}"
+        fallback = f"segment-{counter}"
+        anchor = derive_anchor(node, fallback)
         anchors.append((node, anchor))
         register(node.identifier, anchor)
         register(node.heading, anchor)
@@ -208,6 +234,8 @@ def _collect_provisions(
         if node.toc_id is not None:
             register(str(node.toc_id), anchor)
             register(f"toc-{node.toc_id}", anchor)
+        if node.identifier and node.heading:
+            register(f"{node.identifier} {node.heading}", anchor)
         for child in node.children:
             walk(child)
 
@@ -353,7 +381,7 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     if not entries:
         return "<p class='toc-empty'>No table of contents entries detected.</p>"
 
-    def render_nodes(nodes: List[DocumentTOCEntry]) -> str:
+    def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
@@ -375,26 +403,136 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
                 if normalised and normalised in lookup:
                     anchor = lookup[normalised]
                     break
-            child_html = render_nodes(entry.children) if entry.children else ""
+            child_html = (
+                render_nodes(entry.children, depth + 1) if entry.children else ""
+            )
+            depth_attr = f" data-depth='{depth}' style='--toc-depth:{depth}'"
             if anchor:
-                item = f"<li><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                item = (
+                    f"<li{depth_attr}><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                )
             else:
-                item = f"<li>{label}{child_html}</li>"
+                item = f"<li{depth_attr}>{label}{child_html}</li>"
             items.append(item)
         return f"<ul>{''.join(items)}</ul>"
 
     return f"<nav class='toc-tree'>{render_nodes(entries)}</nav>"
 
 
-def _render_atom_badges(provision: Provision) -> str:
+def _atom_text_candidates(atom: Any) -> List[str]:
+    """Return candidate text snippets that describe an atom."""
+
+    candidates: List[str] = []
+    text = getattr(atom, "text", None)
+    if isinstance(text, str) and text.strip():
+        candidates.append(text)
+
+    subject = getattr(atom, "subject", None)
+    subject_text = getattr(subject, "text", None) if subject else None
+    if isinstance(subject_text, str) and subject_text.strip():
+        candidates.append(subject_text)
+
+    for element in getattr(atom, "elements", []) or []:
+        element_text = getattr(element, "text", None)
+        if isinstance(element_text, str) and element_text.strip():
+            candidates.append(element_text)
+
+    seen: Dict[str, None] = {}
+    for value in candidates:
+        normalised = value.strip()
+        if normalised and normalised not in seen:
+            seen[normalised] = None
+    return list(seen.keys())
+
+
+def _find_span_for_snippet(
+    text: str, snippet: str, occupied: List[Tuple[int, int]]
+) -> Optional[Tuple[int, int]]:
+    """Locate ``snippet`` within ``text`` while avoiding duplicates."""
+
+    snippet = snippet.strip()
+    if not text or not snippet:
+        return None
+
+    parts = [re.escape(part) for part in snippet.split() if part]
+    if not parts:
+        return None
+
+    pattern = re.compile(r"\\s+".join(parts), re.IGNORECASE)
+    for match in pattern.finditer(text):
+        start, end = match.span()
+        if all(end <= s or start >= e for s, e in occupied):
+            occupied.append((start, end))
+            return start, end
+    return None
+
+
+def _locate_atom_span(
+    text: str, atom: Any, occupied: List[Tuple[int, int]]
+) -> Optional[Tuple[int, int]]:
+    """Best-effort span lookup for an atom within provision text."""
+
+    candidates = sorted(_atom_text_candidates(atom), key=len, reverse=True)
+    for candidate in candidates:
+        span = _find_span_for_snippet(text, candidate, occupied)
+        if span is not None:
+            return span
+    return None
+
+
+def _build_atom_anchor_id(
+    provision_anchor: str, atom: Any, index: int
+) -> Optional[str]:
+    """Construct a stable anchor identifier for an atom badge."""
+
+    candidates: List[str] = []
+    stable_id = getattr(atom, "stable_id", None)
+    if stable_id:
+        candidates.append(str(stable_id))
+
+    toc_id = getattr(atom, "toc_id", None)
+    if toc_id is not None:
+        candidates.append(f"{provision_anchor}-toc-{toc_id}-atom-{index}")
+
+    candidates.append(f"{provision_anchor}-atom-{index}")
+
+    for candidate in candidates:
+        normalised = _normalise_anchor_key(candidate)
+        if normalised:
+            return f"atom-{normalised}"
+
+    fallback = _normalise_anchor_key(f"{provision_anchor}-atom-{index}")
+    if fallback:
+        return f"atom-{fallback}"
+    return None
+
+
+def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
     """Render interactive rule atom badges for a provision."""
 
     if not provision.rule_atoms:
         return ""
 
     badges: List[str] = []
+    occupied_spans: List[Tuple[int, int]] = []
+    provision_text = provision.text
+
     for index, atom in enumerate(provision.rule_atoms, start=1):
         detail_dict = atom.to_dict()
+
+        anchor_id = _build_atom_anchor_id(provision_anchor, atom, index)
+        if anchor_id:
+            detail_dict.setdefault("anchor", anchor_id)
+
+        span = _locate_atom_span(provision_text, atom, occupied_spans)
+        span_attrs: List[str] = []
+        if span is not None:
+            span_start, span_end = span
+            detail_dict.setdefault("span_start", span_start)
+            detail_dict.setdefault("span_end", span_end)
+            span_attrs.append(f"data-span-start='{span_start}'")
+            span_attrs.append(f"data-span-end='{span_end}'")
+
         detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
         detail_attr = escape(detail_json, quote=True)
         label_source = atom.atom_type or atom.role or f"Atom {index}"
@@ -406,6 +544,21 @@ def _render_atom_badges(provision: Provision) -> str:
                 f"data-detail='{detail_attr}'>{label}</span>"
             )
         )
+
+        attributes = [
+            "class='atom-badge'",
+            "tabindex='0'",
+            f"data-label='{label}'",
+            f"data-detail='{detail_attr}'",
+        ]
+
+        if anchor_id:
+            attributes.append(f"id='{anchor_id}'")
+            span_attrs.append(f"data-anchor-id='{anchor_id}'")
+
+        attributes.extend(span_attrs)
+
+        badges.append(f"<span {' '.join(attributes)}>{label}</span>")
 
     return (
         "<div class='atom-badges'><strong>Atoms:</strong> "
@@ -445,9 +598,19 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         highlighted = _highlight_line(stripped, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     atom_html = _render_atom_badges(provision)
+    stable_attr = (
+        f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
+        if provision.stable_id
+        else ""
+    )
+    section_id = f"section-{anchor}"
+    heading_html = (
+        f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
+    )
+    atom_html = _render_atom_badges(provision, anchor)
     return (
-        f"<section class='provision-section' id='{anchor}' data-anchor='{anchor}'>"
-        f"<h4>{heading}</h4>{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
+        f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}>"
+        f"{heading_html}{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
     )
 
 
@@ -481,23 +644,58 @@ def build_document_preview_html(document: Document) -> str:
 }
 .document-preview nav.toc-tree ul {
     list-style: none;
-    padding-left: 0.75rem;
+    margin: 0;
+    padding-left: 0;
 }
 .document-preview nav.toc-tree li {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+.document-preview nav.toc-tree li[data-depth] > a {
+    display: inline-flex;
+    align-items: center;
+    padding-left: calc(var(--toc-depth, 0) * 0.75rem);
+    position: relative;
+}
+.document-preview nav.toc-tree li[data-depth='0'] > a {
+    font-weight: 600;
 }
 .document-preview nav.toc-tree a {
     color: #11567f;
     text-decoration: none;
 }
+.document-preview nav.toc-tree a.active {
+    font-weight: 600;
+    color: #0b3a56;
+    position: relative;
+}
+.document-preview nav.toc-tree a.active::before {
+    content: '';
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 50%;
+    background-color: currentColor;
+}
 .document-preview nav.toc-tree a:hover,
 .document-preview nav.toc-tree a:focus {
     text-decoration: underline;
+}
+.document-preview nav.toc-tree a.active {
+    font-weight: 600;
+    color: #0b3f63;
+}
+.document-preview .heading-anchor {
+    display: inline-block;
+    scroll-margin-top: 0.75rem;
 }
 .document-preview .content-column {
     max-height: 720px;
     overflow-y: auto;
     padding-right: 0.5rem;
+    scroll-behavior: smooth;
 }
 .document-preview .provision-section {
     padding: 0.75rem 1rem;
@@ -573,7 +771,7 @@ def build_document_preview_html(document: Document) -> str:
     border: 1px solid #d9d9d9;
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
-    background: #fafafa;
+    background: #f4f7fb;
     max-height: 720px;
     overflow-y: auto;
 }
@@ -584,6 +782,96 @@ def build_document_preview_html(document: Document) -> str:
     padding: 0.5rem 0.75rem;
     white-space: pre-wrap;
     word-break: break-word;
+}
+.document-preview .detail-column .detail-placeholder {
+    margin: 0;
+    color: #4b5563;
+}
+.document-preview .rule-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.document-preview .rule-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+}
+.document-preview .rule-card__meta {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+.document-preview .rule-card__sentence {
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+.document-preview .rule-card__fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 0.9rem;
+    margin: 0;
+}
+.document-preview .rule-card__fields dt {
+    font-weight: 600;
+    color: #374151;
+}
+.document-preview .rule-card__fields dd {
+    margin: 0;
+    color: #1f2937;
+}
+.document-preview .rule-card__section {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+}
+.document-preview .rule-card__section h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+.document-preview .rule-card__list {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #1f2937;
+}
+.document-preview .rule-card__list li {
+    margin-bottom: 0.25rem;
+}
+.document-preview .rule-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.document-preview .rule-card__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: 0.75rem;
+}
+.document-preview .rule-card__subsection {
+    margin-bottom: 0.75rem;
+}
+.document-preview .rule-card__subsection:last-child {
+    margin-bottom: 0;
+}
+.document-preview .rule-card__empty {
+    margin: 0;
+    color: #6b7280;
+    font-style: italic;
 }
 .document-preview .toc-empty,
 .document-preview .no-provisions {
@@ -605,12 +893,198 @@ def build_document_preview_html(document: Document) -> str:
     script = """
 <script>
 (function() {
+    const previewRoot = document.querySelector('.document-preview');
+    if (!previewRoot) {
+        return;
+    }
+
+    const contentColumn = previewRoot.querySelector('.content-column');
+    const headingAnchors = contentColumn
+        ? Array.from(contentColumn.querySelectorAll('.heading-anchor'))
+        : [];
+    const tocLinks = Array.from(
+        previewRoot.querySelectorAll('nav.toc-tree a[href^="#"]')
+    );
+    const tocLinkById = new Map();
+    let activeAnchorId = null;
+
+    function setActiveLink(anchorId) {
+        if (activeAnchorId === anchorId) {
+            return;
+        }
+        if (activeAnchorId) {
+            const previous = tocLinkById.get(activeAnchorId);
+            if (previous) {
+                previous.classList.remove('active');
+            }
+        }
+        activeAnchorId = anchorId || null;
+        if (!anchorId) {
+            return;
+        }
+        const next = tocLinkById.get(anchorId);
+        if (next) {
+            next.classList.add('active');
+        }
+    }
+
+    function scrollToAnchor(anchorId) {
+        if (!contentColumn) {
+            return;
+        }
+        const target = document.getElementById(anchorId);
+        if (!target) {
+            return;
+        }
+        const containerRect = contentColumn.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const offset = targetRect.top - containerRect.top + contentColumn.scrollTop - 8;
+        contentColumn.scrollTo({
+            top: Math.max(offset, 0),
+            behavior: 'smooth'
+        });
+    }
+
+    function updateActiveFromScroll() {
+        if (!contentColumn || !headingAnchors.length) {
+            return;
+        }
+        const containerRect = contentColumn.getBoundingClientRect();
+        let candidate = null;
+        for (const anchor of headingAnchors) {
+            const delta = anchor.getBoundingClientRect().top - containerRect.top;
+            if (delta >= -16) {
+                candidate = anchor.id;
+                break;
+            }
+        }
+        if (!candidate && headingAnchors.length) {
+            const last = headingAnchors[headingAnchors.length - 1];
+            if (last.getBoundingClientRect().top <= containerRect.bottom) {
+                candidate = last.id;
+            }
+        }
+        if (candidate) {
+            setActiveLink(candidate);
+        }
+    }
+
+    tocLinks.forEach(function(link) {
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#')) {
+            return;
+        }
+        const anchorId = href.slice(1);
+        tocLinkById.set(anchorId, link);
+        link.addEventListener('click', function(event) {
+            if (!contentColumn) {
+                return;
+            }
+            event.preventDefault();
+            scrollToAnchor(anchorId);
+            setActiveLink(anchorId);
+        });
+    });
+
+    if (contentColumn) {
+        const handleScroll = function() {
+            window.requestAnimationFrame(updateActiveFromScroll);
+        };
+        contentColumn.addEventListener('scroll', handleScroll);
+        updateActiveFromScroll();
+    }
+
+    const initialHash = window.location.hash ? window.location.hash.slice(1) : '';
+    if (initialHash && tocLinkById.has(initialHash)) {
+        setTimeout(function() {
+            scrollToAnchor(initialHash);
+            setActiveLink(initialHash);
+        }, 0);
+    } else if (headingAnchors.length) {
+        setActiveLink(headingAnchors[0].id);
+    }
+
     const badges = Array.from(document.querySelectorAll('.atom-badge'));
     const spans = Array.from(document.querySelectorAll('.atom-span'));
     const detailColumn = document.getElementById('atom-detail-panel');
+    const tocLinks = Array.from(
+        document.querySelectorAll('.toc-tree a[href^="#"]')
+    );
+    const contentColumn = document.querySelector('.content-column');
+
     if (!detailColumn) {
         return;
     }
+    function createFieldList(fieldDefs, source) {
+        const dl = document.createElement('dl');
+        dl.className = 'rule-card__fields';
+        fieldDefs.forEach(([key, display]) => {
+            const value = source ? source[key] : undefined;
+            if (value === null || value === undefined) {
+                return;
+            }
+            let textValue;
+            if (Array.isArray(value)) {
+                textValue = value
+                    .map((entry) => {
+                        if (entry === null || entry === undefined) {
+                            return '';
+                        }
+                        if (typeof entry === 'object') {
+                            return '';
+                        }
+                        return String(entry).trim();
+                    })
+                    .filter(Boolean)
+                    .join(', ');
+            } else if (typeof value === 'object') {
+                return;
+            } else {
+                textValue = String(value).trim();
+            }
+            if (!textValue) {
+                return;
+            }
+            const dt = document.createElement('dt');
+            dt.textContent = display;
+            const dd = document.createElement('dd');
+            dd.textContent = textValue;
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+        });
+        return dl.childElementCount ? dl : null;
+    }
+
+    function createMetadataTags(metadata) {
+        if (!metadata || typeof metadata !== 'object') {
+            return null;
+        }
+        const entries = Object.entries(metadata).filter(([, value]) => value !== null && value !== undefined && value !== '');
+        if (!entries.length) {
+            return null;
+        }
+        const container = document.createElement('div');
+        container.className = 'rule-card__tags';
+        entries.forEach(([key, value]) => {
+            const span = document.createElement('span');
+            span.className = 'rule-card__tag';
+            if (Array.isArray(value)) {
+                const filtered = value
+                    .filter((item) => item !== null && item !== undefined && item !== '')
+                    .map((item) => String(item));
+                span.textContent = filtered.length ? `${key}: ${filtered.join(', ')}` : key;
+            } else if (typeof value === 'object') {
+                span.textContent = `${key}`;
+            } else if (value === true) {
+                span.textContent = key;
+            } else {
+                span.textContent = `${key}: ${value}`;
+            }
+            container.appendChild(span);
+        });
+        return container;
+    }
+
     function renderDetail(label, detailText) {
         let parsed = detailText;
         if (typeof detailText === 'string' && detailText.trim() !== '') {
@@ -631,14 +1105,250 @@ def build_document_preview_html(document: Document) -> str:
             return;
         }
         if (typeof parsed === 'string') {
+        const panelHeading = document.createElement('h3');
+        panelHeading.textContent = 'Atom details';
+        detailColumn.appendChild(panelHeading);
+        if (typeof parsed === 'string' || !parsed || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
-            paragraph.textContent = parsed;
+            paragraph.className = 'rule-card__empty';
+            paragraph.textContent = typeof parsed === 'string' ? parsed : 'No additional details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
-        const pre = document.createElement('pre');
-        pre.textContent = JSON.stringify(parsed, null, 2);
-        detailColumn.appendChild(pre);
+
+        const card = document.createElement('article');
+        card.className = 'rule-card';
+
+        const title = document.createElement('h3');
+        title.className = 'rule-card__title';
+        title.textContent = label || 'Selected atom';
+        card.appendChild(title);
+
+        const metaParts = [];
+        if (parsed.toc_id !== null && parsed.toc_id !== undefined) {
+            metaParts.push(`TOC ${parsed.toc_id}`);
+        }
+        if (parsed.stable_id) {
+            metaParts.push(`#${parsed.stable_id}`);
+        }
+        if (parsed.atom_type && parsed.atom_type !== 'rule') {
+            metaParts.push(String(parsed.atom_type));
+        }
+        if (metaParts.length) {
+            const meta = document.createElement('p');
+            meta.className = 'rule-card__meta';
+            meta.textContent = metaParts.join(' • ');
+            card.appendChild(meta);
+        }
+
+        const sentenceText = parsed.text || (parsed.subject && parsed.subject.text) || '';
+        if (sentenceText) {
+            const sentence = document.createElement('p');
+            sentence.className = 'rule-card__sentence';
+            sentence.textContent = sentenceText;
+            card.appendChild(sentence);
+        }
+
+        const primaryFields = [
+            ['party', 'Party'],
+            ['role', 'Role'],
+            ['actor', 'Actor'],
+            ['modality', 'Modality'],
+            ['action', 'Action'],
+            ['conditions', 'Conditions'],
+            ['scope', 'Scope'],
+            ['who', 'Who'],
+            ['who_text', 'Who text'],
+            ['subject_gloss', 'Subject gloss'],
+        ];
+        const fieldList = createFieldList(primaryFields, parsed);
+        if (fieldList) {
+            card.appendChild(fieldList);
+        }
+
+        const subjectSection = parsed.subject && typeof parsed.subject === 'object'
+            ? createFieldList(
+                  [
+                      ['type', 'Type'],
+                      ['role', 'Role'],
+                      ['party', 'Party'],
+                      ['who', 'Who'],
+                      ['who_text', 'Who text'],
+                      ['conditions', 'Conditions'],
+                      ['text', 'Text'],
+                      ['gloss', 'Gloss'],
+                  ],
+                  parsed.subject,
+              )
+            : null;
+        if (subjectSection) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Subject';
+            section.appendChild(heading);
+            section.appendChild(subjectSection);
+            if (parsed.subject && parsed.subject.gloss_metadata) {
+                const tags = createMetadataTags(parsed.subject.gloss_metadata);
+                if (tags) {
+                    section.appendChild(tags);
+                }
+            }
+            card.appendChild(section);
+        }
+
+        if (parsed.subject_gloss_metadata) {
+            const tags = createMetadataTags(parsed.subject_gloss_metadata);
+            if (tags) {
+                const section = document.createElement('section');
+                section.className = 'rule-card__section';
+                const heading = document.createElement('h4');
+                heading.textContent = 'Subject metadata';
+                section.appendChild(heading);
+                section.appendChild(tags);
+                card.appendChild(section);
+            }
+        }
+
+        if (Array.isArray(parsed.elements) && parsed.elements.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Elements';
+            section.appendChild(heading);
+            parsed.elements.forEach((element, index) => {
+                if (!element || typeof element !== 'object') {
+                    return;
+                }
+                const elementFields = createFieldList(
+                    [
+                        ['role', 'Role'],
+                        ['text', 'Text'],
+                        ['conditions', 'Conditions'],
+                        ['gloss', 'Gloss'],
+                    ],
+                    element,
+                );
+                if (!elementFields) {
+                    return;
+                }
+                const wrapper = document.createElement('div');
+                wrapper.className = 'rule-card__subsection';
+                if (parsed.elements.length > 1) {
+                    const subheading = document.createElement('h5');
+                    subheading.textContent = `Element ${index + 1}`;
+                    subheading.style.margin = '0 0 0.3rem 0';
+                    subheading.style.fontSize = '0.85rem';
+                    subheading.style.color = '#1f2937';
+                    wrapper.appendChild(subheading);
+                }
+                wrapper.appendChild(elementFields);
+                if (element.gloss_metadata) {
+                    const tags = createMetadataTags(element.gloss_metadata);
+                    if (tags) {
+                        wrapper.appendChild(tags);
+                    }
+                }
+                if (Array.isArray(element.references) && element.references.length) {
+                    const refList = document.createElement('ul');
+                    refList.className = 'rule-card__list';
+                    element.references.forEach((ref) => {
+                        if (!ref || typeof ref !== 'object') {
+                            return;
+                        }
+                        const parts = [];
+                        if (ref.work) parts.push(ref.work);
+                        if (ref.section) parts.push(`s ${ref.section}`);
+                        if (ref.pinpoint) parts.push(ref.pinpoint);
+                        if (ref.citation_text) parts.push(ref.citation_text);
+                        if (!parts.length) {
+                            return;
+                        }
+                        const li = document.createElement('li');
+                        li.textContent = parts.join(', ');
+                        refList.appendChild(li);
+                    });
+                    if (refList.childElementCount) {
+                        const refsHeading = document.createElement('h6');
+                        refsHeading.textContent = 'References';
+                        refsHeading.style.margin = '0.5rem 0 0.2rem 0';
+                        refsHeading.style.fontSize = '0.75rem';
+                        refsHeading.style.textTransform = 'uppercase';
+                        refsHeading.style.letterSpacing = '0.05em';
+                        refsHeading.style.color = '#6b7280';
+                        wrapper.appendChild(refsHeading);
+                        wrapper.appendChild(refList);
+                    }
+                }
+                section.appendChild(wrapper);
+            });
+            card.appendChild(section);
+        }
+
+        if (Array.isArray(parsed.references) && parsed.references.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'References';
+            section.appendChild(heading);
+            const list = document.createElement('ul');
+            list.className = 'rule-card__list';
+            parsed.references.forEach((ref) => {
+                if (!ref || typeof ref !== 'object') {
+                    return;
+                }
+                const parts = [];
+                if (ref.work) parts.push(ref.work);
+                if (ref.section) parts.push(`s ${ref.section}`);
+                if (ref.pinpoint) parts.push(ref.pinpoint);
+                if (ref.citation_text) parts.push(ref.citation_text);
+                if (!parts.length) {
+                    return;
+                }
+                const li = document.createElement('li');
+                li.textContent = parts.join(', ');
+                list.appendChild(li);
+            });
+            if (list.childElementCount) {
+                section.appendChild(list);
+                card.appendChild(section);
+            }
+        }
+
+        if (Array.isArray(parsed.lints) && parsed.lints.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Extraction notes';
+            section.appendChild(heading);
+            const list = document.createElement('ul');
+            list.className = 'rule-card__list';
+            parsed.lints.forEach((lint) => {
+                if (!lint || typeof lint !== 'object') {
+                    return;
+                }
+                const parts = [];
+                if (lint.code) parts.push(lint.code);
+                if (lint.message) parts.push(lint.message);
+                const li = document.createElement('li');
+                li.textContent = parts.join(' — ');
+                list.appendChild(li);
+            });
+            if (list.childElementCount) {
+                section.appendChild(list);
+                card.appendChild(section);
+            }
+        }
+
+        if (!card.childElementCount) {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'rule-card__empty';
+            placeholder.textContent = 'No additional details available.';
+            detailColumn.appendChild(placeholder);
+            return;
+        }
+
+        detailColumn.appendChild(card);
     }
     function setActive(label) {
         const allTargets = badges.concat(spans);
@@ -687,6 +1397,99 @@ def build_document_preview_html(document: Document) -> str:
             activate(span);
         });
     });
+
+    if (!tocLinks.length || !contentColumn) {
+        return;
+    }
+
+    const linkById = new Map();
+    tocLinks.forEach(function(link) {
+        const targetId = link.getAttribute('href').slice(1);
+        if (targetId) {
+            linkById.set(targetId, link);
+        }
+    });
+
+    const observedSections = Array.from(linkById.keys())
+        .map(function(id) {
+            return document.getElementById(id);
+        })
+        .filter(function(section) {
+            return section instanceof HTMLElement;
+        });
+
+    if (!observedSections.length) {
+        return;
+    }
+
+    let activeLink = null;
+    const visibleSections = new Map();
+
+    function setActiveLink(link) {
+        if (activeLink === link) {
+            return;
+        }
+        if (activeLink) {
+            activeLink.classList.remove('active');
+        }
+        activeLink = link;
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    }
+
+    const observer = new IntersectionObserver(
+        function(entries) {
+            entries.forEach(function(entry) {
+                const id = entry.target.getAttribute('id');
+                if (!id) {
+                    return;
+                }
+                if (entry.isIntersecting) {
+                    visibleSections.set(id, entry.intersectionRatio);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+
+            let bestId = null;
+            let bestRatio = 0;
+            visibleSections.forEach(function(ratio, id) {
+                if (ratio > bestRatio) {
+                    bestRatio = ratio;
+                    bestId = id;
+                }
+            });
+
+            if (!bestId && observedSections.length) {
+                bestId = observedSections[0].getAttribute('id');
+            }
+
+            if (!bestId) {
+                setActiveLink(null);
+                return;
+            }
+
+            const link = linkById.get(bestId);
+            if (link) {
+                setActiveLink(link);
+            }
+        },
+        {
+            root: contentColumn,
+            threshold: [0.1, 0.25, 0.5, 0.75],
+            rootMargin: '0px 0px -40% 0px'
+        }
+    );
+
+    observedSections.forEach(function(section) {
+        observer.observe(section);
+    });
+
+    const firstLink = linkById.get(observedSections[0].getAttribute('id'));
+    if (firstLink) {
+        setActiveLink(firstLink);
+    }
 })();
 </script>
 """
@@ -704,7 +1507,7 @@ def build_document_preview_html(document: Document) -> str:
         "</div>"
         "<div class='detail-column' id='atom-detail-panel'>"
         "<h3>Atom details</h3>"
-        "<p>Select an atom badge to inspect the structured data.</p>"
+        "<p class='detail-placeholder'>Select an atom badge to explore the structured rule.</p>"
         "</div>"
         "</div>"
         "</div>"
