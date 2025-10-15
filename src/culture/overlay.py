@@ -9,8 +9,8 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import yaml
 
-from ..models.document import Document
-from ..models.provision import Provision
+from models.document import Document
+from models.provision import Provision
 
 
 @dataclass(frozen=True)

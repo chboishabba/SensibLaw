@@ -4,8 +4,8 @@ import logging
 from datetime import date
 from typing import List
 
-from ..austlii_client import AustLIIClient
-from ..storage import VersionedStore
+from austlii_client import AustLIIClient
+from storage import VersionedStore
 
 logger = logging.getLogger(__name__)
 

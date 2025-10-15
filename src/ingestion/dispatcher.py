@@ -10,11 +10,11 @@ from typing import Any, Dict, List, Optional
 from . import frl, hca, hansard
 
 try:  # pragma: no cover - optional dependency
-    from ..austlii_client import AustLIIClient
+    from austlii_client import AustLIIClient
 except Exception:  # requests may be unavailable during tests
     AustLIIClient = None
 
-from ..graph.ingest import Graph, ingest_document
+from graph.ingest import Graph, ingest_document
 from .parser import emit_document
 
 

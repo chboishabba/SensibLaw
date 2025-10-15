@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
-from ..models.provision import Atom, Provision
+from models.provision import Atom, Provision
 
 # Directory where ontology JSON files are stored.
 ONTOLOGY_DIR = Path(__file__).resolve().parents[2] / "data" / "ontology"

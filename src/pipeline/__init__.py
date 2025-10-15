@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import List, Dict
 
-from ..concepts.matcher import MATCHER
+from concepts.matcher import MATCHER
 
 from tools.glossary import rewrite_text
 

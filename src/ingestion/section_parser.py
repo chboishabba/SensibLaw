@@ -394,4 +394,4 @@ def parse_sections(text: str) -> List[ParsedNode]:
 __all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
 """Compatibility re-export for :mod:`src.section_parser`."""
 
-from ..section_parser import *  # noqa: F401,F403
+from section_parser import *  # noqa: F401,F403

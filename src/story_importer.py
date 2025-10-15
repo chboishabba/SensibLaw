@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
-from .schema_utils import load_schema, validate
+from schema_utils import load_schema, validate
 
 _EVENT_SCHEMA = load_schema("event.schema.yaml")
 _RULE_CHECK_SCHEMA = load_schema("rule_check.schema.yaml")
