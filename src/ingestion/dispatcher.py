@@ -14,7 +14,7 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # requests may be unavailable during tests
     AustLIIClient = None
 
-from graph.ingest import Graph, ingest_document
+from src.graph.ingest import Graph, ingest_document
 from .parser import emit_document
 
 

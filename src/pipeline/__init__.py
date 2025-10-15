@@ -4,11 +4,11 @@ from __future__ import annotations
 from collections import Counter
 from typing import List, Dict
 
-from concepts.matcher import MATCHER
+from src.concepts.matcher import MATCHER
 
-from tools.glossary import rewrite_text
+from src.tools.glossary import rewrite_text
 
-from tools.harm_index import compute_harm_index as harm_index
+from src.tools.harm_index import compute_harm_index as harm_index
 
 
 

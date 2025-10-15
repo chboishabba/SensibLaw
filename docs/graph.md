@@ -22,7 +22,7 @@ project grows.
 ## Creating Nodes and Edges
 
 ```python
-from graph import (
+from src.graph import (
     CaseNode,
     GraphNode,
     GraphEdge,
@@ -68,7 +68,7 @@ the legislative stage (e.g. *2nd reading*). The ingestion helper computes a
 weight that reflects the relative influence of the contribution.
 
 ```python
-from graph import LegalGraph, NodeType, GraphNode, ingest_extrinsic
+from src.graph import LegalGraph, NodeType, GraphNode, ingest_extrinsic
 
 graph = LegalGraph()
 bill = GraphNode(type=NodeType.DOCUMENT, identifier="bill-1")

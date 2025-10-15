@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import date
 from typing import List, Optional
 
-from graph.models import (
+from src.graph.models import (
     EdgeType,
     GraphEdge,
     GraphNode,
     LegalGraph,
     NodeType,
 )
-from models.provision import Provision
+from src.models.provision import Provision
 
 # Sample in-memory data used by both the API and CLI. This keeps the
 # implementation lightweight while still exercising the graph and

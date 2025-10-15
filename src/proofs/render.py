@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Iterable
 import subprocess
 
-from graph.proof_tree import Edge, Node, to_dot
+from src.graph.proof_tree import Edge, Node, to_dot
 
 try:
     import yaml  # type: ignore

@@ -24,8 +24,8 @@ import re
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from .cache import fetch_html, fetch_pdf
-from graph.hierarchy import COURT_RANKS, court_weight
-from graph.models import EdgeType, NodeType
+from src.graph.hierarchy import COURT_RANKS, court_weight
+from src.graph.models import EdgeType, NodeType
 
 # ---------------------------------------------------------------------------
 # Data models
