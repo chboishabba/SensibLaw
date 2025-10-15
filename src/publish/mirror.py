@@ -89,15 +89,29 @@ def generate_site(seed: str, out_dir: Path, pack_path: Path | None = None) -> No
 
     # Basic HTML shell
     html = """<!DOCTYPE html>
-<html>
+<html lang='en'>
 <head>
 <meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>SensibLaw Mirror</title>
 <link rel='stylesheet' href='assets/style.css'>
 </head>
 <body>
-<h1>SensibLaw Mirror</h1>
-<ul id='node-list'></ul>
+<header class='site-header'>
+  <div class='header-inner'>
+    <h1 class='site-title'>SensibLaw Mirror</h1>
+    <p class='site-tagline'>Explore knowledge graph issues side by side.</p>
+  </div>
+</header>
+<main class='site-main'>
+  <div class='view-shell'>
+    <section id='view-controls' class='view-controls' aria-label='View modes'></section>
+    <section id='view-container' class='view-container' aria-live='polite'></section>
+    <noscript>
+      <p class='empty-state'>Enable JavaScript to view the graph visualisations.</p>
+    </noscript>
+  </div>
+</main>
 <script src='assets/main.js'></script>
 </body>
 </html>

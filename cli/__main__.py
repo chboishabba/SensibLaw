@@ -13,6 +13,30 @@ def main() -> None:
     from . import glossary as glossary_cmd
     from . import receipts as receipts_cmd
 
+    def _run_publish(args) -> None:
+        from src.publish.mirror import generate_site
+
+        generate_site(args.seed, args.out, pack_path=args.pack)
+
+    publish_parser = sub.add_parser(
+        "publish", help="Generate a static SensibLaw Mirror site"
+    )
+    publish_parser.add_argument(
+        "--seed", required=True, help="Seed node identifier to validate"
+    )
+    publish_parser.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory where the static site should be written",
+    )
+    publish_parser.add_argument(
+        "--pack",
+        type=Path,
+        help="Path to a graph pack JSON file (defaults to SENSIBLAW_PACK)",
+    )
+    publish_parser.set_defaults(func=_run_publish)
+
     brief_cmd.register(sub)
     frame_cmd.register(sub)
     glossary_cmd.register(sub)
