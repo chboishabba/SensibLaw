@@ -107,7 +107,7 @@ ON toc(doc_id, rev_id, toc_id);
 CREATE INDEX IF NOT EXISTS idx_toc_parent
 ON toc(doc_id, rev_id, parent_id);
 
-CREATE UNIQUE INDEX idx_toc_stable
+CREATE UNIQUE INDEX IF NOT EXISTS idx_toc_stable
 ON toc(doc_id, stable_id);
 
 
