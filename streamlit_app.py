@@ -1,10 +1,13 @@
 """SensibLaw Streamlit operations console."""
+
 from __future__ import annotations
 
 import json
 import sys
 import tempfile
+from dataclasses import asdict, is_dataclass
 from datetime import date
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -137,10 +140,22 @@ def _write_bytes(path: Path, data: bytes) -> Path:
     return path
 
 
+def _json_default(value: Any) -> Any:
+    """Provide JSON-serialisation fallbacks for complex objects."""
+
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, date):
+        return value.isoformat()
+    if is_dataclass(value):
+        return asdict(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serialisable")
+
+
 def _download_json(label: str, payload: Any, filename: str) -> None:
     st.download_button(
         label,
-        json.dumps(payload, indent=2, ensure_ascii=False),
+        json.dumps(payload, indent=2, ensure_ascii=False, default=_json_default),
         file_name=filename,
         mime="application/json",
     )
@@ -262,9 +277,7 @@ def render_documents_tab() -> None:
         )
         jurisdiction = st.text_input("Jurisdiction", value="High Court of Australia")
         citation = st.text_input("Citation", value="[1992] HCA 23")
-        cultural_flags = st.text_input(
-            "Cultural flags (comma separated)", value=""
-        )
+        cultural_flags = st.text_input("Cultural flags (comma separated)", value="")
         ingest = st.form_submit_button("Process PDF")
 
     if ingest:
@@ -283,7 +296,9 @@ def render_documents_tab() -> None:
             st.info(f"Processing {source_name} …")
             with st.spinner("Extracting text and rules"):
                 tmp_dir = Path(tempfile.mkdtemp(prefix="sensiblaw_pdf_"))
-                pdf_path = _write_bytes(tmp_dir / (source_name or "document.pdf"), buffer)
+                pdf_path = _write_bytes(
+                    tmp_dir / (source_name or "document.pdf"), buffer
+                )
                 flags = [f.strip() for f in cultural_flags.split(",") if f.strip()]
                 document, stored_id = process_pdf(
                     pdf_path,
@@ -335,7 +350,11 @@ def render_text_concepts_tab() -> None:
     )
 
     sample_story_path = ROOT / "examples" / "distinguish_glj" / "story.txt"
-    sample_text = sample_story_path.read_text(encoding="utf-8") if sample_story_path.exists() else ""
+    sample_text = (
+        sample_story_path.read_text(encoding="utf-8")
+        if sample_story_path.exists()
+        else ""
+    )
     default_text = st.session_state.get("concept_input", sample_text)
     text = st.text_area("Input text", value=default_text, height=240)
     st.session_state["concept_input"] = text
@@ -361,11 +380,17 @@ def render_text_concepts_tab() -> None:
         st.write(concepts)
         st.markdown("#### Concept cloud")
         if cloud:
-            display = pd.DataFrame(
-                {"concept": list(cloud.keys()), "count": list(cloud.values())}
-            ) if pd is not None else None
+            display = (
+                pd.DataFrame(
+                    {"concept": list(cloud.keys()), "count": list(cloud.values())}
+                )
+                if pd is not None
+                else None
+            )
             if display is not None:
-                display = display.sort_values("count", ascending=False).set_index("concept")
+                display = display.sort_values("count", ascending=False).set_index(
+                    "concept"
+                )
                 st.bar_chart(display)
                 st.dataframe(display, use_container_width=True)
             else:  # pragma: no cover - pandas optional
@@ -391,6 +416,7 @@ def render_text_concepts_tab() -> None:
         if include_dot:
             _render_dot(provision_payload.get("dot"), key="provision")
 
+
 # ---------------------------------------------------------------------------
 # Knowledge Graph
 # ---------------------------------------------------------------------------
@@ -402,7 +428,9 @@ def render_knowledge_graph_tab() -> None:
         "Generate subgraphs, execute legal tests, inspect case treatments, and fetch provision atoms."
     )
 
-    if st.button("Load sample graph data", help="Populate the in-memory graph with demo cases"):
+    if st.button(
+        "Load sample graph data", help="Populate the in-memory graph with demo cases"
+    ):
         _seed_sample_graph()
         st.success("Sample graph seeded.")
 
@@ -440,7 +468,9 @@ def render_knowledge_graph_tab() -> None:
         selected_ids = st.multiselect(
             "Test templates", template_ids, default=template_ids[:1]
         )
-        default_story = json.dumps({"facts": {fid: True for fid in ("delay",)}}, indent=2)
+        default_story = json.dumps(
+            {"facts": {fid: True for fid in ("delay",)}}, indent=2
+        )
         story_json = st.text_area(
             "Story facts JSON",
             value=st.session_state.get("story_json", default_story),
@@ -496,7 +526,9 @@ def render_knowledge_graph_tab() -> None:
             st.error(f"{exc.detail} (HTTP {exc.status_code})")
         else:
             st.json(provision)
-            _download_json("Download provision atoms", provision, "provision_atoms.json")
+            _download_json(
+                "Download provision atoms", provision, "provision_atoms.json"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -588,11 +620,15 @@ def render_utilities_tab() -> None:
         if entry is None:
             st.warning("No glossary entry found.")
         else:
-            st.json({"phrase": entry.phrase, "text": entry.text, "metadata": entry.metadata})
+            st.json(
+                {"phrase": entry.phrase, "text": entry.text, "metadata": entry.metadata}
+            )
 
     st.markdown("### Frame compiler")
     with st.form("frame_form"):
-        frame_source = st.text_area("Frame definition", "actor must consider community impacts")
+        frame_source = st.text_area(
+            "Frame definition", "actor must consider community impacts"
+        )
         frame_submit = st.form_submit_button("Compile frame")
     if frame_submit:
         compiled = compile_frame(frame_source)
@@ -619,7 +655,9 @@ def render_utilities_tab() -> None:
 
     st.markdown("### Text similarity")
     with st.form("simhash_form"):
-        simhash_text = st.text_area("Text", "Sample text for simhash fingerprint", height=120)
+        simhash_text = st.text_area(
+            "Text", "Sample text for simhash fingerprint", height=120
+        )
         simhash_submit = st.form_submit_button("Compute simhash")
     if simhash_submit:
         fingerprint = simhash(simhash_text)
