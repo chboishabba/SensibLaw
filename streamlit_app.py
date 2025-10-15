@@ -11,7 +11,7 @@ from datetime import date
 from enum import Enum
 from html import escape
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -189,6 +189,7 @@ def _collect_provisions(
 
     anchors: List[Tuple[Provision, str]] = []
     anchor_lookup: Dict[str, str] = {}
+    used_anchors: Set[str] = set()
 
     def register(key: Optional[str], anchor: str) -> None:
         normalised = _normalise_anchor_key(key)
@@ -197,10 +198,35 @@ def _collect_provisions(
 
     counter = 0
 
+    def ensure_unique(slug: str) -> str:
+        candidate = slug
+        suffix = 2
+        while candidate in used_anchors:
+            candidate = f"{slug}-{suffix}"
+            suffix += 1
+        used_anchors.add(candidate)
+        return candidate
+
+    def derive_anchor(node: Provision, fallback: str) -> str:
+        candidates = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+            f"{node.identifier}-{node.heading}"
+            if node.identifier and node.heading
+            else None,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate) if candidate else None
+            if slug:
+                return ensure_unique(slug)
+        return ensure_unique(fallback)
+
     def walk(node: Provision) -> None:
         nonlocal counter
         counter += 1
-        anchor = f"segment-{counter}"
+        fallback = f"segment-{counter}"
+        anchor = derive_anchor(node, fallback)
         anchors.append((node, anchor))
         register(node.identifier, anchor)
         register(node.heading, anchor)
@@ -208,6 +234,8 @@ def _collect_provisions(
         if node.toc_id is not None:
             register(str(node.toc_id), anchor)
             register(f"toc-{node.toc_id}", anchor)
+        if node.identifier and node.heading:
+            register(f"{node.identifier} {node.heading}", anchor)
         for child in node.children:
             walk(child)
 
@@ -222,7 +250,7 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     if not entries:
         return "<p class='toc-empty'>No table of contents entries detected.</p>"
 
-    def render_nodes(nodes: List[DocumentTOCEntry]) -> str:
+    def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
@@ -244,11 +272,16 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
                 if normalised and normalised in lookup:
                     anchor = lookup[normalised]
                     break
-            child_html = render_nodes(entry.children) if entry.children else ""
+            child_html = (
+                render_nodes(entry.children, depth + 1) if entry.children else ""
+            )
+            depth_attr = f" data-depth='{depth}' style='--toc-depth:{depth}'"
             if anchor:
-                item = f"<li><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                item = (
+                    f"<li{depth_attr}><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                )
             else:
-                item = f"<li>{label}{child_html}</li>"
+                item = f"<li{depth_attr}>{label}{child_html}</li>"
             items.append(item)
         return f"<ul>{''.join(items)}</ul>"
 
@@ -423,10 +456,20 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         for line in provision.text.splitlines()
         if line.strip()
     ]
+    atom_html = _render_atom_badges(provision)
+    stable_attr = (
+        f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
+        if provision.stable_id
+        else ""
+    )
+    section_id = f"section-{anchor}"
+    heading_html = (
+        f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
+    )
     atom_html = _render_atom_badges(provision, anchor)
     return (
-        f"<section class='provision-section' id='{anchor}' data-anchor='{anchor}'>"
-        f"<h4>{heading}</h4>{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
+        f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}>"
+        f"{heading_html}{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
     )
 
 
@@ -460,10 +503,20 @@ def build_document_preview_html(document: Document) -> str:
 }
 .document-preview nav.toc-tree ul {
     list-style: none;
-    padding-left: 0.75rem;
+    margin: 0;
+    padding-left: 0;
 }
 .document-preview nav.toc-tree li {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+.document-preview nav.toc-tree li[data-depth] > a {
+    display: inline-flex;
+    align-items: center;
+    padding-left: calc(var(--toc-depth, 0) * 0.75rem);
+    position: relative;
+}
+.document-preview nav.toc-tree li[data-depth='0'] > a {
+    font-weight: 600;
 }
 .document-preview nav.toc-tree a {
     color: #11567f;
@@ -473,10 +526,19 @@ def build_document_preview_html(document: Document) -> str:
 .document-preview nav.toc-tree a:focus {
     text-decoration: underline;
 }
+.document-preview nav.toc-tree a.active {
+    font-weight: 600;
+    color: #0b3f63;
+}
+.document-preview .heading-anchor {
+    display: inline-block;
+    scroll-margin-top: 0.75rem;
+}
 .document-preview .content-column {
     max-height: 720px;
     overflow-y: auto;
     padding-right: 0.5rem;
+    scroll-behavior: smooth;
 }
 .document-preview .provision-section {
     padding: 0.75rem 1rem;
@@ -560,6 +622,117 @@ def build_document_preview_html(document: Document) -> str:
     script = """
 <script>
 (function() {
+    const previewRoot = document.querySelector('.document-preview');
+    if (!previewRoot) {
+        return;
+    }
+
+    const contentColumn = previewRoot.querySelector('.content-column');
+    const headingAnchors = contentColumn
+        ? Array.from(contentColumn.querySelectorAll('.heading-anchor'))
+        : [];
+    const tocLinks = Array.from(
+        previewRoot.querySelectorAll('nav.toc-tree a[href^="#"]')
+    );
+    const tocLinkById = new Map();
+    let activeAnchorId = null;
+
+    function setActiveLink(anchorId) {
+        if (activeAnchorId === anchorId) {
+            return;
+        }
+        if (activeAnchorId) {
+            const previous = tocLinkById.get(activeAnchorId);
+            if (previous) {
+                previous.classList.remove('active');
+            }
+        }
+        activeAnchorId = anchorId || null;
+        if (!anchorId) {
+            return;
+        }
+        const next = tocLinkById.get(anchorId);
+        if (next) {
+            next.classList.add('active');
+        }
+    }
+
+    function scrollToAnchor(anchorId) {
+        if (!contentColumn) {
+            return;
+        }
+        const target = document.getElementById(anchorId);
+        if (!target) {
+            return;
+        }
+        const containerRect = contentColumn.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const offset = targetRect.top - containerRect.top + contentColumn.scrollTop - 8;
+        contentColumn.scrollTo({
+            top: Math.max(offset, 0),
+            behavior: 'smooth'
+        });
+    }
+
+    function updateActiveFromScroll() {
+        if (!contentColumn || !headingAnchors.length) {
+            return;
+        }
+        const containerRect = contentColumn.getBoundingClientRect();
+        let candidate = null;
+        for (const anchor of headingAnchors) {
+            const delta = anchor.getBoundingClientRect().top - containerRect.top;
+            if (delta >= -16) {
+                candidate = anchor.id;
+                break;
+            }
+        }
+        if (!candidate && headingAnchors.length) {
+            const last = headingAnchors[headingAnchors.length - 1];
+            if (last.getBoundingClientRect().top <= containerRect.bottom) {
+                candidate = last.id;
+            }
+        }
+        if (candidate) {
+            setActiveLink(candidate);
+        }
+    }
+
+    tocLinks.forEach(function(link) {
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#')) {
+            return;
+        }
+        const anchorId = href.slice(1);
+        tocLinkById.set(anchorId, link);
+        link.addEventListener('click', function(event) {
+            if (!contentColumn) {
+                return;
+            }
+            event.preventDefault();
+            scrollToAnchor(anchorId);
+            setActiveLink(anchorId);
+        });
+    });
+
+    if (contentColumn) {
+        const handleScroll = function() {
+            window.requestAnimationFrame(updateActiveFromScroll);
+        };
+        contentColumn.addEventListener('scroll', handleScroll);
+        updateActiveFromScroll();
+    }
+
+    const initialHash = window.location.hash ? window.location.hash.slice(1) : '';
+    if (initialHash && tocLinkById.has(initialHash)) {
+        setTimeout(function() {
+            scrollToAnchor(initialHash);
+            setActiveLink(initialHash);
+        }, 0);
+    } else if (headingAnchors.length) {
+        setActiveLink(headingAnchors[0].id);
+    }
+
     const badges = Array.from(document.querySelectorAll('.atom-badge'));
     const detailColumn = document.getElementById('atom-detail-panel');
     if (!detailColumn) {
