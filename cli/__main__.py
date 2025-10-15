@@ -8,6 +8,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     # Register commands provided in this package
+    from . import brief as brief_cmd
     from . import frame as frame_cmd
     from . import glossary as glossary_cmd
     from . import receipts as receipts_cmd
@@ -36,6 +37,7 @@ def main() -> None:
     )
     publish_parser.set_defaults(func=_run_publish)
 
+    brief_cmd.register(sub)
     frame_cmd.register(sub)
     glossary_cmd.register(sub)
     receipts_cmd.register(sub)
@@ -282,8 +284,9 @@ def main() -> None:
             parser.print_help()
     elif args.command == "cases":
         if args.cases_command == "treatment":
-            from src.api.routes import fetch_case_treatment
+            from src.api.routes import ensure_sample_treatment_graph, fetch_case_treatment
 
+            ensure_sample_treatment_graph()
             result = fetch_case_treatment(args.case_id)
             print(json.dumps(result))
         else:

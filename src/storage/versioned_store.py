@@ -2243,7 +2243,6 @@ class VersionedStore:
                     text, subject_gloss, subject_gloss_metadata, glossary_id
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (doc_id, rev_id, provision_id, rule_id) DO UPDATE SET
                     text_hash = excluded.text_hash,
                     toc_id = excluded.toc_id,
