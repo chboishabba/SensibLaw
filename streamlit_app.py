@@ -152,12 +152,15 @@ def _json_default(value: Any) -> Any:
     raise TypeError(f"Object of type {type(value).__name__} is not JSON serialisable")
 
 
-def _download_json(label: str, payload: Any, filename: str) -> None:
+def _download_json(
+    label: str, payload: Any, filename: str, *, key: Optional[str] = None
+) -> None:
     st.download_button(
         label,
         json.dumps(payload, indent=2, ensure_ascii=False, default=_json_default),
         file_name=filename,
         mime="application/json",
+        key=key,
     )
 
 
@@ -312,9 +315,20 @@ def render_documents_tab() -> None:
             if stored_id is not None:
                 st.info(f"Stored as document ID {stored_id} in {db_path}")
                 doc_payload["doc_id"] = stored_id
-            with st.expander("Document metadata and rules", expanded=False):
-                st.json(doc_payload)
-            _download_json("Download document JSON", doc_payload, "document.json")
+            st.session_state["last_document_payload"] = doc_payload
+            st.session_state["expand_last_document"] = True
+
+    last_document = st.session_state.get("last_document_payload")
+    if last_document:
+        expanded = st.session_state.pop("expand_last_document", False)
+        with st.expander("Most recent document metadata and rules", expanded=expanded):
+            st.json(last_document)
+        _download_json(
+            "Download document JSON",
+            last_document,
+            "document.json",
+            key="download_document_json",
+        )
 
     st.markdown("### Snapshot lookup")
     with st.form("snapshot_form"):
