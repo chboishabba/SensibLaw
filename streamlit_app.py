@@ -6,7 +6,7 @@ import json
 import re
 import sys
 import tempfile
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date
 from enum import Enum
 from html import escape
@@ -50,7 +50,7 @@ from graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
 from harm.index import compute_harm  # noqa: E402
 from ingestion.frl import fetch_acts  # noqa: E402
 from models.document import Document, DocumentTOCEntry  # noqa: E402
-from models.provision import Provision  # noqa: E402
+from models.provision import Atom, Provision  # noqa: E402
 from pipeline import build_cloud, match_concepts, normalise  # noqa: E402
 from pdf_ingest import process_pdf  # noqa: E402
 from receipts.build import build_receipt  # noqa: E402
@@ -244,6 +244,137 @@ def _collect_provisions(
     return anchors, anchor_lookup
 
 
+@dataclass
+class _AtomAnnotation:
+    """Internal representation of a highlight span for a provision."""
+
+    identifier: str
+    text: str
+    label: str
+    detail_json: str
+    used: bool = False
+
+
+def _format_atom_label(atom: Atom, index: int) -> str:
+    """Return a human-readable label for an ``Atom``."""
+
+    candidates = [atom.role, atom.type, atom.party]
+    for candidate in candidates:
+        if candidate:
+            cleaned = str(candidate).strip()
+            if cleaned:
+                return cleaned.replace("_", " ")
+    return f"Atom {index}"
+
+
+def _build_atom_annotations(provision: Provision) -> List[_AtomAnnotation]:
+    """Prepare highlight annotations for ``provision`` body text."""
+
+    provision.ensure_rule_atoms()
+    atoms = [
+        (index, atom)
+        for index, atom in enumerate(provision.flatten_rule_atoms(), start=1)
+        if atom.text and atom.text.strip()
+    ]
+    if not atoms:
+        return []
+
+    # Highlight shorter fragments first to reduce overlap with broader spans.
+    atoms.sort(key=lambda item: len(item[1].text.strip()))
+
+    annotations: List[_AtomAnnotation] = []
+    for display_index, (atom_index, atom) in enumerate(atoms, start=1):
+        snippet = atom.text.strip()
+        if not snippet:
+            continue
+        label_source = _format_atom_label(atom, atom_index)
+        label = label_source
+        detail_json = json.dumps(atom.to_dict(), indent=2, ensure_ascii=False)
+        annotations.append(
+            _AtomAnnotation(
+                identifier=f"atom-span-{display_index}",
+                text=snippet,
+                label=label,
+                detail_json=detail_json,
+            )
+        )
+    return annotations
+
+
+def _find_in_line(
+    line: str,
+    snippet: str,
+    occupied: List[Tuple[int, int]],
+    *,
+    case_insensitive: bool = False,
+) -> Optional[Tuple[int, int, str]]:
+    """Locate ``snippet`` within ``line`` avoiding occupied ranges."""
+
+    if not snippet:
+        return None
+
+    haystack = line.lower() if case_insensitive else line
+    needle = snippet.lower() if case_insensitive else snippet
+    start = 0
+    while start <= len(haystack):
+        index = haystack.find(needle, start)
+        if index == -1:
+            break
+        end = index + len(needle)
+        if all(end <= s or index >= e for s, e in occupied):
+            return index, end, line[index:end]
+        start = index + 1
+    return None
+
+
+def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
+    """Render ``line`` with inline ``Atom`` annotations."""
+
+    if not line:
+        return ""
+
+    matches: List[Tuple[int, int, _AtomAnnotation, str]] = []
+    occupied: List[Tuple[int, int]] = []
+    for annotation in annotations:
+        if annotation.used:
+            continue
+        snippet = annotation.text
+        if not snippet:
+            continue
+        result = _find_in_line(line, snippet, occupied)
+        if result is None:
+            result = _find_in_line(line, snippet, occupied, case_insensitive=True)
+        if result is None:
+            continue
+        start, end, matched_text = result
+        annotation.used = True
+        occupied.append((start, end))
+        matches.append((start, end, annotation, matched_text))
+
+    if not matches:
+        return escape(line)
+
+    matches.sort(key=lambda item: item[0])
+    cursor = 0
+    parts: List[str] = []
+    for start, end, annotation, matched_text in matches:
+        if start > cursor:
+            parts.append(escape(line[cursor:start]))
+        label_attr = escape(annotation.label, quote=True)
+        detail_attr = escape(annotation.detail_json, quote=True)
+        highlight_text = escape(matched_text)
+        parts.append(
+            "<mark class='atom-span' tabindex='0' role='button' "
+            f"aria-label='{label_attr}' title='{label_attr}' "
+            f"data-atom-id='{annotation.identifier}' "
+            f"data-label='{label_attr}' data-detail='{detail_attr}'>{highlight_text}</mark>"
+        )
+        cursor = end
+    if cursor < len(line):
+        parts.append(escape(line[cursor:]))
+    return "".join(parts)
+
+
 def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     """Render nested table-of-contents entries as HTML."""
 
@@ -406,6 +537,13 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
         detail_attr = escape(detail_json, quote=True)
         label_source = atom.atom_type or atom.role or f"Atom {index}"
         label = escape(label_source)
+        badges.append(
+            (
+                "<span class='atom-badge' tabindex='0' role='button' "
+                f"aria-label='{label}' title='{label}' data-label='{label}' "
+                f"data-detail='{detail_attr}'>{label}</span>"
+            )
+        )
 
         attributes = [
             "class='atom-badge'",
@@ -451,11 +589,14 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         else ""
     )
 
-    paragraphs = [
-        f"<p>{escape(line.strip())}</p>"
-        for line in provision.text.splitlines()
-        if line.strip()
-    ]
+    annotations = _build_atom_annotations(provision)
+    paragraphs: List[str] = []
+    for raw_line in provision.text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        highlighted = _highlight_line(stripped, annotations)
+        paragraphs.append(f"<p>{highlighted}</p>")
     atom_html = _render_atom_badges(provision)
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
@@ -595,12 +736,36 @@ def build_document_preview_html(document: Document) -> str:
     cursor: pointer;
     border: 1px solid rgba(138, 79, 15, 0.2);
 }
+.document-preview .atom-badge[data-active='true'] {
+    background-color: #ffd59a;
+    border-color: #ff9d2e;
+    color: #5a3608;
+    box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.25);
+}
 .document-preview .atom-badge:focus {
     outline: 2px solid #ff9d2e;
     outline-offset: 2px;
 }
 .document-preview .atom-badge:hover {
     background-color: #ffd59a;
+}
+.document-preview .atom-span {
+    background-color: #fff3bf;
+    padding: 0 0.15rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    color: inherit;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.document-preview .atom-span:hover,
+.document-preview .atom-span:focus {
+    background-color: #ffe066;
+    box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.35);
+    outline: none;
+}
+.document-preview .atom-span[data-active='true'] {
+    background-color: #ffd43b;
+    box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.5);
 }
 .document-preview .detail-column {
     border: 1px solid #d9d9d9;
@@ -840,6 +1005,7 @@ def build_document_preview_html(document: Document) -> str:
     }
 
     const badges = Array.from(document.querySelectorAll('.atom-badge'));
+    const spans = Array.from(document.querySelectorAll('.atom-span'));
     const detailColumn = document.getElementById('atom-detail-panel');
     const tocLinks = Array.from(
         document.querySelectorAll('.toc-tree a[href^="#"]')
@@ -920,13 +1086,25 @@ def build_document_preview_html(document: Document) -> str:
     }
 
     function renderDetail(label, detailText) {
-        let parsed;
-        try {
-            parsed = JSON.parse(detailText);
-        } catch (error) {
-            parsed = detailText;
+        let parsed = detailText;
+        if (typeof detailText === 'string' && detailText.trim() !== '') {
+            try {
+                parsed = JSON.parse(detailText);
+            } catch (error) {
+                parsed = detailText;
+            }
         }
         detailColumn.innerHTML = '';
+        const title = document.createElement('h3');
+        title.textContent = label || 'Atom details';
+        detailColumn.appendChild(title);
+        if (parsed === null || parsed === undefined || parsed === '') {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = 'No structured details available.';
+            detailColumn.appendChild(paragraph);
+            return;
+        }
+        if (typeof parsed === 'string') {
         const panelHeading = document.createElement('h3');
         panelHeading.textContent = 'Atom details';
         detailColumn.appendChild(panelHeading);
@@ -1172,22 +1350,51 @@ def build_document_preview_html(document: Document) -> str:
 
         detailColumn.appendChild(card);
     }
-    if (badges.length) {
-        renderDetail(
-            badges[0].getAttribute('data-label'),
-            badges[0].getAttribute('data-detail')
-        );
-    }
-    badges.forEach(function(badge) {
-        badge.addEventListener('click', function(event) {
-            event.preventDefault();
-            renderDetail(badge.getAttribute('data-label'), badge.getAttribute('data-detail'));
+    function setActive(label) {
+        const allTargets = badges.concat(spans);
+        allTargets.forEach(function(node) {
+            if (label && node.getAttribute('data-label') === label) {
+                node.setAttribute('data-active', 'true');
+            } else {
+                node.removeAttribute('data-active');
+            }
         });
-        badge.addEventListener('keypress', function(event) {
+    }
+    function activate(element) {
+        if (!element) {
+            return;
+        }
+        const label = element.getAttribute('data-label');
+        const detail = element.getAttribute('data-detail');
+        setActive(label);
+        renderDetail(label, detail);
+    }
+    const initial = badges[0] || spans[0] || null;
+    if (initial) {
+        activate(initial);
+    }
+    function attachInteractiveHandlers(element) {
+        element.addEventListener('click', function(event) {
+            event.preventDefault();
+            activate(element);
+        });
+        element.addEventListener('keypress', function(event) {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                renderDetail(badge.getAttribute('data-label'), badge.getAttribute('data-detail'));
+                activate(element);
             }
+        });
+    }
+    badges.forEach(function(badge) {
+        attachInteractiveHandlers(badge);
+    });
+    spans.forEach(function(span) {
+        attachInteractiveHandlers(span);
+        span.addEventListener('mouseenter', function() {
+            activate(span);
+        });
+        span.addEventListener('focus', function() {
+            activate(span);
         });
     });
 
