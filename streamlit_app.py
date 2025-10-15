@@ -255,25 +255,139 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     return f"<nav class='toc-tree'>{render_nodes(entries)}</nav>"
 
 
-def _render_atom_badges(provision: Provision) -> str:
+def _atom_text_candidates(atom: Any) -> List[str]:
+    """Return candidate text snippets that describe an atom."""
+
+    candidates: List[str] = []
+    text = getattr(atom, "text", None)
+    if isinstance(text, str) and text.strip():
+        candidates.append(text)
+
+    subject = getattr(atom, "subject", None)
+    subject_text = getattr(subject, "text", None) if subject else None
+    if isinstance(subject_text, str) and subject_text.strip():
+        candidates.append(subject_text)
+
+    for element in getattr(atom, "elements", []) or []:
+        element_text = getattr(element, "text", None)
+        if isinstance(element_text, str) and element_text.strip():
+            candidates.append(element_text)
+
+    seen: Dict[str, None] = {}
+    for value in candidates:
+        normalised = value.strip()
+        if normalised and normalised not in seen:
+            seen[normalised] = None
+    return list(seen.keys())
+
+
+def _find_span_for_snippet(
+    text: str, snippet: str, occupied: List[Tuple[int, int]]
+) -> Optional[Tuple[int, int]]:
+    """Locate ``snippet`` within ``text`` while avoiding duplicates."""
+
+    snippet = snippet.strip()
+    if not text or not snippet:
+        return None
+
+    parts = [re.escape(part) for part in snippet.split() if part]
+    if not parts:
+        return None
+
+    pattern = re.compile(r"\\s+".join(parts), re.IGNORECASE)
+    for match in pattern.finditer(text):
+        start, end = match.span()
+        if all(end <= s or start >= e for s, e in occupied):
+            occupied.append((start, end))
+            return start, end
+    return None
+
+
+def _locate_atom_span(
+    text: str, atom: Any, occupied: List[Tuple[int, int]]
+) -> Optional[Tuple[int, int]]:
+    """Best-effort span lookup for an atom within provision text."""
+
+    candidates = sorted(_atom_text_candidates(atom), key=len, reverse=True)
+    for candidate in candidates:
+        span = _find_span_for_snippet(text, candidate, occupied)
+        if span is not None:
+            return span
+    return None
+
+
+def _build_atom_anchor_id(
+    provision_anchor: str, atom: Any, index: int
+) -> Optional[str]:
+    """Construct a stable anchor identifier for an atom badge."""
+
+    candidates: List[str] = []
+    stable_id = getattr(atom, "stable_id", None)
+    if stable_id:
+        candidates.append(str(stable_id))
+
+    toc_id = getattr(atom, "toc_id", None)
+    if toc_id is not None:
+        candidates.append(f"{provision_anchor}-toc-{toc_id}-atom-{index}")
+
+    candidates.append(f"{provision_anchor}-atom-{index}")
+
+    for candidate in candidates:
+        normalised = _normalise_anchor_key(candidate)
+        if normalised:
+            return f"atom-{normalised}"
+
+    fallback = _normalise_anchor_key(f"{provision_anchor}-atom-{index}")
+    if fallback:
+        return f"atom-{fallback}"
+    return None
+
+
+def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
     """Render interactive rule atom badges for a provision."""
 
     if not provision.rule_atoms:
         return ""
 
     badges: List[str] = []
+    occupied_spans: List[Tuple[int, int]] = []
+    provision_text = provision.text
+
     for index, atom in enumerate(provision.rule_atoms, start=1):
         detail_dict = atom.to_dict()
+
+        anchor_id = _build_atom_anchor_id(provision_anchor, atom, index)
+        if anchor_id:
+            detail_dict.setdefault("anchor", anchor_id)
+
+        span = _locate_atom_span(provision_text, atom, occupied_spans)
+        span_attrs: List[str] = []
+        if span is not None:
+            span_start, span_end = span
+            detail_dict.setdefault("span_start", span_start)
+            detail_dict.setdefault("span_end", span_end)
+            span_attrs.append(f"data-span-start='{span_start}'")
+            span_attrs.append(f"data-span-end='{span_end}'")
+
         detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
         detail_attr = escape(detail_json, quote=True)
         label_source = atom.atom_type or atom.role or f"Atom {index}"
         label = escape(label_source)
-        badges.append(
-            (
-                "<span class='atom-badge' tabindex='0' data-label='"
-                f"{label}' data-detail='{detail_attr}'>{label}</span>"
-            )
-        )
+
+        attributes = [
+            "class='atom-badge'",
+            "tabindex='0'",
+            f"data-label='{label}'",
+            f"data-detail='{detail_attr}'",
+        ]
+
+        if anchor_id:
+            attributes.append(f"id='{anchor_id}'")
+            span_attrs.append(f"data-anchor-id='{anchor_id}'")
+
+        attributes.extend(span_attrs)
+
+        badges.append(f"<span {' '.join(attributes)}>{label}</span>")
 
     return (
         "<div class='atom-badges'><strong>Atoms:</strong> "
@@ -309,7 +423,7 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         for line in provision.text.splitlines()
         if line.strip()
     ]
-    atom_html = _render_atom_badges(provision)
+    atom_html = _render_atom_badges(provision, anchor)
     return (
         f"<section class='provision-section' id='{anchor}' data-anchor='{anchor}'>"
         f"<h4>{heading}</h4>{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
