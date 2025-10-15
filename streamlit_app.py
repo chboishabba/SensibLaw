@@ -18,6 +18,11 @@ try:  # Optional dependency for tabular display
 except Exception:  # pragma: no cover - pandas is optional at runtime
     pd = None  # type: ignore[assignment]
 
+try:  # Optional dependency for graph rendering
+    from graphviz import Digraph
+except Exception:  # pragma: no cover - graphviz is optional at runtime
+    Digraph = None  # type: ignore[assignment]
+
 # Ensure the project source tree is importable when running ``streamlit run``.
 ROOT = Path(__file__).resolve().parent
 SRC_DIR = ROOT / "src"
@@ -192,6 +197,96 @@ def _render_dot(dot: Optional[str], *, key: str) -> None:
         file_name=f"{key}.dot",
         mime="text/vnd.graphviz",
     )
+
+
+def _build_knowledge_graph_dot(payload: Dict[str, Any]) -> Optional[str]:
+    """Construct a Graphviz representation of a knowledge graph payload."""
+
+    if Digraph is None:
+        return None
+
+    graph = Digraph("knowledge_graph", format="svg")
+    graph.attr("graph", rankdir="LR", bgcolor="white")
+    graph.attr("node", shape="ellipse", style="filled", fillcolor="white")
+
+    node_type_styles = {
+        "case": {"shape": "box", "fillcolor": "#E8F1FF"},
+        "provision": {"shape": "oval", "fillcolor": "#F4F0FF"},
+        "concept": {"shape": "hexagon", "fillcolor": "#FFF4E5"},
+        "person": {"shape": "diamond", "fillcolor": "#EAF9F0"},
+        "document": {"shape": "note", "fillcolor": "#FFFBEA"},
+    }
+
+    nodes = payload.get("nodes", []) or []
+    edges = payload.get("edges", []) or []
+
+    def _enum_value(value: Any) -> str:
+        if hasattr(value, "value"):
+            return str(value.value)
+        if isinstance(value, str):
+            return value.split(".")[-1].lower()
+        return str(value)
+
+    for node in nodes:
+        identifier = node.get("identifier")
+        if not identifier:
+            continue
+
+        node_type = _enum_value(node.get("type", ""))
+        metadata = node.get("metadata") or {}
+        title = metadata.get("title") or metadata.get("name") or identifier
+        subtitle_parts = []
+        for key in ("court", "year", "citation"):
+            value = metadata.get(key)
+            if value:
+                subtitle_parts.append(str(value))
+        if node.get("date") and not metadata.get("year"):
+            subtitle_parts.append(str(node["date"]))
+        if metadata.get("role"):
+            subtitle_parts.append(str(metadata["role"]))
+
+        label = title
+        if subtitle_parts:
+            label = f"{title}\n" + " | ".join(subtitle_parts)
+
+        node_attrs = node_type_styles.get(node_type, {})
+        if node.get("consent_required"):
+            node_attrs = {
+                **node_attrs,
+                "fillcolor": "#FFE8E5",
+                "style": "filled,dashed",
+            }
+
+        if metadata.get("cultural_flags") or node.get("cultural_flags"):
+            node_attrs = {**node_attrs, "color": "#C94C4C", "penwidth": "2"}
+
+        graph.node(identifier, label=label, **node_attrs)
+
+    for edge in edges:
+        source = edge.get("source")
+        target = edge.get("target")
+        if not source or not target:
+            continue
+
+        edge_type = _enum_value(edge.get("type", ""))
+        label = edge_type.replace("_", " ").title() if edge_type else ""
+        weight = edge.get("weight")
+        if isinstance(weight, (int, float)) and weight != 1:
+            label = f"{label} ({weight:g})" if label else f"{weight:g}"
+
+        color = "#1D4ED8"
+        if edge_type in {"distinguishes", "rejects", "overrules"}:
+            color = "#B91C1C"
+        elif edge_type in {"follows", "applies", "considers"}:
+            color = "#047857"
+
+        edge_attrs: Dict[str, Any] = {"color": color}
+        if label:
+            edge_attrs["label"] = label
+
+        graph.edge(source, target, **edge_attrs)
+
+    return graph.source
 
 
 def _seed_sample_graph() -> None:
@@ -491,6 +586,14 @@ def render_knowledge_graph_tab() -> None:
             st.error(f"{exc.detail} (HTTP {exc.status_code})")
         else:
             st.success("Subgraph generated.")
+            dot = _build_knowledge_graph_dot(payload)
+            if dot:
+                _render_dot(dot, key="knowledge_subgraph")
+            else:
+                st.info(
+                    "Graphviz is not available. Install the optional dependency to see"
+                    " the visualisation."
+                )
             st.json(payload)
             _download_json("Download subgraph", payload, "subgraph.json")
 
