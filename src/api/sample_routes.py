@@ -21,9 +21,9 @@ except Exception:  # pragma: no cover
     def Query(*args, **kwargs):  # type: ignore[misc]
         return None
 
-from ..pipeline import build_cloud, match_concepts, normalise
-from ..rules.extractor import extract_rules
-from ..ontology.tagger import tag_text
+from ontology.tagger import tag_text
+from pipeline import build_cloud, match_concepts, normalise
+from rules.extractor import extract_rules
 
 router = APIRouter()
 

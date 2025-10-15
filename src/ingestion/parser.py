@@ -3,9 +3,9 @@
 import json
 from typing import Any, Dict, List
 
-from ..models.document import Document
-from ..models.provision import Provision
-from ..ontology.tagger import tag_provision
+from models.document import Document
+from models.provision import Provision
+from ontology.tagger import tag_provision
 from .consent_gate import check_consent
 
 # Mapping of human-readable jurisdictions to standard codes.

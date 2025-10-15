@@ -13,8 +13,8 @@ except Exception:  # pragma: no cover
     requests = None  # type: ignore
 
 
-from .models import Document, DocumentMetadata, Provision
-from .ingestion.cache import HTTPCache
+from ingestion.cache import HTTPCache
+from models import Document, DocumentMetadata, Provision
 
 logger = logging.getLogger(__name__)
 

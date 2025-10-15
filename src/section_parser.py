@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from .models.provision import Provision
+from models.provision import Provision
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")

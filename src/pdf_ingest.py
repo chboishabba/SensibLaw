@@ -12,15 +12,15 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from pdfminer.high_level import extract_text
 
-from .culture.overlay import get_default_overlay
-from .glossary.service import lookup as lookup_gloss
-from .ingestion.cache import HTTPCache
-from .models.document import Document, DocumentMetadata, DocumentTOCEntry
-from .models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
-from .rules import UNKNOWN_PARTY
-from .rules.extractor import extract_rules
-from .storage.core import Storage
-from .storage.versioned_store import VersionedStore
+from culture.overlay import get_default_overlay
+from glossary.service import lookup as lookup_gloss
+from ingestion.cache import HTTPCache
+from models.document import Document, DocumentMetadata, DocumentTOCEntry
+from models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
+from rules import UNKNOWN_PARTY
+from rules.extractor import extract_rules
+from storage.core import Storage
+from storage.versioned_store import VersionedStore
 
 
 logger = logging.getLogger(__name__)

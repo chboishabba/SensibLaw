@@ -24,7 +24,7 @@ edge types are currently emitted:
 from dataclasses import dataclass, field
 from typing import Dict, List, Iterable
 
-from ..models.document import Document
+from models.document import Document
 
 
 # ---------------------------------------------------------------------------

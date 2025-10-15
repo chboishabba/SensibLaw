@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..text.similarity import minhash as compute_minhash, simhash as compute_simhash
+from text.similarity import minhash as compute_minhash, simhash as compute_simhash
 
 
 @dataclass

@@ -11,8 +11,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Optional, Tuple
 
-from ..models.document import Document, DocumentMetadata, DocumentTOCEntry
-from ..models.provision import (
+from models.document import Document, DocumentMetadata, DocumentTOCEntry
+from models.provision import (
     Atom,
     Provision,
     RuleAtom,
