@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+from dataclasses import asdict, is_dataclass
 from datetime import date
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -138,10 +140,22 @@ def _write_bytes(path: Path, data: bytes) -> Path:
     return path
 
 
+def _json_default(value: Any) -> Any:
+    """Provide JSON-serialisation fallbacks for complex objects."""
+
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, date):
+        return value.isoformat()
+    if is_dataclass(value):
+        return asdict(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serialisable")
+
+
 def _download_json(label: str, payload: Any, filename: str) -> None:
     st.download_button(
         label,
-        json.dumps(payload, indent=2, ensure_ascii=False),
+        json.dumps(payload, indent=2, ensure_ascii=False, default=_json_default),
         file_name=filename,
         mime="application/json",
     )
