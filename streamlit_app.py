@@ -414,7 +414,7 @@ def build_document_preview_html(document: Document) -> str:
     border: 1px solid #d9d9d9;
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
-    background: #fafafa;
+    background: #f4f7fb;
     max-height: 720px;
     overflow-y: auto;
 }
@@ -425,6 +425,96 @@ def build_document_preview_html(document: Document) -> str:
     padding: 0.5rem 0.75rem;
     white-space: pre-wrap;
     word-break: break-word;
+}
+.document-preview .detail-column .detail-placeholder {
+    margin: 0;
+    color: #4b5563;
+}
+.document-preview .rule-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.document-preview .rule-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+}
+.document-preview .rule-card__meta {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+.document-preview .rule-card__sentence {
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+.document-preview .rule-card__fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 0.9rem;
+    margin: 0;
+}
+.document-preview .rule-card__fields dt {
+    font-weight: 600;
+    color: #374151;
+}
+.document-preview .rule-card__fields dd {
+    margin: 0;
+    color: #1f2937;
+}
+.document-preview .rule-card__section {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+}
+.document-preview .rule-card__section h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+.document-preview .rule-card__list {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #1f2937;
+}
+.document-preview .rule-card__list li {
+    margin-bottom: 0.25rem;
+}
+.document-preview .rule-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.document-preview .rule-card__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: 0.75rem;
+}
+.document-preview .rule-card__subsection {
+    margin-bottom: 0.75rem;
+}
+.document-preview .rule-card__subsection:last-child {
+    margin-bottom: 0;
+}
+.document-preview .rule-card__empty {
+    margin: 0;
+    color: #6b7280;
+    font-style: italic;
 }
 .document-preview .toc-empty,
 .document-preview .no-provisions {
@@ -451,6 +541,76 @@ def build_document_preview_html(document: Document) -> str:
     if (!detailColumn) {
         return;
     }
+    function createFieldList(fieldDefs, source) {
+        const dl = document.createElement('dl');
+        dl.className = 'rule-card__fields';
+        fieldDefs.forEach(([key, display]) => {
+            const value = source ? source[key] : undefined;
+            if (value === null || value === undefined) {
+                return;
+            }
+            let textValue;
+            if (Array.isArray(value)) {
+                textValue = value
+                    .map((entry) => {
+                        if (entry === null || entry === undefined) {
+                            return '';
+                        }
+                        if (typeof entry === 'object') {
+                            return '';
+                        }
+                        return String(entry).trim();
+                    })
+                    .filter(Boolean)
+                    .join(', ');
+            } else if (typeof value === 'object') {
+                return;
+            } else {
+                textValue = String(value).trim();
+            }
+            if (!textValue) {
+                return;
+            }
+            const dt = document.createElement('dt');
+            dt.textContent = display;
+            const dd = document.createElement('dd');
+            dd.textContent = textValue;
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+        });
+        return dl.childElementCount ? dl : null;
+    }
+
+    function createMetadataTags(metadata) {
+        if (!metadata || typeof metadata !== 'object') {
+            return null;
+        }
+        const entries = Object.entries(metadata).filter(([, value]) => value !== null && value !== undefined && value !== '');
+        if (!entries.length) {
+            return null;
+        }
+        const container = document.createElement('div');
+        container.className = 'rule-card__tags';
+        entries.forEach(([key, value]) => {
+            const span = document.createElement('span');
+            span.className = 'rule-card__tag';
+            if (Array.isArray(value)) {
+                const filtered = value
+                    .filter((item) => item !== null && item !== undefined && item !== '')
+                    .map((item) => String(item));
+                span.textContent = filtered.length ? `${key}: ${filtered.join(', ')}` : key;
+            } else if (typeof value === 'object') {
+                span.textContent = `${key}`;
+            } else if (value === true) {
+                span.textContent = key;
+            } else {
+                span.textContent = `${key}: ${value}`;
+            }
+            container.appendChild(span);
+        });
+        return container;
+    }
+
     function renderDetail(label, detailText) {
         let parsed;
         try {
@@ -459,18 +619,250 @@ def build_document_preview_html(document: Document) -> str:
             parsed = detailText;
         }
         detailColumn.innerHTML = '';
-        const title = document.createElement('h3');
-        title.textContent = label || 'Atom details';
-        detailColumn.appendChild(title);
-        if (typeof parsed === 'string') {
+        const panelHeading = document.createElement('h3');
+        panelHeading.textContent = 'Atom details';
+        detailColumn.appendChild(panelHeading);
+        if (typeof parsed === 'string' || !parsed || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
-            paragraph.textContent = parsed;
+            paragraph.className = 'rule-card__empty';
+            paragraph.textContent = typeof parsed === 'string' ? parsed : 'No additional details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
-        const pre = document.createElement('pre');
-        pre.textContent = JSON.stringify(parsed, null, 2);
-        detailColumn.appendChild(pre);
+
+        const card = document.createElement('article');
+        card.className = 'rule-card';
+
+        const title = document.createElement('h3');
+        title.className = 'rule-card__title';
+        title.textContent = label || 'Selected atom';
+        card.appendChild(title);
+
+        const metaParts = [];
+        if (parsed.toc_id !== null && parsed.toc_id !== undefined) {
+            metaParts.push(`TOC ${parsed.toc_id}`);
+        }
+        if (parsed.stable_id) {
+            metaParts.push(`#${parsed.stable_id}`);
+        }
+        if (parsed.atom_type && parsed.atom_type !== 'rule') {
+            metaParts.push(String(parsed.atom_type));
+        }
+        if (metaParts.length) {
+            const meta = document.createElement('p');
+            meta.className = 'rule-card__meta';
+            meta.textContent = metaParts.join(' • ');
+            card.appendChild(meta);
+        }
+
+        const sentenceText = parsed.text || (parsed.subject && parsed.subject.text) || '';
+        if (sentenceText) {
+            const sentence = document.createElement('p');
+            sentence.className = 'rule-card__sentence';
+            sentence.textContent = sentenceText;
+            card.appendChild(sentence);
+        }
+
+        const primaryFields = [
+            ['party', 'Party'],
+            ['role', 'Role'],
+            ['actor', 'Actor'],
+            ['modality', 'Modality'],
+            ['action', 'Action'],
+            ['conditions', 'Conditions'],
+            ['scope', 'Scope'],
+            ['who', 'Who'],
+            ['who_text', 'Who text'],
+            ['subject_gloss', 'Subject gloss'],
+        ];
+        const fieldList = createFieldList(primaryFields, parsed);
+        if (fieldList) {
+            card.appendChild(fieldList);
+        }
+
+        const subjectSection = parsed.subject && typeof parsed.subject === 'object'
+            ? createFieldList(
+                  [
+                      ['type', 'Type'],
+                      ['role', 'Role'],
+                      ['party', 'Party'],
+                      ['who', 'Who'],
+                      ['who_text', 'Who text'],
+                      ['conditions', 'Conditions'],
+                      ['text', 'Text'],
+                      ['gloss', 'Gloss'],
+                  ],
+                  parsed.subject,
+              )
+            : null;
+        if (subjectSection) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Subject';
+            section.appendChild(heading);
+            section.appendChild(subjectSection);
+            if (parsed.subject && parsed.subject.gloss_metadata) {
+                const tags = createMetadataTags(parsed.subject.gloss_metadata);
+                if (tags) {
+                    section.appendChild(tags);
+                }
+            }
+            card.appendChild(section);
+        }
+
+        if (parsed.subject_gloss_metadata) {
+            const tags = createMetadataTags(parsed.subject_gloss_metadata);
+            if (tags) {
+                const section = document.createElement('section');
+                section.className = 'rule-card__section';
+                const heading = document.createElement('h4');
+                heading.textContent = 'Subject metadata';
+                section.appendChild(heading);
+                section.appendChild(tags);
+                card.appendChild(section);
+            }
+        }
+
+        if (Array.isArray(parsed.elements) && parsed.elements.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Elements';
+            section.appendChild(heading);
+            parsed.elements.forEach((element, index) => {
+                if (!element || typeof element !== 'object') {
+                    return;
+                }
+                const elementFields = createFieldList(
+                    [
+                        ['role', 'Role'],
+                        ['text', 'Text'],
+                        ['conditions', 'Conditions'],
+                        ['gloss', 'Gloss'],
+                    ],
+                    element,
+                );
+                if (!elementFields) {
+                    return;
+                }
+                const wrapper = document.createElement('div');
+                wrapper.className = 'rule-card__subsection';
+                if (parsed.elements.length > 1) {
+                    const subheading = document.createElement('h5');
+                    subheading.textContent = `Element ${index + 1}`;
+                    subheading.style.margin = '0 0 0.3rem 0';
+                    subheading.style.fontSize = '0.85rem';
+                    subheading.style.color = '#1f2937';
+                    wrapper.appendChild(subheading);
+                }
+                wrapper.appendChild(elementFields);
+                if (element.gloss_metadata) {
+                    const tags = createMetadataTags(element.gloss_metadata);
+                    if (tags) {
+                        wrapper.appendChild(tags);
+                    }
+                }
+                if (Array.isArray(element.references) && element.references.length) {
+                    const refList = document.createElement('ul');
+                    refList.className = 'rule-card__list';
+                    element.references.forEach((ref) => {
+                        if (!ref || typeof ref !== 'object') {
+                            return;
+                        }
+                        const parts = [];
+                        if (ref.work) parts.push(ref.work);
+                        if (ref.section) parts.push(`s ${ref.section}`);
+                        if (ref.pinpoint) parts.push(ref.pinpoint);
+                        if (ref.citation_text) parts.push(ref.citation_text);
+                        if (!parts.length) {
+                            return;
+                        }
+                        const li = document.createElement('li');
+                        li.textContent = parts.join(', ');
+                        refList.appendChild(li);
+                    });
+                    if (refList.childElementCount) {
+                        const refsHeading = document.createElement('h6');
+                        refsHeading.textContent = 'References';
+                        refsHeading.style.margin = '0.5rem 0 0.2rem 0';
+                        refsHeading.style.fontSize = '0.75rem';
+                        refsHeading.style.textTransform = 'uppercase';
+                        refsHeading.style.letterSpacing = '0.05em';
+                        refsHeading.style.color = '#6b7280';
+                        wrapper.appendChild(refsHeading);
+                        wrapper.appendChild(refList);
+                    }
+                }
+                section.appendChild(wrapper);
+            });
+            card.appendChild(section);
+        }
+
+        if (Array.isArray(parsed.references) && parsed.references.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'References';
+            section.appendChild(heading);
+            const list = document.createElement('ul');
+            list.className = 'rule-card__list';
+            parsed.references.forEach((ref) => {
+                if (!ref || typeof ref !== 'object') {
+                    return;
+                }
+                const parts = [];
+                if (ref.work) parts.push(ref.work);
+                if (ref.section) parts.push(`s ${ref.section}`);
+                if (ref.pinpoint) parts.push(ref.pinpoint);
+                if (ref.citation_text) parts.push(ref.citation_text);
+                if (!parts.length) {
+                    return;
+                }
+                const li = document.createElement('li');
+                li.textContent = parts.join(', ');
+                list.appendChild(li);
+            });
+            if (list.childElementCount) {
+                section.appendChild(list);
+                card.appendChild(section);
+            }
+        }
+
+        if (Array.isArray(parsed.lints) && parsed.lints.length) {
+            const section = document.createElement('section');
+            section.className = 'rule-card__section';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Extraction notes';
+            section.appendChild(heading);
+            const list = document.createElement('ul');
+            list.className = 'rule-card__list';
+            parsed.lints.forEach((lint) => {
+                if (!lint || typeof lint !== 'object') {
+                    return;
+                }
+                const parts = [];
+                if (lint.code) parts.push(lint.code);
+                if (lint.message) parts.push(lint.message);
+                const li = document.createElement('li');
+                li.textContent = parts.join(' — ');
+                list.appendChild(li);
+            });
+            if (list.childElementCount) {
+                section.appendChild(list);
+                card.appendChild(section);
+            }
+        }
+
+        if (!card.childElementCount) {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'rule-card__empty';
+            placeholder.textContent = 'No additional details available.';
+            detailColumn.appendChild(placeholder);
+            return;
+        }
+
+        detailColumn.appendChild(card);
     }
     if (badges.length) {
         renderDetail(
@@ -507,7 +899,7 @@ def build_document_preview_html(document: Document) -> str:
         "</div>"
         "<div class='detail-column' id='atom-detail-panel'>"
         "<h3>Atom details</h3>"
-        "<p>Select an atom badge to inspect the structured data.</p>"
+        "<p class='detail-placeholder'>Select an atom badge to explore the structured rule.</p>"
         "</div>"
         "</div>"
         "</div>"
