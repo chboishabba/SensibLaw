@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 from dataclasses import asdict, is_dataclass
 from datetime import date
 from enum import Enum
+from html import escape
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 try:  # Optional dependency for tabular display
     import pandas as pd
@@ -41,7 +44,8 @@ from glossary.service import lookup as glossary_lookup  # noqa: E402
 from graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
 from harm.index import compute_harm  # noqa: E402
 from ingestion.frl import fetch_acts  # noqa: E402
-from models.document import Document  # noqa: E402
+from models.document import Document, DocumentTOCEntry  # noqa: E402
+from models.provision import Provision  # noqa: E402
 from pipeline import build_cloud, match_concepts, normalise  # noqa: E402
 from pdf_ingest import process_pdf  # noqa: E402
 from receipts.build import build_receipt  # noqa: E402
@@ -159,6 +163,355 @@ def _download_json(label: str, payload: Any, filename: str) -> None:
         file_name=filename,
         mime="application/json",
     )
+
+
+def _normalise_anchor_key(value: Optional[str]) -> Optional[str]:
+    """Return a slug suitable for anchor lookup."""
+
+    if not value:
+        return None
+    slug = re.sub(r"[^0-9a-zA-Z]+", "-", value).strip("-").lower()
+    return slug or None
+
+
+def _collect_provisions(
+    provisions: List[Provision],
+) -> Tuple[List[Tuple[Provision, str]], Dict[str, str]]:
+    """Assign anchor IDs to provisions and build lookup keys."""
+
+    anchors: List[Tuple[Provision, str]] = []
+    anchor_lookup: Dict[str, str] = {}
+
+    def register(key: Optional[str], anchor: str) -> None:
+        normalised = _normalise_anchor_key(key)
+        if normalised and normalised not in anchor_lookup:
+            anchor_lookup[normalised] = anchor
+
+    counter = 0
+
+    def walk(node: Provision) -> None:
+        nonlocal counter
+        counter += 1
+        anchor = f"segment-{counter}"
+        anchors.append((node, anchor))
+        register(node.identifier, anchor)
+        register(node.heading, anchor)
+        register(node.stable_id, anchor)
+        if node.toc_id is not None:
+            register(str(node.toc_id), anchor)
+            register(f"toc-{node.toc_id}", anchor)
+        for child in node.children:
+            walk(child)
+
+    for provision in provisions:
+        walk(provision)
+    return anchors, anchor_lookup
+
+
+def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
+    """Render nested table-of-contents entries as HTML."""
+
+    if not entries:
+        return "<p class='toc-empty'>No table of contents entries detected.</p>"
+
+    def render_nodes(nodes: List[DocumentTOCEntry]) -> str:
+        items: List[str] = []
+        for entry in nodes:
+            label_parts: List[str] = []
+            if entry.identifier:
+                label_parts.append(escape(entry.identifier))
+            if entry.title:
+                label_parts.append(escape(entry.title))
+            label = " ".join(label_parts) or escape(entry.node_type or "Entry")
+            anchor: Optional[str] = None
+            for key in (
+                entry.identifier,
+                entry.title,
+                f"{entry.identifier} {entry.title}"
+                if entry.identifier and entry.title
+                else None,
+                f"toc-{entry.identifier}" if entry.identifier else None,
+            ):
+                normalised = _normalise_anchor_key(key) if key else None
+                if normalised and normalised in lookup:
+                    anchor = lookup[normalised]
+                    break
+            child_html = render_nodes(entry.children) if entry.children else ""
+            if anchor:
+                item = f"<li><a href='#{anchor}'>{label}</a>{child_html}</li>"
+            else:
+                item = f"<li>{label}{child_html}</li>"
+            items.append(item)
+        return f"<ul>{''.join(items)}</ul>"
+
+    return f"<nav class='toc-tree'>{render_nodes(entries)}</nav>"
+
+
+def _render_atom_badges(provision: Provision) -> str:
+    """Render interactive rule atom badges for a provision."""
+
+    if not provision.rule_atoms:
+        return ""
+
+    badges: List[str] = []
+    for index, atom in enumerate(provision.rule_atoms, start=1):
+        detail_dict = atom.to_dict()
+        detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
+        detail_attr = escape(detail_json, quote=True)
+        label_source = atom.atom_type or atom.role or f"Atom {index}"
+        label = escape(label_source)
+        badges.append(
+            (
+                "<span class='atom-badge' tabindex='0' data-label='"
+                f"{label}' data-detail='{detail_attr}'>{label}</span>"
+            )
+        )
+
+    return (
+        "<div class='atom-badges'><strong>Atoms:</strong> "
+        + " ".join(badges)
+        + "</div>"
+    )
+
+
+def _render_provision_section(provision: Provision, anchor: str) -> str:
+    """Render a single provision, including text and atoms."""
+
+    heading = escape(provision.heading) if provision.heading else "Provision"
+    identifier = escape(provision.identifier) if provision.identifier else ""
+    metadata_parts = []
+    if identifier:
+        metadata_parts.append(f"<span class='provision-identifier'>{identifier}</span>")
+    if provision.toc_id is not None:
+        metadata_parts.append(
+            f"<span class='provision-toc'>TOC ID {escape(str(provision.toc_id))}</span>"
+        )
+    if provision.cultural_flags:
+        flags = ", ".join(escape(flag) for flag in provision.cultural_flags)
+        metadata_parts.append(f"<span class='provision-flags'>{flags}</span>")
+
+    metadata_html = (
+        "<div class='provision-meta'>" + " • ".join(metadata_parts) + "</div>"
+        if metadata_parts
+        else ""
+    )
+
+    paragraphs = [
+        f"<p>{escape(line.strip())}</p>"
+        for line in provision.text.splitlines()
+        if line.strip()
+    ]
+    atom_html = _render_atom_badges(provision)
+    return (
+        f"<section class='provision-section' id='{anchor}' data-anchor='{anchor}'>"
+        f"<h4>{heading}</h4>{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
+    )
+
+
+def build_document_preview_html(document: Document) -> str:
+    """Generate HTML preview for a processed document."""
+
+    provision_sections, lookup = _collect_provisions(document.provisions)
+    toc_html = _render_toc(document.toc_entries, lookup)
+
+    if provision_sections:
+        sections_html = "".join(
+            _render_provision_section(provision, anchor)
+            for provision, anchor in provision_sections
+        )
+    else:
+        sections_html = "<p class='no-provisions'>No provisions were extracted.</p>"
+
+    stylesheet = """
+<style>
+.document-preview {
+    font-family: var(--font, "Source Sans Pro", sans-serif);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.document-preview .document-columns {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) 1fr minmax(220px, 280px);
+    gap: 1.5rem;
+    align-items: start;
+}
+.document-preview nav.toc-tree ul {
+    list-style: none;
+    padding-left: 0.75rem;
+}
+.document-preview nav.toc-tree li {
+    margin-bottom: 0.25rem;
+}
+.document-preview nav.toc-tree a {
+    color: #11567f;
+    text-decoration: none;
+}
+.document-preview nav.toc-tree a:hover,
+.document-preview nav.toc-tree a:focus {
+    text-decoration: underline;
+}
+.document-preview .content-column {
+    max-height: 720px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+.document-preview .provision-section {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    background-color: #fff;
+}
+.document-preview .provision-section h4 {
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+}
+.document-preview .provision-meta {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.75rem;
+}
+.document-preview .provision-meta span {
+    background-color: #f2f6fa;
+    padding: 0.1rem 0.35rem;
+    border-radius: 999px;
+}
+.document-preview .atom-badges {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+.document-preview .atom-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background-color: #ffe6c7;
+    color: #8a4f0f;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid rgba(138, 79, 15, 0.2);
+}
+.document-preview .atom-badge:focus {
+    outline: 2px solid #ff9d2e;
+    outline-offset: 2px;
+}
+.document-preview .atom-badge:hover {
+    background-color: #ffd59a;
+}
+.document-preview .detail-column {
+    border: 1px solid #d9d9d9;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fafafa;
+    max-height: 720px;
+    overflow-y: auto;
+}
+.document-preview .detail-column pre {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.document-preview .toc-empty,
+.document-preview .no-provisions {
+    font-style: italic;
+    color: #555;
+}
+@media (max-width: 1024px) {
+    .document-preview .document-columns {
+        grid-template-columns: 1fr;
+    }
+    .document-preview .content-column,
+    .document-preview .detail-column {
+        max-height: none;
+    }
+}
+</style>
+"""
+
+    script = """
+<script>
+(function() {
+    const badges = Array.from(document.querySelectorAll('.atom-badge'));
+    const detailColumn = document.getElementById('atom-detail-panel');
+    if (!detailColumn) {
+        return;
+    }
+    function renderDetail(label, detailText) {
+        let parsed;
+        try {
+            parsed = JSON.parse(detailText);
+        } catch (error) {
+            parsed = detailText;
+        }
+        detailColumn.innerHTML = '';
+        const title = document.createElement('h3');
+        title.textContent = label || 'Atom details';
+        detailColumn.appendChild(title);
+        if (typeof parsed === 'string') {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = parsed;
+            detailColumn.appendChild(paragraph);
+            return;
+        }
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(parsed, null, 2);
+        detailColumn.appendChild(pre);
+    }
+    if (badges.length) {
+        renderDetail(
+            badges[0].getAttribute('data-label'),
+            badges[0].getAttribute('data-detail')
+        );
+    }
+    badges.forEach(function(badge) {
+        badge.addEventListener('click', function(event) {
+            event.preventDefault();
+            renderDetail(badge.getAttribute('data-label'), badge.getAttribute('data-detail'));
+        });
+        badge.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                renderDetail(badge.getAttribute('data-label'), badge.getAttribute('data-detail'));
+            }
+        });
+    });
+})();
+</script>
+"""
+
+    return (
+        f"{stylesheet}"
+        "<div class='document-preview'>"
+        "<div class='document-columns'>"
+        "<div class='toc-column'>"
+        "<h3>Table of contents</h3>"
+        f"{toc_html}"
+        "</div>"
+        "<div class='content-column'>"
+        f"{sections_html}"
+        "</div>"
+        "<div class='detail-column' id='atom-detail-panel'>"
+        "<h3>Atom details</h3>"
+        "<p>Select an atom badge to inspect the structured data.</p>"
+        "</div>"
+        "</div>"
+        "</div>"
+        f"{script}"
+    )
+
+
+def render_document_preview(document: Document) -> None:
+    """Render a cleaned, hyperlinked preview for ``document``."""
+
+    html_content = build_document_preview_html(document)
+    components.html(html_content, height=900, scrolling=True)
 
 
 def _render_table(records: Iterable[Dict[str, Any]], *, key: str) -> None:
@@ -308,6 +661,8 @@ def render_documents_tab() -> None:
                     db_path=db_path,
                 )
             st.success("PDF processed successfully.")
+            st.markdown("### Document preview")
+            render_document_preview(document)
             doc_payload = document.to_dict()
             if stored_id is not None:
                 st.info(f"Stored as document ID {stored_id} in {db_path}")
