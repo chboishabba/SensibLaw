@@ -597,7 +597,6 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
             continue
         highlighted = _highlight_line(stripped, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
-    atom_html = _render_atom_badges(provision)
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
         if provision.stable_id
