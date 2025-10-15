@@ -11,7 +11,7 @@ import math
 import random
 from typing import Any, Dict, Iterable, List, Tuple
 
-from graph.models import GraphEdge, GraphNode, LegalGraph
+from src.graph.models import GraphEdge, GraphNode, LegalGraph
 
 
 def score_node(node: GraphNode, signals: Dict[str, Any]) -> float:

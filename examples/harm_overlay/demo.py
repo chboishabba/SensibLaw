@@ -11,8 +11,8 @@ SRC_DIR = Path(__file__).resolve().parents[2] / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from graph.proof_tree import Graph, Node, Edge
-from proofs.render import load_harm_index, to_dot_with_harm
+from src.graph.proof_tree import Graph, Node, Edge
+from src.proofs.render import load_harm_index, to_dot_with_harm
 
 
 def main() -> None:

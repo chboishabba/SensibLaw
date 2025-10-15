@@ -12,15 +12,15 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from pdfminer.high_level import extract_text
 
-from culture.overlay import get_default_overlay
-from glossary.service import lookup as lookup_gloss
-from ingestion.cache import HTTPCache
-from models.document import Document, DocumentMetadata, DocumentTOCEntry
-from models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
-from rules import UNKNOWN_PARTY
-from rules.extractor import extract_rules
-from storage.core import Storage
-from storage.versioned_store import VersionedStore
+from src.culture.overlay import get_default_overlay
+from src.glossary.service import lookup as lookup_gloss
+from src.ingestion.cache import HTTPCache
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
+from src.models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
+from src.rules import UNKNOWN_PARTY
+from src.rules.extractor import extract_rules
+from src.storage.core import Storage
+from src.storage.versioned_store import VersionedStore
 
 
 logger = logging.getLogger(__name__)
@@ -327,10 +327,11 @@ def _build_scope_entries(
 def _register_definition_provisions(
     provisions: List[Provision],
     registry: GlossaryRegistry,
-) -> None:
+) -> bool:
     if not provisions:
-        return
+        return False
 
+    registered = False
     for provision, ancestors in _iter_provisions_with_ancestors(provisions):
         if provision.node_type != "section" or not _is_definition_heading(
             provision.heading
@@ -352,6 +353,9 @@ def _register_definition_provisions(
 
         for term, definition in entries.items():
             registry.register_definition(term, definition, metadata)
+            registered = True
+
+    return registered
 
 
 def _resolve_definition_roots(body: str, fallback: List[Provision]) -> List[Provision]:
@@ -845,8 +849,6 @@ def build_document(
 
 
     definitions = _extract_definition_entries(body)
-    for term, definition in definitions.items():
-        registry.register_definition(term, definition)
 
     toc_entries = parse_table_of_contents(pages)
 
@@ -897,7 +899,13 @@ def build_document(
         else:
             structured_for_definitions = provisions
 
-    _register_definition_provisions(structured_for_definitions, registry)
+    registered_with_scope = _register_definition_provisions(
+        structured_for_definitions, registry
+    )
+
+    if not registered_with_scope:
+        for term, definition in definitions.items():
+            registry.register_definition(term, definition)
 
     for prov in provisions:
         prov.ensure_rule_atoms()

@@ -394,4 +394,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
 __all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
 """Compatibility re-export for :mod:`src.section_parser`."""
 
-from section_parser import *  # noqa: F401,F403
+try:  # pragma: no cover - optional legacy dependency
+    from section_parser import *  # type: ignore  # noqa: F401,F403
+except ModuleNotFoundError:  # pragma: no cover - legacy module absent
+    pass

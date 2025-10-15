@@ -32,7 +32,7 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from api.routes import (  # noqa: E402  - imported after path adjustment
+from src.api.routes import (  # noqa: E402  - imported after path adjustment
     HTTPException,
     execute_tests,
     fetch_case_treatment,
@@ -40,27 +40,27 @@ from api.routes import (  # noqa: E402  - imported after path adjustment
     generate_subgraph,
     _graph as ROUTES_GRAPH,
 )
-from api.sample_routes import api_provision, api_subgraph, api_treatment  # noqa: E402
-from concepts.cloud import build_cloud as advanced_cloud  # noqa: E402
-from distinguish.engine import compare_story_to_case  # noqa: E402
-from distinguish.loader import load_case_silhouette  # noqa: E402
-from frame.compiler import compile_frame  # noqa: E402
-from glossary.service import lookup as glossary_lookup  # noqa: E402
-from graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
-from harm.index import compute_harm  # noqa: E402
-from ingestion.frl import fetch_acts  # noqa: E402
-from models.document import Document, DocumentTOCEntry  # noqa: E402
-from models.provision import Atom, Provision  # noqa: E402
-from pipeline import build_cloud, match_concepts, normalise  # noqa: E402
-from pdf_ingest import process_pdf  # noqa: E402
-from receipts.build import build_receipt  # noqa: E402
-from receipts.verify import verify_receipt  # noqa: E402
-from rules import Rule  # noqa: E402
-from rules.extractor import extract_rules  # noqa: E402
-from rules.reasoner import check_rules  # noqa: E402
-from storage.versioned_store import VersionedStore  # noqa: E402
-from tests.templates import TEMPLATE_REGISTRY  # noqa: E402
-from text.similarity import simhash  # noqa: E402
+from src.api.sample_routes import api_provision, api_subgraph, api_treatment  # noqa: E402
+from src.concepts.cloud import build_cloud as advanced_cloud  # noqa: E402
+from src.distinguish.engine import compare_story_to_case  # noqa: E402
+from src.distinguish.loader import load_case_silhouette  # noqa: E402
+from src.frame.compiler import compile_frame  # noqa: E402
+from src.glossary.service import lookup as glossary_lookup  # noqa: E402
+from src.graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
+from src.harm.index import compute_harm  # noqa: E402
+from src.ingestion.frl import fetch_acts  # noqa: E402
+from src.models.document import Document, DocumentTOCEntry  # noqa: E402
+from src.models.provision import Atom, Provision  # noqa: E402
+from src.pipeline import build_cloud, match_concepts, normalise  # noqa: E402
+from src.pdf_ingest import process_pdf  # noqa: E402
+from src.receipts.build import build_receipt  # noqa: E402
+from src.receipts.verify import verify_receipt  # noqa: E402
+from src.rules import Rule  # noqa: E402
+from src.rules.extractor import extract_rules  # noqa: E402
+from src.rules.reasoner import check_rules  # noqa: E402
+from src.storage.versioned_store import VersionedStore  # noqa: E402
+from src.tests.templates import TEMPLATE_REGISTRY  # noqa: E402
+from src.text.similarity import simhash  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Helpers and constants

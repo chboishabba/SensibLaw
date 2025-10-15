@@ -4,8 +4,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from concepts.cloud import build_cloud
-from graph.models import GraphNode, LegalGraph, NodeType
+from src.concepts.cloud import build_cloud
+from src.graph.models import GraphNode, LegalGraph, NodeType
 
 
 class TextIndex:

@@ -17,6 +17,8 @@ Division 1 Introductory
 
 2 Application of Act
 The Minister must not delay action if urgent circumstances exist.
+"""
+
 STATUTE_WITH_SUBDIVISIONS = """Part 2 Governance
 Division 1 Establishment
 Subdivision A - Preliminary matters
