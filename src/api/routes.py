@@ -36,9 +36,14 @@ except Exception:  # pragma: no cover
     def Field(*args, **kwargs):  # type: ignore[misc]
         return None
 
-from ..graph.models import EdgeType, LegalGraph, GraphEdge, GraphNode, NodeType
-from ..tests.templates import TEMPLATE_REGISTRY
-from ..policy.engine import PolicyEngine
+if __package__ and __package__.startswith("src."):
+    from src.graph.models import EdgeType, LegalGraph, GraphEdge, GraphNode, NodeType
+    from src.policy.engine import PolicyEngine
+    from src.tests.templates import TEMPLATE_REGISTRY
+else:
+    from graph.models import EdgeType, LegalGraph, GraphEdge, GraphNode, NodeType
+    from policy.engine import PolicyEngine
+    from tests.templates import TEMPLATE_REGISTRY
 
 router = APIRouter()
 
