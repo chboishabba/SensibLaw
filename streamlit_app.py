@@ -522,6 +522,22 @@ def build_document_preview_html(document: Document) -> str:
     color: #11567f;
     text-decoration: none;
 }
+.document-preview nav.toc-tree a.active {
+    font-weight: 600;
+    color: #0b3a56;
+    position: relative;
+}
+.document-preview nav.toc-tree a.active::before {
+    content: '';
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 50%;
+    background-color: currentColor;
+}
 .document-preview nav.toc-tree a:hover,
 .document-preview nav.toc-tree a:focus {
     text-decoration: underline;
@@ -825,6 +841,11 @@ def build_document_preview_html(document: Document) -> str:
 
     const badges = Array.from(document.querySelectorAll('.atom-badge'));
     const detailColumn = document.getElementById('atom-detail-panel');
+    const tocLinks = Array.from(
+        document.querySelectorAll('.toc-tree a[href^="#"]')
+    );
+    const contentColumn = document.querySelector('.content-column');
+
     if (!detailColumn) {
         return;
     }
@@ -1169,6 +1190,99 @@ def build_document_preview_html(document: Document) -> str:
             }
         });
     });
+
+    if (!tocLinks.length || !contentColumn) {
+        return;
+    }
+
+    const linkById = new Map();
+    tocLinks.forEach(function(link) {
+        const targetId = link.getAttribute('href').slice(1);
+        if (targetId) {
+            linkById.set(targetId, link);
+        }
+    });
+
+    const observedSections = Array.from(linkById.keys())
+        .map(function(id) {
+            return document.getElementById(id);
+        })
+        .filter(function(section) {
+            return section instanceof HTMLElement;
+        });
+
+    if (!observedSections.length) {
+        return;
+    }
+
+    let activeLink = null;
+    const visibleSections = new Map();
+
+    function setActiveLink(link) {
+        if (activeLink === link) {
+            return;
+        }
+        if (activeLink) {
+            activeLink.classList.remove('active');
+        }
+        activeLink = link;
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    }
+
+    const observer = new IntersectionObserver(
+        function(entries) {
+            entries.forEach(function(entry) {
+                const id = entry.target.getAttribute('id');
+                if (!id) {
+                    return;
+                }
+                if (entry.isIntersecting) {
+                    visibleSections.set(id, entry.intersectionRatio);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+
+            let bestId = null;
+            let bestRatio = 0;
+            visibleSections.forEach(function(ratio, id) {
+                if (ratio > bestRatio) {
+                    bestRatio = ratio;
+                    bestId = id;
+                }
+            });
+
+            if (!bestId && observedSections.length) {
+                bestId = observedSections[0].getAttribute('id');
+            }
+
+            if (!bestId) {
+                setActiveLink(null);
+                return;
+            }
+
+            const link = linkById.get(bestId);
+            if (link) {
+                setActiveLink(link);
+            }
+        },
+        {
+            root: contentColumn,
+            threshold: [0.1, 0.25, 0.5, 0.75],
+            rootMargin: '0px 0px -40% 0px'
+        }
+    );
+
+    observedSections.forEach(function(section) {
+        observer.observe(section);
+    });
+
+    const firstLink = linkById.get(observedSections[0].getAttribute('id'));
+    if (firstLink) {
+        setActiveLink(firstLink);
+    }
 })();
 </script>
 """
