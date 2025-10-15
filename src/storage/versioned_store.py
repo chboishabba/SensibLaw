@@ -11,8 +11,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, List, Mapping, Optional, Tuple
 
-from models.document import Document, DocumentMetadata, DocumentTOCEntry
-from models.provision import (
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
+from src.models.provision import (
     Atom,
     Provision,
     RuleAtom,
@@ -1377,12 +1377,15 @@ class VersionedStore:
     def _document_stable_prefix(
         self, metadata: DocumentMetadata | Mapping[str, Any]
     ) -> str:
-        if isinstance(metadata, DocumentMetadata):
-            jurisdiction_value: Any = metadata.jurisdiction
-            citation_value: Any = metadata.citation
-        else:
+        if metadata and hasattr(metadata, "jurisdiction") and hasattr(metadata, "citation"):
+            jurisdiction_value = getattr(metadata, "jurisdiction")
+            citation_value = getattr(metadata, "citation")
+        elif isinstance(metadata, Mapping):
             jurisdiction_value = metadata.get("jurisdiction") if metadata else None
             citation_value = metadata.get("citation") if metadata else None
+        else:
+            jurisdiction_value = None
+            citation_value = None
         jurisdiction = self._slugify(
             str(jurisdiction_value) if jurisdiction_value else None
         )
@@ -2179,7 +2182,7 @@ class VersionedStore:
         provision_id: int,
         rule_atoms: List[RuleAtom],
         toc_id: Optional[int],
-        stable_id: Optional[str],
+        stable_id: Optional[str] = None,
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -2337,7 +2340,6 @@ class VersionedStore:
                         work, section, pinpoint, citation_text, glossary_id
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (doc_id, rev_id, provision_id, rule_id, ref_index) DO UPDATE SET
                         work = excluded.work,
                         section = excluded.section,
@@ -2415,7 +2417,6 @@ class VersionedStore:
                             work, section, pinpoint, citation_text, glossary_id
                         )
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT (
                             doc_id, rev_id, provision_id, rule_id, element_id, ref_index
                         ) DO UPDATE SET
