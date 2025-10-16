@@ -6,6 +6,7 @@ jsonschema
 pyyaml
 graphviz
 networkx
+streamlit
 
 # dev/test
 pytest
