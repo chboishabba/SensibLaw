@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+
 # Provide a lightweight ``streamlit`` stub so the preview helpers can be imported without
 # pulling in the optional dependency during test collection.
 def _no_op(*args, **kwargs):  # type: ignore[unused-argument]
@@ -44,14 +45,23 @@ sys.modules.setdefault("streamlit", streamlit_stub)
 sys.modules.setdefault("streamlit.components", components_stub)
 sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 
-from streamlit_app import (
+from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
     _normalise_anchor_key,
     _render_toc,
     build_document_preview_html,
 )
-from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
-from src.models.provision import Provision, RuleAtom, RuleElement, RuleReference
+from src.models.document import (  # noqa: E402
+    Document,
+    DocumentMetadata,
+    DocumentTOCEntry,
+)
+from src.models.provision import (  # noqa: E402
+    Provision,
+    RuleAtom,
+    RuleElement,
+    RuleReference,
+)
 
 
 class _DocumentPreviewParser(HTMLParser):
@@ -119,7 +129,9 @@ def _build_preview_fixture() -> _PreviewFixture:
         role="obligation",
         text="A person must comply with the duty.",
         references=[
-            RuleReference(work="Sample Act", section="1", citation_text="Sample Act s 1"),
+            RuleReference(
+                work="Sample Act", section="1", citation_text="Sample Act s 1"
+            ),
         ],
         elements=[
             RuleElement(role="subject", text="A person", atom_type="subject"),
@@ -184,13 +196,18 @@ def preview_fixture() -> _PreviewFixture:
     return _build_preview_fixture()
 
 
-def test_collect_provisions_registers_all_link_targets(preview_fixture: _PreviewFixture) -> None:
+def test_collect_provisions_registers_all_link_targets(
+    preview_fixture: _PreviewFixture,
+) -> None:
     parent = preview_fixture.parent_provision
     child = preview_fixture.child_provision
 
     anchors, lookup = _collect_provisions(preview_fixture.document.provisions)
 
-    assert [anchor for _, anchor in anchors] == ["segment-1", "segment-2"]
+    assert [anchor for _, anchor in anchors] == [
+        "stable-section",
+        "stable-subsection",
+    ]
 
     parent_anchor = anchors[0][1]
     for key in (
@@ -217,7 +234,9 @@ def test_collect_provisions_registers_all_link_targets(preview_fixture: _Preview
         assert lookup[normalised] == child_anchor
 
 
-def test_render_toc_links_to_registered_segments(preview_fixture: _PreviewFixture) -> None:
+def test_render_toc_links_to_registered_segments(
+    preview_fixture: _PreviewFixture,
+) -> None:
     anchors, lookup = _collect_provisions(preview_fixture.document.provisions)
 
     toc_html = _render_toc(preview_fixture.document.toc_entries, lookup)
@@ -241,14 +260,18 @@ def test_document_preview_html_contains_links_badges_and_details(
     # Ensure that every section rendered has a matching link target in the table of contents.
     section_ids = set(parser.sections.keys())
     link_targets = {link["href"].lstrip("#") for link in parser.links if link["href"]}
-    assert section_ids == {"segment-1", "segment-2"} == link_targets
+    assert section_ids == {"section-stable-section", "section-stable-subsection"}
+    assert link_targets == {"stable-section", "stable-subsection"}
 
     # Highlight counts: each provision with rule atoms should render an "Atoms" badge row.
-    expected_badges = sum(len(provision.rule_atoms) for provision in [
-        preview_fixture.parent_provision,
-        preview_fixture.child_provision,
-    ])
-    assert len(parser.atom_badges) == expected_badges
+    expected_badges = sum(
+        len(provision.rule_atoms)
+        for provision in [
+            preview_fixture.parent_provision,
+            preview_fixture.child_provision,
+        ]
+    )
+    assert len(parser.atom_badges) == expected_badges * 2
     assert html.count("<div class='atom-badges'><strong>Atoms:</strong>") == 2
 
     # Linearizer outputs: the badge payload should expose the structured atom data.
@@ -256,13 +279,18 @@ def test_document_preview_html_contains_links_badges_and_details(
         preview_fixture.parent_provision.rule_atoms
         + preview_fixture.child_provision.rule_atoms
     )
-    for badge, atom in zip(parser.atom_badges, expected_atoms):
-        assert badge["data-label"] == atom.atom_type
-        detail_payload = json.loads(unescape(badge["data-detail"]))
-        assert detail_payload["atom_type"] == atom.atom_type
-        assert detail_payload["stable_id"] == atom.stable_id
-        if atom.references:
-            assert detail_payload["references"][0]["citation_text"] == atom.references[0].citation_text
-        if atom.elements:
-            assert detail_payload["elements"][0]["role"] == atom.elements[0].role
-
+    for index, atom in enumerate(expected_atoms):
+        badges = parser.atom_badges[index * 2 : index * 2 + 2]
+        assert len(badges) == 2
+        for badge in badges:
+            assert badge["data-label"] == atom.atom_type
+            detail_payload = json.loads(unescape(badge["data-detail"]))
+            assert detail_payload["atom_type"] == atom.atom_type
+            assert detail_payload["stable_id"] == atom.stable_id
+            if atom.references:
+                assert (
+                    detail_payload["references"][0]["citation_text"]
+                    == atom.references[0].citation_text
+                )
+            if atom.elements:
+                assert detail_payload["elements"][0]["role"] == atom.elements[0].role
