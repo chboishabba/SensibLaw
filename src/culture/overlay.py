@@ -74,31 +74,45 @@ class CulturalOverlay:
             if rule.consent_required:
                 metadata.cultural_consent_required = True
 
-        document.body, _ = self._apply_rules_to_text(document.body, flags)
+        body_text, _, transforms = self._apply_rules_to_text(document.body, flags)
+        document.body = body_text
 
         for provision in document.provisions:
-            self._apply_to_provision(provision, flags)
+            self._apply_to_provision(provision, flags, dict(transforms))
 
         return document
 
-    def _apply_to_provision(self, provision: Provision, flags: Sequence[str]) -> None:
+    def _apply_to_provision(
+        self,
+        provision: Provision,
+        flags: Sequence[str],
+        transforms: Dict[str, str],
+    ) -> None:
         """Apply overlay rules recursively to provisions."""
 
-        transformed, redacted_flag = self._apply_rules_to_text(provision.text, flags)
+        transformed, redacted_flag, applied = self._apply_rules_to_text(
+            provision.text, flags, transforms
+        )
         provision.text = transformed
         if redacted_flag:
             provision.principles.clear()
             provision.atoms.clear()
+        next_transforms = dict(transforms)
+        next_transforms.update(applied)
         for child in provision.children:
-            self._apply_to_provision(child, flags)
+            self._apply_to_provision(child, flags, next_transforms)
 
     def _apply_rules_to_text(
-        self, text: str, flags: Sequence[str]
-    ) -> Tuple[str, Optional[str]]:
+        self,
+        text: str,
+        flags: Sequence[str],
+        transforms: Optional[Dict[str, str]] = None,
+    ) -> Tuple[str, Optional[str], Dict[str, str]]:
         """Apply rules for ``flags`` to ``text`` returning the new text."""
 
         result = text
         redacted_by: Optional[str] = None
+        applied: Dict[str, str] = {}
         for flag in flags:
             rule = self._rules.get(flag)
             if not rule:
@@ -108,8 +122,12 @@ class CulturalOverlay:
                 redacted_by = flag
                 break
             if rule.transform == "hash":
-                result = hashlib.sha256(result.encode("utf-8")).hexdigest()
-        return result, redacted_by
+                if transforms and "hash" in transforms:
+                    result = transforms["hash"]
+                else:
+                    result = hashlib.sha256(result.encode("utf-8")).hexdigest()
+                    applied["hash"] = result
+        return result, redacted_by, applied
 
     @staticmethod
     def _build_annotation(flag: str, rule: CulturalRule) -> str:
