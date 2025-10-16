@@ -427,10 +427,12 @@ def _clean_toc_title_segment(title_part: Optional[str]) -> Optional[str]:
     if not cleaned:
         return None
 
-    page_artifacts = (
-        any(ch in ".·⋅•●∙" for ch in title_part) or "page" in title_part.lower()
+    has_dotted_leader_page_ref = bool(
+        re.search(r"[.·⋅•●∙]{2,}\s*\d+\s*$", title_part)
     )
-    if page_artifacts:
+    has_explicit_page_word = bool(re.search(r"\bPage\s*\d+\s*$", cleaned, re.IGNORECASE))
+
+    if has_dotted_leader_page_ref or has_explicit_page_word:
         cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
     cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
     cleaned = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.sub("", cleaned)
