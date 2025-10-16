@@ -14,6 +14,28 @@ from src.models.document import Document, DocumentTOCEntry
 from src.models.provision import Atom, Provision
 
 
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
+
+
+def _clean_toc_text(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = any(ch in ".·⋅•●∙" for ch in value) or "page" in value.lower()
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_BLOCK_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def _normalise_anchor_key(value: Optional[str]) -> Optional[str]:
     """Return a slug suitable for anchor lookup."""
 
@@ -229,10 +251,12 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
-            if entry.identifier:
-                label_parts.append(escape(entry.identifier))
-            if entry.title:
-                label_parts.append(escape(entry.title))
+            identifier = entry.identifier.strip() if entry.identifier else None
+            title = _clean_toc_text(entry.title)
+            if identifier:
+                label_parts.append(escape(identifier))
+            if title:
+                label_parts.append(escape(title))
             label = " ".join(label_parts) or escape(entry.node_type or "Entry")
             anchor: Optional[str] = None
             for key in (

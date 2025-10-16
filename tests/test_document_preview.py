@@ -53,6 +53,11 @@ from sensiblaw_streamlit.document_preview import (  # noqa: E402
     build_document_preview_html,
 )
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry  # noqa: E402
+from src.models.document import (  # noqa: E402
+    Document,
+    DocumentMetadata,
+    DocumentTOCEntry,
+)
 from src.models.provision import (  # noqa: E402
     Provision,
     RuleAtom,
@@ -204,6 +209,14 @@ def test_normalise_provision_line_collapses_leader_dots() -> None:
 
     genuine = "An actual ... ellipsis remains."
     assert _normalise_provision_line(genuine) == genuine
+def _extract_toc_labels(html: str) -> List[str]:
+    pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
+    labels = []
+    for match in pattern.findall(html):
+        text = re.sub(r"\s+", " ", match).strip()
+        if text:
+            labels.append(unescape(text))
+    return labels
 
 
 def test_collect_provisions_registers_all_link_targets(
@@ -254,6 +267,46 @@ def test_render_toc_links_to_registered_segments(
     # Labels combine identifier and title, ensuring the reader sees familiar headings.
     assert "s 1 Duty obligations" in toc_html
     assert "s 1(1) Subsection 1" in toc_html
+
+
+@pytest.mark.parametrize(
+    "identifier,title,expected_label,allow_terminal_digits",
+    [
+        (
+            "s 1",
+            "General provisions .............. Page 3",
+            "s 1 General provisions",
+            False,
+        ),
+        (
+            "s 2",
+            "Interpretation ··········· 12",
+            "s 2 Interpretation",
+            False,
+        ),
+        (
+            "Part 3",
+            "Savings provisions ..... page 14",
+            "Part 3 Savings provisions",
+            False,
+        ),
+        ("Part 4", "............. Page 20", "Part 4", True),
+    ],
+)
+def test_render_toc_strips_leaders_and_page_tokens(
+    identifier: str, title: str, expected_label: str, allow_terminal_digits: bool
+) -> None:
+    entry = DocumentTOCEntry(identifier=identifier, title=title)
+    normalised_identifier = _normalise_anchor_key(identifier)
+    assert normalised_identifier is not None
+    toc_html = _render_toc([entry], {normalised_identifier: "segment-1"})
+    labels = _extract_toc_labels(toc_html)
+    assert labels == [expected_label]
+    for label in labels:
+        assert "Page" not in label
+        assert not re.search(r"[.·⋅•●∙]{2,}", label)
+        if not allow_terminal_digits:
+            assert not re.search(r"\b\d+\s*$", label)
 
 
 def test_document_preview_html_contains_links_badges_and_details(
