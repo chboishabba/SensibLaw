@@ -1006,10 +1006,6 @@ def build_document_preview_html(document: Document) -> str:
     const badges = Array.from(document.querySelectorAll('.atom-badge'));
     const spans = Array.from(document.querySelectorAll('.atom-span'));
     const detailColumn = document.getElementById('atom-detail-panel');
-    const tocLinks = Array.from(
-        document.querySelectorAll('.toc-tree a[href^="#"]')
-    );
-    const contentColumn = document.querySelector('.content-column');
 
     if (!detailColumn) {
         return;
@@ -1424,7 +1420,7 @@ def build_document_preview_html(document: Document) -> str:
     let activeLink = null;
     const visibleSections = new Map();
 
-    function setActiveLink(link) {
+    function setActiveTocLink(link) {
         if (activeLink === link) {
             return;
         }
@@ -1465,13 +1461,13 @@ def build_document_preview_html(document: Document) -> str:
             }
 
             if (!bestId) {
-                setActiveLink(null);
+                setActiveTocLink(null);
                 return;
             }
 
             const link = linkById.get(bestId);
             if (link) {
-                setActiveLink(link);
+                setActiveTocLink(link);
             }
         },
         {
@@ -1487,7 +1483,7 @@ def build_document_preview_html(document: Document) -> str:
 
     const firstLink = linkById.get(observedSections[0].getAttribute('id'));
     if (firstLink) {
-        setActiveLink(firstLink);
+        setActiveTocLink(firstLink);
     }
 })();
 </script>
