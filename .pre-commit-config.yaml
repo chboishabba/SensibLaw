@@ -1,9 +1,9 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+    rev: v0.5.7
     hooks:
       - id: ruff
-        args: ["--fix"]
+        args: ["--fix", "--config=pyproject.toml"]
         files: "^(src|tests|scripts)/"
   - repo: https://github.com/psf/black
     rev: 23.9.1
@@ -12,30 +12,9 @@ repos:
         args: ["--check"]
         files: "^(src|tests|scripts)/"
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.6.1
-    hooks:
-      - id: mypy
-        files: "^src/storage/"
-        args: ["--ignore-missing-imports"]
-
-    rev: v0.4.7
-    hooks:
-      - id: ruff
-        files: ^(src|tests)/
-        args: [--ignore=E402]
-
-    rev: v0.5.7
-    hooks:
-      - id: ruff
-        args: ["--config=pyproject.toml"]
-        files: ^(src/distinguish/|tests/distinguish/|tests/test_distinguish_cli\.py)
-  - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
       - id: mypy
-        files: ^(src|tests)/
+        files: "^(src|tests)/"
         pass_filenames: false
-        args: [--config-file, mypy.ini, src, tests]
-
-        args: ["--config-file", "pyproject.toml"]
-        files: ^(src/distinguish/|tests/distinguish/|tests/test_distinguish_cli\.py)
+        args: ["--config-file", "mypy.ini", "src", "tests"]
