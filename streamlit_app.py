@@ -1440,7 +1440,7 @@ def build_document_preview_html(document: Document) -> str:
             }
 
             if (!bestId) {
-                setActiveLink(null);
+                setActiveTocLink(null);
                 return;
             }
 
