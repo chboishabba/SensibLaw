@@ -1003,13 +1003,10 @@ def build_document_preview_html(document: Document) -> str:
         setActiveLink(headingAnchors[0].id);
     }
 
-    const badges = Array.from(document.querySelectorAll('.atom-badge'));
-    const spans = Array.from(document.querySelectorAll('.atom-span'));
-    const detailColumn = document.getElementById('atom-detail-panel');
+    const badges = Array.from(previewRoot.querySelectorAll('.atom-badge'));
+    const spans = Array.from(previewRoot.querySelectorAll('.atom-span'));
+    const detailColumn = previewRoot.querySelector('#atom-detail-panel');
 
-    if (!detailColumn) {
-        return;
-    }
     function createFieldList(fieldDefs, source) {
         const dl = document.createElement('dl');
         dl.className = 'rule-card__fields';
@@ -1081,6 +1078,10 @@ def build_document_preview_html(document: Document) -> str:
     }
 
     function renderDetail(label, detailText) {
+        if (!detailColumn) {
+            return;
+        }
+
         let parsed = detailText;
         if (typeof detailText === 'string' && detailText.trim() !== '') {
             try {
@@ -1089,21 +1090,21 @@ def build_document_preview_html(document: Document) -> str:
                 parsed = detailText;
             }
         }
+
         detailColumn.innerHTML = '';
-        const title = document.createElement('h3');
-        title.textContent = label || 'Atom details';
-        detailColumn.appendChild(title);
+
+        const heading = document.createElement('h3');
+        heading.textContent = label || 'Atom details';
+        detailColumn.appendChild(heading);
+
         if (parsed === null || parsed === undefined || parsed === '') {
             const paragraph = document.createElement('p');
             paragraph.textContent = 'No structured details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
-        if (typeof parsed === 'string') {
-        const panelHeading = document.createElement('h3');
-        panelHeading.textContent = 'Atom details';
-        detailColumn.appendChild(panelHeading);
-        if (typeof parsed === 'string' || !parsed || typeof parsed !== 'object') {
+
+        if (typeof parsed === 'string' || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
             paragraph.className = 'rule-card__empty';
             paragraph.textContent = typeof parsed === 'string' ? parsed : 'No additional details available.';
@@ -1114,10 +1115,10 @@ def build_document_preview_html(document: Document) -> str:
         const card = document.createElement('article');
         card.className = 'rule-card';
 
-        const title = document.createElement('h3');
-        title.className = 'rule-card__title';
-        title.textContent = label || 'Selected atom';
-        card.appendChild(title);
+        const titleHeading = document.createElement('h3');
+        titleHeading.className = 'rule-card__title';
+        titleHeading.textContent = label || 'Selected atom';
+        card.appendChild(titleHeading);
 
         const metaParts = [];
         if (parsed.toc_id !== null && parsed.toc_id !== undefined) {
@@ -1397,15 +1398,7 @@ def build_document_preview_html(document: Document) -> str:
         return;
     }
 
-    const linkById = new Map();
-    tocLinks.forEach(function(link) {
-        const targetId = link.getAttribute('href').slice(1);
-        if (targetId) {
-            linkById.set(targetId, link);
-        }
-    });
-
-    const observedSections = Array.from(linkById.keys())
+    const observedSections = Array.from(tocLinkById.keys())
         .map(function(id) {
             return document.getElementById(id);
         })
@@ -1417,21 +1410,7 @@ def build_document_preview_html(document: Document) -> str:
         return;
     }
 
-    let activeLink = null;
     const visibleSections = new Map();
-
-    function setActiveTocLink(link) {
-        if (activeLink === link) {
-            return;
-        }
-        if (activeLink) {
-            activeLink.classList.remove('active');
-        }
-        activeLink = link;
-        if (activeLink) {
-            activeLink.classList.add('active');
-        }
-    }
 
     const observer = new IntersectionObserver(
         function(entries) {
@@ -1465,10 +1444,7 @@ def build_document_preview_html(document: Document) -> str:
                 return;
             }
 
-            const link = linkById.get(bestId);
-            if (link) {
-                setActiveTocLink(link);
-            }
+            setActiveLink(bestId);
         },
         {
             root: contentColumn,
@@ -1481,9 +1457,9 @@ def build_document_preview_html(document: Document) -> str:
         observer.observe(section);
     });
 
-    const firstLink = linkById.get(observedSections[0].getAttribute('id'));
-    if (firstLink) {
-        setActiveTocLink(firstLink);
+    const firstObservedId = observedSections[0].getAttribute('id');
+    if (firstObservedId) {
+        setActiveLink(firstObservedId);
     }
 })();
 </script>
