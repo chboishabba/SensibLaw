@@ -1094,9 +1094,9 @@ def build_document_preview_html(document: Document) -> str:
             }
         }
         detailColumn.innerHTML = '';
-        const title = document.createElement('h3');
-        title.textContent = label || 'Atom details';
-        detailColumn.appendChild(title);
+        const heading = document.createElement('h3');
+        heading.textContent = label || 'Atom details';
+        detailColumn.appendChild(heading);
         if (parsed === null || parsed === undefined || parsed === '') {
             const paragraph = document.createElement('p');
             paragraph.textContent = 'No structured details available.';
@@ -1104,13 +1104,17 @@ def build_document_preview_html(document: Document) -> str:
             return;
         }
         if (typeof parsed === 'string') {
-        const panelHeading = document.createElement('h3');
-        panelHeading.textContent = 'Atom details';
-        detailColumn.appendChild(panelHeading);
-        if (typeof parsed === 'string' || !parsed || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
             paragraph.className = 'rule-card__empty';
-            paragraph.textContent = typeof parsed === 'string' ? parsed : 'No additional details available.';
+            const trimmed = parsed.trim();
+            paragraph.textContent = trimmed || 'No additional details available.';
+            detailColumn.appendChild(paragraph);
+            return;
+        }
+        if (!parsed || typeof parsed !== 'object') {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'rule-card__empty';
+            paragraph.textContent = 'No additional details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
