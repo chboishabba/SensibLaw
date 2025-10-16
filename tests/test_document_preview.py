@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+
 # Provide a lightweight ``streamlit`` stub so the preview helpers can be imported without
 # pulling in the optional dependency during test collection.
 def _no_op(*args, **kwargs):  # type: ignore[unused-argument]
@@ -44,14 +45,23 @@ sys.modules.setdefault("streamlit", streamlit_stub)
 sys.modules.setdefault("streamlit.components", components_stub)
 sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 
-from sensiblaw_streamlit.document_preview import (
+from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
     _normalise_anchor_key,
     _render_toc,
     build_document_preview_html,
 )
-from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
-from src.models.provision import Provision, RuleAtom, RuleElement, RuleReference
+from src.models.document import (  # noqa: E402
+    Document,
+    DocumentMetadata,
+    DocumentTOCEntry,
+)
+from src.models.provision import (  # noqa: E402
+    Provision,
+    RuleAtom,
+    RuleElement,
+    RuleReference,
+)
 
 
 class _DocumentPreviewParser(HTMLParser):
@@ -119,7 +129,9 @@ def _build_preview_fixture() -> _PreviewFixture:
         role="obligation",
         text="A person must comply with the duty.",
         references=[
-            RuleReference(work="Sample Act", section="1", citation_text="Sample Act s 1"),
+            RuleReference(
+                work="Sample Act", section="1", citation_text="Sample Act s 1"
+            ),
         ],
         elements=[
             RuleElement(role="subject", text="A person", atom_type="subject"),
@@ -184,7 +196,19 @@ def preview_fixture() -> _PreviewFixture:
     return _build_preview_fixture()
 
 
-def test_collect_provisions_registers_all_link_targets(preview_fixture: _PreviewFixture) -> None:
+def _extract_toc_labels(html: str) -> List[str]:
+    pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
+    labels = []
+    for match in pattern.findall(html):
+        text = re.sub(r"\s+", " ", match).strip()
+        if text:
+            labels.append(unescape(text))
+    return labels
+
+
+def test_collect_provisions_registers_all_link_targets(
+    preview_fixture: _PreviewFixture,
+) -> None:
     parent = preview_fixture.parent_provision
     child = preview_fixture.child_provision
 
@@ -217,7 +241,9 @@ def test_collect_provisions_registers_all_link_targets(preview_fixture: _Preview
         assert lookup[normalised] == child_anchor
 
 
-def test_render_toc_links_to_registered_segments(preview_fixture: _PreviewFixture) -> None:
+def test_render_toc_links_to_registered_segments(
+    preview_fixture: _PreviewFixture,
+) -> None:
     anchors, lookup = _collect_provisions(preview_fixture.document.provisions)
 
     toc_html = _render_toc(preview_fixture.document.toc_entries, lookup)
@@ -228,6 +254,46 @@ def test_render_toc_links_to_registered_segments(preview_fixture: _PreviewFixtur
     # Labels combine identifier and title, ensuring the reader sees familiar headings.
     assert "s 1 Duty obligations" in toc_html
     assert "s 1(1) Subsection 1" in toc_html
+
+
+@pytest.mark.parametrize(
+    "identifier,title,expected_label,allow_terminal_digits",
+    [
+        (
+            "s 1",
+            "General provisions .............. Page 3",
+            "s 1 General provisions",
+            False,
+        ),
+        (
+            "s 2",
+            "Interpretation ··········· 12",
+            "s 2 Interpretation",
+            False,
+        ),
+        (
+            "Part 3",
+            "Savings provisions ..... page 14",
+            "Part 3 Savings provisions",
+            False,
+        ),
+        ("Part 4", "............. Page 20", "Part 4", True),
+    ],
+)
+def test_render_toc_strips_leaders_and_page_tokens(
+    identifier: str, title: str, expected_label: str, allow_terminal_digits: bool
+) -> None:
+    entry = DocumentTOCEntry(identifier=identifier, title=title)
+    normalised_identifier = _normalise_anchor_key(identifier)
+    assert normalised_identifier is not None
+    toc_html = _render_toc([entry], {normalised_identifier: "segment-1"})
+    labels = _extract_toc_labels(toc_html)
+    assert labels == [expected_label]
+    for label in labels:
+        assert "Page" not in label
+        assert not re.search(r"[.·⋅•●∙]{2,}", label)
+        if not allow_terminal_digits:
+            assert not re.search(r"\b\d+\s*$", label)
 
 
 def test_document_preview_html_contains_links_badges_and_details(
@@ -244,10 +310,13 @@ def test_document_preview_html_contains_links_badges_and_details(
     assert section_ids == {"segment-1", "segment-2"} == link_targets
 
     # Highlight counts: each provision with rule atoms should render an "Atoms" badge row.
-    expected_badges = sum(len(provision.rule_atoms) for provision in [
-        preview_fixture.parent_provision,
-        preview_fixture.child_provision,
-    ])
+    expected_badges = sum(
+        len(provision.rule_atoms)
+        for provision in [
+            preview_fixture.parent_provision,
+            preview_fixture.child_provision,
+        ]
+    )
     assert len(parser.atom_badges) == expected_badges
     assert html.count("<div class='atom-badges'><strong>Atoms:</strong>") == 2
 
@@ -262,7 +331,9 @@ def test_document_preview_html_contains_links_badges_and_details(
         assert detail_payload["atom_type"] == atom.atom_type
         assert detail_payload["stable_id"] == atom.stable_id
         if atom.references:
-            assert detail_payload["references"][0]["citation_text"] == atom.references[0].citation_text
+            assert (
+                detail_payload["references"][0]["citation_text"]
+                == atom.references[0].citation_text
+            )
         if atom.elements:
             assert detail_payload["elements"][0]["role"] == atom.elements[0].role
-
