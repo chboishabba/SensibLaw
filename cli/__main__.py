@@ -37,6 +37,25 @@ def main() -> None:
     )
     publish_parser.set_defaults(func=_run_publish)
 
+    eval_parser = sub.add_parser("eval", help="Evaluation utilities")
+    eval_sub = eval_parser.add_subparsers(dest="eval_command")
+
+    def _run_eval_goldset(args) -> None:
+        from scripts.eval_goldset import main as eval_goldset_main
+
+        eval_goldset_main(args.threshold)
+
+    eval_goldset = eval_sub.add_parser(
+        "goldset", help="Evaluate extractor performance against the gold set"
+    )
+    eval_goldset.add_argument(
+        "--threshold",
+        type=float,
+        default=0.9,
+        help="Minimum precision/recall threshold required to pass",
+    )
+    eval_goldset.set_defaults(func=_run_eval_goldset)
+
     brief_cmd.register(sub)
     frame_cmd.register(sub)
     glossary_cmd.register(sub)
