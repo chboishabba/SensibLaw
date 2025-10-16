@@ -862,8 +862,7 @@ class VersionedStore:
             if self._object_type(table) != "table":
                 continue
             table_columns = {
-                row["name"]
-                for row in self.conn.execute(f"PRAGMA table_info({table})")
+                row["name"] for row in self.conn.execute(f"PRAGMA table_info({table})")
             }
             if "glossary_id" not in table_columns or gloss_column not in table_columns:
                 continue
@@ -1149,6 +1148,34 @@ class VersionedStore:
                 return document
         return None
 
+    def list_latest_documents(self) -> List[dict[str, Any]]:
+        """Return metadata for the most recent revision of each document."""
+
+        rows = self.conn.execute(
+            """
+            SELECT r.doc_id, r.rev_id, r.effective_date, r.metadata
+            FROM revisions r
+            JOIN (
+                SELECT doc_id, MAX(rev_id) AS rev_id
+                FROM revisions
+                GROUP BY doc_id
+            ) latest ON r.doc_id = latest.doc_id AND r.rev_id = latest.rev_id
+            ORDER BY r.doc_id
+            """
+        )
+        documents: List[dict[str, Any]] = []
+        for row in rows:
+            metadata = DocumentMetadata.from_dict(json.loads(row["metadata"]))
+            documents.append(
+                {
+                    "doc_id": row["doc_id"],
+                    "rev_id": row["rev_id"],
+                    "effective_date": date.fromisoformat(row["effective_date"]),
+                    "metadata": metadata,
+                }
+            )
+        return documents
+
     def _load_document(
         self,
         doc_id: int,
@@ -1377,7 +1404,11 @@ class VersionedStore:
     def _document_stable_prefix(
         self, metadata: DocumentMetadata | Mapping[str, Any]
     ) -> str:
-        if metadata and hasattr(metadata, "jurisdiction") and hasattr(metadata, "citation"):
+        if (
+            metadata
+            and hasattr(metadata, "jurisdiction")
+            and hasattr(metadata, "citation")
+        ):
             jurisdiction_value = getattr(metadata, "jurisdiction")
             citation_value = getattr(metadata, "citation")
         elif isinstance(metadata, Mapping):
@@ -1643,9 +1674,7 @@ class VersionedStore:
                     unique_atoms.append(atom)
 
                 for atom_index, atom in enumerate(unique_atoms, start=1):
-                    gloss_metadata_json = self._serialise_metadata(
-                        atom.gloss_metadata
-                    )
+                    gloss_metadata_json = self._serialise_metadata(atom.gloss_metadata)
                     refs_json = json.dumps(atom.refs) if atom.refs else None
                     self.conn.execute(
                         """
@@ -2361,9 +2390,7 @@ class VersionedStore:
                 )
 
             for element_index, element in enumerate(rule_atom.elements, start=1):
-                element_metadata_json = self._serialise_metadata(
-                    element.gloss_metadata
-                )
+                element_metadata_json = self._serialise_metadata(element.gloss_metadata)
                 element_hash = self._compute_element_hash(
                     atom_type=element.atom_type,
                     role=element.role,

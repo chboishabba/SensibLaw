@@ -1003,17 +1003,10 @@ def build_document_preview_html(document: Document) -> str:
         setActiveLink(headingAnchors[0].id);
     }
 
-    const badges = Array.from(document.querySelectorAll('.atom-badge'));
-    const spans = Array.from(document.querySelectorAll('.atom-span'));
-    const detailColumn = document.getElementById('atom-detail-panel');
-    const tocLinks = Array.from(
-        document.querySelectorAll('.toc-tree a[href^="#"]')
-    );
-    const contentColumn = document.querySelector('.content-column');
+    const badges = Array.from(previewRoot.querySelectorAll('.atom-badge'));
+    const spans = Array.from(previewRoot.querySelectorAll('.atom-span'));
+    const detailColumn = previewRoot.querySelector('#atom-detail-panel');
 
-    if (!detailColumn) {
-        return;
-    }
     function createFieldList(fieldDefs, source) {
         const dl = document.createElement('dl');
         dl.className = 'rule-card__fields';
@@ -1085,6 +1078,10 @@ def build_document_preview_html(document: Document) -> str:
     }
 
     function renderDetail(label, detailText) {
+        if (!detailColumn) {
+            return;
+        }
+
         let parsed = detailText;
         if (typeof detailText === 'string' && detailText.trim() !== '') {
             try {
@@ -1093,17 +1090,21 @@ def build_document_preview_html(document: Document) -> str:
                 parsed = detailText;
             }
         }
+
         detailColumn.innerHTML = '';
+
         const heading = document.createElement('h3');
         heading.textContent = label || 'Atom details';
         detailColumn.appendChild(heading);
+
         if (parsed === null || parsed === undefined || parsed === '') {
             const paragraph = document.createElement('p');
             paragraph.textContent = 'No structured details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
-        if (typeof parsed === 'string') {
+
+        if (typeof parsed === 'string' || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
             paragraph.className = 'rule-card__empty';
             const trimmed = parsed.trim();
@@ -1122,10 +1123,10 @@ def build_document_preview_html(document: Document) -> str:
         const card = document.createElement('article');
         card.className = 'rule-card';
 
-        const title = document.createElement('h3');
-        title.className = 'rule-card__title';
-        title.textContent = label || 'Selected atom';
-        card.appendChild(title);
+        const titleHeading = document.createElement('h3');
+        titleHeading.className = 'rule-card__title';
+        titleHeading.textContent = label || 'Selected atom';
+        card.appendChild(titleHeading);
 
         const metaParts = [];
         if (parsed.toc_id !== null && parsed.toc_id !== undefined) {
@@ -1405,15 +1406,7 @@ def build_document_preview_html(document: Document) -> str:
         return;
     }
 
-    const linkById = new Map();
-    tocLinks.forEach(function(link) {
-        const targetId = link.getAttribute('href').slice(1);
-        if (targetId) {
-            linkById.set(targetId, link);
-        }
-    });
-
-    const observedSections = Array.from(linkById.keys())
+    const observedSections = Array.from(tocLinkById.keys())
         .map(function(id) {
             return document.getElementById(id);
         })
@@ -1425,21 +1418,7 @@ def build_document_preview_html(document: Document) -> str:
         return;
     }
 
-    let activeLink = null;
     const visibleSections = new Map();
-
-    function setActiveLink(link) {
-        if (activeLink === link) {
-            return;
-        }
-        if (activeLink) {
-            activeLink.classList.remove('active');
-        }
-        activeLink = link;
-        if (activeLink) {
-            activeLink.classList.add('active');
-        }
-    }
 
     const observer = new IntersectionObserver(
         function(entries) {
@@ -1469,14 +1448,11 @@ def build_document_preview_html(document: Document) -> str:
             }
 
             if (!bestId) {
-                setActiveLink(null);
+                setActiveTocLink(null);
                 return;
             }
 
-            const link = linkById.get(bestId);
-            if (link) {
-                setActiveLink(link);
-            }
+            setActiveLink(bestId);
         },
         {
             root: contentColumn,
@@ -1489,9 +1465,9 @@ def build_document_preview_html(document: Document) -> str:
         observer.observe(section);
     });
 
-    const firstLink = linkById.get(observedSections[0].getAttribute('id'));
-    if (firstLink) {
-        setActiveLink(firstLink);
+    const firstObservedId = observedSections[0].getAttribute('id');
+    if (firstObservedId) {
+        setActiveLink(firstObservedId);
     }
 })();
 </script>
@@ -1782,6 +1758,87 @@ def render_documents_tab() -> None:
             "document.json",
             key="download_document_json",
         )
+
+    st.markdown("### Stored documents")
+    document_rows: List[dict[str, Any]] = []
+    load_error: Optional[str] = None
+    store: Optional[VersionedStore] = None
+    try:
+        store = VersionedStore(db_path)
+        document_rows = store.list_latest_documents()
+    except Exception as exc:  # pragma: no cover - defensive UI feedback
+        load_error = str(exc)
+    finally:
+        if store is not None:
+            store.close()
+
+    if load_error:
+        st.error(f"Unable to load documents from the store: {load_error}")
+    elif not document_rows:
+        st.info("No documents have been ingested into the selected store yet.")
+    else:
+        summary_rows: List[dict[str, Any]] = []
+        option_lookup: Dict[str, dict[str, Any]] = {}
+        for entry in document_rows:
+            metadata = entry["metadata"]
+            label = f"{entry['doc_id']} · rev {entry['rev_id']} · {metadata.citation}"
+            option_lookup[label] = entry
+            summary_rows.append(
+                {
+                    "Document ID": entry["doc_id"],
+                    "Revision": entry["rev_id"],
+                    "Effective date": entry["effective_date"].isoformat(),
+                    "Document date": metadata.date.isoformat(),
+                    "Citation": metadata.citation,
+                    "Jurisdiction": metadata.jurisdiction,
+                }
+            )
+
+        if pd is not None:
+            frame = pd.DataFrame(summary_rows).set_index("Document ID")
+            st.dataframe(frame, use_container_width=True)
+        else:  # pragma: no cover - pandas optional
+            st.write(summary_rows)
+
+        selection = st.selectbox(
+            "Inspect stored document",
+            ["-- Select document --"] + list(option_lookup.keys()),
+            key="stored_document_selector",
+        )
+        if selection and selection != "-- Select document --":
+            selected_entry = option_lookup[selection]
+            metadata_dict = selected_entry["metadata"].to_dict()
+            with st.expander(
+                f"Document {selected_entry['doc_id']} metadata", expanded=True
+            ):
+                st.json(metadata_dict)
+            _download_json(
+                "Download metadata JSON",
+                metadata_dict,
+                f"document_{selected_entry['doc_id']}_metadata.json",
+                key=f"download_metadata_{selected_entry['doc_id']}_{selected_entry['rev_id']}",
+            )
+
+            view_latest = st.button(
+                "View latest revision",
+                key=f"view_document_{selected_entry['doc_id']}",
+            )
+            if view_latest:
+                with st.spinner("Loading document"):
+                    latest_store = VersionedStore(db_path)
+                    try:
+                        latest = latest_store.snapshot(
+                            int(selected_entry["doc_id"]),
+                            selected_entry["effective_date"],
+                        )
+                    finally:
+                        latest_store.close()
+                if latest is None:
+                    st.warning("No revision found for the selected document.")
+                elif isinstance(latest, Document):
+                    render_document_preview(latest)
+                else:
+                    st.json(latest)
 
     st.markdown("### Snapshot lookup")
     with st.form("snapshot_form"):
