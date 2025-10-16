@@ -34,6 +34,7 @@ if str(SRC_DIR) not in sys.path:
 
 from src.api.routes import (  # noqa: E402  - imported after path adjustment
     HTTPException,
+    ensure_sample_treatment_graph,
     execute_tests,
     fetch_case_treatment,
     fetch_provision_atoms,
@@ -1697,6 +1698,21 @@ def _seed_sample_graph() -> None:
             continue
 
 
+def _available_case_identifiers() -> List[str]:
+    """Return sorted case identifiers present in the in-memory graph."""
+
+    if not ROUTES_GRAPH.nodes:
+        ensure_sample_treatment_graph()
+
+    identifiers = [
+        identifier
+        for identifier, node in ROUTES_GRAPH.nodes.items()
+        if getattr(node, "type", None) in (NodeType.CASE, NodeType.DOCUMENT)
+    ]
+    identifiers.sort()
+    return identifiers
+
+
 # ---------------------------------------------------------------------------
 # Streamlit page configuration
 # ---------------------------------------------------------------------------
@@ -2084,9 +2100,40 @@ def render_knowledge_graph_tab() -> None:
                     _download_json("Download test results", result, "tests.json")
 
     st.markdown("### Case treatment summary")
-    with st.form("treatment_form"):
-        case_id = st.text_input("Case identifier", value="Case#Mabo1992")
-        treatment_submit = st.form_submit_button("Fetch treatment")
+    available_case_ids = _available_case_identifiers()
+
+    selected_case_id: Optional[str] = None
+    if available_case_ids:
+        selected_case_id = st.selectbox(
+            "Available cases",
+            options=available_case_ids,
+            key="case_id_select",
+            help="Select from cases currently loaded in the in-memory graph.",
+        )
+    else:
+        st.info(
+            "No cases are currently loaded. Ingest a dataset or load the sample graph"
+            " to enable lookups."
+        )
+
+    if "case_id_input" not in st.session_state:
+        st.session_state["case_id_input"] = selected_case_id or "Case#Mabo1992"
+
+    previous_selection = st.session_state.get("case_id_select_prev")
+    if (
+        selected_case_id
+        and selected_case_id != previous_selection
+        and st.session_state.get("case_id_input") in (None, "", previous_selection)
+    ):
+        st.session_state["case_id_input"] = selected_case_id
+    st.session_state["case_id_select_prev"] = selected_case_id
+
+    case_id = st.text_input(
+        "Case identifier",
+        key="case_id_input",
+        help="Enter the identifier of a case present in the knowledge graph.",
+    )
+    treatment_submit = st.button("Fetch treatment")
 
     if treatment_submit:
         try:
