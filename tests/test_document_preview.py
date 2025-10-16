@@ -44,7 +44,7 @@ sys.modules.setdefault("streamlit", streamlit_stub)
 sys.modules.setdefault("streamlit.components", components_stub)
 sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 
-from streamlit_app import (
+from sensiblaw_streamlit.document_preview import (
     _collect_provisions,
     _normalise_anchor_key,
     _render_toc,

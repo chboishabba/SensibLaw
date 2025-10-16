@@ -1,4 +1,4 @@
-"""SensibLaw Streamlit operations console."""
+"""SensibLaw Streamlit operations console shim."""
 
 from __future__ import annotations
 
