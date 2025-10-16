@@ -22,7 +22,6 @@ from sensiblaw_streamlit.shared import (
 from src.api.routes import (
     HTTPException,
     _graph as ROUTES_GRAPH,
-    ensure_sample_treatment_graph,
     execute_tests,
     fetch_case_treatment,
     fetch_provision_atoms,
@@ -71,9 +70,6 @@ def _seed_sample_graph() -> None:
 
 def _available_case_identifiers() -> List[str]:
     """Return sorted case identifiers currently present in the graph."""
-
-    if not ROUTES_GRAPH.nodes:
-        ensure_sample_treatment_graph()
 
     identifiers = [
         identifier
