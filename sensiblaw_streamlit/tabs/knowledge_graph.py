@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from typing import Any, Dict, List
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
@@ -68,6 +70,111 @@ def _seed_sample_graph() -> None:
             continue
 
 
+def _escape_markdown(text: str) -> str:
+    """Escape Markdown control characters for safe rendering."""
+
+    if not isinstance(text, str):
+        return str(text)
+    return re.sub(r"([\\`*_{}\[\]()#+\-!])", r"\\\\\1", text)
+
+
+def _format_proof(proof: Dict[str, Any]) -> str:
+    """Build a human friendly summary of the proof payload."""
+
+    if not proof:
+        return "status unknown"
+
+    status = _escape_markdown(str(proof.get("status", "unknown"))).capitalize()
+    details: List[str] = []
+
+    confidence = proof.get("confidence")
+    if isinstance(confidence, (int, float)):
+        if 0 <= confidence <= 1:
+            details.append(f"confidence {confidence:.0%}")
+        else:
+            details.append(f"confidence {confidence}")
+
+    evidence_count = proof.get("evidenceCount")
+    if isinstance(evidence_count, (int, float)):
+        suffix = "s" if evidence_count != 1 else ""
+        details.append(f"{int(evidence_count)} evidence source{suffix}")
+
+    if details:
+        return f"{status} ({', '.join(details)})"
+    return status
+
+
+def _build_atom_lines(atom: Dict[str, Any], depth: int = 0) -> List[str]:
+    """Recursively render provision atoms into a Markdown bullet list."""
+
+    indent = "  " * depth
+    label = _escape_markdown(atom.get("label") or atom.get("id") or "Unnamed atom")
+    role = atom.get("role")
+    role_segment = f"*{_escape_markdown(role)}*" if role else None
+    proof_segment = _format_proof(atom.get("proof", {}))
+
+    meta_segments = [segment for segment in (role_segment, proof_segment) if segment]
+    headline = f"{indent}- **{label}**"
+    if meta_segments:
+        headline += " — " + ", ".join(meta_segments)
+
+    lines = [headline]
+
+    notes = atom.get("notes")
+    if notes:
+        lines.append(f"{indent}  _Notes_: {_escape_markdown(str(notes))}")
+
+    principle = atom.get("principle") or {}
+    principle_title = principle.get("title")
+    principle_summary = principle.get("summary")
+    if principle_title or principle_summary:
+        summary_parts = []
+        if principle_title:
+            summary_parts.append(f"**{_escape_markdown(str(principle_title))}**")
+        if principle_summary:
+            summary_parts.append(_escape_markdown(str(principle_summary)))
+        lines.append(f"{indent}  _Principle_: {' — '.join(summary_parts)}")
+
+    principle_tags = principle.get("tags")
+    if principle_tags:
+        escaped_tags = ", ".join(_escape_markdown(str(tag)) for tag in principle_tags)
+        lines.append(f"{indent}  _Tags_: {escaped_tags}")
+
+    principle_citation = principle.get("citation")
+    if principle_citation:
+        lines.append(
+            f"{indent}  _Citation_: `{_escape_markdown(str(principle_citation))}`"
+        )
+
+    for child in atom.get("children", []) or []:
+        lines.extend(_build_atom_lines(child, depth + 1))
+
+    return lines
+
+
+def _render_provision_atoms(provision: Dict[str, Any]) -> None:
+    """Render provision atoms in a readable outline with the raw JSON in an expander."""
+
+    title = provision.get("title")
+    provision_id = provision.get("provision_id")
+    if title:
+        st.markdown(f"**{_escape_markdown(str(title))}**")
+    if provision_id:
+        st.caption(_escape_markdown(str(provision_id)))
+
+    atoms = provision.get("atoms", [])
+    if not atoms:
+        st.info("No atoms available for this provision.")
+        return
+
+    atom_lines: List[str] = []
+    for atom in atoms:
+        atom_lines.extend(_build_atom_lines(atom))
+
+    st.markdown("\n".join(atom_lines))
+
+    with st.expander("Show raw JSON response", expanded=False):
+        st.json(provision)
 def _available_case_identifiers() -> List[str]:
     """Return sorted case identifiers currently present in the graph."""
 
@@ -222,7 +329,7 @@ def render() -> None:
         except HTTPException as exc:
             st.error(f"{exc.detail} (HTTP {exc.status_code})")
         else:
-            st.json(provision)
+            _render_provision_atoms(provision)
             _download_json(
                 "Download provision atoms", provision, "provision_atoms.json"
             )
