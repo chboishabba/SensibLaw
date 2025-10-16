@@ -180,6 +180,19 @@ def _find_in_line(
     return None
 
 
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
+
+
 def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     """Render ``line`` with inline ``Atom`` annotations."""
 
@@ -439,9 +452,10 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
@@ -1314,6 +1328,7 @@ def render_document_preview(document: Document) -> None:
 __all__ = [
     "_collect_provisions",
     "_normalise_anchor_key",
+    "_normalise_provision_line",
     "_render_toc",
     "build_document_preview_html",
     "render_document_preview",

@@ -62,6 +62,19 @@ from src.storage.versioned_store import VersionedStore  # noqa: E402
 from src.tests.templates import TEMPLATE_REGISTRY  # noqa: E402
 from src.text.similarity import simhash  # noqa: E402
 
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
+
+
 # ---------------------------------------------------------------------------
 # Helpers and constants
 # ---------------------------------------------------------------------------
@@ -617,9 +630,10 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"

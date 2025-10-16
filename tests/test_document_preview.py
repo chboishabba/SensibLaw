@@ -48,9 +48,11 @@ sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
     _normalise_anchor_key,
+    _normalise_provision_line,
     _render_toc,
     build_document_preview_html,
 )
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry  # noqa: E402
 from src.models.document import (  # noqa: E402
     Document,
     DocumentMetadata,
@@ -196,6 +198,17 @@ def preview_fixture() -> _PreviewFixture:
     return _build_preview_fixture()
 
 
+def test_normalise_provision_line_collapses_leader_dots() -> None:
+    noisy = "Heading title .............. 42"
+    cleaned = _normalise_provision_line(noisy)
+    assert cleaned == "Heading title 42"
+
+    dotted = "Clause title · · · · · · 99"
+    cleaned_dotted = _normalise_provision_line(dotted)
+    assert cleaned_dotted == "Clause title 99"
+
+    genuine = "An actual ... ellipsis remains."
+    assert _normalise_provision_line(genuine) == genuine
 def _extract_toc_labels(html: str) -> List[str]:
     pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
     labels = []
