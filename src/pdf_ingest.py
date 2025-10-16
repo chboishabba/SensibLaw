@@ -37,6 +37,9 @@ _TOC_LINE_RE = re.compile(
     re.IGNORECASE,
 )
 _TOC_DOT_LEADER_RE = re.compile(r"[.·⋅•●∙]{2,}")
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_LEADER_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
 _TOC_TITLE_SPLIT_RE = re.compile(r"\s*[-–—:]\s*")
 _DEFINITION_START_RE = re.compile(
     r"^\s*(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+"
@@ -416,6 +419,26 @@ def _normalise_toc_candidate(parts: List[str]) -> str:
     return re.sub(r"\s+", " ", joined).strip()
 
 
+def _clean_toc_title_segment(title_part: Optional[str]) -> Optional[str]:
+    if not title_part:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", title_part).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = (
+        any(ch in ".·⋅•●∙" for ch in title_part) or "page" in title_part.lower()
+    )
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.sub("", cleaned)
+    cleaned = _TOC_DOT_LEADER_RE.sub(" ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def _split_toc_identifier(content: str) -> Tuple[Optional[str], Optional[str]]:
     content = content.strip()
     if not content:
@@ -430,7 +453,7 @@ def _split_toc_identifier(content: str) -> Tuple[Optional[str], Optional[str]]:
         title_part = pieces[1] if len(pieces) > 1 else None
 
     identifier = identifier_part.strip().rstrip(".") or None
-    title = title_part.strip() if title_part and title_part.strip() else None
+    title = _clean_toc_title_segment(title_part) if title_part else None
     return identifier, title
 
 
@@ -846,7 +869,6 @@ def build_document(
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
-
 
     definitions = _extract_definition_entries(body)
 

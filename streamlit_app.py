@@ -34,6 +34,7 @@ if str(SRC_DIR) not in sys.path:
 
 from src.api.routes import (  # noqa: E402  - imported after path adjustment
     HTTPException,
+    ensure_sample_treatment_graph,
     execute_tests,
     fetch_case_treatment,
     fetch_provision_atoms,
@@ -61,6 +62,19 @@ from src.rules.reasoner import check_rules  # noqa: E402
 from src.storage.versioned_store import VersionedStore  # noqa: E402
 from src.tests.templates import TEMPLATE_REGISTRY  # noqa: E402
 from src.text.similarity import simhash  # noqa: E402
+
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
+
 
 # ---------------------------------------------------------------------------
 # Helpers and constants
@@ -375,6 +389,28 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     return "".join(parts)
 
 
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
+
+
+def _clean_toc_text(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = any(ch in ".·⋅•●∙" for ch in value) or "page" in value.lower()
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_BLOCK_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     """Render nested table-of-contents entries as HTML."""
 
@@ -385,10 +421,12 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
-            if entry.identifier:
-                label_parts.append(escape(entry.identifier))
-            if entry.title:
-                label_parts.append(escape(entry.title))
+            identifier = entry.identifier.strip() if entry.identifier else None
+            title = _clean_toc_text(entry.title)
+            if identifier:
+                label_parts.append(escape(identifier))
+            if title:
+                label_parts.append(escape(title))
             label = " ".join(label_parts) or escape(entry.node_type or "Entry")
             anchor: Optional[str] = None
             for key in (
@@ -593,9 +631,10 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
@@ -1659,6 +1698,21 @@ def _seed_sample_graph() -> None:
             continue
 
 
+def _available_case_identifiers() -> List[str]:
+    """Return sorted case identifiers present in the in-memory graph."""
+
+    if not ROUTES_GRAPH.nodes:
+        ensure_sample_treatment_graph()
+
+    identifiers = [
+        identifier
+        for identifier, node in ROUTES_GRAPH.nodes.items()
+        if getattr(node, "type", None) in (NodeType.CASE, NodeType.DOCUMENT)
+    ]
+    identifiers.sort()
+    return identifiers
+
+
 # ---------------------------------------------------------------------------
 # Streamlit page configuration
 # ---------------------------------------------------------------------------
@@ -2046,9 +2100,40 @@ def render_knowledge_graph_tab() -> None:
                     _download_json("Download test results", result, "tests.json")
 
     st.markdown("### Case treatment summary")
-    with st.form("treatment_form"):
-        case_id = st.text_input("Case identifier", value="Case#Mabo1992")
-        treatment_submit = st.form_submit_button("Fetch treatment")
+    available_case_ids = _available_case_identifiers()
+
+    selected_case_id: Optional[str] = None
+    if available_case_ids:
+        selected_case_id = st.selectbox(
+            "Available cases",
+            options=available_case_ids,
+            key="case_id_select",
+            help="Select from cases currently loaded in the in-memory graph.",
+        )
+    else:
+        st.info(
+            "No cases are currently loaded. Ingest a dataset or load the sample graph"
+            " to enable lookups."
+        )
+
+    if "case_id_input" not in st.session_state:
+        st.session_state["case_id_input"] = selected_case_id or "Case#Mabo1992"
+
+    previous_selection = st.session_state.get("case_id_select_prev")
+    if (
+        selected_case_id
+        and selected_case_id != previous_selection
+        and st.session_state.get("case_id_input") in (None, "", previous_selection)
+    ):
+        st.session_state["case_id_input"] = selected_case_id
+    st.session_state["case_id_select_prev"] = selected_case_id
+
+    case_id = st.text_input(
+        "Case identifier",
+        key="case_id_input",
+        help="Enter the identifier of a case present in the knowledge graph.",
+    )
+    treatment_submit = st.button("Fetch treatment")
 
     if treatment_submit:
         try:

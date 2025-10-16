@@ -8,11 +8,32 @@ from dataclasses import dataclass
 from html import escape
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import streamlit as st
 import streamlit.components.v1 as components
 
 from src.models.document import Document, DocumentTOCEntry
 from src.models.provision import Atom, Provision
+
+
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
+
+
+def _clean_toc_text(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = any(ch in ".·⋅•●∙" for ch in value) or "page" in value.lower()
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_BLOCK_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
 
 
 def _normalise_anchor_key(value: Optional[str]) -> Optional[str]:
@@ -159,6 +180,19 @@ def _find_in_line(
     return None
 
 
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
+
+
 def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     """Render ``line`` with inline ``Atom`` annotations."""
 
@@ -217,10 +251,12 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
-            if entry.identifier:
-                label_parts.append(escape(entry.identifier))
-            if entry.title:
-                label_parts.append(escape(entry.title))
+            identifier = entry.identifier.strip() if entry.identifier else None
+            title = _clean_toc_text(entry.title)
+            if identifier:
+                label_parts.append(escape(identifier))
+            if title:
+                label_parts.append(escape(title))
             label = " ".join(label_parts) or escape(entry.node_type or "Entry")
             anchor: Optional[str] = None
             for key in (
@@ -416,9 +452,10 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
@@ -1291,6 +1328,7 @@ def render_document_preview(document: Document) -> None:
 __all__ = [
     "_collect_provisions",
     "_normalise_anchor_key",
+    "_normalise_provision_line",
     "_render_toc",
     "build_document_preview_html",
     "render_document_preview",
