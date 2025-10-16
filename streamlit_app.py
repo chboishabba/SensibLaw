@@ -1107,7 +1107,15 @@ def build_document_preview_html(document: Document) -> str:
         if (typeof parsed === 'string' || typeof parsed !== 'object') {
             const paragraph = document.createElement('p');
             paragraph.className = 'rule-card__empty';
-            paragraph.textContent = typeof parsed === 'string' ? parsed : 'No additional details available.';
+            const trimmed = parsed.trim();
+            paragraph.textContent = trimmed || 'No additional details available.';
+            detailColumn.appendChild(paragraph);
+            return;
+        }
+        if (!parsed || typeof parsed !== 'object') {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'rule-card__empty';
+            paragraph.textContent = 'No additional details available.';
             detailColumn.appendChild(paragraph);
             return;
         }
