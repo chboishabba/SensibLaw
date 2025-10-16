@@ -139,6 +139,22 @@ def test_get_by_canonical_id(tmp_path: Path):
     store.close()
 
 
+def test_list_latest_documents(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    try:
+        documents = store.list_latest_documents()
+        assert len(documents) == 1
+        summary = documents[0]
+        assert summary["doc_id"] == doc_id
+        assert summary["rev_id"] == 2
+        assert summary["effective_date"] == date(2021, 1, 1)
+        metadata = summary["metadata"]
+        assert metadata.citation == "123"
+        assert metadata.jurisdiction == "US"
+    finally:
+        store.close()
+
+
 def test_atom_references_join_table(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
@@ -703,6 +719,13 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
 def test_legacy_atoms_loaded_from_view_when_structured_absent(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
+        object_type = store.conn.execute(
+            "SELECT type FROM sqlite_master WHERE name = 'atoms'"
+        ).fetchone()
+        if object_type and object_type["type"] == "view":
+            store.conn.execute("CREATE TABLE atoms_materialized AS SELECT * FROM atoms")
+            store.conn.execute("DROP VIEW atoms")
+            store.conn.execute("ALTER TABLE atoms_materialized RENAME TO atoms")
         store.conn.execute("ALTER TABLE atoms RENAME TO atoms_legacy")
         store.conn.execute("CREATE VIEW atoms AS SELECT * FROM atoms_legacy")
 
