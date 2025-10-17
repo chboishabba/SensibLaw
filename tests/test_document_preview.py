@@ -227,7 +227,10 @@ def test_collect_provisions_registers_all_link_targets(
 
     anchors, lookup = _collect_provisions(preview_fixture.document.provisions)
 
-    assert [anchor for _, anchor in anchors] == ["segment-1", "segment-2"]
+    assert [anchor for _, anchor in anchors] == [
+        "stable-section",
+        "stable-subsection",
+    ]
 
     parent_anchor = anchors[0][1]
     for key in (
@@ -320,7 +323,8 @@ def test_document_preview_html_contains_links_badges_and_details(
     # Ensure that every section rendered has a matching link target in the table of contents.
     section_ids = set(parser.sections.keys())
     link_targets = {link["href"].lstrip("#") for link in parser.links if link["href"]}
-    assert section_ids == {"segment-1", "segment-2"} == link_targets
+    assert section_ids == {"section-stable-section", "section-stable-subsection"}
+    assert link_targets == {"stable-section", "stable-subsection"}
 
     # Highlight counts: each provision with rule atoms should render an "Atoms" badge row.
     expected_badges = sum(
