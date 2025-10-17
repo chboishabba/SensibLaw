@@ -48,9 +48,11 @@ sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
     _normalise_anchor_key,
+    _normalise_provision_line,
     _render_toc,
     build_document_preview_html,
 )
+from src.models.document import Document, DocumentMetadata, DocumentTOCEntry  # noqa: E402
 from src.models.document import (  # noqa: E402
     Document,
     DocumentMetadata,
@@ -196,6 +198,27 @@ def preview_fixture() -> _PreviewFixture:
     return _build_preview_fixture()
 
 
+def test_normalise_provision_line_collapses_leader_dots() -> None:
+    noisy = "Heading title .............. 42"
+    cleaned = _normalise_provision_line(noisy)
+    assert cleaned == "Heading title 42"
+
+    dotted = "Clause title · · · · · · 99"
+    cleaned_dotted = _normalise_provision_line(dotted)
+    assert cleaned_dotted == "Clause title 99"
+
+    genuine = "An actual ... ellipsis remains."
+    assert _normalise_provision_line(genuine) == genuine
+def _extract_toc_labels(html: str) -> List[str]:
+    pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
+    labels = []
+    for match in pattern.findall(html):
+        text = re.sub(r"\s+", " ", match).strip()
+        if text:
+            labels.append(unescape(text))
+    return labels
+
+
 def test_collect_provisions_registers_all_link_targets(
     preview_fixture: _PreviewFixture,
 ) -> None:
@@ -249,6 +272,46 @@ def test_render_toc_links_to_registered_segments(
     assert "s 1(1) Subsection 1" in toc_html
 
 
+@pytest.mark.parametrize(
+    "identifier,title,expected_label,allow_terminal_digits",
+    [
+        (
+            "s 1",
+            "General provisions .............. Page 3",
+            "s 1 General provisions",
+            False,
+        ),
+        (
+            "s 2",
+            "Interpretation ··········· 12",
+            "s 2 Interpretation",
+            False,
+        ),
+        (
+            "Part 3",
+            "Savings provisions ..... page 14",
+            "Part 3 Savings provisions",
+            False,
+        ),
+        ("Part 4", "............. Page 20", "Part 4", True),
+    ],
+)
+def test_render_toc_strips_leaders_and_page_tokens(
+    identifier: str, title: str, expected_label: str, allow_terminal_digits: bool
+) -> None:
+    entry = DocumentTOCEntry(identifier=identifier, title=title)
+    normalised_identifier = _normalise_anchor_key(identifier)
+    assert normalised_identifier is not None
+    toc_html = _render_toc([entry], {normalised_identifier: "segment-1"})
+    labels = _extract_toc_labels(toc_html)
+    assert labels == [expected_label]
+    for label in labels:
+        assert "Page" not in label
+        assert not re.search(r"[.·⋅•●∙]{2,}", label)
+        if not allow_terminal_digits:
+            assert not re.search(r"\b\d+\s*$", label)
+
+
 def test_document_preview_html_contains_links_badges_and_details(
     preview_fixture: _PreviewFixture,
 ) -> None:
@@ -271,7 +334,7 @@ def test_document_preview_html_contains_links_badges_and_details(
             preview_fixture.child_provision,
         ]
     )
-    assert len(parser.atom_badges) == expected_badges * 2
+    assert len(parser.atom_badges) == expected_badges
     assert html.count("<div class='atom-badges'><strong>Atoms:</strong>") == 2
 
     # Linearizer outputs: the badge payload should expose the structured atom data.
@@ -279,18 +342,15 @@ def test_document_preview_html_contains_links_badges_and_details(
         preview_fixture.parent_provision.rule_atoms
         + preview_fixture.child_provision.rule_atoms
     )
-    for index, atom in enumerate(expected_atoms):
-        badges = parser.atom_badges[index * 2 : index * 2 + 2]
-        assert len(badges) == 2
-        for badge in badges:
-            assert badge["data-label"] == atom.atom_type
-            detail_payload = json.loads(unescape(badge["data-detail"]))
-            assert detail_payload["atom_type"] == atom.atom_type
-            assert detail_payload["stable_id"] == atom.stable_id
-            if atom.references:
-                assert (
-                    detail_payload["references"][0]["citation_text"]
-                    == atom.references[0].citation_text
-                )
-            if atom.elements:
-                assert detail_payload["elements"][0]["role"] == atom.elements[0].role
+    for badge, atom in zip(parser.atom_badges, expected_atoms):
+        assert badge["data-label"] == atom.atom_type
+        detail_payload = json.loads(unescape(badge["data-detail"]))
+        assert detail_payload["atom_type"] == atom.atom_type
+        assert detail_payload["stable_id"] == atom.stable_id
+        if atom.references:
+            assert (
+                detail_payload["references"][0]["citation_text"]
+                == atom.references[0].citation_text
+            )
+        if atom.elements:
+            assert detail_payload["elements"][0]["role"] == atom.elements[0].role

@@ -6,23 +6,21 @@ import json
 
 import streamlit as st
 
-from src.frame.compiler import compile_frame
+from sensiblaw_streamlit.constants import SAMPLE_FRL_PAYLOAD
+from sensiblaw_streamlit.shared import _download_json
+
 from src.glossary.service import lookup as glossary_lookup
-from src.harm.index import compute_harm
-from src.ingestion.frl import fetch_acts
+from src.frame.compiler import compile_frame
 from src.receipts.build import build_receipt
 from src.receipts.verify import verify_receipt
+from src.text.similarity import simhash
+from src.ingestion.frl import fetch_acts
 from src.rules import Rule
 from src.rules.reasoner import check_rules
-from src.text.similarity import simhash
-
-from ..constants import SAMPLE_FRL_PAYLOAD
-from ..shared import _download_json
+from src.harm.index import compute_harm
 
 
 def render() -> None:
-    """Render the Utilities tab."""
-
     st.subheader("Utilities")
     st.write(
         "Quick access to glossary lookups, frame compilation, receipts, similarity fingerprints, FRL ingestion, rule checks, and harm scores."
@@ -152,3 +150,6 @@ def render() -> None:
             score = compute_harm(story)
             st.json(score)
             _download_json("Download harm score", score, "harm_score.json")
+
+
+__all__ = ["render"]

@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
+
+from sensiblaw_streamlit.shared import (
+    ROOT,
+    _download_json,
+    _render_dot,
+    _render_table,
+    pd,
+)
 
 from src.api.routes import _graph as ROUTES_GRAPH
 from src.api.sample_routes import api_provision, api_subgraph, api_treatment
@@ -12,19 +21,14 @@ from src.concepts.cloud import build_cloud as advanced_cloud
 from src.pipeline import build_cloud, match_concepts, normalise
 from src.rules.extractor import extract_rules
 
-from ..constants import REPO_ROOT
-from ..shared import _download_json, _render_dot, _render_table, pd
-
 
 def render() -> None:
-    """Render the Text & Concepts tab."""
-
     st.subheader("Text & Concepts")
     st.write(
         "Normalise text, surface concept matches, extract rules, and inspect ontology tagging outputs."
     )
 
-    sample_story_path = REPO_ROOT / "examples" / "distinguish_glj" / "story.txt"
+    sample_story_path = ROOT / "examples" / "distinguish_glj" / "story.txt"
     sample_text = (
         sample_story_path.read_text(encoding="utf-8")
         if sample_story_path.exists()
@@ -108,3 +112,6 @@ def render() -> None:
         st.json(provision)
         if include_dot:
             _render_dot(provision_payload.get("dot"), key="provision")
+
+
+__all__ = ["render"]

@@ -5,6 +5,7 @@ import json
 import logging
 import re
 import sys
+from collections import deque
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -36,7 +37,12 @@ _TOC_LINE_RE = re.compile(
     r"^(?P<type>Part|Division|Subdivision|Section)\s+(?P<content>.+?)\s*(?P<page>\d+)$",
     re.IGNORECASE,
 )
+_TOC_PAGE_NUMBER_RE = re.compile(r"^\d+$")
+_TOC_SECTION_IDENTIFIER_RE = re.compile(r"^\d+[A-Z]*$")
 _TOC_DOT_LEADER_RE = re.compile(r"[.·⋅•●∙]{2,}")
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_LEADER_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
 _TOC_TITLE_SPLIT_RE = re.compile(r"\s*[-–—:]\s*")
 _DEFINITION_START_RE = re.compile(
     r"^\s*(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+"
@@ -416,6 +422,28 @@ def _normalise_toc_candidate(parts: List[str]) -> str:
     return re.sub(r"\s+", " ", joined).strip()
 
 
+def _clean_toc_title_segment(title_part: Optional[str]) -> Optional[str]:
+    if not title_part:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", title_part).strip()
+    if not cleaned:
+        return None
+
+    has_dotted_leader_page_ref = bool(re.search(r"[.·⋅•●∙]{2,}\s*\d+\s*$", title_part))
+    has_explicit_page_word = bool(
+        re.search(r"\bPage\s*\d+\s*$", cleaned, re.IGNORECASE)
+    )
+
+    if has_dotted_leader_page_ref or has_explicit_page_word:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.sub("", cleaned)
+    cleaned = _TOC_DOT_LEADER_RE.sub(" ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def _split_toc_identifier(content: str) -> Tuple[Optional[str], Optional[str]]:
     content = content.strip()
     if not content:
@@ -430,8 +458,190 @@ def _split_toc_identifier(content: str) -> Tuple[Optional[str], Optional[str]]:
         title_part = pieces[1] if len(pieces) > 1 else None
 
     identifier = identifier_part.strip().rstrip(".") or None
-    title = title_part.strip() if title_part and title_part.strip() else None
+    title = _clean_toc_title_segment(title_part) if title_part else None
     return identifier, title
+
+
+_TOC_SKIP_LINE_PATTERNS = [
+    re.compile(r"^Page\s+\d+$", re.IGNORECASE),
+    re.compile(r"^Current as at ", re.IGNORECASE),
+    re.compile(r"^Authorised by the Parliamentary Counsel", re.IGNORECASE),
+]
+_TOC_SKIP_LINE_TEXT = {
+    "Contents",
+    "Dictionary",
+    "Queensland",
+    "Summary Offences Act 2005",
+}
+
+
+def _should_join_toc_line(previous: str, current: str) -> bool:
+    if not previous or not current:
+        return False
+    if current.lower() == "page":
+        return False
+    if _TOC_PREFIX_RE.match(current):
+        return False
+    if _TOC_SECTION_IDENTIFIER_RE.match(current):
+        return False
+    if _TOC_PAGE_NUMBER_RE.match(current):
+        return False
+    return bool(current and current[0].islower())
+
+
+def _collect_toc_tokens(pages: List[dict]) -> List[str]:
+    tokens: List[str] = []
+    for page in pages:
+        for raw_line in _page_lines_for_toc(page):
+            normalised = re.sub(r"\s+", " ", str(raw_line)).strip()
+            if not normalised:
+                continue
+            if set(normalised) <= {"-"}:
+                continue
+            if not re.search(r"[\w]", normalised):
+                continue
+            if normalised in _TOC_SKIP_LINE_TEXT:
+                continue
+            if any(pattern.match(normalised) for pattern in _TOC_SKIP_LINE_PATTERNS):
+                continue
+            tokens.append(normalised)
+
+    combined: List[str] = []
+    for token in tokens:
+        if combined and _should_join_toc_line(combined[-1], token):
+            combined[-1] = f"{combined[-1]} {token}".strip()
+        else:
+            combined.append(token)
+    return combined
+
+
+def _parse_multi_column_toc(pages: List[dict]) -> List[DocumentTOCEntry]:
+    tokens = _collect_toc_tokens(pages)
+    if not tokens:
+        return []
+
+    flat_entries: List[DocumentTOCEntry] = []
+    pending_section_ids: deque[str] = deque()
+    pending_page_entries: deque[DocumentTOCEntry] = deque()
+    page_numbers: deque[int] = deque()
+    pending_title_entry: Optional[DocumentTOCEntry] = None
+    collecting_pages = False
+    last_token_was_title = False
+    page_column_active = False
+    prefer_identifiers = False
+    page_number_stream = False
+
+    def assign_pages() -> None:
+        while page_numbers and pending_page_entries:
+            entry = pending_page_entries[0]
+            entry.page_number = page_numbers.popleft()
+            pending_page_entries.popleft()
+
+    for token in tokens:
+        lowered = token.lower()
+        if lowered == "page":
+            collecting_pages = True
+            page_column_active = True
+            last_token_was_title = False
+            prefer_identifiers = False
+            page_number_stream = True
+            continue
+
+        if collecting_pages and _TOC_PAGE_NUMBER_RE.match(token):
+            try:
+                page_numbers.append(int(token))
+            except ValueError:
+                pass
+            else:
+                assign_pages()
+            prefer_identifiers = False
+            last_token_was_title = True
+            page_number_stream = True
+            continue
+
+        if collecting_pages:
+            collecting_pages = False
+
+        if (
+            _TOC_PAGE_NUMBER_RE.match(token)
+            and page_column_active
+            and (pending_page_entries or page_number_stream)
+            and not prefer_identifiers
+        ):
+            try:
+                page_numbers.append(int(token))
+            except ValueError:
+                pass
+            else:
+                assign_pages()
+            prefer_identifiers = False
+            last_token_was_title = True
+            page_number_stream = True
+            continue
+
+        prefix_match = _TOC_PREFIX_RE.match(token)
+        if prefix_match:
+            node_type = prefix_match.group("type").lower()
+            remainder = token[prefix_match.end() :].strip()
+            identifier, title = _split_toc_identifier(remainder)
+            entry = DocumentTOCEntry(
+                node_type=node_type,
+                identifier=identifier,
+                title=title,
+                page_number=None,
+            )
+            flat_entries.append(entry)
+            if node_type == "section":
+                pending_page_entries.append(entry)
+            pending_title_entry = entry if title is None else None
+            assign_pages()
+            last_token_was_title = bool(title)
+            prefer_identifiers = True
+            page_number_stream = False
+            continue
+
+        if pending_title_entry is not None:
+            if (
+                _TOC_SECTION_IDENTIFIER_RE.match(token)
+                and pending_title_entry.node_type != "section"
+            ):
+                pending_title_entry = None
+                prefer_identifiers = True
+                page_number_stream = False
+            else:
+                pending_title_entry.title = _clean_toc_title_segment(token)
+                pending_title_entry = None
+                assign_pages()
+                last_token_was_title = True
+                prefer_identifiers = True
+                page_number_stream = False
+                continue
+
+        if _TOC_SECTION_IDENTIFIER_RE.match(token):
+            pending_section_ids.append(token)
+            last_token_was_title = False
+            prefer_identifiers = True
+            page_number_stream = False
+            continue
+
+        if pending_section_ids:
+            identifier = pending_section_ids.popleft()
+            entry = DocumentTOCEntry(
+                node_type="section",
+                identifier=identifier,
+                title=_clean_toc_title_segment(token),
+                page_number=None,
+            )
+            flat_entries.append(entry)
+            pending_page_entries.append(entry)
+            assign_pages()
+            last_token_was_title = True
+            prefer_identifiers = bool(pending_section_ids)
+            page_number_stream = False
+            continue
+
+    assign_pages()
+    return flat_entries
 
 
 def _parse_toc_page(lines: List[str]) -> List[DocumentTOCEntry]:
@@ -494,12 +704,13 @@ def _page_lines_for_toc(page: Dict[str, Any]) -> List[str]:
 def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
     """Parse table-of-contents pages into a hierarchical structure."""
 
-    flat_entries: List[DocumentTOCEntry] = []
-    for page in pages:
-        lines = _page_lines_for_toc(page)
-        parsed = _parse_toc_page(lines)
-        if len(parsed) >= 2:
-            flat_entries.extend(parsed)
+    flat_entries = _parse_multi_column_toc(pages)
+    if not flat_entries:
+        for page in pages:
+            lines = _page_lines_for_toc(page)
+            parsed = _parse_toc_page(lines)
+            if len(parsed) >= 2:
+                flat_entries.extend(parsed)
 
     if not flat_entries:
         return []
@@ -846,7 +1057,6 @@ def build_document(
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
-
 
     definitions = _extract_definition_entries(body)
 

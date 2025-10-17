@@ -6,16 +6,14 @@ import json
 
 import streamlit as st
 
+from sensiblaw_streamlit.constants import SAMPLE_CASES, SAMPLE_STORY_FACTS
+from sensiblaw_streamlit.shared import _download_json, _render_table
+
 from src.distinguish.engine import compare_story_to_case
 from src.distinguish.loader import load_case_silhouette
 
-from ..constants import SAMPLE_CASES, SAMPLE_STORY_FACTS
-from ..shared import _download_json, _render_table
-
 
 def render() -> None:
-    """Render the Case Comparison tab."""
-
     st.subheader("Case Comparison")
     st.write(
         "Load a base silhouette and compare story fact tags to highlight overlaps and gaps."
@@ -77,3 +75,6 @@ def render() -> None:
         _render_table(overlaps, key="overlaps")
         st.markdown("#### Missing")
         _render_table(missing, key="missing")
+
+
+__all__ = ["render"]

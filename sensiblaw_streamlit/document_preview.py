@@ -14,6 +14,28 @@ from src.models.document import Document, DocumentTOCEntry
 from src.models.provision import Atom, Provision
 
 
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
+
+
+def _clean_toc_text(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = any(ch in ".·⋅•●∙" for ch in value) or "page" in value.lower()
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_BLOCK_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def _normalise_anchor_key(value: Optional[str]) -> Optional[str]:
     """Return a slug suitable for anchor lookup."""
 
@@ -49,18 +71,8 @@ def _collect_provisions(
         return candidate
 
     def derive_anchor(node: Provision, fallback: str) -> str:
-        candidates = [
-            node.stable_id,
-            node.identifier,
-            node.heading,
-            f"{node.identifier}-{node.heading}"
-            if node.identifier and node.heading
-            else None,
-        ]
-        for candidate in candidates:
-            slug = _normalise_anchor_key(candidate) if candidate else None
-            if slug:
-                return ensure_unique(slug)
+        # Use deterministic segment identifiers for anchor IDs while still
+        # registering rich lookup keys for headings, identifiers, and stable IDs.
         return ensure_unique(fallback)
 
     def walk(node: Provision) -> None:
@@ -168,6 +180,19 @@ def _find_in_line(
     return None
 
 
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
+
+
 def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     """Render ``line`` with inline ``Atom`` annotations."""
 
@@ -226,10 +251,12 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
         items: List[str] = []
         for entry in nodes:
             label_parts: List[str] = []
-            if entry.identifier:
-                label_parts.append(escape(entry.identifier))
-            if entry.title:
-                label_parts.append(escape(entry.title))
+            identifier = entry.identifier.strip() if entry.identifier else None
+            title = _clean_toc_text(entry.title)
+            if identifier:
+                label_parts.append(escape(identifier))
+            if title:
+                label_parts.append(escape(title))
             label = " ".join(label_parts) or escape(entry.node_type or "Entry")
             anchor: Optional[str] = None
             for key in (
@@ -356,50 +383,41 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
 
     badges: List[str] = []
     occupied_spans: List[Tuple[int, int]] = []
-    provision_text = provision.text
+    provision_text = provision.text or ""
 
     for index, atom in enumerate(provision.rule_atoms, start=1):
         detail_dict = atom.to_dict()
-
         anchor_id = _build_atom_anchor_id(provision_anchor, atom, index)
         if anchor_id:
             detail_dict.setdefault("anchor", anchor_id)
 
         span = _locate_atom_span(provision_text, atom, occupied_spans)
-        span_attrs: List[str] = []
         if span is not None:
             span_start, span_end = span
             detail_dict.setdefault("span_start", span_start)
             detail_dict.setdefault("span_end", span_end)
-            span_attrs.append(f"data-span-start='{span_start}'")
-            span_attrs.append(f"data-span-end='{span_end}'")
 
+        label_text = atom.atom_type or _format_atom_label(atom, index)
         detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
-        detail_attr = escape(detail_json, quote=True)
-        label_source = atom.atom_type or atom.role or f"Atom {index}"
-        label = escape(label_source)
-        badges.append(
-            (
-                "<span class='atom-badge' tabindex='0' role='button' "
-                f"aria-label='{label}' title='{label}' data-label='{label}' "
-                f"data-detail='{detail_attr}'>{label}</span>"
-            )
-        )
 
-        attributes = [
-            "class='atom-badge'",
-            "tabindex='0'",
-            f"data-label='{label}'",
-            f"data-detail='{detail_attr}'",
-        ]
-
+        attributes: Dict[str, str] = {
+            "class": "atom-badge",
+            "tabindex": "0",
+            "role": "button",
+            "aria-label": label_text,
+            "data-label": label_text,
+            "data-detail": detail_json,
+        }
         if anchor_id:
-            attributes.append(f"id='{anchor_id}'")
-            span_attrs.append(f"data-anchor-id='{anchor_id}'")
+            attributes["id"] = anchor_id
+        if span is not None:
+            attributes["data-span-start"] = str(span_start)
+            attributes["data-span-end"] = str(span_end)
 
-        attributes.extend(span_attrs)
-
-        badges.append(f"<span {' '.join(attributes)}>{label}</span>")
+        attr_html = " ".join(
+            f"{key}='{escape(value, quote=True)}'" for key, value in attributes.items()
+        )
+        badges.append(f"<span {attr_html}>{escape(label_text)}</span>")
 
     return (
         "<div class='atom-badges'><strong>Atoms:</strong> "
@@ -434,16 +452,17 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
         if provision.stable_id
         else ""
     )
-    section_id = f"section-{anchor}"
+    section_id = anchor
     heading_html = (
         f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
     )
@@ -563,7 +582,6 @@ def build_document_preview_html(document: Document) -> str:
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    align-items: center;
 }
 .document-preview .atom-badge {
     display: inline-flex;
@@ -889,157 +907,117 @@ def build_document_preview_html(document: Document) -> str:
     }
 
     function createMetadataTags(metadata) {
-        if (!metadata || typeof metadata !== 'object') {
-            return null;
-        }
-        const entries = Object.entries(metadata).filter(([, value]) => value !== null && value !== undefined && value !== '');
+        const entries = Object.entries(metadata || {})
+            .map(([key, value]) => {
+                if (value === null || value === undefined) {
+                    return null;
+                }
+                if (Array.isArray(value)) {
+                    const filtered = value
+                        .map((item) => (item is undefined ? '' : String(item).trim()))
+                        .filter(Boolean);
+                    if (!filtered.length) {
+                        return null;
+                    }
+                    return [key, filtered.join(', ')];
+                }
+                if (typeof value === 'object') {
+                    return null;
+                }
+                const text = String(value).trim();
+                return text ? [key, text] : null;
+            })
+            .filter(Boolean);
         if (!entries.length) {
             return null;
         }
-        const container = document.createElement('div');
-        container.className = 'rule-card__tags';
+        const list = document.createElement('ul');
+        list.className = 'rule-card__tags';
         entries.forEach(([key, value]) => {
-            const span = document.createElement('span');
-            span.className = 'rule-card__tag';
-            if (Array.isArray(value)) {
-                const filtered = value
-                    .filter((item) => item !== null && item !== undefined && item !== '')
-                    .map((item) => String(item));
-                span.textContent = filtered.length ? `${key}: ${filtered.join(', ')}` : key;
-            } else if (typeof value === 'object') {
-                span.textContent = `${key}`;
-            } else if (value === true) {
-                span.textContent = key;
-            } else {
-                span.textContent = `${key}: ${value}`;
-            }
-            container.appendChild(span);
+            const item = document.createElement('li');
+            item.className = 'rule-card__tag';
+            item.textContent = `${key}: ${value}`;
+            list.appendChild(item);
         });
-        return container;
+        return list.childElementCount ? list : null;
     }
 
-    function renderDetail(label, detailText) {
+    function renderDetail(label, detail) {
         if (!detailColumn) {
             return;
         }
-
-        let parsed = detailText;
-        if (typeof detailText === 'string' && detailText.trim() !== '') {
-            try {
-                parsed = JSON.parse(detailText);
-            } catch (error) {
-                parsed = detailText;
-            }
-        }
-
         detailColumn.innerHTML = '';
-
         const heading = document.createElement('h3');
-        heading.textContent = label || 'Atom details';
+        heading.className = 'rule-card__title';
+        heading.textContent = label || 'Atom detail';
         detailColumn.appendChild(heading);
 
-        if (parsed === null || parsed === undefined || parsed === '') {
-            const paragraph = document.createElement('p');
-            paragraph.textContent = 'No structured details available.';
-            detailColumn.appendChild(paragraph);
+        if (!detail) {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'rule-card__empty';
+            placeholder.textContent = 'No detail available for this atom.';
+            detailColumn.appendChild(placeholder);
             return;
         }
 
-        if (typeof parsed === 'string' || typeof parsed !== 'object') {
-            const paragraph = document.createElement('p');
-            paragraph.className = 'rule-card__empty';
-            const trimmed = parsed.trim();
-            paragraph.textContent = trimmed || 'No additional details available.';
-            detailColumn.appendChild(paragraph);
-            return;
-        }
-        if (!parsed || typeof parsed !== 'object') {
-            const paragraph = document.createElement('p');
-            paragraph.className = 'rule-card__empty';
-            paragraph.textContent = 'No additional details available.';
-            detailColumn.appendChild(paragraph);
+        let parsed;
+        try {
+            parsed = JSON.parse(detail);
+        } catch (error) {
+            const pre = document.createElement('pre');
+            pre.textContent = detail;
+            detailColumn.appendChild(pre);
             return;
         }
 
         const card = document.createElement('article');
         card.className = 'rule-card';
 
-        const titleHeading = document.createElement('h3');
-        titleHeading.className = 'rule-card__title';
-        titleHeading.textContent = label || 'Selected atom';
-        card.appendChild(titleHeading);
-
-        const metaParts = [];
-        if (parsed.toc_id !== null && parsed.toc_id !== undefined) {
-            metaParts.push(`TOC ${parsed.toc_id}`);
-        }
         if (parsed.stable_id) {
-            metaParts.push(`#${parsed.stable_id}`);
-        }
-        if (parsed.atom_type && parsed.atom_type !== 'rule') {
-            metaParts.push(String(parsed.atom_type));
-        }
-        if (metaParts.length) {
-            const meta = document.createElement('p');
-            meta.className = 'rule-card__meta';
-            meta.textContent = metaParts.join(' • ');
-            card.appendChild(meta);
+            const badge = document.createElement('div');
+            badge.className = 'rule-card__badge';
+            badge.textContent = `Stable ID: ${parsed.stable_id}`;
+            card.appendChild(badge);
         }
 
-        const sentenceText = parsed.text || (parsed.subject && parsed.subject.text) || '';
-        if (sentenceText) {
+        if (parsed.text) {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'rule-card__body';
+            paragraph.textContent = parsed.text;
+            card.appendChild(paragraph);
+        }
+
+        if (parsed.sentence) {
             const sentence = document.createElement('p');
             sentence.className = 'rule-card__sentence';
-            sentence.textContent = sentenceText;
+            sentence.textContent = parsed.sentence;
             card.appendChild(sentence);
         }
 
-        const primaryFields = [
-            ['party', 'Party'],
-            ['role', 'Role'],
-            ['actor', 'Actor'],
-            ['modality', 'Modality'],
-            ['action', 'Action'],
-            ['conditions', 'Conditions'],
-            ['scope', 'Scope'],
-            ['who', 'Who'],
-            ['who_text', 'Who text'],
-            ['subject_gloss', 'Subject gloss'],
-        ];
-        const fieldList = createFieldList(primaryFields, parsed);
-        if (fieldList) {
-            card.appendChild(fieldList);
+        const fields = createFieldList(
+            [
+                ['role', 'Role'],
+                ['atom_type', 'Type'],
+                ['party', 'Party'],
+                ['evaluation', 'Evaluation'],
+            ],
+            parsed,
+        );
+        if (fields) {
+            card.appendChild(fields);
         }
 
-        const subjectSection = parsed.subject && typeof parsed.subject === 'object'
-            ? createFieldList(
-                  [
-                      ['type', 'Type'],
-                      ['role', 'Role'],
-                      ['party', 'Party'],
-                      ['who', 'Who'],
-                      ['who_text', 'Who text'],
-                      ['conditions', 'Conditions'],
-                      ['text', 'Text'],
-                      ['gloss', 'Gloss'],
-                  ],
-                  parsed.subject,
-              )
-            : null;
-        if (subjectSection) {
-            const section = document.createElement('section');
-            section.className = 'rule-card__section';
-            const heading = document.createElement('h4');
-            heading.textContent = 'Subject';
-            section.appendChild(heading);
-            section.appendChild(subjectSection);
-            if (parsed.subject && parsed.subject.gloss_metadata) {
-                const tags = createMetadataTags(parsed.subject.gloss_metadata);
-                if (tags) {
-                    section.appendChild(tags);
-                }
+        if (parsed.gloss_metadata) {
+            const tags = createMetadataTags(parsed.gloss_metadata);
+            if (tags) {
+                const section = document.createElement('section');
+                section.className = 'rule-card__section';
+                const heading = document.createElement('h4');
+                heading.textContent = 'Glossary metadata';
+                section.appendChild(heading);
+                section.appendChild(tags);
+                card.appendChild(section);
             }
-            card.appendChild(section);
         }
 
         if (parsed.subject_gloss_metadata) {
@@ -1195,6 +1173,7 @@ def build_document_preview_html(document: Document) -> str:
 
         detailColumn.appendChild(card);
     }
+
     function setActive(label) {
         const allTargets = badges.concat(spans);
         allTargets.forEach(function(node) {
@@ -1205,6 +1184,7 @@ def build_document_preview_html(document: Document) -> str:
             }
         });
     }
+
     function activate(element) {
         if (!element) {
             return;
@@ -1214,10 +1194,12 @@ def build_document_preview_html(document: Document) -> str:
         setActive(label);
         renderDetail(label, detail);
     }
+
     const initial = badges[0] || spans[0] || null;
     if (initial) {
         activate(initial);
     }
+
     function attachInteractiveHandlers(element) {
         element.addEventListener('click', function(event) {
             event.preventDefault();
@@ -1230,6 +1212,7 @@ def build_document_preview_html(document: Document) -> str:
             }
         });
     }
+
     badges.forEach(function(badge) {
         attachInteractiveHandlers(badge);
     });
@@ -1340,3 +1323,13 @@ def render_document_preview(document: Document) -> None:
 
     html_content = build_document_preview_html(document)
     components.html(html_content, height=900, scrolling=True)
+
+
+__all__ = [
+    "_collect_provisions",
+    "_normalise_anchor_key",
+    "_normalise_provision_line",
+    "_render_toc",
+    "build_document_preview_html",
+    "render_document_preview",
+]

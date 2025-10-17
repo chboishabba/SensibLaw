@@ -2,39 +2,30 @@
 
 from __future__ import annotations
 
-import sys
-
 import streamlit as st
 
-from .constants import SRC_DIR
+from sensiblaw_streamlit.tabs import (
+    case_comparison,
+    documents,
+    knowledge_graph,
+    text_concepts,
+    utilities,
+)
 
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from .tabs.case_comparison import render as render_case_comparison_tab
-from .tabs.documents import render as render_documents_tab
-from .tabs.knowledge_graph import render as render_knowledge_graph_tab
-from .tabs.text_concepts import render as render_text_concepts_tab
-from .tabs.utilities import render as render_utilities_tab
-
-st.set_page_config(page_title="SensibLaw Console", layout="wide")
+def configure_page() -> None:
+    st.set_page_config(page_title="SensibLaw Console", layout="wide")
+    st.title("SensibLaw Operations Console")
+    st.caption(
+        "Interact with SensibLaw services for document processing, concept mapping,"
+        " knowledge graph exploration, and more."
+    )
 
 
 def main() -> None:
-    """Render the Streamlit application."""
+    configure_page()
 
-    st.title("SensibLaw Operations Console")
-    st.caption(
-        "Interact with SensibLaw services for document processing, concept mapping, knowledge graph exploration, and more."
-    )
-
-    (
-        documents_tab,
-        text_tab,
-        graph_tab,
-        comparison_tab,
-        utilities_tab,
-    ) = st.tabs(
+    documents_tab, text_tab, graph_tab, comparison_tab, utilities_tab = st.tabs(
         [
             "Documents",
             "Text & Concepts",
@@ -45,15 +36,15 @@ def main() -> None:
     )
 
     with documents_tab:
-        render_documents_tab()
+        documents.render()
     with text_tab:
-        render_text_concepts_tab()
+        text_concepts.render()
     with graph_tab:
-        render_knowledge_graph_tab()
+        knowledge_graph.render()
     with comparison_tab:
-        render_case_comparison_tab()
+        case_comparison.render()
     with utilities_tab:
-        render_utilities_tab()
+        utilities.render()
 
 
 __all__ = ["main"]

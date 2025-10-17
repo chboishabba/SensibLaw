@@ -1,4 +1,4 @@
-"""Shared helper utilities for the SensibLaw Streamlit console."""
+"""Shared helpers for the SensibLaw Streamlit console."""
 
 from __future__ import annotations
 
@@ -7,9 +7,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import streamlit as st
+
+from . import REPO_ROOT
 
 try:  # Optional dependency for tabular display
     import pandas as pd
@@ -21,22 +23,17 @@ try:  # Optional dependency for graph rendering
 except Exception:  # pragma: no cover - graphviz is optional at runtime
     Digraph = None  # type: ignore[assignment]
 
-__all__ = [
-    "pd",
-    "Digraph",
-    "_ensure_parent",
-    "_json_default",
-    "_download_json",
-    "_render_table",
-    "_render_dot",
-    "_build_knowledge_graph_dot",
-]
+ROOT = REPO_ROOT
 
 
 def _ensure_parent(path: Path) -> None:
-    """Ensure the parent directory for ``path`` exists."""
-
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _write_bytes(path: Path, data: bytes) -> Path:
+    _ensure_parent(path)
+    path.write_bytes(data)
+    return path
 
 
 def _json_default(value: Any) -> Any:
@@ -54,8 +51,6 @@ def _json_default(value: Any) -> Any:
 def _download_json(
     label: str, payload: Any, filename: str, *, key: Optional[str] = None
 ) -> None:
-    """Render a Streamlit download button for ``payload`` as JSON."""
-
     st.download_button(
         label,
         json.dumps(payload, indent=2, ensure_ascii=False, default=_json_default),
@@ -66,8 +61,6 @@ def _download_json(
 
 
 def _render_table(records: Iterable[Dict[str, Any]], *, key: str) -> None:
-    """Render ``records`` in a tabular format if possible."""
-
     rows = list(records)
     if not rows:
         st.info("No data available for the current selection.")
@@ -81,8 +74,6 @@ def _render_table(records: Iterable[Dict[str, Any]], *, key: str) -> None:
 
 
 def _render_dot(dot: Optional[str], *, key: str) -> None:
-    """Render DOT graph content when available."""
-
     if not dot:
         return
     try:
@@ -135,7 +126,7 @@ def _build_knowledge_graph_dot(payload: Dict[str, Any]) -> Optional[str]:
         node_type = _enum_value(node.get("type", ""))
         metadata = node.get("metadata") or {}
         title = metadata.get("title") or metadata.get("name") or identifier
-        subtitle_parts: List[str] = []
+        subtitle_parts = []
         for key in ("court", "year", "citation"):
             value = metadata.get(key)
             if value:
@@ -169,7 +160,7 @@ def _build_knowledge_graph_dot(payload: Dict[str, Any]) -> Optional[str]:
             continue
 
         edge_type = _enum_value(edge.get("type", ""))
-        label = edge.get("label") or edge.get("metadata", {}).get("relation")
+        label = edge_type.replace("_", " ").title() if edge_type else ""
         weight = edge.get("weight")
         if isinstance(weight, (int, float)) and weight != 1:
             label = f"{label} ({weight:g})" if label else f"{weight:g}"
@@ -187,3 +178,15 @@ def _build_knowledge_graph_dot(payload: Dict[str, Any]) -> Optional[str]:
         graph.edge(source, target, **edge_attrs)
 
     return graph.source
+
+
+__all__ = [
+    "ROOT",
+    "pd",
+    "_ensure_parent",
+    "_write_bytes",
+    "_download_json",
+    "_render_table",
+    "_render_dot",
+    "_build_knowledge_graph_dot",
+]
