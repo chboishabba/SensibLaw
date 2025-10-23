@@ -47,6 +47,7 @@ sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 
 from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
+    _build_atom_annotations,
     _normalise_anchor_key,
     _normalise_provision_line,
     _render_toc,
@@ -157,7 +158,7 @@ def _build_preview_fixture() -> _PreviewFixture:
 
     child_provision = Provision(
         text="Subsection text clarifying the obligation.",
-        identifier="s 1(1)",
+        identifier="1(1)",
         heading="Subsection 1",
         toc_id=6,
         stable_id="stable-subsection",
@@ -166,7 +167,7 @@ def _build_preview_fixture() -> _PreviewFixture:
 
     parent_provision = Provision(
         text="The primary duty provision.\nIt establishes the baseline.",
-        identifier="s 1",
+        identifier="1",
         heading="Section 1 – Duty",
         toc_id=5,
         stable_id="stable-section",
@@ -181,10 +182,17 @@ def _build_preview_fixture() -> _PreviewFixture:
         provisions=[parent_provision],
         toc_entries=[
             DocumentTOCEntry(
-                identifier="s 1",
+                node_type="section",
+                identifier="1",
                 title="Duty obligations",
+                page_number=5,
                 children=[
-                    DocumentTOCEntry(identifier="s 1(1)", title="Subsection 1"),
+                    DocumentTOCEntry(
+                        node_type="subsection",
+                        identifier="1(1)",
+                        title="Subsection 1",
+                        page_number=6,
+                    ),
                 ],
             )
         ],
@@ -213,7 +221,8 @@ def _extract_toc_labels(html: str) -> List[str]:
     pattern = re.compile(r"<a[^>]*>(.*?)</a>", re.DOTALL)
     labels = []
     for match in pattern.findall(html):
-        text = re.sub(r"\s+", " ", match).strip()
+        stripped = re.sub(r"<[^>]+>", " ", match)
+        text = re.sub(r"\s+", " ", stripped).strip()
         if text:
             labels.append(unescape(text))
     return labels
@@ -258,15 +267,21 @@ def test_render_toc_links_to_registered_segments(
     preview_fixture: _PreviewFixture,
 ) -> None:
     anchors, lookup = _collect_provisions(preview_fixture.document.provisions)
+    provision_by_anchor = {anchor: provision for provision, anchor in anchors}
 
-    toc_html = _render_toc(preview_fixture.document.toc_entries, lookup)
+    toc_html = _render_toc(
+        preview_fixture.document.toc_entries, lookup, provision_by_anchor
+    )
 
     hrefs = re.findall(r"href='#([^']+)'", toc_html)
     assert set(hrefs) == {anchor for _, anchor in anchors}
 
     # Labels combine identifier and title, ensuring the reader sees familiar headings.
-    assert "s 1 Duty obligations" in toc_html
-    assert "s 1(1) Subsection 1" in toc_html
+    assert "Section 1 Duty obligations" in toc_html
+    assert "Subsection 1(1) Subsection 1" in toc_html
+    assert "p. 5" in toc_html
+    assert "data-stable-id='stable-section'" in toc_html
+    assert "title='Stable ID: stable-section'" in toc_html
 
 
 @pytest.mark.parametrize(
@@ -350,3 +365,22 @@ def test_document_preview_html_contains_links_badges_and_details(
             )
         if atom.elements:
             assert detail_payload["elements"][0]["role"] == atom.elements[0].role
+
+
+def test_atom_annotations_include_citations() -> None:
+    provision = Provision(
+        text="The judge must refer to some of the facts (R. v. Sidlow (1)).",
+        rule_atoms=[
+            RuleAtom(
+                atom_type="duty",
+                text="The judge must refer to some of the facts",
+                references=[RuleReference(citation_text="R. v. Sidlow (1)")],
+            )
+        ],
+    )
+
+    annotations = _build_atom_annotations(provision)
+    assert any(
+        annotation.kind == "citation" and "R. v. Sidlow (1)" in annotation.text
+        for annotation in annotations
+    )

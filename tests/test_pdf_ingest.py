@@ -5,18 +5,20 @@ import types
 from pathlib import Path
 
 
-def test_extract_pdf(tmp_path):
+def _load_pdf_ingest(fake_text: str):
     root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(root))
-
-    def fake_extract_text(path):
-        return "Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage"
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
 
     sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
-        extract_text=fake_extract_text
+        extract_text=lambda path: fake_text
     )
     sys.modules.pop("src.pdf_ingest", None)
-    pdf_ingest = importlib.import_module("src.pdf_ingest")
+    return importlib.import_module("src.pdf_ingest")
+
+
+def test_extract_pdf(tmp_path):
+    pdf_ingest = _load_pdf_ingest("Heading 1\nHello  \nWorld\fHeading2\nSecond\tPage")
 
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
@@ -48,3 +50,21 @@ def test_extract_pdf(tmp_path):
     assert data["source"] == str(pdf_path)
     assert data["page_count"] == 2
     assert data["pages"] == pages
+
+
+def test_extract_pdf_removes_dot_leaders_from_body(tmp_path):
+    pdf_ingest = _load_pdf_ingest(
+        "Heading 1\nAlpha . . . . Beta\nGamma ......... Delta\fHeading 2\nClean line"
+    )
+
+    pdf_path = tmp_path / "dots.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4")
+
+    pages = pdf_ingest.extract_pdf_text(pdf_path)
+    assert pages[0]["lines"][1] == "Alpha Beta"
+    assert pages[0]["lines"][2] == "Gamma Delta"
+    assert pages[0]["text"] == "Alpha Beta Gamma Delta"
+
+    document = pdf_ingest.build_document(pages, pdf_path)
+    assert ". ." not in document.body
+    assert "...." not in document.body

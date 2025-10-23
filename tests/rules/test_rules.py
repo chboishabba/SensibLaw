@@ -41,3 +41,10 @@ def test_shall_not_detection():
     assert len(rules) == 2
     issues = check_rules(rules)
     assert any("Contradiction" in i for i in issues)
+
+
+def test_extract_rules_preserves_parenthetical_citations():
+    text = "The judge must refer to some of the facts (R. v. Sidlow (1))."
+    rules = extract_rules(text)
+    assert len(rules) == 1
+    assert rules[0].action == "refer to some of the facts (R. v. Sidlow (1))"
