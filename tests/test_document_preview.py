@@ -47,6 +47,7 @@ sys.modules.setdefault("streamlit.components.v1", components_v1_stub)
 
 from sensiblaw_streamlit.document_preview import (  # noqa: E402
     _collect_provisions,
+    _build_atom_annotations,
     _normalise_anchor_key,
     _normalise_provision_line,
     _render_toc,
@@ -350,3 +351,22 @@ def test_document_preview_html_contains_links_badges_and_details(
             )
         if atom.elements:
             assert detail_payload["elements"][0]["role"] == atom.elements[0].role
+
+
+def test_atom_annotations_include_citations() -> None:
+    provision = Provision(
+        text="The judge must refer to some of the facts (R. v. Sidlow (1)).",
+        rule_atoms=[
+            RuleAtom(
+                atom_type="duty",
+                text="The judge must refer to some of the facts",
+                references=[RuleReference(citation_text="R. v. Sidlow (1)")],
+            )
+        ],
+    )
+
+    annotations = _build_atom_annotations(provision)
+    assert any(
+        annotation.kind == "citation" and "R. v. Sidlow (1)" in annotation.text
+        for annotation in annotations
+    )
