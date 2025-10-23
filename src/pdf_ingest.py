@@ -47,6 +47,7 @@ _TOC_LINE_RE = re.compile(
 _TOC_PAGE_NUMBER_RE = re.compile(r"^\d+$")
 _TOC_SECTION_IDENTIFIER_RE = re.compile(r"^\d+[A-Z]*$")
 _TOC_DOT_LEADER_RE = re.compile(r"[.·⋅•●∙]{2,}")
+_BODY_DOT_LEADER_RE = re.compile(r"(?:\s*[.·⋅•●∙]){3,}")
 _TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
 _TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
 _TOC_TRAILING_DOT_LEADER_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
@@ -404,17 +405,30 @@ else:  # pragma: no cover - only executed when import succeeds
 section_parser = _root_section_parser or _ingestion_section_parser  # type: ignore
 
 
+def _clean_page_line(line: str) -> Optional[str]:
+    """Normalise whitespace and remove dotted leader artifacts from ``line``."""
+
+    collapsed = re.sub(r"\s+", " ", line).strip()
+    if not collapsed:
+        return None
+
+    cleaned = _BODY_DOT_LEADER_RE.sub(" ", collapsed)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
+
+
 def extract_pdf_text(pdf_path: Path) -> List[dict]:
     """Extract text and headings from a PDF, returning pages with numbers."""
 
     raw = extract_text(str(pdf_path)) or ""
     pages: List[dict] = []
     for i, page_text in enumerate(raw.split("\f"), start=1):
-        lines = [
-            re.sub(r"\s+", " ", line).strip()
-            for line in page_text.splitlines()
-            if line.strip()
-        ]
+        lines: List[str] = []
+        for raw_line in page_text.splitlines():
+            cleaned_line = _clean_page_line(raw_line)
+            if not cleaned_line:
+                continue
+            lines.append(cleaned_line)
         if not lines:
             continue
         heading = lines[0]
