@@ -105,6 +105,7 @@ class _AtomAnnotation:
     text: str
     label: str
     detail_json: str
+    kind: str = "atom"
     used: bool = False
 
 
@@ -129,28 +130,93 @@ def _build_atom_annotations(provision: Provision) -> List[_AtomAnnotation]:
         for index, atom in enumerate(provision.flatten_rule_atoms(), start=1)
         if atom.text and atom.text.strip()
     ]
-    if not atoms:
-        return []
-
-    # Highlight shorter fragments first to reduce overlap with broader spans.
-    atoms.sort(key=lambda item: len(item[1].text.strip()))
-
     annotations: List[_AtomAnnotation] = []
-    for display_index, (atom_index, atom) in enumerate(atoms, start=1):
-        snippet = atom.text.strip()
-        if not snippet:
-            continue
-        label_source = _format_atom_label(atom, atom_index)
-        label = label_source
-        detail_json = json.dumps(atom.to_dict(), indent=2, ensure_ascii=False)
-        annotations.append(
-            _AtomAnnotation(
-                identifier=f"atom-span-{display_index}",
-                text=snippet,
-                label=label,
-                detail_json=detail_json,
+
+    if atoms:
+        # Highlight shorter fragments first to reduce overlap with broader spans.
+        atoms.sort(key=lambda item: len(item[1].text.strip()))
+        next_display_index = 1
+        for atom_index, atom in atoms:
+            snippet = atom.text.strip()
+            if not snippet:
+                continue
+            label_source = _format_atom_label(atom, atom_index)
+            detail_json = json.dumps(atom.to_dict(), indent=2, ensure_ascii=False)
+            annotations.append(
+                _AtomAnnotation(
+                    identifier=f"atom-span-{next_display_index}",
+                    text=snippet,
+                    label=label_source,
+                    detail_json=detail_json,
+                    kind=(atom.type or "atom"),
+                )
             )
-        )
+            next_display_index += 1
+    else:
+        next_display_index = 1
+
+    seen_citations: set[Tuple[str, Optional[str], Optional[str]]] = set()
+
+    for rule_index, rule_atom in enumerate(provision.rule_atoms, start=1):
+        source_id = rule_atom.stable_id or f"rule-{rule_index}"
+        for ref in rule_atom.references:
+            snippet = (ref.citation_text or ref.to_legacy_text()).strip()
+            if not snippet:
+                continue
+            key = (snippet.lower(), source_id, None)
+            if key in seen_citations:
+                continue
+            seen_citations.add(key)
+            detail_payload = {
+                "atom_type": "citation",
+                "text": snippet,
+                "references": [ref.to_dict()],
+                "source_rule": source_id,
+            }
+            annotations.append(
+                _AtomAnnotation(
+                    identifier=f"atom-span-{next_display_index}",
+                    text=snippet,
+                    label=f"Citation: {snippet}",
+                    detail_json=json.dumps(
+                        detail_payload, indent=2, ensure_ascii=False
+                    ),
+                    kind="citation",
+                )
+            )
+            next_display_index += 1
+
+        for element_index, element in enumerate(rule_atom.elements, start=1):
+            element_refs = getattr(element, "references", []) or []
+            element_label = element.role or f"element-{element_index}"
+            for ref in element_refs:
+                snippet = (ref.citation_text or ref.to_legacy_text()).strip()
+                if not snippet:
+                    continue
+                key = (snippet.lower(), source_id, element_label)
+                if key in seen_citations:
+                    continue
+                seen_citations.add(key)
+                detail_payload = {
+                    "atom_type": "citation",
+                    "text": snippet,
+                    "references": [ref.to_dict()],
+                    "source_rule": source_id,
+                    "source_element": element_label,
+                }
+                annotations.append(
+                    _AtomAnnotation(
+                        identifier=f"atom-span-{next_display_index}",
+                        text=snippet,
+                        label=f"Citation: {snippet}",
+                        detail_json=json.dumps(
+                            detail_payload, indent=2, ensure_ascii=False
+                        ),
+                        kind="citation",
+                    )
+                )
+                next_display_index += 1
+
     return annotations
 
 
@@ -228,12 +294,14 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
             parts.append(escape(line[cursor:start]))
         label_attr = escape(annotation.label, quote=True)
         detail_attr = escape(annotation.detail_json, quote=True)
+        kind_attr = escape(annotation.kind, quote=True)
         highlight_text = escape(matched_text)
         parts.append(
             "<mark class='atom-span' tabindex='0' role='button' "
             f"aria-label='{label_attr}' title='{label_attr}' "
             f"data-atom-id='{annotation.identifier}' "
-            f"data-label='{label_attr}' data-detail='{detail_attr}'>{highlight_text}</mark>"
+            f"data-label='{label_attr}' data-kind='{kind_attr}' "
+            f"data-detail='{detail_attr}'>{highlight_text}</mark>"
         )
         cursor = end
     if cursor < len(line):
@@ -615,15 +683,28 @@ def build_document_preview_html(document: Document) -> str:
     color: inherit;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
+.document-preview .atom-span[data-kind='citation'] {
+    background-color: #d3f9d8;
+    color: #14532d;
+}
 .document-preview .atom-span:hover,
 .document-preview .atom-span:focus {
     background-color: #ffe066;
     box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.35);
     outline: none;
 }
+.document-preview .atom-span[data-kind='citation']:hover,
+.document-preview .atom-span[data-kind='citation']:focus {
+    background-color: #b2f2bb;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
 .document-preview .atom-span[data-active='true'] {
     background-color: #ffd43b;
     box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.5);
+}
+.document-preview .atom-span[data-kind='citation'][data-active='true'] {
+    background-color: #8ce99a;
+    box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.5);
 }
 .document-preview .detail-column {
     border: 1px solid #d9d9d9;

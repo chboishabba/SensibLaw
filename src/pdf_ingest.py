@@ -17,7 +17,14 @@ from src.culture.overlay import get_default_overlay
 from src.glossary.service import lookup as lookup_gloss
 from src.ingestion.cache import HTTPCache
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
-from src.models.provision import Atom, Provision, RuleAtom, RuleElement, RuleLint
+from src.models.provision import (
+    Atom,
+    Provision,
+    RuleAtom,
+    RuleElement,
+    RuleLint,
+    RuleReference,
+)
 from src.rules import UNKNOWN_PARTY
 from src.rules.extractor import extract_rules
 from src.storage.core import Storage
@@ -770,6 +777,9 @@ def download_pdf(url: str, cache: HTTPCache, dest: Path) -> Path:
 _PRINCIPLE_LEADING_NUMBERS = re.compile(r"^(?:\d+(?:\.\d+)?\s+){2,}")
 _PRINCIPLE_LEADING_ENUM = re.compile(r"^(?:\([a-z0-9]+\)\s+)+", re.IGNORECASE)
 
+_CITATION_NEUTRAL_RE = re.compile(r"\[\d{4}\]")
+_CITATION_WORD_RE = re.compile(r"\bv\.?\b", re.IGNORECASE)
+
 
 def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
     """Collapse whitespace and trim structural numbering from ``text``."""
@@ -780,6 +790,72 @@ def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
     normalized = _PRINCIPLE_LEADING_NUMBERS.sub("", normalized)
     normalized = _PRINCIPLE_LEADING_ENUM.sub("", normalized)
     return normalized or None
+
+
+def _looks_like_citation(candidate: str) -> bool:
+    candidate = " ".join(candidate.strip().split())
+    if not candidate:
+        return False
+    lower = candidate.lower()
+    if _CITATION_NEUTRAL_RE.search(candidate):
+        return True
+    if _CITATION_WORD_RE.search(lower):
+        return True
+    if lower.startswith("in re ") or lower.startswith("re "):
+        return True
+    if " ex parte " in lower:
+        return True
+    return False
+
+
+def _strip_inline_citations(
+    value: Optional[str],
+) -> Tuple[Optional[str], List[RuleReference]]:
+    """Remove inline parenthetical citations, returning cleaned text and refs."""
+
+    if value is None:
+        return None, []
+
+    text = str(value)
+    if not text.strip():
+        return None, []
+
+    references: List[RuleReference] = []
+    spans: List[Tuple[int, int]] = []
+    depth = 0
+    start_index: Optional[int] = None
+
+    for index, char in enumerate(text):
+        if char == "(":
+            if depth == 0:
+                start_index = index
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+            if depth == 0 and start_index is not None:
+                end = index + 1
+                chunk = text[start_index:end]
+                body = chunk[1:-1].strip()
+                if _looks_like_citation(body):
+                    references.append(RuleReference(citation_text=body))
+                    spans.append((start_index, end))
+                start_index = None
+
+    if not spans:
+        cleaned = re.sub(r"\s+", " ", text).strip()
+        return (cleaned or None), references
+
+    parts: List[str] = []
+    cursor = 0
+    for start, end in spans:
+        parts.append(text[cursor:start])
+        cursor = end
+    parts.append(text[cursor:])
+
+    cleaned = re.sub(r"\s+", " ", "".join(parts)).strip()
+    cleaned = cleaned.rstrip(" ,.;:") if spans else cleaned
+    cleaned = cleaned.strip()
+    return (cleaned or None), references
 
 
 def _dedupe_principles(values: Iterable[str]) -> List[str]:
@@ -811,20 +887,29 @@ def _rules_to_atoms(
         actor = getattr(r, "actor", None)
         party = getattr(r, "party", None) or UNKNOWN_PARTY
         who_text = getattr(r, "who_text", None) or actor or None
-        conditions = getattr(r, "conditions", None)
-        scope = getattr(r, "scope", None)
+        modality = getattr(r, "modality", None)
 
-        text_parts = [
-            getattr(r, "actor", None),
-            getattr(r, "modality", None),
-            getattr(r, "action", None),
-        ]
+        action_raw = getattr(r, "action", None)
+        action, action_refs = _strip_inline_citations(action_raw)
+        conditions_raw = getattr(r, "conditions", None)
+        conditions, condition_refs = _strip_inline_citations(conditions_raw)
+        scope_raw = getattr(r, "scope", None)
+        scope, scope_refs = _strip_inline_citations(scope_raw)
+
+        text_parts = [actor, modality, action]
         if conditions:
             text_parts.append(conditions)
         if scope:
             text_parts.append(scope)
-        text = " ".join(part.strip() for part in text_parts if part).strip() or None
+        text_combined = " ".join(part.strip() for part in text_parts if part).strip() or None
+        text, text_refs = _strip_inline_citations(text_combined)
         text = _normalize_principle_text(text)
+
+        rule_references: List[RuleReference] = []
+        rule_references.extend(text_refs)
+        rule_references.extend(action_refs)
+        rule_references.extend(condition_refs)
+        rule_references.extend(scope_refs)
 
         subject_gloss = who_text or actor or None
         subject_metadata: Optional[Dict[str, Any]] = None
@@ -848,14 +933,15 @@ def _rules_to_atoms(
             who=party,
             who_text=who_text,
             actor=actor,
-            modality=getattr(r, "modality", None),
-            action=getattr(r, "action", None),
+            modality=modality,
+            action=action,
             conditions=conditions,
             scope=scope,
             text=text,
             subject_gloss=subject_gloss,
             subject_gloss_metadata=subject_metadata,
             glossary_id=subject_glossary_id,
+            references=rule_references,
         )
 
         rule_atom.subject = Atom(
@@ -875,7 +961,10 @@ def _rules_to_atoms(
             for fragment in fragments:
                 if not fragment:
                     continue
-                gloss_entry = module_lookup_gloss(fragment)
+                cleaned_fragment, fragment_refs = _strip_inline_citations(fragment)
+                if not cleaned_fragment:
+                    continue
+                gloss_entry = module_lookup_gloss(cleaned_fragment)
                 resolved_entry: Optional[GlossaryRecord] = None
                 if registry is not None and gloss_entry:
                     resolved_entry = registry.register_definition(
@@ -884,9 +973,9 @@ def _rules_to_atoms(
                         gloss_entry.metadata,
                     )
                 if registry is not None and resolved_entry is None:
-                    resolved_entry = registry.resolve(fragment)
+                    resolved_entry = registry.resolve(cleaned_fragment)
 
-                gloss_text = who_text or fragment
+                gloss_text = who_text or cleaned_fragment
                 gloss_metadata = None
                 glossary_id = None
                 if resolved_entry:
@@ -900,10 +989,11 @@ def _rules_to_atoms(
                 rule_atom.elements.append(
                     RuleElement(
                         role=role,
-                        text=fragment,
+                        text=cleaned_fragment,
                         conditions=conditions if role == "circumstance" else None,
                         gloss=gloss_text,
                         gloss_metadata=gloss_metadata,
+                        references=fragment_refs,
                         glossary_id=glossary_id,
                         atom_type="element",
                     )
