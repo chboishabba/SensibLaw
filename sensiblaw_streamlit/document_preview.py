@@ -18,6 +18,15 @@ _TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNOR
 _TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
 _TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
 
+_TOC_NODE_PREFIXES = {
+    "part": "Part",
+    "division": "Division",
+    "subdivision": "Subdivision",
+    "section": "Section",
+    "subsection": "Subsection",
+    "paragraph": "Paragraph",
+}
+
 
 def _clean_toc_text(value: Optional[str]) -> Optional[str]:
     if not value:
@@ -95,6 +104,40 @@ def _collect_provisions(
     for provision in provisions:
         walk(provision)
     return anchors, anchor_lookup
+
+
+def _format_toc_identifier(entry: DocumentTOCEntry) -> Optional[str]:
+    identifier = entry.identifier.strip() if entry.identifier else None
+    node_type = entry.node_type.strip().lower() if entry.node_type else None
+    prefix = _TOC_NODE_PREFIXES.get(node_type) if node_type else None
+
+    if prefix and identifier:
+        return f"{prefix} {identifier}"
+    if identifier:
+        return identifier
+    if prefix:
+        return prefix
+    return None
+
+
+def _format_toc_label(entry: DocumentTOCEntry) -> str:
+    parts: List[str] = []
+    identifier = _format_toc_identifier(entry)
+    title = _clean_toc_text(entry.title)
+    if identifier:
+        parts.append(escape(identifier))
+    if title:
+        parts.append(escape(title))
+    if not parts:
+        fallback = entry.node_type or "Entry"
+        parts.append(escape(fallback))
+    return " ".join(parts)
+
+
+def _format_toc_page(entry: DocumentTOCEntry) -> Optional[str]:
+    if entry.page_number is None:
+        return None
+    return f"p. {entry.page_number}"
 
 
 @dataclass
@@ -309,7 +352,11 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     return "".join(parts)
 
 
-def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
+def _render_toc(
+    entries: List[DocumentTOCEntry],
+    lookup: Dict[str, str],
+    provision_by_anchor: Optional[Dict[str, Provision]] = None,
+) -> str:
     """Render nested table-of-contents entries as HTML."""
 
     if not entries:
@@ -318,14 +365,7 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
     def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
         items: List[str] = []
         for entry in nodes:
-            label_parts: List[str] = []
-            identifier = entry.identifier.strip() if entry.identifier else None
-            title = _clean_toc_text(entry.title)
-            if identifier:
-                label_parts.append(escape(identifier))
-            if title:
-                label_parts.append(escape(title))
-            label = " ".join(label_parts) or escape(entry.node_type or "Entry")
+            label = _format_toc_label(entry)
             anchor: Optional[str] = None
             for key in (
                 entry.identifier,
@@ -339,16 +379,48 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
                 if normalised and normalised in lookup:
                     anchor = lookup[normalised]
                     break
+            page_text = _format_toc_page(entry)
+            page_html = (
+                f"<span class='toc-page'>{escape(page_text)}</span>"
+                if page_text
+                else ""
+            )
             child_html = (
                 render_nodes(entry.children, depth + 1) if entry.children else ""
             )
             depth_attr = f" data-depth='{depth}' style='--toc-depth:{depth}'"
+            type_attr = (
+                f" data-node-type='{escape(entry.node_type, quote=True)}'"
+                if entry.node_type
+                else ""
+            )
+            page_attr = (
+                f" data-page='{escape(str(entry.page_number), quote=True)}'"
+                if entry.page_number is not None
+                else ""
+            )
             if anchor:
-                item = (
-                    f"<li{depth_attr}><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                stable_attr = ""
+                if provision_by_anchor:
+                    provision = provision_by_anchor.get(anchor)
+                    stable_id = getattr(provision, "stable_id", None)
+                    if stable_id:
+                        stable_attr = (
+                            f" data-stable-id='{escape(stable_id, quote=True)}'"
+                            f" title='Stable ID: {escape(stable_id)}'"
+                        )
+                link_html = (
+                    f"<a class='toc-entry' href='#{anchor}'{stable_attr}>"
+                    f"<span class='toc-label'>{label}</span>{page_html}"
+                    "</a>"
                 )
+                item = f"<li{depth_attr}{type_attr}{page_attr}>{link_html}{child_html}</li>"
             else:
-                item = f"<li{depth_attr}>{label}{child_html}</li>"
+                content = (
+                    f"<span class='toc-entry'><span class='toc-label'>{label}</span>"
+                    f"{page_html}</span>"
+                )
+                item = f"<li{depth_attr}{type_attr}{page_attr}>{content}{child_html}</li>"
             items.append(item)
         return f"<ul>{''.join(items)}</ul>"
 
@@ -545,7 +617,8 @@ def build_document_preview_html(document: Document) -> str:
     """Generate HTML preview for a processed document."""
 
     provision_sections, lookup = _collect_provisions(document.provisions)
-    toc_html = _render_toc(document.toc_entries, lookup)
+    provision_by_anchor = {anchor: provision for provision, anchor in provision_sections}
+    toc_html = _render_toc(document.toc_entries, lookup, provision_by_anchor)
 
     if provision_sections:
         sections_html = "".join(
@@ -577,14 +650,32 @@ def build_document_preview_html(document: Document) -> str:
 .document-preview nav.toc-tree li {
     margin-bottom: 0.35rem;
 }
-.document-preview nav.toc-tree li[data-depth] > a {
+.document-preview nav.toc-tree li[data-depth] > .toc-entry {
     display: inline-flex;
     align-items: center;
     padding-left: calc(var(--toc-depth, 0) * 0.75rem);
     position: relative;
 }
-.document-preview nav.toc-tree li[data-depth='0'] > a {
+.document-preview nav.toc-tree li[data-depth='0'] > .toc-entry {
     font-weight: 600;
+}
+.document-preview nav.toc-tree .toc-entry {
+    gap: 0.35rem;
+}
+.document-preview nav.toc-tree .toc-entry .toc-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.document-preview nav.toc-tree .toc-entry .toc-page {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    color: #36546b;
+    background-color: rgba(17, 86, 127, 0.12);
+    border-radius: 999px;
+    padding: 0.1rem 0.4rem;
+}
+.document-preview nav.toc-tree li[data-depth] > .toc-entry:not(a) {
+    color: #11567f;
 }
 .document-preview nav.toc-tree a {
     color: #11567f;

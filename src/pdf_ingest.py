@@ -741,7 +741,29 @@ def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
             root_entries.append(entry)
         stack.append((level, entry))
 
+    _propagate_toc_page_numbers(root_entries)
     return root_entries
+
+
+def _propagate_toc_page_numbers(entries: List[DocumentTOCEntry]) -> None:
+    """Fill missing page numbers from descendant entries."""
+
+    def walk(entry: DocumentTOCEntry) -> Optional[int]:
+        child_pages: List[int] = []
+        for child in entry.children:
+            child_page = walk(child)
+            if child_page is not None:
+                child_pages.append(child_page)
+        if entry.page_number is not None:
+            return entry.page_number
+        if child_pages:
+            page = min(child_pages)
+            entry.page_number = page
+            return page
+        return None
+
+    for entry in entries:
+        walk(entry)
 
 
 def build_metadata(pdf_path: Path, pages: List[dict]) -> dict:
