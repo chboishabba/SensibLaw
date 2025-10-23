@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import streamlit as st
 
 from sensiblaw_streamlit.constants import (
+    DEFAULT_DB_NAME,
     SAMPLE_CASE_TREATMENT_METADATA,
     SAMPLE_GRAPH_CASES,
     SAMPLE_GRAPH_EDGES,
@@ -190,6 +191,50 @@ def _available_case_identifiers() -> List[str]:
     ]
     identifiers.sort()
     return identifiers
+
+
+def _available_store_identifiers(db_path: Path) -> List[str]:
+    """Return sorted case identifiers available in the SQLite store at ``db_path``."""
+
+    if not db_path.exists():
+        return []
+
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+    except sqlite3.Error:
+        return []
+
+    try:
+        try:
+            rows = conn.execute("SELECT id, type, data FROM nodes").fetchall()
+        except sqlite3.Error:
+            return []
+    finally:
+        conn.close()
+
+    identifiers: List[str] = []
+    for row in rows:
+        node_type = (row["type"] or "").upper()
+        if node_type not in ("CASE", "DOCUMENT"):
+            continue
+        payload: Dict[str, Any] = {}
+        row_data = row["data"]
+        if row_data:
+            try:
+                payload = json.loads(row_data)
+            except json.JSONDecodeError:
+                payload = {}
+        identifier = (
+            payload.get("identifier")
+            or payload.get("id")
+            or payload.get("citation")
+            or payload.get("title")
+            or f"{row['type']}#{row['id']}"
+        )
+        identifiers.append(str(identifier))
+
+    return sorted(dict.fromkeys(identifiers))
 
 
 def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
@@ -527,38 +572,50 @@ def render() -> None:
         )
 
     st.markdown("### Generate subgraph")
-    available_seed_ids = _available_case_identifiers()
+    graph_seed_ids = _available_case_identifiers()
+    store_seed_ids = _available_store_identifiers(graph_store_path)
+    combined_seed_ids = sorted(
+        dict.fromkeys((*store_seed_ids, *graph_seed_ids))
+    )
     with st.form("subgraph_form"):
-        if ROUTES_GRAPH.nodes:
-            seed_default = next(iter(ROUTES_GRAPH.nodes.keys()))
-        else:
-            seed_default = "Case#Mabo1992"
-        seed_selector = None
-        if available_seed_ids:
-            select_options = ["Manual entry", *available_seed_ids]
-            default_index = (
-                available_seed_ids.index(seed_default) + 1
-                if seed_default in available_seed_ids
-                else 0
-            )
-            seed_selector = st.selectbox(
-                "Known cases",
+        seed_default = st.session_state.get("kg_subgraph_seed_input")
+        if not seed_default:
+            if ROUTES_GRAPH.nodes:
+                seed_default = next(iter(ROUTES_GRAPH.nodes.keys()))
+            elif combined_seed_ids:
+                seed_default = combined_seed_ids[0]
+            else:
+                seed_default = "Case#Mabo1992"
+
+        select_options: List[str] = []
+        manual_entry = False
+        if combined_seed_ids:
+            select_options = ["Manual entry", *combined_seed_ids]
+            default_index = 0
+            if seed_default in combined_seed_ids:
+                default_index = combined_seed_ids.index(seed_default) + 1
+            seed_selection = st.selectbox(
+                "Seed node",
                 options=select_options,
                 index=default_index,
                 key="kg_subgraph_seed_select",
-                help="Pick from cases already loaded into the in-memory graph.",
+                help="Pick from case identifiers stored in the knowledge graph database.",
             )
-        seed_input = st.text_input(
-            "Seed node",
-            value=seed_default,
-            key="kg_subgraph_seed_input",
-            help="Identifier for the node to start the subgraph generation from.",
-        )
-        seed = (
-            seed_selector
-            if seed_selector and seed_selector != "Manual entry"
-            else seed_input
-        )
+            manual_entry = seed_selection == "Manual entry"
+        else:
+            manual_entry = True
+            seed_selection = None
+
+        if manual_entry:
+            seed = st.text_input(
+                "Seed node (manual entry)",
+                value=seed_default,
+                key="kg_subgraph_seed_input",
+                help="Identifier for the node to start the subgraph generation from.",
+            )
+        else:
+            seed = seed_selection
+            st.session_state["kg_subgraph_seed_input"] = seed
         hops = st.slider("Maximum hops", min_value=1, max_value=5, value=2)
         consent = st.checkbox("Include consent gated nodes", value=False)
         submit = st.form_submit_button("Generate")
