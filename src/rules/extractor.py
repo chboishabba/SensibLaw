@@ -79,13 +79,36 @@ _CIRCUMSTANCE_PATTERNS = [
 
 
 def _split_sentences(text: str) -> List[str]:
-    parts = re.split(r"[.;]\s*", text)
+    """Split ``text`` into sentences while respecting parentheses."""
+
     sentences: List[str] = []
-    for part in parts:
-        for line in part.splitlines():
-            candidate = line.strip()
-            if candidate:
-                sentences.append(candidate)
+    buffer: List[str] = []
+    depth = 0
+
+    def flush() -> None:
+        candidate = "".join(buffer).strip()
+        if candidate:
+            sentences.append(candidate)
+
+    for char in text:
+        if char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+
+        if char in ".;" and depth == 0:
+            flush()
+            buffer = []
+            continue
+
+        if char == "\n" and depth == 0:
+            flush()
+            buffer = []
+            continue
+
+        buffer.append(" " if char == "\n" else char)
+
+    flush()
     return sentences
 
 

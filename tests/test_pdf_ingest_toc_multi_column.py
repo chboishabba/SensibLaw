@@ -15,7 +15,7 @@ def test_parse_table_of_contents_handles_multi_column_layout():
     assert part1.node_type == "part"
     assert part1.identifier == "1"
     assert part1.title == "Preliminary"
-    assert part1.page_number in {None, 5}
+    assert part1.page_number == 5
 
     part1_section_ids = [child.identifier for child in part1.children[:4]]
     assert part1_section_ids == ["1", "2", "3", "4"]
@@ -34,10 +34,12 @@ def test_parse_table_of_contents_handles_multi_column_layout():
     part2 = entries[1]
     assert part2.identifier == "2"
     assert part2.title == "Offences"
+    assert part2.page_number == 6
 
     division1 = part2.children[0]
     assert division1.identifier == "1"
     assert division1.title == "Offences about quality of community use of public places"
+    assert division1.page_number == 6
 
     section5 = division1.children[0]
     assert section5.identifier == "5"
