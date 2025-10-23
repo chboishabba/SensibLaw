@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List
-from typing import Any, Dict, List, Optional
+import sqlite3
+from datetime import date
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
 
@@ -15,6 +17,7 @@ from sensiblaw_streamlit.constants import (
     SAMPLE_GRAPH_EDGES,
 )
 from sensiblaw_streamlit.shared import (
+    ROOT,
     _build_knowledge_graph_dot,
     _download_json,
     _render_dot,
@@ -175,6 +178,8 @@ def _render_provision_atoms(provision: Dict[str, Any]) -> None:
 
     with st.expander("Show raw JSON response", expanded=False):
         st.json(provision)
+
+
 def _available_case_identifiers() -> List[str]:
     """Return sorted case identifiers currently present in the graph."""
 
@@ -187,17 +192,333 @@ def _available_case_identifiers() -> List[str]:
     return identifiers
 
 
+def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
+    """Populate ``ROUTES_GRAPH`` using ingested data from ``db_path``."""
+
+    if not db_path.exists():
+        raise FileNotFoundError(f"No SQLite database found at {db_path}")
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    nodes: List[GraphNode] = []
+    edges: List[GraphEdge] = []
+    primary_seed: Optional[str] = None
+
+    try:
+        storage_nodes = conn.execute("SELECT id, type, data FROM nodes").fetchall()
+        if storage_nodes:
+            id_to_identifier: Dict[int, str] = {}
+            for row in storage_nodes:
+                payload: Dict[str, Any] = {}
+                if row["data"]:
+                    try:
+                        payload = json.loads(row["data"])
+                    except json.JSONDecodeError:
+                        payload = {}
+                identifier_value = (
+                    payload.get("identifier")
+                    or payload.get("id")
+                    or payload.get("citation")
+                    or payload.get("title")
+                    or f"{row['type']}#{row['id']}"
+                )
+                identifier = str(identifier_value)
+                id_to_identifier[row["id"]] = identifier
+                try:
+                    node_type = NodeType[row["type"].upper()]
+                except KeyError:
+                    try:
+                        node_type = NodeType[row["type"]]
+                    except KeyError:
+                        node_type = NodeType.DOCUMENT
+
+                metadata_payload = payload.get("metadata")
+                if not isinstance(metadata_payload, dict):
+                    metadata_payload = {
+                        k: v
+                        for k, v in payload.items()
+                        if k not in {"identifier", "id", "date", "metadata"}
+                    }
+                node_metadata = {
+                    k: v for k, v in (metadata_payload or {}).items() if v is not None
+                }
+
+                node_date: Optional[date] = None
+                date_value = payload.get("date")
+                if isinstance(date_value, str):
+                    try:
+                        node_date = date.fromisoformat(date_value)
+                    except ValueError:
+                        node_date = None
+
+                cultural_flags = payload.get("cultural_flags")
+                consent_required = bool(payload.get("consent_required"))
+                node = GraphNode(
+                    type=node_type,
+                    identifier=identifier,
+                    metadata=node_metadata,
+                    date=node_date,
+                    cultural_flags=list(cultural_flags)
+                    if isinstance(cultural_flags, (list, tuple))
+                    else None,
+                    consent_required=consent_required,
+                )
+                nodes.append(node)
+                if primary_seed is None:
+                    primary_seed = identifier
+
+            storage_edges = conn.execute(
+                "SELECT source, target, type, data FROM edges"
+            ).fetchall()
+            for row in storage_edges:
+                source_identifier = id_to_identifier.get(row["source"])
+                target_identifier = id_to_identifier.get(row["target"])
+                if not source_identifier or not target_identifier:
+                    continue
+                try:
+                    edge_type = EdgeType[row["type"].upper()]
+                except KeyError:
+                    try:
+                        edge_type = EdgeType[row["type"]]
+                    except KeyError:
+                        continue
+                edge_metadata: Dict[str, Any] = {}
+                if row["data"]:
+                    try:
+                        edge_metadata = json.loads(row["data"])
+                    except json.JSONDecodeError:
+                        edge_metadata = {}
+                edges.append(
+                    GraphEdge(
+                        type=edge_type,
+                        source=source_identifier,
+                        target=target_identifier,
+                        metadata=edge_metadata,
+                    )
+                )
+        else:
+            doc_rows = conn.execute(
+                """
+                SELECT d.id AS doc_id,
+                       latest.rev_id AS rev_id,
+                       r.metadata AS metadata
+                FROM documents AS d
+                JOIN (
+                    SELECT doc_id, MAX(rev_id) AS rev_id
+                    FROM revisions
+                    GROUP BY doc_id
+                ) AS latest
+                    ON latest.doc_id = d.id
+                JOIN revisions AS r
+                    ON r.doc_id = latest.doc_id
+                   AND r.rev_id = latest.rev_id
+                """
+            ).fetchall()
+            if not doc_rows:
+                raise ValueError(
+                    "No ingested documents found in the selected store."
+                )
+
+            doc_identifiers: Dict[Tuple[int, int], str] = {}
+            for row in doc_rows:
+                metadata_payload: Dict[str, Any] = {}
+                if row["metadata"]:
+                    try:
+                        metadata_payload = json.loads(row["metadata"])
+                    except json.JSONDecodeError:
+                        metadata_payload = {}
+
+                identifier_value = (
+                    metadata_payload.get("canonical_id")
+                    or metadata_payload.get("citation")
+                    or f"Document#{row['doc_id']}"
+                )
+                identifier = str(identifier_value)
+
+                node_type = (
+                    NodeType.CASE
+                    if metadata_payload.get("court")
+                    else NodeType.DOCUMENT
+                )
+                node_metadata = {
+                    "title": metadata_payload.get("title")
+                    or metadata_payload.get("citation"),
+                    "citation": metadata_payload.get("citation"),
+                    "jurisdiction": metadata_payload.get("jurisdiction"),
+                    "court": metadata_payload.get("court"),
+                    "source_url": metadata_payload.get("source_url"),
+                }
+                if metadata_payload.get("lpo_tags"):
+                    node_metadata["lpo_tags"] = metadata_payload["lpo_tags"]
+                if metadata_payload.get("cco_tags"):
+                    node_metadata["cco_tags"] = metadata_payload["cco_tags"]
+
+                node_date: Optional[date] = None
+                date_value = metadata_payload.get("date")
+                if isinstance(date_value, str):
+                    try:
+                        node_date = date.fromisoformat(date_value)
+                    except ValueError:
+                        node_date = None
+
+                cultural_flags = metadata_payload.get("cultural_flags")
+                consent_required = bool(
+                    metadata_payload.get("cultural_consent_required")
+                )
+                node = GraphNode(
+                    type=node_type,
+                    identifier=identifier,
+                    metadata={k: v for k, v in node_metadata.items() if v},
+                    date=node_date,
+                    cultural_flags=list(cultural_flags)
+                    if isinstance(cultural_flags, (list, tuple))
+                    else None,
+                    consent_required=consent_required,
+                )
+                nodes.append(node)
+                doc_identifiers[(row["doc_id"], row["rev_id"])] = identifier
+                if primary_seed is None:
+                    primary_seed = identifier
+
+            provision_rows = conn.execute(
+                """
+                SELECT doc_id,
+                       rev_id,
+                       provision_id,
+                       identifier,
+                       heading,
+                       node_type
+                FROM provisions
+                """
+            ).fetchall()
+
+            seen_provisions: set[str] = set()
+            seen_edges: set[Tuple[str, str, EdgeType]] = set()
+            for row in provision_rows:
+                doc_identifier = doc_identifiers.get((row["doc_id"], row["rev_id"]))
+                if not doc_identifier:
+                    continue
+
+                local_identifier = (
+                    row["identifier"]
+                    or row["heading"]
+                    or f"p{row['provision_id']}"
+                )
+                provision_identifier = f"{doc_identifier}::{local_identifier}"
+
+                if provision_identifier not in seen_provisions:
+                    provision_metadata = {
+                        "heading": row["heading"],
+                        "identifier": row["identifier"],
+                        "node_type": row["node_type"],
+                    }
+                    nodes.append(
+                        GraphNode(
+                            type=NodeType.PROVISION,
+                            identifier=provision_identifier,
+                            metadata={
+                                k: v for k, v in provision_metadata.items() if v
+                            },
+                        )
+                    )
+                    seen_provisions.add(provision_identifier)
+
+                edge_key = (
+                    provision_identifier,
+                    doc_identifier,
+                    EdgeType.INTERPRETED_BY,
+                )
+                if edge_key in seen_edges:
+                    continue
+                seen_edges.add(edge_key)
+                edges.append(
+                    GraphEdge(
+                        type=EdgeType.INTERPRETED_BY,
+                        source=provision_identifier,
+                        target=doc_identifier,
+                        metadata={
+                            k: v
+                            for k, v in {
+                                "relation": "interprets",
+                                "heading": row["heading"],
+                                "identifier": row["identifier"],
+                            }.items()
+                            if v
+                        },
+                    )
+                )
+    finally:
+        conn.close()
+
+    if not nodes:
+        raise ValueError("No graph data could be loaded from the selected store.")
+
+    ROUTES_GRAPH.nodes.clear()
+    ROUTES_GRAPH.edges.clear()
+
+    for node in nodes:
+        ROUTES_GRAPH.add_node(node)
+
+    for edge in edges:
+        try:
+            ROUTES_GRAPH.add_edge(edge)
+        except ValueError:
+            continue
+
+    return len(ROUTES_GRAPH.nodes), len(ROUTES_GRAPH.edges), primary_seed
+
+
 def render() -> None:
     st.subheader("Knowledge Graph")
     st.write(
         "Generate subgraphs, execute legal tests, inspect case treatments, and fetch provision atoms."
     )
 
-    if st.button(
-        "Load sample graph data", help="Populate the in-memory graph with demo cases"
-    ):
-        _seed_sample_graph()
-        st.success("Sample graph seeded.")
+    default_store = st.session_state.get(
+        "kg_graph_store_path", str(ROOT / "ui" / DEFAULT_DB_NAME)
+    )
+    store_input = st.text_input(
+        "Ingested graph store",
+        value=default_store,
+        key="kg_graph_store_path",
+        help=(
+            "SQLite database containing ingested cases, provisions, and treatments."
+        ),
+    )
+    graph_store_path = Path(store_input).expanduser()
+
+    load_ingested_col, load_sample_col = st.columns(2)
+    with load_ingested_col:
+        if st.button(
+            "Load ingested graph data",
+            key="kg_load_ingested_graph",
+            help="Populate the in-memory graph from the selected SQLite store.",
+        ):
+            try:
+                node_count, edge_count, primary_seed = _load_graph_from_store(
+                    graph_store_path
+                )
+            except FileNotFoundError as exc:
+                st.error(str(exc))
+            except ValueError as exc:
+                st.error(str(exc))
+            else:
+                st.success(
+                    f"Loaded {node_count} nodes and {edge_count} edges from {graph_store_path}."
+                )
+                if primary_seed:
+                    st.session_state["kg_subgraph_seed_input"] = primary_seed
+                    st.session_state["kg_case_id_input"] = primary_seed
+                    st.session_state["kg_subgraph_seed_select"] = primary_seed
+
+    with load_sample_col:
+        if st.button(
+            "Load sample graph data",
+            help="Populate the in-memory graph with demo cases",
+        ):
+            _seed_sample_graph()
+            st.success("Sample graph seeded.")
 
     if not ROUTES_GRAPH.nodes:
         st.info(
@@ -206,12 +527,38 @@ def render() -> None:
         )
 
     st.markdown("### Generate subgraph")
+    available_seed_ids = _available_case_identifiers()
     with st.form("subgraph_form"):
         if ROUTES_GRAPH.nodes:
             seed_default = next(iter(ROUTES_GRAPH.nodes.keys()))
         else:
             seed_default = "Case#Mabo1992"
-        seed = st.text_input("Seed node", value=seed_default)
+        seed_selector = None
+        if available_seed_ids:
+            select_options = ["Manual entry", *available_seed_ids]
+            default_index = (
+                available_seed_ids.index(seed_default) + 1
+                if seed_default in available_seed_ids
+                else 0
+            )
+            seed_selector = st.selectbox(
+                "Known cases",
+                options=select_options,
+                index=default_index,
+                key="kg_subgraph_seed_select",
+                help="Pick from cases already loaded into the in-memory graph.",
+            )
+        seed_input = st.text_input(
+            "Seed node",
+            value=seed_default,
+            key="kg_subgraph_seed_input",
+            help="Identifier for the node to start the subgraph generation from.",
+        )
+        seed = (
+            seed_selector
+            if seed_selector and seed_selector != "Manual entry"
+            else seed_input
+        )
         hops = st.slider("Maximum hops", min_value=1, max_value=5, value=2)
         consent = st.checkbox("Include consent gated nodes", value=False)
         submit = st.form_submit_button("Generate")
