@@ -48,6 +48,7 @@ from src.distinguish.loader import load_case_silhouette  # noqa: E402
 from src.frame.compiler import compile_frame  # noqa: E402
 from src.glossary.service import lookup as glossary_lookup  # noqa: E402
 from src.graph.models import EdgeType, GraphEdge, GraphNode, NodeType  # noqa: E402
+from src.graph.principle_graph import build_principle_graph  # noqa: E402
 from src.harm.index import compute_harm  # noqa: E402
 from src.ingestion.frl import fetch_acts  # noqa: E402
 from src.models.document import Document, DocumentTOCEntry  # noqa: E402
@@ -1660,6 +1661,124 @@ def _build_knowledge_graph_dot(payload: Dict[str, Any]) -> Optional[str]:
     return graph.source
 
 
+def _build_principle_graph_dot(provision: Dict[str, Any]) -> Optional[str]:
+    """Render a provision's principles, issues, and authorities."""
+
+    if Digraph is None:
+        return None
+
+    graph_payload = build_principle_graph(provision)
+    graph = Digraph("principle_graph", format="svg")
+    graph.attr("graph", rankdir="LR", bgcolor="white")
+    graph.attr("node", style="filled", fontname="Helvetica")
+
+    kind_styles: Dict[str, Dict[str, Any]] = {
+        "provision": {"shape": "folder", "fillcolor": "#EEF2FF"},
+        "principle": {"shape": "box", "fillcolor": "#DBEAFE"},
+        "issue": {"shape": "ellipse", "fillcolor": "#FEF3C7"},
+        "fact": {"shape": "ellipse", "fillcolor": "#E0F2FE"},
+        "policy": {"shape": "hexagon", "fillcolor": "#FDE68A"},
+        "case": {"shape": "box", "fillcolor": "#E8F1FF"},
+        "statute": {"shape": "oval", "fillcolor": "#F4F0FF"},
+        "authority": {"shape": "note", "fillcolor": "#FFFBEA"},
+    }
+    status_colors = {
+        "proven": "#DCFCE7",
+        "pending": "#FEF3C7",
+        "contested": "#FEE2E2",
+        "rejected": "#FEE2E2",
+    }
+
+    def _format_status(meta: Dict[str, Any]) -> Optional[str]:
+        status = meta.get("status")
+        if not status:
+            return None
+        status_text = str(status).title()
+        confidence = meta.get("confidence")
+        if isinstance(confidence, (int, float)):
+            if 0 <= confidence <= 1:
+                status_text += f" ({confidence:.0%})"
+            else:
+                status_text += f" ({confidence})"
+        evidence = meta.get("evidence_count")
+        if isinstance(evidence, (int, float)):
+            suffix = "s" if evidence != 1 else ""
+            status_text += f" — {int(evidence)} source{suffix}"
+        return status_text
+
+    for node in graph_payload.get("nodes", []):
+        node_id = str(node.get("id"))
+        if not node_id:
+            continue
+        label = str(node.get("label") or node_id)
+        metadata = node.get("metadata") or {}
+
+        lines = [label]
+        summary = metadata.get("summary")
+        if summary and summary not in lines:
+            lines.append(str(summary))
+        tags = metadata.get("tags")
+        if tags:
+            tag_line = ", ".join(str(tag) for tag in tags)
+            if tag_line:
+                lines.append(tag_line)
+        status_line = _format_status(metadata)
+        if status_line:
+            lines.append(status_line)
+        notes = metadata.get("notes")
+        if notes:
+            lines.append(str(notes))
+
+        kind = str(node.get("kind") or "").lower()
+        node_attrs = dict(kind_styles.get(kind, {"shape": "ellipse", "fillcolor": "#FFFFFF"}))
+        status = metadata.get("status")
+        if isinstance(status, str):
+            node_attrs["fillcolor"] = status_colors.get(
+                status.lower(), node_attrs.get("fillcolor", "#FFFFFF")
+            )
+
+        graph.node(node_id, label="\n".join(lines), **node_attrs)
+
+    edge_colors = {
+        "principle": "#6366F1",
+        "issue": "#7C3AED",
+        "fact": "#2563EB",
+        "policy": "#8B5CF6",
+        "case": "#0EA5E9",
+        "statute": "#0284C7",
+        "authority": "#0EA5E9",
+    }
+
+    for edge in graph_payload.get("edges", []):
+        source = edge.get("source")
+        target = edge.get("target")
+        if not source or not target:
+            continue
+        label = edge.get("label")
+        metadata = edge.get("metadata") or {}
+        edge_kind = str(edge.get("kind") or label or "").lower()
+
+        text_label = str(label) if label else ""
+        if text_label:
+            text_label = text_label.replace("_", " ")
+        pinpoint = metadata.get("pinpoint")
+        if pinpoint:
+            pinpoint_text = str(pinpoint)
+            text_label = (
+                f"{text_label} ({pinpoint_text})" if text_label else pinpoint_text
+            )
+
+        edge_attrs: Dict[str, Any] = {
+            "color": edge_colors.get(edge_kind, "#4B5563"),
+        }
+        if text_label:
+            edge_attrs["label"] = text_label
+
+        graph.edge(str(source), str(target), **edge_attrs)
+
+    return graph.source
+
+
 def _seed_sample_graph() -> None:
     """Populate the FastAPI routes graph with demonstration data."""
 
@@ -2164,6 +2283,14 @@ def render_knowledge_graph_tab() -> None:
             _download_json(
                 "Download provision atoms", provision, "provision_atoms.json"
             )
+            dot = _build_principle_graph_dot(provision)
+            if dot:
+                st.markdown("#### Principle relationship map")
+                _render_dot(dot, key="principle_graph")
+            else:
+                st.info(
+                    "Graphviz is not installed. Install the optional dependency to view the principle map."
+                )
 
 
 # ---------------------------------------------------------------------------

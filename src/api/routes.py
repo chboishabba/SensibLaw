@@ -166,6 +166,22 @@ _PROVISION_ATOMS: Dict[str, Dict[str, Any]] = {
                     "summary": "Claimants must show continued acknowledgment of traditional laws and customs since sovereignty.",
                     "citation": "#/proof-tree/statute/Provision#NTA:s223",
                     "tags": ["continuity", "custom"],
+                    "authorities": [
+                        {
+                            "id": "Case#Mabo1992",
+                            "title": "Mabo v Queensland (No 2)",
+                            "relationship": "applies",
+                            "pinpoint": "175 CLR 1 at 58",
+                            "type": "case",
+                        },
+                        {
+                            "id": "Case#Wik1996",
+                            "title": "Wik Peoples v Queensland",
+                            "relationship": "considers",
+                            "pinpoint": "187 CLR 1 at 128",
+                            "type": "case",
+                        },
+                    ],
                 },
                 "children": [
                     {
@@ -193,6 +209,15 @@ _PROVISION_ATOMS: Dict[str, Dict[str, Any]] = {
                     "title": "Normative society",
                     "summary": "Proof requires demonstrating a body of rules that binds the claim group.",
                     "tags": ["society", "normative"],
+                    "authorities": [
+                        {
+                            "id": "Case#Ward2002",
+                            "title": "Western Australia v Ward",
+                            "relationship": "distinguishes",
+                            "pinpoint": "[2002] HCA 28 at [216]",
+                            "type": "case",
+                        }
+                    ],
                 },
             },
         ],
@@ -211,6 +236,22 @@ _PROVISION_ATOMS: Dict[str, Dict[str, Any]] = {
                     "title": "Determination particulars",
                     "summary": "Orders identify rights, interests, and relationship to other interests in the determination area.",
                     "tags": ["determination", "interests"],
+                    "authorities": [
+                        {
+                            "id": "Provision#NTA:s225",
+                            "title": "Native Title Act 1993 (Cth) s 225",
+                            "relationship": "interprets",
+                            "pinpoint": "statutory text",
+                            "type": "statute",
+                        },
+                        {
+                            "id": "Case#Mabo1992",
+                            "title": "Mabo v Queensland (No 2)",
+                            "relationship": "explains",
+                            "pinpoint": "175 CLR 1 at 69",
+                            "type": "case",
+                        },
+                    ],
                 },
             },
             {
