@@ -10,6 +10,15 @@ from .models import (
     LegalGraph,
     NodeType,
 )
+from .tircorder import (
+    TiRCorderBuilder,
+    applies_to,
+    articulates,
+    build_tircorder_edges,
+    controls,
+    has_element,
+    interprets,
+)
 from .principle_graph import build_principle_graph
 from .proof_tree import (
     ProofTree,
@@ -40,6 +49,13 @@ __all__ = [
     "CaseNode",
     "ingest_extrinsic",
     "compute_weight",
+    "TiRCorderBuilder",
+    "build_tircorder_edges",
+    "articulates",
+    "has_element",
+    "applies_to",
+    "interprets",
+    "controls",
     "build_principle_graph",
 ]
 
