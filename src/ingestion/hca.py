@@ -26,6 +26,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from .cache import fetch_html, fetch_pdf
 from src.graph.hierarchy import COURT_RANKS, court_weight
 from src.graph.models import EdgeType, NodeType
+from src.text.citations import parse_case_citation
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -223,21 +224,28 @@ def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str,
         court_match = _CITED_COURT_RE.search(citation_text)
         court = court_match.group("court") if court_match else ""
         rank = _COURT_RANK.get(court, 1.0)
+        citation = parse_case_citation(citation_text)
+        reference = citation.to_rule_reference()
+
         nodes.append({
             "id": citation_text,
             "type": NodeType.CASE.value,
             "court_rank": rank,
+            "reference": reference.to_dict(),
         })
         try:
             edge_type = EdgeType[treatment.upper()].value
         except KeyError:
             edge_type = treatment
-        edges.append({
-            "from": source,
-            "to": citation_text,
-            "type": edge_type,
-            "weight": rank,
-        })
+        edges.append(
+            {
+                "from": source,
+                "to": citation_text,
+                "type": edge_type,
+                "weight": rank,
+                "reference": reference.to_dict(),
+            }
+        )
 
     return nodes, edges
 
