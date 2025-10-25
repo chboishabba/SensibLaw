@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from src.models.provision import RuleReference
+
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
 
@@ -51,7 +53,7 @@ EXTERNAL_STATUTE_RE = re.compile(
     r"(?P<section_id>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?))?",
 )
 
-ReferenceTuple = Tuple[str, Optional[str], Optional[str], Optional[str], str]
+THIS_ACT_WORK = "this_act"
 
 
 def _strip_tags(html: str) -> str:
@@ -76,8 +78,47 @@ def _clean_identifier(raw: Optional[str]) -> Optional[str]:
     return re.sub(r"\s+", " ", raw.strip()) or None
 
 
-def _extract_references(text: str) -> List[ReferenceTuple]:
-    references: List[ReferenceTuple] = []
+def _build_reference(
+    kind: str,
+    subject: Optional[str],
+    label: Optional[str],
+    target: Optional[str],
+    original: str,
+) -> RuleReference:
+    normalized_label = _normalize_label(label)
+    clean_target = _clean_identifier(target)
+
+    work: Optional[str]
+    subject_clean = _clean_identifier(subject)
+    if kind in {"external", "statute"}:
+        work = subject_clean
+    elif subject_clean:
+        if subject_clean.lower() == "this":
+            work = THIS_ACT_WORK
+        else:
+            work = subject_clean
+    else:
+        work = THIS_ACT_WORK if kind in {"internal", "structure"} else None
+
+    pinpoint: Optional[str] = None
+    section: Optional[str] = None
+
+    if normalized_label:
+        section = normalized_label
+        pinpoint = clean_target
+    elif clean_target:
+        pinpoint = clean_target
+
+    return RuleReference(
+        work=work,
+        section=section,
+        pinpoint=pinpoint,
+        citation_text=original,
+    )
+
+
+def _extract_references(text: str) -> List[RuleReference]:
+    references: List[RuleReference] = []
     spans: List[Tuple[int, int]] = []
 
     def overlaps(span: Tuple[int, int]) -> bool:
@@ -101,11 +142,11 @@ def _extract_references(text: str) -> List[ReferenceTuple]:
             return
         spans.append(span)
         references.append(
-            (
+            _build_reference(
                 kind,
                 subject.strip() if subject else None,
-                _normalize_label(label),
-                _clean_identifier(target),
+                label,
+                target,
                 original,
             )
         )
@@ -136,7 +177,7 @@ def _extract_references(text: str) -> List[ReferenceTuple]:
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
-    references: List[ReferenceTuple] = []
+    references: List[RuleReference] = []
     seen_conditions: set[str] = set()
 
     for match in TOKEN_RE.finditer(text):
@@ -151,17 +192,14 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
                 conditions.append(lowered)
 
     references.extend(_extract_references(text))
-    deduped_refs: List[ReferenceTuple] = []
-    seen_refs: set[
-        tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
-    ] = set()
+    deduped_refs: List[RuleReference] = []
+    seen_refs: set[Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]] = set()
     for ref in references:
-        kind, subject, label, target, original = ref
         key = (
-            kind.lower() if kind else None,
-            subject.lower() if subject else None,
-            label.lower() if label else None,
-            target.lower() if target else None,
+            ref.work.lower() if ref.work else None,
+            ref.section.lower() if ref.section else None,
+            ref.pinpoint.lower() if ref.pinpoint else None,
+            ref.citation_text.lower() if ref.citation_text else None,
         )
         if key in seen_refs:
             continue
@@ -188,7 +226,7 @@ class ParsedNode:
     heading: Optional[str] = None
     text: str = ""
     rule_tokens: Dict[str, object] = field(default_factory=_empty_tokens)
-    references: List[ReferenceTuple] = field(default_factory=list)
+    references: List[RuleReference] = field(default_factory=list)
     children: List["ParsedNode"] = field(default_factory=list)
     _buffer: List[str] = field(default_factory=list, repr=False)
 
@@ -201,9 +239,12 @@ class ParsedNode:
             "rule_tokens": {
                 "modality": self.rule_tokens.get("modality"),
                 "conditions": list(self.rule_tokens.get("conditions", [])),
-                "references": list(self.rule_tokens.get("references", [])),
+                "references": [
+                    ref.to_dict() if hasattr(ref, "to_dict") else ref
+                    for ref in self.rule_tokens.get("references", [])
+                ],
             },
-            "references": list(self.references),
+            "references": [ref.to_dict() for ref in self.references],
             "children": [child.to_dict() for child in self.children],
         }
 
@@ -217,7 +258,7 @@ class Section:
     text: str
     modality: Optional[str]
     conditions: List[str]
-    references: List[ReferenceTuple]
+    references: List[RuleReference]
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -227,7 +268,7 @@ class Section:
             "rules": {
                 "modality": self.modality,
                 "conditions": list(self.conditions),
-                "references": list(self.references),
+                "references": [ref.to_dict() for ref in self.references],
             },
         }
 
@@ -273,7 +314,10 @@ def fetch_section(html: str) -> Dict[str, object]:
 def _finalize_node(node: ParsedNode) -> None:
     node.text = " ".join(part for part in node._buffer if part).strip()
     node.rule_tokens = _extract_rule_tokens(node.text)
-    node.references = list(node.rule_tokens.get("references", []))
+    node.references = [
+        ref if isinstance(ref, RuleReference) else RuleReference(**ref)
+        for ref in node.rule_tokens.get("references", [])
+    ]
     node._buffer.clear()
     for child in node.children:
         _finalize_node(child)
@@ -392,9 +436,16 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
 
 __all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
-"""Compatibility re-export for :mod:`src.section_parser`."""
+"""Compatibility re-export for :mod:`section_parser` without overriding new APIs."""
 
 try:  # pragma: no cover - optional legacy dependency
-    from section_parser import *  # type: ignore  # noqa: F401,F403
+    import section_parser as _legacy_section_parser  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - legacy module absent
-    pass
+    _legacy_section_parser = None
+else:  # pragma: no cover - thin compatibility bridge
+    legacy_exports = getattr(_legacy_section_parser, "__all__", [])
+    for name in legacy_exports:
+        if name not in globals():
+            globals()[name] = getattr(_legacy_section_parser, name)
+        if name not in __all__:
+            __all__.append(name)
