@@ -29,6 +29,7 @@ from src.rules import UNKNOWN_PARTY
 from src.rules.extractor import extract_rules
 from src.storage.core import Storage
 from src.storage.versioned_store import VersionedStore
+from src.text.citations import parse_case_citation
 
 
 logger = logging.getLogger(__name__)
@@ -873,7 +874,8 @@ def _strip_inline_citations(
                 chunk = text[start_index:end]
                 body = chunk[1:-1].strip()
                 if _looks_like_citation(body):
-                    references.append(RuleReference(citation_text=body))
+                    citation = parse_case_citation(body)
+                    references.append(citation.to_rule_reference())
                     spans.append((start_index, end))
                 start_index = None
 

@@ -15,6 +15,12 @@ class NodeType(Enum):
     EXTRINSIC = "extrinsic"
     CASE = "case"
     CONCEPT = "concept"
+    JUDGE_OPINION = "judge_opinion"
+    PRINCIPLE = "principle"
+    TEST_ELEMENT = "test_element"
+    STATUTE_SECTION = "statute_section"
+    ISSUE = "issue"
+    ORDER = "order"
 
 
 class EdgeType(Enum):
@@ -75,6 +81,48 @@ class ExtrinsicNode(GraphNode):
 
     role: str = ""
     stage: str = ""
+
+
+@dataclass
+class JudgeOpinionNode(GraphNode):
+    """Node representing an individual judge's opinion."""
+
+    type: NodeType = field(default=NodeType.JUDGE_OPINION, init=False)
+
+
+@dataclass
+class PrincipleNode(GraphNode):
+    """Node representing a legal principle derived from authorities."""
+
+    type: NodeType = field(default=NodeType.PRINCIPLE, init=False)
+
+
+@dataclass
+class TestElementNode(GraphNode):
+    """Node representing an element of a legal test."""
+
+    type: NodeType = field(default=NodeType.TEST_ELEMENT, init=False)
+
+
+@dataclass
+class StatuteSectionNode(GraphNode):
+    """Node representing a specific section of a statute."""
+
+    type: NodeType = field(default=NodeType.STATUTE_SECTION, init=False)
+
+
+@dataclass
+class IssueNode(GraphNode):
+    """Node representing a legal issue under consideration."""
+
+    type: NodeType = field(default=NodeType.ISSUE, init=False)
+
+
+@dataclass
+class OrderNode(GraphNode):
+    """Node representing a judicial or administrative order."""
+
+    type: NodeType = field(default=NodeType.ORDER, init=False)
 
 
 @dataclass(kw_only=True)
@@ -149,6 +197,12 @@ __all__ = [
     "EdgeType",
     "GraphNode",
     "ExtrinsicNode",
+    "JudgeOpinionNode",
+    "PrincipleNode",
+    "TestElementNode",
+    "StatuteSectionNode",
+    "IssueNode",
+    "OrderNode",
     "CaseNode",
     "GraphEdge",
     "LegalGraph",

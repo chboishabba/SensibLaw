@@ -19,6 +19,7 @@ from .tircorder import (
     has_element,
     interprets,
 )
+from .principle_graph import build_principle_graph
 from .proof_tree import (
     ProofTree,
     ProofTreeEdge,
@@ -55,5 +56,6 @@ __all__ = [
     "applies_to",
     "interprets",
     "controls",
+    "build_principle_graph",
 ]
 

@@ -29,6 +29,13 @@ edges; the expected source and target kinds are summarised below:
 Use the :class:`~src.graph.tircorder.TiRCorderBuilder` (or the module-level
 wrapper functions) when creating TiRCorder edges so that callers do not need to
 handcraft :class:`~src.graph.models.GraphEdge` instances.
+In addition to documents, provisions and people, the graph can capture case law,
+abstract concepts, and finer-grained TiRCorder structures such as judge
+opinions, principles, elements of legal tests, specific statute sections, legal
+issues, and orders. `EdgeType` covers legal treatments between cases such as
+``FOLLOWS`` and ``DISTINGUISHES`` alongside general relationships like
+``CITES`` and ``REFERENCES``. These enumerations can be extended as the project
+grows.
  
 
 ## Creating Nodes and Edges
@@ -36,11 +43,17 @@ handcraft :class:`~src.graph.models.GraphEdge` instances.
 ```python
 from src.graph import (
     CaseNode,
-    GraphNode,
+    EdgeType,
     GraphEdge,
+    GraphNode,
+    IssueNode,
+    JudgeOpinionNode,
     LegalGraph,
     NodeType,
-    EdgeType,
+    OrderNode,
+    PrincipleNode,
+    StatuteSectionNode,
+    TestElementNode,
 )
 from datetime import date
 
@@ -58,6 +71,17 @@ case = CaseNode(
 statute = GraphNode(type=NodeType.DOCUMENT, identifier="statute-1")
 lg.add_node(case)
 lg.add_node(statute)
+
+# TiRCorder builders can add richer analytical nodes succinctly
+opinion = JudgeOpinionNode(identifier="case-1-majority")
+principle = PrincipleNode(identifier="principle-duty-of-care")
+test_element = TestElementNode(identifier="caparo-foreseeability")
+section = StatuteSectionNode(identifier="statute-1-s12")
+issue = IssueNode(identifier="issue-economic-loss")
+order = OrderNode(identifier="order-dismiss-appeal")
+
+for node in (opinion, principle, test_element, section, issue, order):
+    lg.add_node(node)
 
 # Connect the nodes with a citation edge
 edge = GraphEdge(

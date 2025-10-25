@@ -15,7 +15,13 @@ def test_extract_modality_conditions_and_refs():
     assert data["rules"]["modality"] == "must not"
     assert data["rules"]["conditions"] == ["if"]
     assert data["rules"]["references"] == [
-        ("internal", None, "section", "5B", "s 5B")
+        {
+            "work": "this_act",
+            "section": "section",
+            "pinpoint": "5B",
+            "citation_text": "s 5B",
+            "glossary_id": None,
+        }
     ]
 
 
@@ -26,7 +32,13 @@ def test_subject_to_and_this_part():
     assert data["rules"]["modality"] == "may"
     assert data["rules"]["conditions"] == ["subject to"]
     assert data["rules"]["references"] == [
-        ("internal", "this", "part", None, "this Part")
+        {
+            "work": "this_act",
+            "section": "part",
+            "pinpoint": None,
+            "citation_text": "this Part",
+            "glossary_id": None,
+        }
     ]
 
 
@@ -37,7 +49,13 @@ def test_multiple_conditions_and_references():
     assert data["rules"]["modality"] == "must"
     assert data["rules"]["conditions"] == ["unless", "despite"]
     assert data["rules"]["references"] == [
-        ("internal", None, "section", "10", "s 10")
+        {
+            "work": "this_act",
+            "section": "section",
+            "pinpoint": "10",
+            "citation_text": "s 10",
+            "glossary_id": None,
+        }
     ]
 
 
@@ -45,7 +63,13 @@ def test_structure_markers_are_detected():
     html = "<p>Part III — Indigenous land use agreements</p>"
     data = fetch_section(html)
     assert data["rules"]["references"] == [
-        ("structure", None, "part", "III", "Part III")
+        {
+            "work": "this_act",
+            "section": "part",
+            "pinpoint": "III",
+            "citation_text": "Part III",
+            "glossary_id": None,
+        }
     ]
 
 
@@ -55,10 +79,26 @@ def test_cross_act_reference_with_section():
     )
     data = fetch_section(html)
     assert data["rules"]["modality"] == "must"
-    assert (
-        "external",
-        "Native Title Act 1993 (Cth)",
-        "section",
-        "223",
-        "Native Title Act 1993 (Cth) s 223",
-    ) in data["rules"]["references"]
+    assert {
+        "work": "Native Title Act 1993 (Cth)",
+        "section": "section",
+        "pinpoint": "223",
+        "citation_text": "Native Title Act 1993 (Cth) s 223",
+        "glossary_id": None,
+    } in data["rules"]["references"]
+
+
+def test_section_15_reference_normalization():
+    html = "<p>4 The board must consider section 15 before acting.</p>"
+    data = fetch_section(html)
+    assert data["number"] == "4"
+    assert data["rules"]["modality"] == "must"
+    assert data["rules"]["references"] == [
+        {
+            "work": "this_act",
+            "section": "section",
+            "pinpoint": "15",
+            "citation_text": "section 15",
+            "glossary_id": None,
+        }
+    ]

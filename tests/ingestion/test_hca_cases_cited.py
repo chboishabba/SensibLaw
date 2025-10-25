@@ -21,3 +21,14 @@ def test_parse_cases_cited_edges():
 
     assert follows["weight"] > distinguishes["weight"]
     assert any(n["id"].startswith("Mabo v Queensland") and n["court_rank"] == follows["weight"] for n in nodes)
+
+    follows_node = next(n for n in nodes if n["id"].startswith("Mabo v Queensland"))
+    follows_reference = follows_node["reference"]
+    assert follows_reference["work"] == "Mabo v Queensland"
+    assert follows_reference["section"] == "[1992] HCA 23"
+    assert follows_reference["pinpoint"] is None
+    assert follows_reference["citation_text"] == "Mabo v Queensland [1992] HCA 23"
+
+    follows_edge_reference = follows["reference"]
+    assert follows_edge_reference["section"] == "[1992] HCA 23"
+    assert follows_edge_reference["work"] == "Mabo v Queensland"
