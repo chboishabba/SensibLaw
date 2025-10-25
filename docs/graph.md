@@ -7,16 +7,13 @@ and typed with enumerations for clarity.
 ## Node and Edge Types
 
 `NodeType` and `EdgeType` enumerate the supported entities and relationships.
-In addition to documents, provisions and people, the graph can now capture
-case law and abstract concepts via ``CASE`` and ``CONCEPT`` node types.
-Edges may represent legal treatments between cases such as ``FOLLOWS`` and
-``DISTINGUISHES`` alongside general relationships like ``CITES`` and
-``REFERENCES``. These enumerations can be extended as the project grows.
-
-`NodeType` now includes a `CASE` variant for judicial decisions, while
-`EdgeType` offers additional relationships such as `FOLLOWS`, `APPLIES`,
-`CONSIDERS`, `DISTINGUISHES` and `OVERRULES`. These can be extended as the
-project grows.
+In addition to documents, provisions and people, the graph can capture case law,
+abstract concepts, and finer-grained TiRCorder structures such as judge
+opinions, principles, elements of legal tests, specific statute sections, legal
+issues, and orders. `EdgeType` covers legal treatments between cases such as
+``FOLLOWS`` and ``DISTINGUISHES`` alongside general relationships like
+``CITES`` and ``REFERENCES``. These enumerations can be extended as the project
+grows.
  
 
 ## Creating Nodes and Edges
@@ -24,11 +21,17 @@ project grows.
 ```python
 from src.graph import (
     CaseNode,
-    GraphNode,
+    EdgeType,
     GraphEdge,
+    GraphNode,
+    IssueNode,
+    JudgeOpinionNode,
     LegalGraph,
     NodeType,
-    EdgeType,
+    OrderNode,
+    PrincipleNode,
+    StatuteSectionNode,
+    TestElementNode,
 )
 from datetime import date
 
@@ -46,6 +49,17 @@ case = CaseNode(
 statute = GraphNode(type=NodeType.DOCUMENT, identifier="statute-1")
 lg.add_node(case)
 lg.add_node(statute)
+
+# TiRCorder builders can add richer analytical nodes succinctly
+opinion = JudgeOpinionNode(identifier="case-1-majority")
+principle = PrincipleNode(identifier="principle-duty-of-care")
+test_element = TestElementNode(identifier="caparo-foreseeability")
+section = StatuteSectionNode(identifier="statute-1-s12")
+issue = IssueNode(identifier="issue-economic-loss")
+order = OrderNode(identifier="order-dismiss-appeal")
+
+for node in (opinion, principle, test_element, section, issue, order):
+    lg.add_node(node)
 
 # Connect the nodes with a citation edge
 edge = GraphEdge(
