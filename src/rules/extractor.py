@@ -138,6 +138,14 @@ def _extract_patterns(text: str, patterns: List[re.Pattern[str]]) -> tuple[List[
     return matches, remainder
 
 
+def _normalise_condition_text(text: str) -> str:
+    """Return a cleaned representation of a conditional clause."""
+
+    fragment = _clean_fragment(text)
+    fragment = re.sub(r"\bthen$", "", fragment, flags=re.IGNORECASE)
+    return fragment.strip()
+
+
 def _classify_fragments(action: str, conditions: str | None, scope: str | None) -> Dict[str, List[str]]:
     """Classify clause fragments into offence element roles."""
 
@@ -170,6 +178,7 @@ def _classify_fragments(action: str, conditions: str | None, scope: str | None) 
         roles["circumstance"].extend(circumstances)
 
     cond_text = conditions or ""
+    cond_text = _normalise_condition_text(cond_text) if cond_text else ""
     if cond_text:
         cond_exceptions, cond_text = _extract_patterns(cond_text, _EXCEPTION_PATTERNS)
         if cond_exceptions:
@@ -210,15 +219,75 @@ def extract_rules(text: str) -> List[Rule]:
 
     rules: List[Rule] = []
     for sent in _split_sentences(text):
-        match = None
-        pattern_used = None
-        for pattern in _PATTERNS:
-            match = pattern.match(sent)
-            if match:
-                pattern_used = pattern
-                break
-        if not match or not pattern_used:
+        sentence = sent.strip()
+        if not sentence:
             continue
+
+        condition_parts: List[str] = []
+        working_sentence = sentence
+        match: re.Match[str] | None = None
+        pattern_used: re.Pattern[str] | None = None
+
+        if re.match(r"^(if|when|where|unless)\b", working_sentence, re.IGNORECASE):
+            prefix_positions = [0]
+            prefix_positions.extend(
+                match_obj.end()
+                for match_obj in re.finditer(r"[\s,;:]+", working_sentence)
+            )
+
+            best_match: re.Match[str] | None = None
+            best_pattern: re.Pattern[str] | None = None
+            best_prefix: str | None = None
+            best_candidate: str | None = None
+            best_prefix_end = -1
+
+            for pos in prefix_positions:
+                segment = working_sentence[pos:]
+                stripped_segment = segment.lstrip()
+                consumed = len(segment) - len(stripped_segment)
+                candidate = stripped_segment
+                if not candidate:
+                    continue
+
+                prefix_end = pos + consumed
+                prefix_text = working_sentence[:prefix_end]
+                normalised_prefix = _normalise_condition_text(prefix_text)
+                if not normalised_prefix or normalised_prefix.lower() in {"if", "when", "where", "unless"}:
+                    continue
+
+                for pattern in _PATTERNS:
+                    potential_match = pattern.match(candidate)
+                    if not potential_match:
+                        continue
+
+                    actor_candidate = potential_match.group("actor").strip()
+                    if re.match(r"^(if|when|where|unless)\b", actor_candidate, re.IGNORECASE):
+                        continue
+
+                    if prefix_end > best_prefix_end:
+                        best_match = potential_match
+                        best_pattern = pattern
+                        best_prefix = normalised_prefix
+                        best_candidate = candidate
+                        best_prefix_end = prefix_end
+                    break
+
+            if not best_match or not best_pattern or not best_candidate or best_prefix is None:
+                continue
+
+            condition_parts.append(best_prefix)
+            working_sentence = best_candidate
+            match = best_match
+            pattern_used = best_pattern
+        else:
+            for pattern in _PATTERNS:
+                potential_match = pattern.match(working_sentence)
+                if potential_match:
+                    match = potential_match
+                    pattern_used = pattern
+                    break
+            if not match or not pattern_used:
+                continue
 
         if pattern_used is _OFFENCE_PATTERN:
             actor = match.group("actor").strip()
@@ -236,7 +305,17 @@ def extract_rules(text: str) -> List[Rule]:
         cond_match = re.search(r"\b(if|when|unless)\b(.*)", rest, re.IGNORECASE)
         if cond_match and cond_match.start() > 0:
             action = rest[: cond_match.start()].strip()
-            conditions = cond_match.group(0).strip()
+            conditions = _normalise_condition_text(cond_match.group(0))
+
+        if condition_parts:
+            if conditions:
+                condition_parts.append(conditions)
+            conditions = "; ".join(part for part in condition_parts if part)
+        elif conditions:
+            conditions = _normalise_condition_text(conditions)
+
+        if conditions == "":
+            conditions = None
 
         scope_match = re.search(r"\b(within|under)\b(.*)", action, re.IGNORECASE)
         if scope_match:
