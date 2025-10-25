@@ -20,6 +20,7 @@ from sensiblaw_streamlit.constants import (
 from sensiblaw_streamlit.shared import (
     ROOT,
     _build_knowledge_graph_dot,
+    _build_principle_graph_dot,
     _download_json,
     _render_dot,
     _render_table,
@@ -737,6 +738,14 @@ def render() -> None:
             _download_json(
                 "Download provision atoms", provision, "provision_atoms.json"
             )
+            dot = _build_principle_graph_dot(provision)
+            if dot:
+                st.markdown("#### Principle relationship map")
+                _render_dot(dot, key="principle_graph")
+            else:
+                st.info(
+                    "Graphviz is not installed. Install the optional dependency to view the principle map."
+                )
 
 
 __all__ = ["render"]

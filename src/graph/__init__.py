@@ -10,6 +10,7 @@ from .models import (
     LegalGraph,
     NodeType,
 )
+from .principle_graph import build_principle_graph
 from .proof_tree import (
     ProofTree,
     ProofTreeEdge,
@@ -39,5 +40,6 @@ __all__ = [
     "CaseNode",
     "ingest_extrinsic",
     "compute_weight",
+    "build_principle_graph",
 ]
 
