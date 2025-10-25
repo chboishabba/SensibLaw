@@ -33,6 +33,11 @@ class EdgeType(Enum):
     APPLIES = "applies"
     CONSIDERS = "considers"
     OVERRULES = "overrules"
+    ARTICULATES = "articulates"
+    HAS_ELEMENT = "has_element"
+    APPLIES_TO = "applies_to"
+    INTERPRETS = "interprets"
+    CONTROLS = "controls"
 
 
 @dataclass

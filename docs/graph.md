@@ -13,10 +13,22 @@ Edges may represent legal treatments between cases such as ``FOLLOWS`` and
 ``DISTINGUISHES`` alongside general relationships like ``CITES`` and
 ``REFERENCES``. These enumerations can be extended as the project grows.
 
-`NodeType` now includes a `CASE` variant for judicial decisions, while
-`EdgeType` offers additional relationships such as `FOLLOWS`, `APPLIES`,
-`CONSIDERS`, `DISTINGUISHES` and `OVERRULES`. These can be extended as the
-project grows.
+The TiRCorder subgraph introduces a set of domain-specific predicates that
+describe how cases, concepts and provisions interact. The helper functions in
+`src.graph.tircorder` validate node types before emitting the corresponding
+edges; the expected source and target kinds are summarised below:
+
+| Predicate      | Source node type | Target node type | Typical usage |
+| -------------- | ---------------- | ---------------- | ------------- |
+| `ARTICULATES`  | `CASE`           | `CONCEPT`        | A decision articulates the legal test or doctrinal concept. |
+| `HAS_ELEMENT`  | `CONCEPT`        | `CONCEPT`        | A complex test has one or more constituent elements. |
+| `APPLIES_TO`   | `CONCEPT`        | `PROVISION`      | A legal test is applied when construing a statutory provision. |
+| `INTERPRETS`   | `CASE`           | `PROVISION`      | A decision interprets a particular statutory provision. |
+| `CONTROLS`     | `CASE`           | `CASE`           | A precedent controls the outcome of a subsequent decision. |
+
+Use the :class:`~src.graph.tircorder.TiRCorderBuilder` (or the module-level
+wrapper functions) when creating TiRCorder edges so that callers do not need to
+handcraft :class:`~src.graph.models.GraphEdge` instances.
  
 
 ## Creating Nodes and Edges
