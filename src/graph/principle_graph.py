@@ -2,7 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Hashable, List, Optional, Set, Tuple
+
+
+def _freeze_value(value: Any) -> Hashable:
+    """Convert metadata values into hashable representations."""
+
+    if isinstance(value, dict):
+        return tuple((key, _freeze_value(inner)) for key, inner in sorted(value.items()))
+    if isinstance(value, (list, tuple, set)):
+        return tuple(_freeze_value(item) for item in value)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _freeze_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Tuple[Tuple[str, Hashable], ...]]:
+    """Produce a stable, hashable key for edge metadata."""
+
+    if not metadata:
+        return None
+    return tuple((key, _freeze_value(value)) for key, value in sorted(metadata.items()))
 
 
 def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
@@ -25,7 +45,7 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
     edges: List[Dict[str, Any]] = []
 
     seen_nodes: Dict[str, Dict[str, Any]] = {}
-    seen_edges: Set[Tuple[str, str, Optional[str]]] = set()
+    seen_edges: Set[Tuple[str, str, Optional[str], Optional[Tuple[Tuple[str, Hashable], ...]]]] = set()
 
     def _add_node(node: Dict[str, Any]) -> Dict[str, Any]:
         node_id = str(node["id"])
@@ -53,7 +73,13 @@ def build_principle_graph(provision: Dict[str, Any]) -> Dict[str, List[Dict[str,
         source = str(edge["source"])
         target = str(edge["target"])
         label = edge.get("label")
-        key = (source, target, str(label) if label is not None else None)
+        metadata_key = _freeze_metadata(edge.get("metadata"))
+        key = (
+            source,
+            target,
+            str(label) if label is not None else None,
+            metadata_key,
+        )
         if key in seen_edges:
             return
         edge_copy = dict(edge)
