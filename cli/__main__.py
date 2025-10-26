@@ -22,7 +22,10 @@ from src.graph.inference import (
     persist_predictions_sqlite,
     rank_predictions,
     score_applies_predictions,
+    train_complex,
     train_distmult,
+    train_mure,
+    train_rotate,
     train_transe,
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
@@ -199,6 +202,7 @@ def _prediction_payload(predictions: PredictionSet) -> Dict[str, object]:
         "version": PREDICTION_VERSION,
         "relation": predictions.relation,
         "generated_at": predictions.generated_at,
+        "non_deterministic": predictions.non_deterministic,
         "predictions": [
             {
                 "case_id": item.case_id,
@@ -546,7 +550,14 @@ def _handle_graph_inference_train(args: argparse.Namespace) -> None:
     optimizer_kwargs = {"lr": args.learning_rate}
     model_kwargs = {"embedding_dim": args.embedding_dim} if args.embedding_dim else {}
 
-    trainer = train_transe if args.model.lower() == "transe" else train_distmult
+    trainers = {
+        "transe": train_transe,
+        "distmult": train_distmult,
+        "complex": train_complex,
+        "rotate": train_rotate,
+        "mure": train_mure,
+    }
+    trainer = trainers[args.model.lower()]
 
     try:
         artifacts = trainer(
@@ -582,7 +593,11 @@ def _handle_graph_inference_train(args: argparse.Namespace) -> None:
         relation=relation,
         top_k=args.top_k,
     )
-    prediction_set = build_prediction_set(ranked_predictions, relation=relation)
+    prediction_set = build_prediction_set(
+        ranked_predictions,
+        relation=relation,
+        random_seed=args.random_seed,
+    )
 
     if args.json_out:
         persist_predictions_json(prediction_set, Path(args.json_out))
@@ -611,6 +626,7 @@ def _handle_graph_inference_rank(args: argparse.Namespace) -> None:
     payload = {
         "relation": relation,
         "generated_at": prediction_set.generated_at,
+        "non_deterministic": prediction_set.non_deterministic,
         "case_id": args.case,
         "predictions": [
             {
@@ -1030,7 +1046,10 @@ def build_parser() -> argparse.ArgumentParser:
     inference_train = inference_sub.add_parser("train", help="Train a link prediction model")
     inference_train.add_argument("--graph", type=Path, required=True, help="Graph JSON file")
     inference_train.add_argument(
-        "--model", choices=["transe", "distmult"], default="transe", help="Embedding model"
+        "--model",
+        choices=["transe", "distmult", "complex", "rotate", "mure"],
+        default="complex",
+        help="Embedding model",
     )
     inference_train.add_argument("--epochs", type=int, default=50, help="Training epochs")
     inference_train.add_argument("--batch-size", type=int, default=256, help="Training batch size")
