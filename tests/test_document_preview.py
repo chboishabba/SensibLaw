@@ -205,6 +205,14 @@ def _build_preview_fixture() -> _PreviewFixture:
     return _PreviewFixture(document, parent_provision, child_provision)
 
 
+def _build_metadata() -> DocumentMetadata:
+    return DocumentMetadata(
+        jurisdiction="AU",
+        citation="Sample Act 2024",
+        date=date(2024, 1, 1),
+    )
+
+
 @pytest.fixture
 def preview_fixture() -> _PreviewFixture:
     return _build_preview_fixture()
@@ -289,6 +297,70 @@ def test_render_toc_links_to_registered_segments(
     assert "p. 5" in toc_html
     assert "data-stable-id='stable-section'" in toc_html
     assert "title='Stable ID: stable-section'" in toc_html
+
+
+def test_toc_links_when_identifier_embedded_in_title() -> None:
+    document = Document(
+        metadata=_build_metadata(),
+        body="",
+        provisions=[
+            Provision(
+                text="Sample provision text.",
+                identifier="5",
+                heading="Public nuisance",
+            )
+        ],
+        toc_entries=[
+            DocumentTOCEntry(
+                node_type="section",
+                identifier=None,
+                title="5 Public nuisance",
+            )
+        ],
+    )
+
+    html = build_document_preview_html(document)
+    parser = _DocumentPreviewParser()
+    parser.feed(html)
+
+    assert any(link["href"] == "#5" for link in parser.links)
+
+
+def test_toc_parent_links_to_first_child_when_provision_missing() -> None:
+    child_provision = Provision(
+        text="Child section text.",
+        identifier="5",
+        heading="Public nuisance",
+    )
+
+    document = Document(
+        metadata=_build_metadata(),
+        body="",
+        provisions=[child_provision],
+        toc_entries=[
+            DocumentTOCEntry(
+                node_type="part",
+                identifier="1",
+                title="Preliminary",
+                children=[
+                    DocumentTOCEntry(
+                        node_type="section",
+                        identifier="5",
+                        title="Public nuisance",
+                    )
+                ],
+            )
+        ],
+    )
+
+    html = build_document_preview_html(document)
+    parser = _DocumentPreviewParser()
+    parser.feed(html)
+
+    assert any(
+        link["href"] == "#5" and "Part" in link["text"]
+        for link in parser.links
+    )
 
 
 @pytest.mark.parametrize(
