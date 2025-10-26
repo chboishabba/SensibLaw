@@ -235,11 +235,14 @@ def extract_rules(text: str) -> List[Rule]:
                 for match_obj in re.finditer(r"[\s,;:]+", working_sentence)
             )
 
-            best_match: re.Match[str] | None = None
-            best_pattern: re.Pattern[str] | None = None
-            best_prefix: str | None = None
-            best_candidate: str | None = None
-            best_prefix_end = -1
+            leading_match: tuple[
+                int,
+                int,
+                str,
+                str,
+                re.Match[str],
+                re.Pattern[str],
+            ] | None = None
 
             for pos in prefix_positions:
                 segment = working_sentence[pos:]
@@ -255,6 +258,9 @@ def extract_rules(text: str) -> List[Rule]:
                 if not normalised_prefix or normalised_prefix.lower() in {"if", "when", "where", "unless"}:
                     continue
 
+                prefix_trimmed = prefix_text.rstrip()
+                prefix_has_delimiter = bool(prefix_trimmed and prefix_trimmed[-1] in ",;:")
+
                 for pattern in _PATTERNS:
                     potential_match = pattern.match(candidate)
                     if not potential_match:
@@ -264,16 +270,41 @@ def extract_rules(text: str) -> List[Rule]:
                     if re.match(r"^(if|when|where|unless)\b", actor_candidate, re.IGNORECASE):
                         continue
 
-                    if prefix_end > best_prefix_end:
-                        best_match = potential_match
-                        best_pattern = pattern
-                        best_prefix = normalised_prefix
-                        best_candidate = candidate
-                        best_prefix_end = prefix_end
+                    actor_lower = actor_candidate.lower()
+                    actor_starts_with_determiner = actor_lower.startswith(
+                        (
+                            "the ",
+                            "a ",
+                            "an ",
+                            "any ",
+                            "each ",
+                            "every ",
+                            "no ",
+                            "all ",
+                        )
+                    )
+                    actor_starts_upper = bool(actor_candidate and actor_candidate[0].isupper())
+
+                    score = 0 if prefix_has_delimiter else 1 if (
+                        actor_starts_with_determiner or actor_starts_upper
+                    ) else 2
+
+                    candidate_info = (
+                        score,
+                        prefix_end,
+                        normalised_prefix,
+                        candidate,
+                        potential_match,
+                        pattern,
+                    )
+                    if not leading_match or (score, prefix_end) < leading_match[:2]:
+                        leading_match = candidate_info
                     break
 
-            if not best_match or not best_pattern or not best_candidate or best_prefix is None:
+            if not leading_match:
                 continue
+
+            _, _, best_prefix, best_candidate, best_match, best_pattern = leading_match
 
             condition_parts.append(best_prefix)
             working_sentence = best_candidate

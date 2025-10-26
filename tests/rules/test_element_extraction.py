@@ -74,6 +74,19 @@ def test_leading_condition_extracted_and_classified() -> None:
     )
 
 
+def test_leading_condition_keeps_first_clause_actor() -> None:
+    text = (
+        "If the court is satisfied, the applicant must apply and the registrar must notify the parties."
+    )
+
+    rules = extract_rules(text)
+    assert rules, "expected rules from conditional sentence"
+
+    rule = rules[0]
+    assert rule.actor.lower().startswith("the applicant")
+    assert rule.conditions == "If the court is satisfied"
+
+
 def test_document_atoms_include_element_roles(
     murder_clause: str, graffiti_clause: str
 ) -> None:
