@@ -196,6 +196,7 @@ def _suggest_document_details(document: Document) -> Dict[str, Optional[str]]:
     metadata = document.metadata
     suggested_citation: Optional[str] = metadata.citation or None
     suggested_jurisdiction: Optional[str] = metadata.jurisdiction or None
+    suggested_title: Optional[str] = metadata.title or None
 
     if suggested_citation and not suggested_jurisdiction:
         match = _NEUTRAL_CITATION_RE.search(suggested_citation)
@@ -217,10 +218,18 @@ def _suggest_document_details(document: Document) -> Dict[str, Optional[str]]:
             if suggested_citation and suggested_jurisdiction:
                 break
 
+    if not suggested_title:
+        for line in document.body.splitlines():
+            candidate = line.strip()
+            if candidate:
+                suggested_title = candidate
+                break
+
     flags = metadata.cultural_flags or []
     return {
         "jurisdiction": suggested_jurisdiction,
         "citation": suggested_citation,
+        "title": suggested_title,
         "cultural_flags": ", ".join(flags),
     }
 
@@ -2008,6 +2017,11 @@ def render_documents_tab() -> None:
     document_for_details: Optional[Document] = st.session_state.get("last_document_obj")
     if document_for_details and st.session_state.get("document_details_reset"):
         suggestions = st.session_state.get("document_metadata_suggestions", {})
+        st.session_state["document_details_title"] = (
+            suggestions.get("title")
+            or document_for_details.metadata.title
+            or ""
+        )
         st.session_state["document_details_jurisdiction"] = (
             suggestions.get("jurisdiction")
             or document_for_details.metadata.jurisdiction
@@ -2027,6 +2041,7 @@ def render_documents_tab() -> None:
     if document_for_details:
         with st.form("document_details_form"):
             st.markdown("### Document details")
+            title_value = st.text_input("Title", key="document_details_title")
             jurisdiction_value = st.text_input(
                 "Jurisdiction", key="document_details_jurisdiction"
             )
@@ -2047,6 +2062,7 @@ def render_documents_tab() -> None:
 
         if persist_details:
             flags_list = [flag.strip() for flag in flags_value.split(",") if flag.strip()]
+            document_for_details.metadata.title = title_value.strip() or None
             document_for_details.metadata.jurisdiction = jurisdiction_value.strip()
             document_for_details.metadata.citation = citation_value.strip()
             document_for_details.metadata.cultural_flags = flags_list or None
@@ -2062,6 +2078,7 @@ def render_documents_tab() -> None:
             else:
                 st.session_state["document_persisted_id"] = stored_id
                 st.session_state["document_metadata_suggestions"] = {
+                    "title": title_value.strip() or None,
                     "jurisdiction": jurisdiction_value.strip() or None,
                     "citation": citation_value.strip() or None,
                     "cultural_flags": ", ".join(flags_list),

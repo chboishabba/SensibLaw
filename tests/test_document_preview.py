@@ -127,6 +127,7 @@ def _build_preview_fixture() -> _PreviewFixture:
         jurisdiction="AU",
         citation="Sample Act 2024",
         date=date(2024, 1, 1),
+        title="Sample Act 2024",
     )
 
     duty_atom = RuleAtom(

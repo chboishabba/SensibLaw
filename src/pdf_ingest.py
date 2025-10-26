@@ -1194,21 +1194,52 @@ def parse_sections(text: str) -> List[Provision]:
     return _fallback_parse_sections(text)
 
 
+def _determine_document_title(
+    pages: List[dict], source: Path, provided_title: Optional[str]
+) -> Optional[str]:
+    """Return a best-effort title for the document."""
+
+    if provided_title:
+        candidate = provided_title.strip()
+        if candidate:
+            return candidate
+
+    for page in pages:
+        heading = str(page.get("heading") or "").strip()
+        if heading:
+            return heading
+
+    fallback = source.stem.replace("_", " ").strip()
+    return fallback or None
+
+
 def build_document(
     pages: List[dict],
     source: Path,
     jurisdiction: Optional[str] = None,
     citation: Optional[str] = None,
+    title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
     glossary_registry: Optional[GlossaryRegistry] = None,
 ) -> Document:
-    """Create a :class:`Document` from extracted pages."""
+    """Create a :class:`Document` from extracted pages.
+
+    Args:
+        pages: Extracted page payloads including headings and text.
+        source: Path to the original PDF used for provenance.
+        jurisdiction: Optional jurisdiction metadata supplied by the caller.
+        citation: Optional citation metadata supplied by the caller.
+        title: Optional document title to prefer over inferred headings.
+        cultural_flags: Any cultural sensitivity flags to attach to metadata.
+        glossary_registry: Glossary registry for definition lookups.
+    """
 
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
     metadata = DocumentMetadata(
         jurisdiction=jurisdiction or "",
         citation=citation or "",
         date=date.today(),
+        title=_determine_document_title(pages, source, title),
         cultural_flags=cultural_flags,
         provenance=str(source),
     )
@@ -1311,6 +1342,7 @@ def process_pdf(
     output: Optional[Path] = None,
     jurisdiction: Optional[str] = None,
     citation: Optional[str] = None,
+    title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
     db_path: Optional[Path] = None,
     doc_id: Optional[int] = None,
@@ -1332,6 +1364,7 @@ def process_pdf(
             pdf,
             jurisdiction,
             citation,
+            title,
             cultural_flags,
             glossary_registry=registry,
         )
@@ -1368,6 +1401,7 @@ def main() -> None:
     parser.add_argument("-o", "--output", type=Path, help="Output JSON path")
     parser.add_argument("--jurisdiction", help="Jurisdiction metadata")
     parser.add_argument("--citation", help="Citation metadata")
+    parser.add_argument("--title", help="Title metadata")
     parser.add_argument(
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
@@ -1378,6 +1412,7 @@ def main() -> None:
         output=args.output,
         jurisdiction=args.jurisdiction,
         citation=args.citation,
+        title=args.title,
         cultural_flags=args.cultural_flags,
     )
     print(doc.to_json())

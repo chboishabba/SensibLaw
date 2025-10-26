@@ -46,6 +46,7 @@ class DocumentMetadata:
         jurisdiction: Geographic or political jurisdiction of the document.
         citation: Formal citation or identifier for the document.
         date: Date the document was issued.
+        title: Human-readable title or heading of the document.
         court: Optional court or body issuing the document.
         lpo_tags: Optional list of Legal Policy Objective tags.
         cco_tags: Optional list of cross-cultural obligation tags.
@@ -64,6 +65,7 @@ class DocumentMetadata:
     jurisdiction: str
     citation: str
     date: date
+    title: Optional[str] = None
     court: Optional[str] = None
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
@@ -105,6 +107,7 @@ class DocumentMetadata:
             jurisdiction=data["jurisdiction"],
             citation=data["citation"],
             date=parsed_date,
+            title=data.get("title"),
             court=data.get("court"),
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
