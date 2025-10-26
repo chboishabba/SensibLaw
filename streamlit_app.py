@@ -62,6 +62,7 @@ from src.rules.extractor import extract_rules  # noqa: E402
 from src.rules.reasoner import check_rules  # noqa: E402
 from src.storage.versioned_store import VersionedStore  # noqa: E402
 from src.tests.templates import TEMPLATE_REGISTRY  # noqa: E402
+from src.text.citations import parse_case_citation  # noqa: E402
 from src.text.similarity import simhash  # noqa: E402
 
 _DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
@@ -156,6 +157,86 @@ DEFAULT_DB_NAME = "sensiblaw_documents.sqlite"
 
 def _ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+_NEUTRAL_CITATION_RE = re.compile(r"\[(?P<year>\d{4})\]\s*(?P<court>[A-Z][A-Z0-9]+)\s*(?P<number>\d+)")
+_REPORTED_CITATION_RE = re.compile(
+    r"\((?P<year>\d{4})\)\s*(?P<volume>\d+)\s*(?P<reporter>[A-Z][A-Za-z. ]*?)\s+(?P<page>\d+)"
+)
+
+_COURT_TO_JURISDICTION = {
+    "HCA": "High Court of Australia",
+    "FCA": "Federal Court of Australia",
+    "FCAFC": "Federal Court of Australia",
+    "NSWCA": "Supreme Court of New South Wales",
+    "NSWSC": "Supreme Court of New South Wales",
+    "VSC": "Supreme Court of Victoria",
+    "VSCA": "Supreme Court of Victoria",
+    "QCA": "Supreme Court of Queensland",
+    "QSC": "Supreme Court of Queensland",
+    "SASC": "Supreme Court of South Australia",
+    "SASFC": "Supreme Court of South Australia",
+}
+
+
+def _extract_citation_candidates(document: Document) -> Iterable[str]:
+    """Yield text fragments that likely contain case citations."""
+
+    for line in document.body.splitlines():
+        candidate = line.strip()
+        if not candidate or len(candidate) < 6:
+            continue
+        if _NEUTRAL_CITATION_RE.search(candidate) or _REPORTED_CITATION_RE.search(candidate):
+            yield candidate
+
+
+def _suggest_document_details(document: Document) -> Dict[str, Optional[str]]:
+    """Suggest document metadata derived from parsed content."""
+
+    metadata = document.metadata
+    suggested_citation: Optional[str] = metadata.citation or None
+    suggested_jurisdiction: Optional[str] = metadata.jurisdiction or None
+
+    if suggested_citation and not suggested_jurisdiction:
+        match = _NEUTRAL_CITATION_RE.search(suggested_citation)
+        if match:
+            court = match.group("court")
+            suggested_jurisdiction = _COURT_TO_JURISDICTION.get(court, suggested_jurisdiction)
+
+    if not suggested_citation or not suggested_jurisdiction:
+        for fragment in _extract_citation_candidates(document):
+            citation = parse_case_citation(fragment)
+            citation_text = citation.neutral_citation or citation.reported_citation or citation.raw
+            if not suggested_citation and citation_text:
+                suggested_citation = citation_text
+            if not suggested_jurisdiction and citation.court:
+                suggested_jurisdiction = _COURT_TO_JURISDICTION.get(
+                    citation.court,
+                    suggested_jurisdiction,
+                )
+            if suggested_citation and suggested_jurisdiction:
+                break
+
+    flags = metadata.cultural_flags or []
+    return {
+        "jurisdiction": suggested_jurisdiction,
+        "citation": suggested_citation,
+        "cultural_flags": ", ".join(flags),
+    }
+
+
+def _persist_document(document: Document, db_path: Path, doc_id: Optional[int] = None) -> int:
+    """Persist ``document`` to ``db_path`` returning the stored ID."""
+
+    store = VersionedStore(db_path)
+    try:
+        actual_doc_id = doc_id if doc_id is not None else store.generate_id()
+        if not document.metadata.canonical_id:
+            document.metadata.canonical_id = str(actual_doc_id)
+        store.add_revision(actual_doc_id, document, document.metadata.date)
+        return actual_doc_id
+    finally:
+        store.close()
 
 
 def _write_bytes(path: Path, data: bytes) -> Path:
@@ -1878,9 +1959,6 @@ def render_documents_tab() -> None:
         uploaded_pdf = st.file_uploader(
             "Upload PDF for processing", type=["pdf"], key="pdf_uploader"
         )
-        jurisdiction = st.text_input("Jurisdiction", value="High Court of Australia")
-        citation = st.text_input("Citation", value="[1992] HCA 23")
-        cultural_flags = st.text_input("Cultural flags (comma separated)", value="")
         ingest = st.form_submit_button("Process PDF")
 
     if ingest:
@@ -1902,23 +1980,99 @@ def render_documents_tab() -> None:
                 pdf_path = _write_bytes(
                     tmp_dir / (source_name or "document.pdf"), buffer
                 )
-                flags = [f.strip() for f in cultural_flags.split(",") if f.strip()]
-                document, stored_id = process_pdf(
+                document, _stored_id = process_pdf(
                     pdf_path,
-                    jurisdiction=jurisdiction or None,
-                    citation=citation or None,
-                    cultural_flags=flags or None,
-                    db_path=db_path,
+                    jurisdiction=None,
+                    citation=None,
+                    cultural_flags=None,
+                    db_path=None,
                 )
-            st.success("PDF processed successfully.")
+            suggestions = _suggest_document_details(document)
+            if suggestions.get("jurisdiction") and not document.metadata.jurisdiction:
+                document.metadata.jurisdiction = suggestions["jurisdiction"] or ""
+            if suggestions.get("citation") and not document.metadata.citation:
+                document.metadata.citation = suggestions["citation"] or ""
+            st.success(
+                "PDF processed successfully. Review the suggested document details below before saving."
+            )
             st.markdown("### Document preview")
             render_document_preview(document)
             doc_payload = document.to_dict()
-            if stored_id is not None:
-                st.info(f"Stored as document ID {stored_id} in {db_path}")
-                doc_payload["doc_id"] = stored_id
             st.session_state["last_document_payload"] = doc_payload
             st.session_state["expand_last_document"] = True
+            st.session_state["last_document_obj"] = document
+            st.session_state["document_metadata_suggestions"] = suggestions
+            st.session_state["document_persisted_id"] = None
+            st.session_state["document_details_reset"] = True
+
+    document_for_details: Optional[Document] = st.session_state.get("last_document_obj")
+    if document_for_details and st.session_state.get("document_details_reset"):
+        suggestions = st.session_state.get("document_metadata_suggestions", {})
+        st.session_state["document_details_jurisdiction"] = (
+            suggestions.get("jurisdiction")
+            or document_for_details.metadata.jurisdiction
+            or ""
+        )
+        st.session_state["document_details_citation"] = (
+            suggestions.get("citation")
+            or document_for_details.metadata.citation
+            or ""
+        )
+        st.session_state["document_details_flags"] = (
+            suggestions.get("cultural_flags")
+            or ", ".join(document_for_details.metadata.cultural_flags or [])
+        )
+        st.session_state["document_details_reset"] = False
+
+    if document_for_details:
+        with st.form("document_details_form"):
+            st.markdown("### Document details")
+            jurisdiction_value = st.text_input(
+                "Jurisdiction", key="document_details_jurisdiction"
+            )
+            citation_value = st.text_input("Citation", key="document_details_citation")
+            flags_value = st.text_input(
+                "Cultural flags (comma separated)",
+                key="document_details_flags",
+            )
+            persist_details = st.form_submit_button("Save metadata and persist")
+
+        persisted_id = st.session_state.get("document_persisted_id")
+        if persisted_id is None and not persist_details:
+            st.info("Document metadata has not been saved to the store yet.")
+        elif persisted_id is not None:
+            st.success(
+                f"Stored as document ID {persisted_id} in {Path(st.session_state['document_store_path']).expanduser()}"
+            )
+
+        if persist_details:
+            flags_list = [flag.strip() for flag in flags_value.split(",") if flag.strip()]
+            document_for_details.metadata.jurisdiction = jurisdiction_value.strip()
+            document_for_details.metadata.citation = citation_value.strip()
+            document_for_details.metadata.cultural_flags = flags_list or None
+            db_path = Path(st.session_state["document_store_path"]).expanduser()
+            try:
+                stored_id = _persist_document(
+                    document_for_details,
+                    db_path,
+                    st.session_state.get("document_persisted_id"),
+                )
+            except Exception as exc:  # pragma: no cover - defensive UI feedback
+                st.error(f"Unable to persist document metadata: {exc}")
+            else:
+                st.session_state["document_persisted_id"] = stored_id
+                st.session_state["document_metadata_suggestions"] = {
+                    "jurisdiction": jurisdiction_value.strip() or None,
+                    "citation": citation_value.strip() or None,
+                    "cultural_flags": ", ".join(flags_list),
+                }
+                payload = document_for_details.to_dict()
+                payload["doc_id"] = stored_id
+                st.session_state["last_document_payload"] = payload
+                st.session_state["expand_last_document"] = True
+                st.success(
+                    f"Document metadata saved. Stored as document ID {stored_id} in {db_path}"
+                )
 
     last_document = st.session_state.get("last_document_payload")
     if last_document:
