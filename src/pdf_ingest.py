@@ -750,6 +750,93 @@ def _page_lines_for_toc(page: Dict[str, Any]) -> List[str]:
     return collected
 
 
+_JURISDICTION_STOP_WORDS = {
+    "act",
+    "acts",
+    "law",
+    "laws",
+    "regulation",
+    "regulations",
+    "ordinance",
+    "ordinances",
+    "code",
+    "codes",
+    "bill",
+    "bills",
+}
+
+
+def _looks_like_jurisdiction_banner(line: str) -> bool:
+    """Return ``True`` when ``line`` resembles a jurisdiction banner."""
+
+    if not line:
+        return False
+
+    if any(char.isdigit() for char in line):
+        return False
+
+    cleaned = re.sub(r"[^A-Za-z\s'-]", " ", line).strip()
+    if not cleaned:
+        return False
+
+    words = [word for word in cleaned.split() if word]
+    if not words:
+        return False
+
+    if len(words) > 6:
+        return False
+
+    lower_words = {word.lower() for word in words}
+    if lower_words & _JURISDICTION_STOP_WORDS:
+        return False
+
+    letters = [char for char in cleaned if char.isalpha()]
+    if not letters:
+        return False
+
+    uppercase_ratio = sum(1 for char in letters if char.isupper()) / len(letters)
+    if uppercase_ratio >= 0.6:
+        return True
+
+    if all(word[0].isupper() and word[1:].islower() for word in words if len(word) > 1):
+        return True
+
+    return False
+
+
+def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[str]]:
+    """Infer jurisdiction and title from the first page cover banner."""
+
+    if not pages:
+        return None, None
+
+    first_page = pages[0]
+    raw_lines: Iterable[str]
+    if isinstance(first_page.get("lines"), list):
+        raw_lines = first_page.get("lines", [])  # type: ignore[assignment]
+    else:
+        raw_lines = _page_lines_for_toc(first_page)
+
+    lines = [str(line).strip() for line in raw_lines if str(line).strip()]
+    if not lines:
+        return None, None
+
+    for index, line in enumerate(lines):
+        if not _looks_like_jurisdiction_banner(line):
+            continue
+
+        jurisdiction = line
+        for candidate in lines[index + 1 :]:
+            title_candidate = candidate.strip()
+            if not title_candidate or title_candidate == jurisdiction:
+                continue
+            return jurisdiction, title_candidate
+
+        return jurisdiction, None
+
+    return None, None
+
+
 def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
     """Parse table-of-contents pages into a hierarchical structure."""
 
@@ -1195,9 +1282,17 @@ def parse_sections(text: str) -> List[Provision]:
 
 
 def _determine_document_title(
-    pages: List[dict], source: Path, provided_title: Optional[str]
+    pages: List[dict],
+    source: Path,
+    provided_title: Optional[str],
+    inferred_title: Optional[str] = None,
 ) -> Optional[str]:
     """Return a best-effort title for the document."""
+
+    if inferred_title:
+        candidate = inferred_title.strip()
+        if candidate:
+            return candidate
 
     if provided_title:
         candidate = provided_title.strip()
@@ -1234,12 +1329,16 @@ def build_document(
         glossary_registry: Glossary registry for definition lookups.
     """
 
+    inferred_jurisdiction, inferred_title = _infer_cover_metadata(pages)
+
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
     metadata = DocumentMetadata(
-        jurisdiction=jurisdiction or "",
+        jurisdiction=inferred_jurisdiction or jurisdiction or "",
         citation=citation or "",
         date=date.today(),
-        title=_determine_document_title(pages, source, title),
+        title=_determine_document_title(
+            pages, source, title, inferred_title=inferred_title
+        ),
         cultural_flags=cultural_flags,
         provenance=str(source),
     )
