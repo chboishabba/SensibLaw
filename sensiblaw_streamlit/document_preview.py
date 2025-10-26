@@ -514,23 +514,81 @@ def _render_toc(
     if not entries:
         return "<p class='toc-empty'>No table of contents entries detected.</p>"
 
+    resolved_anchors: Dict[int, Optional[str]] = {}
+
+    def resolve_anchor(entry: DocumentTOCEntry) -> Optional[str]:
+        """Locate the best provision anchor for ``entry``."""
+
+        entry_key = id(entry)
+        if entry_key in resolved_anchors:
+            return resolved_anchors[entry_key]
+
+        identifier = entry.identifier.strip() if entry.identifier else None
+        title = _clean_toc_text(entry.title)
+        formatted_identifier = _format_toc_identifier(entry)
+
+        candidates: List[str] = []
+
+        if identifier:
+            candidates.append(identifier)
+            candidates.append(f"toc-{identifier}")
+
+        if title:
+            candidates.append(title)
+
+        if formatted_identifier:
+            candidates.append(formatted_identifier)
+
+        if identifier and title:
+            candidates.append(f"{identifier} {title}")
+
+        if formatted_identifier and title:
+            candidates.append(f"{formatted_identifier} {title}")
+
+        if title:
+            split_match = re.match(r"^([A-Za-z0-9().-]+)\s+(.*)$", title)
+            if split_match:
+                remainder = split_match.group(2)
+                if remainder:
+                    candidates.append(remainder)
+                    if identifier:
+                        candidates.append(f"{identifier} {remainder}")
+                    if formatted_identifier:
+                        candidates.append(f"{formatted_identifier} {remainder}")
+
+            for separator in (" - ", " – ", " — "):
+                if separator in title:
+                    left, right = title.split(separator, 1)
+                    if left.strip():
+                        candidates.append(left.strip())
+                    if right.strip():
+                        candidates.append(right.strip())
+
+        seen: Set[str] = set()
+        anchor: Optional[str] = None
+        for candidate in candidates:
+            normalised = _normalise_anchor_key(candidate)
+            if not normalised or normalised in seen:
+                continue
+            seen.add(normalised)
+            if normalised in lookup:
+                anchor = lookup[normalised]
+                break
+
+        if not anchor:
+            for child in entry.children:
+                anchor = resolve_anchor(child)
+                if anchor:
+                    break
+
+        resolved_anchors[entry_key] = anchor
+        return anchor
+
     def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
         items: List[str] = []
         for entry in nodes:
             label = _format_toc_label(entry)
-            anchor: Optional[str] = None
-            for key in (
-                entry.identifier,
-                entry.title,
-                f"{entry.identifier} {entry.title}"
-                if entry.identifier and entry.title
-                else None,
-                f"toc-{entry.identifier}" if entry.identifier else None,
-            ):
-                normalised = _normalise_anchor_key(key) if key else None
-                if normalised and normalised in lookup:
-                    anchor = lookup[normalised]
-                    break
+            anchor = resolve_anchor(entry)
             page_text = _format_toc_page(entry)
             page_html = (
                 f"<span class='toc-page'>{escape(page_text)}</span>"
