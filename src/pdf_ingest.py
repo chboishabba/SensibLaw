@@ -601,6 +601,33 @@ def _parse_multi_column_toc(pages: List[dict]) -> List[DocumentTOCEntry]:
             page_number_stream = True
             continue
 
+        normalised_token = _normalise_toc_candidate([token])
+        line_match = _TOC_LINE_RE.match(normalised_token)
+        if line_match:
+            node_type = line_match.group("type").lower()
+            content = line_match.group("content").strip()
+            page_str = line_match.group("page")
+            try:
+                page_number = int(page_str)
+            except ValueError:
+                page_number = None
+            identifier, title = _split_toc_identifier(content)
+            entry = DocumentTOCEntry(
+                node_type=node_type,
+                identifier=identifier,
+                title=title,
+                page_number=page_number,
+            )
+            flat_entries.append(entry)
+            if node_type == "section" and page_number is None:
+                pending_page_entries.append(entry)
+            pending_title_entry = entry if title is None else None
+            assign_pages()
+            last_token_was_title = bool(title)
+            prefer_identifiers = True
+            page_number_stream = False
+            continue
+
         prefix_match = _TOC_PREFIX_RE.match(token)
         if prefix_match:
             node_type = prefix_match.group("type").lower()
@@ -1075,8 +1102,9 @@ def _collect_section_provisions(provision: Provision, bucket: List[Provision]) -
         _collect_section_provisions(child, bucket)
 
 
+_CONTENTS_MARKER_RE = re.compile(r"\bcontents\b", re.IGNORECASE)
 _SECTION_HEADING_RE = re.compile(
-    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>[^\n]+)"
+    r"(?m)^(?P<identifier>\d+[A-Za-z0-9]*)\s+(?P<heading>(?!\d)[^\n]+)"
 )
 
 
@@ -1101,6 +1129,7 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
 
     sections: List[Provision] = []
     prefix = text[: matches[0].start()].strip()
+    attach_prefix = _should_attach_prefix(prefix)
 
     for index, match in enumerate(matches):
         start = match.end()
@@ -1111,7 +1140,7 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
         heading = match.group("heading").strip()
 
         parts: List[str] = []
-        if index == 0 and prefix:
+        if index == 0 and attach_prefix:
             parts.append(prefix)
         parts.append(heading)
         if body:
@@ -1391,3 +1420,25 @@ def main() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
     main()
+
+
+def _should_attach_prefix(prefix: str) -> bool:
+    if not prefix.strip():
+        return False
+
+    if _CONTENTS_MARKER_RE.search(prefix):
+        return False
+
+    lowered = prefix.lower()
+    if "table of contents" in lowered:
+        return False
+
+    lines = [line.strip() for line in prefix.splitlines() if line.strip()]
+    if not lines:
+        return False
+
+    numeric_lines = sum(1 for line in lines if line and line[0].isdigit())
+    if numeric_lines >= max(1, len(lines) // 2):
+        return False
+
+    return True

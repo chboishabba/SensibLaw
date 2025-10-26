@@ -81,8 +81,27 @@ def _collect_provisions(
         return candidate
 
     def derive_anchor(node: Provision, fallback: str) -> str:
-        # Use deterministic segment identifiers for anchor IDs while still
-        # registering rich lookup keys for headings, identifiers, and stable IDs.
+        # Prefer stable identifiers to keep anchors predictable across renders.
+        for candidate in (
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ):
+            normalised = _normalise_anchor_key(candidate)
+            if normalised:
+                return ensure_unique(normalised)
+        # Prefer stable identifiers when available so anchors remain stable across
+        # renders. Fall back to identifiers or headings before using the positional
+        # segment identifier.
+        candidates: List[Optional[str]] = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate)
+            if slug:
+                return ensure_unique(slug)
         return ensure_unique(fallback)
 
     def walk(node: Provision) -> None:
@@ -469,12 +488,15 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
         detail_attr = escape(annotation.detail_json, quote=True)
         kind_attr = escape(annotation.kind, quote=True)
         highlight_text = escape(matched_text)
+        identifier_attr = escape(annotation.identifier, quote=True)
         parts.append(
             "<mark class='atom-span' tabindex='0' role='button' "
+            f"id='{identifier_attr}' "
             f"aria-label='{label_attr}' title='{label_attr}' "
-            f"data-atom-id='{annotation.identifier}' "
+            f"data-atom-id='{identifier_attr}' "
             f"data-label='{label_attr}' data-kind='{kind_attr}' "
-            f"data-detail='{detail_attr}'>{highlight_text}</mark>"
+            f"data-detail='{detail_attr}' "
+            f"data-highlight-id='{identifier_attr}'>{highlight_text}</mark>"
         )
         cursor = end
     if cursor < len(line):
@@ -645,7 +667,43 @@ def _build_atom_anchor_id(
     return None
 
 
-def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
+def _build_atom_highlight_lookup(
+    provision: Provision, annotations: List[_AtomAnnotation]
+) -> Dict[int, str]:
+    """Map rule atom indices to highlight identifiers for scroll targets."""
+
+    provision.ensure_rule_atoms()
+
+    annotation_pool: Dict[str, List[_AtomAnnotation]] = {}
+    for annotation in annotations:
+        key = annotation.text.strip().lower()
+        if not key:
+            continue
+        annotation_pool.setdefault(key, []).append(annotation)
+
+    for candidates in annotation_pool.values():
+        candidates.sort(key=lambda item: item.identifier)
+
+    lookup: Dict[int, str] = {}
+    for index, atom in enumerate(provision.rule_atoms, start=1):
+        for candidate in _atom_text_candidates(atom):
+            key = candidate.strip().lower()
+            if not key:
+                continue
+            pool = annotation_pool.get(key)
+            if not pool:
+                continue
+            annotation = pool.pop(0)
+            lookup[index] = annotation.identifier
+            break
+    return lookup
+
+
+def _render_atom_badges(
+    provision: Provision,
+    provision_anchor: str,
+    highlight_lookup: Optional[Dict[int, str]] = None,
+) -> str:
     """Render interactive rule atom badges for a provision."""
 
     if not provision.rule_atoms:
@@ -667,6 +725,12 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
             detail_dict.setdefault("span_start", span_start)
             detail_dict.setdefault("span_end", span_end)
 
+        highlight_id = None
+        if highlight_lookup is not None:
+            highlight_id = highlight_lookup.get(index)
+            if highlight_id:
+                detail_dict.setdefault("highlight_id", highlight_id)
+
         label_text = atom.atom_type or _format_atom_label(atom, index)
         detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
 
@@ -680,6 +744,8 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
         }
         if anchor_id:
             attributes["id"] = anchor_id
+        if highlight_id:
+            attributes["data-highlight-id"] = highlight_id
         if span is not None:
             attributes["data-span-start"] = str(span_start)
             attributes["data-span-end"] = str(span_end)
@@ -719,6 +785,7 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     )
 
     annotations = _build_atom_annotations(provision)
+    highlight_lookup = _build_atom_highlight_lookup(provision, annotations)
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
@@ -732,11 +799,11 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         if provision.stable_id
         else ""
     )
-    section_id = anchor
+    section_id = f"section-{anchor}"
     heading_html = (
         f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
     )
-    atom_html = _render_atom_badges(provision, anchor)
+    atom_html = _render_atom_badges(provision, anchor, highlight_lookup)
     return (
         f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}>"
         f"{heading_html}{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
@@ -1476,6 +1543,26 @@ def build_document_preview_html(document: Document) -> str:
         detailColumn.appendChild(card);
     }
 
+    function extractHighlightId(detail) {
+        if (!detail) {
+            return null;
+        }
+        try {
+            const parsed = JSON.parse(detail);
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.highlight_id) {
+                    return String(parsed.highlight_id);
+                }
+                if (parsed.anchor) {
+                    return String(parsed.anchor);
+                }
+            }
+        } catch (error) {
+            return null;
+        }
+        return null;
+    }
+
     function setActive(label) {
         const allTargets = badges.concat(spans);
         allTargets.forEach(function(node) {
@@ -1495,6 +1582,11 @@ def build_document_preview_html(document: Document) -> str:
         const detail = element.getAttribute('data-detail');
         setActive(label);
         renderDetail(label, detail);
+        const explicitTarget = element.getAttribute('data-highlight-id');
+        const highlightId = explicitTarget || extractHighlightId(detail);
+        if (highlightId) {
+            scrollToAnchor(highlightId);
+        }
     }
 
     const initial = badges[0] || spans[0] || null;
