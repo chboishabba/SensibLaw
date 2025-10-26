@@ -109,6 +109,12 @@ def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
     return dict(metadata)
 
 
+def _compute_document_checksum(body: str) -> str:
+    """Return a deterministic checksum for the provided document body."""
+
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
 @dataclass(frozen=True)
 class GlossaryRecord:
     id: int
