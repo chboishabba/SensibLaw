@@ -33,11 +33,14 @@ streamlit_stub.title = _no_op
 streamlit_stub.caption = _no_op
 streamlit_stub.session_state = {}
 streamlit_stub.__getattr__ = lambda _name: _no_op  # type: ignore[assignment]
+streamlit_stub.__file__ = __file__
 
 components_stub = types.ModuleType("streamlit.components")
 components_v1_stub = types.ModuleType("streamlit.components.v1")
 components_v1_stub.html = _no_op
 components_v1_stub.__getattr__ = lambda _name: _no_op  # type: ignore[assignment]
+components_stub.__file__ = __file__
+components_v1_stub.__file__ = __file__
 components_stub.v1 = components_v1_stub  # type: ignore[attr-defined]
 streamlit_stub.components = components_stub  # type: ignore[attr-defined]
 
@@ -124,6 +127,7 @@ def _build_preview_fixture() -> _PreviewFixture:
         jurisdiction="AU",
         citation="Sample Act 2024",
         date=date(2024, 1, 1),
+        title="Sample Act 2024",
     )
 
     duty_atom = RuleAtom(
