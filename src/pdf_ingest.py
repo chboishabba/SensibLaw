@@ -9,7 +9,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from pdfminer.high_level import extract_text
 
@@ -750,6 +750,124 @@ def _page_lines_for_toc(page: Dict[str, Any]) -> List[str]:
     return collected
 
 
+def _flatten_toc_entries(entries: List[DocumentTOCEntry]) -> Iterable[DocumentTOCEntry]:
+    for entry in entries:
+        yield entry
+        if entry.children:
+            yield from _flatten_toc_entries(entry.children)
+
+
+def _normalise_lookup_value(value: str) -> Optional[str]:
+    normalised = re.sub(r"\s+", " ", value).strip().lower()
+    return normalised or None
+
+
+_TOC_TRAILING_PAGE_TOKEN_RE = re.compile(r"(?:\s*(?:page)?\s*\d+)+\s*$", re.IGNORECASE)
+_TOC_IDENTIFIER_ONLY_RE = re.compile(r"^[A-Za-z0-9]+$")
+
+
+def _build_toc_lookup(entries: List[DocumentTOCEntry]) -> Tuple[Set[str], Set[str]]:
+    """Return lookup tables for matching TOC headings and identifiers."""
+
+    heading_lookup: Set[str] = set()
+    identifier_lookup: Set[str] = set()
+
+    for entry in _flatten_toc_entries(entries):
+        variants: List[str] = []
+        parts: List[str] = []
+        if entry.node_type:
+            parts.append(entry.node_type)
+        if entry.identifier:
+            parts.append(entry.identifier)
+        if entry.title:
+            parts.append(entry.title)
+        if parts:
+            variants.append(" ".join(parts))
+        if entry.node_type and entry.identifier:
+            variants.append(f"{entry.node_type} {entry.identifier}")
+        if entry.identifier and entry.title:
+            variants.append(f"{entry.identifier} {entry.title}")
+        if entry.node_type and entry.title:
+            variants.append(f"{entry.node_type} {entry.title}")
+        if entry.title:
+            variants.append(entry.title)
+        if entry.identifier:
+            identifier_lookup.add(entry.identifier.strip().lower())
+
+        for variant in variants:
+            normalised = _normalise_lookup_value(variant)
+            if normalised:
+                heading_lookup.add(normalised)
+
+    return heading_lookup, identifier_lookup
+
+
+def _normalise_line_for_lookup(line: str) -> Optional[str]:
+    cleaned = " ".join(line.split())
+    cleaned = _TOC_TRAILING_PAGE_TOKEN_RE.sub("", cleaned)
+    cleaned = _TOC_DOT_LEADER_RE.sub(" ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return cleaned.lower()
+
+
+def _is_probable_toc_page(
+    lines: Sequence[str],
+    heading_lookup: Set[str],
+    identifier_lookup: Set[str],
+) -> bool:
+    if not lines:
+        return False
+
+    contents_hits = 0
+    heading_hits = 0
+    identifier_hits = 0
+
+    for raw in lines:
+        lowered = raw.strip().lower()
+        if "contents" in lowered:
+            contents_hits += 1
+
+        normalised = _normalise_line_for_lookup(raw)
+        if not normalised:
+            continue
+        if normalised in heading_lookup:
+            heading_hits += 1
+            continue
+        if (
+            normalised in identifier_lookup
+            and _TOC_IDENTIFIER_ONLY_RE.match(raw.strip())
+        ):
+            identifier_hits += 1
+
+    total_hits = heading_hits + identifier_hits
+    if contents_hits and total_hits >= 3:
+        return True
+    if not contents_hits:
+        return False
+    if total_hits >= 5:
+        return True
+    return False
+
+
+def _filter_pages_with_toc(pages: List[dict], toc_entries: List[DocumentTOCEntry]) -> List[dict]:
+    if not toc_entries:
+        return pages
+
+    heading_lookup, identifier_lookup = _build_toc_lookup(toc_entries)
+    if not heading_lookup and not identifier_lookup:
+        return pages
+
+    filtered: List[dict] = []
+    for page in pages:
+        lines = _page_lines_for_toc(page)
+        if _is_probable_toc_page(lines, heading_lookup, identifier_lookup):
+            continue
+        filtered.append(page)
+    return filtered or pages
+
+
 def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
     """Parse table-of-contents pages into a hierarchical structure."""
 
@@ -1234,7 +1352,6 @@ def build_document(
         glossary_registry: Glossary registry for definition lookups.
     """
 
-    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
     metadata = DocumentMetadata(
         jurisdiction=jurisdiction or "",
         citation=citation or "",
@@ -1246,9 +1363,12 @@ def build_document(
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
-    definitions = _extract_definition_entries(body)
-
     toc_entries = parse_table_of_contents(pages)
+
+    body_pages = _filter_pages_with_toc(pages, toc_entries)
+    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in body_pages)
+
+    definitions = _extract_definition_entries(body)
 
     provisions = parse_sections(body)
     structured_for_definitions: Optional[List[Provision]] = None
