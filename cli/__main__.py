@@ -7,7 +7,27 @@ import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable, List, Mapping, Optional, Sequence
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence
+
+from src.graph.inference import (
+    PREDICTION_VERSION,
+    PredictionSet,
+    build_prediction_set,
+    get_case_identifiers,
+    get_provision_identifiers,
+    legal_graph_to_triples,
+    load_predictions_json,
+    load_predictions_sqlite,
+    persist_predictions_json,
+    persist_predictions_sqlite,
+    rank_predictions,
+    score_applies_predictions,
+    train_distmult,
+    train_transe,
+)
+from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+
+from . import receipts as receipts_cli
 
 
 def _print_json(data: object) -> None:
@@ -16,10 +36,16 @@ def _print_json(data: object) -> None:
     print(json.dumps(data, ensure_ascii=False))
 
 
-def _load_graph_data(path: Path | str | None) -> dict:
+def _load_graph_data(path: Path | str | None, *, flag: str = "--graph") -> dict:
     if path is None:
         raise ValueError("graph path is required")
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    resolved = Path(path)
+    if not resolved.exists():
+        raise SystemExit(f"{flag} {resolved} does not exist")
+    mode = resolved.stat().st_mode
+    if not os.access(resolved, os.R_OK) or (mode & 0o444) == 0:
+        raise SystemExit(f"{flag} {resolved} is not readable")
+    data = json.loads(resolved.read_text(encoding="utf-8"))
     data.setdefault("nodes", [])
     data.setdefault("edges", [])
     return data
@@ -76,6 +102,113 @@ def _subgraph_to_dot(data: Mapping[str, Sequence[Mapping[str, object]]], *, id_k
         lines.append(f'    "{source}" -> "{target}" [label="{label}"];')
     lines.append("}")
     return "\n".join(lines)
+
+
+def _coerce_node_type(value: object) -> NodeType:
+    if isinstance(value, NodeType):
+        return value
+    if value is None:
+        return NodeType.DOCUMENT
+    text = str(value)
+    for node_type in NodeType:
+        if node_type.value == text.lower() or node_type.name.lower() == text.lower():
+            return node_type
+    return NodeType.DOCUMENT
+
+
+def _coerce_edge_type(value: object) -> EdgeType:
+    if isinstance(value, EdgeType):
+        return value
+    if value is None:
+        return EdgeType.CITES
+    text = str(value)
+    for edge_type in EdgeType:
+        if edge_type.value == text.lower() or edge_type.name.lower() == text.lower():
+            return edge_type
+    return EdgeType.CITES
+
+
+def _normalise_relation(value: Optional[str]) -> str:
+    if not value:
+        return EdgeType.APPLIES.value
+    for edge_type in EdgeType:
+        if edge_type.value == value.lower() or edge_type.name.lower() == value.lower():
+            return edge_type.value
+    return value
+
+
+def _graph_from_payload(data: Mapping[str, Sequence[Mapping[str, object]]]) -> LegalGraph:
+    graph = LegalGraph()
+    for node in data.get("nodes", []):
+        identifier = node.get("id") or node.get("identifier")
+        if not identifier:
+            continue
+        metadata = {
+            key: value
+            for key, value in node.items()
+            if key not in {"id", "identifier", "type", "metadata", "date"}
+        }
+        if isinstance(node.get("metadata"), Mapping):
+            metadata.update(node["metadata"])
+        node_date = node.get("date")
+        parsed_date = date.fromisoformat(node_date) if isinstance(node_date, str) else None
+        graph.add_node(
+            GraphNode(
+                type=_coerce_node_type(node.get("type")),
+                identifier=str(identifier),
+                metadata=dict(metadata),
+                date=parsed_date,
+            )
+        )
+    for edge in data.get("edges", []):
+        source = edge.get("source")
+        target = edge.get("target")
+        if not source or not target:
+            continue
+        if source not in graph.nodes or target not in graph.nodes:
+            continue
+        metadata = {
+            key: value
+            for key, value in edge.items()
+            if key not in {"source", "target", "type", "weight", "metadata", "date"}
+        }
+        if isinstance(edge.get("metadata"), Mapping):
+            metadata.update(edge["metadata"])
+        edge_date = edge.get("date")
+        parsed_date = date.fromisoformat(edge_date) if isinstance(edge_date, str) else None
+        raw_weight = edge.get("weight", 1.0)
+        try:
+            weight = float(raw_weight)
+        except (TypeError, ValueError):
+            weight = 1.0
+        graph.add_edge(
+            GraphEdge(
+                type=_coerce_edge_type(edge.get("type")),
+                source=str(source),
+                target=str(target),
+                metadata=dict(metadata),
+                date=parsed_date,
+                weight=weight,
+            )
+        )
+    return graph
+
+
+def _prediction_payload(predictions: PredictionSet) -> Dict[str, object]:
+    return {
+        "version": PREDICTION_VERSION,
+        "relation": predictions.relation,
+        "generated_at": predictions.generated_at,
+        "predictions": [
+            {
+                "case_id": item.case_id,
+                "provision_id": item.provision_id,
+                "score": item.score,
+                "rank": item.rank,
+            }
+            for item in predictions.predictions
+        ],
+    }
 
 
 def _require_path(path: Optional[Path], flag: str) -> Path:
@@ -148,6 +281,22 @@ def _handle_extract_frl(args: argparse.Namespace) -> None:
     _print_json({"nodes": nodes, "edges": edges})
 
 
+def _handle_extract(args: argparse.Namespace) -> None:
+    if args.extract_command == "rules":
+        _handle_extract_rules(args)
+        return
+    if args.extract_command == "frl":
+        _handle_extract_frl(args)
+        return
+    if getattr(args, "text", None):
+        _handle_extract_rules(args)
+        return
+    parser = getattr(args, "parser", None)
+    if parser is not None:
+        parser.print_help()
+    raise SystemExit(2)
+
+
 def _handle_check(args: argparse.Namespace) -> None:
     from src.rules import Rule
     from src.rules.reasoner import check_rules
@@ -174,6 +323,21 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
     if stored_id is not None:
         result["doc_id"] = stored_id
     _print_json(result)
+
+
+def _handle_polis_import(args: argparse.Namespace) -> None:
+    from src.ingest import polis as polis_ingest
+    from src.receipts import build_pack
+
+    seeds = polis_ingest.fetch_conversation(args.conversation)
+    args.out.mkdir(parents=True, exist_ok=True)
+    for seed in seeds:
+        seed_id = seed.get("id")
+        if not seed_id:
+            continue
+        label = seed.get("label") or ""
+        build_pack(args.out / seed_id, label)
+    _print_json({"concepts": seeds})
 
 
 def _handle_distinguish(args: argparse.Namespace) -> None:
@@ -239,6 +403,9 @@ def _handle_concepts_match(args: argparse.Namespace) -> None:
 
     text = args.text or args.text_arg
     if not text:
+        parser = getattr(args, "parser", None)
+        if parser is not None:
+            parser.error("invalid choice: text is required")
         raise SystemExit("text is required")
     matcher = ConceptMatcher()
     hits = matcher.match(text)
@@ -285,14 +452,37 @@ def _handle_query_concepts(args: argparse.Namespace) -> None:
     _print_json({"cloud": cloud})
 
 
+def _handle_query_timeline(args: argparse.Namespace) -> None:
+    from src.reason.timeline import build_timeline
+
+    graph_path = _require_path(args.graph_file, "--graph-file")
+    data = _load_graph_data(graph_path, flag="--graph-file")
+    events = build_timeline(data.get("nodes", []), data.get("edges", []), args.case)
+    payload = [
+        {
+            "date": event.date.isoformat(),
+            "text": event.text,
+            **({"citation": event.citation} if event.citation else {}),
+        }
+        for event in events
+    ]
+    _print_json(payload)
+
+
 def _handle_graph_subgraph(args: argparse.Namespace) -> None:
+    output_dot = args.dot
     if args.graph_file:
         if str(args.graph_file) == "-":
-            data = json.load(sys.stdin)
+            raw = sys.stdin.read()
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                raise SystemExit(f"Invalid JSON supplied via stdin: {exc}") from exc
+            output_dot = True
         else:
-            data = _load_graph_data(args.graph_file)
+            data = _load_graph_data(args.graph_file, flag="--graph-file")
         subgraph = _subgraph_from_data(data, args.node or [], args.hops)
-        if args.dot:
+        if output_dot:
             print(_subgraph_to_dot(subgraph, id_key="id"))
         else:
             _print_json(subgraph)
@@ -301,14 +491,14 @@ def _handle_graph_subgraph(args: argparse.Namespace) -> None:
     from src import sample_data
 
     subgraph = sample_data.build_subgraph(args.node, args.limit, args.offset)
-    if args.dot:
+    if output_dot:
         print(sample_data.subgraph_to_dot(subgraph))
     else:
         _print_json(subgraph)
 
 
 def _handle_graph_query(args: argparse.Namespace) -> None:
-    data = _load_graph_data(args.graph)
+    data = _load_graph_data(args.graph, flag="--graph")
     id_map = {node["id"]: node for node in data["nodes"] if "id" in node}
     selected_ids: set[str]
     if args.type:
@@ -340,6 +530,98 @@ def _handle_graph_query(args: argparse.Namespace) -> None:
         if edge.get("source") in selected_ids and edge.get("target") in selected_ids
     ]
     _print_json({"nodes": selected_nodes, "edges": selected_edges})
+
+
+def _handle_graph_inference_train(args: argparse.Namespace) -> None:
+    relation = _normalise_relation(args.relation)
+    data = _load_graph_data(args.graph)
+    graph = _graph_from_payload(data)
+
+    triples_pack = legal_graph_to_triples(graph)
+    if not triples_pack.triples:
+        raise SystemExit("Graph does not contain any edges to train on")
+
+    training_kwargs = {"num_epochs": args.epochs, "batch_size": args.batch_size}
+    optimizer_kwargs = {"lr": args.learning_rate}
+    model_kwargs = {"embedding_dim": args.embedding_dim} if args.embedding_dim else {}
+
+    trainer = train_transe if args.model.lower() == "transe" else train_distmult
+
+    try:
+        artifacts = trainer(
+            triples_pack.triples,
+            training_kwargs=training_kwargs,
+            model_kwargs=model_kwargs or None,
+            optimizer_kwargs=optimizer_kwargs,
+            random_seed=args.random_seed,
+        )
+    except RuntimeError as exc:  # pragma: no cover - surfaced to CLI
+        raise SystemExit(str(exc)) from exc
+
+    cases = sorted(set(args.case)) if args.case else get_case_identifiers(graph)
+    provisions = (
+        sorted(set(args.provision)) if args.provision else get_provision_identifiers(graph)
+    )
+
+    if not cases:
+        raise SystemExit("No case nodes available for scoring")
+    if not provisions:
+        raise SystemExit("No provision nodes available for scoring")
+
+    raw_predictions = score_applies_predictions(
+        artifacts.pipeline_result,
+        artifacts.triples_factory,
+        cases=cases,
+        provisions=provisions,
+        relation=relation,
+    )
+
+    ranked_predictions = rank_predictions(
+        raw_predictions,
+        relation=relation,
+        top_k=args.top_k,
+    )
+    prediction_set = build_prediction_set(ranked_predictions, relation=relation)
+
+    if args.json_out:
+        persist_predictions_json(prediction_set, Path(args.json_out))
+    if args.sqlite_out:
+        persist_predictions_sqlite(prediction_set, Path(args.sqlite_out))
+
+    payload = _prediction_payload(prediction_set)
+    _print_json(payload)
+
+
+def _handle_graph_inference_rank(args: argparse.Namespace) -> None:
+    relation = _normalise_relation(args.relation)
+    prediction_set: Optional[PredictionSet] = None
+
+    if args.sqlite:
+        prediction_set = load_predictions_sqlite(Path(args.sqlite), relation=relation)
+    elif args.json:
+        prediction_set = load_predictions_json(Path(args.json))
+    else:
+        raise SystemExit("--json or --sqlite is required")
+
+    if prediction_set.relation != relation:
+        relation = prediction_set.relation
+
+    predictions = prediction_set.for_case(args.case, top_k=args.top_k)
+    payload = {
+        "relation": relation,
+        "generated_at": prediction_set.generated_at,
+        "case_id": args.case,
+        "predictions": [
+            {
+                "case_id": item.case_id,
+                "provision_id": item.provision_id,
+                "score": item.score,
+                "rank": item.rank,
+            }
+            for item in predictions
+        ],
+    }
+    _print_json(payload)
 
 
 def _handle_tests_run(args: argparse.Namespace) -> None:
@@ -553,10 +835,9 @@ def _handle_search(args: argparse.Namespace) -> None:
 def _handle_proof_tree(args: argparse.Namespace) -> None:
     from datetime import date as date_cls
 
-    from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
     from src.graph.proof_tree import expand_proof_tree
 
-    data = _load_graph_data(args.graph)
+    data = _load_graph_data(args.graph, flag="--graph")
     graph = LegalGraph()
     for node in data.get("nodes", []):
         identifier = node.get("id") or node.get("identifier")
@@ -637,6 +918,7 @@ def _handle_tools(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
+    receipts_cli.register(sub)
 
     publish = sub.add_parser("publish", help="Generate a static SensibLaw Mirror site")
     publish.add_argument("--seed", required=True)
@@ -662,7 +944,10 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.set_defaults(func=_handle_view)
 
     extract_parser = sub.add_parser("extract", help="Extraction helpers")
+    extract_parser.add_argument("--text", help="Text to extract rules from")
+    extract_parser.set_defaults(func=_handle_extract, parser=extract_parser)
     extract_sub = extract_parser.add_subparsers(dest="extract_command")
+    extract_sub.required = False
     extract_rules = extract_sub.add_parser("rules", help="Extract rules from text")
     extract_rules.add_argument("--text", required=True)
     extract_rules.set_defaults(func=_handle_extract_rules)
@@ -695,7 +980,7 @@ def build_parser() -> argparse.ArgumentParser:
     concepts_match = concepts_sub.add_parser("match", help="Match concepts in text")
     concepts_match.add_argument("text_arg", nargs="?")
     concepts_match.add_argument("--text")
-    concepts_match.set_defaults(func=_handle_concepts)
+    concepts_match.set_defaults(func=_handle_concepts_match, parser=concepts_match)
 
     query = sub.add_parser("query", help="Run a concept query or case lookup")
     query_sub = query.add_subparsers(dest="query_command")
@@ -707,6 +992,18 @@ def build_parser() -> argparse.ArgumentParser:
     query_concepts.add_argument("--text")
     query_concepts.add_argument("--graph", type=Path)
     query_concepts.set_defaults(func=_handle_query_concepts)
+    query_timeline = query_sub.add_parser("timeline", help="Build a timeline for a case")
+    query_timeline.add_argument("--case", required=True)
+    query_timeline.add_argument("--graph-file", type=Path, required=True)
+    query_timeline.set_defaults(func=_handle_query_timeline)
+
+    polis = sub.add_parser("polis", help="Pol.is ingestion utilities")
+    polis_sub = polis.add_subparsers(dest="polis_command")
+    polis_sub.required = True
+    polis_import = polis_sub.add_parser("import", help="Import a Pol.is conversation")
+    polis_import.add_argument("--conversation", required=True)
+    polis_import.add_argument("--out", type=Path, required=True)
+    polis_import.set_defaults(func=_handle_polis_import)
 
     graph = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph.add_subparsers(dest="graph_command")
@@ -724,6 +1021,47 @@ def build_parser() -> argparse.ArgumentParser:
     graph_query.add_argument("--start")
     graph_query.add_argument("--depth", type=int, default=1)
     graph_query.set_defaults(func=_handle_graph_query)
+
+    inference = graph_sub.add_parser("inference", help="Knowledge graph inference utilities")
+    inference_sub = inference.add_subparsers(dest="inference_command")
+
+    inference_train = inference_sub.add_parser("train", help="Train a link prediction model")
+    inference_train.add_argument("--graph", type=Path, required=True, help="Graph JSON file")
+    inference_train.add_argument(
+        "--model", choices=["transe", "distmult"], default="transe", help="Embedding model"
+    )
+    inference_train.add_argument("--epochs", type=int, default=50, help="Training epochs")
+    inference_train.add_argument("--batch-size", type=int, default=256, help="Training batch size")
+    inference_train.add_argument("--learning-rate", type=float, default=1e-3, help="Optimizer learning rate")
+    inference_train.add_argument(
+        "--embedding-dim", type=int, default=128, help="Embedding dimensionality"
+    )
+    inference_train.add_argument(
+        "--relation",
+        default=EdgeType.APPLIES.value,
+        help="Relation label to score (default: applies)",
+    )
+    inference_train.add_argument("--case", action="append", help="Limit scoring to specific case ids")
+    inference_train.add_argument(
+        "--provision",
+        action="append",
+        help="Limit scoring to specific provision identifiers",
+    )
+    inference_train.add_argument("--top-k", type=int, help="Maximum recommendations per case")
+    inference_train.add_argument("--random-seed", type=int, help="Deterministic seed for PyKEEN")
+    inference_train.add_argument("--json-out", type=Path, help="Write predictions to a JSON file")
+    inference_train.add_argument("--sqlite-out", type=Path, help="Write predictions to a SQLite database")
+    inference_train.set_defaults(func=_handle_graph_inference_train)
+
+    inference_rank = inference_sub.add_parser(
+        "rank", help="Rank provisions for a case from persisted predictions"
+    )
+    inference_rank.add_argument("--case", required=True, help="Case identifier to rank against")
+    inference_rank.add_argument("--top-k", type=int, help="Limit the number of rows returned")
+    inference_rank.add_argument("--relation", default=EdgeType.APPLIES.value)
+    inference_rank.add_argument("--json", type=Path, help="Prediction JSON file")
+    inference_rank.add_argument("--sqlite", type=Path, help="Prediction SQLite database")
+    inference_rank.set_defaults(func=_handle_graph_inference_rank)
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")

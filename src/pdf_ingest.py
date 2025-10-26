@@ -601,6 +601,33 @@ def _parse_multi_column_toc(pages: List[dict]) -> List[DocumentTOCEntry]:
             page_number_stream = True
             continue
 
+        normalised_token = _normalise_toc_candidate([token])
+        line_match = _TOC_LINE_RE.match(normalised_token)
+        if line_match:
+            node_type = line_match.group("type").lower()
+            content = line_match.group("content").strip()
+            page_str = line_match.group("page")
+            try:
+                page_number = int(page_str)
+            except ValueError:
+                page_number = None
+            identifier, title = _split_toc_identifier(content)
+            entry = DocumentTOCEntry(
+                node_type=node_type,
+                identifier=identifier,
+                title=title,
+                page_number=page_number,
+            )
+            flat_entries.append(entry)
+            if node_type == "section" and page_number is None:
+                pending_page_entries.append(entry)
+            pending_title_entry = entry if title is None else None
+            assign_pages()
+            last_token_was_title = bool(title)
+            prefer_identifiers = True
+            page_number_stream = False
+            continue
+
         prefix_match = _TOC_PREFIX_RE.match(token)
         if prefix_match:
             node_type = prefix_match.group("type").lower()

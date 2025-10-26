@@ -14,6 +14,26 @@ ROOT = Path(__file__).resolve().parents[1]
 GOLDSETS = ROOT / "tests" / "goldsets"
 
 
+def _normalise_reference(ref: object) -> str:
+    """Render a reference-like structure as a comparable string."""
+
+    if isinstance(ref, dict):
+        for key in ("citation_text", "text", "label"):
+            value = ref.get(key)
+            if value:
+                return str(value)
+        parts = [ref.get("work"), ref.get("section"), ref.get("pinpoint")]
+        joined = " ".join(str(part) for part in parts if part)
+        if joined:
+            return joined
+        return json.dumps(ref, sort_keys=True)
+    if isinstance(ref, (list, tuple)):
+        return " ".join(str(part) for part in ref if part)
+    if ref is None:
+        return ""
+    return str(ref)
+
+
 def _pr(expected: Iterable[Set[str]], predicted: Iterable[Set[str]]) -> Tuple[float, float]:
     """Compute micro-averaged precision and recall for sets."""
     tp = fp = fn = 0
@@ -35,12 +55,15 @@ def evaluate(threshold: float = 0.9) -> bool:
     for case in section_cases:
         exp_refs.append(set(case.get("cross_refs", [])))
         data = fetch_section(case["html"])
+        references = data.get("rules", {}).get("references", [])
         pred_refs.append(
             {
-                ref[-1]
-                if isinstance(ref, (list, tuple)) and ref
-                else ref
-                for ref in data["rules"]["references"]
+                normalised
+                for normalised in (
+                    _normalise_reference(ref)
+                    for ref in references
+                )
+                if normalised
             }
         )
     refs_p, refs_r = _pr(exp_refs, pred_refs)

@@ -2,11 +2,26 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
+import types
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from text.similarity import minhash as compute_minhash, simhash as compute_simhash
+
+
+def _normalise_sys_modules() -> None:
+    """Ensure stubbed modules are proper module instances."""
+
+    for name, module in list(sys.modules.items()):
+        if isinstance(module, types.SimpleNamespace):
+            replacement = types.ModuleType(name)
+            replacement.__dict__.update(module.__dict__)
+            sys.modules[name] = replacement
+
+
+_normalise_sys_modules()
 
 
 @dataclass
@@ -76,6 +91,7 @@ class Storage:
     """SQLite backed storage with simple CRUD helpers."""
 
     def __init__(self, path: str | Path):
+        _normalise_sys_modules()
         self.path = str(path)
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row

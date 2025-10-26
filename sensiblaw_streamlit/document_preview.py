@@ -90,6 +90,18 @@ def _collect_provisions(
             normalised = _normalise_anchor_key(candidate)
             if normalised:
                 return ensure_unique(normalised)
+        # Prefer stable identifiers when available so anchors remain stable across
+        # renders. Fall back to identifiers or headings before using the positional
+        # segment identifier.
+        candidates: List[Optional[str]] = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate)
+            if slug:
+                return ensure_unique(slug)
         return ensure_unique(fallback)
 
     def walk(node: Provision) -> None:
