@@ -215,7 +215,7 @@ def _parse_pdf(
 
     panel_opinions: List[Dict[str, str]] = []
     opinion_pattern = re.compile(
-        r"(?P<judge>[A-Z][A-Za-z'.-]*(?:[ \t]+[A-Z][A-Za-z'.-]*)*\s+(?:CJ|J|JJ))\s+(?P<stance>dissent(?:ed|ing)?|concurr(?:ed|ing)|agreed with|in the majority|for the majority)",
+        r"(?P<judge>[A-Z][A-Za-z'.-]*(?:[\s,]+(?:and\s+)?[A-Z][A-Za-z'.-]*)*\s+(?:CJ|J|JJ))\s+(?P<stance>dissent(?:ed|ing)?|concurr(?:ed|ing)|agreed with|in the majority|for the majority)",
         re.IGNORECASE,
     )
     seen_judges: set[str] = set()
@@ -227,7 +227,7 @@ def _parse_pdf(
             judge_text = match.group("judge").strip()
             stance_raw = match.group("stance").lower()
             if judge_text.endswith("JJ"):
-                judge_names = re.split(r",| and ", judge_text[:-2])
+                judge_names = re.split(r",|;|\band\b", judge_text[:-2], flags=re.IGNORECASE)
                 judge_names = [n.strip() for n in judge_names if n.strip()]
                 judge_list = [f"{name} J" if not name.endswith("J") else name for name in judge_names]
             else:
