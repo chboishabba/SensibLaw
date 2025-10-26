@@ -1,13 +1,14 @@
 """PDF ingestion utilities producing :class:`Document` objects."""
 
 import argparse
+import hashlib
 import json
 import logging
 import re
 import sys
 from collections import deque
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -495,6 +496,60 @@ _TOC_SKIP_LINE_TEXT = {
     "Queensland",
     "Summary Offences Act 2005",
 }
+
+_KNOWN_JURISDICTIONS = {
+    "australia",
+    "commonwealth of australia",
+    "commonwealth",
+    "new south wales",
+    "victoria",
+    "queensland",
+    "south australia",
+    "western australia",
+    "tasmania",
+    "northern territory",
+    "australian capital territory",
+    "state of queensland",
+    "state of victoria",
+    "state of new south wales",
+    "state of south australia",
+    "state of western australia",
+    "state of tasmania",
+    "territory of the northern territory",
+    "territory of the australian capital territory",
+}
+
+_SINGLE_WORD_JURISDICTIONS = {
+    "australia",
+    "commonwealth",
+    "queensland",
+    "victoria",
+    "tasmania",
+}
+
+_LOWERCASE_JURISDICTION_FILLERS = {"of", "the", "and"}
+
+_TITLE_KEYWORD_RE = re.compile(
+    r"\b(Act|Regulation|Regulations|Rule|Rules|Bill|Ordinance|Order|Law)\b",
+    re.IGNORECASE,
+)
+
+_DATE_LINE_PATTERNS = [
+    re.compile(
+        r"\bCurrent as at (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bReprinted as in force on (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bAs at (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+]
+
+_STANDALONE_YEAR_RE = re.compile(r"^(?P<year>\d{4})$")
 
 
 def _should_join_toc_line(previous: str, current: str) -> bool:
@@ -1312,13 +1367,132 @@ def parse_sections(text: str) -> List[Provision]:
     return _fallback_parse_sections(text)
 
 
+def _looks_like_capitalised_word(word: str) -> bool:
+    if not word:
+        return False
+    if len(word) == 1:
+        return word.isalpha() and word.isupper()
+    return word[0].isupper() and word[1:].islower()
+
+
+def _looks_like_jurisdiction_line(line: str) -> bool:
+    if not line:
+        return False
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if any(char.isdigit() for char in stripped):
+        return False
+    if re.search(r"[,;:]", stripped):
+        return False
+
+    lowered = stripped.lower()
+    if lowered in _KNOWN_JURISDICTIONS:
+        return True
+
+    tokens = stripped.split()
+    if len(tokens) == 1:
+        return lowered in _SINGLE_WORD_JURISDICTIONS or stripped.isupper()
+
+    if len(tokens) > 6:
+        return False
+
+    for token in tokens:
+        lowered_token = token.lower()
+        if lowered_token in _LOWERCASE_JURISDICTION_FILLERS:
+            continue
+        if not _looks_like_capitalised_word(token):
+            return False
+
+    return True
+
+
+def _looks_like_title_line(line: str) -> bool:
+    if not line:
+        return False
+    return bool(_TITLE_KEYWORD_RE.search(line))
+
+
+def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[str]]:
+    if not pages:
+        return None, None
+
+    raw_lines = pages[0].get("lines") or []
+    lines = [str(line).strip() for line in raw_lines if str(line).strip()]
+    if not lines:
+        return None, None
+
+    jurisdiction: Optional[str] = None
+    title: Optional[str] = None
+
+    for index, line in enumerate(lines[:10]):
+        if title is None and _looks_like_title_line(line):
+            title = line
+            if index >= 1 and jurisdiction is None:
+                potential = lines[index - 1]
+                if _looks_like_jurisdiction_line(potential):
+                    jurisdiction = potential
+            continue
+
+        if jurisdiction is None and _looks_like_jurisdiction_line(line):
+            jurisdiction = line
+
+    return jurisdiction, title
+
+
+def _parse_day_month_year(day: str, month: str, year: str) -> Optional[date]:
+    composed = f"{day} {month} {year}"
+    for fmt in ("%d %B %Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(composed, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_document_date(lines: Iterable[str]) -> Optional[date]:
+    for line in lines:
+        stripped = str(line).strip()
+        if not stripped:
+            continue
+        for pattern in _DATE_LINE_PATTERNS:
+            match = pattern.search(stripped)
+            if match:
+                parsed = _parse_day_month_year(
+                    match.group("day"), match.group("month"), match.group("year")
+                )
+                if parsed:
+                    return parsed
+
+        cleaned = stripped.strip(" .")
+        standalone = _STANDALONE_YEAR_RE.fullmatch(cleaned)
+        if standalone:
+            year_value = int(standalone.group("year"))
+            if 1000 <= year_value <= 3000:
+                return date(year_value, 1, 1)
+
+    return None
+
+
+def _compute_document_checksum(body: str) -> str:
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
 def _determine_document_title(
-    pages: List[dict], source: Path, provided_title: Optional[str]
+    pages: List[dict],
+    source: Path,
+    provided_title: Optional[str],
+    inferred_title: Optional[str] = None,
 ) -> Optional[str]:
     """Return a best-effort title for the document."""
 
     if provided_title:
         candidate = provided_title.strip()
+        if candidate:
+            return candidate
+
+    if inferred_title:
+        candidate = inferred_title.strip()
         if candidate:
             return candidate
 
@@ -1352,13 +1526,20 @@ def build_document(
         glossary_registry: Glossary registry for definition lookups.
     """
 
+    inferred_jurisdiction, inferred_title = _infer_cover_metadata(pages)
+    first_page_lines = pages[0].get("lines") if pages else None
+    inferred_date = _extract_document_date(first_page_lines or [])
+
+    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
+    checksum = _compute_document_checksum(body)
     metadata = DocumentMetadata(
-        jurisdiction=jurisdiction or "",
+        jurisdiction=jurisdiction or inferred_jurisdiction or "",
         citation=citation or "",
-        date=date.today(),
-        title=_determine_document_title(pages, source, title),
+        date=inferred_date or date.today(),
+        title=_determine_document_title(pages, source, title, inferred_title),
         cultural_flags=cultural_flags,
         provenance=str(source),
+        checksum=checksum,
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
