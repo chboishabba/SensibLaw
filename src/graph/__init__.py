@@ -26,8 +26,14 @@ from .models import (
     ExtrinsicNode,
     GraphEdge,
     GraphNode,
+    IssueNode,
+    JudgeOpinionNode,
     LegalGraph,
     NodeType,
+    OrderNode,
+    PrincipleNode,
+    StatuteSectionNode,
+    TestElementNode,
 )
 from .principle_graph import build_principle_graph
 from .proof_tree import (
@@ -47,6 +53,17 @@ from .tircorder import (
     controls,
     has_element,
     interprets,
+from .rgcn import (
+    RGCNConfig,
+    RGCNEpochResult,
+    RGCNGraphData,
+    RGCNTrainer,
+    RGCNTrainingResult,
+    RGCNBackendNotAvailableError,
+    attach_embeddings,
+    export_embeddings,
+    legal_graph_to_dgl,
+    load_embeddings,
 )
 
 __all__ = [
@@ -66,6 +83,12 @@ __all__ = [
     "expand_proof_tree",
     "ExtrinsicNode",
     "CaseNode",
+    "JudgeOpinionNode",
+    "PrincipleNode",
+    "TestElementNode",
+    "StatuteSectionNode",
+    "IssueNode",
+    "OrderNode",
     "ingest_extrinsic",
     "compute_weight",
     "TiRCorderBuilder",
@@ -93,5 +116,15 @@ __all__ = [
     "persist_predictions_sqlite",
     "load_predictions_json",
     "load_predictions_sqlite",
+    "RGCNConfig",
+    "RGCNEpochResult",
+    "RGCNGraphData",
+    "RGCNTrainer",
+    "RGCNTrainingResult",
+    "RGCNBackendNotAvailableError",
+    "attach_embeddings",
+    "export_embeddings",
+    "legal_graph_to_dgl",
+    "load_embeddings",
 ]
 

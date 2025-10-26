@@ -9,6 +9,9 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import altair as alt
+import numpy as np
+import pandas as pd
 import streamlit as st
 
 from sensiblaw_streamlit.constants import (
@@ -237,6 +240,174 @@ def _available_store_identifiers(db_path: Path) -> List[str]:
         identifiers.append(str(identifier))
 
     return sorted(dict.fromkeys(identifiers))
+
+
+def _collect_graph_embeddings(metadata_key: str) -> Dict[str, List[float]]:
+    """Pull numeric embeddings from the in-memory graph metadata."""
+
+    embeddings: Dict[str, List[float]] = {}
+    for identifier, node in ROUTES_GRAPH.nodes.items():
+        vector = getattr(node, "metadata", {}).get(metadata_key)
+        if not isinstance(vector, (list, tuple)):
+            continue
+        numeric: List[float] = []
+        for component in vector:
+            if isinstance(component, (int, float)):
+                numeric.append(float(component))
+            else:
+                numeric = []
+                break
+        if numeric:
+            embeddings[identifier] = numeric
+    return embeddings
+
+
+def _normalise_embedding_payload(payload: Any) -> Dict[str, List[float]]:
+    """Validate and coerce uploaded embedding payloads."""
+
+    if not isinstance(payload, dict):
+        return {}
+
+    expected_length: Optional[int] = None
+    result: Dict[str, List[float]] = {}
+    for key, value in payload.items():
+        if not isinstance(value, (list, tuple)):
+            continue
+        numeric = [float(component) for component in value if isinstance(component, (int, float))]
+        if not numeric:
+            continue
+        if expected_length is None:
+            expected_length = len(numeric)
+        if len(numeric) != expected_length:
+            continue
+        result[str(key)] = numeric
+    return result
+
+
+def _reduce_embeddings(matrix: np.ndarray) -> np.ndarray:
+    """Return a 2D projection of ``matrix`` using an SVD-based PCA approximation."""
+
+    if matrix.size == 0:
+        return np.zeros((0, 2), dtype=np.float32)
+
+    centred = matrix - matrix.mean(axis=0, keepdims=True)
+    if matrix.shape[1] < 2:
+        padding = np.zeros((matrix.shape[0], 2 - matrix.shape[1]), dtype=np.float32)
+        projection = np.hstack([centred, padding])
+        return projection[:, :2]
+
+    _, _, vh = np.linalg.svd(centred, full_matrices=False)
+    projection = centred @ vh[:2].T
+    if projection.shape[1] == 1:
+        projection = np.hstack([projection, np.zeros((projection.shape[0], 1), dtype=projection.dtype)])
+    return projection[:, :2]
+
+
+def _compute_nearest_neighbours(
+    matrix: np.ndarray,
+    identifiers: List[str],
+    query: str,
+    count: int,
+) -> List[Tuple[str, float]]:
+    """Return the ``count`` closest nodes to ``query`` measured by Euclidean distance."""
+
+    if query not in identifiers or matrix.size == 0:
+        return []
+
+    query_index = identifiers.index(query)
+    query_vector = matrix[query_index]
+    distances = np.linalg.norm(matrix - query_vector, axis=1)
+    order = np.argsort(distances)
+
+    neighbours: List[Tuple[str, float]] = []
+    for idx in order:
+        if idx == query_index:
+            continue
+        neighbours.append((identifiers[idx], float(distances[idx])))
+        if len(neighbours) >= count:
+            break
+    return neighbours
+
+
+def _render_embedding_explorer(embeddings: Dict[str, List[float]], metadata_key: str) -> None:
+    """Visualise embeddings and display nearest-neighbour recommendations."""
+
+    identifiers = list(embeddings.keys())
+    matrix = np.array([embeddings[identifier] for identifier in identifiers], dtype=np.float32)
+    if matrix.size == 0:
+        st.info("No numeric embeddings are available yet.")
+        return
+
+    projection = _reduce_embeddings(matrix)
+    node_types: List[str] = []
+    node_titles: List[Optional[str]] = []
+    for identifier in identifiers:
+        node = ROUTES_GRAPH.get_node(identifier)
+        node_types.append(getattr(getattr(node, "type", None), "value", "unknown"))
+        title = None
+        if node and isinstance(getattr(node, "metadata", None), dict):
+            title = node.metadata.get("title")
+        node_titles.append(title)
+
+    viz_df = pd.DataFrame(
+        {
+            "identifier": identifiers,
+            "component_1": projection[:, 0],
+            "component_2": projection[:, 1],
+            "node_type": node_types,
+            "title": node_titles,
+        }
+    )
+
+    st.caption(
+        f"Loaded {len(identifiers)} embedding vectors (dimension {matrix.shape[1]}) "
+        f"via '{metadata_key}'."
+    )
+
+    chart = (
+        alt.Chart(viz_df)
+        .mark_circle(size=90)
+        .encode(
+            x=alt.X("component_1", title="Component 1"),
+            y=alt.Y("component_2", title="Component 2"),
+            color=alt.Color("node_type", title="Node type"),
+            tooltip=["identifier", "node_type", alt.Tooltip("title", title="Title")],
+        )
+        .interactive()
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+    if len(identifiers) < 2:
+        st.info("At least two embeddings are required to compute nearest neighbours.")
+        return
+
+    default_query = st.session_state.get("kg_embeddings_query", identifiers[0])
+    if default_query not in identifiers:
+        default_query = identifiers[0]
+
+    query = st.selectbox(
+        "Node for nearest-neighbour recommendations",
+        options=identifiers,
+        index=identifiers.index(default_query),
+        key="kg_embeddings_query",
+    )
+    max_neighbours = min(10, len(identifiers) - 1)
+    neighbour_count = st.slider(
+        "Number of neighbours",
+        min_value=1,
+        max_value=max_neighbours,
+        value=min(5, max_neighbours),
+        key="kg_neighbour_count",
+    )
+
+    neighbours = _compute_nearest_neighbours(matrix, identifiers, query, neighbour_count)
+    if not neighbours:
+        st.warning("No neighbours found for the selected node.")
+        return
+
+    neighbour_df = pd.DataFrame(neighbours, columns=["identifier", "distance"])
+    st.markdown("#### Nearest neighbours")
+    st.dataframe(neighbour_df, hide_index=True, use_container_width=True)
 
 
 def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
@@ -571,6 +742,58 @@ def render() -> None:
         st.info(
             "The in-memory graph is empty. Load the sample dataset above or ingest"
             " your own nodes before running queries."
+        )
+
+    st.markdown("### Embedding exploration")
+    default_metadata_key = st.session_state.get("kg_embedding_metadata_key", "embedding")
+    metadata_key = st.text_input(
+        "Metadata key for embeddings",
+        value=default_metadata_key,
+        help="Embeddings stored on nodes under this metadata key will be loaded for analysis.",
+    )
+    st.session_state["kg_embedding_metadata_key"] = metadata_key
+
+    embed_col1, embed_col2 = st.columns(2)
+    with embed_col1:
+        if st.button(
+            "Read from graph metadata",
+            key="kg_embeddings_from_graph",
+            help="Collect embeddings attached to the in-memory graph nodes.",
+        ):
+            embeddings = _collect_graph_embeddings(metadata_key)
+            if embeddings:
+                st.session_state["kg_embeddings"] = embeddings
+                st.success(f"Loaded {len(embeddings)} embeddings from the current graph.")
+            else:
+                st.warning("No numeric embeddings were found on the loaded nodes.")
+
+    with embed_col2:
+        uploaded = st.file_uploader(
+            "Upload embedding JSON",
+            type="json",
+            key="kg_embeddings_upload",
+            help="Upload a mapping from node identifiers to embedding vectors.",
+        )
+        if uploaded is not None:
+            try:
+                uploaded.seek(0)
+                payload = json.load(uploaded)
+            except json.JSONDecodeError as exc:
+                st.error(f"Invalid JSON: {exc}")
+            else:
+                parsed = _normalise_embedding_payload(payload)
+                if parsed:
+                    st.session_state["kg_embeddings"] = parsed
+                    st.success(f"Loaded {len(parsed)} embeddings from the uploaded file.")
+                else:
+                    st.warning("The uploaded file did not contain compatible numeric vectors.")
+
+    embeddings_state: Dict[str, List[float]] = st.session_state.get("kg_embeddings", {})
+    if embeddings_state:
+        _render_embedding_explorer(embeddings_state, metadata_key)
+    else:
+        st.caption(
+            "Load embeddings from metadata or upload a JSON export to unlock clustering and neighbour tools."
         )
 
     st.markdown("### Generate subgraph")

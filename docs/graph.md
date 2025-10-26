@@ -179,3 +179,58 @@ point to ``data/graph_applies_predictions.json`` and
 ``data/graph_applies_predictions.sqlite``) and enter the case identifier you
 want to explore. The console displays the ranked provisions and, when available,
 the timestamp of the training run that produced the scores.
+## Relational graph embeddings
+
+The :mod:`src.graph.rgcn` module adds an end-to-end pipeline for generating
+relational graph convolutional network (R-GCN) embeddings. Install the optional
+dependencies with ``pip install "sensiblaw[graph]"`` to pull in CPU builds of
+PyTorch and DGL before working with the trainer.
+
+```python
+from pathlib import Path
+
+from src.graph import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+from src.graph.rgcn import RGCNConfig, RGCNTrainer, export_embeddings
+
+graph = LegalGraph()
+graph.add_node(GraphNode(type=NodeType.CASE, identifier="Case#Example"))
+graph.add_node(GraphNode(type=NodeType.CASE, identifier="Case#FollowUp"))
+graph.add_edge(
+    GraphEdge(
+        type=EdgeType.FOLLOWS,
+        source="Case#FollowUp",
+        target="Case#Example",
+    )
+)
+
+config = RGCNConfig(
+    epochs=50,
+    hidden_dim=32,
+    checkpoint_path=Path("artifacts/rgcn.pt"),
+    metadata_key="rgcn_vector",
+)
+
+trainer = RGCNTrainer(graph, config)
+result = trainer.train()
+export_embeddings(result, Path("artifacts/embeddings.json"))
+```
+
+During training the trainer performs a validation split, samples negative edges
+for a lightweight link-prediction objective, and persists the best-performing
+checkpoint. By default embeddings are attached directly to each
+``GraphNode.metadata`` entry under the ``metadata_key`` supplied in the config;
+downstream clients (such as the Streamlit dashboard) can then read the vectors
+without re-running the training loop.
+
+## Streamlit embedding exploration
+
+The Knowledge Graph tab in ``streamlit_app.py`` now understands embedding JSON
+exports. Load a saved mapping or reuse vectors stored on nodes to:
+
+* Visualise a two-dimensional projection of the embedding space using PCA.
+* Request nearest-neighbour recommendations for a chosen node.
+
+The tab reports whether embeddings are sourced from the in-memory graph or an
+uploaded file, and surfaces the nearest neighbour table alongside the scatter
+plot. This makes it easy to explore clusters of related authorities without
+leaving the Streamlit console.
