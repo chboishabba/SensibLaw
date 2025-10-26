@@ -27,6 +27,8 @@ from src.graph.inference import (
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
 
+from . import receipts as receipts_cli
+
 
 def _print_json(data: object) -> None:
     """Serialise ``data`` to JSON and print it to stdout."""
@@ -34,10 +36,16 @@ def _print_json(data: object) -> None:
     print(json.dumps(data, ensure_ascii=False))
 
 
-def _load_graph_data(path: Path | str | None) -> dict:
+def _load_graph_data(path: Path | str | None, *, flag: str = "--graph") -> dict:
     if path is None:
         raise ValueError("graph path is required")
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    resolved = Path(path)
+    if not resolved.exists():
+        raise SystemExit(f"{flag} {resolved} does not exist")
+    mode = resolved.stat().st_mode
+    if not os.access(resolved, os.R_OK) or (mode & 0o444) == 0:
+        raise SystemExit(f"{flag} {resolved} is not readable")
+    data = json.loads(resolved.read_text(encoding="utf-8"))
     data.setdefault("nodes", [])
     data.setdefault("edges", [])
     return data
@@ -273,6 +281,22 @@ def _handle_extract_frl(args: argparse.Namespace) -> None:
     _print_json({"nodes": nodes, "edges": edges})
 
 
+def _handle_extract(args: argparse.Namespace) -> None:
+    if args.extract_command == "rules":
+        _handle_extract_rules(args)
+        return
+    if args.extract_command == "frl":
+        _handle_extract_frl(args)
+        return
+    if getattr(args, "text", None):
+        _handle_extract_rules(args)
+        return
+    parser = getattr(args, "parser", None)
+    if parser is not None:
+        parser.print_help()
+    raise SystemExit(2)
+
+
 def _handle_check(args: argparse.Namespace) -> None:
     from src.rules import Rule
     from src.rules.reasoner import check_rules
@@ -299,6 +323,21 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
     if stored_id is not None:
         result["doc_id"] = stored_id
     _print_json(result)
+
+
+def _handle_polis_import(args: argparse.Namespace) -> None:
+    from src.ingest import polis as polis_ingest
+    from src.receipts import build_pack
+
+    seeds = polis_ingest.fetch_conversation(args.conversation)
+    args.out.mkdir(parents=True, exist_ok=True)
+    for seed in seeds:
+        seed_id = seed.get("id")
+        if not seed_id:
+            continue
+        label = seed.get("label") or ""
+        build_pack(args.out / seed_id, label)
+    _print_json({"concepts": seeds})
 
 
 def _handle_distinguish(args: argparse.Namespace) -> None:
@@ -364,6 +403,9 @@ def _handle_concepts_match(args: argparse.Namespace) -> None:
 
     text = args.text or args.text_arg
     if not text:
+        parser = getattr(args, "parser", None)
+        if parser is not None:
+            parser.error("invalid choice: text is required")
         raise SystemExit("text is required")
     matcher = ConceptMatcher()
     hits = matcher.match(text)
@@ -410,14 +452,37 @@ def _handle_query_concepts(args: argparse.Namespace) -> None:
     _print_json({"cloud": cloud})
 
 
+def _handle_query_timeline(args: argparse.Namespace) -> None:
+    from src.reason.timeline import build_timeline
+
+    graph_path = _require_path(args.graph_file, "--graph-file")
+    data = _load_graph_data(graph_path, flag="--graph-file")
+    events = build_timeline(data.get("nodes", []), data.get("edges", []), args.case)
+    payload = [
+        {
+            "date": event.date.isoformat(),
+            "text": event.text,
+            **({"citation": event.citation} if event.citation else {}),
+        }
+        for event in events
+    ]
+    _print_json(payload)
+
+
 def _handle_graph_subgraph(args: argparse.Namespace) -> None:
+    output_dot = args.dot
     if args.graph_file:
         if str(args.graph_file) == "-":
-            data = json.load(sys.stdin)
+            raw = sys.stdin.read()
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                raise SystemExit(f"Invalid JSON supplied via stdin: {exc}") from exc
+            output_dot = True
         else:
-            data = _load_graph_data(args.graph_file)
+            data = _load_graph_data(args.graph_file, flag="--graph-file")
         subgraph = _subgraph_from_data(data, args.node or [], args.hops)
-        if args.dot:
+        if output_dot:
             print(_subgraph_to_dot(subgraph, id_key="id"))
         else:
             _print_json(subgraph)
@@ -426,14 +491,14 @@ def _handle_graph_subgraph(args: argparse.Namespace) -> None:
     from src import sample_data
 
     subgraph = sample_data.build_subgraph(args.node, args.limit, args.offset)
-    if args.dot:
+    if output_dot:
         print(sample_data.subgraph_to_dot(subgraph))
     else:
         _print_json(subgraph)
 
 
 def _handle_graph_query(args: argparse.Namespace) -> None:
-    data = _load_graph_data(args.graph)
+    data = _load_graph_data(args.graph, flag="--graph")
     id_map = {node["id"]: node for node in data["nodes"] if "id" in node}
     selected_ids: set[str]
     if args.type:
@@ -772,7 +837,7 @@ def _handle_proof_tree(args: argparse.Namespace) -> None:
 
     from src.graph.proof_tree import expand_proof_tree
 
-    data = _load_graph_data(args.graph)
+    data = _load_graph_data(args.graph, flag="--graph")
     graph = LegalGraph()
     for node in data.get("nodes", []):
         identifier = node.get("id") or node.get("identifier")
@@ -853,6 +918,7 @@ def _handle_tools(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
+    receipts_cli.register(sub)
 
     publish = sub.add_parser("publish", help="Generate a static SensibLaw Mirror site")
     publish.add_argument("--seed", required=True)
@@ -878,7 +944,10 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.set_defaults(func=_handle_view)
 
     extract_parser = sub.add_parser("extract", help="Extraction helpers")
+    extract_parser.add_argument("--text", help="Text to extract rules from")
+    extract_parser.set_defaults(func=_handle_extract, parser=extract_parser)
     extract_sub = extract_parser.add_subparsers(dest="extract_command")
+    extract_sub.required = False
     extract_rules = extract_sub.add_parser("rules", help="Extract rules from text")
     extract_rules.add_argument("--text", required=True)
     extract_rules.set_defaults(func=_handle_extract_rules)
@@ -911,7 +980,7 @@ def build_parser() -> argparse.ArgumentParser:
     concepts_match = concepts_sub.add_parser("match", help="Match concepts in text")
     concepts_match.add_argument("text_arg", nargs="?")
     concepts_match.add_argument("--text")
-    concepts_match.set_defaults(func=_handle_concepts)
+    concepts_match.set_defaults(func=_handle_concepts_match, parser=concepts_match)
 
     query = sub.add_parser("query", help="Run a concept query or case lookup")
     query_sub = query.add_subparsers(dest="query_command")
@@ -923,6 +992,18 @@ def build_parser() -> argparse.ArgumentParser:
     query_concepts.add_argument("--text")
     query_concepts.add_argument("--graph", type=Path)
     query_concepts.set_defaults(func=_handle_query_concepts)
+    query_timeline = query_sub.add_parser("timeline", help="Build a timeline for a case")
+    query_timeline.add_argument("--case", required=True)
+    query_timeline.add_argument("--graph-file", type=Path, required=True)
+    query_timeline.set_defaults(func=_handle_query_timeline)
+
+    polis = sub.add_parser("polis", help="Pol.is ingestion utilities")
+    polis_sub = polis.add_subparsers(dest="polis_command")
+    polis_sub.required = True
+    polis_import = polis_sub.add_parser("import", help="Import a Pol.is conversation")
+    polis_import.add_argument("--conversation", required=True)
+    polis_import.add_argument("--out", type=Path, required=True)
+    polis_import.set_defaults(func=_handle_polis_import)
 
     graph = sub.add_parser("graph", help="Graph operations")
     graph_sub = graph.add_subparsers(dest="graph_command")

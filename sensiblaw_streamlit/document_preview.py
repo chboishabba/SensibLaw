@@ -81,8 +81,18 @@ def _collect_provisions(
         return candidate
 
     def derive_anchor(node: Provision, fallback: str) -> str:
-        # Use deterministic segment identifiers for anchor IDs while still
-        # registering rich lookup keys for headings, identifiers, and stable IDs.
+        # Prefer stable identifiers when available so anchors remain stable across
+        # renders. Fall back to identifiers or headings before using the positional
+        # segment identifier.
+        candidates: List[Optional[str]] = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate)
+            if slug:
+                return ensure_unique(slug)
         return ensure_unique(fallback)
 
     def walk(node: Provision) -> None:
@@ -732,7 +742,7 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
         if provision.stable_id
         else ""
     )
-    section_id = anchor
+    section_id = f"section-{anchor}"
     heading_html = (
         f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
     )
