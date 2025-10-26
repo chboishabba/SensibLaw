@@ -29,6 +29,18 @@ from .proof_tree import (
     ResultTable,
     expand_proof_tree,
 )
+from .rgcn import (
+    RGCNConfig,
+    RGCNEpochResult,
+    RGCNGraphData,
+    RGCNTrainer,
+    RGCNTrainingResult,
+    RGCNBackendNotAvailableError,
+    attach_embeddings,
+    export_embeddings,
+    legal_graph_to_dgl,
+    load_embeddings,
+)
 
 __all__ = [
     "Graph",
@@ -57,5 +69,15 @@ __all__ = [
     "interprets",
     "controls",
     "build_principle_graph",
+    "RGCNConfig",
+    "RGCNEpochResult",
+    "RGCNGraphData",
+    "RGCNTrainer",
+    "RGCNTrainingResult",
+    "RGCNBackendNotAvailableError",
+    "attach_embeddings",
+    "export_embeddings",
+    "legal_graph_to_dgl",
+    "load_embeddings",
 ]
 
