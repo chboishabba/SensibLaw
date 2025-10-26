@@ -7,7 +7,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from html import escape
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import streamlit.components.v1 as components
 
@@ -208,6 +208,17 @@ def _format_provision_reference(provision: Provision) -> Optional[str]:
     return None
 
 
+def _iter_provision_tree(provisions: Iterable[Provision]) -> Iterable[Provision]:
+    """Yield all provisions in a depth-first traversal order."""
+
+    stack: List[Provision] = list(provisions)[::-1]
+    while stack:
+        node = stack.pop()
+        yield node
+        if node.children:
+            stack.extend(reversed(node.children))
+
+
 def collect_document_actor_summary(
     document: Document,
     *,
@@ -218,7 +229,7 @@ def collect_document_actor_summary(
 
     actors: Dict[str, _ActorAccumulator] = {}
 
-    for provision in document.provisions:
+    for provision in _iter_provision_tree(document.provisions):
         provision.ensure_rule_atoms()
         section_label = _format_provision_reference(provision)
         for rule_atom in provision.rule_atoms:
