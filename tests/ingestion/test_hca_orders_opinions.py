@@ -39,16 +39,15 @@ def test_crawl_year_extracts_orders_and_opinions():
         Legislation cited:
         Sample Act 2000 (Cth)
 
-        Kiefel CJ concurring.
-        Keane J concurring.
-        Gordon J dissenting.
+        Kiefel CJ, Bell, Gageler, Keane, Nettle and Gordon JJ in the majority.
+        Edelman J dissenting.
         """
     )
 
     nodes, edges = crawl_year(
         html_text=html_text,
         pdfs={"[2020] HCA 1": pdf_text.encode("utf-8")},
-        panel_size=3,
+        panel_size=7,
     )
 
     case_nodes = [n for n in nodes if n["type"] == NodeType.CASE.value]
@@ -60,9 +59,13 @@ def test_crawl_year_extracts_orders_and_opinions():
         "The respondent is to pay the appellant's costs.",
     ]
     assert case_node["panel_opinions"] == [
-        {"judge": "Kiefel CJ", "opinion": "concurring"},
-        {"judge": "Keane J", "opinion": "concurring"},
-        {"judge": "Gordon J", "opinion": "dissenting"},
+        {"judge": "Kiefel CJ", "opinion": "majority"},
+        {"judge": "Bell J", "opinion": "majority"},
+        {"judge": "Gageler J", "opinion": "majority"},
+        {"judge": "Keane J", "opinion": "majority"},
+        {"judge": "Nettle J", "opinion": "majority"},
+        {"judge": "Gordon J", "opinion": "majority"},
+        {"judge": "Edelman J", "opinion": "dissenting"},
     ]
 
     simple_nodes = [n for n in nodes if n.get("type") == "case" and n["id"] == "[2020] HCA 1"]
