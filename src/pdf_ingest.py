@@ -1,6 +1,7 @@
 """PDF ingestion utilities producing :class:`Document` objects."""
 
 import argparse
+import calendar
 import hashlib
 import json
 import logging
@@ -68,6 +69,26 @@ _DEFINITION_HEADING_RE = re.compile(
     re.IGNORECASE,
 )
 _SCOPE_NODE_TYPES = {"part", "division", "section"}
+
+_CURRENT_AS_AT_RE = re.compile(
+    r"\bcurrent\s+as\s+at\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?\s+"
+    r"(?P<month>[A-Za-z]+)\s+(?P<year>\d{4})\b",
+    re.IGNORECASE,
+)
+_YEAR_ONLY_RE = re.compile(r"^\s*(?P<year>\d{4})\s*$")
+_MONTH_LOOKUP = {
+    name.lower(): index
+    for index, name in enumerate(calendar.month_name)
+    if name
+}
+_MONTH_LOOKUP.update(
+    {
+        name.lower(): index
+        for index, name in enumerate(calendar.month_abbr)
+        if name
+    }
+)
+_MONTH_LOOKUP.setdefault("sept", 9)
 
 
 def _normalise_term_key(term: str) -> str:
@@ -1505,6 +1526,68 @@ def _determine_document_title(
     return fallback or None
 
 
+def _normalize_month_key(value: str) -> Optional[int]:
+    key = value.strip().lower().rstrip(".,")
+    if not key:
+        return None
+    if key not in _MONTH_LOOKUP and key.endswith("s"):
+        key = key[:-1]
+    return _MONTH_LOOKUP.get(key)
+
+
+def _extract_document_date(pages: List[dict]) -> Optional[date]:
+    if not pages:
+        return None
+
+    first_page = pages[0] or {}
+    raw_lines = first_page.get("lines")
+    candidate_lines: List[str] = []
+    if isinstance(raw_lines, list):
+        for line in raw_lines:
+            text = str(line).strip()
+            if text:
+                candidate_lines.append(text)
+
+    if not candidate_lines:
+        heading = first_page.get("heading")
+        if heading:
+            heading_text = str(heading).strip()
+            if heading_text:
+                candidate_lines.append(heading_text)
+        text = first_page.get("text")
+        if text:
+            for raw_line in str(text).splitlines():
+                line_text = raw_line.strip()
+                if line_text:
+                    candidate_lines.append(line_text)
+
+    for line in candidate_lines:
+        match = _CURRENT_AS_AT_RE.search(line)
+        if not match:
+            continue
+        month_value = _normalize_month_key(match.group("month"))
+        if month_value is None:
+            continue
+        try:
+            day_value = int(match.group("day"))
+            year_value = int(match.group("year"))
+            return date(year_value, month_value, day_value)
+        except ValueError:
+            continue
+
+    for line in candidate_lines:
+        match = _YEAR_ONLY_RE.match(line)
+        if not match:
+            continue
+        try:
+            year_value = int(match.group("year"))
+            return date(year_value, 1, 1)
+        except ValueError:
+            continue
+
+    return None
+
+
 def build_document(
     pages: List[dict],
     source: Path,
@@ -1512,6 +1595,7 @@ def build_document(
     citation: Optional[str] = None,
     title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
     glossary_registry: Optional[GlossaryRegistry] = None,
 ) -> Document:
     """Create a :class:`Document` from extracted pages.
@@ -1531,10 +1615,13 @@ def build_document(
     inferred_date = _extract_document_date(first_page_lines or [])
 
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
+    detected_date = _extract_document_date(pages)
     checksum = _compute_document_checksum(body)
     metadata = DocumentMetadata(
         jurisdiction=jurisdiction or inferred_jurisdiction or "",
         citation=citation or "",
+        date=detected_date or document_date or date.today(),
+        title=_determine_document_title(pages, source, title),
         date=inferred_date or date.today(),
         title=_determine_document_title(pages, source, title, inferred_title),
         cultural_flags=cultural_flags,
@@ -1645,6 +1732,7 @@ def process_pdf(
     citation: Optional[str] = None,
     title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
     db_path: Optional[Path] = None,
     doc_id: Optional[int] = None,
 ) -> Tuple[Document, Optional[int]]:
@@ -1667,6 +1755,7 @@ def process_pdf(
             citation,
             title,
             cultural_flags,
+            document_date=document_date,
             glossary_registry=registry,
         )
     finally:
