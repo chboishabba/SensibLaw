@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from html import escape
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import streamlit.components.v1 as components
 
 from src.models.document import Document, DocumentTOCEntry
-from src.models.provision import Atom, Provision
+from src.models.provision import Atom, Provision, RuleAtom
 
 
 _TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
@@ -150,6 +151,124 @@ class _AtomAnnotation:
     detail_json: str
     kind: str = "atom"
     used: bool = False
+
+
+@dataclass
+class DocumentActorSummary:
+    """Aggregate view of actors referenced across rule atoms."""
+
+    actor: str
+    occurrences: int
+    modalities: List[str]
+    actions: List[str]
+    sections: List[str]
+    aliases: List[str]
+
+
+@dataclass
+class _ActorAccumulator:
+    """Internal accumulator capturing actor level aggregates."""
+
+    canonical: str
+    occurrences: int = 0
+    forms: Counter[str] = field(default_factory=Counter)
+    modalities: Set[str] = field(default_factory=set)
+    actions: Set[str] = field(default_factory=set)
+    sections: List[str] = field(default_factory=list)
+
+
+def _normalise_whitespace(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _extract_actor_label(rule_atom: RuleAtom) -> Optional[str]:
+    """Return the best available label describing the rule actor."""
+
+    for attr in ("actor", "party", "who_text", "who"):
+        raw = getattr(rule_atom, attr, None)
+        if isinstance(raw, str):
+            cleaned = _normalise_whitespace(raw)
+            if cleaned:
+                return cleaned
+    return None
+
+
+def _format_provision_reference(provision: Provision) -> Optional[str]:
+    """Build a short reference string for the provision context."""
+
+    parts: List[str] = []
+    if provision.identifier and provision.identifier.strip():
+        parts.append(_normalise_whitespace(provision.identifier))
+    if provision.heading and provision.heading.strip():
+        parts.append(_normalise_whitespace(provision.heading))
+    if parts:
+        return " – ".join(parts)
+    if provision.node_type:
+        return provision.node_type
+    return None
+
+
+def collect_document_actor_summary(
+    document: Document,
+    *,
+    max_section_samples: int = 5,
+    max_action_samples: int = 5,
+) -> List[DocumentActorSummary]:
+    """Collate actor references across the document's rule atoms."""
+
+    actors: Dict[str, _ActorAccumulator] = {}
+
+    for provision in document.provisions:
+        provision.ensure_rule_atoms()
+        section_label = _format_provision_reference(provision)
+        for rule_atom in provision.rule_atoms:
+            actor_label = _extract_actor_label(rule_atom)
+            if not actor_label:
+                continue
+            key = actor_label.casefold()
+            accumulator = actors.get(key)
+            if accumulator is None:
+                accumulator = _ActorAccumulator(canonical=actor_label)
+                actors[key] = accumulator
+
+            accumulator.occurrences += 1
+            accumulator.forms[actor_label] += 1
+
+            if rule_atom.modality and rule_atom.modality.strip():
+                accumulator.modalities.add(_normalise_whitespace(rule_atom.modality))
+
+            if rule_atom.action and rule_atom.action.strip():
+                if len(accumulator.actions) < max_action_samples:
+                    accumulator.actions.add(_normalise_whitespace(rule_atom.action))
+
+            if (
+                section_label
+                and section_label not in accumulator.sections
+                and len(accumulator.sections) < max_section_samples
+            ):
+                accumulator.sections.append(section_label)
+
+    summaries: List[DocumentActorSummary] = []
+    for accumulator in actors.values():
+        canonical = accumulator.canonical
+        if accumulator.forms:
+            canonical = accumulator.forms.most_common(1)[0][0]
+        aliases = sorted(
+            form for form in accumulator.forms.keys() if form != canonical
+        )
+        summaries.append(
+            DocumentActorSummary(
+                actor=canonical,
+                occurrences=accumulator.occurrences,
+                modalities=sorted(accumulator.modalities),
+                actions=sorted(accumulator.actions),
+                sections=list(accumulator.sections),
+                aliases=aliases,
+            )
+        )
+
+    summaries.sort(key=lambda item: (-item.occurrences, item.actor))
+    return summaries
 
 
 def _format_atom_label(atom: Atom, index: int) -> str:
@@ -1502,6 +1621,8 @@ __all__ = [
     "_normalise_anchor_key",
     "_normalise_provision_line",
     "_render_toc",
+    "collect_document_actor_summary",
+    "DocumentActorSummary",
     "build_document_preview_html",
     "render_document_preview",
 ]
