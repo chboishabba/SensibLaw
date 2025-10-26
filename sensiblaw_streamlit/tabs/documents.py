@@ -5,11 +5,20 @@ from __future__ import annotations
 import tempfile
 from datetime import date
 from pathlib import Path
+from typing import List
 
 import streamlit as st
 
+try:  # Optional dependency for tabular display
+    import pandas as pd
+except Exception:  # pragma: no cover - pandas is optional at runtime
+    pd = None  # type: ignore[assignment]
+
 from sensiblaw_streamlit.constants import DEFAULT_DB_NAME
-from sensiblaw_streamlit.document_preview import render_document_preview
+from sensiblaw_streamlit.document_preview import (
+    collect_document_actor_summary,
+    render_document_preview,
+)
 from sensiblaw_streamlit.shared import (
     ROOT,
     _download_json,
@@ -20,6 +29,37 @@ from sensiblaw_streamlit.shared import (
 from src.models.document import Document
 from src.pdf_ingest import process_pdf
 from src.storage.versioned_store import VersionedStore
+
+
+def _format_join(values: List[str], separator: str = ", ") -> str:
+    return separator.join(values) if values else ""
+
+
+def _render_actor_summary(document: Document) -> None:
+    actors = collect_document_actor_summary(document)
+    if not actors:
+        st.info("No actors were detected in the extracted rules.")
+        return
+
+    st.markdown("### Actors detected in structured rules")
+    rows = []
+    for summary in actors:
+        rows.append(
+            {
+                "Actor": summary.actor,
+                "Mentions": summary.occurrences,
+                "Modalities": _format_join(summary.modalities),
+                "Sample actions": _format_join(summary.actions, separator="; "),
+                "Sections": _format_join(summary.sections, separator="; "),
+                "Aliases": _format_join(summary.aliases),
+            }
+        )
+
+    if pd is not None:
+        frame = pd.DataFrame(rows)
+        st.dataframe(frame, use_container_width=True)
+    else:  # pragma: no cover - fallback when pandas is unavailable
+        st.table(rows)
 
 
 def render() -> None:
@@ -87,6 +127,7 @@ def render() -> None:
             st.success("PDF processed successfully.")
             st.markdown("### Document preview")
             render_document_preview(document)
+            _render_actor_summary(document)
             doc_payload = document.to_dict()
             if stored_id is not None:
                 st.info(f"Stored as document ID {stored_id} in {db_path}")
