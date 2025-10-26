@@ -8,6 +8,7 @@ import src.graph.inference as inference
 from src.graph.inference import (
     PredictionSet,
     RawPrediction,
+    PredictionRecord,
     build_prediction_set,
     legal_graph_to_triples,
     load_predictions_json,
@@ -17,6 +18,10 @@ from src.graph.inference import (
     rank_predictions,
     score_applies_predictions,
     train_transe,
+    train_complex,
+    train_distmult,
+    train_mure,
+    train_rotate,
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
 
@@ -99,6 +104,71 @@ def test_train_transe_and_score_predictions(monkeypatch: pytest.MonkeyPatch) -> 
     assert scores == [RawPrediction(case_id="case-1", provision_id="prov-1", score=0.875)]
 
 
+@pytest.mark.parametrize(
+    "trainer, expected_model",
+    [
+        (train_transe, "TransE"),
+        (train_distmult, "DistMult"),
+        (train_complex, "ComplEx"),
+        (train_rotate, "RotatE"),
+        (train_mure, "MuRE"),
+    ],
+)
+def test_train_wrappers_select_models(
+    trainer, expected_model, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recorded = {}
+
+    def fake_pipeline(**kwargs):  # noqa: ANN001
+        recorded.update(kwargs)
+        return DummyPipelineResult(DummyModel(0.875))
+
+    def fake_import() -> tuple:
+        return fake_pipeline, DummyTriplesFactory
+
+    monkeypatch.setattr(inference, "_import_pykeen_components", fake_import)
+    monkeypatch.setattr(inference, "_as_labeled_triples", lambda triples: triples)
+
+    triples = [("case-1", EdgeType.APPLIES.value, "prov-1")]
+    trainer(triples)
+
+    assert recorded["model"] == expected_model
+
+
+def test_build_prediction_set_marks_determinism() -> None:
+    ranked = [
+        PredictionRecord(
+            case_id="case-1",
+            provision_id="prov-1",
+            score=1.0,
+            rank=1,
+            relation=EdgeType.APPLIES.value,
+        )
+    ]
+
+    deterministic = build_prediction_set(
+        ranked,
+        relation=EdgeType.APPLIES.value,
+        generated_at="2024-01-01T00:00:00+00:00",
+        random_seed=42,
+    )
+    assert deterministic.non_deterministic is False
+
+    synthesized = build_prediction_set(
+        ranked,
+        relation=EdgeType.APPLIES.value,
+        random_seed=42,
+    )
+    assert synthesized.non_deterministic is True
+
+    no_seed = build_prediction_set(
+        ranked,
+        relation=EdgeType.APPLIES.value,
+        generated_at="2024-01-01T00:00:00+00:00",
+    )
+    assert no_seed.non_deterministic is True
+
+
 def test_prediction_persistence_roundtrip(tmp_path: Path) -> None:
     raw_predictions = [
         RawPrediction(case_id="case-1", provision_id="prov-1", score=0.9),
@@ -110,6 +180,7 @@ def test_prediction_persistence_roundtrip(tmp_path: Path) -> None:
         ranked,
         relation=EdgeType.APPLIES.value,
         generated_at="2024-01-01T00:00:00Z",
+        random_seed=7,
     )
 
     json_path = tmp_path / "predictions.json"
@@ -121,6 +192,7 @@ def test_prediction_persistence_roundtrip(tmp_path: Path) -> None:
         relation=EdgeType.APPLIES.value,
         generated_at="2024-01-01T00:00:00Z",
         predictions=prediction_set.predictions,
+        non_deterministic=False,
     )
 
     persist_predictions_sqlite(prediction_set, sqlite_path)
@@ -129,4 +201,5 @@ def test_prediction_persistence_roundtrip(tmp_path: Path) -> None:
         relation=EdgeType.APPLIES.value,
         generated_at="2024-01-01T00:00:00Z",
         predictions=prediction_set.predictions,
+        non_deterministic=False,
     )

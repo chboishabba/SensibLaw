@@ -61,6 +61,7 @@ class PredictionSet:
     relation: str
     generated_at: str
     predictions: List[PredictionRecord]
+    non_deterministic: bool = True
 
     def for_case(self, case_id: str, *, top_k: Optional[int] = None) -> List[PredictionRecord]:
         """Return ranked predictions for ``case_id`` limited to ``top_k`` results."""
@@ -217,6 +218,72 @@ def train_distmult(
     )
 
 
+def train_complex(
+    triples: Sequence[Tuple[str, str, str]],
+    *,
+    training_kwargs: Optional[Dict[str, Any]] = None,
+    model_kwargs: Optional[Dict[str, Any]] = None,
+    optimizer_kwargs: Optional[Dict[str, Any]] = None,
+    loss_kwargs: Optional[Dict[str, Any]] = None,
+    random_seed: Optional[int] = None,
+) -> TrainingArtifacts:
+    """Train a ComplEx embedding model using the supplied ``triples``."""
+
+    return _train_model(
+        model_name="ComplEx",
+        triples=triples,
+        training_kwargs=training_kwargs,
+        model_kwargs=model_kwargs,
+        optimizer_kwargs=optimizer_kwargs,
+        loss_kwargs=loss_kwargs,
+        random_seed=random_seed,
+    )
+
+
+def train_rotate(
+    triples: Sequence[Tuple[str, str, str]],
+    *,
+    training_kwargs: Optional[Dict[str, Any]] = None,
+    model_kwargs: Optional[Dict[str, Any]] = None,
+    optimizer_kwargs: Optional[Dict[str, Any]] = None,
+    loss_kwargs: Optional[Dict[str, Any]] = None,
+    random_seed: Optional[int] = None,
+) -> TrainingArtifacts:
+    """Train a RotatE embedding model using the supplied ``triples``."""
+
+    return _train_model(
+        model_name="RotatE",
+        triples=triples,
+        training_kwargs=training_kwargs,
+        model_kwargs=model_kwargs,
+        optimizer_kwargs=optimizer_kwargs,
+        loss_kwargs=loss_kwargs,
+        random_seed=random_seed,
+    )
+
+
+def train_mure(
+    triples: Sequence[Tuple[str, str, str]],
+    *,
+    training_kwargs: Optional[Dict[str, Any]] = None,
+    model_kwargs: Optional[Dict[str, Any]] = None,
+    optimizer_kwargs: Optional[Dict[str, Any]] = None,
+    loss_kwargs: Optional[Dict[str, Any]] = None,
+    random_seed: Optional[int] = None,
+) -> TrainingArtifacts:
+    """Train a MuRE embedding model using the supplied ``triples``."""
+
+    return _train_model(
+        model_name="MuRE",
+        triples=triples,
+        training_kwargs=training_kwargs,
+        model_kwargs=model_kwargs,
+        optimizer_kwargs=optimizer_kwargs,
+        loss_kwargs=loss_kwargs,
+        random_seed=random_seed,
+    )
+
+
 def _to_score(value: Any) -> float:
     if hasattr(value, "detach"):
         tensor = value.detach()
@@ -323,13 +390,22 @@ def build_prediction_set(
     *,
     relation: str = EdgeType.APPLIES.value,
     generated_at: Optional[str] = None,
+    random_seed: Optional[int] = None,
 ) -> PredictionSet:
     """Create a :class:`PredictionSet` with a consistent timestamp."""
 
     timestamp = generated_at
+    synthesized_timestamp = False
     if timestamp is None:
         timestamp = datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
-    return PredictionSet(relation=relation, generated_at=timestamp, predictions=list(predictions))
+        synthesized_timestamp = True
+    non_deterministic = synthesized_timestamp or random_seed is None
+    return PredictionSet(
+        relation=relation,
+        generated_at=timestamp,
+        predictions=list(predictions),
+        non_deterministic=non_deterministic,
+    )
 
 
 def persist_predictions_json(predictions: PredictionSet, path: Path) -> None:
@@ -339,6 +415,7 @@ def persist_predictions_json(predictions: PredictionSet, path: Path) -> None:
         "version": PREDICTION_VERSION,
         "relation": predictions.relation,
         "generated_at": predictions.generated_at,
+        "non_deterministic": predictions.non_deterministic,
         "predictions": [
             {
                 "case_id": item.case_id,
@@ -368,11 +445,13 @@ def persist_predictions_sqlite(predictions: PredictionSet, path: Path) -> None:
                 score REAL NOT NULL,
                 rank INTEGER NOT NULL,
                 generated_at TEXT NOT NULL,
+                non_deterministic INTEGER NOT NULL DEFAULT 1,
                 version INTEGER NOT NULL,
                 PRIMARY KEY (case_id, provision_id, relation)
             )
             """
         )
+        _ensure_sqlite_schema(connection)
         connection.execute(
             "DELETE FROM applies_predictions WHERE relation = ?",
             (predictions.relation,),
@@ -385,6 +464,7 @@ def persist_predictions_sqlite(predictions: PredictionSet, path: Path) -> None:
                 item.score,
                 item.rank,
                 predictions.generated_at,
+                int(predictions.non_deterministic),
                 PREDICTION_VERSION,
             )
             for item in predictions.predictions
@@ -393,14 +473,32 @@ def persist_predictions_sqlite(predictions: PredictionSet, path: Path) -> None:
             connection.executemany(
                 """
                 INSERT OR REPLACE INTO applies_predictions (
-                    case_id, provision_id, relation, score, rank, generated_at, version
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    case_id,
+                    provision_id,
+                    relation,
+                    score,
+                    rank,
+                    generated_at,
+                    non_deterministic,
+                    version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
             )
         connection.commit()
     finally:
         connection.close()
+
+
+def _ensure_sqlite_schema(connection: sqlite3.Connection) -> None:
+    """Ensure the SQLite schema contains the non-deterministic column."""
+
+    result = connection.execute("PRAGMA table_info(applies_predictions)").fetchall()
+    column_names = {row[1] for row in result}
+    if "non_deterministic" not in column_names:
+        connection.execute(
+            "ALTER TABLE applies_predictions ADD COLUMN non_deterministic INTEGER NOT NULL DEFAULT 1"
+        )
 
 
 def load_predictions_json(path: Path) -> PredictionSet:
@@ -424,7 +522,13 @@ def load_predictions_json(path: Path) -> PredictionSet:
         )
         for item in data.get("predictions", [])
     ]
-    return PredictionSet(relation=relation, generated_at=generated_at, predictions=predictions)
+    non_deterministic = bool(data.get("non_deterministic", True))
+    return PredictionSet(
+        relation=relation,
+        generated_at=generated_at,
+        predictions=predictions,
+        non_deterministic=non_deterministic,
+    )
 
 
 def load_predictions_sqlite(
@@ -436,9 +540,10 @@ def load_predictions_sqlite(
 
     connection = sqlite3.connect(str(path))
     try:
+        _ensure_sqlite_schema(connection)
         rows = connection.execute(
             """
-            SELECT case_id, provision_id, score, rank, generated_at, version
+            SELECT case_id, provision_id, score, rank, generated_at, non_deterministic, version
             FROM applies_predictions
             WHERE relation = ?
             ORDER BY case_id ASC, rank ASC
@@ -451,12 +556,13 @@ def load_predictions_sqlite(
     if not rows:
         return PredictionSet(relation=relation, generated_at="", predictions=[])
 
-    version = rows[0][5]
+    version = rows[0][6]
     if version != PREDICTION_VERSION:
         raise ValueError(
             f"Unsupported prediction format version: {version} (expected {PREDICTION_VERSION})"
         )
     generated_at = rows[0][4]
+    non_deterministic = bool(rows[0][5])
     predictions = [
         PredictionRecord(
             case_id=row[0],
@@ -467,7 +573,12 @@ def load_predictions_sqlite(
         )
         for row in rows
     ]
-    return PredictionSet(relation=relation, generated_at=generated_at, predictions=predictions)
+    return PredictionSet(
+        relation=relation,
+        generated_at=generated_at,
+        predictions=predictions,
+        non_deterministic=non_deterministic,
+    )
 
 
 __all__ = [
@@ -481,6 +592,9 @@ __all__ = [
     "get_provision_identifiers",
     "train_transe",
     "train_distmult",
+    "train_complex",
+    "train_rotate",
+    "train_mure",
     "score_applies_predictions",
     "rank_predictions",
     "build_prediction_set",

@@ -18,6 +18,9 @@ from .inference import (
     rank_predictions,
     score_applies_predictions,
     train_distmult,
+    train_complex,
+    train_mure,
+    train_rotate,
     train_transe,
 )
 from .models import (
@@ -53,6 +56,7 @@ from .tircorder import (
     controls,
     has_element,
     interprets,
+)
 from .rgcn import (
     RGCNConfig,
     RGCNEpochResult,
@@ -109,6 +113,9 @@ __all__ = [
     "get_provision_identifiers",
     "train_transe",
     "train_distmult",
+    "train_complex",
+    "train_rotate",
+    "train_mure",
     "score_applies_predictions",
     "rank_predictions",
     "build_prediction_set",
