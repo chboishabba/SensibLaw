@@ -2156,12 +2156,50 @@ def render_knowledge_graph_tab() -> None:
         )
 
     st.markdown("### Generate subgraph")
+    available_seed_ids = _available_case_identifiers()
+
+    manual_seed_option = "Manual entry"
+    seed_options = list(dict.fromkeys([*available_seed_ids, manual_seed_option]))
+
+    fallback_seed = available_seed_ids[0] if available_seed_ids else "Case#Mabo1992"
+    st.session_state.setdefault("subgraph_seed_value", fallback_seed)
+    st.session_state.setdefault("subgraph_seed_manual", fallback_seed)
+
+    if "subgraph_seed_select" not in st.session_state:
+        default_selection = (
+            st.session_state["subgraph_seed_value"]
+            if st.session_state["subgraph_seed_value"] in available_seed_ids
+            else manual_seed_option
+        )
+        st.session_state["subgraph_seed_select"] = default_selection
+    elif (
+        seed_options
+        and st.session_state["subgraph_seed_select"] not in seed_options
+    ):
+        st.session_state["subgraph_seed_select"] = seed_options[0]
+
+    seed_value = st.session_state.get("subgraph_seed_value", fallback_seed)
+
     with st.form("subgraph_form"):
-        if ROUTES_GRAPH.nodes:
-            seed_default = next(iter(ROUTES_GRAPH.nodes.keys()))
+        seed_selection = st.selectbox(
+            "Seed node",
+            options=seed_options,
+            key="subgraph_seed_select",
+            help="Choose an identifier from the current graph or switch to manual entry.",
+        )
+
+        if seed_selection == manual_seed_option:
+            seed_value = st.text_input(
+                "Seed node identifier",
+                value=st.session_state.get("subgraph_seed_manual", fallback_seed),
+                key="subgraph_seed_manual",
+                help="Enter the identifier to start the subgraph traversal from.",
+            )
         else:
-            seed_default = "Case#Mabo1992"
-        seed = st.text_input("Seed node", value=seed_default)
+            seed_value = seed_selection
+            st.session_state["subgraph_seed_manual"] = seed_value
+
+        st.session_state["subgraph_seed_value"] = seed_value
         hops = st.slider("Maximum hops", min_value=1, max_value=5, value=2)
         consent = st.checkbox("Include consent gated nodes", value=False)
         submit = st.form_submit_button("Generate")
@@ -2169,7 +2207,7 @@ def render_knowledge_graph_tab() -> None:
     if submit:
         try:
             with st.spinner("Generating subgraph"):
-                payload = generate_subgraph(seed, hops, consent=consent)
+                payload = generate_subgraph(seed_value, hops, consent=consent)
         except HTTPException as exc:
             st.error(f"{exc.detail} (HTTP {exc.status_code})")
         else:
