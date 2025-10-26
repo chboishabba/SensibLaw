@@ -46,6 +46,11 @@ Launch the console from the repository root:
 streamlit run streamlit_app.py
 ```
 
+The console implementation lives in the `sensiblaw_streamlit/` package. The
+`sensiblaw_streamlit.app:main` entrypoint wires together the shared helpers and
+individual tab renderers, so importing and reusing the UI components in other
+contexts is straightforward.
+
 ### What to try
 
 - **Documents tab** – upload a PDF (or pick the bundled Mabo sample) to run
