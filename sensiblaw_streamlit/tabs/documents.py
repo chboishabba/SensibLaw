@@ -92,6 +92,7 @@ def render() -> None:
         uploaded_pdf = st.file_uploader(
             "Upload PDF for processing", type=["pdf"], key="pdf_uploader"
         )
+        title = st.text_input("Title", value="")
         jurisdiction = st.text_input("Jurisdiction", value="High Court of Australia")
         citation = st.text_input("Citation", value="[1992] HCA 23")
         cultural_flags = st.text_input("Cultural flags (comma separated)", value="")
@@ -121,6 +122,7 @@ def render() -> None:
                     pdf_path,
                     jurisdiction=jurisdiction or None,
                     citation=citation or None,
+                    title=title or None,
                     cultural_flags=flags or None,
                     db_path=db_path,
                 )

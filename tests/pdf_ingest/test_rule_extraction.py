@@ -54,6 +54,7 @@ def test_rule_extraction(monkeypatch, tmp_path):
 
     assert stored_id is None
 
+    assert doc.metadata.title == "Heading"
     assert doc.provisions
     assert doc.provisions[0].principles
     assert "must file reports" in doc.provisions[0].principles[0]
@@ -63,5 +64,6 @@ def test_rule_extraction(monkeypatch, tmp_path):
     with out.open() as f:
         saved = json.load(f)
     assert saved["metadata"]["provenance"] == str(pdf_path)
+    assert saved["metadata"]["title"] == "Heading"
     assert saved["provisions"][0]["principles"]
     assert saved["provisions"][0]["atoms"]

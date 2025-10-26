@@ -166,6 +166,7 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
         output=args.output,
         jurisdiction=args.jurisdiction,
         citation=args.citation,
+        title=args.title,
         cultural_flags=args.cultural_flags,
         db_path=args.db,
         doc_id=args.doc_id,
@@ -680,6 +681,7 @@ def build_parser() -> argparse.ArgumentParser:
     pdf_fetch.add_argument("--output", type=Path)
     pdf_fetch.add_argument("--jurisdiction")
     pdf_fetch.add_argument("--citation")
+    pdf_fetch.add_argument("--title")
     pdf_fetch.add_argument("--cultural-flags", nargs="*")
     pdf_fetch.add_argument("--db", type=Path)
     pdf_fetch.add_argument("--doc-id", type=int)
