@@ -1,6 +1,25 @@
 """Graph utilities and lightweight in-memory structures."""
 
 from .ingest import Graph, compute_weight, ingest_document, ingest_extrinsic
+from .inference import (
+    PredictionRecord,
+    PredictionSet,
+    RawPrediction,
+    TrainingArtifacts,
+    TriplePack,
+    build_prediction_set,
+    get_case_identifiers,
+    get_provision_identifiers,
+    legal_graph_to_triples,
+    load_predictions_json,
+    load_predictions_sqlite,
+    persist_predictions_json,
+    persist_predictions_sqlite,
+    rank_predictions,
+    score_applies_predictions,
+    train_distmult,
+    train_transe,
+)
 from .models import (
     CaseNode,
     EdgeType,
@@ -9,15 +28,6 @@ from .models import (
     GraphNode,
     LegalGraph,
     NodeType,
-)
-from .tircorder import (
-    TiRCorderBuilder,
-    applies_to,
-    articulates,
-    build_tircorder_edges,
-    controls,
-    has_element,
-    interprets,
 )
 from .principle_graph import build_principle_graph
 from .proof_tree import (
@@ -28,6 +38,15 @@ from .proof_tree import (
     ResultNode,
     ResultTable,
     expand_proof_tree,
+)
+from .tircorder import (
+    TiRCorderBuilder,
+    applies_to,
+    articulates,
+    build_tircorder_edges,
+    controls,
+    has_element,
+    interprets,
 )
 
 __all__ = [
@@ -57,5 +76,22 @@ __all__ = [
     "interprets",
     "controls",
     "build_principle_graph",
+    "TriplePack",
+    "TrainingArtifacts",
+    "RawPrediction",
+    "PredictionRecord",
+    "PredictionSet",
+    "legal_graph_to_triples",
+    "get_case_identifiers",
+    "get_provision_identifiers",
+    "train_transe",
+    "train_distmult",
+    "score_applies_predictions",
+    "rank_predictions",
+    "build_prediction_set",
+    "persist_predictions_json",
+    "persist_predictions_sqlite",
+    "load_predictions_json",
+    "load_predictions_sqlite",
 ]
 
