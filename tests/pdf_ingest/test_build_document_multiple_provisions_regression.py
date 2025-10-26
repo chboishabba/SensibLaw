@@ -118,3 +118,49 @@ def test_build_document_parses_table_of_contents():
     assert first_section.identifier == "1"
     assert first_section.title == "Short title"
     assert first_section.page_number == 4
+
+
+def test_build_document_strips_toc_from_body():
+    pages = [
+        {
+            "page": 1,
+            "heading": "Queensland Summary Offences Act 2005",
+            "text": (
+                "Queensland Summary Offences Act 2005 Contents\n"
+                "Part 1 Preliminary............................ 3\n"
+                "Section 1 Short title............... 4\n"
+                "Section 2 Definitions............... 5"
+            ),
+            "lines": [
+                "Queensland Summary Offences Act 2005",
+                "Contents",
+                "Part 1 Preliminary............................ 3",
+                "Section 1 Short title............... 4",
+                "Section 2 Definitions............... 5",
+            ],
+        },
+        {
+            "page": 2,
+            "heading": "Part 1 Preliminary",
+            "text": (
+                "1 Short title\n"
+                "Short title text\n\n"
+                "2 Definitions\n"
+                "Definitions text"
+            ),
+            "lines": [
+                "Part 1 Preliminary",
+                "1 Short title",
+                "Short title text",
+                "2 Definitions",
+                "Definitions text",
+            ],
+        },
+    ]
+
+    document = build_document(pages, Path("toc-cleanup.pdf"))
+
+    assert document.toc_entries, "expected parsed TOC entries"
+    assert "Contents" not in document.body
+    assert document.body.startswith("Part 1 Preliminary")
+    assert "Short title text" in document.body
