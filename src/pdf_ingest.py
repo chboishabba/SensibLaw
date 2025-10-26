@@ -1,6 +1,7 @@
 """PDF ingestion utilities producing :class:`Document` objects."""
 
 import argparse
+import hashlib
 import json
 import logging
 import re
@@ -85,6 +86,12 @@ def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
     if metadata is None:
         return None
     return dict(metadata)
+
+
+def _compute_document_checksum(body: str) -> str:
+    """Return a deterministic checksum for the provided document body."""
+
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -1235,6 +1242,7 @@ def build_document(
     """
 
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
+    checksum = _compute_document_checksum(body)
     metadata = DocumentMetadata(
         jurisdiction=jurisdiction or "",
         citation=citation or "",
@@ -1242,6 +1250,7 @@ def build_document(
         title=_determine_document_title(pages, source, title),
         cultural_flags=cultural_flags,
         provenance=str(source),
+        checksum=checksum,
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
