@@ -28,9 +28,32 @@ from src.models.provision import Provision
 
 section_parser = None
 
+_CONTENTS_MARKER_RE = re.compile(r"\bcontents\b", re.IGNORECASE)
 _SECTION_HEADING_RE = re.compile(
-    r"(?m)^(?P<identifier>\\d+[A-Za-z0-9]*)\\s+(?P<heading>[^\\n]+)"
+    r"(?m)^(?P<identifier>\\d+[A-Za-z0-9]*)\\s+(?P<heading>(?!\\d)[^\\n]+)"
 )
+
+
+def _should_attach_prefix(prefix: str) -> bool:
+    if not prefix.strip():
+        return False
+
+    if _CONTENTS_MARKER_RE.search(prefix):
+        return False
+
+    lowered = prefix.lower()
+    if "table of contents" in lowered:
+        return False
+
+    lines = [line.strip() for line in prefix.splitlines() if line.strip()]
+    if not lines:
+        return False
+
+    numeric_lines = sum(1 for line in lines if line and line[0].isdigit())
+    if numeric_lines >= max(1, len(lines) // 2):
+        return False
+
+    return True
 
 
 def _fallback_parse_sections(text: str) -> List[Provision]:
@@ -40,6 +63,7 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
 
     sections = []
     prefix = text[: matches[0].start()].strip()
+    attach_prefix = _should_attach_prefix(prefix)
 
     for index, match in enumerate(matches):
         start = match.end()
@@ -50,7 +74,7 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
         heading = match.group("heading").strip()
 
         parts = []
-        if index == 0 and prefix:
+        if index == 0 and attach_prefix:
             parts.append(prefix)
         parts.append(heading)
         if body:
@@ -127,3 +151,27 @@ def test_parse_sections_regex_fallback_preserves_prefix(pdf_ingest):
     # returned as a single monolithic provision.
     assert first.text != text
     assert first.text + "\n\n" + second.text != text
+
+
+def test_parse_sections_fallback_skips_table_of_contents_prefix(pdf_ingest):
+    text = (
+        "Table of contents\n"
+        "1 2 3 4 Short title Commencement Definitions Notes\n"
+        "\n"
+        "1 Short title\nThis Act may be cited as the Test Act.\n\n"
+        "2 Commencement\nThis Act commences on assent."
+    )
+
+    sections = pdf_ingest.parse_sections(text)
+
+    assert len(sections) == 2
+
+    first, second = sections
+
+    assert first.identifier == "1"
+    assert first.heading == "Short title"
+    assert "Table of contents" not in first.text
+    assert first.text.startswith("Short title")
+
+    assert second.identifier == "2"
+    assert second.heading == "Commencement"
