@@ -7,7 +7,25 @@ import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable, List, Mapping, Optional, Sequence
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence
+
+from src.graph.inference import (
+    PREDICTION_VERSION,
+    PredictionSet,
+    build_prediction_set,
+    get_case_identifiers,
+    get_provision_identifiers,
+    legal_graph_to_triples,
+    load_predictions_json,
+    load_predictions_sqlite,
+    persist_predictions_json,
+    persist_predictions_sqlite,
+    rank_predictions,
+    score_applies_predictions,
+    train_distmult,
+    train_transe,
+)
+from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
 
 
 def _print_json(data: object) -> None:
@@ -76,6 +94,113 @@ def _subgraph_to_dot(data: Mapping[str, Sequence[Mapping[str, object]]], *, id_k
         lines.append(f'    "{source}" -> "{target}" [label="{label}"];')
     lines.append("}")
     return "\n".join(lines)
+
+
+def _coerce_node_type(value: object) -> NodeType:
+    if isinstance(value, NodeType):
+        return value
+    if value is None:
+        return NodeType.DOCUMENT
+    text = str(value)
+    for node_type in NodeType:
+        if node_type.value == text.lower() or node_type.name.lower() == text.lower():
+            return node_type
+    return NodeType.DOCUMENT
+
+
+def _coerce_edge_type(value: object) -> EdgeType:
+    if isinstance(value, EdgeType):
+        return value
+    if value is None:
+        return EdgeType.CITES
+    text = str(value)
+    for edge_type in EdgeType:
+        if edge_type.value == text.lower() or edge_type.name.lower() == text.lower():
+            return edge_type
+    return EdgeType.CITES
+
+
+def _normalise_relation(value: Optional[str]) -> str:
+    if not value:
+        return EdgeType.APPLIES.value
+    for edge_type in EdgeType:
+        if edge_type.value == value.lower() or edge_type.name.lower() == value.lower():
+            return edge_type.value
+    return value
+
+
+def _graph_from_payload(data: Mapping[str, Sequence[Mapping[str, object]]]) -> LegalGraph:
+    graph = LegalGraph()
+    for node in data.get("nodes", []):
+        identifier = node.get("id") or node.get("identifier")
+        if not identifier:
+            continue
+        metadata = {
+            key: value
+            for key, value in node.items()
+            if key not in {"id", "identifier", "type", "metadata", "date"}
+        }
+        if isinstance(node.get("metadata"), Mapping):
+            metadata.update(node["metadata"])
+        node_date = node.get("date")
+        parsed_date = date.fromisoformat(node_date) if isinstance(node_date, str) else None
+        graph.add_node(
+            GraphNode(
+                type=_coerce_node_type(node.get("type")),
+                identifier=str(identifier),
+                metadata=dict(metadata),
+                date=parsed_date,
+            )
+        )
+    for edge in data.get("edges", []):
+        source = edge.get("source")
+        target = edge.get("target")
+        if not source or not target:
+            continue
+        if source not in graph.nodes or target not in graph.nodes:
+            continue
+        metadata = {
+            key: value
+            for key, value in edge.items()
+            if key not in {"source", "target", "type", "weight", "metadata", "date"}
+        }
+        if isinstance(edge.get("metadata"), Mapping):
+            metadata.update(edge["metadata"])
+        edge_date = edge.get("date")
+        parsed_date = date.fromisoformat(edge_date) if isinstance(edge_date, str) else None
+        raw_weight = edge.get("weight", 1.0)
+        try:
+            weight = float(raw_weight)
+        except (TypeError, ValueError):
+            weight = 1.0
+        graph.add_edge(
+            GraphEdge(
+                type=_coerce_edge_type(edge.get("type")),
+                source=str(source),
+                target=str(target),
+                metadata=dict(metadata),
+                date=parsed_date,
+                weight=weight,
+            )
+        )
+    return graph
+
+
+def _prediction_payload(predictions: PredictionSet) -> Dict[str, object]:
+    return {
+        "version": PREDICTION_VERSION,
+        "relation": predictions.relation,
+        "generated_at": predictions.generated_at,
+        "predictions": [
+            {
+                "case_id": item.case_id,
+                "provision_id": item.provision_id,
+                "score": item.score,
+                "rank": item.rank,
+            }
+            for item in predictions.predictions
+        ],
+    }
 
 
 def _require_path(path: Optional[Path], flag: str) -> Path:
@@ -342,6 +467,98 @@ def _handle_graph_query(args: argparse.Namespace) -> None:
     _print_json({"nodes": selected_nodes, "edges": selected_edges})
 
 
+def _handle_graph_inference_train(args: argparse.Namespace) -> None:
+    relation = _normalise_relation(args.relation)
+    data = _load_graph_data(args.graph)
+    graph = _graph_from_payload(data)
+
+    triples_pack = legal_graph_to_triples(graph)
+    if not triples_pack.triples:
+        raise SystemExit("Graph does not contain any edges to train on")
+
+    training_kwargs = {"num_epochs": args.epochs, "batch_size": args.batch_size}
+    optimizer_kwargs = {"lr": args.learning_rate}
+    model_kwargs = {"embedding_dim": args.embedding_dim} if args.embedding_dim else {}
+
+    trainer = train_transe if args.model.lower() == "transe" else train_distmult
+
+    try:
+        artifacts = trainer(
+            triples_pack.triples,
+            training_kwargs=training_kwargs,
+            model_kwargs=model_kwargs or None,
+            optimizer_kwargs=optimizer_kwargs,
+            random_seed=args.random_seed,
+        )
+    except RuntimeError as exc:  # pragma: no cover - surfaced to CLI
+        raise SystemExit(str(exc)) from exc
+
+    cases = sorted(set(args.case)) if args.case else get_case_identifiers(graph)
+    provisions = (
+        sorted(set(args.provision)) if args.provision else get_provision_identifiers(graph)
+    )
+
+    if not cases:
+        raise SystemExit("No case nodes available for scoring")
+    if not provisions:
+        raise SystemExit("No provision nodes available for scoring")
+
+    raw_predictions = score_applies_predictions(
+        artifacts.pipeline_result,
+        artifacts.triples_factory,
+        cases=cases,
+        provisions=provisions,
+        relation=relation,
+    )
+
+    ranked_predictions = rank_predictions(
+        raw_predictions,
+        relation=relation,
+        top_k=args.top_k,
+    )
+    prediction_set = build_prediction_set(ranked_predictions, relation=relation)
+
+    if args.json_out:
+        persist_predictions_json(prediction_set, Path(args.json_out))
+    if args.sqlite_out:
+        persist_predictions_sqlite(prediction_set, Path(args.sqlite_out))
+
+    payload = _prediction_payload(prediction_set)
+    _print_json(payload)
+
+
+def _handle_graph_inference_rank(args: argparse.Namespace) -> None:
+    relation = _normalise_relation(args.relation)
+    prediction_set: Optional[PredictionSet] = None
+
+    if args.sqlite:
+        prediction_set = load_predictions_sqlite(Path(args.sqlite), relation=relation)
+    elif args.json:
+        prediction_set = load_predictions_json(Path(args.json))
+    else:
+        raise SystemExit("--json or --sqlite is required")
+
+    if prediction_set.relation != relation:
+        relation = prediction_set.relation
+
+    predictions = prediction_set.for_case(args.case, top_k=args.top_k)
+    payload = {
+        "relation": relation,
+        "generated_at": prediction_set.generated_at,
+        "case_id": args.case,
+        "predictions": [
+            {
+                "case_id": item.case_id,
+                "provision_id": item.provision_id,
+                "score": item.score,
+                "rank": item.rank,
+            }
+            for item in predictions
+        ],
+    }
+    _print_json(payload)
+
+
 def _handle_tests_run(args: argparse.Namespace) -> None:
     if args.template and args.facts:
         from src.tests.evaluator import evaluate as eval_table
@@ -553,7 +770,6 @@ def _handle_search(args: argparse.Namespace) -> None:
 def _handle_proof_tree(args: argparse.Namespace) -> None:
     from datetime import date as date_cls
 
-    from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
     from src.graph.proof_tree import expand_proof_tree
 
     data = _load_graph_data(args.graph)
@@ -724,6 +940,47 @@ def build_parser() -> argparse.ArgumentParser:
     graph_query.add_argument("--start")
     graph_query.add_argument("--depth", type=int, default=1)
     graph_query.set_defaults(func=_handle_graph_query)
+
+    inference = graph_sub.add_parser("inference", help="Knowledge graph inference utilities")
+    inference_sub = inference.add_subparsers(dest="inference_command")
+
+    inference_train = inference_sub.add_parser("train", help="Train a link prediction model")
+    inference_train.add_argument("--graph", type=Path, required=True, help="Graph JSON file")
+    inference_train.add_argument(
+        "--model", choices=["transe", "distmult"], default="transe", help="Embedding model"
+    )
+    inference_train.add_argument("--epochs", type=int, default=50, help="Training epochs")
+    inference_train.add_argument("--batch-size", type=int, default=256, help="Training batch size")
+    inference_train.add_argument("--learning-rate", type=float, default=1e-3, help="Optimizer learning rate")
+    inference_train.add_argument(
+        "--embedding-dim", type=int, default=128, help="Embedding dimensionality"
+    )
+    inference_train.add_argument(
+        "--relation",
+        default=EdgeType.APPLIES.value,
+        help="Relation label to score (default: applies)",
+    )
+    inference_train.add_argument("--case", action="append", help="Limit scoring to specific case ids")
+    inference_train.add_argument(
+        "--provision",
+        action="append",
+        help="Limit scoring to specific provision identifiers",
+    )
+    inference_train.add_argument("--top-k", type=int, help="Maximum recommendations per case")
+    inference_train.add_argument("--random-seed", type=int, help="Deterministic seed for PyKEEN")
+    inference_train.add_argument("--json-out", type=Path, help="Write predictions to a JSON file")
+    inference_train.add_argument("--sqlite-out", type=Path, help="Write predictions to a SQLite database")
+    inference_train.set_defaults(func=_handle_graph_inference_train)
+
+    inference_rank = inference_sub.add_parser(
+        "rank", help="Rank provisions for a case from persisted predictions"
+    )
+    inference_rank.add_argument("--case", required=True, help="Case identifier to rank against")
+    inference_rank.add_argument("--top-k", type=int, help="Limit the number of rows returned")
+    inference_rank.add_argument("--relation", default=EdgeType.APPLIES.value)
+    inference_rank.add_argument("--json", type=Path, help="Prediction JSON file")
+    inference_rank.add_argument("--sqlite", type=Path, help="Prediction SQLite database")
+    inference_rank.set_defaults(func=_handle_graph_inference_rank)
 
     tests_parser = sub.add_parser("tests", help="Run declarative tests")
     tests_sub = tests_parser.add_subparsers(dest="tests_command")

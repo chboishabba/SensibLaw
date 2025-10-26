@@ -125,6 +125,60 @@ heavy_edges = graph.find_edges(min_weight=2.0)
 Filtering by `min_weight` allows consumers to focus on more authoritative
 extrinsic statements when interpreting legislation.
 
+## Knowledge-graph inference
+
+The :mod:`src.graph.inference` module converts a :class:`~src.graph.models.LegalGraph`
+into PyKEEN-ready triples and exposes thin wrappers for the TransE and DistMult
+embedding models. `legal_graph_to_triples` emits a :class:`~src.graph.inference.TriplePack`
+containing `(head, relation, tail)` tuples alongside the original relation labels pulled
+from each edge. After training with :func:`~src.graph.inference.train_transe` or
+:func:`~src.graph.inference.train_distmult`,
+use :func:`~src.graph.inference.score_applies_predictions` to score
+``(case, APPLIES, provision)`` combinations and
+:func:`~src.graph.inference.rank_predictions` to assign per-case ranks ready for
+persistence.
+
+`PredictionSet` instances serialise cleanly via
+:func:`~src.graph.inference.persist_predictions_json` or
+:func:`~src.graph.inference.persist_predictions_sqlite`. The helper maintains a
+`PREDICTION_VERSION` marker so downstream readers can validate the stored
+format.
+
+### CLI workflow
+
+The CLI exposes the workflow under ``graph inference``:
+
+```bash
+python -m sensiblaw.cli graph inference train \
+  --graph data/knowledge_graph.json \
+  --model transe \
+  --epochs 25 \
+  --embedding-dim 128 \
+  --json-out data/graph_applies_predictions.json \
+  --sqlite-out data/graph_applies_predictions.sqlite
+```
+
+By default the command scores every case node against provision and statute
+section nodes, storing per-case rankings for the ``APPLIES`` relation. Use
+``--case`` or ``--provision`` to narrow the candidate set, ``--relation`` to
+target a different predicate and ``--top-k`` to limit the number of
+recommendations per case. Persisted predictions can be queried later:
+
+```bash
+python -m sensiblaw.cli graph inference rank \
+  --case Case#Mabo1992 \
+  --sqlite data/graph_applies_predictions.sqlite \
+  --top-k 5
+```
+
+### Streamlit integration
+
+The Streamlit knowledge-graph tab reads the persisted predictions from either a
+JSON or SQLite store. Select the store type, provide the path (the defaults
+point to ``data/graph_applies_predictions.json`` and
+``data/graph_applies_predictions.sqlite``) and enter the case identifier you
+want to explore. The console displays the ranked provisions and, when available,
+the timestamp of the training run that produced the scores.
 ## Relational graph embeddings
 
 The :mod:`src.graph.rgcn` module adds an end-to-end pipeline for generating
