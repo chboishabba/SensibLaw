@@ -1072,6 +1072,58 @@ def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
     return root_entries
 
 
+def _flatten_toc_entries(entries: Iterable[DocumentTOCEntry]) -> Iterable[DocumentTOCEntry]:
+    for entry in entries:
+        yield entry
+        if entry.children:
+            yield from _flatten_toc_entries(entry.children)
+
+
+def _collect_toc_heading_candidates(
+    entries: Iterable[DocumentTOCEntry],
+) -> Set[str]:
+    candidates: Set[str] = set()
+
+    for entry in _flatten_toc_entries(entries):
+        if entry.title:
+            candidates.add(entry.title)
+            if entry.identifier:
+                candidates.add(f"{entry.identifier} {entry.title}")
+        if entry.identifier:
+            candidates.add(entry.identifier)
+
+    return {candidate for candidate in candidates if candidate}
+
+
+def _is_table_of_contents_page(page: Dict[str, Any]) -> bool:
+    heading = str(page.get("heading") or "").strip()
+    if heading and _CONTENTS_MARKER_RE.search(heading):
+        return True
+
+    lines = _page_lines_for_toc(page)
+    if not lines:
+        return False
+
+    for raw_line in lines[:3]:
+        if _CONTENTS_MARKER_RE.search(str(raw_line)):
+            return True
+
+    parsed = _parse_toc_page(lines)
+    if len(parsed) >= 2:
+        return True
+
+    toc_like = 0
+    page_ref_like = 0
+    for raw_line in lines:
+        normalised = _normalise_toc_candidate([str(raw_line)])
+        if _TOC_LINE_RE.match(normalised) or _TOC_PREFIX_RE.match(normalised):
+            toc_like += 1
+        if _TOC_TRAILING_PAGE_REF_RE.search(normalised) or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised):
+            page_ref_like += 1
+
+    return toc_like >= 2 and page_ref_like >= 1
+
+
 def _propagate_toc_page_numbers(entries: List[DocumentTOCEntry]) -> None:
     """Fill missing page numbers from descendant entries."""
 
@@ -1407,7 +1459,20 @@ def _has_section_parser() -> bool:
     return bool(section_parser and hasattr(section_parser, "parse_sections"))
 
 
-def _fallback_parse_sections(text: str) -> List[Provision]:
+def _normalise_heading_key(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", value)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.sub("", cleaned)
+    cleaned = _TOC_DOT_LEADER_RE.sub(" ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned.lower() or None
+
+
+def _fallback_parse_sections(
+    text: str, toc_headings: Optional[Iterable[str]] = None
+) -> List[Provision]:
     matches = list(_SECTION_HEADING_RE.finditer(text))
     if not matches:
         return [Provision(text=text)]
@@ -1416,6 +1481,13 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
     prefix = text[: matches[0].start()].strip()
     attach_prefix = _should_attach_prefix(prefix)
 
+    toc_heading_keys: Set[str] = set()
+    if toc_headings:
+        for heading in toc_headings:
+            normalised = _normalise_heading_key(heading)
+            if normalised:
+                toc_heading_keys.add(normalised)
+
     for index, match in enumerate(matches):
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
@@ -1423,6 +1495,16 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
 
         identifier = match.group("identifier").strip()
         heading = match.group("heading").strip()
+
+        heading_key = _normalise_heading_key(heading)
+        heading_has_page_ref = bool(
+            _TOC_TRAILING_PAGE_REF_RE.search(heading)
+            or _TOC_TRAILING_PAGE_WORD_RE.search(heading)
+            or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(heading)
+        )
+        is_toc_heading = heading_key is not None and heading_key in toc_heading_keys
+        if heading_has_page_ref or (is_toc_heading and not body):
+            continue
 
         parts: List[str] = []
         if index == 0 and attach_prefix:
@@ -1444,16 +1526,49 @@ def _fallback_parse_sections(text: str) -> List[Provision]:
     return sections
 
 
-def parse_sections(text: str) -> List[Provision]:
+def _strip_leading_table_of_contents(text: str) -> str:
+    lines = text.splitlines()
+    stripped_lines: List[str] = []
+    skipping = True
+
+    for line in lines:
+        raw = line.rstrip()
+        cleaned = raw.strip()
+        if skipping:
+            if not cleaned:
+                continue
+            normalised = _normalise_toc_candidate([cleaned]) if cleaned else ""
+            looks_like_toc = bool(
+                _CONTENTS_MARKER_RE.search(normalised)
+                or _TOC_LINE_RE.match(normalised)
+                or _TOC_TRAILING_PAGE_REF_RE.search(normalised)
+                or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
+                or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+            )
+            if looks_like_toc:
+                continue
+            skipping = False
+
+        if not skipping:
+            stripped_lines.append(line)
+
+    return "\n".join(stripped_lines).lstrip("\n")
+
+
+def parse_sections(
+    text: str, *, toc_headings: Optional[Iterable[str]] = None
+) -> List[Provision]:
     """Split ``text`` into individual section provisions."""
 
-    if not text.strip():
+    cleaned_text = _strip_leading_table_of_contents(text)
+
+    if not cleaned_text.strip():
         return []
 
     parser_available = _has_section_parser()
     if parser_available:
         try:
-            nodes = section_parser.parse_sections(text)  # type: ignore[attr-defined]
+            nodes = section_parser.parse_sections(cleaned_text)  # type: ignore[attr-defined]
         except Exception:  # pragma: no cover - defensive guard
             nodes = []
         structured = _build_provisions_from_nodes(nodes or [])
@@ -1476,7 +1591,7 @@ def parse_sections(text: str) -> List[Provision]:
         },
     )
 
-    return _fallback_parse_sections(text)
+    return _fallback_parse_sections(cleaned_text, toc_headings=toc_headings)
 
 
 def _looks_like_capitalised_word(word: str) -> bool:
@@ -1734,7 +1849,17 @@ def build_document(
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
     toc_entries = parse_table_of_contents(pages)
+    toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
 
+    non_toc_pages = [page for page in pages if not _is_table_of_contents_page(page)]
+    section_body_parts = [
+        f"{page['heading']}\n{page['text']}".strip()
+        for page in non_toc_pages
+        if str(page.get("heading") or "").strip() or str(page.get("text") or "").strip()
+    ]
+    section_body = "\n\n".join(section_body_parts).strip() or body
+
+    provisions = parse_sections(section_body, toc_headings=toc_heading_candidates)
     body_pages = _filter_pages_with_toc(pages, toc_entries)
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in body_pages)
 
@@ -1746,7 +1871,7 @@ def build_document(
         parser_available = _has_section_parser()
         if parser_available:
             try:
-                nodes = section_parser.parse_sections(body)  # type: ignore[attr-defined]
+                nodes = section_parser.parse_sections(section_body)  # type: ignore[attr-defined]
             except Exception:  # pragma: no cover - defensive guard
                 nodes = []
             structured = _build_provisions_from_nodes(nodes or [])
@@ -1766,12 +1891,12 @@ def build_document(
                 parser_available,
                 _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
                 _ROOT_SECTION_PARSER_IMPORT_FAILED,
-                len(body),
+                len(section_body),
                 extra={
                     "section_parser_available": parser_available,
                     "section_parser_optional_import_failed": _SECTION_PARSER_OPTIONAL_IMPORT_FAILED,
                     "root_section_parser_import_failed": _ROOT_SECTION_PARSER_IMPORT_FAILED,
-                    "body_length": len(body),
+                    "body_length": len(section_body),
                 },
             )
 
