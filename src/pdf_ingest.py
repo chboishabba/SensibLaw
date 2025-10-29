@@ -1,15 +1,17 @@
 """PDF ingestion utilities producing :class:`Document` objects."""
 
 import argparse
+import calendar
+import hashlib
 import json
 import logging
 import re
 import sys
 from collections import deque
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from pdfminer.high_level import extract_text
 
@@ -68,6 +70,26 @@ _DEFINITION_HEADING_RE = re.compile(
 )
 _SCOPE_NODE_TYPES = {"part", "division", "section"}
 
+_CURRENT_AS_AT_RE = re.compile(
+    r"\bcurrent\s+as\s+at\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?\s+"
+    r"(?P<month>[A-Za-z]+)\s+(?P<year>\d{4})\b",
+    re.IGNORECASE,
+)
+_YEAR_ONLY_RE = re.compile(r"^\s*(?P<year>\d{4})\s*$")
+_MONTH_LOOKUP = {
+    name.lower(): index
+    for index, name in enumerate(calendar.month_name)
+    if name
+}
+_MONTH_LOOKUP.update(
+    {
+        name.lower(): index
+        for index, name in enumerate(calendar.month_abbr)
+        if name
+    }
+)
+_MONTH_LOOKUP.setdefault("sept", 9)
+
 
 def _normalise_term_key(term: str) -> str:
     return " ".join(term.strip().split()).lower()
@@ -85,6 +107,12 @@ def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
     if metadata is None:
         return None
     return dict(metadata)
+
+
+def _compute_document_checksum(body: str) -> str:
+    """Return a deterministic checksum for the provided document body."""
+
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -496,6 +524,60 @@ _TOC_SKIP_LINE_TEXT = {
     "Summary Offences Act 2005",
 }
 
+_KNOWN_JURISDICTIONS = {
+    "australia",
+    "commonwealth of australia",
+    "commonwealth",
+    "new south wales",
+    "victoria",
+    "queensland",
+    "south australia",
+    "western australia",
+    "tasmania",
+    "northern territory",
+    "australian capital territory",
+    "state of queensland",
+    "state of victoria",
+    "state of new south wales",
+    "state of south australia",
+    "state of western australia",
+    "state of tasmania",
+    "territory of the northern territory",
+    "territory of the australian capital territory",
+}
+
+_SINGLE_WORD_JURISDICTIONS = {
+    "australia",
+    "commonwealth",
+    "queensland",
+    "victoria",
+    "tasmania",
+}
+
+_LOWERCASE_JURISDICTION_FILLERS = {"of", "the", "and"}
+
+_TITLE_KEYWORD_RE = re.compile(
+    r"\b(Act|Regulation|Regulations|Rule|Rules|Bill|Ordinance|Order|Law)\b",
+    re.IGNORECASE,
+)
+
+_DATE_LINE_PATTERNS = [
+    re.compile(
+        r"\bCurrent as at (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bReprinted as in force on (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bAs at (?P<day>\d{1,2})(?:st|nd|rd|th)? (?P<month>[A-Za-z]+) (?P<year>\d{4})",
+        re.IGNORECASE,
+    ),
+]
+
+_STANDALONE_YEAR_RE = re.compile(r"^(?P<year>\d{4})$")
+
 
 def _should_join_toc_line(previous: str, current: str) -> bool:
     if not previous or not current:
@@ -748,6 +830,209 @@ def _page_lines_for_toc(page: Dict[str, Any]) -> List[str]:
     if text:
         collected.extend(str(text).splitlines())
     return collected
+
+
+_JURISDICTION_STOP_WORDS = {
+    "act",
+    "acts",
+    "law",
+    "laws",
+    "regulation",
+    "regulations",
+    "ordinance",
+    "ordinances",
+    "code",
+    "codes",
+    "bill",
+    "bills",
+}
+
+
+def _looks_like_jurisdiction_banner(line: str) -> bool:
+    """Return ``True`` when ``line`` resembles a jurisdiction banner."""
+
+    if not line:
+        return False
+
+    if any(char.isdigit() for char in line):
+        return False
+
+    cleaned = re.sub(r"[^A-Za-z\s'-]", " ", line).strip()
+    if not cleaned:
+        return False
+
+    words = [word for word in cleaned.split() if word]
+    if not words:
+        return False
+
+    if len(words) > 6:
+        return False
+
+    lower_words = {word.lower() for word in words}
+    if lower_words & _JURISDICTION_STOP_WORDS:
+        return False
+
+    letters = [char for char in cleaned if char.isalpha()]
+    if not letters:
+        return False
+
+    uppercase_ratio = sum(1 for char in letters if char.isupper()) / len(letters)
+    if uppercase_ratio >= 0.6:
+        return True
+
+    if all(word[0].isupper() and word[1:].islower() for word in words if len(word) > 1):
+        return True
+
+    return False
+
+
+def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[str]]:
+    """Infer jurisdiction and title from the first page cover banner."""
+
+    if not pages:
+        return None, None
+
+    first_page = pages[0]
+    raw_lines: Iterable[str]
+    if isinstance(first_page.get("lines"), list):
+        raw_lines = first_page.get("lines", [])  # type: ignore[assignment]
+    else:
+        raw_lines = _page_lines_for_toc(first_page)
+
+    lines = [str(line).strip() for line in raw_lines if str(line).strip()]
+    if not lines:
+        return None, None
+
+    for index, line in enumerate(lines):
+        if not _looks_like_jurisdiction_banner(line):
+            continue
+
+        jurisdiction = line
+        for candidate in lines[index + 1 :]:
+            title_candidate = candidate.strip()
+            if not title_candidate or title_candidate == jurisdiction:
+                continue
+            return jurisdiction, title_candidate
+
+        return jurisdiction, None
+
+    return None, None
+def _flatten_toc_entries(entries: List[DocumentTOCEntry]) -> Iterable[DocumentTOCEntry]:
+    for entry in entries:
+        yield entry
+        if entry.children:
+            yield from _flatten_toc_entries(entry.children)
+
+
+def _normalise_lookup_value(value: str) -> Optional[str]:
+    normalised = re.sub(r"\s+", " ", value).strip().lower()
+    return normalised or None
+
+
+_TOC_TRAILING_PAGE_TOKEN_RE = re.compile(r"(?:\s*(?:page)?\s*\d+)+\s*$", re.IGNORECASE)
+_TOC_IDENTIFIER_ONLY_RE = re.compile(r"^[A-Za-z0-9]+$")
+
+
+def _build_toc_lookup(entries: List[DocumentTOCEntry]) -> Tuple[Set[str], Set[str]]:
+    """Return lookup tables for matching TOC headings and identifiers."""
+
+    heading_lookup: Set[str] = set()
+    identifier_lookup: Set[str] = set()
+
+    for entry in _flatten_toc_entries(entries):
+        variants: List[str] = []
+        parts: List[str] = []
+        if entry.node_type:
+            parts.append(entry.node_type)
+        if entry.identifier:
+            parts.append(entry.identifier)
+        if entry.title:
+            parts.append(entry.title)
+        if parts:
+            variants.append(" ".join(parts))
+        if entry.node_type and entry.identifier:
+            variants.append(f"{entry.node_type} {entry.identifier}")
+        if entry.identifier and entry.title:
+            variants.append(f"{entry.identifier} {entry.title}")
+        if entry.node_type and entry.title:
+            variants.append(f"{entry.node_type} {entry.title}")
+        if entry.title:
+            variants.append(entry.title)
+        if entry.identifier:
+            identifier_lookup.add(entry.identifier.strip().lower())
+
+        for variant in variants:
+            normalised = _normalise_lookup_value(variant)
+            if normalised:
+                heading_lookup.add(normalised)
+
+    return heading_lookup, identifier_lookup
+
+
+def _normalise_line_for_lookup(line: str) -> Optional[str]:
+    cleaned = " ".join(line.split())
+    cleaned = _TOC_TRAILING_PAGE_TOKEN_RE.sub("", cleaned)
+    cleaned = _TOC_DOT_LEADER_RE.sub(" ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return cleaned.lower()
+
+
+def _is_probable_toc_page(
+    lines: Sequence[str],
+    heading_lookup: Set[str],
+    identifier_lookup: Set[str],
+) -> bool:
+    if not lines:
+        return False
+
+    contents_hits = 0
+    heading_hits = 0
+    identifier_hits = 0
+
+    for raw in lines:
+        lowered = raw.strip().lower()
+        if "contents" in lowered:
+            contents_hits += 1
+
+        normalised = _normalise_line_for_lookup(raw)
+        if not normalised:
+            continue
+        if normalised in heading_lookup:
+            heading_hits += 1
+            continue
+        if (
+            normalised in identifier_lookup
+            and _TOC_IDENTIFIER_ONLY_RE.match(raw.strip())
+        ):
+            identifier_hits += 1
+
+    total_hits = heading_hits + identifier_hits
+    if contents_hits and total_hits >= 3:
+        return True
+    if not contents_hits:
+        return False
+    if total_hits >= 5:
+        return True
+    return False
+
+
+def _filter_pages_with_toc(pages: List[dict], toc_entries: List[DocumentTOCEntry]) -> List[dict]:
+    if not toc_entries:
+        return pages
+
+    heading_lookup, identifier_lookup = _build_toc_lookup(toc_entries)
+    if not heading_lookup and not identifier_lookup:
+        return pages
+
+    filtered: List[dict] = []
+    for page in pages:
+        lines = _page_lines_for_toc(page)
+        if _is_probable_toc_page(lines, heading_lookup, identifier_lookup):
+            continue
+        filtered.append(page)
+    return filtered or pages
 
 
 def parse_table_of_contents(pages: List[dict]) -> List[DocumentTOCEntry]:
@@ -1309,13 +1594,137 @@ def parse_sections(
     return _fallback_parse_sections(cleaned_text, toc_headings=toc_headings)
 
 
+def _looks_like_capitalised_word(word: str) -> bool:
+    if not word:
+        return False
+    if len(word) == 1:
+        return word.isalpha() and word.isupper()
+    return word[0].isupper() and word[1:].islower()
+
+
+def _looks_like_jurisdiction_line(line: str) -> bool:
+    if not line:
+        return False
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if any(char.isdigit() for char in stripped):
+        return False
+    if re.search(r"[,;:]", stripped):
+        return False
+
+    lowered = stripped.lower()
+    if lowered in _KNOWN_JURISDICTIONS:
+        return True
+
+    tokens = stripped.split()
+    if len(tokens) == 1:
+        return lowered in _SINGLE_WORD_JURISDICTIONS or stripped.isupper()
+
+    if len(tokens) > 6:
+        return False
+
+    for token in tokens:
+        lowered_token = token.lower()
+        if lowered_token in _LOWERCASE_JURISDICTION_FILLERS:
+            continue
+        if not _looks_like_capitalised_word(token):
+            return False
+
+    return True
+
+
+def _looks_like_title_line(line: str) -> bool:
+    if not line:
+        return False
+    return bool(_TITLE_KEYWORD_RE.search(line))
+
+
+def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[str]]:
+    if not pages:
+        return None, None
+
+    raw_lines = pages[0].get("lines") or []
+    lines = [str(line).strip() for line in raw_lines if str(line).strip()]
+    if not lines:
+        return None, None
+
+    jurisdiction: Optional[str] = None
+    title: Optional[str] = None
+
+    for index, line in enumerate(lines[:10]):
+        if title is None and _looks_like_title_line(line):
+            title = line
+            if index >= 1 and jurisdiction is None:
+                potential = lines[index - 1]
+                if _looks_like_jurisdiction_line(potential):
+                    jurisdiction = potential
+            continue
+
+        if jurisdiction is None and _looks_like_jurisdiction_line(line):
+            jurisdiction = line
+
+    return jurisdiction, title
+
+
+def _parse_day_month_year(day: str, month: str, year: str) -> Optional[date]:
+    composed = f"{day} {month} {year}"
+    for fmt in ("%d %B %Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(composed, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_document_date(lines: Iterable[str]) -> Optional[date]:
+    for line in lines:
+        stripped = str(line).strip()
+        if not stripped:
+            continue
+        for pattern in _DATE_LINE_PATTERNS:
+            match = pattern.search(stripped)
+            if match:
+                parsed = _parse_day_month_year(
+                    match.group("day"), match.group("month"), match.group("year")
+                )
+                if parsed:
+                    return parsed
+
+        cleaned = stripped.strip(" .")
+        standalone = _STANDALONE_YEAR_RE.fullmatch(cleaned)
+        if standalone:
+            year_value = int(standalone.group("year"))
+            if 1000 <= year_value <= 3000:
+                return date(year_value, 1, 1)
+
+    return None
+
+
+def _compute_document_checksum(body: str) -> str:
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
 def _determine_document_title(
-    pages: List[dict], source: Path, provided_title: Optional[str]
+    pages: List[dict],
+    source: Path,
+    provided_title: Optional[str],
+    inferred_title: Optional[str] = None,
 ) -> Optional[str]:
     """Return a best-effort title for the document."""
 
+    if inferred_title:
+        candidate = inferred_title.strip()
+        if candidate:
+            return candidate
+
     if provided_title:
         candidate = provided_title.strip()
+        if candidate:
+            return candidate
+
+    if inferred_title:
+        candidate = inferred_title.strip()
         if candidate:
             return candidate
 
@@ -1328,6 +1737,68 @@ def _determine_document_title(
     return fallback or None
 
 
+def _normalize_month_key(value: str) -> Optional[int]:
+    key = value.strip().lower().rstrip(".,")
+    if not key:
+        return None
+    if key not in _MONTH_LOOKUP and key.endswith("s"):
+        key = key[:-1]
+    return _MONTH_LOOKUP.get(key)
+
+
+def _extract_document_date(pages: List[dict]) -> Optional[date]:
+    if not pages:
+        return None
+
+    first_page = pages[0] or {}
+    raw_lines = first_page.get("lines")
+    candidate_lines: List[str] = []
+    if isinstance(raw_lines, list):
+        for line in raw_lines:
+            text = str(line).strip()
+            if text:
+                candidate_lines.append(text)
+
+    if not candidate_lines:
+        heading = first_page.get("heading")
+        if heading:
+            heading_text = str(heading).strip()
+            if heading_text:
+                candidate_lines.append(heading_text)
+        text = first_page.get("text")
+        if text:
+            for raw_line in str(text).splitlines():
+                line_text = raw_line.strip()
+                if line_text:
+                    candidate_lines.append(line_text)
+
+    for line in candidate_lines:
+        match = _CURRENT_AS_AT_RE.search(line)
+        if not match:
+            continue
+        month_value = _normalize_month_key(match.group("month"))
+        if month_value is None:
+            continue
+        try:
+            day_value = int(match.group("day"))
+            year_value = int(match.group("year"))
+            return date(year_value, month_value, day_value)
+        except ValueError:
+            continue
+
+    for line in candidate_lines:
+        match = _YEAR_ONLY_RE.match(line)
+        if not match:
+            continue
+        try:
+            year_value = int(match.group("year"))
+            return date(year_value, 1, 1)
+        except ValueError:
+            continue
+
+    return None
+
+
 def build_document(
     pages: List[dict],
     source: Path,
@@ -1335,6 +1806,7 @@ def build_document(
     citation: Optional[str] = None,
     title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
     glossary_registry: Optional[GlossaryRegistry] = None,
 ) -> Document:
     """Create a :class:`Document` from extracted pages.
@@ -1349,19 +1821,32 @@ def build_document(
         glossary_registry: Glossary registry for definition lookups.
     """
 
+    inferred_jurisdiction, inferred_title = _infer_cover_metadata(pages)
+    first_page_lines = pages[0].get("lines") if pages else None
+    inferred_date = _extract_document_date(first_page_lines or [])
+
     body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
+    detected_date = _extract_document_date(pages)
+    checksum = _compute_document_checksum(body)
     metadata = DocumentMetadata(
-        jurisdiction=jurisdiction or "",
+        jurisdiction=inferred_jurisdiction or jurisdiction or "",
         citation=citation or "",
         date=date.today(),
+        title=_determine_document_title(
+            pages, source, title, inferred_title=inferred_title
+        ),
+        jurisdiction=jurisdiction or inferred_jurisdiction or "",
+        citation=citation or "",
+        date=detected_date or document_date or date.today(),
         title=_determine_document_title(pages, source, title),
+        date=inferred_date or date.today(),
+        title=_determine_document_title(pages, source, title, inferred_title),
         cultural_flags=cultural_flags,
         provenance=str(source),
+        checksum=checksum,
     )
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
-
-    definitions = _extract_definition_entries(body)
 
     toc_entries = parse_table_of_contents(pages)
     toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
@@ -1375,6 +1860,12 @@ def build_document(
     section_body = "\n\n".join(section_body_parts).strip() or body
 
     provisions = parse_sections(section_body, toc_headings=toc_heading_candidates)
+    body_pages = _filter_pages_with_toc(pages, toc_entries)
+    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in body_pages)
+
+    definitions = _extract_definition_entries(body)
+
+    provisions = parse_sections(body)
     structured_for_definitions: Optional[List[Provision]] = None
     if not provisions:
         parser_available = _has_section_parser()
@@ -1468,6 +1959,7 @@ def process_pdf(
     citation: Optional[str] = None,
     title: Optional[str] = None,
     cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
     db_path: Optional[Path] = None,
     doc_id: Optional[int] = None,
 ) -> Tuple[Document, Optional[int]]:
@@ -1490,6 +1982,7 @@ def process_pdf(
             citation,
             title,
             cultural_flags,
+            document_date=document_date,
             glossary_registry=registry,
         )
     finally:
