@@ -1488,6 +1488,29 @@ def _fallback_parse_sections(
             if normalised:
                 toc_heading_keys.add(normalised)
 
+    def body_looks_like_toc(content: str) -> bool:
+        if not content.strip():
+            return True
+
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        if not lines:
+            return True
+
+        toc_like = 0
+        for line in lines:
+            normalised = _normalise_toc_candidate([line])
+            if _TOC_LINE_RE.match(normalised) or _TOC_PREFIX_RE.match(normalised):
+                toc_like += 1
+                continue
+            if (
+                _TOC_TRAILING_PAGE_REF_RE.search(normalised)
+                or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
+                or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+            ):
+                toc_like += 1
+
+        return toc_like >= len(lines)
+
     for index, match in enumerate(matches):
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
@@ -1503,7 +1526,7 @@ def _fallback_parse_sections(
             or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(heading)
         )
         is_toc_heading = heading_key is not None and heading_key in toc_heading_keys
-        if heading_has_page_ref or (is_toc_heading and not body):
+        if heading_has_page_ref or (is_toc_heading and body_looks_like_toc(body)):
             continue
 
         parts: List[str] = []
@@ -1555,12 +1578,46 @@ def _strip_leading_table_of_contents(text: str) -> str:
     return "\n".join(stripped_lines).lstrip("\n")
 
 
+def _strip_embedded_table_of_contents(text: str) -> str:
+    lines = []
+
+    for line in text.splitlines():
+        raw = line.rstrip()
+        cleaned = raw.strip()
+        if not cleaned:
+            lines.append(line)
+            continue
+
+        normalised = _normalise_toc_candidate([cleaned])
+        has_page_marker = bool(
+            _TOC_TRAILING_PAGE_REF_RE.search(normalised)
+            or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
+        )
+        dot_leader_match = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+        looks_like_toc = bool(
+            _CONTENTS_MARKER_RE.search(normalised)
+            or _TOC_LINE_RE.match(normalised)
+            or has_page_marker
+            or (
+                dot_leader_match
+                and any(char.isdigit() for char in normalised)
+            )
+        )
+        if looks_like_toc:
+            continue
+
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
 def parse_sections(
     text: str, *, toc_headings: Optional[Iterable[str]] = None
 ) -> List[Provision]:
     """Split ``text`` into individual section provisions."""
 
     cleaned_text = _strip_leading_table_of_contents(text)
+    cleaned_text = _strip_embedded_table_of_contents(cleaned_text)
 
     if not cleaned_text.strip():
         return []
@@ -1677,7 +1734,7 @@ def _parse_day_month_year(day: str, month: str, year: str) -> Optional[date]:
     return None
 
 
-def _extract_document_date(lines: Iterable[str]) -> Optional[date]:
+def _extract_document_date_from_lines(lines: Iterable[str]) -> Optional[date]:
     for line in lines:
         stripped = str(line).strip()
         if not stripped:
@@ -1772,31 +1829,7 @@ def _extract_document_date(pages: List[dict]) -> Optional[date]:
                 if line_text:
                     candidate_lines.append(line_text)
 
-    for line in candidate_lines:
-        match = _CURRENT_AS_AT_RE.search(line)
-        if not match:
-            continue
-        month_value = _normalize_month_key(match.group("month"))
-        if month_value is None:
-            continue
-        try:
-            day_value = int(match.group("day"))
-            year_value = int(match.group("year"))
-            return date(year_value, month_value, day_value)
-        except ValueError:
-            continue
-
-    for line in candidate_lines:
-        match = _YEAR_ONLY_RE.match(line)
-        if not match:
-            continue
-        try:
-            year_value = int(match.group("year"))
-            return date(year_value, 1, 1)
-        except ValueError:
-            continue
-
-    return None
+    return _extract_document_date_from_lines(candidate_lines)
 
 
 def build_document(
@@ -1823,24 +1856,52 @@ def build_document(
 
     inferred_jurisdiction, inferred_title = _infer_cover_metadata(pages)
     first_page_lines = pages[0].get("lines") if pages else None
-    inferred_date = _extract_document_date(first_page_lines or [])
+    inferred_date = _extract_document_date_from_lines(first_page_lines or [])
 
-    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in pages)
+    full_body_parts = [
+        f"{str(page.get('heading') or '')}\n{str(page.get('text') or '')}".strip()
+        for page in pages
+        if str(page.get("heading") or "").strip()
+        or str(page.get("text") or "").strip()
+    ]
+    full_body = "\n\n".join(full_body_parts).strip()
     detected_date = _extract_document_date(pages)
+
+    toc_entries = parse_table_of_contents(pages)
+    toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
+
+    non_toc_pages = [page for page in pages if not _is_table_of_contents_page(page)]
+    body_pages = _filter_pages_with_toc(non_toc_pages, toc_entries)
+    if not body_pages:
+        body_pages = non_toc_pages or pages
+
+    section_body_parts = [
+        f"{str(page.get('heading') or '')}\n{str(page.get('text') or '')}".strip()
+        for page in body_pages
+        if str(page.get("heading") or "").strip()
+        or str(page.get("text") or "").strip()
+    ]
+    section_body = "\n\n".join(section_body_parts).strip()
+
+    body = section_body or full_body
     checksum = _compute_document_checksum(body)
+
+    resolved_title = _determine_document_title(
+        pages, source, title, inferred_title=inferred_title
+    )
+    resolved_jurisdiction = jurisdiction or inferred_jurisdiction or ""
+    resolved_date = (
+        detected_date
+        or document_date
+        or inferred_date
+        or date.today()
+    )
+
     metadata = DocumentMetadata(
-        jurisdiction=inferred_jurisdiction or jurisdiction or "",
+        jurisdiction=resolved_jurisdiction,
         citation=citation or "",
-        date=date.today(),
-        title=_determine_document_title(
-            pages, source, title, inferred_title=inferred_title
-        ),
-        jurisdiction=jurisdiction or inferred_jurisdiction or "",
-        citation=citation or "",
-        date=detected_date or document_date or date.today(),
-        title=_determine_document_title(pages, source, title),
-        date=inferred_date or date.today(),
-        title=_determine_document_title(pages, source, title, inferred_title),
+        date=resolved_date,
+        title=resolved_title,
         cultural_flags=cultural_flags,
         provenance=str(source),
         checksum=checksum,
@@ -1848,24 +1909,9 @@ def build_document(
 
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
-    toc_entries = parse_table_of_contents(pages)
-    toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
-
-    non_toc_pages = [page for page in pages if not _is_table_of_contents_page(page)]
-    section_body_parts = [
-        f"{page['heading']}\n{page['text']}".strip()
-        for page in non_toc_pages
-        if str(page.get("heading") or "").strip() or str(page.get("text") or "").strip()
-    ]
-    section_body = "\n\n".join(section_body_parts).strip() or body
-
-    provisions = parse_sections(section_body, toc_headings=toc_heading_candidates)
-    body_pages = _filter_pages_with_toc(pages, toc_entries)
-    body = "\n\n".join(f"{p['heading']}\n{p['text']}".strip() for p in body_pages)
+    provisions = parse_sections(section_body or "", toc_headings=toc_heading_candidates)
 
     definitions = _extract_definition_entries(body)
-
-    provisions = parse_sections(body)
     structured_for_definitions: Optional[List[Provision]] = None
     if not provisions:
         parser_available = _has_section_parser()
