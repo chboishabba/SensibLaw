@@ -5,6 +5,27 @@
 
 Like coleslaw, it just makes sense.
 
+## Upcoming platform work
+
+We are formalising the next major SensibLaw milestones around provenance,
+pipeline interoperability, and reasoning UX. The current sprint is focused on:
+
+- **Text extraction stack** – ship a Docker Compose bundle wiring Apache Tika
+  and OCRUSREX through a provenance sidecar, plus a `bin/extract_text` CLI and
+  golden-path tests that prove deterministic receipts.
+- **Gremlin-compatible pipeline** – document the node contract, publish a
+  reusable Gremlin DAG template, and add a local runner + containerised nodes so
+  the full pipeline can execute inside or outside Gremlin unchanged.
+- **Standard node SDK** – provide shared schemas, a base runner, and
+  conformance tests so every node emits uniform JSON, metrics, and receipts
+  while honouring deterministic replays.
+- **Reasoning viewer** – deliver a Streamlit-only interface (with embed mode)
+  that visualises proof trees, highlights pin-cites, and renders knowledge graph
+  neighbourhoods for completed jobs.
+
+Each strand bakes tool versioning and receipt storage into its outputs so we
+can meet provenance, determinism, and adoption targets simultaneously.
+
 ## Installation
 
 Install the runtime dependencies for a quick setup:
