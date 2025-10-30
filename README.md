@@ -19,12 +19,19 @@ pipeline interoperability, and reasoning UX. The current sprint is focused on:
 - **Standard node SDK** – provide shared schemas, a base runner, and
   conformance tests so every node emits uniform JSON, metrics, and receipts
   while honouring deterministic replays.
+- **Deterministic logic tree** – evolve the current token and semantic matching
+  flow into an explicit control-flow graph that captures entry points,
+  transition rules, and "junk" filtering so every clause decision is
+  reproducible and auditable.
 - **Reasoning viewer** – deliver a Streamlit-only interface (with embed mode)
   that visualises proof trees, highlights pin-cites, and renders knowledge graph
   neighbourhoods for completed jobs.
 
 Each strand bakes tool versioning and receipt storage into its outputs so we
-can meet provenance, determinism, and adoption targets simultaneously.
+can meet provenance, determinism, and adoption targets simultaneously. The
+logic tree work, in particular, codifies the word-catching triggers described in
+our current CLI so we can ship a formal specification and reference
+implementation alongside the pipeline assets.
 
 ## Installation
 

@@ -33,7 +33,7 @@ providing a streamlined viewer for legal reasoning outputs.
   local Docker nodes, streaming receipts, and resuming from persisted
   `previous_results` payloads.
 
-## 3. Standardised node execution contract (NODE-301)
+## 3. Standardised node execution & logic tree formalisation (NODE-301, NODE-302)
 
 - Introduce `sdk/node_base.py` that handles stdin/stdout JSON processing,
   structured logging, exit codes, and metrics for every node.
@@ -46,6 +46,11 @@ providing a streamlined viewer for legal reasoning outputs.
 - Add `tests/nodes/test_contracts.py` with fixtures that confirm schema
   compliance, deterministic outputs, and consistent error handling across all
   nodes.
+- Capture today’s word-catching behaviour (entry points, concept triggers,
+  junk filters) as a design note and translate it into a deterministic logic tree
+  representation that the `logic_tree` node can execute. This includes
+  documenting control flow transitions, boundary conditions, and override hooks
+  so clause decisions remain explainable and auditable.
 
 ## 4. Reasoning viewer and embedding (UI-401, UI-402)
 
