@@ -4,7 +4,8 @@
 [![CI](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml)
 
 Like coleslaw, it just makes sense.
-![Uploading NotebookLM Mind Map(2).png…]()
+<img width="6811" height="16636" alt="NotebookLM Mind Map(2)" src="https://github.com/user-attachments/assets/f865a435-e1a7-4577-8c1b-58242c3adacc" />
+
 
 ## NLP Integration Snapshot
 
