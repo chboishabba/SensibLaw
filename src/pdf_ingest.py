@@ -1594,12 +1594,15 @@ def _strip_embedded_table_of_contents(text: str) -> str:
             or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
         )
         dot_leader_match = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+        has_dot_leader = bool(
+            dot_leader_match and len(dot_leader_match.group(0).strip()) > 1
+        )
         looks_like_toc = bool(
             _CONTENTS_MARKER_RE.search(normalised)
             or _TOC_LINE_RE.match(normalised)
             or has_page_marker
             or (
-                dot_leader_match
+                has_dot_leader
                 and any(char.isdigit() for char in normalised)
             )
         )
