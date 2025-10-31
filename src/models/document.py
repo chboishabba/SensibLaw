@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import json
 
 from .provision import Provision
+from .sentence import Sentence
 
 
 @dataclass
@@ -137,6 +138,13 @@ class Document:
     body: str
     provisions: List[Provision] = field(default_factory=list)
     toc_entries: List[DocumentTOCEntry] = field(default_factory=list)
+    sentences: List[Sentence] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.body and not self.sentences:
+            from src.text.sentences import segment_sentences
+
+            self.sentences = segment_sentences(self.body)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the document to a dictionary."""
@@ -145,6 +153,7 @@ class Document:
             "body": self.body,
             "provisions": [p.to_dict() for p in self.provisions],
             "toc_entries": [entry.to_dict() for entry in self.toc_entries],
+            "sentences": [sentence.to_dict() for sentence in self.sentences],
         }
 
     def to_json(self) -> str:
@@ -159,11 +168,13 @@ class Document:
         toc_entries = [
             DocumentTOCEntry.from_dict(entry) for entry in data.get("toc_entries", [])
         ]
+        sentences = [Sentence.from_dict(item) for item in data.get("sentences", [])]
         return cls(
             metadata=metadata,
             body=data["body"],
             provisions=provisions,
             toc_entries=toc_entries,
+            sentences=sentences,
         )
 
     @classmethod
