@@ -21,6 +21,7 @@ dependencies = [
     "networkx",
     "streamlit>=1.30",
     "pandas>=1.5",
+    "spacy>=3.6,<4",
 ]
 
 [project.optional-dependencies]

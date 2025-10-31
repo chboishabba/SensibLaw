@@ -4,6 +4,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from .dependencies import DependencyCandidate, SentenceDependencies, get_dependencies
+
 
 @dataclass(frozen=True)
 class PartyLexeme:
