@@ -22,6 +22,7 @@ dependencies = [
     "spacy>=3.5,<4",
     "streamlit>=1.30",
     "pandas>=1.5",
+    "spacy>=3.7,<4",
 ]
 
 [project.optional-dependencies]

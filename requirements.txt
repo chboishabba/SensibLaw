@@ -8,6 +8,7 @@ graphviz
 networkx
 spacy>=3.5,<4
 streamlit
+spacy>=3.7,<4
 
 # dev/test
 pytest
