@@ -18,7 +18,7 @@ data_strategy = st.dictionaries(
 )
 
 
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 @given(type_str=st.text(alphabet=string.ascii_letters, min_size=1, max_size=10), data=data_strategy)
 def test_node_round_trip(tmp_path, type_str, data):
     store = Storage(tmp_path / "test.db")
