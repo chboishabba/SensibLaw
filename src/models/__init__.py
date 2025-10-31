@@ -2,5 +2,6 @@
 
 from .document import Document, DocumentMetadata
 from .provision import Provision
+from .sentence import Sentence
 
-__all__ = ["Document", "DocumentMetadata", "Provision"]
+__all__ = ["Document", "DocumentMetadata", "Provision", "Sentence"]

@@ -65,7 +65,8 @@ def api_subgraph(
     normalised = normalise(text)
     concepts = match_concepts(normalised)
     cloud = build_cloud(concepts)
-    result: Dict[str, Any] = {"cloud": cloud}
+    token_payload = [token.as_dict() for token in normalised.tokens]
+    result: Dict[str, Any] = {"cloud": cloud, "tokens": token_payload}
     if dot:
         result["dot"] = _cloud_to_dot(cloud)
     return result
