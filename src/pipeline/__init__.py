@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from collections import Counter
+from functools import lru_cache
+from importlib import import_module
+from typing import Any, Dict, List
 from typing import Dict, List
 from dataclasses import dataclass, field
 import re
@@ -14,6 +17,8 @@ from src.concepts.matcher import MATCHER
 from src.tools.glossary import rewrite_text
 
 from src.tools.harm_index import compute_harm_index as harm_index
+
+from .tokens import Token, TokenStream, spacy_adapter
 
 from .ner import (
     analyze_references,
@@ -307,6 +312,40 @@ def build_cloud(concepts: List[str]) -> Dict[str, int]:
     return dict(Counter(concepts))
 
 
+
+def tokenise(normalised_text: str) -> TokenStream:
+    """Tokenise ``normalised_text`` using the configured spaCy adapter."""
+
+    return spacy_adapter.parse(normalised_text)
+
+
+@lru_cache(maxsize=1)
+def _logic_tree_module() -> Any:
+    for module_name in ("src.logic_tree", "logic_tree"):
+        try:
+            return import_module(module_name)
+        except ImportError:  # pragma: no cover - depends on deployment
+            continue
+    raise RuntimeError("logic_tree module is not available")
+
+
+def build_logic_tree(tokens: TokenStream) -> Any:
+    """Build a logic tree structure from ``tokens``."""
+
+    module = _logic_tree_module()
+    return module.build(tokens)
+
+
+__all__ = [
+    "normalise",
+    "match_concepts",
+    "build_cloud",
+    "tokenise",
+    "build_logic_tree",
+    "spacy_adapter",
+    "Token",
+    "TokenStream",
+    "harm_index",
 __all__ = [
     "Token",
     "NormalisedText",
