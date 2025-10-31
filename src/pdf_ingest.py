@@ -55,6 +55,10 @@ _TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNOR
 _TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
 _TOC_TRAILING_DOT_LEADER_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
 _TOC_TITLE_SPLIT_RE = re.compile(r"\s*[-–—:]\s*")
+_SIMPLE_SECTION_HEADING_RE = re.compile(
+    r"^(?:Part|Division|Subdivision|Section)\s+\d+[A-Za-z0-9]*$",
+    re.IGNORECASE,
+)
 _DEFINITION_START_RE = re.compile(
     r"^\s*(?P<term>[\"“][^\"”]+[\"”]|'[^']+')\s+"
     r"(?P<verb>means|includes)\s+(?P<definition>.+)$",
@@ -470,6 +474,18 @@ def _normalise_toc_candidate(parts: List[str]) -> str:
     joined = " ".join(parts)
     joined = _TOC_DOT_LEADER_RE.sub(" ", joined)
     return re.sub(r"\s+", " ", joined).strip()
+
+
+def _has_significant_dot_leader(value: str) -> bool:
+    match = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(value)
+    if not match:
+        return False
+    stripped = match.group(0).replace(" ", "")
+    return len(stripped) >= 3
+
+
+def _looks_like_simple_heading(value: str) -> bool:
+    return bool(_SIMPLE_SECTION_HEADING_RE.match(value))
 
 
 def _clean_toc_title_segment(title_part: Optional[str]) -> Optional[str]:
@@ -1118,7 +1134,7 @@ def _is_table_of_contents_page(page: Dict[str, Any]) -> bool:
         normalised = _normalise_toc_candidate([str(raw_line)])
         if _TOC_LINE_RE.match(normalised) or _TOC_PREFIX_RE.match(normalised):
             toc_like += 1
-        if _TOC_TRAILING_PAGE_REF_RE.search(normalised) or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised):
+        if _TOC_TRAILING_PAGE_REF_RE.search(normalised) or _has_significant_dot_leader(normalised):
             page_ref_like += 1
 
     return toc_like >= 2 and page_ref_like >= 1
@@ -1414,8 +1430,23 @@ def _rules_to_atoms(
 
 
 def _build_provision_from_node(node) -> Provision:
+    raw_text = getattr(node, "text", "") or ""
+    text_parts: List[str] = []
+    if raw_text:
+        text_parts.append(raw_text)
+    else:
+        for child in getattr(node, "children", []):
+            child_text = getattr(child, "text", "") or ""
+            if not child_text.strip():
+                continue
+            identifier = getattr(child, "identifier", None)
+            fragment = f"{identifier} {child_text}".strip() if identifier else child_text
+            text_parts.append(fragment)
+
+    rendered_text = "\n".join(part for part in text_parts if part).strip()
+
     provision = Provision(
-        text=getattr(node, "text", ""),
+        text=rendered_text,
         identifier=getattr(node, "identifier", None),
         heading=getattr(node, "heading", None),
         node_type=getattr(node, "node_type", None),
@@ -1499,13 +1530,15 @@ def _fallback_parse_sections(
         toc_like = 0
         for line in lines:
             normalised = _normalise_toc_candidate([line])
+            if _looks_like_simple_heading(normalised):
+                continue
             if _TOC_LINE_RE.match(normalised) or _TOC_PREFIX_RE.match(normalised):
                 toc_like += 1
                 continue
             if (
                 _TOC_TRAILING_PAGE_REF_RE.search(normalised)
                 or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
-                or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+                or _has_significant_dot_leader(normalised)
             ):
                 toc_like += 1
 
@@ -1523,7 +1556,7 @@ def _fallback_parse_sections(
         heading_has_page_ref = bool(
             _TOC_TRAILING_PAGE_REF_RE.search(heading)
             or _TOC_TRAILING_PAGE_WORD_RE.search(heading)
-            or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(heading)
+            or _has_significant_dot_leader(heading)
         )
         is_toc_heading = heading_key is not None and heading_key in toc_heading_keys
         if heading_has_page_ref or (is_toc_heading and body_looks_like_toc(body)):
@@ -1561,12 +1594,16 @@ def _strip_leading_table_of_contents(text: str) -> str:
             if not cleaned:
                 continue
             normalised = _normalise_toc_candidate([cleaned]) if cleaned else ""
+            if _looks_like_simple_heading(normalised):
+                stripped_lines.append(line)
+                skipping = False
+                continue
             looks_like_toc = bool(
                 _CONTENTS_MARKER_RE.search(normalised)
                 or _TOC_LINE_RE.match(normalised)
                 or _TOC_TRAILING_PAGE_REF_RE.search(normalised)
                 or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
-                or _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
+                or _has_significant_dot_leader(normalised)
             )
             if looks_like_toc:
                 continue
@@ -1589,10 +1626,14 @@ def _strip_embedded_table_of_contents(text: str) -> str:
             continue
 
         normalised = _normalise_toc_candidate([cleaned])
+        if _looks_like_simple_heading(normalised):
+            lines.append(line)
+            continue
         has_page_marker = bool(
             _TOC_TRAILING_PAGE_REF_RE.search(normalised)
             or _TOC_TRAILING_PAGE_WORD_RE.search(normalised)
         )
+        has_dot_leader_block = _has_significant_dot_leader(normalised)
         dot_leader_match = _TOC_TRAILING_DOT_LEADER_BLOCK_RE.search(normalised)
         has_dot_leader = bool(
             dot_leader_match and len(dot_leader_match.group(0).strip()) > 1
@@ -1602,6 +1643,7 @@ def _strip_embedded_table_of_contents(text: str) -> str:
             or _TOC_LINE_RE.match(normalised)
             or has_page_marker
             or (
+                has_dot_leader_block
                 has_dot_leader
                 and any(char.isdigit() for char in normalised)
             )

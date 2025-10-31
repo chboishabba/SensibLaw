@@ -66,6 +66,7 @@ else:
                 setattr(self, key, value)
 
 
+    def Field(default=None, **kwargs):  # type: ignore[unused-argument]
     class Extra:  # pragma: no cover - compatibility shim
         allow = "allow"
         forbid = "forbid"
