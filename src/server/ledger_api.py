@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+
+try:  # pragma: no cover - optional dependency shim
+    from pydantic import BaseModel
+except ImportError:  # pragma: no cover
+    from pydantic_stub import BaseModel
 
 from src.repro.ledger import LedgerEntry, ledger
 from sensiblaw.api.routes import router as api_router

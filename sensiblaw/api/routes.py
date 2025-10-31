@@ -6,7 +6,11 @@ from dataclasses import asdict
 from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+
+try:  # pragma: no cover - optional dependency shim
+    from pydantic import BaseModel
+except ImportError:  # pragma: no cover
+    from pydantic_stub import BaseModel
 
 from rules.extractor import extract_rules
 
