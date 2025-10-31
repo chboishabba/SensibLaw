@@ -1,0 +1,4 @@
+{"label": "REFERENCE", "id": "ACT", "pattern": [{"LOWER": "privacy"}, {"LOWER": "act"}, {"IS_DIGIT": true}]}
+{"label": "REFERENCE", "id": "ACT", "pattern": [{"LOWER": "native"}, {"LOWER": "title"}, {"LOWER": "act"}, {"IS_DIGIT": true}]}
+{"label": "REFERENCE", "id": "CASE", "pattern": [{"TEXT": "Mabo"}, {"LOWER": "v"}, {"TEXT": "."}, {"TEXT": "Queensland"}]}
+{"label": "REFERENCE", "id": "PROVISION", "pattern": [{"LOWER": "section"}, {"IS_DIGIT": true}]}
