@@ -2,13 +2,20 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import List, Dict
+from typing import Dict, List
 
 from src.concepts.matcher import MATCHER
 
 from src.tools.glossary import rewrite_text
 
 from src.tools.harm_index import compute_harm_index as harm_index
+
+from .ner import (
+    analyze_references,
+    get_ner_pipeline,
+    REFERENCE_SPAN_KEY,
+    REFERENCE_LABEL,
+)
 
 
 
@@ -42,4 +49,13 @@ def build_cloud(concepts: List[str]) -> Dict[str, int]:
     return dict(Counter(concepts))
 
 
-__all__ = ["normalise", "match_concepts", "build_cloud", "harm_index"]
+__all__ = [
+    "normalise",
+    "match_concepts",
+    "build_cloud",
+    "harm_index",
+    "analyze_references",
+    "get_ner_pipeline",
+    "REFERENCE_SPAN_KEY",
+    "REFERENCE_LABEL",
+]
