@@ -1,0 +1,49 @@
+{
+  "text": "A person commits the offence of vandalism if the person intentionally defaces property without consent.",
+  "sentences": [
+    {
+      "text": "A person commits the offence of vandalism if the person intentionally defaces property without consent",
+      "tokens": [
+        "A",
+        "person",
+        "commits",
+        "the",
+        "offence",
+        "of",
+        "vandalism",
+        "if",
+        "the",
+        "person",
+        "intentionally",
+        "defaces",
+        "property",
+        "without",
+        "consent"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "actor": "A person",
+      "modality": "commits the offence of vandalism",
+      "action": "if the person intentionally defaces property without consent",
+      "conditions": null,
+      "scope": null,
+      "elements": {
+        "circumstance": [
+          "if the person intentionally defaces property without consent",
+          "without consent"
+        ],
+        "conduct": [
+          "the person defaces property"
+        ],
+        "fault": [
+          "intentionally"
+        ]
+      },
+      "party": "defence",
+      "role": "accused",
+      "who_text": "the accused"
+    }
+  ]
+}
