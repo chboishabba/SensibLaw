@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from nlp import get_rule_matcher
 from src.models.provision import RuleReference
 
 # Precompiled regex to capture leading numbering/heading from a block of text
@@ -20,13 +21,6 @@ SUBDIVISION_RE = re.compile(
     re.IGNORECASE,
 )
 SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
-
-# Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
-TOKEN_RE = re.compile(
-    r"(?P<modality>must not|must|may)|"
-    r"(?P<condition>if|unless|subject to|despite)",
-    re.IGNORECASE,
-)
 
 INTERNAL_REF_RE = re.compile(
     r"\b(?P<label>s|ss|section|sections|regulation|regulations|rule|rules)\s+"
@@ -175,23 +169,12 @@ def _extract_references(text: str) -> List[RuleReference]:
 
 
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
-    modality: Optional[str] = None
-    conditions: List[str] = []
-    references: List[RuleReference] = []
-    seen_conditions: set[str] = set()
+    matcher = get_rule_matcher()
+    result = matcher.extract(text)
 
-    for match in TOKEN_RE.finditer(text):
-        token = match.group().strip()
-        group = match.lastgroup
-        if group == "modality" and modality is None:
-            modality = token.lower()
-        elif group == "condition":
-            lowered = token.lower()
-            if lowered not in seen_conditions:
-                seen_conditions.add(lowered)
-                conditions.append(lowered)
-
-    references.extend(_extract_references(text))
+    modality: Optional[str] = result.primary_modality
+    conditions: List[str] = result.condition_markers
+    references: List[RuleReference] = list(_extract_references(text))
     deduped_refs: List[RuleReference] = []
     seen_refs: set[Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]] = set()
     for ref in references:
@@ -276,9 +259,9 @@ class Section:
 def parse_html_section(html: str) -> Section:
     """Parse an HTML fragment representing a numbered section.
 
-    The extractor runs a single combined regex over the text to detect
+    The extractor relies on the shared spaCy matcher to detect
     modalities (``must``, ``must not``, ``may``), conditional triggers
-    (``if``, ``unless``, ``subject to``, ``despite``) and cross references
+    (``if``, ``unless``, ``subject to``, ``despite``, ``when``, ``where``) and cross references
     ranging from intra-Act markers (``s 5B``, ``this Part``) to structural
     headings and external statute citations (e.g. ``Native Title Act 1993 (Cth)
     s 223``).

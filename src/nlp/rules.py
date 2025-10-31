@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable, List
+from functools import lru_cache
+from typing import Iterable, List, Optional
 
 import spacy
 from spacy.language import Language
 from spacy.matcher import DependencyMatcher, Matcher
 from spacy.tokens import Doc, Span
+
+
+CONDITION_MARKER_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("subject to", "subject to"),
+    ("if", "if"),
+    ("unless", "unless"),
+    ("despite", "despite"),
+    ("when", "when"),
+    ("where", "where"),
+)
 
 
 @dataclass
@@ -20,15 +31,51 @@ class RuleMatchResult:
     references: List[str] = field(default_factory=list)
     penalties: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self._modality_positions: dict[str, int] = {}
+
     def as_dict(self) -> dict[str, List[str]]:
         """Return the matches as a serialisable dictionary."""
 
         return {
             "modalities": list(self.modalities),
             "conditions": list(self.conditions),
+            "condition_markers": self.condition_markers,
             "references": list(self.references),
             "penalties": list(self.penalties),
         }
+
+    @property
+    def condition_markers(self) -> List[str]:
+        """Return the unique lexical triggers for conditional clauses."""
+
+        markers: List[str] = []
+        seen: set[str] = set()
+        for condition in self.conditions:
+            marker = _normalise_condition_marker(condition)
+            if marker and marker not in seen:
+                seen.add(marker)
+                markers.append(marker)
+        return markers
+
+    @property
+    def primary_modality(self) -> Optional[str]:
+        """Return the most specific modality match, if any."""
+
+        if not self.modalities:
+            return None
+        return min(
+            self.modalities,
+            key=lambda mod: (self._modality_positions.get(mod, float("inf")), -len(mod)),
+        )
+
+
+def _normalise_condition_marker(condition: str) -> Optional[str]:
+    lowered = condition.strip().lower()
+    for prefix, marker in CONDITION_MARKER_PREFIXES:
+        if lowered.startswith(prefix):
+            return marker
+    return None
 
 
 class RuleMatcher:
@@ -74,6 +121,7 @@ class RuleMatcher:
                 if key not in seen[label]:
                     result.modalities.append(key)
                     seen[label].add(key)
+                    result._modality_positions[key] = start
             elif label == "REFERENCE":
                 if key not in seen[label]:
                     result.references.append(text)
@@ -141,6 +189,7 @@ class RuleMatcher:
                 ],
                 [{"LOWER": "is"}, {"LOWER": "guilty"}, {"LOWER": "of"}],
             ],
+            greedy="LONGEST",
         )
 
         self.matcher.add(
@@ -237,3 +286,10 @@ def create_rule_matcher(nlp: Language | None = None) -> RuleMatcher:
     """Convenience helper mirroring :class:`RuleMatcher` construction."""
 
     return RuleMatcher(nlp=nlp)
+
+
+@lru_cache(maxsize=1)
+def get_rule_matcher() -> RuleMatcher:
+    """Return a lazily-instantiated shared :class:`RuleMatcher`."""
+
+    return create_rule_matcher()

@@ -37,6 +37,7 @@ def test_modality_matcher_detects_normative_and_offence_phrases():
 
     assert "must not" in result.modalities
     assert "commits the offence of" in result.modalities
+    assert result.primary_modality == "must not"
 
 
 def test_reference_and_penalty_patterns_capture_expected_spans():
@@ -90,3 +91,14 @@ def test_dependency_matcher_expands_conditional_clause():
     result = matcher.extract_from_doc(doc)
 
     assert "if they are trespassing" in result.conditions
+
+
+def test_condition_markers_normalise_prefixes():
+    matcher = RuleMatcher(spacy.blank("en"))
+
+    text = "A board must comply unless exempt despite contrary directions."
+
+    result = matcher.extract(text)
+
+    assert result.condition_markers == ["unless", "despite"]
+    assert result.as_dict()["condition_markers"] == ["unless", "despite"]
