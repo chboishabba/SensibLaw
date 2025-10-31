@@ -1,0 +1,68 @@
+{
+  "text": "A person must not litter in public places. Officials may issue fines when offences occur.",
+  "sentences": [
+    {
+      "text": "A person must not litter in public places",
+      "tokens": [
+        "A",
+        "person",
+        "must",
+        "not",
+        "litter",
+        "in",
+        "public",
+        "places"
+      ]
+    },
+    {
+      "text": "Officials may issue fines when offences occur",
+      "tokens": [
+        "Officials",
+        "may",
+        "issue",
+        "fines",
+        "when",
+        "offences",
+        "occur"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "actor": "A person",
+      "modality": "must not",
+      "action": "litter in public places",
+      "conditions": null,
+      "scope": null,
+      "elements": {
+        "circumstance": [
+          "in public places"
+        ],
+        "conduct": [
+          "litter"
+        ]
+      },
+      "party": "defence",
+      "role": "accused",
+      "who_text": "the person"
+    },
+    {
+      "actor": "Officials",
+      "modality": "may",
+      "action": "issue fines",
+      "conditions": "when offences occur",
+      "scope": null,
+      "elements": {
+        "circumstance": [
+          "when offences occur"
+        ],
+        "conduct": [
+          "issue fines"
+        ]
+      },
+      "party": "unknown",
+      "role": null,
+      "who_text": "Officials"
+    }
+  ]
+}
