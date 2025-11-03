@@ -5,6 +5,7 @@
 
 Like coleslaw, it just makes sense.
 <img width="6811" height="16636" alt="NotebookLM Mind Map(2)" src="https://github.com/user-attachments/assets/f865a435-e1a7-4577-8c1b-58242c3adacc" />
+<img width="1024" height="1536" alt="8cd2e557-4ed0-47ae-81cd-ee1d1350718e" src="https://github.com/user-attachments/assets/b9e85e79-2537-477b-8aff-1469f32d4509" />
 
 
 ## NLP Integration Snapshot
