@@ -28,6 +28,34 @@ the full roadmap, including phased milestones and definitions of done, see
 | **Fallback / Multilingual** | English-only regex. | Wrapper can swap Stanza/UD when language ≠ "en". | • Optional `SpacyNLP(lang="auto")` detects LID and selects model.<br>• Add `fastText` or Tika LID hook. |
 | **Testing & Validation** | No automated linguistic tests. | Deterministic tokenization, POS, dep, and matcher coverage tests. | • `tests/nlp/test_tokens.py` (token counts, sentence segmentation).<br>• `tests/nlp/test_rules.py` (pattern hits).<br>• Golden expected JSON per input sample. |
 
+## Upcoming platform work
+
+We are formalising the next major SensibLaw milestones around provenance,
+pipeline interoperability, and reasoning UX. The current sprint is focused on:
+
+- **Text extraction stack** – ship a Docker Compose bundle wiring Apache Tika
+  and OCRUSREX through a provenance sidecar, plus a `bin/extract_text` CLI and
+  golden-path tests that prove deterministic receipts.
+- **Gremlin-compatible pipeline** – document the node contract, publish a
+  reusable Gremlin DAG template, and add a local runner + containerised nodes so
+  the full pipeline can execute inside or outside Gremlin unchanged.
+- **Standard node SDK** – provide shared schemas, a base runner, and
+  conformance tests so every node emits uniform JSON, metrics, and receipts
+  while honouring deterministic replays.
+- **Deterministic logic tree** – evolve the current token and semantic matching
+  flow into an explicit control-flow graph that captures entry points,
+  transition rules, and "junk" filtering so every clause decision is
+  reproducible and auditable.
+- **Reasoning viewer** – deliver a Streamlit-only interface (with embed mode)
+  that visualises proof trees, highlights pin-cites, and renders knowledge graph
+  neighbourhoods for completed jobs.
+
+Each strand bakes tool versioning and receipt storage into its outputs so we
+can meet provenance, determinism, and adoption targets simultaneously. The
+logic tree work, in particular, codifies the word-catching triggers described in
+our current CLI so we can ship a formal specification and reference
+implementation alongside the pipeline assets.
+
 ## Installation
 
 Install the runtime dependencies for a quick setup:
