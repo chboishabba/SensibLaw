@@ -5,7 +5,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from src.ingestion.section_parser import fetch_section
+from src.ingestion.section_parser import (
+    LogicTokenClass,
+    annotate_logic_tokens,
+    fetch_section,
+)
 
 
 def test_extract_modality_conditions_and_refs():
@@ -102,3 +106,45 @@ def test_section_15_reference_normalization():
             "glossary_id": None,
         }
     ]
+
+
+def test_logic_token_annotation_assigns_classes():
+    text = "A person must not drive if intoxicated under s 5B."
+    doc = annotate_logic_tokens(text)
+    tokens = [(token.text, token._.class_) for token in doc if not token.is_space]
+    assert tokens == [
+        ("A", LogicTokenClass.ACTOR),
+        ("person", LogicTokenClass.ACTOR),
+        ("must", LogicTokenClass.MODALITY),
+        ("not", LogicTokenClass.MODALITY),
+        ("drive", LogicTokenClass.ACTION),
+        ("if", LogicTokenClass.CONDITION),
+        ("intoxicated", LogicTokenClass.CONDITION),
+        ("under", LogicTokenClass.CONDITION),
+        ("s", LogicTokenClass.REFERENCE),
+        ("5B.", LogicTokenClass.REFERENCE),
+    ]
+    assert all(token._.class_ is not None for token in doc)
+
+
+def test_logic_token_annotation_handles_subject_to_reference():
+    text = "The authority may issue permits subject to this Part."
+    doc = annotate_logic_tokens(text)
+    mapping = {token.text: token._.class_ for token in doc if token.text in {"subject", "to", "this", "Part"}}
+    assert mapping["subject"] == LogicTokenClass.CONDITION
+    assert mapping["to"] == LogicTokenClass.CONDITION
+    assert mapping["this"] == LogicTokenClass.REFERENCE
+    assert mapping["Part"] == LogicTokenClass.REFERENCE
+
+
+def test_fetch_section_includes_token_classes():
+    html = "<p>1 A person must not drive if intoxicated under s 5B.</p>"
+    data = fetch_section(html)
+    token_classes = data["rules"].get("token_classes", [])
+    assert token_classes
+    labels = {entry["text"]: entry["class"] for entry in token_classes}
+    assert labels["person"] == "ACTOR"
+    assert labels["must"] == "MODALITY"
+    assert labels["if"] == "CONDITION"
+    assert labels["s"] == "REFERENCE"
+    assert all({"text", "start", "end", "class"} <= set(entry) for entry in token_classes)

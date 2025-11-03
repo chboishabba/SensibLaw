@@ -60,6 +60,9 @@ def test_document_serialization_round_trip():
     assert doc_dict["metadata"]["date"] == metadata.date.isoformat()
     assert doc_dict["metadata"]["retrieved_at"] == metadata.retrieved_at.isoformat()
     assert doc_dict["metadata"]["title"] == "Sample Document"
+    assert doc_dict["sentences"]
+    assert doc_dict["sentences"][0]["text"] == "Body text"
+    assert doc_dict["sentences"][0]["index"] == 0
     assert Document.from_dict(doc_dict).to_dict() == doc_dict
 
     # JSON round trip

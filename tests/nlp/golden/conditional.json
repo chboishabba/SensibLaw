@@ -1,0 +1,42 @@
+{
+  "text": "If the officer observes reckless driving, the officer shall suspend the licence.",
+  "sentences": [
+    {
+      "text": "If the officer observes reckless driving, the officer shall suspend the licence",
+      "tokens": [
+        "If",
+        "the",
+        "officer",
+        "observes",
+        "reckless",
+        "driving",
+        "the",
+        "officer",
+        "shall",
+        "suspend",
+        "the",
+        "licence"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "actor": "the officer",
+      "modality": "shall",
+      "action": "suspend the licence",
+      "conditions": "If the officer observes reckless driving",
+      "scope": null,
+      "elements": {
+        "circumstance": [
+          "If the officer observes reckless driving"
+        ],
+        "conduct": [
+          "suspend the licence"
+        ]
+      },
+      "party": "unknown",
+      "role": null,
+      "who_text": "the officer"
+    }
+  ]
+}
