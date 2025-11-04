@@ -16,11 +16,13 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set,
 from pdfminer.high_level import extract_pages
 
 from src.culture.overlay import get_default_overlay
+from src.glossary.linker import GlossaryLinker
 from src.glossary.service import lookup as lookup_gloss
 from src.ingestion.cache import HTTPCache
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
+    GlossaryLink,
     Provision,
     RuleAtom,
     RuleElement,
@@ -1308,6 +1310,7 @@ def _rules_to_atoms(
     registry = (
         glossary_registry if glossary_registry is not None else GlossaryRegistry()
     )
+    linker = GlossaryLinker(registry)
     for r in rules:
         actor = getattr(r, "actor", None)
         party = getattr(r, "party", None) or UNKNOWN_PARTY
@@ -1336,20 +1339,10 @@ def _rules_to_atoms(
         rule_references.extend(condition_refs)
         rule_references.extend(scope_refs)
 
-        subject_gloss = who_text or actor or None
-        subject_metadata: Optional[Dict[str, Any]] = None
-        subject_glossary_id: Optional[int] = None
-        if registry is not None:
-            subject_entry: Optional[GlossaryRecord] = None
-            for candidate in (who_text, actor, party):
-                if candidate:
-                    subject_entry = registry.resolve(candidate)
-                    if subject_entry:
-                        break
-            if subject_entry:
-                subject_gloss = subject_entry.definition
-                subject_metadata = _clone_metadata(subject_entry.metadata)
-                subject_glossary_id = subject_entry.id
+        subject_link = linker.link(
+            candidates=(who_text, actor, party),
+            fallback_text=who_text or actor or None,
+        )
 
         rule_atom = RuleAtom(
             atom_type="rule",
@@ -1363,9 +1356,7 @@ def _rules_to_atoms(
             conditions=conditions,
             scope=scope,
             text=text,
-            subject_gloss=subject_gloss,
-            subject_gloss_metadata=subject_metadata,
-            glossary_id=subject_glossary_id,
+            subject_link=subject_link,
             references=rule_references,
         )
 
@@ -1377,9 +1368,7 @@ def _rules_to_atoms(
             who_text=rule_atom.who_text,
             conditions=rule_atom.conditions,
             text=rule_atom.text,
-            gloss=rule_atom.subject_gloss,
-            gloss_metadata=rule_atom.subject_gloss_metadata,
-            glossary_id=rule_atom.glossary_id,
+            glossary=subject_link,
         )
 
         for role, fragments in (getattr(r, "elements", None) or {}).items():
@@ -1390,39 +1379,34 @@ def _rules_to_atoms(
                 if not cleaned_fragment:
                     continue
                 gloss_entry = module_lookup_gloss(cleaned_fragment)
-                resolved_entry: Optional[GlossaryRecord] = None
-                if registry is not None and gloss_entry:
-                    resolved_entry = registry.register_definition(
-                        gloss_entry.phrase,
-                        gloss_entry.text,
-                        gloss_entry.metadata,
-                    )
-                if registry is not None and resolved_entry is None:
-                    resolved_entry = registry.resolve(cleaned_fragment)
-
-                gloss_text = who_text or cleaned_fragment
-                gloss_metadata = None
-                glossary_id = None
-                if resolved_entry:
-                    gloss_text = resolved_entry.definition
-                    gloss_metadata = _clone_metadata(resolved_entry.metadata)
-                    glossary_id = resolved_entry.id
-                elif gloss_entry:
-                    gloss_text = gloss_entry.text
-                    if gloss_entry.metadata is not None:
-                        gloss_metadata = dict(gloss_entry.metadata)
+                element_link = linker.link(
+                    candidates=(cleaned_fragment, who_text, actor),
+                    glossary_entry=gloss_entry,
+                    fallback_text=who_text or cleaned_fragment,
+                )
+                if element_link is None:
+                    element_link = GlossaryLink(text=who_text or cleaned_fragment)
                 rule_atom.elements.append(
                     RuleElement(
                         role=role,
                         text=cleaned_fragment,
                         conditions=conditions if role == "circumstance" else None,
-                        gloss=gloss_text,
-                        gloss_metadata=gloss_metadata,
+                        glossary=element_link,
                         references=fragment_refs,
-                        glossary_id=glossary_id,
                         atom_type="element",
                     )
                 )
+        for reference in rule_references:
+            reference_link = linker.link(
+                candidates=(
+                    reference.citation_text,
+                    reference.work,
+                    reference.section,
+                ),
+                fallback_text=reference.citation_text or reference.work,
+            )
+            if reference_link is not None:
+                reference.glossary = reference_link
         if party == UNKNOWN_PARTY:
             rule_atom.lints.append(
                 RuleLint(
