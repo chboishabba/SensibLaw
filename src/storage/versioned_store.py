@@ -6,6 +6,7 @@ import difflib
 from collections import defaultdict
 import hashlib
 import re
+from textwrap import dedent
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
@@ -22,15 +23,59 @@ from src.models.provision import (
 )
 
 
+class PayloadTooLargeError(ValueError):
+    """Raised when a payload exceeds the configured storage limits."""
+
+
 class VersionedStore:
     """SQLite-backed store maintaining versioned documents using FTS5."""
 
-    def __init__(self, path: str | Path):
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        max_body_size: int | None = None,
+        max_metadata_size: int | None = None,
+        max_document_size: int | None = None,
+    ):
         self.path = str(path)
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
+        self._max_body_size = max_body_size
+        self._max_metadata_size = max_metadata_size
+        self._max_document_size = max_document_size
         self._init_schema()
         self._ensure_toc_page_number_column()
+        self._ensure_revisions_effective_index()
+
+    # ------------------------------------------------------------------
+    # Payload validation helpers
+    # ------------------------------------------------------------------
+    def _enforce_limit(self, label: str, payload: Optional[str], limit: Optional[int]) -> None:
+        if limit is None or payload is None:
+            return
+        size = len(payload.encode("utf-8"))
+        if size > limit:
+            raise PayloadTooLargeError(
+                f"Document {label} payload is {size} bytes, exceeding the configured limit of {limit} bytes."
+            )
+
+    def validate_revision_payload(
+        self,
+        document: Document,
+        *,
+        metadata_json: Optional[str] = None,
+        document_json: Optional[str] = None,
+    ) -> None:
+        """Validate payload sizes for a document revision against configured limits."""
+
+        if metadata_json is None:
+            metadata_json = json.dumps(document.metadata.to_dict())
+        if document_json is None:
+            document_json = document.to_json()
+        self._enforce_limit("body", document.body, self._max_body_size)
+        self._enforce_limit("metadata", metadata_json, self._max_metadata_size)
+        self._enforce_limit("document JSON", document_json, self._max_document_size)
 
     @contextmanager
     def _temporary_doc_prefix(
@@ -74,6 +119,9 @@ class VersionedStore:
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+                ON revisions(doc_id, effective_date DESC);
 
                 CREATE TABLE IF NOT EXISTS toc (
                     doc_id INTEGER NOT NULL,
@@ -121,7 +169,7 @@ class VersionedStore:
                     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
                     FOREIGN KEY (doc_id, rev_id, toc_id)
                         REFERENCES toc(doc_id, rev_id, toc_id)
-                );
+                ) WITHOUT ROWID;
 
                 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
                 ON provisions(doc_id, rev_id, provision_id);
@@ -154,10 +202,11 @@ class VersionedStore:
                         REFERENCES provisions(doc_id, rev_id, provision_id),
                     FOREIGN KEY (doc_id, rev_id, toc_id)
                         REFERENCES toc(doc_id, rev_id, toc_id)
-                );
+                ) WITHOUT ROWID;
 
-                CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
-                ON rule_atoms(doc_id, rev_id, provision_id);
+                DROP INDEX IF EXISTS idx_rule_atoms_doc_rev;
+                CREATE INDEX idx_rule_atoms_doc_rev
+                ON rule_atoms(doc_id, rev_id, provision_id, rule_id);
 
                 DROP INDEX IF EXISTS idx_rule_atoms_unique_text;
                 CREATE UNIQUE INDEX idx_rule_atoms_unique_text
@@ -188,8 +237,9 @@ class VersionedStore:
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
-                ON rule_atom_subjects(doc_id, rev_id, provision_id);
+                DROP INDEX IF EXISTS idx_rule_atom_subjects_doc_rev;
+                CREATE INDEX idx_rule_atom_subjects_doc_rev
+                ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id);
 
                 CREATE TABLE IF NOT EXISTS rule_atom_references (
                     doc_id INTEGER NOT NULL,
@@ -227,10 +277,11 @@ class VersionedStore:
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
-                );
+                ) WITHOUT ROWID;
 
-                CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
-                ON rule_elements(doc_id, rev_id, provision_id, rule_id);
+                DROP INDEX IF EXISTS idx_rule_elements_doc_rev;
+                CREATE INDEX idx_rule_elements_doc_rev
+                ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id);
 
                 CREATE TABLE IF NOT EXISTS rule_element_references (
                     doc_id INTEGER NOT NULL,
@@ -258,6 +309,19 @@ class VersionedStore:
                     definition TEXT NOT NULL,
                     metadata TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS receipts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    data TEXT NOT NULL,
+                    simhash TEXT,
+                    minhash TEXT
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_simhash
+                ON receipts(simhash);
+
+                CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+                ON receipts(minhash);
 
                 CREATE TABLE IF NOT EXISTS rule_lints (
                     doc_id INTEGER NOT NULL,
@@ -293,8 +357,23 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
                 ON atom_references(doc_id, rev_id, provision_id, atom_id);
 
-                CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
-                    body, metadata, content='revisions', content_rowid='rowid'
+                DROP TABLE IF EXISTS revisions_fts;
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS provision_text_fts USING fts5(
+                    doc_id UNINDEXED,
+                    rev_id UNINDEXED,
+                    provision_id UNINDEXED,
+                    text,
+                    tokenize='porter'
+                );
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS rule_atom_text_fts USING fts5(
+                    doc_id UNINDEXED,
+                    rev_id UNINDEXED,
+                    provision_id UNINDEXED,
+                    rule_id UNINDEXED,
+                    text,
+                    tokenize='porter'
                 );
                 """
             )
@@ -303,7 +382,10 @@ class VersionedStore:
         self._populate_text_hashes()
         self._backfill_toc_stable_ids()
         self._deduplicate_rule_atoms()
+        self._ensure_without_rowid_tables()
         self._ensure_unique_indexes()
+        self._ensure_receipts_indexes()
+        self._ensure_document_json_column()
         self._backfill_rule_tables()
         self._ensure_atoms_view()
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
@@ -313,6 +395,7 @@ class VersionedStore:
         self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
 
         self._backfill_glossary_ids()
+        self._backfill_text_indexes()
 
     def _ensure_toc_page_number_column(self) -> None:
         cur = self.conn.execute("PRAGMA table_info(toc)")
@@ -524,6 +607,155 @@ class VersionedStore:
                         params,
                     )
 
+    def _ensure_without_rowid_tables(self) -> None:
+        """Rebuild legacy rowid tables to ``WITHOUT ROWID`` variants."""
+
+        table_definitions: dict[str, tuple[str, tuple[str, ...]]] = {
+            "provisions": (
+                dedent(
+                    """
+                    CREATE TABLE provisions (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        parent_id INTEGER,
+                        identifier TEXT,
+                        heading TEXT,
+                        node_type TEXT,
+                        toc_id INTEGER,
+                        text TEXT,
+                        rule_tokens TEXT,
+                        references_json TEXT,
+                        principles TEXT,
+                        customs TEXT,
+                        cultural_flags TEXT,
+                        PRIMARY KEY (doc_id, rev_id, provision_id),
+                        FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                        FOREIGN KEY (doc_id, rev_id, toc_id)
+                            REFERENCES toc(doc_id, rev_id, toc_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev\n"
+                    "ON provisions(doc_id, rev_id, provision_id)",
+                    "CREATE INDEX IF NOT EXISTS idx_provisions_toc\n"
+                    "ON provisions(doc_id, rev_id, toc_id)",
+                ),
+            ),
+            "rule_atoms": (
+                dedent(
+                    """
+                    CREATE TABLE rule_atoms (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        rule_id INTEGER NOT NULL,
+                        text_hash TEXT NOT NULL,
+                        toc_id INTEGER,
+                        stable_id TEXT,
+                        atom_type TEXT,
+                        role TEXT,
+                        party TEXT,
+                        who TEXT,
+                        who_text TEXT,
+                        actor TEXT,
+                        modality TEXT,
+                        action TEXT,
+                        conditions TEXT,
+                        scope TEXT,
+                        text TEXT,
+                        subject_gloss TEXT,
+                        subject_gloss_metadata TEXT,
+                        glossary_id INTEGER,
+                        PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
+                        FOREIGN KEY (doc_id, rev_id, provision_id)
+                            REFERENCES provisions(doc_id, rev_id, provision_id),
+                        FOREIGN KEY (doc_id, rev_id, toc_id)
+                            REFERENCES toc(doc_id, rev_id, toc_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev\n"
+                    "ON rule_atoms(doc_id, rev_id, provision_id)",
+                ),
+            ),
+            "rule_elements": (
+                dedent(
+                    """
+                    CREATE TABLE rule_elements (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        rule_id INTEGER NOT NULL,
+                        element_id INTEGER NOT NULL,
+                        text_hash TEXT,
+                        atom_type TEXT,
+                        role TEXT,
+                        text TEXT,
+                        conditions TEXT,
+                        gloss TEXT,
+                        gloss_metadata TEXT,
+                        glossary_id INTEGER,
+                        PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
+                        FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+                            REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev\n"
+                    "ON rule_elements(doc_id, rev_id, provision_id, rule_id)",
+                ),
+            ),
+        }
+
+        for table_name, (create_sql, index_sqls) in table_definitions.items():
+            if self._object_type(table_name) != "table":
+                continue
+
+            sql_row = self.conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+                (table_name,),
+            ).fetchone()
+            if sql_row is None:
+                continue
+
+            existing_sql = sql_row["sql"] or ""
+            if "WITHOUT ROWID" in existing_sql.upper():
+                continue
+
+            column_rows = self.conn.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+            if not column_rows:
+                continue
+
+            column_list = ", ".join(f'"{row["name"]}"' for row in column_rows)
+            temp_name = f"{table_name}_rowid_backup"
+            previous_fk_state = self.conn.execute("PRAGMA foreign_keys").fetchone()[0]
+
+            try:
+                self.conn.execute("PRAGMA foreign_keys = OFF")
+                with self.conn:
+                    self.conn.execute(f"DROP TABLE IF EXISTS {temp_name}")
+                    self.conn.execute(f"ALTER TABLE {table_name} RENAME TO {temp_name}")
+                    self.conn.executescript(create_sql)
+                    insert_sql = (
+                        f"INSERT INTO {table_name} ({column_list}) "
+                        f"SELECT {column_list} FROM {temp_name}"
+                    )
+                    self.conn.execute(insert_sql)
+                    self.conn.execute(f"DROP TABLE {temp_name}")
+                    for index_sql in index_sqls:
+                        self.conn.execute(index_sql)
+            finally:
+                if previous_fk_state:
+                    self.conn.execute("PRAGMA foreign_keys = ON")
+                else:
+                    self.conn.execute("PRAGMA foreign_keys = OFF")
+
     def _compute_rule_atom_hash(
         self,
         *,
@@ -620,11 +852,32 @@ class VersionedStore:
         """Create the uniqueness constraint for structured rule atoms."""
 
         with self.conn:
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_atoms_doc_rev
+                ON rule_atoms(doc_id, rev_id, provision_id, rule_id)
+                """
+            )
             self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
             self.conn.execute(
                 """
                 CREATE UNIQUE INDEX idx_rule_atoms_unique_text
                 ON rule_atoms(doc_id, stable_id, party, role, text_hash)
+                """
+            )
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_atom_subjects_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_atom_subjects_doc_rev
+                ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id)
+                """
+            )
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_elements_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_elements_doc_rev
+                ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id)
                 """
             )
             self.conn.execute(
@@ -633,6 +886,26 @@ class VersionedStore:
                 ON rule_atoms(doc_id, rev_id, toc_id)
                 """
             )
+
+    def _ensure_revisions_effective_index(self) -> None:
+        """Ensure revisions are indexed by document and effective date."""
+
+        with self.conn:
+            self.conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+                ON revisions(doc_id, effective_date DESC)
+                """
+            )
+
+    def _ensure_document_json_column(self) -> None:
+        """Ensure the revisions table includes the ``document_json`` column."""
+
+        cur = self.conn.execute("PRAGMA table_info(revisions)")
+        columns = {row["name"] for row in cur.fetchall()}
+        if "document_json" not in columns:
+            with self.conn:
+                self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
 
     def _object_type(self, name: str) -> Optional[str]:
         """Return the SQLite object type for ``name`` if it exists."""
@@ -890,6 +1163,79 @@ class VersionedStore:
             "CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc ON rule_atoms(doc_id, rev_id, toc_id)"
         )
 
+    def _backfill_text_indexes(self) -> None:
+        """Ensure provision and rule atom FTS tables mirror stored content."""
+
+        has_provision_index = self._object_type("provision_text_fts") is not None
+        has_rule_atom_index = self._object_type("rule_atom_text_fts") is not None
+
+        if not has_provision_index and not has_rule_atom_index:
+            return
+
+        with self.conn:
+            if has_provision_index:
+                provision_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM provisions"
+                ).fetchone()[0]
+                fts_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM provision_text_fts"
+                ).fetchone()[0]
+                if provision_total != fts_total:
+                    self.conn.execute("DELETE FROM provision_text_fts")
+                    rows = self.conn.execute(
+                        """
+                        SELECT doc_id, rev_id, provision_id, COALESCE(text, '') AS text
+                        FROM provisions
+                        """
+                    )
+                    self.conn.executemany(
+                        """
+                        INSERT INTO provision_text_fts(doc_id, rev_id, provision_id, text)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            (
+                                row["doc_id"],
+                                row["rev_id"],
+                                row["provision_id"],
+                                row["text"],
+                            )
+                            for row in rows
+                        ),
+                    )
+
+            if has_rule_atom_index:
+                atom_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM rule_atoms"
+                ).fetchone()[0]
+                fts_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM rule_atom_text_fts"
+                ).fetchone()[0]
+                if atom_total != fts_total:
+                    self.conn.execute("DELETE FROM rule_atom_text_fts")
+                    rows = self.conn.execute(
+                        """
+                        SELECT doc_id, rev_id, provision_id, rule_id, COALESCE(text, '') AS text
+                        FROM rule_atoms
+                        """
+                    )
+                    self.conn.executemany(
+                        """
+                        INSERT INTO rule_atom_text_fts(doc_id, rev_id, provision_id, rule_id, text)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            (
+                                row["doc_id"],
+                                row["rev_id"],
+                                row["provision_id"],
+                                row["rule_id"],
+                                row["text"],
+                            )
+                            for row in rows
+                        ),
+                    )
+
     # ------------------------------------------------------------------
     def _backfill_toc_stable_ids(self) -> None:
         """Ensure TOC rows and rule atoms have deterministic stable identifiers."""
@@ -1036,6 +1382,12 @@ class VersionedStore:
             if document.metadata.retrieved_at
             else None
         )
+        document_json = document.to_json()
+        self.validate_revision_payload(
+            document,
+            metadata_json=metadata_json,
+            document_json=document_json,
+        )
         with self.conn:
             cur = self.conn.execute(
                 "SELECT COALESCE(MAX(rev_id), 0) + 1 FROM revisions WHERE doc_id = ?",
@@ -1061,11 +1413,6 @@ class VersionedStore:
                     document.metadata.checksum,
                     document.metadata.licence,
                 ),
-            )
-            # keep FTS table in sync
-            self.conn.execute(
-                "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
-                (document.body, metadata_json),
             )
             self._store_provisions(
                 doc_id, rev_id, document.provisions, toc_entries, document.metadata
@@ -1451,6 +1798,21 @@ class VersionedStore:
         """Persist provision and atom data for a revision."""
 
         atoms_is_table = self._object_type("atoms") == "table"
+        has_provision_fts = self._object_type("provision_text_fts") is not None
+        has_rule_atom_fts = self._object_type("rule_atom_text_fts") is not None
+
+        if has_provision_fts:
+            self.conn.execute(
+                "DELETE FROM provision_text_fts WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+        if has_rule_atom_fts:
+            self.conn.execute(
+                "DELETE FROM rule_atom_text_fts WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+
+        provision_text_entries: list[tuple[int, int, int, str]] = []
 
         self.conn.execute(
             "DELETE FROM rule_element_references WHERE doc_id = ? AND rev_id = ?",
@@ -1610,6 +1972,16 @@ class VersionedStore:
                 ),
             )
 
+            if has_provision_fts:
+                provision_text_entries.append(
+                    (
+                        doc_id,
+                        rev_id,
+                        current_id,
+                        provision.text or "",
+                    )
+                )
+
             if provision.rule_atoms:
                 self._persist_rule_structures(
                     doc_id,
@@ -1618,6 +1990,7 @@ class VersionedStore:
                     provision.rule_atoms,
                     provision.toc_id,
                     provision.stable_id,
+                    has_rule_atom_fts=has_rule_atom_fts,
                 )
 
             if atoms_is_table:
@@ -1734,6 +2107,18 @@ class VersionedStore:
             visit(provision, None)
 
     def _load_provisions(self, doc_id: int, rev_id: int) -> List[Provision]:
+        if has_provision_fts and provision_text_entries:
+            self.conn.executemany(
+                """
+                INSERT INTO provision_text_fts(doc_id, rev_id, provision_id, text)
+                VALUES (?, ?, ?, ?)
+                """,
+                provision_text_entries,
+            )
+
+    def _load_provisions(
+        self, doc_id: int, rev_id: int
+    ) -> Tuple[List[Provision], bool]:
         """Load provisions and atoms for a revision."""
 
         provision_rows = self.conn.execute(
@@ -2169,6 +2554,8 @@ class VersionedStore:
         rule_atoms: List[RuleAtom],
         toc_id: Optional[int],
         stable_id: Optional[str] = None,
+        *,
+        has_rule_atom_fts: Optional[bool] = None,
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -2184,6 +2571,9 @@ class VersionedStore:
 
         seen_hashes: set[str] = set()
         rule_counter = 0
+
+        if has_rule_atom_fts is None:
+            has_rule_atom_fts = self._object_type("rule_atom_text_fts") is not None
 
         for rule_atom in rule_atoms:
             subject_atom = rule_atom.get_subject_atom()
@@ -2452,6 +2842,23 @@ class VersionedStore:
                         lint.message or "",
                         lint_metadata_json,
                     ),
+                )
+
+            if has_rule_atom_fts:
+                text_value = rule_atom.text or ""
+                self.conn.execute(
+                    """
+                    DELETE FROM rule_atom_text_fts
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                    """,
+                    (doc_id, rev_id, provision_id, rule_index),
+                )
+                self.conn.execute(
+                    """
+                    INSERT INTO rule_atom_text_fts(doc_id, rev_id, provision_id, rule_id, text)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (doc_id, rev_id, provision_id, rule_index, text_value),
                 )
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:

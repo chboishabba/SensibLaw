@@ -65,6 +65,12 @@ CREATE TABLE IF NOT EXISTS receipts (
     minhash TEXT
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_simhash
+ON receipts(simhash);
+
+CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+ON receipts(minhash);
+
 CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT
 );
@@ -82,6 +88,9 @@ CREATE TABLE IF NOT EXISTS revisions (
     PRIMARY KEY (doc_id, rev_id),
     FOREIGN KEY (doc_id) REFERENCES documents(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+ON revisions(doc_id, effective_date DESC);
 
 CREATE TABLE IF NOT EXISTS toc (
     doc_id INTEGER NOT NULL,
@@ -129,7 +138,7 @@ CREATE TABLE IF NOT EXISTS provisions (
     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
     FOREIGN KEY (doc_id, rev_id, toc_id)
         REFERENCES toc(doc_id, rev_id, toc_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
 ON provisions(doc_id, rev_id, provision_id);
@@ -295,10 +304,10 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
         REFERENCES provisions(doc_id, rev_id, provision_id),
     FOREIGN KEY (doc_id, rev_id, toc_id)
         REFERENCES toc(doc_id, rev_id, toc_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
-ON rule_atoms(doc_id, rev_id, provision_id);
+ON rule_atoms(doc_id, rev_id, provision_id, rule_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
 ON rule_atoms(doc_id, stable_id, party, role, text_hash);
@@ -327,7 +336,7 @@ CREATE TABLE IF NOT EXISTS rule_atom_subjects (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
-ON rule_atom_subjects(doc_id, rev_id, provision_id);
+ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id);
 
 CREATE TABLE IF NOT EXISTS rule_atom_references (
     doc_id INTEGER NOT NULL,
@@ -365,10 +374,10 @@ CREATE TABLE IF NOT EXISTS rule_elements (
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
-ON rule_elements(doc_id, rev_id, provision_id, rule_id);
+ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id);
 
 CREATE TABLE IF NOT EXISTS rule_element_references (
     doc_id INTEGER NOT NULL,
@@ -424,6 +433,21 @@ CREATE TABLE IF NOT EXISTS atom_references (
 CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
 ON atom_references(doc_id, rev_id, provision_id, atom_id);
 
-CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
-    body, metadata, content='revisions', content_rowid='rowid'
+DROP TABLE IF EXISTS revisions_fts;
+
+CREATE VIRTUAL TABLE IF NOT EXISTS provision_text_fts USING fts5(
+    doc_id UNINDEXED,
+    rev_id UNINDEXED,
+    provision_id UNINDEXED,
+    text,
+    tokenize='porter'
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS rule_atom_text_fts USING fts5(
+    doc_id UNINDEXED,
+    rev_id UNINDEXED,
+    provision_id UNINDEXED,
+    rule_id UNINDEXED,
+    text,
+    tokenize='porter'
 );
