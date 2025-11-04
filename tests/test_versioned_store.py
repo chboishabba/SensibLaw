@@ -1,6 +1,7 @@
 """Tests for the versioned store implementation."""
 
 import json
+import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -1037,6 +1038,196 @@ def test_migration_preserves_rule_atoms_with_distinct_party_role(tmp_path: Path)
         assert roles == {base_role, "alternate-role"}
     finally:
         migrated.close()
+
+
+def test_tables_use_without_rowid(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        for table_name in ("provisions", "rule_atoms", "rule_elements"):
+            info_rows = store.conn.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+            assert info_rows, f"expected columns for {table_name}"
+
+            with pytest.raises(sqlite3.OperationalError):
+                store.conn.execute(f"SELECT rowid FROM {table_name} LIMIT 1")
+    finally:
+        store.close()
+
+
+def test_migration_converts_rowid_tables(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy_rowid.db"
+    conn = sqlite3.connect(db_path)
+    try:
+        with conn:
+            conn.executescript(
+                """
+                CREATE TABLE documents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT
+                );
+
+                CREATE TABLE revisions (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    effective_date TEXT NOT NULL,
+                    metadata TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    source_url TEXT,
+                    retrieved_at TEXT,
+                    checksum TEXT,
+                    licence TEXT,
+                    document_json TEXT,
+                    PRIMARY KEY (doc_id, rev_id),
+                    FOREIGN KEY (doc_id) REFERENCES documents(id)
+                );
+
+                CREATE TABLE toc (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    toc_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    node_type TEXT,
+                    identifier TEXT,
+                    title TEXT,
+                    stable_id TEXT,
+                    position INTEGER NOT NULL,
+                    page_number INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, toc_id)
+                );
+
+                CREATE TABLE provisions (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    identifier TEXT,
+                    heading TEXT,
+                    node_type TEXT,
+                    toc_id INTEGER,
+                    text TEXT,
+                    rule_tokens TEXT,
+                    references_json TEXT,
+                    principles TEXT,
+                    customs TEXT,
+                    cultural_flags TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id)
+                );
+
+                CREATE TABLE rule_atoms (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    text_hash TEXT NOT NULL,
+                    toc_id INTEGER,
+                    stable_id TEXT,
+                    atom_type TEXT,
+                    role TEXT,
+                    party TEXT,
+                    who TEXT,
+                    who_text TEXT,
+                    actor TEXT,
+                    modality TEXT,
+                    action TEXT,
+                    conditions TEXT,
+                    scope TEXT,
+                    text TEXT,
+                    subject_gloss TEXT,
+                    subject_gloss_metadata TEXT,
+                    glossary_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id)
+                );
+
+                CREATE TABLE rule_elements (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    element_id INTEGER NOT NULL,
+                    text_hash TEXT,
+                    atom_type TEXT,
+                    role TEXT,
+                    text TEXT,
+                    conditions TEXT,
+                    gloss TEXT,
+                    gloss_metadata TEXT,
+                    glossary_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id)
+                );
+                """
+            )
+
+            conn.execute("INSERT INTO documents (id) VALUES (1)")
+            conn.execute(
+                """
+                INSERT INTO revisions (
+                    doc_id, rev_id, effective_date, metadata, body,
+                    source_url, retrieved_at, checksum, licence, document_json
+                )
+                VALUES (1, 1, '2020-01-01', '{}', 'body', NULL, NULL, NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO provisions (
+                    doc_id, rev_id, provision_id, parent_id, identifier, heading,
+                    node_type, toc_id, text, rule_tokens, references_json,
+                    principles, customs, cultural_flags
+                )
+                VALUES (1, 1, 1, NULL, 's 1', 'Heading', 'section', NULL,
+                        'Provision text', NULL, '{}', NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO rule_atoms (
+                    doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, stable_id,
+                    atom_type, role, party, who, who_text, actor, modality, action,
+                    conditions, scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+                )
+                VALUES (1, 1, 1, 1, 'hash', NULL, 'stable', 'rule', 'role', 'party',
+                        NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Atom text',
+                        NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO rule_elements (
+                    doc_id, rev_id, provision_id, rule_id, element_id, text_hash,
+                    atom_type, role, text, conditions, gloss, gloss_metadata, glossary_id
+                )
+                VALUES (1, 1, 1, 1, 1, NULL, 'element', 'role', 'Element text',
+                        NULL, NULL, NULL, NULL)
+                """
+            )
+    finally:
+        conn.close()
+
+    store = VersionedStore(str(db_path))
+    try:
+        heading = store.conn.execute(
+            "SELECT heading FROM provisions WHERE doc_id = 1 AND rev_id = 1"
+        ).fetchone()
+        assert heading is not None
+        assert heading["heading"] == "Heading"
+
+        atom_row = store.conn.execute(
+            "SELECT text FROM rule_atoms WHERE doc_id = 1 AND rev_id = 1 AND rule_id = 1"
+        ).fetchone()
+        assert atom_row is not None
+        assert atom_row["text"] == "Atom text"
+
+        element_row = store.conn.execute(
+            "SELECT text FROM rule_elements WHERE doc_id = 1 AND rev_id = 1 AND element_id = 1"
+        ).fetchone()
+        assert element_row is not None
+        assert element_row["text"] == "Element text"
+
+        for table_name in ("provisions", "rule_atoms", "rule_elements"):
+            with pytest.raises(sqlite3.OperationalError):
+                store.conn.execute(f"SELECT rowid FROM {table_name} LIMIT 1")
+    finally:
+        store.close()
 
 
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
