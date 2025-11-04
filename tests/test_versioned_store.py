@@ -5,6 +5,8 @@ from datetime import date, datetime
 from pathlib import Path
 import sys
 
+import pytest
+
 # ruff: noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +25,9 @@ from src.models.provision import (
     RuleLint,
     RuleReference,
 )
+from src.models.sentence import Sentence
 from src.storage import VersionedStore
+from src.storage.versioned_store import PayloadTooLargeError
 
 
 def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
@@ -88,6 +92,71 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
         date(2021, 1, 1),
     )
     return store, doc_id
+
+
+def _make_metadata() -> DocumentMetadata:
+    return DocumentMetadata(
+        jurisdiction="AU",
+        citation="Citation",
+        date=date(2024, 1, 1),
+    )
+
+
+def test_add_revision_respects_body_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_body_size=8,
+    )
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "x" * 9,
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="body payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
+
+
+def test_add_revision_respects_metadata_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_metadata_size=10,
+    )
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "short body",
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="metadata payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
+
+
+def test_add_revision_respects_document_json_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_document_size=10,
+    )
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "short body",
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="document JSON payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
 
 
 def test_snapshot(tmp_path: Path):

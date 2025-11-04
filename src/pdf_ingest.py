@@ -2090,6 +2090,7 @@ def process_pdf(
             actual_doc_id = doc_id if doc_id is not None else store.generate_id()
             if not doc.metadata.canonical_id:
                 doc.metadata.canonical_id = str(actual_doc_id)
+            store.validate_revision_payload(doc)
             store.add_revision(actual_doc_id, doc, doc.metadata.date)
             stored_doc_id = actual_doc_id
         finally:
