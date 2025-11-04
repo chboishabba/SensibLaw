@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import yaml
 
 from .dependencies import DependencyCandidate, SentenceDependencies, get_dependencies
 
@@ -19,100 +22,41 @@ class PartyLexeme:
 UNKNOWN_PARTY = "unknown"
 
 
-PARTY_LEXICON: Dict[str, PartyLexeme] = {
-    "court": PartyLexeme(
-        role="decision_maker",
-        who_text="the court",
-        aliases=(
-            "court",
-            "the court",
-            "judge",
-            "the judge",
-            "justice",
-            "magistrate",
-            "tribunal",
-            "sentencing judge",
-        ),
-    ),
-    "prosecution": PartyLexeme(
-        role="prosecutor",
-        who_text="the prosecution",
-        aliases=(
-            "prosecution",
-            "the prosecution",
-            "prosecutor",
-            "prosecutors",
-            "crown",
-            "director of public prosecutions",
-            "dpp",
-            "attorney general",
-            "the state",
-            "district attorney",
-        ),
-    ),
-    "defence": PartyLexeme(
-        role="accused",
-        who_text="the accused",
-        aliases=(
-            "defendant",
-            "defendants",
-            "defence",
-            "defense",
-            "accused",
-            "respondent",
-            "respondents",
-            "appellant",
-            "offender",
-            "offenders",
-            "prisoner",
-            "person charged",
-            "the person charged",
-        ),
-    ),
-    "police": PartyLexeme(
-        role="law_enforcement",
-        who_text="law enforcement",
-        aliases=(
-            "police",
-            "police officer",
-            "police officers",
-            "constable",
-            "constables",
-            "sheriff",
-            "law enforcement",
-        ),
-    ),
-    "victim": PartyLexeme(
-        role="victim",
-        who_text="the victim",
-        aliases=(
-            "victim",
-            "victims",
-            "complainant",
-            "complainants",
-            "survivor",
-            "survivors",
-        ),
-    ),
-    "other": PartyLexeme(
-        role="public_body",
-        who_text="the authority",
-        aliases=(
-            "minister",
-            "the minister",
-            "secretary",
-            "director",
-            "commission",
-            "board",
-            "authority",
-            "department",
-            "agency",
-            "regulator",
-            "council",
-            "committee",
-        ),
-    ),
-}
+ACTOR_TAXONOMY_PATH = Path(__file__).resolve().parents[2] / "data" / "ontology" / "actors.yaml"
+
+
+def _load_party_lexicon() -> Dict[str, PartyLexeme]:
+    with ACTOR_TAXONOMY_PATH.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+
+    actors = data.get("actors", {})
+    if not actors:
+        raise ValueError("Actor taxonomy did not define any actors")
+
+    lexicon: Dict[str, PartyLexeme] = {}
+    for canonical, info in actors.items():
+        role = info.get("role")
+        who_text = info.get("who_text")
+        if not role or not who_text:
+            raise ValueError(f"Actor taxonomy entry '{canonical}' must define 'role' and 'who_text'")
+
+        aliases = list(info.get("aliases", ()))
+        if canonical not in aliases:
+            aliases.append(canonical)
+
+        seen = set()
+        unique_aliases = [alias for alias in aliases if not (alias in seen or seen.add(alias))]
+
+        lexicon[canonical] = PartyLexeme(
+            role=role,
+            who_text=who_text,
+            aliases=tuple(unique_aliases),
+        )
+
+    return lexicon
+
+
+PARTY_LEXICON: Dict[str, PartyLexeme] = _load_party_lexicon()
 
 
 def _normalise(text: str) -> str:
