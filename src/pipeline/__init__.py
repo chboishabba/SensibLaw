@@ -337,21 +337,15 @@ def build_logic_tree(tokens: TokenStream) -> Any:
 
 
 __all__ = [
+    "Token",
+    "TokenStream",
+    "NormalisedText",
     "normalise",
     "match_concepts",
     "build_cloud",
     "tokenise",
     "build_logic_tree",
     "spacy_adapter",
-    "Token",
-    "TokenStream",
-    "harm_index",
-__all__ = [
-    "Token",
-    "NormalisedText",
-    "normalise",
-    "match_concepts",
-    "build_cloud",
     "harm_index",
     "analyze_references",
     "get_ner_pipeline",
