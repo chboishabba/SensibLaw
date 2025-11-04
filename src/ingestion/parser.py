@@ -38,6 +38,8 @@ def emit_document(record: Dict[str, Any]) -> Document:
     """Convert a raw record dictionary into a tagged :class:`Document` instance."""
     check_consent(record)
     doc = Document.from_dict(record)
+    if record.get("cultural_flags"):
+        doc.metadata.cultural_flags = list(record["cultural_flags"])
     provision = Provision(text=record["body"])
     tags = tag_provision(provision)
     doc.provisions = [provision]
@@ -51,6 +53,8 @@ def emit_document_from_json(data: str) -> Document:
     record = json.loads(data)
     check_consent(record)
     doc = Document.from_dict(record)
+    if record.get("cultural_flags"):
+        doc.metadata.cultural_flags = list(record["cultural_flags"])
     provision = Provision(text=record["body"])
     tags = tag_provision(provision)
     doc.provisions = [provision]

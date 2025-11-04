@@ -47,6 +47,8 @@ def test_sacred_without_consent_summarised(caplog):
         doc = emit_document(record)
     assert doc.body == SUMMARY_NOTE
     assert "Consent receipt" not in caplog.text
+    assert record["cultural_flags"] == ["SACRED_DATA"]
+    assert doc.metadata.cultural_flags == ["SACRED_DATA"]
 
 
 def test_log_and_allow_with_consent(caplog):
@@ -55,6 +57,8 @@ def test_log_and_allow_with_consent(caplog):
         doc = emit_document(record)
     assert doc.body == "example body"
     assert "Consent receipt" in caplog.text
+    assert record["cultural_flags"] == ["SACRED_DATA"]
+    assert doc.metadata.cultural_flags == ["SACRED_DATA"]
 
 
 def test_from_json_summarises_without_consent(caplog):
@@ -64,6 +68,7 @@ def test_from_json_summarises_without_consent(caplog):
         doc = emit_document_from_json(data)
     assert doc.body == SUMMARY_NOTE
     assert "Consent receipt" not in caplog.text
+    assert doc.metadata.cultural_flags == ["SACRED_DATA"]
 
 
 def test_consent_required_field_blocks():
@@ -83,3 +88,14 @@ def test_consent_required_allows_with_consent(caplog):
         doc = emit_document(record)
     assert doc.body == "example body"
     assert "Consent receipt" in caplog.text
+
+
+def test_alias_flags_canonicalised():
+    record = sample_record(flags=["pii"])
+    doc = emit_document(record)
+    assert record["cultural_flags"] == [
+        "PERSONALLY_IDENTIFIABLE_INFORMATION"
+    ]
+    assert doc.metadata.cultural_flags == [
+        "PERSONALLY_IDENTIFIABLE_INFORMATION"
+    ]

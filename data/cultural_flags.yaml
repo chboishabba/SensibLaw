@@ -1,0 +1,32 @@
+SACRED_DATA:
+  canonical_name: "Sacred data"
+  description: "Material with culturally restricted access or knowledge."
+  defaults:
+    redaction: omit
+    consent_required: true
+  annotation:
+    policy: "Sensitive material withheld pending community consent."
+  aliases:
+    - sacred_data
+    - sacred-data
+PERSONALLY_IDENTIFIABLE_INFORMATION:
+  canonical_name: "Personally identifiable information"
+  description: "Details that may directly identify individuals in cultural records."
+  defaults:
+    redaction: none
+    consent_required: true
+  annotation:
+    policy: "Protected personal information; retain only with explicit consent."
+  aliases:
+    - personally_identifiable_information
+    - pii
+PUBLIC_DOMAIN:
+  canonical_name: "Public domain material"
+  description: "Content confirmed to be publicly accessible without restriction."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "No consent required; retain full text with provenance noted."
+  aliases:
+    - public_domain

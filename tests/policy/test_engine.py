@@ -1,11 +1,13 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from src.policy.engine import CulturalFlags, PolicyEngine
+import yaml
+
+from src.policy.engine import CulturalFlags, PolicyEngine, resolve_cultural_flag
 from src.graph import GraphNode, NodeType
 
 RULES = ROOT / "data" / "cultural_rules.yaml"
@@ -89,3 +91,14 @@ def test_override_allows_original():
     )
     allowed = engine.enforce(node, consent=True, phase="export")
     assert allowed.metadata["pii"] == "x"
+
+
+def test_enum_matches_registry():
+    with open(ROOT / "data" / "cultural_flags.yaml", "r", encoding="utf-8") as fh:
+        registry = yaml.safe_load(fh) or {}
+    assert {flag.value for flag in CulturalFlags} == set(registry.keys())
+
+
+def test_resolve_aliases():
+    alias = resolve_cultural_flag("pii")
+    assert alias is CulturalFlags.PERSONALLY_IDENTIFIABLE_INFORMATION
