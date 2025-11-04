@@ -1644,7 +1644,7 @@ def _strip_embedded_table_of_contents(text: str) -> str:
             or has_page_marker
             or (
                 has_dot_leader_block
-                has_dot_leader
+                and has_dot_leader
                 and any(char.isdigit() for char in normalised)
             )
         )
