@@ -22,15 +22,58 @@ from src.models.provision import (
 )
 
 
+class PayloadTooLargeError(ValueError):
+    """Raised when a payload exceeds the configured storage limits."""
+
+
 class VersionedStore:
     """SQLite-backed store maintaining versioned documents using FTS5."""
 
-    def __init__(self, path: str | Path):
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        max_body_size: int | None = None,
+        max_metadata_size: int | None = None,
+        max_document_size: int | None = None,
+    ):
         self.path = str(path)
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
+        self._max_body_size = max_body_size
+        self._max_metadata_size = max_metadata_size
+        self._max_document_size = max_document_size
         self._init_schema()
         self._ensure_toc_page_number_column()
+
+    # ------------------------------------------------------------------
+    # Payload validation helpers
+    # ------------------------------------------------------------------
+    def _enforce_limit(self, label: str, payload: Optional[str], limit: Optional[int]) -> None:
+        if limit is None or payload is None:
+            return
+        size = len(payload.encode("utf-8"))
+        if size > limit:
+            raise PayloadTooLargeError(
+                f"Document {label} payload is {size} bytes, exceeding the configured limit of {limit} bytes."
+            )
+
+    def validate_revision_payload(
+        self,
+        document: Document,
+        *,
+        metadata_json: Optional[str] = None,
+        document_json: Optional[str] = None,
+    ) -> None:
+        """Validate payload sizes for a document revision against configured limits."""
+
+        if metadata_json is None:
+            metadata_json = json.dumps(document.metadata.to_dict())
+        if document_json is None:
+            document_json = document.to_json()
+        self._enforce_limit("body", document.body, self._max_body_size)
+        self._enforce_limit("metadata", metadata_json, self._max_metadata_size)
+        self._enforce_limit("document JSON", document_json, self._max_document_size)
 
     @contextmanager
     def _temporary_doc_prefix(
@@ -1055,6 +1098,11 @@ class VersionedStore:
             else None
         )
         document_json = document.to_json()
+        self.validate_revision_payload(
+            document,
+            metadata_json=metadata_json,
+            document_json=document_json,
+        )
         with self.conn:
             cur = self.conn.execute(
                 "SELECT COALESCE(MAX(rev_id), 0) + 1 FROM revisions WHERE doc_id = ?",
