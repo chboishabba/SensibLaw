@@ -294,8 +294,23 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
                 ON atom_references(doc_id, rev_id, provision_id, atom_id);
 
-                CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
-                    body, metadata, content='revisions', content_rowid='rowid'
+                DROP TABLE IF EXISTS revisions_fts;
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS provision_text_fts USING fts5(
+                    doc_id UNINDEXED,
+                    rev_id UNINDEXED,
+                    provision_id UNINDEXED,
+                    text,
+                    tokenize='porter'
+                );
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS rule_atom_text_fts USING fts5(
+                    doc_id UNINDEXED,
+                    rev_id UNINDEXED,
+                    provision_id UNINDEXED,
+                    rule_id UNINDEXED,
+                    text,
+                    tokenize='porter'
                 );
                 """
             )
@@ -315,6 +330,7 @@ class VersionedStore:
         self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
 
         self._backfill_glossary_ids()
+        self._backfill_text_indexes()
 
     def _ensure_toc_page_number_column(self) -> None:
         cur = self.conn.execute("PRAGMA table_info(toc)")
@@ -908,6 +924,79 @@ class VersionedStore:
             "CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc ON rule_atoms(doc_id, rev_id, toc_id)"
         )
 
+    def _backfill_text_indexes(self) -> None:
+        """Ensure provision and rule atom FTS tables mirror stored content."""
+
+        has_provision_index = self._object_type("provision_text_fts") is not None
+        has_rule_atom_index = self._object_type("rule_atom_text_fts") is not None
+
+        if not has_provision_index and not has_rule_atom_index:
+            return
+
+        with self.conn:
+            if has_provision_index:
+                provision_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM provisions"
+                ).fetchone()[0]
+                fts_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM provision_text_fts"
+                ).fetchone()[0]
+                if provision_total != fts_total:
+                    self.conn.execute("DELETE FROM provision_text_fts")
+                    rows = self.conn.execute(
+                        """
+                        SELECT doc_id, rev_id, provision_id, COALESCE(text, '') AS text
+                        FROM provisions
+                        """
+                    )
+                    self.conn.executemany(
+                        """
+                        INSERT INTO provision_text_fts(doc_id, rev_id, provision_id, text)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            (
+                                row["doc_id"],
+                                row["rev_id"],
+                                row["provision_id"],
+                                row["text"],
+                            )
+                            for row in rows
+                        ),
+                    )
+
+            if has_rule_atom_index:
+                atom_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM rule_atoms"
+                ).fetchone()[0]
+                fts_total = self.conn.execute(
+                    "SELECT COUNT(*) FROM rule_atom_text_fts"
+                ).fetchone()[0]
+                if atom_total != fts_total:
+                    self.conn.execute("DELETE FROM rule_atom_text_fts")
+                    rows = self.conn.execute(
+                        """
+                        SELECT doc_id, rev_id, provision_id, rule_id, COALESCE(text, '') AS text
+                        FROM rule_atoms
+                        """
+                    )
+                    self.conn.executemany(
+                        """
+                        INSERT INTO rule_atom_text_fts(doc_id, rev_id, provision_id, rule_id, text)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            (
+                                row["doc_id"],
+                                row["rev_id"],
+                                row["provision_id"],
+                                row["rule_id"],
+                                row["text"],
+                            )
+                            for row in rows
+                        ),
+                    )
+
     # ------------------------------------------------------------------
     def _backfill_toc_stable_ids(self) -> None:
         """Ensure TOC rows and rule atoms have deterministic stable identifiers."""
@@ -1081,11 +1170,6 @@ class VersionedStore:
                     document.metadata.licence,
                     document_json,
                 ),
-            )
-            # keep FTS table in sync
-            self.conn.execute(
-                "INSERT INTO revisions_fts(rowid, body, metadata) VALUES (last_insert_rowid(), ?, ?)",
-                (document.body, metadata_json),
             )
             self._store_provisions(
                 doc_id, rev_id, document.provisions, toc_entries, document.metadata
@@ -1481,6 +1565,21 @@ class VersionedStore:
         """Persist provision and atom data for a revision."""
 
         atoms_is_table = self._object_type("atoms") == "table"
+        has_provision_fts = self._object_type("provision_text_fts") is not None
+        has_rule_atom_fts = self._object_type("rule_atom_text_fts") is not None
+
+        if has_provision_fts:
+            self.conn.execute(
+                "DELETE FROM provision_text_fts WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+        if has_rule_atom_fts:
+            self.conn.execute(
+                "DELETE FROM rule_atom_text_fts WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+
+        provision_text_entries: list[tuple[int, int, int, str]] = []
 
         self.conn.execute(
             "DELETE FROM rule_element_references WHERE doc_id = ? AND rev_id = ?",
@@ -1640,6 +1739,16 @@ class VersionedStore:
                 ),
             )
 
+            if has_provision_fts:
+                provision_text_entries.append(
+                    (
+                        doc_id,
+                        rev_id,
+                        current_id,
+                        provision.text or "",
+                    )
+                )
+
             if provision.rule_atoms:
                 self._persist_rule_structures(
                     doc_id,
@@ -1648,6 +1757,7 @@ class VersionedStore:
                     provision.rule_atoms,
                     provision.toc_id,
                     provision.stable_id,
+                    has_rule_atom_fts=has_rule_atom_fts,
                 )
 
             if atoms_is_table:
@@ -1762,6 +1872,15 @@ class VersionedStore:
 
         for provision in provisions:
             visit(provision, None)
+
+        if has_provision_fts and provision_text_entries:
+            self.conn.executemany(
+                """
+                INSERT INTO provision_text_fts(doc_id, rev_id, provision_id, text)
+                VALUES (?, ?, ?, ?)
+                """,
+                provision_text_entries,
+            )
 
     def _load_provisions(
         self, doc_id: int, rev_id: int
@@ -2212,6 +2331,8 @@ class VersionedStore:
         rule_atoms: List[RuleAtom],
         toc_id: Optional[int],
         stable_id: Optional[str] = None,
+        *,
+        has_rule_atom_fts: Optional[bool] = None,
     ) -> None:
         """Persist structured rule data for a provision."""
 
@@ -2227,6 +2348,9 @@ class VersionedStore:
 
         seen_hashes: set[str] = set()
         rule_counter = 0
+
+        if has_rule_atom_fts is None:
+            has_rule_atom_fts = self._object_type("rule_atom_text_fts") is not None
 
         for rule_atom in rule_atoms:
             subject_atom = rule_atom.get_subject_atom()
@@ -2495,6 +2619,23 @@ class VersionedStore:
                         lint.message or "",
                         lint_metadata_json,
                     ),
+                )
+
+            if has_rule_atom_fts:
+                text_value = rule_atom.text or ""
+                self.conn.execute(
+                    """
+                    DELETE FROM rule_atom_text_fts
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                    """,
+                    (doc_id, rev_id, provision_id, rule_index),
+                )
+                self.conn.execute(
+                    """
+                    INSERT INTO rule_atom_text_fts(doc_id, rev_id, provision_id, rule_id, text)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (doc_id, rev_id, provision_id, rule_index, text_value),
                 )
 
     def diff(self, doc_id: int, rev_a: int, rev_b: int) -> str:

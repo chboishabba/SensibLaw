@@ -12,7 +12,8 @@ queries.
 - `revisions.document_json` – JSON column containing the full
   [`Document`](../src/models/document.py) structure, including nested
   [`Provision`](../src/models/provision.py) entries and their atoms.
-- `revisions_fts` – FTS5 index over revision text and metadata for search.
+- `provision_text_fts` – FTS5 index over provision text extracted from structured rows.
+- `rule_atom_text_fts` – FTS5 index over structured rule atom text.
 
 Each revision also records provenance fields:
 
