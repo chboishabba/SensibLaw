@@ -250,7 +250,9 @@ def _build_principle_graph_dot(provision: Dict[str, Any]) -> Optional[str]:
             lines.append(str(notes))
 
         kind = str(node.get("kind") or "").lower()
-        node_attrs = dict(kind_styles.get(kind, {"shape": "ellipse", "fillcolor": "#FFFFFF"}))
+        node_attrs = dict(
+            kind_styles.get(kind, {"shape": "ellipse", "fillcolor": "#FFFFFF"})
+        )
         status = metadata.get("status")
         if isinstance(status, str):
             node_attrs["fillcolor"] = status_colors.get(

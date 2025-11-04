@@ -273,7 +273,11 @@ def _normalise_embedding_payload(payload: Any) -> Dict[str, List[float]]:
     for key, value in payload.items():
         if not isinstance(value, (list, tuple)):
             continue
-        numeric = [float(component) for component in value if isinstance(component, (int, float))]
+        numeric = [
+            float(component)
+            for component in value
+            if isinstance(component, (int, float))
+        ]
         if not numeric:
             continue
         if expected_length is None:
@@ -299,7 +303,9 @@ def _reduce_embeddings(matrix: np.ndarray) -> np.ndarray:
     _, _, vh = np.linalg.svd(centred, full_matrices=False)
     projection = centred @ vh[:2].T
     if projection.shape[1] == 1:
-        projection = np.hstack([projection, np.zeros((projection.shape[0], 1), dtype=projection.dtype)])
+        projection = np.hstack(
+            [projection, np.zeros((projection.shape[0], 1), dtype=projection.dtype)]
+        )
     return projection[:, :2]
 
 
@@ -329,11 +335,15 @@ def _compute_nearest_neighbours(
     return neighbours
 
 
-def _render_embedding_explorer(embeddings: Dict[str, List[float]], metadata_key: str) -> None:
+def _render_embedding_explorer(
+    embeddings: Dict[str, List[float]], metadata_key: str
+) -> None:
     """Visualise embeddings and display nearest-neighbour recommendations."""
 
     identifiers = list(embeddings.keys())
-    matrix = np.array([embeddings[identifier] for identifier in identifiers], dtype=np.float32)
+    matrix = np.array(
+        [embeddings[identifier] for identifier in identifiers], dtype=np.float32
+    )
     if matrix.size == 0:
         st.info("No numeric embeddings are available yet.")
         return
@@ -400,7 +410,9 @@ def _render_embedding_explorer(embeddings: Dict[str, List[float]], metadata_key:
         key="kg_neighbour_count",
     )
 
-    neighbours = _compute_nearest_neighbours(matrix, identifiers, query, neighbour_count)
+    neighbours = _compute_nearest_neighbours(
+        matrix, identifiers, query, neighbour_count
+    )
     if not neighbours:
         st.warning("No neighbours found for the selected node.")
         return
@@ -534,9 +546,7 @@ def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
                 """
             ).fetchall()
             if not doc_rows:
-                raise ValueError(
-                    "No ingested documents found in the selected store."
-                )
+                raise ValueError("No ingested documents found in the selected store.")
 
             doc_identifiers: Dict[Tuple[int, int], str] = {}
             for row in doc_rows:
@@ -619,9 +629,7 @@ def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
                     continue
 
                 local_identifier = (
-                    row["identifier"]
-                    or row["heading"]
-                    or f"p{row['provision_id']}"
+                    row["identifier"] or row["heading"] or f"p{row['provision_id']}"
                 )
                 provision_identifier = f"{doc_identifier}::{local_identifier}"
 
@@ -635,9 +643,7 @@ def _load_graph_from_store(db_path: Path) -> Tuple[int, int, Optional[str]]:
                         GraphNode(
                             type=NodeType.PROVISION,
                             identifier=provision_identifier,
-                            metadata={
-                                k: v for k, v in provision_metadata.items() if v
-                            },
+                            metadata={k: v for k, v in provision_metadata.items() if v},
                         )
                     )
                     seen_provisions.add(provision_identifier)
@@ -700,9 +706,7 @@ def render() -> None:
         "Ingested graph store",
         value=default_store,
         key="kg_graph_store_path",
-        help=(
-            "SQLite database containing ingested cases, provisions, and treatments."
-        ),
+        help=("SQLite database containing ingested cases, provisions, and treatments."),
     )
     graph_store_path = Path(store_input).expanduser()
 
@@ -745,7 +749,9 @@ def render() -> None:
         )
 
     st.markdown("### Embedding exploration")
-    default_metadata_key = st.session_state.get("kg_embedding_metadata_key", "embedding")
+    default_metadata_key = st.session_state.get(
+        "kg_embedding_metadata_key", "embedding"
+    )
     metadata_key = st.text_input(
         "Metadata key for embeddings",
         value=default_metadata_key,
@@ -763,7 +769,9 @@ def render() -> None:
             embeddings = _collect_graph_embeddings(metadata_key)
             if embeddings:
                 st.session_state["kg_embeddings"] = embeddings
-                st.success(f"Loaded {len(embeddings)} embeddings from the current graph.")
+                st.success(
+                    f"Loaded {len(embeddings)} embeddings from the current graph."
+                )
             else:
                 st.warning("No numeric embeddings were found on the loaded nodes.")
 
@@ -784,9 +792,13 @@ def render() -> None:
                 parsed = _normalise_embedding_payload(payload)
                 if parsed:
                     st.session_state["kg_embeddings"] = parsed
-                    st.success(f"Loaded {len(parsed)} embeddings from the uploaded file.")
+                    st.success(
+                        f"Loaded {len(parsed)} embeddings from the uploaded file."
+                    )
                 else:
-                    st.warning("The uploaded file did not contain compatible numeric vectors.")
+                    st.warning(
+                        "The uploaded file did not contain compatible numeric vectors."
+                    )
 
     embeddings_state: Dict[str, List[float]] = st.session_state.get("kg_embeddings", {})
     if embeddings_state:
@@ -799,9 +811,7 @@ def render() -> None:
     st.markdown("### Generate subgraph")
     graph_seed_ids = _available_case_identifiers()
     store_seed_ids = _available_store_identifiers(graph_store_path)
-    combined_seed_ids = sorted(
-        dict.fromkeys((*store_seed_ids, *graph_seed_ids))
-    )
+    combined_seed_ids = sorted(dict.fromkeys((*store_seed_ids, *graph_seed_ids)))
     with st.form("subgraph_form"):
         seed_default = st.session_state.get("kg_subgraph_seed_input")
         if not seed_default:
