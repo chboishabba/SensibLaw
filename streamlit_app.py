@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sensiblaw_streamlit.app import main
 import json
 import re
 import sys
