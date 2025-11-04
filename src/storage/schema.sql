@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
-ON rule_atoms(doc_id, rev_id, provision_id);
+ON rule_atoms(doc_id, rev_id, provision_id, rule_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text
 ON rule_atoms(doc_id, stable_id, party, role, text_hash);
@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS rule_atom_subjects (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
-ON rule_atom_subjects(doc_id, rev_id, provision_id);
+ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id);
 
 CREATE TABLE IF NOT EXISTS rule_atom_references (
     doc_id INTEGER NOT NULL,
@@ -369,7 +369,7 @@ CREATE TABLE IF NOT EXISTS rule_elements (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
-ON rule_elements(doc_id, rev_id, provision_id, rule_id);
+ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id);
 
 CREATE TABLE IF NOT EXISTS rule_element_references (
     doc_id INTEGER NOT NULL,

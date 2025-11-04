@@ -157,8 +157,9 @@ class VersionedStore:
                         REFERENCES toc(doc_id, rev_id, toc_id)
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
-                ON rule_atoms(doc_id, rev_id, provision_id);
+                DROP INDEX IF EXISTS idx_rule_atoms_doc_rev;
+                CREATE INDEX idx_rule_atoms_doc_rev
+                ON rule_atoms(doc_id, rev_id, provision_id, rule_id);
 
                 DROP INDEX IF EXISTS idx_rule_atoms_unique_text;
                 CREATE UNIQUE INDEX idx_rule_atoms_unique_text
@@ -189,8 +190,9 @@ class VersionedStore:
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_rule_atom_subjects_doc_rev
-                ON rule_atom_subjects(doc_id, rev_id, provision_id);
+                DROP INDEX IF EXISTS idx_rule_atom_subjects_doc_rev;
+                CREATE INDEX idx_rule_atom_subjects_doc_rev
+                ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id);
 
                 CREATE TABLE IF NOT EXISTS rule_atom_references (
                     doc_id INTEGER NOT NULL,
@@ -230,8 +232,9 @@ class VersionedStore:
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
-                ON rule_elements(doc_id, rev_id, provision_id, rule_id);
+                DROP INDEX IF EXISTS idx_rule_elements_doc_rev;
+                CREATE INDEX idx_rule_elements_doc_rev
+                ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id);
 
                 CREATE TABLE IF NOT EXISTS rule_element_references (
                     doc_id INTEGER NOT NULL,
@@ -622,11 +625,32 @@ class VersionedStore:
         """Create the uniqueness constraint for structured rule atoms."""
 
         with self.conn:
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_atoms_doc_rev
+                ON rule_atoms(doc_id, rev_id, provision_id, rule_id)
+                """
+            )
             self.conn.execute("DROP INDEX IF EXISTS idx_rule_atoms_unique_text")
             self.conn.execute(
                 """
                 CREATE UNIQUE INDEX idx_rule_atoms_unique_text
                 ON rule_atoms(doc_id, stable_id, party, role, text_hash)
+                """
+            )
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_atom_subjects_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_atom_subjects_doc_rev
+                ON rule_atom_subjects(doc_id, rev_id, provision_id, rule_id)
+                """
+            )
+            self.conn.execute("DROP INDEX IF EXISTS idx_rule_elements_doc_rev")
+            self.conn.execute(
+                """
+                CREATE INDEX idx_rule_elements_doc_rev
+                ON rule_elements(doc_id, rev_id, provision_id, rule_id, element_id)
                 """
             )
             self.conn.execute(

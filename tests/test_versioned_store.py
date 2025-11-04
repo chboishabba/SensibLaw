@@ -26,6 +26,13 @@ from src.models.provision import (
 from src.storage import VersionedStore
 
 
+def index_columns(conn, index_name: str) -> list[str]:
+    """Return the ordered column names for a SQLite index."""
+
+    rows = conn.execute(f"PRAGMA index_xinfo('{index_name}')").fetchall()
+    return [row["name"] for row in rows if row["cid"] >= 0]
+
+
 def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     db_path = tmp_path / "store.db"
     store = VersionedStore(str(db_path))
@@ -219,6 +226,55 @@ def test_rule_atom_subjects_loaded(tmp_path: Path):
         assert rule_atom.subject.type == "duty"
         assert rule_atom.toc_id == provision.toc_id
         assert provision.atoms[0].text == "Perform the second duty"
+    finally:
+        store.close()
+
+
+def test_rule_atom_indexes_include_rule_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute("PRAGMA index_list('rule_atoms')").fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_atoms_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_atoms_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+        ]
+    finally:
+        store.close()
+
+
+def test_rule_atom_subject_indexes_include_rule_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute("PRAGMA index_list('rule_atom_subjects')").fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_atom_subjects_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_atom_subjects_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+        ]
+    finally:
+        store.close()
+
+
+def test_rule_element_indexes_include_element_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute("PRAGMA index_list('rule_elements')").fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_elements_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_elements_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+            "element_id",
+        ]
     finally:
         store.close()
 
