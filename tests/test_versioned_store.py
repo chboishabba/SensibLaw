@@ -283,6 +283,36 @@ def test_rule_atom_subjects_persisted(tmp_path: Path):
         store.close()
 
 
+def test_provision_and_rule_atom_fts(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    try:
+        provision_rows = store.conn.execute(
+            """
+            SELECT provision_id
+            FROM provision_text_fts
+            WHERE doc_id = ? AND rev_id = ? AND provision_text_fts MATCH ?
+            ORDER BY provision_id
+            """,
+            (doc_id, 2, "second"),
+        ).fetchall()
+        assert provision_rows
+        assert [row["provision_id"] for row in provision_rows] == [1]
+
+        atom_rows = store.conn.execute(
+            """
+            SELECT rule_id
+            FROM rule_atom_text_fts
+            WHERE doc_id = ? AND rev_id = ? AND rule_atom_text_fts MATCH ?
+            ORDER BY rule_id
+            """,
+            (doc_id, 2, "second"),
+        ).fetchall()
+        assert atom_rows
+        assert [row["rule_id"] for row in atom_rows] == [1]
+    finally:
+        store.close()
+
+
 def test_rule_atom_subjects_loaded(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:

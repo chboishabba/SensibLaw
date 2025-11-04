@@ -434,6 +434,21 @@ CREATE TABLE IF NOT EXISTS atom_references (
 CREATE INDEX IF NOT EXISTS idx_atom_references_doc_rev
 ON atom_references(doc_id, rev_id, provision_id, atom_id);
 
-CREATE VIRTUAL TABLE IF NOT EXISTS revisions_fts USING fts5(
-    body, metadata, content='revisions', content_rowid='rowid'
+DROP TABLE IF EXISTS revisions_fts;
+
+CREATE VIRTUAL TABLE IF NOT EXISTS provision_text_fts USING fts5(
+    doc_id UNINDEXED,
+    rev_id UNINDEXED,
+    provision_id UNINDEXED,
+    text,
+    tokenize='porter'
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS rule_atom_text_fts USING fts5(
+    doc_id UNINDEXED,
+    rev_id UNINDEXED,
+    provision_id UNINDEXED,
+    rule_id UNINDEXED,
+    text,
+    tokenize='porter'
 );
