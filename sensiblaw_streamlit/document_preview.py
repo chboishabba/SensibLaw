@@ -512,29 +512,6 @@ def _render_toc(
     if not entries:
         return "<p class='toc-empty'>No table of contents entries detected.</p>"
 
-    def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
-        items: List[str] = []
-        for entry in nodes:
-            label_parts: List[str] = []
-            if entry.identifier:
-                label_parts.append(escape(entry.identifier))
-            if entry.title:
-                label_parts.append(escape(entry.title))
-            label = " ".join(label_parts) or escape(entry.node_type or "Entry")
-            anchor: Optional[str] = None
-            for key in (
-                entry.identifier,
-                entry.title,
-                f"{entry.identifier} {entry.title}"
-                if entry.identifier and entry.title
-                else None,
-                f"toc-{entry.identifier}" if entry.identifier else None,
-            ):
-                normalised = _normalise_anchor_key(key) if key else None
-                if normalised and normalised in lookup:
-                    anchor = lookup[normalised]
-                    break
-
     resolved_anchors: Dict[int, Optional[str]] = {}
 
     def resolve_anchor(entry: DocumentTOCEntry) -> Optional[str]:
