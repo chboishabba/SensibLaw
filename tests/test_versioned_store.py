@@ -1126,3 +1126,19 @@ def test_toc_entries_round_trip(tmp_path: Path) -> None:
         assert snapshot.provisions[0].children[0].stable_id == child_row["stable_id"]
     finally:
         store.close()
+
+
+def test_revisions_effective_date_index(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        indexes = store.conn.execute("PRAGMA index_list(revisions)").fetchall()
+        index_names = {row["name"] for row in indexes}
+        assert "idx_revisions_doc_effective_desc" in index_names
+
+        details = store.conn.execute(
+            "PRAGMA index_xinfo(idx_revisions_doc_effective_desc)"
+        ).fetchall()
+        effective_row = next(row for row in details if row["name"] == "effective_date")
+        assert effective_row["desc"] == 1
+    finally:
+        store.close()
