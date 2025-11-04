@@ -11,9 +11,9 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
-from pdfminer.high_level import extract_text
+from pdfminer.high_level import extract_pages
 
 from src.culture.overlay import get_default_overlay
 from src.glossary.service import lookup as lookup_gloss
@@ -450,24 +450,31 @@ def _clean_page_line(line: str) -> Optional[str]:
     return cleaned or None
 
 
-def extract_pdf_text(pdf_path: Path) -> List[dict]:
-    """Extract text and headings from a PDF, returning pages with numbers."""
+def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
+    """Yield text and headings from ``pdf_path`` one page at a time."""
 
-    raw = extract_text(str(pdf_path)) or ""
-    pages: List[dict] = []
-    for i, page_text in enumerate(raw.split("\f"), start=1):
-        lines: List[str] = []
-        for raw_line in page_text.splitlines():
-            cleaned_line = _clean_page_line(raw_line)
-            if not cleaned_line:
+    with pdf_path.open("rb") as pdf_file:
+        for page_number, layout in enumerate(extract_pages(pdf_file), start=1):
+            lines: List[str] = []
+            for element in layout:
+                get_text = getattr(element, "get_text", None)
+                if not callable(get_text):
+                    continue
+                text = get_text()
+                if not text:
+                    continue
+                for raw_line in text.splitlines():
+                    cleaned_line = _clean_page_line(raw_line)
+                    if cleaned_line:
+                        lines.append(cleaned_line)
+
+            if not lines:
                 continue
-            lines.append(cleaned_line)
-        if not lines:
-            continue
-        heading = lines[0]
-        body = " ".join(lines[1:]) if len(lines) > 1 else ""
-        pages.append({"page": i, "heading": heading, "text": body, "lines": lines})
-    return pages
+
+            heading = lines[0]
+            body_lines = lines[1:]
+            body = " ".join(body_lines) if body_lines else ""
+            yield {"page": page_number, "heading": heading, "text": body, "lines": lines}
 
 
 def _normalise_toc_candidate(parts: List[str]) -> str:
@@ -2065,7 +2072,7 @@ def process_pdf(
         if db_path:
             storage = Storage(db_path)
         registry = GlossaryRegistry(storage)
-        pages = extract_pdf_text(pdf)
+        pages = list(extract_pdf_text(pdf))
         doc = build_document(
             pages,
             pdf,

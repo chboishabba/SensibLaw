@@ -976,11 +976,15 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     db_path = tmp_path / "store.db"
     output_path = tmp_path / "out.json"
 
-    monkeypatch.setattr(
-        pdf_ingest,
-        "extract_text",
-        lambda _: "1 Heading\nAlice must pay Bob.",
-    )
+    def fake_extract_pdf_text(_path: Path):
+        yield {
+            "page": 1,
+            "heading": "1 Heading",
+            "text": "Alice must pay Bob.",
+            "lines": ["1 Heading", "Alice must pay Bob."],
+        }
+
+    monkeypatch.setattr(pdf_ingest, "extract_pdf_text", fake_extract_pdf_text)
     monkeypatch.setattr(pdf_ingest, "section_parser", None)
 
     document, stored_doc_id = pdf_ingest.process_pdf(

@@ -8,16 +8,19 @@ def test_rule_extraction(monkeypatch, tmp_path):
     root = Path(__file__).resolve().parents[2]
     sys.path.insert(0, str(root))
 
-    def fake_extract_text(path):
-        return "Heading\nThe agent must file reports."
-
-    sys.modules["pdfminer.high_level"] = types.SimpleNamespace(
-        extract_text=fake_extract_text
-    )
-
     sys.modules.pop("src.pdf_ingest", None)
     from src.models.provision import Provision
     import src.pdf_ingest as pdf_ingest
+
+    def fake_extract_pdf_text(_path: Path):
+        yield {
+            "page": 1,
+            "heading": "Heading",
+            "text": "The agent must file reports.",
+            "lines": ["Heading", "The agent must file reports."],
+        }
+
+    monkeypatch.setattr(pdf_ingest, "extract_pdf_text", fake_extract_pdf_text)
 
     def fake_parse_sections(text):
         body = text.split("\n", 1)[1] if "\n" in text else text
