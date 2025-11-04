@@ -85,7 +85,6 @@ CREATE TABLE IF NOT EXISTS revisions (
     retrieved_at TEXT,
     checksum TEXT,
     licence TEXT,
-    document_json TEXT,
     PRIMARY KEY (doc_id, rev_id),
     FOREIGN KEY (doc_id) REFERENCES documents(id)
 );

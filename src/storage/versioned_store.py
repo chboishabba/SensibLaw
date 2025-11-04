@@ -116,7 +116,6 @@ class VersionedStore:
                     retrieved_at TEXT,
                     checksum TEXT,
                     licence TEXT,
-                    document_json TEXT,
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
@@ -1066,13 +1065,6 @@ class VersionedStore:
             ORDER BY doc_id, rev_id, provision_id, atom_id;
             """
         )
-        # Migration: ensure the revisions table has a document_json column
-        columns = {
-            row["name"] for row in self.conn.execute("PRAGMA table_info(revisions)")
-        }
-        if "document_json" not in columns:
-            self.conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
-
         self._ensure_column("atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_subjects", "glossary_id", "INTEGER")
@@ -1406,9 +1398,9 @@ class VersionedStore:
                 """
                 INSERT INTO revisions (
                     doc_id, rev_id, effective_date, metadata, body,
-                    source_url, retrieved_at, checksum, licence, document_json
+                    source_url, retrieved_at, checksum, licence
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
@@ -1420,7 +1412,6 @@ class VersionedStore:
                     retrieved_at,
                     document.metadata.checksum,
                     document.metadata.licence,
-                    document_json,
                 ),
             )
             self._store_provisions(
@@ -1440,7 +1431,7 @@ class VersionedStore:
         """
         row = self.conn.execute(
             """
-            SELECT rev_id, metadata, body, document_json
+            SELECT rev_id, metadata, body
             FROM revisions
             WHERE doc_id = ? AND effective_date <= ?
             ORDER BY effective_date DESC
@@ -1455,7 +1446,6 @@ class VersionedStore:
             row["rev_id"],
             row["metadata"],
             row["body"],
-            row["document_json"],
         )
 
     def get_by_canonical_id(self, canonical_id: str) -> Optional[Document]:
@@ -1463,7 +1453,7 @@ class VersionedStore:
 
         rows = self.conn.execute(
             """
-            SELECT r.doc_id, r.rev_id, r.metadata, r.body, r.document_json
+            SELECT r.doc_id, r.rev_id, r.metadata, r.body
             FROM revisions r
             JOIN (
                 SELECT doc_id, MAX(rev_id) AS rev_id
@@ -1478,7 +1468,6 @@ class VersionedStore:
                 row["rev_id"],
                 row["metadata"],
                 row["body"],
-                row["document_json"],
             )
             if document.metadata.canonical_id == canonical_id:
                 return document
@@ -1518,26 +1507,18 @@ class VersionedStore:
         rev_id: int,
         metadata_json: str,
         body: str,
-        document_json: Optional[str],
     ) -> Document:
         """Reconstruct a :class:`Document` from stored state."""
 
         metadata = DocumentMetadata.from_dict(json.loads(metadata_json))
         toc_entries = self._load_toc_entries(doc_id, rev_id)
-        provisions, has_rows = self._load_provisions(doc_id, rev_id)
-        if has_rows:
-            return Document(
-                metadata=metadata,
-                body=body,
-                provisions=provisions,
-                toc_entries=toc_entries,
-            )
-        if document_json:
-            document = Document.from_json(document_json)
-            if not document.toc_entries and toc_entries:
-                document.toc_entries = toc_entries
-            return document
-        return Document(metadata=metadata, body=body, toc_entries=toc_entries)
+        provisions = self._load_provisions(doc_id, rev_id)
+        return Document(
+            metadata=metadata,
+            body=body,
+            provisions=provisions,
+            toc_entries=toc_entries,
+        )
 
     def _build_toc_entries(
         self,
@@ -2125,6 +2106,7 @@ class VersionedStore:
         for provision in provisions:
             visit(provision, None)
 
+    def _load_provisions(self, doc_id: int, rev_id: int) -> List[Provision]:
         if has_provision_fts and provision_text_entries:
             self.conn.executemany(
                 """
@@ -2151,7 +2133,7 @@ class VersionedStore:
             (doc_id, rev_id),
         ).fetchall()
         if not provision_rows:
-            return [], False
+            return []
 
         toc_rows = self.conn.execute(
             """
@@ -2496,9 +2478,7 @@ class VersionedStore:
                     parent.children.append(provision)
 
         ordered_roots = [provisions[pid] for pid in root_ids]
-        has_legacy_atoms = self._revision_has_atoms(doc_id, rev_id)
-        has_rows = bool(provision_rows) and (using_structured or has_legacy_atoms)
-        return ordered_roots, has_rows
+        return ordered_roots
 
     def _make_legacy_atoms_factory(
         self, doc_id: int, rev_id: int, provision_id: int
@@ -2565,15 +2545,6 @@ class VersionedStore:
             return atoms
 
         return factory
-
-    def _revision_has_atoms(self, doc_id: int, rev_id: int) -> bool:
-        """Return ``True`` when legacy atoms exist for the revision."""
-
-        row = self.conn.execute(
-            "SELECT 1 FROM atoms WHERE doc_id = ? AND rev_id = ? LIMIT 1",
-            (doc_id, rev_id),
-        ).fetchone()
-        return row is not None
 
     def _persist_rule_structures(
         self,
