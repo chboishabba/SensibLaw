@@ -33,6 +33,8 @@ def test_pdf_fetch_cli(tmp_path):
         "US",
         "--citation",
         "CIT",
+        "--title",
+        "Provided Title",
         "--db",
         str(db_path),
     ]
@@ -42,6 +44,7 @@ def test_pdf_fetch_cli(tmp_path):
     assert payload.get("doc_id") is not None
     document = payload["document"]
     assert document["metadata"]["jurisdiction"] == "US"
+    assert document["metadata"]["title"] == "Provided Title"
     provisions = document["provisions"]
     assert [prov["identifier"] for prov in provisions] == ["1", "2"]
     assert [prov["heading"] for prov in provisions] == ["Heading One", "Heading Two"]
@@ -52,6 +55,7 @@ def test_pdf_fetch_cli(tmp_path):
     assert out_path.exists()
     saved = json.loads(out_path.read_text())
     assert saved["metadata"]["citation"] == "CIT"
+    assert saved["metadata"]["title"] == "Provided Title"
     saved_provisions = saved["provisions"]
     assert [prov["identifier"] for prov in saved_provisions] == ["1", "2"]
     assert [prov["heading"] for prov in saved_provisions] == [

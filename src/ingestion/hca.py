@@ -16,7 +16,7 @@ Python standard library.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 import html
 import io
@@ -26,6 +26,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from .cache import fetch_html, fetch_pdf
 from src.graph.hierarchy import COURT_RANKS, court_weight
 from src.graph.models import EdgeType, NodeType
+from src.text.citations import parse_case_citation
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -42,6 +43,8 @@ class HCACase:
     catchwords: List[str]
     statutes: List[str]
     cases_cited: List[str]
+    final_orders: List[str] = field(default_factory=list)
+    panel_opinions: List[Dict[str, str]] = field(default_factory=list)
 
 
 # Regular expressions used to pull data out of the light weight HTML.  The
@@ -150,8 +153,10 @@ def _extract_pdf_text(data: bytes) -> str:
             return data.decode("latin-1", errors="ignore")
 
 
-def _parse_pdf(data: bytes) -> Tuple[str, List[str], List[str]]:
-    """Parse parties, cases cited and legislation from PDF bytes."""
+def _parse_pdf(
+    data: bytes,
+) -> Tuple[str, List[str], List[str], List[str], List[Dict[str, str]]]:
+    """Parse parties, citations, legislation, orders and opinions from PDF bytes."""
 
     text = _extract_pdf_text(data)
     text = text.replace("\r", "")
@@ -180,7 +185,67 @@ def _parse_pdf(data: bytes) -> Tuple[str, List[str], List[str]]:
         section = re.sub(r"\s+", " ", m2.group("txt"))
         statutes = _split_list(section)
 
-    return parties, cases, statutes
+    final_orders: List[str] = []
+    order_heading_re = re.compile(r"^(?:final\s+)?orders?\b", re.IGNORECASE)
+    order_number_re = re.compile(
+        r"^(?:\(?\d+\)?\.?|\(?[ivxlcdm]+\)|[a-z]\))\s*(?P<order>.+)",
+        re.IGNORECASE,
+    )
+    heading_idx: Optional[int] = None
+    for idx, line in enumerate(lines):
+        if order_heading_re.match(line):
+            heading_idx = idx
+            break
+
+    if heading_idx is not None:
+        for line in lines[heading_idx + 1 :]:
+            if not line:
+                break
+            if order_heading_re.match(line):
+                break
+            if re.fullmatch(r"[A-Z][A-Z\s\-&]+", line) and len(line) <= 80:
+                break
+            if re.match(r"^[A-Z][A-Za-z\s]+:$", line):
+                break
+            number_match = order_number_re.match(line)
+            if number_match:
+                final_orders.append(number_match.group("order").strip())
+            else:
+                final_orders.append(line.strip())
+
+    panel_opinions: List[Dict[str, str]] = []
+    opinion_pattern = re.compile(
+        r"(?P<judge>[A-Z][A-Za-z'.-]*(?:[\s,]+(?:and\s+)?[A-Z][A-Za-z'.-]*)*\s+(?:CJ|J|JJ))\s+(?P<stance>dissent(?:ed|ing)?|concurr(?:ed|ing)|agreed with|in the majority|for the majority)",
+        re.IGNORECASE,
+    )
+    seen_judges: set[str] = set()
+    for line in lines:
+        lowered = line.lower()
+        if not any(keyword in lowered for keyword in ("dissent", "concurr", "agreed with", "in the majority", "for the majority")):
+            continue
+        for match in opinion_pattern.finditer(line):
+            judge_text = match.group("judge").strip()
+            stance_raw = match.group("stance").lower()
+            if judge_text.endswith("JJ"):
+                judge_names = re.split(r",|;|\band\b", judge_text[:-2], flags=re.IGNORECASE)
+                judge_names = [n.strip() for n in judge_names if n.strip()]
+                judge_list = [f"{name} J" if not name.endswith("J") else name for name in judge_names]
+            else:
+                judge_list = [judge_text]
+
+            if "dissent" in stance_raw:
+                stance = "dissenting"
+            elif "concur" in stance_raw:
+                stance = "concurring"
+            else:
+                stance = "majority"
+
+            for judge_name in judge_list:
+                if judge_name not in seen_judges:
+                    panel_opinions.append({"judge": judge_name, "opinion": stance})
+                    seen_judges.add(judge_name)
+
+    return parties, cases, statutes, final_orders, panel_opinions
 
 
 # ---------------------------------------------------------------------------
@@ -223,21 +288,28 @@ def parse_cases_cited(section_text: str, *, source: str) -> Tuple[List[Dict[str,
         court_match = _CITED_COURT_RE.search(citation_text)
         court = court_match.group("court") if court_match else ""
         rank = _COURT_RANK.get(court, 1.0)
+        citation = parse_case_citation(citation_text)
+        reference = citation.to_rule_reference()
+
         nodes.append({
             "id": citation_text,
             "type": NodeType.CASE.value,
             "court_rank": rank,
+            "reference": reference.to_dict(),
         })
         try:
             edge_type = EdgeType[treatment.upper()].value
         except KeyError:
             edge_type = treatment
-        edges.append({
-            "from": source,
-            "to": citation_text,
-            "type": edge_type,
-            "weight": rank,
-        })
+        edges.append(
+            {
+                "from": source,
+                "to": citation_text,
+                "type": edge_type,
+                "weight": rank,
+                "reference": reference.to_dict(),
+            }
+        )
 
     return nodes, edges
 
@@ -291,7 +363,13 @@ def crawl_year(
                 pdf_bytes = None
 
         if pdf_bytes:
-            parties, cited_cases, cited_stats = _parse_pdf(pdf_bytes)
+            (
+                parties,
+                cited_cases,
+                cited_stats,
+                final_orders,
+                panel_opinions,
+            ) = _parse_pdf(pdf_bytes)
             if parties:
                 case.parties = parties
             if cited_cases:
@@ -300,6 +378,10 @@ def crawl_year(
                 for s in cited_stats:
                     if s not in case.statutes:
                         case.statutes.append(s)
+            if final_orders:
+                case.final_orders = final_orders
+            if panel_opinions:
+                case.panel_opinions = panel_opinions
 
         def add_node(ident: str, ntype: str, **metadata: object) -> None:
             if ident not in seen_nodes:
@@ -314,6 +396,8 @@ def crawl_year(
                 "catchwords": case.catchwords,
                 "pdf": case.pdf_url,
                 "court_rank": _COURT_RANK.get("HCA", 1.0),
+                "final_orders": case.final_orders,
+                "panel_opinions": case.panel_opinions,
             }
         )
         for statute in case.statutes:
@@ -332,6 +416,8 @@ def crawl_year(
             parties=case.parties,
             catchwords=case.catchwords,
             pdf=case.pdf_url,
+            final_orders=case.final_orders,
+            panel_opinions=case.panel_opinions,
         )
 
         for statute in case.statutes:

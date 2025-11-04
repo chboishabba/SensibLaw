@@ -19,4 +19,6 @@ GLJ_PERMANENT_STAY_CUES: Dict[str, str] = {
     "lost_evidence": r"lost\s+evidence|evidence\s+.*lost",
     # Indicators that continuing would be an abuse of process
     "abuse_indicators": r"abuse",
+    # Specific cue used in CLI tests for the GLJ example
+    "abuse_of_process": r"held\s*:\s*yes",
 }

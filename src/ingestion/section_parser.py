@@ -1,6 +1,13 @@
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from enum import Enum
+from typing import Dict, List, Optional, Sequence, Tuple
+
+import spacy
+from spacy.matcher import Matcher
+from spacy.tokens import Doc, Token
+
+from src.models.provision import RuleReference
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
@@ -51,7 +58,191 @@ EXTERNAL_STATUTE_RE = re.compile(
     r"(?P<section_id>\d+[A-Za-z]*(?:\([^\)]+\))?(?:\s*(?:and|to|[-–])\s*\d+[A-Za-z]*(?:\([^\)]+\))?)?))?",
 )
 
-ReferenceTuple = Tuple[str, Optional[str], Optional[str], Optional[str], str]
+THIS_ACT_WORK = "this_act"
+
+
+class LogicTokenClass(str, Enum):
+    """Classification labels applied to logic-bearing tokens."""
+
+    ACTOR = "ACTOR"
+    ACTION = "ACTION"
+    MODALITY = "MODALITY"
+    CONDITION = "CONDITION"
+    REFERENCE = "REFERENCE"
+    SPACE = "SPACE"
+    PUNCT = "PUNCT"
+    JUNK = "JUNK"
+
+
+_NLP = spacy.blank("en")
+
+if not Token.has_extension("class_"):
+    Token.set_extension("class_", default=None)
+
+
+_LOGIC_PATTERNS: Dict[LogicTokenClass, List[List[Dict[str, object]]]] = {
+    LogicTokenClass.MODALITY: [
+        [{"LOWER": "must"}, {"LOWER": "not"}],
+        [{"LOWER": "must"}],
+        [{"LOWER": "may"}],
+    ],
+    LogicTokenClass.CONDITION: [
+        [{"LOWER": "if"}],
+        [{"LOWER": "unless"}],
+        [{"LOWER": "despite"}],
+        [{"LOWER": "subject"}, {"LOWER": "to"}],
+    ],
+}
+
+
+def _make_label_callback(label: LogicTokenClass):
+    def _callback(matcher: Matcher, doc: Doc, i: int, matches: List[Tuple[int, int, int]]) -> None:
+        _match_id, start, end = matches[i]
+        for token in doc[start:end]:
+            token._.class_ = label
+
+    return _callback
+
+
+def _label_reference_tokens(
+    doc: Doc,
+    matches: Sequence[Tuple[RuleReference, Tuple[int, int]]],
+) -> None:
+    for _ref, (start_char, end_char) in matches:
+        for token in doc:
+            token_start = token.idx
+            token_end = token.idx + len(token)
+            if token_end <= start_char or token_start >= end_char:
+                continue
+            if token.is_space:
+                continue
+            token._.class_ = LogicTokenClass.REFERENCE
+
+
+def _expand_condition_scopes(doc: Doc) -> None:
+    indices = [i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.CONDITION]
+    for index in indices:
+        position = index + 1
+        while position < len(doc):
+            token = doc[position]
+            if token._.class_ in {LogicTokenClass.MODALITY, LogicTokenClass.CONDITION}:
+                break
+            if token._.class_ == LogicTokenClass.REFERENCE:
+                break
+            if token.is_punct:
+                if token._.class_ is None:
+                    token._.class_ = LogicTokenClass.PUNCT
+                break
+            if token.is_space:
+                position += 1
+                continue
+            if token._.class_ is None:
+                token._.class_ = LogicTokenClass.CONDITION
+            position += 1
+
+
+def _label_actor_and_action(doc: Doc) -> None:
+    modality_indices = [i for i, token in enumerate(doc) if token._.class_ == LogicTokenClass.MODALITY]
+    if not modality_indices:
+        return
+
+    first_modality = modality_indices[0]
+    last_modality = modality_indices[-1]
+
+    for token in doc[:first_modality]:
+        if token.is_space:
+            continue
+        if token._.class_ is None and token.is_alpha:
+            token._.class_ = LogicTokenClass.ACTOR
+
+    action_start = last_modality + 1
+    action_end = len(doc)
+    for idx in range(action_start, len(doc)):
+        token = doc[idx]
+        if token._.class_ in {LogicTokenClass.CONDITION, LogicTokenClass.REFERENCE}:
+            action_end = idx
+            break
+        if token.is_punct:
+            token._.class_ = LogicTokenClass.PUNCT
+            action_end = idx
+            break
+
+    for token in doc[action_start:action_end]:
+        if token.is_space:
+            continue
+        if token._.class_ is None:
+            token._.class_ = (
+                LogicTokenClass.ACTION if token.is_alpha else LogicTokenClass.JUNK
+            )
+
+
+def _finalise_token_classes(doc: Doc) -> None:
+    for token in doc:
+        if token._.class_ is not None:
+            continue
+        if token.is_space:
+            token._.class_ = LogicTokenClass.SPACE
+        elif token.is_punct:
+            token._.class_ = LogicTokenClass.PUNCT
+        else:
+            token._.class_ = LogicTokenClass.JUNK
+
+
+def _verify_full_coverage(doc: Doc) -> None:
+    missing = [token.text for token in doc if token._.class_ is None]
+    if missing:
+        raise ValueError(f"Unlabelled tokens found: {missing}")
+
+
+def _serialise_logic_tokens(doc: Doc) -> List[Dict[str, object]]:
+    serialised: List[Dict[str, object]] = []
+    for token in doc:
+        if token.is_space:
+            continue
+        label = token._.class_
+        if isinstance(label, LogicTokenClass):
+            class_name = label.value
+        elif label is None:
+            class_name = None
+        else:
+            class_name = str(label)
+        serialised.append(
+            {
+                "text": token.text,
+                "start": token.idx,
+                "end": token.idx + len(token),
+                "class": class_name,
+            }
+        )
+    return serialised
+
+
+def annotate_logic_tokens(
+    text: str,
+    *,
+    reference_matches: Optional[Sequence[Tuple[RuleReference, Tuple[int, int]]]] = None,
+) -> Doc:
+    """Annotate ``text`` with logic token classes and return the spaCy doc."""
+
+    doc = _NLP(text)
+    for token in doc:
+        if token.is_space:
+            token._.class_ = LogicTokenClass.SPACE
+
+    matcher = Matcher(doc.vocab)
+    for label, patterns in _LOGIC_PATTERNS.items():
+        matcher.add(label.value, patterns, on_match=_make_label_callback(label))
+
+    matcher(doc)
+
+    if reference_matches is None:
+        reference_matches = _extract_reference_matches(text)
+    _label_reference_tokens(doc, reference_matches)
+    _expand_condition_scopes(doc)
+    _label_actor_and_action(doc)
+    _finalise_token_classes(doc)
+    _verify_full_coverage(doc)
+    return doc
 
 
 def _strip_tags(html: str) -> str:
@@ -76,8 +267,47 @@ def _clean_identifier(raw: Optional[str]) -> Optional[str]:
     return re.sub(r"\s+", " ", raw.strip()) or None
 
 
-def _extract_references(text: str) -> List[ReferenceTuple]:
-    references: List[ReferenceTuple] = []
+def _build_reference(
+    kind: str,
+    subject: Optional[str],
+    label: Optional[str],
+    target: Optional[str],
+    original: str,
+) -> RuleReference:
+    normalized_label = _normalize_label(label)
+    clean_target = _clean_identifier(target)
+
+    work: Optional[str]
+    subject_clean = _clean_identifier(subject)
+    if kind in {"external", "statute"}:
+        work = subject_clean
+    elif subject_clean:
+        if subject_clean.lower() == "this":
+            work = THIS_ACT_WORK
+        else:
+            work = subject_clean
+    else:
+        work = THIS_ACT_WORK if kind in {"internal", "structure"} else None
+
+    pinpoint: Optional[str] = None
+    section: Optional[str] = None
+
+    if normalized_label:
+        section = normalized_label
+        pinpoint = clean_target
+    elif clean_target:
+        pinpoint = clean_target
+
+    return RuleReference(
+        work=work,
+        section=section,
+        pinpoint=pinpoint,
+        citation_text=original,
+    )
+
+
+def _extract_reference_matches(text: str) -> List[Tuple[RuleReference, Tuple[int, int]]]:
+    matches: List[Tuple[RuleReference, Tuple[int, int]]] = []
     spans: List[Tuple[int, int]] = []
 
     def overlaps(span: Tuple[int, int]) -> bool:
@@ -100,15 +330,14 @@ def _extract_references(text: str) -> List[ReferenceTuple]:
         if not original:
             return
         spans.append(span)
-        references.append(
-            (
-                kind,
-                subject.strip() if subject else None,
-                _normalize_label(label),
-                _clean_identifier(target),
-                original,
-            )
+        reference = _build_reference(
+            kind,
+            subject.strip() if subject else None,
+            label,
+            target,
+            original,
         )
+        matches.append((reference, span))
 
     for match in EXTERNAL_STATUTE_RE.finditer(text):
         act = match.group("act")
@@ -130,13 +359,30 @@ def _extract_references(text: str) -> List[ReferenceTuple]:
     for match in SELF_REF_RE.finditer(text):
         add_reference("internal", "this", match.group("label"), None, match)
 
-    return references
+    deduped: List[Tuple[RuleReference, Tuple[int, int]]] = []
+    seen: set[Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]] = set()
+    for reference, span in matches:
+        key = (
+            reference.work.lower() if reference.work else None,
+            reference.section.lower() if reference.section else None,
+            reference.pinpoint.lower() if reference.pinpoint else None,
+            reference.citation_text.lower() if reference.citation_text else None,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append((reference, span))
+
+    return deduped
+
+
+def _extract_references(text: str) -> List[RuleReference]:
+    return [reference for reference, _ in _extract_reference_matches(text)]
 
 
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
     modality: Optional[str] = None
     conditions: List[str] = []
-    references: List[ReferenceTuple] = []
     seen_conditions: set[str] = set()
 
     for match in TOKEN_RE.finditer(text):
@@ -150,33 +396,25 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
                 seen_conditions.add(lowered)
                 conditions.append(lowered)
 
-    references.extend(_extract_references(text))
-    deduped_refs: List[ReferenceTuple] = []
-    seen_refs: set[
-        tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
-    ] = set()
-    for ref in references:
-        kind, subject, label, target, original = ref
-        key = (
-            kind.lower() if kind else None,
-            subject.lower() if subject else None,
-            label.lower() if label else None,
-            target.lower() if target else None,
-        )
-        if key in seen_refs:
-            continue
-        seen_refs.add(key)
-        deduped_refs.append(ref)
+    reference_matches = _extract_reference_matches(text)
+    references = [ref for ref, _ in reference_matches]
+    logic_doc = annotate_logic_tokens(text, reference_matches=reference_matches)
 
     return {
         "modality": modality,
         "conditions": conditions,
-        "references": deduped_refs,
+        "references": references,
+        "token_classes": _serialise_logic_tokens(logic_doc),
     }
 
 
 def _empty_tokens() -> Dict[str, object]:
-    return {"modality": None, "conditions": [], "references": []}
+    return {
+        "modality": None,
+        "conditions": [],
+        "references": [],
+        "token_classes": [],
+    }
 
 
 @dataclass
@@ -188,7 +426,7 @@ class ParsedNode:
     heading: Optional[str] = None
     text: str = ""
     rule_tokens: Dict[str, object] = field(default_factory=_empty_tokens)
-    references: List[ReferenceTuple] = field(default_factory=list)
+    references: List[RuleReference] = field(default_factory=list)
     children: List["ParsedNode"] = field(default_factory=list)
     _buffer: List[str] = field(default_factory=list, repr=False)
 
@@ -201,9 +439,18 @@ class ParsedNode:
             "rule_tokens": {
                 "modality": self.rule_tokens.get("modality"),
                 "conditions": list(self.rule_tokens.get("conditions", [])),
-                "references": list(self.rule_tokens.get("references", [])),
+                "references": [
+                    ref.to_dict() if hasattr(ref, "to_dict") else ref
+                    for ref in self.rule_tokens.get("references", [])
+                ],
+                "token_classes": [
+                    dict(token)
+                    if isinstance(token, dict)
+                    else token
+                    for token in self.rule_tokens.get("token_classes", [])
+                ],
             },
-            "references": list(self.references),
+            "references": [ref.to_dict() for ref in self.references],
             "children": [child.to_dict() for child in self.children],
         }
 
@@ -217,7 +464,8 @@ class Section:
     text: str
     modality: Optional[str]
     conditions: List[str]
-    references: List[ReferenceTuple]
+    references: List[RuleReference]
+    token_classes: List[Dict[str, object]]
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -227,7 +475,8 @@ class Section:
             "rules": {
                 "modality": self.modality,
                 "conditions": list(self.conditions),
-                "references": list(self.references),
+                "references": [ref.to_dict() for ref in self.references],
+                "token_classes": [dict(token) for token in self.token_classes],
             },
         }
 
@@ -261,6 +510,7 @@ def parse_html_section(html: str) -> Section:
         modality=tokens["modality"],
         conditions=tokens["conditions"],
         references=tokens["references"],
+        token_classes=tokens["token_classes"],
     )
 
 
@@ -273,7 +523,10 @@ def fetch_section(html: str) -> Dict[str, object]:
 def _finalize_node(node: ParsedNode) -> None:
     node.text = " ".join(part for part in node._buffer if part).strip()
     node.rule_tokens = _extract_rule_tokens(node.text)
-    node.references = list(node.rule_tokens.get("references", []))
+    node.references = [
+        ref if isinstance(ref, RuleReference) else RuleReference(**ref)
+        for ref in node.rule_tokens.get("references", [])
+    ]
     node._buffer.clear()
     for child in node.children:
         _finalize_node(child)
@@ -392,9 +645,16 @@ def parse_sections(text: str) -> List[ParsedNode]:
 
 
 __all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
-"""Compatibility re-export for :mod:`src.section_parser`."""
+"""Compatibility re-export for :mod:`section_parser` without overriding new APIs."""
 
 try:  # pragma: no cover - optional legacy dependency
-    from section_parser import *  # type: ignore  # noqa: F401,F403
+    import section_parser as _legacy_section_parser  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - legacy module absent
-    pass
+    _legacy_section_parser = None
+else:  # pragma: no cover - thin compatibility bridge
+    legacy_exports = getattr(_legacy_section_parser, "__all__", [])
+    for name in legacy_exports:
+        if name not in globals():
+            globals()[name] = getattr(_legacy_section_parser, name)
+        if name not in __all__:
+            __all__.append(name)

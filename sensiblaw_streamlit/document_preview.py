@@ -4,14 +4,46 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from html import escape
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import streamlit.components.v1 as components
 
 from src.models.document import Document, DocumentTOCEntry
-from src.models.provision import Atom, Provision
+from src.models.provision import Atom, Provision, RuleAtom
+
+
+_TOC_TRAILING_PAGE_REF_RE = re.compile(r"(?:\s*(?:Page\b)?\s*\d+)\s*$", re.IGNORECASE)
+_TOC_TRAILING_PAGE_WORD_RE = re.compile(r"\bPage\b\s*$", re.IGNORECASE)
+_TOC_TRAILING_DOT_BLOCK_RE = re.compile(r"(?:[.·⋅•●∙]\s*)+$")
+
+_TOC_NODE_PREFIXES = {
+    "part": "Part",
+    "division": "Division",
+    "subdivision": "Subdivision",
+    "section": "Section",
+    "subsection": "Subsection",
+    "paragraph": "Paragraph",
+}
+
+
+def _clean_toc_text(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    if not cleaned:
+        return None
+
+    page_artifacts = any(ch in ".·⋅•●∙" for ch in value) or "page" in value.lower()
+    if page_artifacts:
+        cleaned = _TOC_TRAILING_PAGE_REF_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_PAGE_WORD_RE.sub("", cleaned)
+    cleaned = _TOC_TRAILING_DOT_BLOCK_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or None
 
 
 def _normalise_anchor_key(value: Optional[str]) -> Optional[str]:
@@ -49,8 +81,27 @@ def _collect_provisions(
         return candidate
 
     def derive_anchor(node: Provision, fallback: str) -> str:
-        # Use deterministic segment identifiers for anchor IDs while still
-        # registering rich lookup keys for headings, identifiers, and stable IDs.
+        # Prefer stable identifiers to keep anchors predictable across renders.
+        for candidate in (
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ):
+            normalised = _normalise_anchor_key(candidate)
+            if normalised:
+                return ensure_unique(normalised)
+        # Prefer stable identifiers when available so anchors remain stable across
+        # renders. Fall back to identifiers or headings before using the positional
+        # segment identifier.
+        candidates: List[Optional[str]] = [
+            node.stable_id,
+            node.identifier,
+            node.heading,
+        ]
+        for candidate in candidates:
+            slug = _normalise_anchor_key(candidate)
+            if slug:
+                return ensure_unique(slug)
         return ensure_unique(fallback)
 
     def walk(node: Provision) -> None:
@@ -75,6 +126,40 @@ def _collect_provisions(
     return anchors, anchor_lookup
 
 
+def _format_toc_identifier(entry: DocumentTOCEntry) -> Optional[str]:
+    identifier = entry.identifier.strip() if entry.identifier else None
+    node_type = entry.node_type.strip().lower() if entry.node_type else None
+    prefix = _TOC_NODE_PREFIXES.get(node_type) if node_type else None
+
+    if prefix and identifier:
+        return f"{prefix} {identifier}"
+    if identifier:
+        return identifier
+    if prefix:
+        return prefix
+    return None
+
+
+def _format_toc_label(entry: DocumentTOCEntry) -> str:
+    parts: List[str] = []
+    identifier = _format_toc_identifier(entry)
+    title = _clean_toc_text(entry.title)
+    if identifier:
+        parts.append(escape(identifier))
+    if title:
+        parts.append(escape(title))
+    if not parts:
+        fallback = entry.node_type or "Entry"
+        parts.append(escape(fallback))
+    return " ".join(parts)
+
+
+def _format_toc_page(entry: DocumentTOCEntry) -> Optional[str]:
+    if entry.page_number is None:
+        return None
+    return f"p. {entry.page_number}"
+
+
 @dataclass
 class _AtomAnnotation:
     """Internal representation of a highlight span for a provision."""
@@ -83,7 +168,137 @@ class _AtomAnnotation:
     text: str
     label: str
     detail_json: str
+    kind: str = "atom"
     used: bool = False
+
+
+@dataclass
+class DocumentActorSummary:
+    """Aggregate view of actors referenced across rule atoms."""
+
+    actor: str
+    occurrences: int
+    modalities: List[str]
+    actions: List[str]
+    sections: List[str]
+    aliases: List[str]
+
+
+@dataclass
+class _ActorAccumulator:
+    """Internal accumulator capturing actor level aggregates."""
+
+    canonical: str
+    occurrences: int = 0
+    forms: Counter[str] = field(default_factory=Counter)
+    modalities: Set[str] = field(default_factory=set)
+    actions: Set[str] = field(default_factory=set)
+    sections: List[str] = field(default_factory=list)
+
+
+def _normalise_whitespace(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _extract_actor_label(rule_atom: RuleAtom) -> Optional[str]:
+    """Return the best available label describing the rule actor."""
+
+    for attr in ("actor", "party", "who_text", "who"):
+        raw = getattr(rule_atom, attr, None)
+        if isinstance(raw, str):
+            cleaned = _normalise_whitespace(raw)
+            if cleaned:
+                return cleaned
+    return None
+
+
+def _format_provision_reference(provision: Provision) -> Optional[str]:
+    """Build a short reference string for the provision context."""
+
+    parts: List[str] = []
+    if provision.identifier and provision.identifier.strip():
+        parts.append(_normalise_whitespace(provision.identifier))
+    if provision.heading and provision.heading.strip():
+        parts.append(_normalise_whitespace(provision.heading))
+    if parts:
+        return " – ".join(parts)
+    if provision.node_type:
+        return provision.node_type
+    return None
+
+
+def _iter_provision_tree(provisions: Iterable[Provision]) -> Iterable[Provision]:
+    """Yield all provisions in a depth-first traversal order."""
+
+    stack: List[Provision] = list(provisions)[::-1]
+    while stack:
+        node = stack.pop()
+        yield node
+        if node.children:
+            stack.extend(reversed(node.children))
+
+
+def collect_document_actor_summary(
+    document: Document,
+    *,
+    max_section_samples: int = 5,
+    max_action_samples: int = 5,
+) -> List[DocumentActorSummary]:
+    """Collate actor references across the document's rule atoms."""
+
+    actors: Dict[str, _ActorAccumulator] = {}
+
+    for provision in _iter_provision_tree(document.provisions):
+        provision.ensure_rule_atoms()
+        section_label = _format_provision_reference(provision)
+        for rule_atom in provision.rule_atoms:
+            actor_label = _extract_actor_label(rule_atom)
+            if not actor_label:
+                continue
+            key = actor_label.casefold()
+            accumulator = actors.get(key)
+            if accumulator is None:
+                accumulator = _ActorAccumulator(canonical=actor_label)
+                actors[key] = accumulator
+
+            accumulator.occurrences += 1
+            accumulator.forms[actor_label] += 1
+
+            if rule_atom.modality and rule_atom.modality.strip():
+                accumulator.modalities.add(_normalise_whitespace(rule_atom.modality))
+
+            if rule_atom.action and rule_atom.action.strip():
+                if len(accumulator.actions) < max_action_samples:
+                    accumulator.actions.add(_normalise_whitespace(rule_atom.action))
+
+            if (
+                section_label
+                and section_label not in accumulator.sections
+                and len(accumulator.sections) < max_section_samples
+            ):
+                accumulator.sections.append(section_label)
+
+    summaries: List[DocumentActorSummary] = []
+    for accumulator in actors.values():
+        canonical = accumulator.canonical
+        if accumulator.forms:
+            canonical = accumulator.forms.most_common(1)[0][0]
+        aliases = sorted(
+            form for form in accumulator.forms.keys() if form != canonical
+        )
+        summaries.append(
+            DocumentActorSummary(
+                actor=canonical,
+                occurrences=accumulator.occurrences,
+                modalities=sorted(accumulator.modalities),
+                actions=sorted(accumulator.actions),
+                sections=list(accumulator.sections),
+                aliases=aliases,
+            )
+        )
+
+    summaries.sort(key=lambda item: (-item.occurrences, item.actor))
+    return summaries
 
 
 def _format_atom_label(atom: Atom, index: int) -> str:
@@ -107,28 +322,93 @@ def _build_atom_annotations(provision: Provision) -> List[_AtomAnnotation]:
         for index, atom in enumerate(provision.flatten_rule_atoms(), start=1)
         if atom.text and atom.text.strip()
     ]
-    if not atoms:
-        return []
-
-    # Highlight shorter fragments first to reduce overlap with broader spans.
-    atoms.sort(key=lambda item: len(item[1].text.strip()))
-
     annotations: List[_AtomAnnotation] = []
-    for display_index, (atom_index, atom) in enumerate(atoms, start=1):
-        snippet = atom.text.strip()
-        if not snippet:
-            continue
-        label_source = _format_atom_label(atom, atom_index)
-        label = label_source
-        detail_json = json.dumps(atom.to_dict(), indent=2, ensure_ascii=False)
-        annotations.append(
-            _AtomAnnotation(
-                identifier=f"atom-span-{display_index}",
-                text=snippet,
-                label=label,
-                detail_json=detail_json,
+
+    if atoms:
+        # Highlight shorter fragments first to reduce overlap with broader spans.
+        atoms.sort(key=lambda item: len(item[1].text.strip()))
+        next_display_index = 1
+        for atom_index, atom in atoms:
+            snippet = atom.text.strip()
+            if not snippet:
+                continue
+            label_source = _format_atom_label(atom, atom_index)
+            detail_json = json.dumps(atom.to_dict(), indent=2, ensure_ascii=False)
+            annotations.append(
+                _AtomAnnotation(
+                    identifier=f"atom-span-{next_display_index}",
+                    text=snippet,
+                    label=label_source,
+                    detail_json=detail_json,
+                    kind=(atom.type or "atom"),
+                )
             )
-        )
+            next_display_index += 1
+    else:
+        next_display_index = 1
+
+    seen_citations: set[Tuple[str, Optional[str], Optional[str]]] = set()
+
+    for rule_index, rule_atom in enumerate(provision.rule_atoms, start=1):
+        source_id = rule_atom.stable_id or f"rule-{rule_index}"
+        for ref in rule_atom.references:
+            snippet = (ref.citation_text or ref.to_legacy_text()).strip()
+            if not snippet:
+                continue
+            key = (snippet.lower(), source_id, None)
+            if key in seen_citations:
+                continue
+            seen_citations.add(key)
+            detail_payload = {
+                "atom_type": "citation",
+                "text": snippet,
+                "references": [ref.to_dict()],
+                "source_rule": source_id,
+            }
+            annotations.append(
+                _AtomAnnotation(
+                    identifier=f"atom-span-{next_display_index}",
+                    text=snippet,
+                    label=f"Citation: {snippet}",
+                    detail_json=json.dumps(
+                        detail_payload, indent=2, ensure_ascii=False
+                    ),
+                    kind="citation",
+                )
+            )
+            next_display_index += 1
+
+        for element_index, element in enumerate(rule_atom.elements, start=1):
+            element_refs = getattr(element, "references", []) or []
+            element_label = element.role or f"element-{element_index}"
+            for ref in element_refs:
+                snippet = (ref.citation_text or ref.to_legacy_text()).strip()
+                if not snippet:
+                    continue
+                key = (snippet.lower(), source_id, element_label)
+                if key in seen_citations:
+                    continue
+                seen_citations.add(key)
+                detail_payload = {
+                    "atom_type": "citation",
+                    "text": snippet,
+                    "references": [ref.to_dict()],
+                    "source_rule": source_id,
+                    "source_element": element_label,
+                }
+                annotations.append(
+                    _AtomAnnotation(
+                        identifier=f"atom-span-{next_display_index}",
+                        text=snippet,
+                        label=f"Citation: {snippet}",
+                        detail_json=json.dumps(
+                            detail_payload, indent=2, ensure_ascii=False
+                        ),
+                        kind="citation",
+                    )
+                )
+                next_display_index += 1
+
     return annotations
 
 
@@ -156,6 +436,19 @@ def _find_in_line(
             return index, end, line[index:end]
         start = index + 1
     return None
+
+
+_DOT_LEADER_PATTERN = re.compile(r"(?:\s*[.\u00b7]\s*){4,}")
+
+
+def _normalise_provision_line(line: str) -> str:
+    """Collapse noisy leader dots that pollute rendered provisions."""
+
+    if not line:
+        return ""
+
+    cleaned = _DOT_LEADER_PATTERN.sub(" ", line)
+    return cleaned.strip()
 
 
 def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
@@ -193,12 +486,17 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
             parts.append(escape(line[cursor:start]))
         label_attr = escape(annotation.label, quote=True)
         detail_attr = escape(annotation.detail_json, quote=True)
+        kind_attr = escape(annotation.kind, quote=True)
         highlight_text = escape(matched_text)
+        identifier_attr = escape(annotation.identifier, quote=True)
         parts.append(
             "<mark class='atom-span' tabindex='0' role='button' "
+            f"id='{identifier_attr}' "
             f"aria-label='{label_attr}' title='{label_attr}' "
-            f"data-atom-id='{annotation.identifier}' "
-            f"data-label='{label_attr}' data-detail='{detail_attr}'>{highlight_text}</mark>"
+            f"data-atom-id='{identifier_attr}' "
+            f"data-label='{label_attr}' data-kind='{kind_attr}' "
+            f"data-detail='{detail_attr}' "
+            f"data-highlight-id='{identifier_attr}'>{highlight_text}</mark>"
         )
         cursor = end
     if cursor < len(line):
@@ -207,6 +505,11 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
 
 
 def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
+def _render_toc(
+    entries: List[DocumentTOCEntry],
+    lookup: Dict[str, str],
+    provision_by_anchor: Optional[Dict[str, Provision]] = None,
+) -> str:
     """Render nested table-of-contents entries as HTML."""
 
     if not entries:
@@ -234,16 +537,123 @@ def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
                 if normalised and normalised in lookup:
                     anchor = lookup[normalised]
                     break
+    resolved_anchors: Dict[int, Optional[str]] = {}
+
+    def resolve_anchor(entry: DocumentTOCEntry) -> Optional[str]:
+        """Locate the best provision anchor for ``entry``."""
+
+        entry_key = id(entry)
+        if entry_key in resolved_anchors:
+            return resolved_anchors[entry_key]
+
+        identifier = entry.identifier.strip() if entry.identifier else None
+        title = _clean_toc_text(entry.title)
+        formatted_identifier = _format_toc_identifier(entry)
+
+        candidates: List[str] = []
+
+        if identifier:
+            candidates.append(identifier)
+            candidates.append(f"toc-{identifier}")
+
+        if title:
+            candidates.append(title)
+
+        if formatted_identifier:
+            candidates.append(formatted_identifier)
+
+        if identifier and title:
+            candidates.append(f"{identifier} {title}")
+
+        if formatted_identifier and title:
+            candidates.append(f"{formatted_identifier} {title}")
+
+        if title:
+            split_match = re.match(r"^([A-Za-z0-9().-]+)\s+(.*)$", title)
+            if split_match:
+                remainder = split_match.group(2)
+                if remainder:
+                    candidates.append(remainder)
+                    if identifier:
+                        candidates.append(f"{identifier} {remainder}")
+                    if formatted_identifier:
+                        candidates.append(f"{formatted_identifier} {remainder}")
+
+            for separator in (" - ", " – ", " — "):
+                if separator in title:
+                    left, right = title.split(separator, 1)
+                    if left.strip():
+                        candidates.append(left.strip())
+                    if right.strip():
+                        candidates.append(right.strip())
+
+        seen: Set[str] = set()
+        anchor: Optional[str] = None
+        for candidate in candidates:
+            normalised = _normalise_anchor_key(candidate)
+            if not normalised or normalised in seen:
+                continue
+            seen.add(normalised)
+            if normalised in lookup:
+                anchor = lookup[normalised]
+                break
+
+        if not anchor:
+            for child in entry.children:
+                anchor = resolve_anchor(child)
+                if anchor:
+                    break
+
+        resolved_anchors[entry_key] = anchor
+        return anchor
+
+    def render_nodes(nodes: List[DocumentTOCEntry], depth: int = 0) -> str:
+        items: List[str] = []
+        for entry in nodes:
+            label = _format_toc_label(entry)
+            anchor = resolve_anchor(entry)
+            page_text = _format_toc_page(entry)
+            page_html = (
+                f"<span class='toc-page'>{escape(page_text)}</span>"
+                if page_text
+                else ""
+            )
             child_html = (
                 render_nodes(entry.children, depth + 1) if entry.children else ""
             )
             depth_attr = f" data-depth='{depth}' style='--toc-depth:{depth}'"
+            type_attr = (
+                f" data-node-type='{escape(entry.node_type, quote=True)}'"
+                if entry.node_type
+                else ""
+            )
+            page_attr = (
+                f" data-page='{escape(str(entry.page_number), quote=True)}'"
+                if entry.page_number is not None
+                else ""
+            )
             if anchor:
-                item = (
-                    f"<li{depth_attr}><a href='#{anchor}'>{label}</a>{child_html}</li>"
+                stable_attr = ""
+                if provision_by_anchor:
+                    provision = provision_by_anchor.get(anchor)
+                    stable_id = getattr(provision, "stable_id", None)
+                    if stable_id:
+                        stable_attr = (
+                            f" data-stable-id='{escape(stable_id, quote=True)}'"
+                            f" title='Stable ID: {escape(stable_id)}'"
+                        )
+                link_html = (
+                    f"<a class='toc-entry' href='#{anchor}'{stable_attr}>"
+                    f"<span class='toc-label'>{label}</span>{page_html}"
+                    "</a>"
                 )
+                item = f"<li{depth_attr}{type_attr}{page_attr}>{link_html}{child_html}</li>"
             else:
-                item = f"<li{depth_attr}>{label}{child_html}</li>"
+                content = (
+                    f"<span class='toc-entry'><span class='toc-label'>{label}</span>"
+                    f"{page_html}</span>"
+                )
+                item = f"<li{depth_attr}{type_attr}{page_attr}>{content}{child_html}</li>"
             items.append(item)
         return f"<ul>{''.join(items)}</ul>"
 
@@ -338,7 +748,43 @@ def _build_atom_anchor_id(
     return None
 
 
-def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
+def _build_atom_highlight_lookup(
+    provision: Provision, annotations: List[_AtomAnnotation]
+) -> Dict[int, str]:
+    """Map rule atom indices to highlight identifiers for scroll targets."""
+
+    provision.ensure_rule_atoms()
+
+    annotation_pool: Dict[str, List[_AtomAnnotation]] = {}
+    for annotation in annotations:
+        key = annotation.text.strip().lower()
+        if not key:
+            continue
+        annotation_pool.setdefault(key, []).append(annotation)
+
+    for candidates in annotation_pool.values():
+        candidates.sort(key=lambda item: item.identifier)
+
+    lookup: Dict[int, str] = {}
+    for index, atom in enumerate(provision.rule_atoms, start=1):
+        for candidate in _atom_text_candidates(atom):
+            key = candidate.strip().lower()
+            if not key:
+                continue
+            pool = annotation_pool.get(key)
+            if not pool:
+                continue
+            annotation = pool.pop(0)
+            lookup[index] = annotation.identifier
+            break
+    return lookup
+
+
+def _render_atom_badges(
+    provision: Provision,
+    provision_anchor: str,
+    highlight_lookup: Optional[Dict[int, str]] = None,
+) -> str:
     """Render interactive rule atom badges for a provision."""
 
     if not provision.rule_atoms:
@@ -360,6 +806,12 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
             detail_dict.setdefault("span_start", span_start)
             detail_dict.setdefault("span_end", span_end)
 
+        highlight_id = None
+        if highlight_lookup is not None:
+            highlight_id = highlight_lookup.get(index)
+            if highlight_id:
+                detail_dict.setdefault("highlight_id", highlight_id)
+
         label_text = atom.atom_type or _format_atom_label(atom, index)
         detail_json = json.dumps(detail_dict, indent=2, ensure_ascii=False)
 
@@ -373,6 +825,8 @@ def _render_atom_badges(provision: Provision, provision_anchor: str) -> str:
         }
         if anchor_id:
             attributes["id"] = anchor_id
+        if highlight_id:
+            attributes["data-highlight-id"] = highlight_id
         if span is not None:
             attributes["data-span-start"] = str(span_start)
             attributes["data-span-end"] = str(span_end)
@@ -412,23 +866,25 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     )
 
     annotations = _build_atom_annotations(provision)
+    highlight_lookup = _build_atom_highlight_lookup(provision, annotations)
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
-        if not stripped:
+        cleaned = _normalise_provision_line(stripped)
+        if not cleaned:
             continue
-        highlighted = _highlight_line(stripped, annotations)
+        highlighted = _highlight_line(cleaned, annotations)
         paragraphs.append(f"<p>{highlighted}</p>")
     stable_attr = (
         f" data-stable-id='{escape(provision.stable_id, quote=True)}'"
         if provision.stable_id
         else ""
     )
-    section_id = anchor
+    section_id = f"section-{anchor}"
     heading_html = (
         f"<h4><span class='heading-anchor' id='{anchor}'>{heading}</span></h4>"
     )
-    atom_html = _render_atom_badges(provision, anchor)
+    atom_html = _render_atom_badges(provision, anchor, highlight_lookup)
     return (
         f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}>"
         f"{heading_html}{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
@@ -439,7 +895,8 @@ def build_document_preview_html(document: Document) -> str:
     """Generate HTML preview for a processed document."""
 
     provision_sections, lookup = _collect_provisions(document.provisions)
-    toc_html = _render_toc(document.toc_entries, lookup)
+    provision_by_anchor = {anchor: provision for provision, anchor in provision_sections}
+    toc_html = _render_toc(document.toc_entries, lookup, provision_by_anchor)
 
     if provision_sections:
         sections_html = "".join(
@@ -471,14 +928,32 @@ def build_document_preview_html(document: Document) -> str:
 .document-preview nav.toc-tree li {
     margin-bottom: 0.35rem;
 }
-.document-preview nav.toc-tree li[data-depth] > a {
+.document-preview nav.toc-tree li[data-depth] > .toc-entry {
     display: inline-flex;
     align-items: center;
     padding-left: calc(var(--toc-depth, 0) * 0.75rem);
     position: relative;
 }
-.document-preview nav.toc-tree li[data-depth='0'] > a {
+.document-preview nav.toc-tree li[data-depth='0'] > .toc-entry {
     font-weight: 600;
+}
+.document-preview nav.toc-tree .toc-entry {
+    gap: 0.35rem;
+}
+.document-preview nav.toc-tree .toc-entry .toc-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.document-preview nav.toc-tree .toc-entry .toc-page {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    color: #36546b;
+    background-color: rgba(17, 86, 127, 0.12);
+    border-radius: 999px;
+    padding: 0.1rem 0.4rem;
+}
+.document-preview nav.toc-tree li[data-depth] > .toc-entry:not(a) {
+    color: #11567f;
 }
 .document-preview nav.toc-tree a {
     color: #11567f;
@@ -577,15 +1052,28 @@ def build_document_preview_html(document: Document) -> str:
     color: inherit;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
+.document-preview .atom-span[data-kind='citation'] {
+    background-color: #d3f9d8;
+    color: #14532d;
+}
 .document-preview .atom-span:hover,
 .document-preview .atom-span:focus {
     background-color: #ffe066;
     box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.35);
     outline: none;
 }
+.document-preview .atom-span[data-kind='citation']:hover,
+.document-preview .atom-span[data-kind='citation']:focus {
+    background-color: #b2f2bb;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
 .document-preview .atom-span[data-active='true'] {
     background-color: #ffd43b;
     box-shadow: 0 0 0 2px rgba(255, 157, 46, 0.5);
+}
+.document-preview .atom-span[data-kind='citation'][data-active='true'] {
+    background-color: #8ce99a;
+    box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.5);
 }
 .document-preview .detail-column {
     border: 1px solid #d9d9d9;
@@ -1136,6 +1624,26 @@ def build_document_preview_html(document: Document) -> str:
         detailColumn.appendChild(card);
     }
 
+    function extractHighlightId(detail) {
+        if (!detail) {
+            return null;
+        }
+        try {
+            const parsed = JSON.parse(detail);
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.highlight_id) {
+                    return String(parsed.highlight_id);
+                }
+                if (parsed.anchor) {
+                    return String(parsed.anchor);
+                }
+            }
+        } catch (error) {
+            return null;
+        }
+        return null;
+    }
+
     function setActive(label) {
         const allTargets = badges.concat(spans);
         allTargets.forEach(function(node) {
@@ -1155,6 +1663,11 @@ def build_document_preview_html(document: Document) -> str:
         const detail = element.getAttribute('data-detail');
         setActive(label);
         renderDetail(label, detail);
+        const explicitTarget = element.getAttribute('data-highlight-id');
+        const highlightId = explicitTarget || extractHighlightId(detail);
+        if (highlightId) {
+            scrollToAnchor(highlightId);
+        }
     }
 
     const initial = badges[0] || spans[0] || null;
@@ -1290,7 +1803,10 @@ def render_document_preview(document: Document) -> None:
 __all__ = [
     "_collect_provisions",
     "_normalise_anchor_key",
+    "_normalise_provision_line",
     "_render_toc",
+    "collect_document_actor_summary",
+    "DocumentActorSummary",
     "build_document_preview_html",
     "render_document_preview",
 ]

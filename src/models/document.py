@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import json
 
 from .provision import Provision
+from .sentence import Sentence
 
 
 @dataclass
@@ -46,6 +47,7 @@ class DocumentMetadata:
         jurisdiction: Geographic or political jurisdiction of the document.
         citation: Formal citation or identifier for the document.
         date: Date the document was issued.
+        title: Human-readable title or heading of the document.
         court: Optional court or body issuing the document.
         lpo_tags: Optional list of Legal Policy Objective tags.
         cco_tags: Optional list of cross-cultural obligation tags.
@@ -64,6 +66,7 @@ class DocumentMetadata:
     jurisdiction: str
     citation: str
     date: date
+    title: Optional[str] = None
     court: Optional[str] = None
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
@@ -105,6 +108,7 @@ class DocumentMetadata:
             jurisdiction=data["jurisdiction"],
             citation=data["citation"],
             date=parsed_date,
+            title=data.get("title"),
             court=data.get("court"),
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
@@ -134,6 +138,13 @@ class Document:
     body: str
     provisions: List[Provision] = field(default_factory=list)
     toc_entries: List[DocumentTOCEntry] = field(default_factory=list)
+    sentences: List[Sentence] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.body and not self.sentences:
+            from src.text.sentences import segment_sentences
+
+            self.sentences = segment_sentences(self.body)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the document to a dictionary."""
@@ -142,6 +153,7 @@ class Document:
             "body": self.body,
             "provisions": [p.to_dict() for p in self.provisions],
             "toc_entries": [entry.to_dict() for entry in self.toc_entries],
+            "sentences": [sentence.to_dict() for sentence in self.sentences],
         }
 
     def to_json(self) -> str:
@@ -156,11 +168,13 @@ class Document:
         toc_entries = [
             DocumentTOCEntry.from_dict(entry) for entry in data.get("toc_entries", [])
         ]
+        sentences = [Sentence.from_dict(item) for item in data.get("sentences", [])]
         return cls(
             metadata=metadata,
             body=data["body"],
             provisions=provisions,
             toc_entries=toc_entries,
+            sentences=sentences,
         )
 
     @classmethod

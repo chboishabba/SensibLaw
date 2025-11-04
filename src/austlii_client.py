@@ -189,6 +189,7 @@ class AustLIIClient:
             jurisdiction="AU",
             citation=title,
             date=doc_date,
+            title=title,
             canonical_id=canonical_id,
             provenance=url,
         )

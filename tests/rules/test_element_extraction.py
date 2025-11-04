@@ -56,6 +56,37 @@ def test_graffiti_elements_are_classified(graffiti_clause: str) -> None:
     )
 
 
+def test_leading_condition_extracted_and_classified() -> None:
+    text = (
+        "If the court is satisfied that the applicant meets the criteria, "
+        "it may grant the application."
+    )
+
+    rules = extract_rules(text)
+    assert len(rules) == 1
+
+    rule = rules[0]
+    assert rule.conditions == "If the court is satisfied that the applicant meets the criteria"
+    assert not rule.actor.lower().startswith("if")
+    assert any(
+        "if the court is satisfied that the applicant meets the criteria" in frag.lower()
+        for frag in rule.elements.get("circumstance", [])
+    )
+
+
+def test_leading_condition_keeps_first_clause_actor() -> None:
+    text = (
+        "If the court is satisfied, the applicant must apply and the registrar must notify the parties."
+    )
+
+    rules = extract_rules(text)
+    assert rules, "expected rules from conditional sentence"
+
+    rule = rules[0]
+    assert rule.actor.lower().startswith("the applicant")
+    assert rule.conditions == "If the court is satisfied"
+
+
 def test_document_atoms_include_element_roles(
     murder_clause: str, graffiti_clause: str
 ) -> None:

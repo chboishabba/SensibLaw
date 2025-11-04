@@ -14,6 +14,7 @@ metadata = DocumentMetadata(
     jurisdiction="Example State",
     citation="Example Act 2024 (Ex)",
     date=date(2024, 1, 1),
+    title="Example Act 2024",
     lpo_tags=["example"],
     cco_tags=["demo"],
     cultural_flags=["test"]

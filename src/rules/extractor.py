@@ -79,13 +79,36 @@ _CIRCUMSTANCE_PATTERNS = [
 
 
 def _split_sentences(text: str) -> List[str]:
-    parts = re.split(r"[.;]\s*", text)
+    """Split ``text`` into sentences while respecting parentheses."""
+
     sentences: List[str] = []
-    for part in parts:
-        for line in part.splitlines():
-            candidate = line.strip()
-            if candidate:
-                sentences.append(candidate)
+    buffer: List[str] = []
+    depth = 0
+
+    def flush() -> None:
+        candidate = "".join(buffer).strip()
+        if candidate:
+            sentences.append(candidate)
+
+    for char in text:
+        if char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+
+        if char in ".;" and depth == 0:
+            flush()
+            buffer = []
+            continue
+
+        if char == "\n" and depth == 0:
+            flush()
+            buffer = []
+            continue
+
+        buffer.append(" " if char == "\n" else char)
+
+    flush()
     return sentences
 
 
@@ -113,6 +136,14 @@ def _extract_patterns(text: str, patterns: List[re.Pattern[str]]) -> tuple[List[
         remainder = pattern.sub(_repl, remainder)
 
     return matches, remainder
+
+
+def _normalise_condition_text(text: str) -> str:
+    """Return a cleaned representation of a conditional clause."""
+
+    fragment = _clean_fragment(text)
+    fragment = re.sub(r"\bthen$", "", fragment, flags=re.IGNORECASE)
+    return fragment.strip()
 
 
 def _classify_fragments(action: str, conditions: str | None, scope: str | None) -> Dict[str, List[str]]:
@@ -147,6 +178,7 @@ def _classify_fragments(action: str, conditions: str | None, scope: str | None) 
         roles["circumstance"].extend(circumstances)
 
     cond_text = conditions or ""
+    cond_text = _normalise_condition_text(cond_text) if cond_text else ""
     if cond_text:
         cond_exceptions, cond_text = _extract_patterns(cond_text, _EXCEPTION_PATTERNS)
         if cond_exceptions:
@@ -187,15 +219,106 @@ def extract_rules(text: str) -> List[Rule]:
 
     rules: List[Rule] = []
     for sent in _split_sentences(text):
-        match = None
-        pattern_used = None
-        for pattern in _PATTERNS:
-            match = pattern.match(sent)
-            if match:
-                pattern_used = pattern
-                break
-        if not match or not pattern_used:
+        sentence = sent.strip()
+        if not sentence:
             continue
+
+        condition_parts: List[str] = []
+        working_sentence = sentence
+        match: re.Match[str] | None = None
+        pattern_used: re.Pattern[str] | None = None
+
+        if re.match(r"^(if|when|where|unless)\b", working_sentence, re.IGNORECASE):
+            prefix_positions = [0]
+            prefix_positions.extend(
+                match_obj.end()
+                for match_obj in re.finditer(r"[\s,;:]+", working_sentence)
+            )
+
+            leading_match: tuple[
+                int,
+                int,
+                str,
+                str,
+                re.Match[str],
+                re.Pattern[str],
+            ] | None = None
+
+            for pos in prefix_positions:
+                segment = working_sentence[pos:]
+                stripped_segment = segment.lstrip()
+                consumed = len(segment) - len(stripped_segment)
+                candidate = stripped_segment
+                if not candidate:
+                    continue
+
+                prefix_end = pos + consumed
+                prefix_text = working_sentence[:prefix_end]
+                normalised_prefix = _normalise_condition_text(prefix_text)
+                if not normalised_prefix or normalised_prefix.lower() in {"if", "when", "where", "unless"}:
+                    continue
+
+                prefix_trimmed = prefix_text.rstrip()
+                prefix_has_delimiter = bool(prefix_trimmed and prefix_trimmed[-1] in ",;:")
+
+                for pattern in _PATTERNS:
+                    potential_match = pattern.match(candidate)
+                    if not potential_match:
+                        continue
+
+                    actor_candidate = potential_match.group("actor").strip()
+                    if re.match(r"^(if|when|where|unless)\b", actor_candidate, re.IGNORECASE):
+                        continue
+
+                    actor_lower = actor_candidate.lower()
+                    actor_starts_with_determiner = actor_lower.startswith(
+                        (
+                            "the ",
+                            "a ",
+                            "an ",
+                            "any ",
+                            "each ",
+                            "every ",
+                            "no ",
+                            "all ",
+                        )
+                    )
+                    actor_starts_upper = bool(actor_candidate and actor_candidate[0].isupper())
+
+                    score = 0 if prefix_has_delimiter else 1 if (
+                        actor_starts_with_determiner or actor_starts_upper
+                    ) else 2
+
+                    candidate_info = (
+                        score,
+                        prefix_end,
+                        normalised_prefix,
+                        candidate,
+                        potential_match,
+                        pattern,
+                    )
+                    if not leading_match or (score, prefix_end) < leading_match[:2]:
+                        leading_match = candidate_info
+                    break
+
+            if not leading_match:
+                continue
+
+            _, _, best_prefix, best_candidate, best_match, best_pattern = leading_match
+
+            condition_parts.append(best_prefix)
+            working_sentence = best_candidate
+            match = best_match
+            pattern_used = best_pattern
+        else:
+            for pattern in _PATTERNS:
+                potential_match = pattern.match(working_sentence)
+                if potential_match:
+                    match = potential_match
+                    pattern_used = pattern
+                    break
+            if not match or not pattern_used:
+                continue
 
         if pattern_used is _OFFENCE_PATTERN:
             actor = match.group("actor").strip()
@@ -213,7 +336,17 @@ def extract_rules(text: str) -> List[Rule]:
         cond_match = re.search(r"\b(if|when|unless)\b(.*)", rest, re.IGNORECASE)
         if cond_match and cond_match.start() > 0:
             action = rest[: cond_match.start()].strip()
-            conditions = cond_match.group(0).strip()
+            conditions = _normalise_condition_text(cond_match.group(0))
+
+        if condition_parts:
+            if conditions:
+                condition_parts.append(conditions)
+            conditions = "; ".join(part for part in condition_parts if part)
+        elif conditions:
+            conditions = _normalise_condition_text(conditions)
+
+        if conditions == "":
+            conditions = None
 
         scope_match = re.search(r"\b(within|under)\b(.*)", action, re.IGNORECASE)
         if scope_match:
