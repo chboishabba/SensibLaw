@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
+import spacy
 
+from src.nlp.rules import match_rules
 from src.rules.extractor import extract_rules
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
@@ -38,3 +40,33 @@ def test_rule_extraction_matches_golden(name: str, data: dict) -> None:
     expected_modalities = {rule["modality"] for rule in expected_rules}
     actual_modalities = {rule["modality"] for rule in actual_rules}
     assert actual_modalities == expected_modalities
+
+
+def test_match_rules_primary_modality_and_conditions() -> None:
+    nlp = spacy.blank("en")
+    doc = nlp("A person must not drive if intoxicated under s 5B.")
+    summary = match_rules(doc)
+
+    assert summary.primary_modality == "must not"
+    assert summary.modalities == ["must not"]
+    assert summary.conditions == ["if"]
+    assert summary.references == ["s 5B"]
+
+
+def test_match_rules_normalises_subject_to() -> None:
+    nlp = spacy.blank("en")
+    doc = nlp("The authority may issue permits subject to this Part.")
+    summary = match_rules(doc)
+
+    assert summary.primary_modality == "may"
+    assert summary.conditions == ["subject to"]
+    assert "this Part" in summary.references
+
+
+def test_match_rules_keeps_first_modality() -> None:
+    nlp = spacy.blank("en")
+    doc = nlp("A person may act and must comply.")
+    summary = match_rules(doc)
+
+    assert summary.modalities == ["may", "must"]
+    assert summary.primary_modality == "may"
