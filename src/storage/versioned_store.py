@@ -6,6 +6,7 @@ import difflib
 from collections import defaultdict
 import hashlib
 import re
+from textwrap import dedent
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
@@ -122,7 +123,7 @@ class VersionedStore:
                     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
                     FOREIGN KEY (doc_id, rev_id, toc_id)
                         REFERENCES toc(doc_id, rev_id, toc_id)
-                );
+                ) WITHOUT ROWID;
 
                 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
                 ON provisions(doc_id, rev_id, provision_id);
@@ -155,7 +156,7 @@ class VersionedStore:
                         REFERENCES provisions(doc_id, rev_id, provision_id),
                     FOREIGN KEY (doc_id, rev_id, toc_id)
                         REFERENCES toc(doc_id, rev_id, toc_id)
-                );
+                ) WITHOUT ROWID;
 
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
                 ON rule_atoms(doc_id, rev_id, provision_id);
@@ -228,7 +229,7 @@ class VersionedStore:
                     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
                     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
-                );
+                ) WITHOUT ROWID;
 
                 CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
                 ON rule_elements(doc_id, rev_id, provision_id, rule_id);
@@ -304,6 +305,7 @@ class VersionedStore:
         self._populate_text_hashes()
         self._backfill_toc_stable_ids()
         self._deduplicate_rule_atoms()
+        self._ensure_without_rowid_tables()
         self._ensure_unique_indexes()
         self._ensure_document_json_column()
         self._backfill_rule_tables()
@@ -525,6 +527,155 @@ class VersionedStore:
                         """,
                         params,
                     )
+
+    def _ensure_without_rowid_tables(self) -> None:
+        """Rebuild legacy rowid tables to ``WITHOUT ROWID`` variants."""
+
+        table_definitions: dict[str, tuple[str, tuple[str, ...]]] = {
+            "provisions": (
+                dedent(
+                    """
+                    CREATE TABLE provisions (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        parent_id INTEGER,
+                        identifier TEXT,
+                        heading TEXT,
+                        node_type TEXT,
+                        toc_id INTEGER,
+                        text TEXT,
+                        rule_tokens TEXT,
+                        references_json TEXT,
+                        principles TEXT,
+                        customs TEXT,
+                        cultural_flags TEXT,
+                        PRIMARY KEY (doc_id, rev_id, provision_id),
+                        FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
+                        FOREIGN KEY (doc_id, rev_id, toc_id)
+                            REFERENCES toc(doc_id, rev_id, toc_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev\n"
+                    "ON provisions(doc_id, rev_id, provision_id)",
+                    "CREATE INDEX IF NOT EXISTS idx_provisions_toc\n"
+                    "ON provisions(doc_id, rev_id, toc_id)",
+                ),
+            ),
+            "rule_atoms": (
+                dedent(
+                    """
+                    CREATE TABLE rule_atoms (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        rule_id INTEGER NOT NULL,
+                        text_hash TEXT NOT NULL,
+                        toc_id INTEGER,
+                        stable_id TEXT,
+                        atom_type TEXT,
+                        role TEXT,
+                        party TEXT,
+                        who TEXT,
+                        who_text TEXT,
+                        actor TEXT,
+                        modality TEXT,
+                        action TEXT,
+                        conditions TEXT,
+                        scope TEXT,
+                        text TEXT,
+                        subject_gloss TEXT,
+                        subject_gloss_metadata TEXT,
+                        glossary_id INTEGER,
+                        PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
+                        FOREIGN KEY (doc_id, rev_id, provision_id)
+                            REFERENCES provisions(doc_id, rev_id, provision_id),
+                        FOREIGN KEY (doc_id, rev_id, toc_id)
+                            REFERENCES toc(doc_id, rev_id, toc_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev\n"
+                    "ON rule_atoms(doc_id, rev_id, provision_id)",
+                ),
+            ),
+            "rule_elements": (
+                dedent(
+                    """
+                    CREATE TABLE rule_elements (
+                        doc_id INTEGER NOT NULL,
+                        rev_id INTEGER NOT NULL,
+                        provision_id INTEGER NOT NULL,
+                        rule_id INTEGER NOT NULL,
+                        element_id INTEGER NOT NULL,
+                        text_hash TEXT,
+                        atom_type TEXT,
+                        role TEXT,
+                        text TEXT,
+                        conditions TEXT,
+                        gloss TEXT,
+                        gloss_metadata TEXT,
+                        glossary_id INTEGER,
+                        PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
+                        FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
+                            REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
+                    ) WITHOUT ROWID;
+                    """
+                ),
+                (
+                    "CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev\n"
+                    "ON rule_elements(doc_id, rev_id, provision_id, rule_id)",
+                ),
+            ),
+        }
+
+        for table_name, (create_sql, index_sqls) in table_definitions.items():
+            if self._object_type(table_name) != "table":
+                continue
+
+            sql_row = self.conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+                (table_name,),
+            ).fetchone()
+            if sql_row is None:
+                continue
+
+            existing_sql = sql_row["sql"] or ""
+            if "WITHOUT ROWID" in existing_sql.upper():
+                continue
+
+            column_rows = self.conn.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+            if not column_rows:
+                continue
+
+            column_list = ", ".join(f'"{row["name"]}"' for row in column_rows)
+            temp_name = f"{table_name}_rowid_backup"
+            previous_fk_state = self.conn.execute("PRAGMA foreign_keys").fetchone()[0]
+
+            try:
+                self.conn.execute("PRAGMA foreign_keys = OFF")
+                with self.conn:
+                    self.conn.execute(f"DROP TABLE IF EXISTS {temp_name}")
+                    self.conn.execute(f"ALTER TABLE {table_name} RENAME TO {temp_name}")
+                    self.conn.executescript(create_sql)
+                    insert_sql = (
+                        f"INSERT INTO {table_name} ({column_list}) "
+                        f"SELECT {column_list} FROM {temp_name}"
+                    )
+                    self.conn.execute(insert_sql)
+                    self.conn.execute(f"DROP TABLE {temp_name}")
+                    for index_sql in index_sqls:
+                        self.conn.execute(index_sql)
+            finally:
+                if previous_fk_state:
+                    self.conn.execute("PRAGMA foreign_keys = ON")
+                else:
+                    self.conn.execute("PRAGMA foreign_keys = OFF")
 
     def _compute_rule_atom_hash(
         self,

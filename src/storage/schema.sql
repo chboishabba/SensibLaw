@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS provisions (
     FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id),
     FOREIGN KEY (doc_id, rev_id, toc_id)
         REFERENCES toc(doc_id, rev_id, toc_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
 ON provisions(doc_id, rev_id, provision_id);
@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS rule_atoms (
         REFERENCES provisions(doc_id, rev_id, provision_id),
     FOREIGN KEY (doc_id, rev_id, toc_id)
         REFERENCES toc(doc_id, rev_id, toc_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev
 ON rule_atoms(doc_id, rev_id, provision_id);
@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS rule_elements (
     PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
     FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
         REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
-);
+) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_rule_elements_doc_rev
 ON rule_elements(doc_id, rev_id, provision_id, rule_id);
