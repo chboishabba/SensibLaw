@@ -2,7 +2,7 @@ from datetime import date, datetime
 import json
 
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
-from src.models.provision import Atom, Provision
+from src.models.provision import Atom, GlossaryLink, Provision
 
 
 def test_document_serialization_round_trip():
@@ -31,9 +31,11 @@ def test_document_serialization_round_trip():
         who_text="The legislature",
         text="principle",
         refs=["ref1"],
-        gloss="A guiding principle",
-        gloss_metadata={"source": "example"},
-        glossary_id=7,
+        glossary=GlossaryLink(
+            text="A guiding principle",
+            metadata={"source": "example"},
+            glossary_id=7,
+        ),
     )
     provision = Provision(
         text="Sample provision",
@@ -71,3 +73,4 @@ def test_document_serialization_round_trip():
     assert Document.from_json(json_data) == document
     round_trip = Document.from_json(json_data)
     assert round_trip.provisions[0].atoms[0] == atom
+    assert round_trip.provisions[0].atoms[0].glossary == atom.glossary

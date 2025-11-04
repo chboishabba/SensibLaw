@@ -37,6 +37,8 @@ def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
     assert structured.who_text == "the court"
     assert structured.conditions == "if requested"
     assert structured.subject_gloss == "the court"
+    assert structured.subject is not None
+    assert structured.subject.glossary is structured.subject_link
     assert structured.text == "The court must consider the evidence if requested"
 
     assert structured.elements, "expected rule elements"
@@ -81,6 +83,7 @@ def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
     assert element.gloss == "the court"
     assert element.gloss_metadata is None
     assert element.glossary_id is None
+    assert structured.subject_link is element.glossary
 
     legacy_element = structured.to_atoms()[1]
     assert legacy_element.gloss == "the court"

@@ -17,6 +17,7 @@ import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
+    GlossaryLink,
     Provision,
     RuleAtom,
     RuleElement,
@@ -292,22 +293,23 @@ def test_glossary_references_persist(tmp_path: Path):
             canonical_id="canon-123",
         )
 
+        shared_link = GlossaryLink(text="Example term", glossary_id=glossary_id)
+
         subject_atom = Atom(
             type="rule",
             text="Example subject",
             refs=[],
-            gloss="Example term",
-            glossary_id=glossary_id,
+            glossary=shared_link,
         )
 
         rule_atom = RuleAtom(
             subject=subject_atom,
-            glossary_id=glossary_id,
+            subject_link=shared_link,
             references=[],
             elements=[
                 RuleElement(
                     text="Element referencing term",
-                    glossary_id=glossary_id,
+                    glossary=shared_link,
                     references=[],
                 )
             ],
@@ -382,6 +384,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             licence="CC",
             canonical_id="canon-upsert",
         )
+        subject_link = GlossaryLink(
+            text="Initial gloss",
+            metadata={"stage": "initial"},
+            glossary_id=3,
+        )
         subject = Atom(
             type="rule",
             role="initial-role",
@@ -391,9 +398,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             conditions="Initial conditions",
             text="Initial subject text",
             refs=["Initial ref"],
-            gloss="Initial gloss",
-            gloss_metadata={"stage": "initial"},
-            glossary_id=3,
+            glossary=subject_link,
         )
         initial_rule_atom = RuleAtom(
             atom_type="rule",
@@ -408,15 +413,18 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             scope="Initial scope",
             text="Initial rule text",
             subject=subject,
+            subject_link=subject_link,
             references=[RuleReference(citation_text="Initial citation")],
             elements=[
                 RuleElement(
                     role="initial element",
                     text="Initial element text",
                     conditions="Initial element conditions",
-                    gloss="Initial element gloss",
-                    gloss_metadata={"stage": "initial"},
-                    glossary_id=5,
+                    glossary=GlossaryLink(
+                        text="Initial element gloss",
+                        metadata={"stage": "initial"},
+                        glossary_id=5,
+                    ),
                     references=[
                         RuleReference(citation_text="Initial element citation")
                     ],
@@ -469,6 +477,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             (doc_id, rev_id, provision_id),
         ).fetchone()[0]
 
+        updated_subject_link = GlossaryLink(
+            text="Updated gloss",
+            metadata={"stage": "updated"},
+            glossary_id=11,
+        )
         updated_subject = Atom(
             type="rule",
             role="updated-role",
@@ -478,9 +491,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             conditions="Updated subject conditions",
             text="Updated subject text",
             refs=["Updated subject ref"],
-            gloss="Updated gloss",
-            gloss_metadata={"stage": "updated"},
-            glossary_id=11,
+            glossary=updated_subject_link,
         )
         updated_rule_atom = RuleAtom(
             toc_id=toc_id,
@@ -496,9 +507,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             scope="Updated scope",
             text="Updated rule text",
             subject=updated_subject,
-            subject_gloss="Updated gloss",
-            subject_gloss_metadata={"stage": "updated"},
-            glossary_id=11,
+            subject_link=updated_subject_link,
             references=[
                 RuleReference(
                     work="Updated Work",
@@ -512,9 +521,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
                     role="updated element",
                     text="Updated element text",
                     conditions="Updated element conditions",
-                    gloss="Updated element gloss",
-                    gloss_metadata={"stage": "updated"},
-                    glossary_id=13,
+                    glossary=GlossaryLink(
+                        text="Updated element gloss",
+                        metadata={"stage": "updated"},
+                        glossary_id=13,
+                    ),
                     references=[
                         RuleReference(
                             work="Elem Work",

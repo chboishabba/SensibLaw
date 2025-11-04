@@ -14,6 +14,7 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
+    GlossaryLink,
     Provision,
     RuleAtom,
     RuleElement,
@@ -1889,7 +1890,11 @@ class VersionedStore:
                         section=row["section"],
                         pinpoint=row["pinpoint"],
                         citation_text=row["citation_text"],
-                        glossary_id=row["glossary_id"],
+                        glossary=(
+                            GlossaryLink(glossary_id=row["glossary_id"])
+                            if row["glossary_id"] is not None
+                            else None
+                        ),
                     )
                 )
 
@@ -1905,7 +1910,11 @@ class VersionedStore:
                         section=row["section"],
                         pinpoint=row["pinpoint"],
                         citation_text=row["citation_text"],
-                        glossary_id=row["glossary_id"],
+                        glossary=(
+                            GlossaryLink(glossary_id=row["glossary_id"])
+                            if row["glossary_id"] is not None
+                            else None
+                        ),
                     )
                 )
 
@@ -1922,12 +1931,29 @@ class VersionedStore:
                         section=ref.section,
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
-                        glossary_id=ref.glossary_id,
+                        glossary=(
+                            ref.glossary.clone()
+                            if ref.glossary is not None
+                            else None
+                        ),
                     )
                     for ref in atom_refs_map.get(
                         (row["provision_id"], row["rule_id"]), []
                     )
                 ]
+                subject_link: Optional[GlossaryLink]
+                if (
+                    row["subject_gloss"] is not None
+                    or row["rule_glossary_id"] is not None
+                    or metadata is not None
+                ):
+                    subject_link = GlossaryLink(
+                        text=row["subject_gloss"],
+                        metadata=metadata,
+                        glossary_id=row["rule_glossary_id"],
+                    )
+                else:
+                    subject_link = None
                 rule_atom = RuleAtom(
                     toc_id=row["toc_id"],
                     stable_id=row["stable_id"],
@@ -1942,9 +1968,7 @@ class VersionedStore:
                     conditions=row["conditions"],
                     scope=row["scope"],
                     text=row["text"],
-                    subject_gloss=row["subject_gloss"],
-                    subject_gloss_metadata=metadata,
-                    glossary_id=row["rule_glossary_id"],
+                    subject_link=subject_link,
                     references=references,
                 )
                 if not rule_atom.stable_id and row["toc_id"] is not None:
@@ -1981,6 +2005,18 @@ class VersionedStore:
                         "subject_gloss_metadata_json",
                     )
                 ):
+                    if (
+                        row["subject_gloss_value"] is not None
+                        or row["subject_glossary_id"] is not None
+                        or subject_metadata is not None
+                    ):
+                        subject_glossary = GlossaryLink(
+                            text=row["subject_gloss_value"],
+                            metadata=subject_metadata,
+                            glossary_id=row["subject_glossary_id"],
+                        )
+                    else:
+                        subject_glossary = None
                     subject_atom = Atom(
                         type=row["subject_type"],
                         role=row["subject_role"],
@@ -1990,9 +2026,7 @@ class VersionedStore:
                         text=row["subject_text"],
                         conditions=row["subject_conditions"],
                         refs=subject_refs,
-                        gloss=row["subject_gloss_value"],
-                        gloss_metadata=subject_metadata,
-                        glossary_id=row["subject_glossary_id"],
+                        glossary=subject_glossary,
                     )
                     rule_atom.subject = subject_atom
                     if subject_atom.type is not None:
@@ -2027,20 +2061,34 @@ class VersionedStore:
                         section=ref.section,
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
-                        glossary_id=ref.glossary_id,
+                        glossary=(
+                            ref.glossary.clone()
+                            if ref.glossary is not None
+                            else None
+                        ),
                     )
                     for ref in element_refs_map.get(
                         (row["provision_id"], row["rule_id"], row["element_id"]), []
                     )
                 ]
+                if (
+                    row["gloss"] is not None
+                    or row["glossary_id"] is not None
+                    or metadata is not None
+                ):
+                    element_glossary = GlossaryLink(
+                        text=row["gloss"],
+                        metadata=metadata,
+                        glossary_id=row["glossary_id"],
+                    )
+                else:
+                    element_glossary = None
                 element = RuleElement(
                     atom_type=row["atom_type"],
                     role=row["role"],
                     text=row["text"],
                     conditions=row["conditions"],
-                    gloss=row["gloss"],
-                    gloss_metadata=metadata,
-                    glossary_id=row["glossary_id"],
+                    glossary=element_glossary,
                     references=references,
                 )
                 parent = rule_lookup.get((row["provision_id"], row["rule_id"]))
@@ -2186,9 +2234,19 @@ class VersionedStore:
                         conditions=atom_row["conditions"],
                         text=atom_row["text"],
                         refs=list(refs),
-                        gloss=atom_row["gloss"],
-                        gloss_metadata=gloss_metadata,
-                        glossary_id=atom_row["glossary_id"],
+                        glossary=(
+                            GlossaryLink(
+                                text=atom_row["gloss"],
+                                metadata=gloss_metadata,
+                                glossary_id=atom_row["glossary_id"],
+                            )
+                            if (
+                                atom_row["gloss"] is not None
+                                or atom_row["glossary_id"] is not None
+                                or gloss_metadata is not None
+                            )
+                            else None
+                        ),
                     )
                 )
             return atoms
@@ -2223,7 +2281,10 @@ class VersionedStore:
             for reference in references:
                 if getattr(reference, "glossary_id", None) == glossary_id:
                     return references
-            return [*references, RuleReference(glossary_id=glossary_id)]
+            return [
+                *references,
+                RuleReference(glossary=GlossaryLink(glossary_id=glossary_id)),
+            ]
 
         seen_hashes: set[str] = set()
         rule_counter = 0
@@ -2604,10 +2665,22 @@ class VersionedStore:
                     conditions=row["conditions"],
                     text=row["text"],
                     refs=list(refs or []),
-                    gloss=row["gloss"],
-                    gloss_metadata=metadata,
-                    glossary_id=(
-                        row["glossary_id"] if "glossary_id" in row.keys() else None
+                    glossary=(
+                        GlossaryLink(
+                            text=row["gloss"],
+                            metadata=metadata,
+                            glossary_id=(
+                                row["glossary_id"]
+                                if "glossary_id" in row.keys()
+                                else None
+                            ),
+                        )
+                        if (
+                            row["gloss"] is not None
+                            or metadata is not None
+                            or ("glossary_id" in row.keys() and row["glossary_id"] is not None)
+                        )
+                        else None
                     ),
                 )
             )
