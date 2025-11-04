@@ -90,6 +90,9 @@ CREATE TABLE IF NOT EXISTS revisions (
     FOREIGN KEY (doc_id) REFERENCES documents(id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+ON revisions(doc_id, effective_date DESC);
+
 CREATE TABLE IF NOT EXISTS toc (
     doc_id INTEGER NOT NULL,
     rev_id INTEGER NOT NULL,
