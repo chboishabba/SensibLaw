@@ -45,6 +45,7 @@ class VersionedStore:
         self._max_document_size = max_document_size
         self._init_schema()
         self._ensure_toc_page_number_column()
+        self._ensure_revisions_effective_index()
 
     # ------------------------------------------------------------------
     # Payload validation helpers
@@ -118,6 +119,9 @@ class VersionedStore:
                     PRIMARY KEY (doc_id, rev_id),
                     FOREIGN KEY (doc_id) REFERENCES documents(id)
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+                ON revisions(doc_id, effective_date DESC);
 
                 CREATE TABLE IF NOT EXISTS toc (
                     doc_id INTEGER NOT NULL,
@@ -676,6 +680,17 @@ class VersionedStore:
                 """
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
                 ON rule_atoms(doc_id, rev_id, toc_id)
+                """
+            )
+
+    def _ensure_revisions_effective_index(self) -> None:
+        """Ensure revisions are indexed by document and effective date."""
+
+        with self.conn:
+            self.conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
+                ON revisions(doc_id, effective_date DESC)
                 """
             )
 
