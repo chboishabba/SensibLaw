@@ -391,6 +391,7 @@ class Provision:
     node_type: Optional[str] = None
     toc_id: Optional[int] = None
     stable_id: Optional[str] = None
+    position: Optional[int] = None
     rule_tokens: Dict[str, Any] = field(default_factory=dict)
     cultural_flags: List[str] = field(default_factory=list)
     references: List[Tuple[str, Optional[str], Optional[str], Optional[str], str]] = (
@@ -415,6 +416,7 @@ class Provision:
             "node_type": self.node_type,
             "toc_id": self.toc_id,
             "stable_id": self.stable_id,
+            "position": self.position,
             "rule_tokens": dict(self.rule_tokens),
             "cultural_flags": list(self.cultural_flags),
             "references": [tuple(ref) for ref in self.references],
@@ -435,6 +437,7 @@ class Provision:
             node_type=data.get("node_type"),
             toc_id=data.get("toc_id"),
             stable_id=data.get("stable_id"),
+            position=data.get("position"),
             rule_tokens=dict(data.get("rule_tokens", {})),
             cultural_flags=list(data.get("cultural_flags", [])),
             references=[
