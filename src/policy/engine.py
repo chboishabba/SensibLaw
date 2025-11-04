@@ -10,13 +10,16 @@ from __future__ import annotations
 
 from dataclasses import replace
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, Optional, Set
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 try:  # pragma: no cover - optional dependency
     import yaml
 except Exception:  # pragma: no cover
     yaml = None
 
+from src.culture.registry import CulturalFlagRegistry, load_registry
 from src.graph.models import GraphNode
 
 Action = str
@@ -24,12 +27,35 @@ StorageHook = Callable[["CulturalFlags", Action], None]
 InferenceHook = Callable[["CulturalFlags", Action], None]
 
 
-class CulturalFlags(Enum):
-    """Known cultural sensitivity flags."""
+_FLAGS_PATH = Path(__file__).resolve().parents[2] / "data" / "cultural_flags.yaml"
 
-    SACRED_DATA = "SACRED_DATA"
-    PERSONALLY_IDENTIFIABLE_INFORMATION = "PERSONALLY_IDENTIFIABLE_INFORMATION"
-    PUBLIC_DOMAIN = "PUBLIC_DOMAIN"
+
+@lru_cache(maxsize=1)
+def _get_flag_registry() -> CulturalFlagRegistry:
+    return load_registry(_FLAGS_PATH)
+
+
+def _build_flag_enum() -> Enum:
+    registry = _get_flag_registry()
+    members = {identifier: identifier for identifier in registry.canonical_ids()}
+    return Enum("CulturalFlags", members)
+
+
+CulturalFlags = _build_flag_enum()
+
+
+def resolve_cultural_flag(name: str) -> Optional[CulturalFlags]:
+    """Resolve ``name`` to a :class:`CulturalFlags` member if known."""
+
+    if not name:
+        return None
+    metadata = _get_flag_registry().resolve(name)
+    if not metadata:
+        return None
+    try:
+        return CulturalFlags[metadata.identifier]
+    except KeyError:  # pragma: no cover - defensive guard
+        return None
 
 
 class PolicyEngine:
@@ -101,12 +127,7 @@ class PolicyEngine:
         self, rule: Dict[str, Any], flag_set: Set[CulturalFlags]
     ) -> Action:
         cond = rule.get("if")
-        flag = None
-        if cond:
-            try:
-                flag = CulturalFlags[cond]
-            except KeyError:
-                flag = None
+        flag = resolve_cultural_flag(cond) if cond else None
         match = flag in flag_set if flag else False
         branch = rule.get("then" if match else "else")
         if isinstance(branch, dict):
@@ -128,9 +149,8 @@ class PolicyEngine:
                 action = rule.get("action")
                 if not flag_name or not action:
                     continue
-                try:
-                    flag = CulturalFlags[flag_name]
-                except KeyError:
+                flag = resolve_cultural_flag(flag_name)
+                if not flag:
                     continue
                 if flag in flag_set:
                     self._apply_hooks(flag, action)
@@ -164,7 +184,14 @@ class PolicyEngine:
         redaction: str = "none"
         transform: Optional[str] = None
         consent_required: bool = node.consent_required
-        for name in node.cultural_flags or []:
+        resolved_members: List[CulturalFlags] = []
+        for raw in node.cultural_flags or []:
+            member = resolve_cultural_flag(raw)
+            if member and member not in resolved_members:
+                resolved_members.append(member)
+        canonical_names = [member.value for member in resolved_members]
+
+        for name in canonical_names:
             rule = self.rules.get(name.upper())
             if not rule:
                 continue
@@ -196,12 +223,13 @@ class PolicyEngine:
                 k: self._transform_value(v, transform) for k, v in metadata.items()
             }
             if transform and self.inference_hook:
-                for name in node.cultural_flags or []:
-                    try:
-                        flag = CulturalFlags[name]
-                    except KeyError:
-                        continue
-                    self._apply_hooks(flag, "transform")
+                for member in resolved_members:
+                    self._apply_hooks(member, "transform")
 
-        return replace(node, metadata=metadata, consent_required=consent_required)
+        return replace(
+            node,
+            metadata=metadata,
+            consent_required=consent_required,
+            cultural_flags=canonical_names or node.cultural_flags,
+        )
 

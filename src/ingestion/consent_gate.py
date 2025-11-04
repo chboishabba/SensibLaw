@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict
 
-from src.policy.engine import CulturalFlags, PolicyEngine
+from src.policy.engine import PolicyEngine, resolve_cultural_flag
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,11 @@ def check_consent(record: Dict[str, Any]) -> None:
 
     flags = []
     for name in record.get("cultural_flags", []):
-        try:
-            flags.append(CulturalFlags[name.upper()])
-        except KeyError:
-            continue
+        flag = resolve_cultural_flag(name)
+        if flag:
+            flags.append(flag)
+    if flags:
+        record["cultural_flags"] = [flag.value for flag in flags]
     action = _engine.evaluate(flags)
 
     storage_consent = record.get("storage_consent", record.get("consent", False))
