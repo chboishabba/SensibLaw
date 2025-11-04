@@ -351,6 +351,11 @@ sensiblaw tests run tests/fixtures/glj_permanent_stay_story.json
 
 ## Data ingestion
 
+The PDF ingestion pipeline streams pages directly from pdfminer so only the
+active page is materialised in memory while parsing. This keeps peak usage
+bounded even for lengthy statutes and improves ingestion throughput when
+working with large source files.
+
 Download legislation from the Federal Register of Legislation and build a
 subgraph for use in proof-tree demos:
 

@@ -4,7 +4,7 @@ from src.pdf_ingest import extract_pdf_text, parse_table_of_contents
 
 
 def test_parse_table_of_contents_handles_multi_column_layout():
-    pages = extract_pdf_text(Path("act-2005-004.pdf"))
+    pages = list(extract_pdf_text(Path("act-2005-004.pdf")))
     toc_pages = pages[2:6]
 
     entries = parse_table_of_contents(toc_pages)
