@@ -1,6 +1,7 @@
 """Tests for the versioned store implementation."""
 
 import json
+import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -169,12 +170,6 @@ def test_atom_references_join_table(tmp_path: Path):
         ).fetchall()
         assert [row["citation_text"] for row in rows] == ["Second reference"]
 
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (doc_id, 2),
-        )
-        store.conn.commit()
-
         snapshot = store.snapshot(doc_id, date(2022, 1, 1))
         assert snapshot is not None
         atom = snapshot.provisions[0].atoms[0]
@@ -234,6 +229,53 @@ def test_atoms_view_created_for_new_store(tmp_path: Path):
         assert row["type"] == "view"
     finally:
         store.close()
+
+
+def test_revisions_table_excludes_document_json(tmp_path: Path) -> None:
+    store = VersionedStore(str(tmp_path / "schema.db"))
+    try:
+        columns = {
+            row["name"]
+            for row in store.conn.execute("PRAGMA table_info(revisions)")
+        }
+        assert "document_json" not in columns
+    finally:
+        store.close()
+
+
+def test_migration_script_removes_document_json(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    db_path = tmp_path / "store.db"
+    store.close()
+
+    legacy_conn = sqlite3.connect(str(db_path))
+    legacy_conn.row_factory = sqlite3.Row
+    with legacy_conn:
+        legacy_conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+        legacy_conn.execute(
+            "UPDATE revisions SET document_json = '{}' WHERE doc_id = ?",
+            (doc_id,),
+        )
+
+    from scripts.migrate_drop_document_json import drop_document_json_column
+
+    dropped = drop_document_json_column(legacy_conn)
+    assert dropped
+
+    columns = {
+        row["name"]
+        for row in legacy_conn.execute("PRAGMA table_info(revisions)")
+    }
+    assert "document_json" not in columns
+    legacy_conn.close()
+
+    reopened = VersionedStore(str(db_path))
+    try:
+        snapshot = reopened.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        assert snapshot.provisions
+    finally:
+        reopened.close()
 
 
 def test_toc_join(tmp_path: Path):
@@ -689,12 +731,6 @@ def test_rule_atom_subjects_backfill(tmp_path: Path):
 def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (doc_id, 2),
-        )
-        store.conn.commit()
-
         rows = store.conn.execute(
             """
             SELECT atom_id, type, role, text, refs
@@ -1034,18 +1070,6 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         assert snapshot is not None
         assert snapshot.provisions
         assert snapshot.provisions[0].atoms
-
-        # Removing JSON payload should still allow reconstruction from normalized tables.
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (stored_doc_id, 1),
-        )
-        store.conn.commit()
-
-        snapshot_no_json = store.snapshot(stored_doc_id, document.metadata.date)
-        assert snapshot_no_json is not None
-        assert snapshot_no_json.provisions
-        assert snapshot_no_json.provisions[0].atoms
     finally:
         store.close()
 
