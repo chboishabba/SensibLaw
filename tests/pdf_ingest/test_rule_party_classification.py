@@ -1,12 +1,14 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.pdf_ingest import _rules_to_atoms
-from src.rules import UNKNOWN_PARTY
+from src.rules import PARTY_LEXICON, UNKNOWN_PARTY, derive_party_metadata
 from src.rules.extractor import extract_rules
 
 
@@ -76,3 +78,41 @@ def test_unknown_actor_triggers_lint_atom():
     assert any(atom.role == "unknown_party" for atom in lint_atoms)
     assert any("spaceship" in (atom.text or "").lower() for atom in lint_atoms)
     assert all(atom.who == UNKNOWN_PARTY for atom in lint_atoms)
+
+
+@pytest.mark.parametrize(
+    ("actor", "expected_party", "expected_role", "expected_who_text"),
+    [
+        ("The judge", "judge", "decision_maker", "the judge"),
+        ("Parliament", "legislature", "legislature", "the legislature"),
+        ("The government", "executive", "executive", "the executive"),
+        ("Each plaintiff", "party", "party", "the party"),
+        ("Members of the public", "public", "public", "the public"),
+    ],
+)
+def test_actor_taxonomy_matches_expected_roles(actor, expected_party, expected_role, expected_who_text):
+    party, role, who_text = derive_party_metadata(actor)
+
+    assert party == expected_party
+    assert role == expected_role
+    assert who_text == expected_who_text
+
+
+def test_actor_taxonomy_includes_all_canonical_entries():
+    # Smoke-test the taxonomy wiring so that accidental removal of entries
+    # surfaces with a helpful assertion failure.
+    expected_keys = {
+        "court",
+        "judge",
+        "legislature",
+        "executive",
+        "party",
+        "public",
+        "public_body",
+        "prosecution",
+        "defence",
+        "police",
+        "victim",
+    }
+
+    assert expected_keys.issubset(PARTY_LEXICON.keys())
