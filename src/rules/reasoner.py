@@ -3,16 +3,18 @@
 import re
 from typing import Iterable, List
 
+from src.nlp.taxonomy import Modality
+
 from . import Rule
-
-
-NEGATIVE = {"must not", "may not", "shall not"}
 
 
 def _polarity(modality: str) -> str:
     """Classify a modality as either ``negative`` or ``positive``."""
 
-    return "negative" if modality.lower() in NEGATIVE else "positive"
+    modality_enum = Modality.normalise(modality)
+    if modality_enum:
+        return "negative" if modality_enum.is_negative else "positive"
+    return "positive"
 
 
 def check_rules(rules: Iterable[Rule]) -> List[str]:

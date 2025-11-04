@@ -6,6 +6,8 @@ import re
 from collections import defaultdict
 from typing import Dict, List
 
+from src.nlp.taxonomy import Modality
+
 from . import Rule, derive_party_metadata
 
 # Include the most common English legal modalities.  The patterns capture
@@ -326,7 +328,9 @@ def extract_rules(text: str) -> List[Rule]:
             rest = f"{match.group('trigger').strip()} {match.group('rest').strip()}"
         else:
             actor = match.group("actor").strip()
-            modality = match.group("modality").lower()
+            modality_text = match.group("modality").lower()
+            modality_enum = Modality.normalise(modality_text)
+            modality = modality_enum.value if modality_enum else modality_text
             rest = match.group("rest").strip()
 
         conditions = None
