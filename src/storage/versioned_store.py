@@ -260,6 +260,19 @@ class VersionedStore:
                     metadata TEXT
                 );
 
+                CREATE TABLE IF NOT EXISTS receipts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    data TEXT NOT NULL,
+                    simhash TEXT,
+                    minhash TEXT
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_simhash
+                ON receipts(simhash);
+
+                CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+                ON receipts(minhash);
+
                 CREATE TABLE IF NOT EXISTS rule_lints (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
@@ -305,6 +318,7 @@ class VersionedStore:
         self._backfill_toc_stable_ids()
         self._deduplicate_rule_atoms()
         self._ensure_unique_indexes()
+        self._ensure_receipts_indexes()
         self._ensure_document_json_column()
         self._backfill_rule_tables()
         self._ensure_atoms_view()
@@ -633,6 +647,26 @@ class VersionedStore:
                 """
                 CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc
                 ON rule_atoms(doc_id, rev_id, toc_id)
+                """
+            )
+
+    def _ensure_receipts_indexes(self) -> None:
+        """Ensure receipts have supporting indexes and uniqueness constraints."""
+
+        if self._object_type("receipts") != "table":
+            return
+        with self.conn:
+            self.conn.execute("DROP INDEX IF EXISTS idx_receipts_simhash")
+            self.conn.execute(
+                """
+                CREATE UNIQUE INDEX idx_receipts_simhash
+                ON receipts(simhash)
+                """
+            )
+            self.conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+                ON receipts(minhash)
                 """
             )
 

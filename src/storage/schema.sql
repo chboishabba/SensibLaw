@@ -65,6 +65,12 @@ CREATE TABLE IF NOT EXISTS receipts (
     minhash TEXT
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_simhash
+ON receipts(simhash);
+
+CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+ON receipts(minhash);
+
 CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT
 );
