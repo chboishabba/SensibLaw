@@ -4,10 +4,16 @@ from enum import Enum
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import spacy
-from spacy.matcher import Matcher
 from spacy.tokens import Doc, Token
 
 from src.models.provision import RuleReference
+from src.nlp.rules import (
+    CONDITION_LABEL,
+    MODALITY_LABEL,
+    REFERENCE_LABEL,
+    RuleMatchSummary,
+    match_rules,
+)
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
@@ -25,13 +31,6 @@ SUBDIVISION_RE = re.compile(
     re.IGNORECASE,
 )
 SUBSECTION_RE = re.compile(r"^\((?P<number>\d+)\)\s*(?P<text>.+)$")
-
-# Single-pass combined regex mimicking an Aho–Corasick matcher for keywords
-TOKEN_RE = re.compile(
-    r"(?P<modality>must not|must|may)|"
-    r"(?P<condition>if|unless|subject to|despite)",
-    re.IGNORECASE,
-)
 
 INTERNAL_REF_RE = re.compile(
     r"\b(?P<label>s|ss|section|sections|regulation|regulations|rule|rules)\s+"
@@ -80,28 +79,22 @@ if not Token.has_extension("class_"):
     Token.set_extension("class_", default=None)
 
 
-_LOGIC_PATTERNS: Dict[LogicTokenClass, List[List[Dict[str, object]]]] = {
-    LogicTokenClass.MODALITY: [
-        [{"LOWER": "must"}, {"LOWER": "not"}],
-        [{"LOWER": "must"}],
-        [{"LOWER": "may"}],
-    ],
-    LogicTokenClass.CONDITION: [
-        [{"LOWER": "if"}],
-        [{"LOWER": "unless"}],
-        [{"LOWER": "despite"}],
-        [{"LOWER": "subject"}, {"LOWER": "to"}],
-    ],
+_RULE_CLASS_MAP: Dict[str, LogicTokenClass] = {
+    MODALITY_LABEL: LogicTokenClass.MODALITY,
+    CONDITION_LABEL: LogicTokenClass.CONDITION,
+    REFERENCE_LABEL: LogicTokenClass.REFERENCE,
 }
 
 
-def _make_label_callback(label: LogicTokenClass):
-    def _callback(matcher: Matcher, doc: Doc, i: int, matches: List[Tuple[int, int, int]]) -> None:
-        _match_id, start, end = matches[i]
-        for token in doc[start:end]:
+def _apply_rule_matches(doc: Doc, summary: RuleMatchSummary) -> None:
+    for match in summary.matches:
+        label = _RULE_CLASS_MAP.get(match.label)
+        if label is None:
+            continue
+        for token in match.span(doc):
+            if token.is_space:
+                continue
             token._.class_ = label
-
-    return _callback
 
 
 def _label_reference_tokens(
@@ -117,6 +110,33 @@ def _label_reference_tokens(
             if token.is_space:
                 continue
             token._.class_ = LogicTokenClass.REFERENCE
+
+
+def _prepare_logic_doc(
+    text: str,
+    *,
+    reference_matches: Optional[Sequence[Tuple[RuleReference, Tuple[int, int]]]] = None,
+) -> Tuple[Doc, RuleMatchSummary, Sequence[Tuple[RuleReference, Tuple[int, int]]]]:
+    doc = _NLP(text)
+    for token in doc:
+        token._.class_ = LogicTokenClass.SPACE if token.is_space else None
+
+    summary = match_rules(doc)
+    _apply_rule_matches(doc, summary)
+
+    if reference_matches is None:
+        reference_matches = _extract_reference_matches(text)
+
+    _label_reference_tokens(doc, reference_matches)
+    return doc, summary, reference_matches
+
+
+def _finalise_logic_doc(doc: Doc) -> Doc:
+    _expand_condition_scopes(doc)
+    _label_actor_and_action(doc)
+    _finalise_token_classes(doc)
+    _verify_full_coverage(doc)
+    return doc
 
 
 def _expand_condition_scopes(doc: Doc) -> None:
@@ -224,24 +244,10 @@ def annotate_logic_tokens(
 ) -> Doc:
     """Annotate ``text`` with logic token classes and return the spaCy doc."""
 
-    doc = _NLP(text)
-    for token in doc:
-        if token.is_space:
-            token._.class_ = LogicTokenClass.SPACE
-
-    matcher = Matcher(doc.vocab)
-    for label, patterns in _LOGIC_PATTERNS.items():
-        matcher.add(label.value, patterns, on_match=_make_label_callback(label))
-
-    matcher(doc)
-
-    if reference_matches is None:
-        reference_matches = _extract_reference_matches(text)
-    _label_reference_tokens(doc, reference_matches)
-    _expand_condition_scopes(doc)
-    _label_actor_and_action(doc)
-    _finalise_token_classes(doc)
-    _verify_full_coverage(doc)
+    doc, _, reference_matches = _prepare_logic_doc(
+        text, reference_matches=reference_matches
+    )
+    _finalise_logic_doc(doc)
     return doc
 
 
@@ -381,30 +387,15 @@ def _extract_references(text: str) -> List[RuleReference]:
 
 
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
-    modality: Optional[str] = None
-    conditions: List[str] = []
-    seen_conditions: set[str] = set()
-
-    for match in TOKEN_RE.finditer(text):
-        token = match.group().strip()
-        group = match.lastgroup
-        if group == "modality" and modality is None:
-            modality = token.lower()
-        elif group == "condition":
-            lowered = token.lower()
-            if lowered not in seen_conditions:
-                seen_conditions.add(lowered)
-                conditions.append(lowered)
-
-    reference_matches = _extract_reference_matches(text)
+    doc, summary, reference_matches = _prepare_logic_doc(text)
+    _finalise_logic_doc(doc)
     references = [ref for ref, _ in reference_matches]
-    logic_doc = annotate_logic_tokens(text, reference_matches=reference_matches)
 
     return {
-        "modality": modality,
-        "conditions": conditions,
+        "modality": summary.primary_modality,
+        "conditions": summary.conditions,
         "references": references,
-        "token_classes": _serialise_logic_tokens(logic_doc),
+        "token_classes": _serialise_logic_tokens(doc),
     }
 
 
@@ -484,12 +475,11 @@ class Section:
 def parse_html_section(html: str) -> Section:
     """Parse an HTML fragment representing a numbered section.
 
-    The extractor runs a single combined regex over the text to detect
-    modalities (``must``, ``must not``, ``may``), conditional triggers
-    (``if``, ``unless``, ``subject to``, ``despite``) and cross references
-    ranging from intra-Act markers (``s 5B``, ``this Part``) to structural
-    headings and external statute citations (e.g. ``Native Title Act 1993 (Cth)
-    s 223``).
+    The extractor applies the shared spaCy matcher to detect modalities
+    (``must``, ``must not``, ``may``), conditional triggers (``if``,
+    ``unless``, ``subject to``) and cross references ranging from
+    intra-Act markers (``s 5B``, ``this Part``) to structural headings and
+    external statute citations (e.g. ``Native Title Act 1993 (Cth) s 223``).
     """
 
     text = _strip_tags(html)
