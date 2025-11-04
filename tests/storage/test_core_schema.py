@@ -82,3 +82,25 @@ def test_correction_deletion_rejected(tmp_path):
         store.delete_correction(corr_id)
     assert store.get_correction(corr_id) is not None
     store.close()
+
+
+def test_receipt_indexes_and_duplicate_simhash_rejected(tmp_path):
+    db_path = tmp_path / "test.db"
+    store = Storage(db_path)
+    try:
+        store.insert_receipt({"text": "same"})
+        with pytest.raises(sqlite3.IntegrityError):
+            store.insert_receipt({"text": "same"})
+    finally:
+        store.close()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        index_details = {
+            row[1]: row[2]
+            for row in conn.execute("PRAGMA index_list('receipts')").fetchall()
+        }
+        assert index_details.get("idx_receipts_minhash") == 0
+        assert index_details.get("idx_receipts_simhash") == 1
+    finally:
+        conn.close()
