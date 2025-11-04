@@ -283,9 +283,7 @@ def collect_document_actor_summary(
         canonical = accumulator.canonical
         if accumulator.forms:
             canonical = accumulator.forms.most_common(1)[0][0]
-        aliases = sorted(
-            form for form in accumulator.forms.keys() if form != canonical
-        )
+        aliases = sorted(form for form in accumulator.forms.keys() if form != canonical)
         summaries.append(
             DocumentActorSummary(
                 actor=canonical,
@@ -504,7 +502,6 @@ def _highlight_line(line: str, annotations: List[_AtomAnnotation]) -> str:
     return "".join(parts)
 
 
-def _render_toc(entries: List[DocumentTOCEntry], lookup: Dict[str, str]) -> str:
 def _render_toc(
     entries: List[DocumentTOCEntry],
     lookup: Dict[str, str],
@@ -537,6 +534,7 @@ def _render_toc(
                 if normalised and normalised in lookup:
                     anchor = lookup[normalised]
                     break
+
     resolved_anchors: Dict[int, Optional[str]] = {}
 
     def resolve_anchor(entry: DocumentTOCEntry) -> Optional[str]:
@@ -653,7 +651,9 @@ def _render_toc(
                     f"<span class='toc-entry'><span class='toc-label'>{label}</span>"
                     f"{page_html}</span>"
                 )
-                item = f"<li{depth_attr}{type_attr}{page_attr}>{content}{child_html}</li>"
+                item = (
+                    f"<li{depth_attr}{type_attr}{page_attr}>{content}{child_html}</li>"
+                )
             items.append(item)
         return f"<ul>{''.join(items)}</ul>"
 
@@ -895,7 +895,9 @@ def build_document_preview_html(document: Document) -> str:
     """Generate HTML preview for a processed document."""
 
     provision_sections, lookup = _collect_provisions(document.provisions)
-    provision_by_anchor = {anchor: provision for provision, anchor in provision_sections}
+    provision_by_anchor = {
+        anchor: provision for provision, anchor in provision_sections
+    }
     toc_html = _render_toc(document.toc_entries, lookup, provision_by_anchor)
 
     if provision_sections:

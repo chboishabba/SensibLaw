@@ -120,7 +120,8 @@ def render() -> None:
         citation = st.text_input("Citation", value="[1992] HCA 23")
         cultural_flags = st.text_input("Cultural flags (comma separated)", value="")
         jurisdiction = st.text_input(
-            "Jurisdiction", value=_default_metadata_value("jurisdiction", "High Court of Australia")
+            "Jurisdiction",
+            value=_default_metadata_value("jurisdiction", "High Court of Australia"),
         )
         citation = st.text_input(
             "Citation", value=_default_metadata_value("citation", "[1992] HCA 23")
@@ -167,7 +168,9 @@ def render() -> None:
             st.session_state["document_form_jurisdiction"] = (
                 document.metadata.jurisdiction or ""
             )
-            st.session_state["document_form_citation"] = document.metadata.citation or ""
+            st.session_state["document_form_citation"] = (
+                document.metadata.citation or ""
+            )
             st.session_state["document_form_cultural_flags"] = ", ".join(
                 document.metadata.cultural_flags or []
             )
