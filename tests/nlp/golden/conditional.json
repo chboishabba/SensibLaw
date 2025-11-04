@@ -22,7 +22,7 @@
   "rules": [
     {
       "actor": "the officer",
-      "modality": "shall",
+      "modality": "modality.shall",
       "action": "suspend the licence",
       "conditions": "If the officer observes reckless driving",
       "scope": null,

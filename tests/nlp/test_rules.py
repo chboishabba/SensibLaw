@@ -10,6 +10,7 @@ import pytest
 import spacy
 
 from src.nlp.rules import match_rules
+from src.nlp.taxonomy import ConditionalConnector, Modality
 from src.rules.extractor import extract_rules
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
@@ -47,9 +48,9 @@ def test_match_rules_primary_modality_and_conditions() -> None:
     doc = nlp("A person must not drive if intoxicated under s 5B.")
     summary = match_rules(doc)
 
-    assert summary.primary_modality == "must not"
-    assert summary.modalities == ["must not"]
-    assert summary.conditions == ["if"]
+    assert summary.primary_modality == Modality.MUST_NOT.value
+    assert summary.modalities == [Modality.MUST_NOT.value]
+    assert summary.conditions == [ConditionalConnector.IF.value]
     assert summary.references == ["s 5B"]
 
 
@@ -58,8 +59,8 @@ def test_match_rules_normalises_subject_to() -> None:
     doc = nlp("The authority may issue permits subject to this Part.")
     summary = match_rules(doc)
 
-    assert summary.primary_modality == "may"
-    assert summary.conditions == ["subject to"]
+    assert summary.primary_modality == Modality.MAY.value
+    assert summary.conditions == [ConditionalConnector.SUBJECT_TO.value]
     assert "this Part" in summary.references
 
 
@@ -68,5 +69,5 @@ def test_match_rules_keeps_first_modality() -> None:
     doc = nlp("A person may act and must comply.")
     summary = match_rules(doc)
 
-    assert summary.modalities == ["may", "must"]
-    assert summary.primary_modality == "may"
+    assert summary.modalities == [Modality.MAY.value, Modality.MUST.value]
+    assert summary.primary_modality == Modality.MAY.value

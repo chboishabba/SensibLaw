@@ -9,6 +9,8 @@ from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
 from spacy.vocab import Vocab
 
+from .taxonomy import ConditionalConnector, Modality
+
 MODALITY_LABEL = "MODALITY"
 CONDITION_LABEL = "CONDITION"
 REFERENCE_LABEL = "REFERENCE"
@@ -102,12 +104,6 @@ _PATTERN_TABLE: Sequence[tuple[str, Sequence[Sequence[Dict[str, object]]]]] = (
 )
 
 
-_CONDITION_NORMALISATIONS: Dict[str, str] = {
-    "subject to": "subject to",
-    "provided that": "provided that",
-}
-
-
 def get_rule_matcher(vocab: Vocab) -> Matcher:
     """Return a cached :class:`~spacy.matcher.Matcher` for the provided vocab."""
 
@@ -123,9 +119,16 @@ def get_rule_matcher(vocab: Vocab) -> Matcher:
     return matcher
 
 
-def _normalise_condition(span: Span) -> str:
+def _normalise_modality(span: Span) -> str | None:
     text = " ".join(token.lower_ for token in span if not token.is_space)
-    return _CONDITION_NORMALISATIONS.get(text, text)
+    modality = Modality.normalise(text)
+    return modality.value if modality else None
+
+
+def _normalise_condition(span: Span) -> str | None:
+    text = " ".join(token.lower_ for token in span if not token.is_space)
+    connector = ConditionalConnector.normalise(text)
+    return connector.value if connector else None
 
 
 def _normalise_reference(span: Span) -> str:
@@ -153,8 +156,8 @@ def match_rules(doc: Doc) -> RuleMatchSummary:
         span = doc[start:end]
         matches.append(RuleMatch(label=label, start=start, end=end))
         if label == MODALITY_LABEL:
-            value = span.text.lower()
-            if value not in seen_modalities:
+            value = _normalise_modality(span)
+            if value and value not in seen_modalities:
                 seen_modalities.add(value)
                 modalities.append(value)
         elif label == CONDITION_LABEL:
