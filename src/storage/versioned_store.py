@@ -888,6 +888,25 @@ class VersionedStore:
                 """
             )
 
+    def _ensure_receipts_indexes(self) -> None:
+        """Ensure the receipts table exposes the expected indexes."""
+
+        if self._object_type("receipts") != "table":
+            return
+        with self.conn:
+            self.conn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_simhash
+                ON receipts(simhash)
+                """
+            )
+            self.conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_receipts_minhash
+                ON receipts(minhash)
+                """
+            )
+
     def _ensure_revisions_effective_index(self) -> None:
         """Ensure revisions are indexed by document and effective date."""
 
