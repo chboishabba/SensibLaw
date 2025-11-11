@@ -1343,7 +1343,12 @@ def build_document_preview_html(document: Document) -> str:
                 }
                 if (Array.isArray(value)) {
                     const filtered = value
-                        .map((item) => (item is undefined ? '' : String(item).trim()))
+                        .map((item) => {
+                            if (item === null || item === undefined) {
+                                return '';
+                            }
+                            return String(item).trim();
+                        })
                         .filter(Boolean);
                     if (!filtered.length) {
                         return null;
