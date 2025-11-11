@@ -844,6 +844,65 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
 
     annotations = _build_atom_annotations(provision)
     highlight_lookup = _build_atom_highlight_lookup(provision, annotations)
+
+    token_groups_map: Dict[str, List[Dict[str, object]]] = {}
+    raw_tokens = []
+    if provision.rule_tokens:
+        raw_tokens = provision.rule_tokens.get("token_classes", []) or []
+
+    for token in raw_tokens:
+        if not isinstance(token, dict):
+            continue
+        raw_text_value = token.get("text", "")
+        if not isinstance(raw_text_value, str):
+            raw_text_value = str(raw_text_value)
+        display_text = raw_text_value.strip()
+        if not display_text:
+            continue
+        class_value = token.get("class")
+        if isinstance(class_value, str):
+            class_label = class_value.strip() or "Unclassified"
+        elif class_value is None:
+            class_label = "Unclassified"
+        else:
+            class_label = str(class_value).strip() or "Unclassified"
+        token_entry: Dict[str, object] = {
+            "text": raw_text_value,
+            "display_text": display_text,
+        }
+        start_value = token.get("start")
+        if isinstance(start_value, int):
+            token_entry["start"] = start_value
+        end_value = token.get("end")
+        if isinstance(end_value, int):
+            token_entry["end"] = end_value
+        token_groups_map.setdefault(class_label, []).append(token_entry)
+
+    def _token_sort_key(entry: Dict[str, object]) -> Tuple[int, str]:
+        start_raw = entry.get("start")
+        start_value = start_raw if isinstance(start_raw, int) else float("inf")
+        label = entry.get("display_text") or entry.get("text") or ""
+        if not isinstance(label, str):
+            label = str(label)
+        return (start_value, label)
+
+    for bucket in token_groups_map.values():
+        bucket.sort(key=_token_sort_key)
+
+    token_groups = [
+        {"class": class_label, "tokens": bucket}
+        for class_label, bucket in sorted(token_groups_map.items(), key=lambda item: item[0])
+    ]
+    token_total = sum(len(bucket) for bucket in token_groups)
+    token_payload = {
+        "groups": token_groups,
+        "total": token_total,
+    }
+    token_attr = (
+        " data-token-groups='"
+        + escape(json.dumps(token_payload, ensure_ascii=False, separators=(",", ":")), quote=True)
+        + "'"
+    )
     paragraphs: List[str] = []
     for raw_line in provision.text.splitlines():
         stripped = raw_line.strip()
@@ -863,7 +922,7 @@ def _render_provision_section(provision: Provision, anchor: str) -> str:
     )
     atom_html = _render_atom_badges(provision, anchor, highlight_lookup)
     return (
-        f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}>"
+        f"<section class='provision-section' id='{section_id}' data-anchor='{anchor}'{stable_attr}{token_attr}>"
         f"{heading_html}{metadata_html}{''.join(paragraphs)}{atom_html}</section>"
     )
 
@@ -1061,6 +1120,9 @@ def build_document_preview_html(document: Document) -> str:
     background: #f4f7fb;
     max-height: 720px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 .document-preview .detail-column pre {
     background: #fff;
@@ -1073,6 +1135,123 @@ def build_document_preview_html(document: Document) -> str:
 .document-preview .detail-column .detail-placeholder {
     margin: 0;
     color: #4b5563;
+}
+.document-preview .detail-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    flex-shrink: 0;
+    min-width: 0;
+}
+.document-preview .detail-panel h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #0f172a;
+}
+.document-preview .detail-panel .detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.document-preview .token-class-panel__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.document-preview .token-class-panel__placeholder {
+    font-style: italic;
+}
+.document-preview .token-class-panel__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.document-preview .token-class-panel__group {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.6rem;
+    background: #f8fafc;
+    overflow: hidden;
+}
+.document-preview .token-class-panel__group[open] {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+.document-preview .token-class-panel__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    list-style: none;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+.document-preview .token-class-panel__summary:focus {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+.document-preview .token-class-panel__summary::-webkit-details-marker {
+    display: none;
+}
+.document-preview .token-class-panel__summary-label {
+    flex: 1 1 auto;
+}
+.document-preview .token-class-panel__summary-count {
+    font-size: 0.75rem;
+    color: #475569;
+    background: #e2e8f0;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+}
+.document-preview .token-class-panel__list {
+    margin: 0;
+    padding: 0.5rem 0.75rem 0.75rem;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.document-preview .token-class-panel__token {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 0.6rem;
+    padding: 0.35rem 0.5rem;
+    background: #fff;
+    color: #1f2937;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.document-preview .token-class-panel__token:hover,
+.document-preview .token-class-panel__token:focus {
+    background: #eef2ff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+    outline: none;
+}
+.document-preview .token-class-panel__token[data-active='true'] {
+    background: #c7d2fe;
+    border-color: #4f46e5;
+    color: #1e1b4b;
+}
+.document-preview .token-class-panel__token-text {
+    flex: 1 1 auto;
+    text-align: left;
+}
+.document-preview .token-class-panel__token-range {
+    flex: 0 0 auto;
+    margin-left: 0.75rem;
+    font-size: 0.75rem;
+    color: #475569;
 }
 .document-preview .rule-card {
     background: #fff;
@@ -1193,7 +1372,374 @@ def build_document_preview_html(document: Document) -> str:
         previewRoot.querySelectorAll('nav.toc-tree a[href^="#"]')
     );
     const tocLinkById = new Map();
+    const tokenPanel = previewRoot.querySelector('#token-class-panel');
+    const tokenPanelBody = tokenPanel
+        ? tokenPanel.querySelector('.token-class-panel__body')
+        : null;
+    const tokenPanelTitle = tokenPanel
+        ? tokenPanel.querySelector('.token-class-panel__title')
+        : null;
+    const tokenPanelBaseTitle = tokenPanelTitle
+        ? tokenPanelTitle.textContent || 'Token classification'
+        : 'Token classification';
     let activeAnchorId = null;
+    let pinnedTokenButton = null;
+    let activeTokenButton = null;
+
+    function locateProvisionSection(anchorId) {
+        if (!anchorId) {
+            return null;
+        }
+        return previewRoot.querySelector(
+            `.provision-section[data-anchor="${anchorId}"]`
+        );
+    }
+
+    function setActiveTokenButton(button) {
+        if (activeTokenButton === button) {
+            return;
+        }
+        if (activeTokenButton) {
+            activeTokenButton.removeAttribute('data-active');
+        }
+        activeTokenButton = button || null;
+        if (activeTokenButton) {
+            activeTokenButton.setAttribute('data-active', 'true');
+        }
+    }
+
+    function clearTokenSelection() {
+        const selection = window.getSelection();
+        if (selection) {
+            selection.removeAllRanges();
+        }
+    }
+
+    function locateTokenRange(section, token) {
+        if (!section || !token) {
+            return null;
+        }
+        const rawText =
+            typeof token.text === 'string' ? token.text : '';
+        if (!rawText) {
+            return null;
+        }
+        const candidates = [rawText];
+        const trimmed = rawText.trim();
+        if (trimmed && trimmed !== rawText) {
+            candidates.push(trimmed);
+        }
+        const approxStart =
+            typeof token.start === 'number' ? token.start : null;
+        for (const candidate of candidates) {
+            const lowerCandidate = candidate.toLowerCase();
+            const walker = document.createTreeWalker(
+                section,
+                NodeFilter.SHOW_TEXT,
+                null,
+            );
+            let offset = 0;
+            let bestRange = null;
+            let bestDelta = Infinity;
+            let node;
+            while ((node = walker.nextNode())) {
+                const value = node.textContent || '';
+                const lowerValue = value.toLowerCase();
+                let index = lowerValue.indexOf(lowerCandidate);
+                while (index !== -1) {
+                    const range = document.createRange();
+                    range.setStart(node, index);
+                    range.setEnd(node, index + candidate.length);
+                    if (approxStart === null) {
+                        return range;
+                    }
+                    const docIndex = offset + index;
+                    const delta = Math.abs(docIndex - approxStart);
+                    if (delta < bestDelta) {
+                        bestDelta = delta;
+                        bestRange = range.cloneRange();
+                    }
+                    index = lowerValue.indexOf(lowerCandidate, index + 1);
+                }
+                offset += value.length;
+            }
+            if (bestRange) {
+                return bestRange;
+            }
+        }
+        return null;
+    }
+
+    function highlightTokenSnippet(section, token, shouldScroll) {
+        const range = locateTokenRange(section, token);
+        if (!range) {
+            clearTokenSelection();
+            return false;
+        }
+        const selection = window.getSelection();
+        if (!selection) {
+            return false;
+        }
+        selection.removeAllRanges();
+        selection.addRange(range);
+        if (shouldScroll && contentColumn) {
+            const rect = range.getBoundingClientRect();
+            if (rect && Number.isFinite(rect.top)) {
+                const containerRect = contentColumn.getBoundingClientRect();
+                const targetOffset =
+                    rect.top -
+                    containerRect.top +
+                    contentColumn.scrollTop -
+                    containerRect.height * 0.3;
+                contentColumn.scrollTo({
+                    top: Math.max(targetOffset, 0),
+                    behavior: 'smooth',
+                });
+            }
+        }
+        return true;
+    }
+
+    function createTokenPlaceholder(message) {
+        const paragraph = document.createElement('p');
+        paragraph.className =
+            'detail-placeholder token-class-panel__placeholder';
+        paragraph.textContent = message;
+        return paragraph;
+    }
+
+    function renderTokenGroupsForSection(section) {
+        if (!tokenPanelBody) {
+            return;
+        }
+        tokenPanelBody.innerHTML = '';
+        pinnedTokenButton = null;
+        setActiveTokenButton(null);
+        clearTokenSelection();
+
+        if (tokenPanelTitle) {
+            tokenPanelTitle.textContent = tokenPanelBaseTitle;
+        }
+
+        if (!section) {
+            tokenPanelBody.appendChild(
+                createTokenPlaceholder(
+                    'Select a provision to inspect token bins.',
+                ),
+            );
+            return;
+        }
+
+        const raw = section.getAttribute('data-token-groups');
+        if (!raw) {
+            tokenPanelBody.appendChild(
+                createTokenPlaceholder(
+                    'No token classifications were extracted for this provision.',
+                ),
+            );
+            return;
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(raw);
+        } catch (error) {
+            tokenPanelBody.appendChild(
+                createTokenPlaceholder(
+                    'Unable to parse token classification data.',
+                ),
+            );
+            return;
+        }
+
+        const groups = Array.isArray(payload.groups) ? payload.groups : [];
+        const total =
+            typeof payload.total === 'number'
+                ? payload.total
+                : groups.reduce((count, group) => {
+                      const size = Array.isArray(group.tokens)
+                          ? group.tokens.length
+                          : 0;
+                      return count + size;
+                  }, 0);
+
+        if (tokenPanelTitle) {
+            tokenPanelTitle.textContent = total
+                ? `${tokenPanelBaseTitle} (${total})`
+                : tokenPanelBaseTitle;
+        }
+
+        if (!groups.length) {
+            tokenPanelBody.appendChild(
+                createTokenPlaceholder(
+                    'No token classifications were extracted for this provision.',
+                ),
+            );
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'token-class-panel__groups';
+
+        groups.forEach((group, index) => {
+            if (!group || typeof group !== 'object') {
+                return;
+            }
+            const tokens = Array.isArray(group.tokens) ? group.tokens : [];
+            if (!tokens.length) {
+                return;
+            }
+
+            const wrapper = document.createElement('details');
+            wrapper.className = 'token-class-panel__group';
+            if (index === 0) {
+                wrapper.open = true;
+            }
+
+            const summary = document.createElement('summary');
+            summary.className = 'token-class-panel__summary';
+
+            const summaryLabel = document.createElement('span');
+            summaryLabel.className = 'token-class-panel__summary-label';
+            summaryLabel.textContent = group.class || 'Unclassified';
+
+            const summaryCount = document.createElement('span');
+            summaryCount.className = 'token-class-panel__summary-count';
+            summaryCount.textContent =
+                tokens.length === 1
+                    ? '1 token'
+                    : `${tokens.length} tokens`;
+
+            summary.appendChild(summaryLabel);
+            summary.appendChild(summaryCount);
+            wrapper.appendChild(summary);
+
+            const list = document.createElement('ul');
+            list.className = 'token-class-panel__list';
+
+            tokens.forEach((token) => {
+                if (!token || typeof token !== 'object') {
+                    return;
+                }
+                const displayText =
+                    typeof token.display_text === 'string' && token.display_text
+                        ? token.display_text
+                        : typeof token.text === 'string'
+                        ? token.text.trim()
+                        : '';
+                if (!displayText) {
+                    return;
+                }
+                const item = document.createElement('li');
+                item.className = 'token-class-panel__item';
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'token-class-panel__token';
+                button._tokenData = token;
+                button._tokenSection = section;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'token-class-panel__token-text';
+                textSpan.textContent = displayText;
+                button.appendChild(textSpan);
+
+                const start = typeof token.start === 'number' ? token.start : null;
+                const end = typeof token.end === 'number' ? token.end : null;
+                if (start !== null && end !== null) {
+                    const rangeSpan = document.createElement('span');
+                    rangeSpan.className = 'token-class-panel__token-range';
+                    rangeSpan.textContent = `${start}\u2013${end}`;
+                    button.appendChild(rangeSpan);
+                }
+
+                button.addEventListener('mouseenter', function () {
+                    if (!highlightTokenSnippet(section, token, false)) {
+                        return;
+                    }
+                    if (pinnedTokenButton !== button) {
+                        setActiveTokenButton(button);
+                    }
+                });
+
+                button.addEventListener('focus', function () {
+                    if (!highlightTokenSnippet(section, token, false)) {
+                        return;
+                    }
+                    if (pinnedTokenButton !== button) {
+                        setActiveTokenButton(button);
+                    }
+                });
+
+                function restorePinned() {
+                    if (pinnedTokenButton && pinnedTokenButton.isConnected) {
+                        const pinnedToken = pinnedTokenButton._tokenData;
+                        const pinnedSection = pinnedTokenButton._tokenSection;
+                        if (
+                            pinnedToken &&
+                            pinnedSection &&
+                            highlightTokenSnippet(pinnedSection, pinnedToken, false)
+                        ) {
+                            setActiveTokenButton(pinnedTokenButton);
+                            return;
+                        }
+                    }
+                    pinnedTokenButton = null;
+                    setActiveTokenButton(null);
+                    clearTokenSelection();
+                }
+
+                button.addEventListener('mouseleave', function () {
+                    if (pinnedTokenButton !== button) {
+                        restorePinned();
+                    }
+                });
+
+                button.addEventListener('blur', function () {
+                    if (pinnedTokenButton !== button) {
+                        restorePinned();
+                    }
+                });
+
+                button.addEventListener('click', function () {
+                    if (highlightTokenSnippet(section, token, true)) {
+                        pinnedTokenButton = button;
+                        setActiveTokenButton(button);
+                    }
+                });
+
+                item.appendChild(button);
+                list.appendChild(item);
+            });
+
+            if (list.childElementCount) {
+                wrapper.appendChild(list);
+                container.appendChild(wrapper);
+            }
+        });
+
+        if (!container.childElementCount) {
+            tokenPanelBody.appendChild(
+                createTokenPlaceholder(
+                    'No token classifications were extracted for this provision.',
+                ),
+            );
+            return;
+        }
+
+        tokenPanelBody.appendChild(container);
+    }
+
+    function updateTokenPanel(anchorId) {
+        if (!tokenPanelBody) {
+            if (tokenPanelTitle) {
+                tokenPanelTitle.textContent = tokenPanelBaseTitle;
+            }
+            return;
+        }
+        const section = locateProvisionSection(anchorId);
+        renderTokenGroupsForSection(section);
+    }
 
     function setActiveLink(anchorId) {
         if (activeAnchorId === anchorId) {
@@ -1206,6 +1752,7 @@ def build_document_preview_html(document: Document) -> str:
             }
         }
         activeAnchorId = anchorId || null;
+        updateTokenPanel(activeAnchorId);
         if (!anchorId) {
             return;
         }
@@ -1293,7 +1840,7 @@ def build_document_preview_html(document: Document) -> str:
 
     const badges = Array.from(previewRoot.querySelectorAll('.atom-badge'));
     const spans = Array.from(previewRoot.querySelectorAll('.atom-span'));
-    const detailColumn = previewRoot.querySelector('#atom-detail-panel');
+    const detailColumn = previewRoot.querySelector('#atom-detail-panel .detail-body');
 
     function createFieldList(fieldDefs, source) {
         const dl = document.createElement('dl');
@@ -1381,14 +1928,9 @@ def build_document_preview_html(document: Document) -> str:
             return;
         }
         detailColumn.innerHTML = '';
-        const heading = document.createElement('h3');
-        heading.className = 'rule-card__title';
-        heading.textContent = label || 'Atom detail';
-        detailColumn.appendChild(heading);
-
         if (!detail) {
             const placeholder = document.createElement('p');
-            placeholder.className = 'rule-card__empty';
+            placeholder.className = 'detail-placeholder';
             placeholder.textContent = 'No detail available for this atom.';
             detailColumn.appendChild(placeholder);
             return;
@@ -1398,14 +1940,26 @@ def build_document_preview_html(document: Document) -> str:
         try {
             parsed = JSON.parse(detail);
         } catch (error) {
+            const fallbackCard = document.createElement('article');
+            fallbackCard.className = 'rule-card';
+            const fallbackTitle = document.createElement('h3');
+            fallbackTitle.className = 'rule-card__title';
+            fallbackTitle.textContent = label || 'Atom detail';
+            fallbackCard.appendChild(fallbackTitle);
             const pre = document.createElement('pre');
             pre.textContent = detail;
-            detailColumn.appendChild(pre);
+            fallbackCard.appendChild(pre);
+            detailColumn.appendChild(fallbackCard);
             return;
         }
 
         const card = document.createElement('article');
         card.className = 'rule-card';
+
+        const title = document.createElement('h3');
+        title.className = 'rule-card__title';
+        title.textContent = label || 'Atom detail';
+        card.appendChild(title);
 
         if (parsed.stable_id) {
             const badge = document.createElement('div');
@@ -1597,12 +2151,11 @@ def build_document_preview_html(document: Document) -> str:
             }
         }
 
-        if (!card.childElementCount) {
+        if (card.childElementCount <= 1) {
             const placeholder = document.createElement('p');
             placeholder.className = 'rule-card__empty';
             placeholder.textContent = 'No additional details available.';
-            detailColumn.appendChild(placeholder);
-            return;
+            card.appendChild(placeholder);
         }
 
         detailColumn.appendChild(card);
@@ -1767,9 +2320,19 @@ def build_document_preview_html(document: Document) -> str:
         "<div class='content-column'>"
         f"{sections_html}"
         "</div>"
-        "<div class='detail-column' id='atom-detail-panel'>"
-        "<h3>Atom details</h3>"
+        "<div class='detail-column'>"
+        "<section id='token-class-panel' class='detail-panel token-class-panel'>"
+        "<h3 class='token-class-panel__title'>Token classification</h3>"
+        "<div class='token-class-panel__body'>"
+        "<p class='detail-placeholder token-class-panel__placeholder'>Select a provision to inspect token bins.</p>"
+        "</div>"
+        "</section>"
+        "<section id='atom-detail-panel' class='detail-panel atom-detail-panel'>"
+        "<h3 class='atom-detail-panel__title'>Atom details</h3>"
+        "<div class='detail-body'>"
         "<p class='detail-placeholder'>Select an atom badge to explore the structured rule.</p>"
+        "</div>"
+        "</section>"
         "</div>"
         "</div>"
         "</div>"
