@@ -6,6 +6,28 @@ import spacy
 
 from models.provision import Provision
 from src.nlp.rules import match_rules
+from src.nlp.taxonomy import ConditionalConnector, Modality
+
+
+_MODALITY_DISPLAY: Dict[Modality, str] = {
+    Modality.MUST: "must",
+    Modality.MUST_NOT: "must not",
+    Modality.MAY: "may",
+    Modality.MAY_NOT: "may not",
+    Modality.SHALL: "shall",
+    Modality.SHALL_NOT: "shall not",
+}
+
+_CONDITION_DISPLAY: Dict[ConditionalConnector, str] = {
+    ConditionalConnector.IF: "if",
+    ConditionalConnector.UNLESS: "unless",
+    ConditionalConnector.WHEN: "when",
+    ConditionalConnector.WHERE: "where",
+    ConditionalConnector.PROVIDED_THAT: "provided that",
+    ConditionalConnector.SUBJECT_TO: "subject to",
+    ConditionalConnector.DESPITE: "despite",
+    ConditionalConnector.WHILE: "while",
+}
 
 
 _NLP = spacy.blank("en")
@@ -37,10 +59,26 @@ def _extract_rule_tokens(text: str) -> Dict[str, object]:
     doc = _NLP(text)
     summary = match_rules(doc)
     return {
-        "modality": summary.primary_modality,
-        "conditions": summary.conditions,
+        "modality": _humanise_modality(summary.primary_modality),
+        "conditions": [_humanise_condition(condition) for condition in summary.conditions],
         "references": summary.references,
     }
+
+
+def _humanise_modality(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    modality = Modality.normalise(value)
+    if modality is None:
+        return value
+    return _MODALITY_DISPLAY.get(modality, value)
+
+
+def _humanise_condition(value: str) -> str:
+    connector = ConditionalConnector.normalise(value)
+    if connector is None:
+        return value
+    return _CONDITION_DISPLAY.get(connector, value)
 
 
 def _empty_tokens() -> Dict[str, object]:

@@ -14,6 +14,7 @@ from src.nlp.rules import (
     RuleMatchSummary,
     match_rules,
 )
+from src.nlp.taxonomy import ConditionalConnector, Modality
 
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
@@ -78,12 +79,48 @@ _NLP = spacy.blank("en")
 if not Token.has_extension("class_"):
     Token.set_extension("class_", default=None)
 
+if not Token.has_extension("class_reason"):
+    Token.set_extension("class_reason", default=None)
+
 
 _RULE_CLASS_MAP: Dict[str, LogicTokenClass] = {
     MODALITY_LABEL: LogicTokenClass.MODALITY,
     CONDITION_LABEL: LogicTokenClass.CONDITION,
     REFERENCE_LABEL: LogicTokenClass.REFERENCE,
 }
+
+_MODALITY_DISPLAY: Dict[Modality, str] = {
+    Modality.MUST: "must",
+    Modality.MUST_NOT: "must not",
+    Modality.MAY: "may",
+    Modality.MAY_NOT: "may not",
+    Modality.SHALL: "shall",
+    Modality.SHALL_NOT: "shall not",
+}
+
+_CONDITION_DISPLAY: Dict[ConditionalConnector, str] = {
+    ConditionalConnector.IF: "if",
+    ConditionalConnector.UNLESS: "unless",
+    ConditionalConnector.WHEN: "when",
+    ConditionalConnector.WHERE: "where",
+    ConditionalConnector.PROVIDED_THAT: "provided that",
+    ConditionalConnector.SUBJECT_TO: "subject to",
+    ConditionalConnector.DESPITE: "despite",
+    ConditionalConnector.WHILE: "while",
+}
+
+
+def _assign_token_class(
+    token: Token,
+    label: Optional[LogicTokenClass],
+    reason: Optional[str],
+    *,
+    overwrite: bool = True,
+) -> None:
+    if not overwrite and token._.class_ is not None:
+        return
+    token._.class_ = label
+    token._.class_reason = reason
 
 
 def _apply_rule_matches(doc: Doc, summary: RuleMatchSummary) -> None:
@@ -94,14 +131,18 @@ def _apply_rule_matches(doc: Doc, summary: RuleMatchSummary) -> None:
         for token in match.span(doc):
             if token.is_space:
                 continue
-            token._.class_ = label
+            _assign_token_class(
+                token,
+                label,
+                f"matched rule matcher pattern {match.label}",
+            )
 
 
 def _label_reference_tokens(
     doc: Doc,
     matches: Sequence[Tuple[RuleReference, Tuple[int, int]]],
 ) -> None:
-    for _ref, (start_char, end_char) in matches:
+    for rule_reference, (start_char, end_char) in matches:
         for token in doc:
             token_start = token.idx
             token_end = token.idx + len(token)
@@ -109,7 +150,15 @@ def _label_reference_tokens(
                 continue
             if token.is_space:
                 continue
-            token._.class_ = LogicTokenClass.REFERENCE
+            citation = getattr(rule_reference, "citation_text", None)
+            reason = "matched reference extractor"
+            if citation:
+                reason = f"matched reference extractor for '{citation}'"
+            _assign_token_class(
+                token,
+                LogicTokenClass.REFERENCE,
+                reason,
+            )
 
 
 def _prepare_logic_doc(
@@ -119,7 +168,14 @@ def _prepare_logic_doc(
 ) -> Tuple[Doc, RuleMatchSummary, Sequence[Tuple[RuleReference, Tuple[int, int]]]]:
     doc = _NLP(text)
     for token in doc:
-        token._.class_ = LogicTokenClass.SPACE if token.is_space else None
+        if token.is_space:
+            _assign_token_class(
+                token,
+                LogicTokenClass.SPACE,
+                "token is whitespace",
+            )
+        else:
+            _assign_token_class(token, None, None)
 
     summary = match_rules(doc)
     _apply_rule_matches(doc, summary)
@@ -151,13 +207,23 @@ def _expand_condition_scopes(doc: Doc) -> None:
                 break
             if token.is_punct:
                 if token._.class_ is None:
-                    token._.class_ = LogicTokenClass.PUNCT
+                    _assign_token_class(
+                        token,
+                        LogicTokenClass.PUNCT,
+                        "punctuation encountered during condition scope expansion",
+                        overwrite=False,
+                    )
                 break
             if token.is_space:
                 position += 1
                 continue
             if token._.class_ is None:
-                token._.class_ = LogicTokenClass.CONDITION
+                _assign_token_class(
+                    token,
+                    LogicTokenClass.CONDITION,
+                    "filled in by condition scope expansion",
+                    overwrite=False,
+                )
             position += 1
 
 
@@ -173,7 +239,12 @@ def _label_actor_and_action(doc: Doc) -> None:
         if token.is_space:
             continue
         if token._.class_ is None and token.is_alpha:
-            token._.class_ = LogicTokenClass.ACTOR
+            _assign_token_class(
+                token,
+                LogicTokenClass.ACTOR,
+                "preceding modality treated as actor",
+                overwrite=False,
+            )
 
     action_start = last_modality + 1
     action_end = len(doc)
@@ -183,7 +254,11 @@ def _label_actor_and_action(doc: Doc) -> None:
             action_end = idx
             break
         if token.is_punct:
-            token._.class_ = LogicTokenClass.PUNCT
+            _assign_token_class(
+                token,
+                LogicTokenClass.PUNCT,
+                "punctuation after modality marks action boundary",
+            )
             action_end = idx
             break
 
@@ -191,9 +266,20 @@ def _label_actor_and_action(doc: Doc) -> None:
         if token.is_space:
             continue
         if token._.class_ is None:
-            token._.class_ = (
-                LogicTokenClass.ACTION if token.is_alpha else LogicTokenClass.JUNK
-            )
+            if token.is_alpha:
+                _assign_token_class(
+                    token,
+                    LogicTokenClass.ACTION,
+                    "post-modality span labelled as action",
+                    overwrite=False,
+                )
+            else:
+                _assign_token_class(
+                    token,
+                    LogicTokenClass.JUNK,
+                    "non-alpha token within action span",
+                    overwrite=False,
+                )
 
 
 def _finalise_token_classes(doc: Doc) -> None:
@@ -201,11 +287,23 @@ def _finalise_token_classes(doc: Doc) -> None:
         if token._.class_ is not None:
             continue
         if token.is_space:
-            token._.class_ = LogicTokenClass.SPACE
+            _assign_token_class(
+                token,
+                LogicTokenClass.SPACE,
+                "defaulted to SPACE",
+            )
         elif token.is_punct:
-            token._.class_ = LogicTokenClass.PUNCT
+            _assign_token_class(
+                token,
+                LogicTokenClass.PUNCT,
+                "defaulted to PUNCT",
+            )
         else:
-            token._.class_ = LogicTokenClass.JUNK
+            _assign_token_class(
+                token,
+                LogicTokenClass.JUNK,
+                "defaulted to JUNK",
+            )
 
 
 def _verify_full_coverage(doc: Doc) -> None:
@@ -232,6 +330,7 @@ def _serialise_logic_tokens(doc: Doc) -> List[Dict[str, object]]:
                 "start": token.idx,
                 "end": token.idx + len(token),
                 "class": class_name,
+                "reason": token._.class_reason,
             }
         )
     return serialised
@@ -386,14 +485,30 @@ def _extract_references(text: str) -> List[RuleReference]:
     return [reference for reference, _ in _extract_reference_matches(text)]
 
 
+def _humanise_modality(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    modality = Modality.normalise(value)
+    if modality is None:
+        return value
+    return _MODALITY_DISPLAY.get(modality, value)
+
+
+def _humanise_condition(value: str) -> str:
+    connector = ConditionalConnector.normalise(value)
+    if connector is None:
+        return value
+    return _CONDITION_DISPLAY.get(connector, value)
+
+
 def _extract_rule_tokens(text: str) -> Dict[str, object]:
     doc, summary, reference_matches = _prepare_logic_doc(text)
     _finalise_logic_doc(doc)
     references = [ref for ref, _ in reference_matches]
 
     return {
-        "modality": summary.primary_modality,
-        "conditions": summary.conditions,
+        "modality": _humanise_modality(summary.primary_modality),
+        "conditions": [_humanise_condition(condition) for condition in summary.conditions],
         "references": references,
         "token_classes": _serialise_logic_tokens(doc),
     }
