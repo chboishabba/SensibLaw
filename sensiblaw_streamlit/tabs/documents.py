@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import tempfile
+from dataclasses import asdict
 from datetime import date
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
@@ -14,6 +15,11 @@ try:  # Optional dependency for tabular display
 except Exception:  # pragma: no cover - pandas is optional at runtime
     pd = None  # type: ignore[assignment]
 
+try:  # Optional dependency for graph visualisations
+    import altair as alt
+except Exception:  # pragma: no cover - altair is optional at runtime
+    alt = None  # type: ignore[assignment]
+
 from sensiblaw_streamlit.constants import DEFAULT_DB_NAME
 from sensiblaw_streamlit.document_preview import (
     collect_document_actor_summary,
@@ -21,11 +27,15 @@ from sensiblaw_streamlit.document_preview import (
 )
 from sensiblaw_streamlit.shared import (
     ROOT,
+    _build_knowledge_graph_dot,
     _download_json,
     _ensure_parent,
+    _render_dot,
     _write_bytes,
 )
+from sensiblaw_streamlit.tabs.knowledge_graph import _load_graph_from_store
 
+from src.api.routes import _graph as ROUTES_GRAPH
 from src.models.document import Document
 from src.pdf_ingest import process_pdf
 from src.storage.versioned_store import VersionedStore
@@ -104,6 +114,170 @@ def render() -> None:
                 return ""
         return fallback
 
+    def _enum_value(value: Any) -> str:
+        if hasattr(value, "value"):
+            return str(value.value)
+        if isinstance(value, str):
+            return value
+        return str(value)
+
+    def _refresh_graph_with_document(
+        document: Document, *, db_path: Path, stored_id: Optional[int]
+    ) -> None:
+        """Reload the shared graph and render a preview for ``document``."""
+
+        st.session_state["kg_graph_store_path"] = str(db_path)
+
+        try:
+            node_count, edge_count, primary_seed = _load_graph_from_store(db_path)
+        except (FileNotFoundError, ValueError) as exc:
+            st.warning(f"Knowledge graph refresh skipped: {exc}")
+            return
+
+        st.info(
+            f"Knowledge graph refreshed with {node_count} nodes and {edge_count} edges."
+        )
+
+        if primary_seed:
+            st.session_state["kg_subgraph_seed_input"] = primary_seed
+            st.session_state["kg_case_id_input"] = primary_seed
+            st.session_state["kg_subgraph_seed_select"] = primary_seed
+
+        doc_identifier = (
+            (document.metadata.canonical_id or "").strip()
+            or (document.metadata.citation or "").strip()
+            or (f"Document#{stored_id}" if stored_id is not None else "")
+        )
+        if not doc_identifier:
+            doc_identifier = document.metadata.title or "Document"
+        doc_identifier = str(doc_identifier)
+        doc_prefix = f"{doc_identifier}::"
+
+        nodes_payload: List[Dict[str, Any]] = []
+        for identifier, node in ROUTES_GRAPH.nodes.items():
+            if identifier == doc_identifier or identifier.startswith(doc_prefix):
+                node_payload = asdict(node)
+                nodes_payload.append(node_payload)
+
+        if not nodes_payload:
+            st.info("No knowledge graph nodes were generated for this document yet.")
+            return
+
+        st.session_state["kg_subgraph_seed_input"] = doc_identifier
+        st.session_state["kg_subgraph_seed_select"] = doc_identifier
+        st.session_state["kg_case_id_input"] = doc_identifier
+
+        edges_payload: List[Dict[str, Any]] = []
+        for edge in ROUTES_GRAPH.edges:
+            if (
+                edge.source == doc_identifier
+                or edge.target == doc_identifier
+                or edge.source.startswith(doc_prefix)
+                or edge.target.startswith(doc_prefix)
+            ):
+                edges_payload.append(asdict(edge))
+
+        st.markdown("### Knowledge graph preview")
+
+        graph_payload = {"nodes": nodes_payload, "edges": edges_payload}
+        dot = _build_knowledge_graph_dot(graph_payload)
+        if dot:
+            _render_dot(dot, key="document_knowledge_graph")
+            return
+
+        if alt is not None and pd is not None:
+            node_records: List[Dict[str, Any]] = []
+            for node in nodes_payload:
+                metadata = node.get("metadata") or {}
+                node_records.append(
+                    {
+                        "identifier": node.get("identifier"),
+                        "type": _enum_value(node.get("type")),
+                        "title": metadata.get("title")
+                        or metadata.get("heading")
+                        or node.get("identifier"),
+                        "jurisdiction": metadata.get("jurisdiction"),
+                        "citation": metadata.get("citation"),
+                    }
+                )
+
+            type_order = {
+                type_name: index
+                for index, type_name in enumerate(
+                    sorted({record["type"] for record in node_records})
+                )
+            }
+
+            for index, record in enumerate(node_records):
+                record["x"] = float(index)
+                record["y"] = float(type_order.get(record["type"], 0))
+
+            node_frame = pd.DataFrame(node_records)
+            node_position = {
+                record["identifier"]: (record["x"], record["y"])
+                for record in node_records
+            }
+
+            edge_records: List[Dict[str, Any]] = []
+            for edge in edges_payload:
+                source_pos = node_position.get(edge.get("source"))
+                target_pos = node_position.get(edge.get("target"))
+                if not source_pos or not target_pos:
+                    continue
+                edge_records.append(
+                    {
+                        "type": _enum_value(edge.get("type")),
+                        "x": source_pos[0],
+                        "y": source_pos[1],
+                        "x2": target_pos[0],
+                        "y2": target_pos[1],
+                    }
+                )
+
+            chart = None
+            if edge_records:
+                edge_frame = pd.DataFrame(edge_records)
+                chart = alt.Chart(edge_frame).mark_rule(opacity=0.5).encode(
+                    x="x:Q",
+                    x2="x2:Q",
+                    y="y:Q",
+                    y2="y2:Q",
+                    color=alt.Color("type:N", title="Edge type"),
+                )
+
+            node_chart = alt.Chart(node_frame).mark_circle(size=240).encode(
+                x="x:Q",
+                y="y:Q",
+                color=alt.Color("type:N", title="Node type"),
+                tooltip=["identifier", "title", "type", "jurisdiction", "citation"],
+            )
+
+            label_chart = alt.Chart(node_frame).mark_text(dy=-14).encode(
+                x="x:Q",
+                y="y:Q",
+                text="title:N",
+            )
+
+            combined = node_chart + label_chart
+            if chart is not None:
+                combined = chart + combined
+
+            combined = combined.properties(
+                height=max(240, 80 * max(1, len(type_order))), width=700
+            ).configure_axis(
+                title=None,
+                ticks=False,
+                labels=False,
+                domain=False,
+            )
+
+            st.altair_chart(combined, use_container_width=True)
+            return
+
+        st.warning(
+            "Graph visualisation is unavailable. Install graphviz or altair+pandas to enable previews."
+        )
+
     with st.form("pdf_ingest_form"):
         st.markdown("### PDF ingestion")
         sample_pdf = None
@@ -177,6 +351,9 @@ def render() -> None:
                 doc_payload["doc_id"] = stored_id
             st.session_state["last_document_payload"] = doc_payload
             st.session_state["expand_last_document"] = True
+            _refresh_graph_with_document(
+                document, db_path=db_path, stored_id=stored_id
+            )
     last_document = st.session_state.get("last_document_payload")
     if last_document:
         expanded = st.session_state.pop("expand_last_document", False)
