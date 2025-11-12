@@ -292,10 +292,10 @@ def render() -> None:
         title = st.text_input("Title", value=_default_metadata_value("title", ""))
         jurisdiction = st.text_input(
             "Jurisdiction",
-            value=_default_metadata_value("jurisdiction", "High Court of Australia"),
+            value=_default_metadata_value("jurisdiction", ""),
         )
         citation = st.text_input(
-            "Citation", value=_default_metadata_value("citation", "[1992] HCA 23")
+            "Citation", value=_default_metadata_value("citation", "")
         )
         cultural_flags = st.text_input(
             "Cultural flags (comma separated)",
