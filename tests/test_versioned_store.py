@@ -344,7 +344,9 @@ def test_rule_atom_indexes_include_rule_id(tmp_path: Path) -> None:
 def test_rule_atom_subject_indexes_include_rule_id(tmp_path: Path) -> None:
     store, _ = make_store(tmp_path)
     try:
-        index_rows = store.conn.execute("PRAGMA index_list('rule_atom_subjects')").fetchall()
+        index_rows = store.conn.execute(
+            "PRAGMA index_list('rule_atom_subjects')"
+        ).fetchall()
         index_names = {row["name"] for row in index_rows}
         assert "idx_rule_atom_subjects_doc_rev" in index_names
         assert index_columns(store.conn, "idx_rule_atom_subjects_doc_rev") == [
@@ -391,8 +393,7 @@ def test_revisions_table_excludes_document_json(tmp_path: Path) -> None:
     store = VersionedStore(str(tmp_path / "schema.db"))
     try:
         columns = {
-            row["name"]
-            for row in store.conn.execute("PRAGMA table_info(revisions)")
+            row["name"] for row in store.conn.execute("PRAGMA table_info(revisions)")
         }
         assert "document_json" not in columns
     finally:
@@ -419,8 +420,7 @@ def test_migration_script_removes_document_json(tmp_path: Path) -> None:
     assert dropped
 
     columns = {
-        row["name"]
-        for row in legacy_conn.execute("PRAGMA table_info(revisions)")
+        row["name"] for row in legacy_conn.execute("PRAGMA table_info(revisions)")
     }
     assert "document_json" not in columns
     legacy_conn.close()
@@ -1184,6 +1184,242 @@ def test_migration_removes_duplicate_rule_atoms(tmp_path: Path):
             (doc_id, 2, provision_id),
         ).fetchone()[0]
         assert subject_count == 1
+    finally:
+        migrated.close()
+
+
+def test_rule_atoms_deduplicate_with_metadata_whitespace(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    db_path = store.path
+    try:
+        atom_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            LIMIT 1
+            """,
+            (doc_id, 2),
+        ).fetchone()
+        assert atom_row is not None
+
+        subject_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            (
+                atom_row["doc_id"],
+                atom_row["rev_id"],
+                atom_row["provision_id"],
+                atom_row["rule_id"],
+            ),
+        ).fetchone()
+        assert subject_row is not None
+
+        element_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            ORDER BY element_id
+            LIMIT 1
+            """,
+            (
+                atom_row["doc_id"],
+                atom_row["rev_id"],
+                atom_row["provision_id"],
+                atom_row["rule_id"],
+            ),
+        ).fetchone()
+        if element_row is None:
+            store.conn.execute(
+                """
+                INSERT INTO rule_elements (
+                    doc_id, rev_id, provision_id, rule_id, element_id, text_hash,
+                    atom_type, role, text, conditions, gloss, gloss_metadata, glossary_id
+                )
+                VALUES (?, ?, ?, ?, 1, 'manual-hash', ?, ?, 'Manual element',
+                        'Manual conditions', 'Manual gloss', '{}', NULL)
+                """,
+                (
+                    atom_row["doc_id"],
+                    atom_row["rev_id"],
+                    atom_row["provision_id"],
+                    atom_row["rule_id"],
+                    atom_row["atom_type"],
+                    atom_row["role"],
+                ),
+            )
+            store.conn.commit()
+            element_row = store.conn.execute(
+                """
+                SELECT *
+                FROM rule_elements
+                WHERE doc_id = ? AND rev_id = ?
+                  AND provision_id = ? AND rule_id = ?
+                ORDER BY element_id
+                LIMIT 1
+                """,
+                (
+                    atom_row["doc_id"],
+                    atom_row["rev_id"],
+                    atom_row["provision_id"],
+                    atom_row["rule_id"],
+                ),
+            ).fetchone()
+        assert element_row is not None
+
+        fk_state = store.conn.execute("PRAGMA foreign_keys").fetchone()[0]
+        store.conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            if store.conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'view' AND name = 'atoms'"
+            ).fetchone():
+                store.conn.execute("DROP VIEW atoms")
+
+            for table_name in ("rule_atoms", "rule_atom_subjects", "rule_elements"):
+                store.conn.execute(
+                    f"CREATE TABLE {table_name}_raw AS SELECT * FROM {table_name}"
+                )
+                store.conn.execute(f"DROP TABLE {table_name}")
+                store.conn.execute(
+                    f"ALTER TABLE {table_name}_raw RENAME TO {table_name}"
+                )
+        finally:
+            store.conn.execute(f"PRAGMA foreign_keys = {fk_state}")
+
+        key = (
+            atom_row["doc_id"],
+            atom_row["rev_id"],
+            atom_row["provision_id"],
+            atom_row["rule_id"],
+        )
+        element_key = key + (element_row["element_id"],)
+
+        store.conn.execute(
+            "DELETE FROM rule_atoms WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ?",
+            key,
+        )
+        store.conn.execute(
+            "DELETE FROM rule_atom_subjects WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ?",
+            key,
+        )
+        store.conn.execute(
+            "DELETE FROM rule_elements WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ? AND element_id = ?",
+            element_key,
+        )
+
+        canonical_metadata = '{"stage":"alpha"}'
+        irregular_metadata = '{  "stage"  : "alpha"  }'
+        canonical_element_metadata = '{"phase":"beta"}'
+        irregular_element_metadata = '{  "phase"  :  "beta" }'
+
+        atom_columns = list(atom_row.keys())
+        placeholders = ", ".join("?" for _ in atom_columns)
+        column_sql = ", ".join(atom_columns)
+
+        def _atom_values(metadata: str) -> list:
+            values = [atom_row[column] for column in atom_columns]
+            metadata_index = atom_columns.index("subject_gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_atoms ({column_sql}) VALUES ({placeholders})",
+            _atom_values(irregular_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_atoms ({column_sql}) VALUES ({placeholders})",
+            _atom_values(canonical_metadata),
+        )
+
+        subject_columns = list(subject_row.keys())
+        subject_placeholders = ", ".join("?" for _ in subject_columns)
+        subject_sql = ", ".join(subject_columns)
+
+        def _subject_values(metadata: str) -> list:
+            values = [subject_row[column] for column in subject_columns]
+            metadata_index = subject_columns.index("gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_atom_subjects ({subject_sql}) VALUES ({subject_placeholders})",
+            _subject_values(irregular_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_atom_subjects ({subject_sql}) VALUES ({subject_placeholders})",
+            _subject_values(canonical_metadata),
+        )
+
+        element_columns = list(element_row.keys())
+        element_placeholders = ", ".join("?" for _ in element_columns)
+        element_sql = ", ".join(element_columns)
+
+        def _element_values(metadata: str) -> list:
+            values = [element_row[column] for column in element_columns]
+            metadata_index = element_columns.index("gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_elements ({element_sql}) VALUES ({element_placeholders})",
+            _element_values(irregular_element_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_elements ({element_sql}) VALUES ({element_placeholders})",
+            _element_values(canonical_element_metadata),
+        )
+
+        store.conn.commit()
+    finally:
+        store.close()
+
+    migrated = VersionedStore(db_path)
+    try:
+        atom_rows = migrated.conn.execute(
+            """
+            SELECT subject_gloss_metadata
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            key,
+        ).fetchall()
+        assert len(atom_rows) == 1
+        assert atom_rows[0]["subject_gloss_metadata"] == canonical_metadata
+
+        subject_rows = migrated.conn.execute(
+            """
+            SELECT gloss_metadata
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            key,
+        ).fetchall()
+        assert len(subject_rows) == 1
+        assert subject_rows[0]["gloss_metadata"] == canonical_metadata
+
+        element_rows = migrated.conn.execute(
+            """
+            SELECT gloss_metadata
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ? AND element_id = ?
+            """,
+            element_key,
+        ).fetchall()
+        assert len(element_rows) == 1
+        assert element_rows[0]["gloss_metadata"] == canonical_element_metadata
     finally:
         migrated.close()
 
