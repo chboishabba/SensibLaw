@@ -2230,9 +2230,6 @@ def build_document_preview_html(document: Document) -> str:
     });
     spans.forEach(function(span) {
         attachInteractiveHandlers(span);
-        span.addEventListener('mouseenter', function() {
-            activate(span);
-        });
         span.addEventListener('focus', function() {
             activate(span);
         });
