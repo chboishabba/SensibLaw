@@ -918,6 +918,116 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
         store.close()
 
 
+def test_atoms_view_includes_elements_and_lints(tmp_path: Path) -> None:
+    store = VersionedStore(str(tmp_path / "store.db"))
+    try:
+        doc_id = store.generate_id()
+        metadata = DocumentMetadata(
+            jurisdiction="TestState",
+            citation="Test Act 2024",
+            date=date(2024, 5, 1),
+        )
+
+        subject_link = GlossaryLink(
+            text="Subject gloss",
+            metadata={"phase": "subject"},
+            glossary_id=101,
+        )
+        subject_atom = Atom(
+            type="rule",
+            text="Structured subject text",
+            refs=["Subject reference"],
+            glossary=subject_link,
+        )
+
+        element_link = GlossaryLink(
+            text="Element gloss",
+            metadata={"phase": "element"},
+            glossary_id=202,
+        )
+        element = RuleElement(
+            atom_type="element",
+            role="requirement",
+            text="Element detail",
+            references=[
+                RuleReference(
+                    work="  Work Title",
+                    section="s 2  ",
+                    pinpoint="   p. 10",
+                    glossary=GlossaryLink(glossary_id=element_link.glossary_id),
+                )
+            ],
+            glossary=element_link,
+        )
+
+        lint_metadata = {"severity": "medium", "note": "Check element text"}
+        lint = RuleLint(
+            atom_type="lint",
+            code="LINT01",
+            message="Element lint message",
+            metadata=lint_metadata,
+        )
+
+        rule_atom = RuleAtom(
+            atom_type="rule",
+            text="Structured subject text",
+            subject=subject_atom,
+            subject_link=subject_link,
+            references=[RuleReference(citation_text="Explicit citation")],
+            elements=[element],
+            lints=[lint],
+        )
+
+        provision = Provision(
+            text="Provision with structured rule atom",
+            identifier="s 10",
+            heading="Section 10",
+            node_type="section",
+            rule_atoms=[rule_atom],
+        )
+
+        rev_id = store.add_revision(
+            doc_id,
+            Document(metadata, "Structured body", provisions=[provision]),
+            metadata.date,
+        )
+
+        rows = store.conn.execute(
+            """
+            SELECT atom_id, type, text, refs, gloss_metadata, glossary_id
+            FROM atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY atom_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+
+        assert len(rows) >= 3, "expected subject, element, and lint rows"
+        subject_row, element_row, lint_row = rows[0], rows[1], rows[2]
+
+        assert subject_row["atom_id"] == 1
+        assert subject_row["text"] == "Structured subject text"
+        assert subject_row["refs"] == json.dumps(["Subject reference"])
+        assert subject_row["glossary_id"] == subject_link.glossary_id
+
+        assert element_row["atom_id"] == 2
+        assert element_row["type"] == "element"
+        element_refs = json.loads(element_row["refs"])
+        assert element_refs, "expected aggregated element references"
+        assert all(ref == ref.strip() for ref in element_refs if ref)
+        normalised_refs = [" ".join(ref.split()) for ref in element_refs if ref]
+        assert normalised_refs == ["Work Title s 2 p. 10"]
+        assert element_row["glossary_id"] == element_link.glossary_id
+
+        assert lint_row["atom_id"] == 3
+        assert lint_row["type"] == "lint"
+        assert lint_row["refs"] is None
+        assert json.loads(lint_row["gloss_metadata"]) == lint_metadata
+        assert lint_row["glossary_id"] == subject_link.glossary_id
+    finally:
+        store.close()
+
+
 def test_legacy_atoms_loaded_from_view_when_structured_absent(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
