@@ -52,7 +52,9 @@ class VersionedStore:
     # ------------------------------------------------------------------
     # Payload validation helpers
     # ------------------------------------------------------------------
-    def _enforce_limit(self, label: str, payload: Optional[str], limit: Optional[int]) -> None:
+    def _enforce_limit(
+        self, label: str, payload: Optional[str], limit: Optional[int]
+    ) -> None:
         if limit is None or payload is None:
             return
         size = len(payload.encode("utf-8"))
@@ -515,6 +517,199 @@ class VersionedStore:
         """Remove duplicated rule atoms prior to enforcing uniqueness."""
 
         with self.conn:
+            try:
+                strict_duplicates = self.conn.execute(
+                    """
+                    SELECT doc_id, rev_id, provision_id, rule_id,
+                           MIN(_rowid_) AS keep_rowid
+                    FROM rule_atoms
+                    GROUP BY doc_id, rev_id, provision_id, rule_id
+                    HAVING COUNT(*) > 1
+                    """
+                ).fetchall()
+            except sqlite3.OperationalError:
+                strict_duplicates = []
+
+            for duplicate in strict_duplicates:
+                doc_id = duplicate["doc_id"]
+                rev_id = duplicate["rev_id"]
+                provision_id = duplicate["provision_id"]
+                rule_id = duplicate["rule_id"]
+
+                atom_rows = self.conn.execute(
+                    """
+                    SELECT _rowid_ AS rowid, subject_gloss_metadata
+                    FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                    ORDER BY rowid
+                    """,
+                    (doc_id, rev_id, provision_id, rule_id),
+                ).fetchall()
+                if not atom_rows:
+                    continue
+
+                keep_rowid = atom_rows[0]["rowid"]
+                canonical_metadata = self._normalise_json_text(
+                    atom_rows[0]["subject_gloss_metadata"]
+                )
+                for row in atom_rows:
+                    normalised = self._normalise_json_text(
+                        row["subject_gloss_metadata"]
+                    )
+                    if normalised is not None:
+                        canonical_metadata = normalised
+                        keep_rowid = row["rowid"]
+                        break
+
+                self.conn.execute(
+                    """
+                    UPDATE rule_atoms
+                    SET subject_gloss_metadata = ?
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                      AND rule_id = ? AND _rowid_ = ?
+                    """,
+                    (
+                        canonical_metadata,
+                        doc_id,
+                        rev_id,
+                        provision_id,
+                        rule_id,
+                        keep_rowid,
+                    ),
+                )
+
+                self.conn.execute(
+                    """
+                    DELETE FROM rule_atoms
+                    WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                      AND rule_id = ? AND _rowid_ <> ?
+                    """,
+                    (doc_id, rev_id, provision_id, rule_id, keep_rowid),
+                )
+
+                try:
+                    subject_rows = self.conn.execute(
+                        """
+                        SELECT _rowid_ AS rowid, gloss_metadata
+                        FROM rule_atom_subjects
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        ORDER BY rowid
+                        """,
+                        (doc_id, rev_id, provision_id, rule_id),
+                    ).fetchall()
+                except sqlite3.OperationalError:
+                    subject_rows = []
+
+                if subject_rows:
+                    keep_subject_rowid = subject_rows[0]["rowid"]
+                    canonical_subject_metadata = self._normalise_json_text(
+                        subject_rows[0]["gloss_metadata"]
+                    )
+                    for row in subject_rows:
+                        normalised = self._normalise_json_text(row["gloss_metadata"])
+                        if normalised is not None:
+                            canonical_subject_metadata = normalised
+                            keep_subject_rowid = row["rowid"]
+                            break
+
+                    self.conn.execute(
+                        """
+                        UPDATE rule_atom_subjects
+                        SET gloss_metadata = ?
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                          AND rule_id = ? AND _rowid_ = ?
+                        """,
+                        (
+                            canonical_subject_metadata,
+                            doc_id,
+                            rev_id,
+                            provision_id,
+                            rule_id,
+                            keep_subject_rowid,
+                        ),
+                    )
+
+                    self.conn.execute(
+                        """
+                        DELETE FROM rule_atom_subjects
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                          AND rule_id = ? AND _rowid_ <> ?
+                        """,
+                        (
+                            doc_id,
+                            rev_id,
+                            provision_id,
+                            rule_id,
+                            keep_subject_rowid,
+                        ),
+                    )
+
+                try:
+                    element_rows = self.conn.execute(
+                        """
+                        SELECT _rowid_ AS rowid, element_id, gloss_metadata
+                        FROM rule_elements
+                        WHERE doc_id = ? AND rev_id = ? AND provision_id = ? AND rule_id = ?
+                        ORDER BY element_id, rowid
+                        """,
+                        (doc_id, rev_id, provision_id, rule_id),
+                    ).fetchall()
+                except sqlite3.OperationalError:
+                    element_rows = []
+
+                if element_rows:
+                    grouped_elements: dict[int, list[sqlite3.Row]] = {}
+                    for row in element_rows:
+                        grouped_elements.setdefault(row["element_id"], []).append(row)
+
+                    for element_id, rows in grouped_elements.items():
+                        keep_element_rowid = rows[0]["rowid"]
+                        canonical_element_metadata = self._normalise_json_text(
+                            rows[0]["gloss_metadata"]
+                        )
+                        for row in rows:
+                            normalised = self._normalise_json_text(
+                                row["gloss_metadata"]
+                            )
+                            if normalised is not None:
+                                canonical_element_metadata = normalised
+                                keep_element_rowid = row["rowid"]
+                                break
+
+                        self.conn.execute(
+                            """
+                            UPDATE rule_elements
+                            SET gloss_metadata = ?
+                            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                              AND rule_id = ? AND element_id = ? AND _rowid_ = ?
+                            """,
+                            (
+                                canonical_element_metadata,
+                                doc_id,
+                                rev_id,
+                                provision_id,
+                                rule_id,
+                                element_id,
+                                keep_element_rowid,
+                            ),
+                        )
+
+                        self.conn.execute(
+                            """
+                            DELETE FROM rule_elements
+                            WHERE doc_id = ? AND rev_id = ? AND provision_id = ?
+                              AND rule_id = ? AND element_id = ? AND _rowid_ <> ?
+                            """,
+                            (
+                                doc_id,
+                                rev_id,
+                                provision_id,
+                                rule_id,
+                                element_id,
+                                keep_element_rowid,
+                            ),
+                        )
+
             duplicate_groups = self.conn.execute(
                 """
                 SELECT doc_id, stable_id, party, role, text_hash
@@ -2304,9 +2499,7 @@ class VersionedStore:
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
                         glossary=(
-                            ref.glossary.clone()
-                            if ref.glossary is not None
-                            else None
+                            ref.glossary.clone() if ref.glossary is not None else None
                         ),
                     )
                     for ref in atom_refs_map.get(
@@ -2434,9 +2627,7 @@ class VersionedStore:
                         pinpoint=ref.pinpoint,
                         citation_text=ref.citation_text,
                         glossary=(
-                            ref.glossary.clone()
-                            if ref.glossary is not None
-                            else None
+                            ref.glossary.clone() if ref.glossary is not None else None
                         ),
                     )
                     for ref in element_refs_map.get(
@@ -3061,7 +3252,10 @@ class VersionedStore:
                         if (
                             row["gloss"] is not None
                             or metadata is not None
-                            or ("glossary_id" in row.keys() and row["glossary_id"] is not None)
+                            or (
+                                "glossary_id" in row.keys()
+                                and row["glossary_id"] is not None
+                            )
                         )
                         else None
                     ),
