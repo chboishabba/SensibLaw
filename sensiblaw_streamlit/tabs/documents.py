@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import shutil
 import tempfile
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import streamlit as st
 
@@ -37,12 +38,39 @@ from sensiblaw_streamlit.tabs.knowledge_graph import _load_graph_from_store
 
 from src.api.routes import _graph as ROUTES_GRAPH
 from src.models.document import Document
-from src.pdf_ingest import process_pdf
+from src.pdf_ingest import iter_process_pdf, process_pdf
 from src.storage.versioned_store import VersionedStore
 
 
 def _format_join(values: List[str], separator: str = ", ") -> str:
     return separator.join(values) if values else ""
+
+
+@dataclass
+class PDFIngestStepper:
+    """Track interactive ingestion state for step-by-step debugging."""
+
+    generator: Iterator[Tuple[str, Dict[str, Any]]]
+    tmp_dir: Path
+    pdf_path: Path
+    source_name: Optional[str]
+    log: List[Tuple[str, Dict[str, Any]]] = field(default_factory=list)
+    completed: bool = False
+    document_rendered: bool = False
+
+    def step(self) -> Tuple[str, Dict[str, Any]]:
+        stage, payload = next(self.generator)
+        self.log.append((stage, payload))
+        if stage == "save":
+            self.completed = True
+        return stage, payload
+
+    def close(self) -> None:
+        try:
+            self.generator.close()
+        except Exception:  # pragma: no cover - defensive cleanup
+            pass
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
 
 def _render_actor_summary(document: Document) -> None:
@@ -301,6 +329,28 @@ def render() -> None:
             "Cultural flags (comma separated)",
             value=_default_metadata_value("cultural_flags", ""),
         )
+        step_processing = st.toggle(
+            "Step ingestion like a debugger",
+            value=st.session_state.get("pdf_step_processing", False),
+            help=(
+                "Enable manual stepping through extraction, parsing, persistence, and "
+                "saving. Useful for debugging long PDFs."
+            ),
+        )
+        st.session_state["pdf_step_processing"] = step_processing
+        breakpoint_chars: Optional[int] = None
+        if step_processing:
+            breakpoint_chars = st.number_input(
+                "Breakpoint after N characters",
+                min_value=0,
+                step=500,
+                value=st.session_state.get("pdf_step_breakpoint", 0),
+                help=(
+                    "Pause extraction once the running character count crosses this "
+                    "threshold."
+                ),
+            )
+            st.session_state["pdf_step_breakpoint"] = breakpoint_chars
         ingest = st.form_submit_button("Process PDF")
 
     if ingest:
@@ -316,44 +366,60 @@ def render() -> None:
             st.error("Please upload a PDF or choose a sample file.")
 
         if buffer:
-            st.info(f"Processing {source_name} …")
-            with st.spinner("Extracting text and rules"):
+            flags = [f.strip() for f in cultural_flags.split(",") if f.strip()]
+            if step_processing:
+                st.info(
+                    "Stepper armed. Use the debugger controls below to walk through ingestion."
+                )
                 tmp_dir = Path(tempfile.mkdtemp(prefix="sensiblaw_pdf_"))
                 pdf_path = _write_bytes(
                     tmp_dir / (source_name or "document.pdf"), buffer
                 )
-                flags = [f.strip() for f in cultural_flags.split(",") if f.strip()]
-                document, stored_id = process_pdf(
+                generator = iter_process_pdf(
                     pdf_path,
                     jurisdiction=jurisdiction or None,
                     citation=citation or None,
                     title=title or None,
                     cultural_flags=flags or None,
                     db_path=db_path,
+                    break_after_chars=(
+                        int(breakpoint_chars)
+                        if breakpoint_chars and int(breakpoint_chars) > 0
+                        else None
+                    ),
                 )
-            st.success("PDF processed successfully.")
-            st.markdown("### Document preview")
-            render_document_preview(document)
-            _render_actor_summary(document)
-            doc_payload = document.to_dict()
-            st.session_state["document_form_jurisdiction"] = (
-                document.metadata.jurisdiction or ""
-            )
-            st.session_state["document_form_citation"] = (
-                document.metadata.citation or ""
-            )
-            st.session_state["document_form_title"] = document.metadata.title or ""
-            st.session_state["document_form_cultural_flags"] = ", ".join(
-                document.metadata.cultural_flags or []
-            )
-            if stored_id is not None:
-                st.info(f"Stored as document ID {stored_id} in {db_path}")
-                doc_payload["doc_id"] = stored_id
-            st.session_state["last_document_payload"] = doc_payload
-            st.session_state["expand_last_document"] = True
-            _refresh_graph_with_document(
-                document, db_path=db_path, stored_id=stored_id
-            )
+                existing_stepper: Optional[PDFIngestStepper] = st.session_state.get(
+                    "pdf_stepper"
+                )
+                if existing_stepper:
+                    existing_stepper.close()
+                st.session_state["pdf_stepper"] = PDFIngestStepper(
+                    generator=generator,
+                    tmp_dir=tmp_dir,
+                    pdf_path=pdf_path,
+                    source_name=source_name,
+                )
+            else:
+                st.info(f"Processing {source_name} …")
+                with st.spinner("Extracting text and rules"):
+                    tmp_dir = Path(tempfile.mkdtemp(prefix="sensiblaw_pdf_"))
+                    pdf_path = _write_bytes(
+                        tmp_dir / (source_name or "document.pdf"), buffer
+                    )
+                    document, stored_id = process_pdf(
+                        pdf_path,
+                        jurisdiction=jurisdiction or None,
+                        citation=citation or None,
+                        title=title or None,
+                        cultural_flags=flags or None,
+                        db_path=db_path,
+                    )
+                _handle_processed_document(
+                    document, stored_id=stored_id, db_path=db_path
+                )
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    _render_stepper_panel(db_path)
     last_document = st.session_state.get("last_document_payload")
     if last_document:
         expanded = st.session_state.pop("expand_last_document", False)
@@ -386,6 +452,114 @@ def render() -> None:
             with st.expander("Snapshot contents", expanded=True):
                 st.json(payload)
             _download_json("Download snapshot JSON", payload, "snapshot.json")
+
+
+def _handle_processed_document(
+    document: Document, *, stored_id: Optional[int], db_path: Path
+) -> None:
+    st.success("PDF processed successfully.")
+    st.markdown("### Document preview")
+    render_document_preview(document)
+    _render_actor_summary(document)
+    doc_payload = document.to_dict()
+    st.session_state["document_form_jurisdiction"] = (
+        document.metadata.jurisdiction or ""
+    )
+    st.session_state["document_form_citation"] = document.metadata.citation or ""
+    st.session_state["document_form_title"] = document.metadata.title or ""
+    st.session_state["document_form_cultural_flags"] = ", ".join(
+        document.metadata.cultural_flags or []
+    )
+    if stored_id is not None:
+        st.info(f"Stored as document ID {stored_id} in {db_path}")
+        doc_payload["doc_id"] = stored_id
+    st.session_state["last_document_payload"] = doc_payload
+    st.session_state["expand_last_document"] = True
+    _refresh_graph_with_document(document, db_path=db_path, stored_id=stored_id)
+
+
+def _display_step_log(
+    stage: str,
+    payload: Dict[str, Any],
+    *,
+    stepper: PDFIngestStepper,
+    db_path: Path,
+) -> None:
+    if stage == "extraction":
+        char_count = payload.get("char_count", 0)
+        pages = payload.get("pages") or []
+        complete = payload.get("complete", False)
+        breakpoint_chars = payload.get("breakpoint")
+        summary = (
+            f"Extracted {len(pages)} page(s) / {char_count} characters."
+        )
+        if breakpoint_chars and not complete:
+            summary += (
+                f" Breakpoint hit after {breakpoint_chars} characters."
+                " Step again to continue extraction."
+            )
+        st.info(summary)
+    elif stage == "build":
+        document: Optional[Document] = payload.get("document")
+        if isinstance(document, Document):
+            st.success(
+                "Structured document built with "
+                f"{len(document.provisions)} provisions and "
+                f"{len(document.toc_entries)} TOC entries."
+            )
+    elif stage == "persist":
+        stored_id = payload.get("stored_doc_id")
+        if stored_id is not None:
+            st.info(f"Persisted revision as document ID {stored_id}.")
+    elif stage == "save":
+        output_path = payload.get("output_path")
+        if output_path:
+            st.success(f"Saved document JSON to {output_path}")
+        document = payload.get("document")
+        if isinstance(document, Document) and not stepper.document_rendered:
+            stored_id = payload.get("stored_doc_id")
+            _handle_processed_document(document, stored_id=stored_id, db_path=db_path)
+            stepper.document_rendered = True
+
+
+def _render_stepper_panel(db_path: Path) -> None:
+    stepper: Optional[PDFIngestStepper] = st.session_state.get("pdf_stepper")
+    if not stepper:
+        return
+
+    st.markdown("### Ingestion debugger")
+    if not stepper.log:
+        st.info(
+            "Stepper initialised. Use the controls below to advance the ingestion pipeline."
+        )
+    else:
+        for stage, payload in stepper.log:
+            _display_step_log(stage, payload, stepper=stepper, db_path=db_path)
+
+    controls = st.columns(3)
+    if not stepper.completed:
+        with controls[0]:
+            if st.button("Run next step", key="pdf_stepper_next"):
+                try:
+                    stage, payload = stepper.step()
+                except StopIteration:
+                    stepper.completed = True
+                else:
+                    _display_step_log(stage, payload, stepper=stepper, db_path=db_path)
+        with controls[1]:
+            if st.button("Abort stepping", key="pdf_stepper_abort"):
+                stepper.close()
+                st.session_state.pop("pdf_stepper", None)
+                st.warning("Stepping aborted and state cleared.")
+                return
+    else:
+        st.success("Ingestion pipeline completed.")
+
+    with controls[2]:
+        if st.button("Clear debugger", key="pdf_stepper_clear"):
+            stepper.close()
+            st.session_state.pop("pdf_stepper", None)
+            st.info("Stepper cleared.")
 
 
 __all__ = ["render"]

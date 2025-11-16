@@ -2034,6 +2034,108 @@ def save_document(doc: Document, output_path: Path) -> None:
         f.write(doc.to_json())
 
 
+def iter_process_pdf(
+    pdf: Path,
+    output: Optional[Path] = None,
+    jurisdiction: Optional[str] = None,
+    citation: Optional[str] = None,
+    title: Optional[str] = None,
+    cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
+    db_path: Optional[Path] = None,
+    doc_id: Optional[int] = None,
+    break_after_chars: Optional[int] = None,
+) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    """Yield progress updates for :func:`process_pdf` steps.
+
+    Each iteration yields a ``(stage, payload)`` tuple describing the work that has
+    just completed. Callers can advance the generator manually to "step" through the
+    ingestion pipeline.
+    """
+
+    if doc_id is not None and db_path is None:
+        raise ValueError("A database path must be provided when specifying --doc-id")
+
+    storage: Optional[Storage] = None
+    registry: Optional[GlossaryRegistry] = None
+    doc: Optional[Document] = None
+    try:
+        if db_path:
+            storage = Storage(db_path)
+        registry = GlossaryRegistry(storage)
+        char_threshold = break_after_chars if break_after_chars and break_after_chars > 0 else None
+        pages: List[dict] = []
+        char_count = 0
+        breakpoint_triggered = False
+        for page in extract_pdf_text(pdf):
+            pages.append(page)
+            body_text = str(page.get("text") or "")
+            heading_text = str(page.get("heading") or "")
+            char_count += len(body_text) + len(heading_text)
+            if char_threshold is not None and not breakpoint_triggered and char_count >= char_threshold:
+                breakpoint_triggered = True
+                yield (
+                    "extraction",
+                    {
+                        "pages": list(pages),
+                        "char_count": char_count,
+                        "complete": False,
+                        "breakpoint": char_threshold,
+                    },
+                )
+
+        yield (
+            "extraction",
+            {
+                "pages": list(pages),
+                "char_count": char_count,
+                "complete": True,
+                "breakpoint": char_threshold,
+            },
+        )
+
+        doc = build_document(
+            pages,
+            pdf,
+            jurisdiction,
+            citation,
+            title,
+            cultural_flags,
+            document_date=document_date,
+            glossary_registry=registry,
+        )
+        yield ("build", {"document": doc})
+    finally:
+        if registry is not None:
+            registry.close()
+        if storage is not None:
+            storage.close()
+
+    if doc is None:
+        raise RuntimeError("PDF ingestion failed to build a document")
+
+    out = output or Path("data/pdfs") / (pdf.stem + ".json")
+    stored_doc_id: Optional[int] = None
+    if db_path:
+        store = VersionedStore(db_path)
+        try:
+            actual_doc_id = doc_id if doc_id is not None else store.generate_id()
+            if not doc.metadata.canonical_id:
+                doc.metadata.canonical_id = str(actual_doc_id)
+            store.validate_revision_payload(doc)
+            store.add_revision(actual_doc_id, doc, doc.metadata.date)
+            stored_doc_id = actual_doc_id
+            yield ("persist", {"stored_doc_id": stored_doc_id, "document": doc})
+        finally:
+            store.close()
+
+    save_document(doc, out)
+    yield (
+        "save",
+        {"document": doc, "stored_doc_id": stored_doc_id, "output_path": out},
+    )
+
+
 def process_pdf(
     pdf: Path,
     output: Optional[Path] = None,
@@ -2047,48 +2149,32 @@ def process_pdf(
 ) -> Tuple[Document, Optional[int]]:
     """Extract text, parse sections, run rule extraction and persist."""
 
-    if doc_id is not None and db_path is None:
-        raise ValueError("A database path must be provided when specifying --doc-id")
-
-    storage: Optional[Storage] = None
-    registry: Optional[GlossaryRegistry] = None
-    try:
-        if db_path:
-            storage = Storage(db_path)
-        registry = GlossaryRegistry(storage)
-        pages = list(extract_pdf_text(pdf))
-        doc = build_document(
-            pages,
-            pdf,
-            jurisdiction,
-            citation,
-            title,
-            cultural_flags,
-            document_date=document_date,
-            glossary_registry=registry,
-        )
-    finally:
-        if registry is not None:
-            registry.close()
-        if storage is not None:
-            storage.close()
-    out = output or Path("data/pdfs") / (pdf.stem + ".json")
-
+    result_doc: Optional[Document] = None
     stored_doc_id: Optional[int] = None
-    if db_path:
-        store = VersionedStore(db_path)
-        try:
-            actual_doc_id = doc_id if doc_id is not None else store.generate_id()
-            if not doc.metadata.canonical_id:
-                doc.metadata.canonical_id = str(actual_doc_id)
-            store.validate_revision_payload(doc)
-            store.add_revision(actual_doc_id, doc, doc.metadata.date)
-            stored_doc_id = actual_doc_id
-        finally:
-            store.close()
+    for stage, payload in iter_process_pdf(
+        pdf,
+        output=output,
+        jurisdiction=jurisdiction,
+        citation=citation,
+        title=title,
+        cultural_flags=cultural_flags,
+        document_date=document_date,
+        db_path=db_path,
+        doc_id=doc_id,
+    ):
+        if stage == "build":
+            result_doc = payload.get("document")
+        elif stage == "persist":
+            stored_doc_id = payload.get("stored_doc_id")
+            result_doc = payload.get("document") or result_doc
+        elif stage == "save":
+            result_doc = payload.get("document") or result_doc
+            stored_doc_id = payload.get("stored_doc_id", stored_doc_id)
 
-    save_document(doc, out)
-    return doc, stored_doc_id
+    if result_doc is None:
+        raise RuntimeError("PDF ingestion did not yield a document")
+
+    return result_doc, stored_doc_id
 
 
 def main() -> None:
