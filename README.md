@@ -17,6 +17,42 @@ At a high level:
 If DBpedia and Wikitology treated Wikipedia as a global ontology for the Web,
 SensibLaw treats legal corpora as a global ontology for **law and lived experience**.
 
+
+## Conceptual Architecture (TiRC + SensibLaw)
+
+SensibLaw is designed to sit tightly alongside TiRCorder (TiRC), our
+"life’s evidence" timeline. Together they use a shared core schema:
+
+1. **World & Artefacts (TiRC / shared core)**
+   - `Event` – something happened (argument, transfer, hearing, email, etc.)
+   - `Actor` – people, organisations, communities, ecosystems
+   - `EvidenceItem` – PDFs, statements, screenshots, logs…
+
+2. **Narrative & Claims (TiRC)**
+   - Stories, perspectives, and claims about events (“this was economic abuse”, “this night broke me”).
+
+3. **Legal Episodes / Cases (SensibLaw)**
+   - Matters, issues, and causes of action in specific systems (FCFCOA, tikanga, tribal courts, etc.).
+
+4. **Normative Systems & Sources**
+   - Legal systems, statutes, regulations, cases, tikanga statements, religious norms and their provisions.
+
+5. **Wrong Types, Duties, Interests & Harms**
+   - WrongType (negligence, economic abuse, mana harm, defamation, etc.)
+   - ProtectedInterest (physical integrity, financial security, mana, queer identity, ecological integrity…)
+   - HarmInstance (how a particular event harmed a particular interest).
+
+6. **Value Frames & Remedies**
+   - ValueFrame (human rights, tikanga balance, gender equality, religious modesty, public order, etc.)
+   - Remedy/Response, including:
+
+     - `modality` – MONETARY, LIBERTY, STATUS, BODILY, TERRITORIAL, SYMBOLIC, STRUCTURAL
+     - `purpose` – REPARATION, PUNISHMENT, RESTORATION, TRANSFORMATION, DETERRENCE
+
+The NLP and graph pipelines that the README currently describes (spaCy adapter, logic tree,
+graph subgraph, tests run, distinguish, query treatment…) all operate **inside this layered model**.
+
+
 ## Most of our available docs:
 
 |  |  |  |  |
