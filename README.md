@@ -1,4 +1,21 @@
 # SensibLaw 
+## What is SensibLaw?
+
+SensibLaw is an open legal knowledge-graph and reasoning engine.
+
+At a high level:
+
+- It ingests **legal sources** (cases, statutes, treaties, tikanga/custom) and **stories** (facts, timelines, receipts).
+- It extracts **structured rules and principles** (“who owes what duty to whom, in which conditions”).
+- It links both sources and stories into a **canonical graph** of:
+
+  - Normative Systems & Sources (who sets rules)
+  - Wrong Types & Duties (what the rules require / forbid)
+  - Protected Interests & Harms (what is being protected, and how it goes wrong)
+  - Value Frames & Remedies (how different systems justify and respond to wrongs)
+
+If DBpedia and Wikitology treated Wikipedia as a global ontology for the Web,
+SensibLaw treats legal corpora as a global ontology for **law and lived experience**.
 
 ## Most of our available docs:
 
