@@ -1,5 +1,5 @@
 # SensibLaw 
-Please see our [Research Paper](PAPER.md) for further details.
+Please see our [Research Paper](PAPER.md) and [Database Design Document](DATABASE.md) for further details.
 # SensibLaw
 [![For information on CI, please see the yml.](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml)
 [![CI](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml)
