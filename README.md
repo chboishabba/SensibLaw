@@ -53,6 +53,26 @@ The NLP and graph pipelines that the README currently describes (spaCy adapter, 
 graph subgraph, tests run, distinguish, query treatment…) all operate **inside this layered model**.
 
 
+## External Knowledge & Linked Legal Data
+
+SensibLaw takes a Wikitology/DBpedia-inspired approach to legal data:
+
+- Every **case, provision, statute, and concept** gets a stable identifier.
+- The graph is exportable as JSON today and is designed to support RDF/LOD-style projections later.
+- NLP pipelines perform **legal entity linking** (mention → case / provision / concept) and **slot filling**
+  (factors, harms, duties, wrong types, remedies) in the same spirit as TAC KBP.
+
+Over time, the goal is for SensibLaw to act as a **canonical hub** that other tools can link to:
+
+- case law APIs and public repositories (AustLII, Jade, court feeds…)
+- TiRCorder event timelines (life events, receipts, narratives)
+- domain-specific legal datasets (environment, family law, indigenous/tikanga sources, human rights)
+
+In other words: for law, SensibLaw aims to be what DBpedia/Wikitology are for Wikipedia –
+a structured, linked, machine-readable backbone.
+
+
+
 ## Most of our available docs:
 
 |  |  |  |  |
