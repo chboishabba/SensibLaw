@@ -403,3 +403,253 @@ During ingestion, `src.ingestion.parser.emit_document` applies the tagger to
 produce `Document` objects whose `provisions` field contains the tagged
 content.  Each document currently generates a single provision from its body
 text, but the approach can be extended to finer-grained parsing.
+
+
+
+Further notes from updated:
+
+You’re mostly solid – the “glue” is coherent – but you’re right that **morality/value frames are under-expressed** and there are a couple of spots I’d tweak for clarity / DRY-ness.
+
+I’ll break this into:
+
+1. Small corrections / refinements to what you’ve got
+2. Where & how to surface **morality** more explicitly
+3. A couple of DRY tweaks so you don’t double-encode the same idea
+
+---
+
+## 1. Small corrections / refinements
+
+Nothing is catastrophically wrong; it’s more about tightening.
+
+### a) WrongType ↔ ValueFrame (one-to-many, not just one)
+
+In the schema you drafted, `wrong_types` has:
+
+```sql
+value_frame_id INTEGER  -- FK → value_frames (dominant justification)
+```
+
+I’d *keep* the “dominant” pointer, but also add a proper many-to-many:
+
+```sql
+CREATE TABLE wrongtype_valueframes (
+    wrong_type_id  INTEGER NOT NULL REFERENCES wrong_types(id),
+    value_frame_id INTEGER NOT NULL REFERENCES value_frames(id),
+    perspective    TEXT NOT NULL,   -- 'STATE', 'INDIGENOUS', 'RELIGIOUS', 'INTERNATIONAL_HR', 'USER'
+    weight         REAL,            -- optional, relative importance
+    PRIMARY KEY (wrong_type_id, value_frame_id, perspective)
+);
+```
+
+Reason: the entire point of your project is “this wrong looks *very different* under AU torts, tikanga, UNCRC, church doctrine, etc”. You’ll regret locking it to a single `value_frame_id`.
+
+You can still keep `wrong_types.value_frame_id` as a convenience “default/predominant in this legal system”.
+
+---
+
+### b) ProtectedInterest ↔ ValueFrame
+
+Protected interests are *strongly* moralised. I’d explicitly allow them to declare which frames they’re grounded in:
+
+```sql
+CREATE TABLE protectedinterest_valueframes (
+    protected_interest_id INTEGER NOT NULL REFERENCES protected_interest_types(id),
+    value_frame_id        INTEGER NOT NULL REFERENCES value_frames(id),
+    perspective           TEXT NOT NULL,   -- same pattern as above
+    PRIMARY KEY (protected_interest_id, value_frame_id, perspective)
+);
+```
+
+This is the right place to encode things like:
+
+* `BODILY_INTEGRITY` ← HR frame + common-law frame
+* `MANA` ← tikanga / Indigenous value frames
+* `FAMILY_HONOUR` ← particular religious or cultural frames
+
+Instead of trying to smuggle it into remedies.
+
+---
+
+### c) Remedy should be clearly “what happens”, not “why”
+
+You already have:
+
+```sql
+remedies(
+    value_frame_id  INTEGER REFERENCES value_frames(id),
+    modality_id     INTEGER REFERENCES remedy_modalities(id),
+    purpose_id      INTEGER REFERENCES remedy_purposes(id)
+)
+```
+
+That’s good; I’d just be explicit in docs:
+
+* **Remedy** = what the system *does* (money, custody order, apology, banishment…)
+* **ValueFrame** = why the system feels that’s appropriate.
+
+You can then:
+
+* Link **WrongType → Remedy** (typical responses)
+* Link **Remedy → ValueFrame** (what moral story justifies that response)
+
+You already modelled this, it just wants a sentence in the design principles spelling it out.
+
+---
+
+### d) LegalSystem should know its canonical value frames
+
+Your `legal_systems` table is fine structurally, but it’s the obvious place to encode the “dominant moral languages”. I’d add:
+
+```sql
+CREATE TABLE legalsystem_valueframes (
+    legal_system_id INTEGER NOT NULL REFERENCES legal_systems(id),
+    value_frame_id  INTEGER NOT NULL REFERENCES value_frames(id),
+    role            TEXT NOT NULL,   -- 'FOUNDATIONAL','INFLUENTIAL','CONTESTED','IMPORTED'
+    PRIMARY KEY (legal_system_id, value_frame_id, role)
+);
+```
+
+That lets you express e.g.:
+
+* `AU.FED` → liberal democracy + human rights + common-law tradition
+* `IWI.TIKANGA.X` → mana / tapu / utu / whakapapa value frames
+* `NGO.UNHCR` → humanitarian protection frames
+
+Again, the schema isn’t “wrong” without this – but this is exactly the bit you felt missing as “not much about morality”.
+
+---
+
+## 2. Where & how to surface morality explicitly
+
+Right now, morality is **implicit**:
+
+* “ValueFrame exists, but mostly used as an FK on WrongType/Remedy.”
+
+I’d make it explicit in three places:
+
+### a) ValueFrame table gets a couple more fields
+
+Something like:
+
+```sql
+CREATE TABLE value_frames (
+    id             INTEGER PRIMARY KEY,
+    code           TEXT NOT NULL UNIQUE,   -- 'HR_DIGNITY', 'TIKANGA_MANA', 'PUBLIC_ORDER', ...
+    label          TEXT NOT NULL,
+    tradition      TEXT NOT NULL,         -- 'HUMAN_RIGHTS','COMMON_LAW','TIKANGA','RELIGIOUS','USER_PERSONAL'
+    source_system  TEXT,                  -- 'UDHR','UNCRC','LocalIwi','Catechism','ICCPR',...
+    description    TEXT,
+    polarity       TEXT,                  -- 'PROMOTE','AVOID','BALANCE','CONTESTED' (optional)
+    is_user_defined INTEGER NOT NULL DEFAULT 0
+);
+```
+
+This makes the “moral language” first-class:
+
+* A UN CRC frame vs tikanga vs canon law vs user’s own sense of justice are **distinguishable objects**.
+* You can line up: “what would UNCRC say about this vs Family Court vs my iwi vs my personal values?”
+
+### b) Attach ValueFrame to *Events* (user’s own moral reading)
+
+Right now, morality only really appears at the **WrongType/Remedy** level (institutional moral stories).
+
+You probably also want a way for the **user’s own view** to be explicit:
+
+```sql
+CREATE TABLE event_valueframes (
+    event_id       INTEGER NOT NULL REFERENCES events(id),
+    value_frame_id INTEGER NOT NULL REFERENCES value_frames(id),
+    perspective    TEXT NOT NULL,    -- 'USER','THERAPIST','ADVOCATE'
+    weight         REAL,
+    PRIMARY KEY (event_id, value_frame_id, perspective)
+);
+```
+
+Then:
+
+* Event: “my mum yelled at me in court”
+* System might not classify it as a legal wrong at all, but **user** can tag it with:
+
+  * `VALUE_FRAME(code='RESPECT_FOR_CHILD')`, perspective `'USER'`
+  * An Indigenous frame about respect for elders or balance, etc.
+
+That’s how you avoid the ontology silently taking the state’s side.
+
+### c) Design Principles: explicit morality paragraph
+
+You’re right that the last design-principles block didn’t say much about morality. I’d add a bullet like:
+
+```markdown
+- **Moral judgment lives in ValueFrames, not in raw labels.**  
+  Table/enum names must remain structural and descriptive (e.g. `HARM_PHYSICAL`, `COURTROOM_UTTERANCE`, `PARENT_TO_CHILD`).  
+  Moral evaluation (e.g. “this disrespects mana”, “this offends dignity”, “this is sinful”, “this is unjust”) is encoded via `value_frames` and their links to `wrong_types`, `protected_interest_types`, `remedies`, and (optionally) user-tagged `events`.  
+  This lets the same factual pattern be viewed through multiple moral lenses (state law, Indigenous law, human-rights law, religious doctrine, user’s own ethics) without baking any single lens in as “the truth”.
+```
+
+That one paragraph in `DATABASE.md` / `ontology.md` makes the intention crystal clear.
+
+---
+
+## 3. Light DRY tweaks
+
+You’re not terribly non-DRY, but a couple of spots can be tightened.
+
+### a) One place for codes; reuse via FK
+
+You currently have lots of `code TEXT NOT NULL UNIQUE` columns (`wrong_types.code`, `protected_interest_types.code`, `value_frames.code`, etc). That’s fine.
+
+Just make sure you **don’t re-encode the same idea twice**:
+
+* If `concepts.code = 'HURT_PHYSICAL'` is the semantic atom, don’t also create a separate `harm_classes.code='HURT_PHYSICAL'`. Use `concept_id` + a looser `code` like `'PHYSICAL'` / `'PHYSICAL_INTEGRITY'` for the harm class. That keeps:
+
+  * “the meaning” (HURT_PHYSICAL) in one place
+  * “the legal taxonomy bucket” in another.
+
+### b) Don’t clone “perspective” patterns everywhere: reuse naming
+
+You’re going to have these “perspective” join tables:
+
+* `wrongtype_valueframes`
+* `protectedinterest_valueframes`
+* `legalsystem_valueframes`
+* `event_valueframes`
+
+DRY them conceptually:
+
+* Always use the same `perspective` enum values:
+
+  * `'STATE'`, `'INDIGENOUS'`, `'RELIGIOUS'`, `'INTERNATIONAL_HR'`, `'USER'`, `'OTHER'`.
+
+* In docs, define this once (e.g. `docs/ontology.md` “Perspectives” section) and say all `*_valueframes.perspective` use this enumeration.
+
+You don’t need a shared table for it; just shared semantics.
+
+---
+
+## 4. TL;DR corrections
+
+So, answering your literal question:
+
+> Any corrections? I can't see much about morality in there...
+
+*Structurally* your glue is fine. The key upgrades I’d actually make:
+
+1. **Morality:**
+
+   * Enrich `value_frames` with `tradition` / `source_system`.
+   * Add `*_valueframes` join tables for `wrong_types`, `protected_interest_types`, `legal_systems`, and optionally `events`.
+   * Add a design-principles bullet that says explicitly: *moral evaluation lives in ValueFrames; everything else stays neutral/structural*.
+
+2. **Perspective handling:**
+
+   * Standardise a `perspective` field where we attach frames (`STATE`, `INDIGENOUS`, `RELIGIOUS`, `INTERNATIONAL_HR`, `USER`…).
+
+3. **DRY semantics:**
+
+   * Avoid duplicating semantic codes; let `concepts.code` be the semantic atom and link to it via `concept_id` from `wrong_elements`, `harm_classes`, etc.
+
+If you’d like, I can now:
+
+* Rewrite the **ValueFrames & Remedies** section of `ontology.md` to reflect this multi-perspective moral story, or
+* Draft a **worked example**: one factual pattern (“adult man marries multiple wives in jurisdiction X”) viewed as (a) legal wrong in AU family law, (b) religiously endorsed, (c) HR-problematic, all using these ValueFrame links.
