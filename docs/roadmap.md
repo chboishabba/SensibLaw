@@ -1,5 +1,485 @@
 # SensibLaw roadmap
 
+18/11/2025
+Gotcha, this is basically three docs stapled together right now 😅
+
+You’ve got:
+
+* A **nice, narrative “what Streamline is”** section,
+* Then a **full roadmap** that restates a lot of the same ideas,
+* Then a whole **Finance Adapters + Finance Schema** spec that really belongs in its own module doc.
+
+I’ll do two things:
+
+1. Answer your meta-questions for this doc.
+2. Give you a **clean, DRY-ed `TIMELINE_STREAM_VIZ_ROADMAP.md`** you can drop straight into the repo. It assumes `STREAMLINE_FEATURE_PROPOSAL.md` and `FINANCE_ADAPTERS.md` exist, instead of re-explaining them.
+
+---
+
+## 1. Your questions (for this doc)
+
+### 1) What is assumed about the reader’s knowledge that needs to be included?
+
+Right now the doc quietly assumes the reader already knows:
+
+* What **TiRCorder**, **SensiBlaw**, and **ITIR** are.
+* That there is a shared **DB substrate** with:
+
+  * `documents / sentences / utterances / events`,
+  * `accounts / transactions / transfers`,
+  * `event_finance_links / finance_provenance`.
+* That the legal ontology exists (WrongType, ProtectedInterest, etc.), even though it’s not named here.
+* That there’s an existing **consent / OPA/Rego** story for privacy.
+
+So for *this* roadmap, you only really need to state:
+
+* “We reuse the shared data layers described in `<link to ARCHITECTURE_LAYERS or STREAMLINE_FEATURE_PROPOSAL>`.”
+* “We assume the canonical Finance schema in `FINANCE_ADAPTERS.md` / `finance_schema.sql`.”
+* “We assume provenance tables as defined in `PROVENANCE.md`.”
+
+Everything else can be linked, not re-explained.
+
+---
+
+### 2) Are we doing things redundantly?
+
+Yes, in three big places:
+
+* **Purpose & description** – The “What Streamline is” block and the “Purpose” section say almost the same thing.
+* **Core data inputs** – Listed twice: once in narrative form, once again in the roadmap.
+* **Finance/schema details** – Transaction schema, adapters, and finance views are fully specified twice: here and in the finance sections.
+
+Best DRY pattern:
+
+* Keep **high-level product/UX** in `STREAMLINE_FEATURE_PROPOSAL.md`.
+* Keep **implementation roadmap** in `TIMELINE_STREAM_VIZ_ROADMAP.md` (this file), but:
+
+  * Refer to data/finance/provenance docs instead of restating schemas.
+* Move the **Finance Adapters & Finance schema** bit into its own `FINANCE_ADAPTERS.md` / `docs/finance_schema.md` and link to it.
+
+---
+
+### 3) Any obvious oversights?
+
+A few small but important ones:
+
+* The doc doesn’t explicitly say:
+
+  * “Streamline never mutates data; it’s read-only over the DB.”
+  * “All drill-downs must go via `sentence_id`/`document_id`/provenance chain.”
+* It describes transfers & classification but doesn’t explicitly say:
+
+  * “We mirror the ‘every token classified or deliberately ignored’ invariant for **transactions** via `transaction_tags`.”
+* It references consent/OPA in passing without a one-liner like:
+
+  * “Streamline must respect the global consent model; if finance is not enabled, those lanes simply don’t exist.”
+
+Nothing fatal, but worth one short “Constraints” section.
+
+---
+
+## 2. Clean, DRY-ed `TIMELINE_STREAM_VIZ_ROADMAP.md`
+
+Here’s a tightened version that:
+
+* Keeps the **implementation roadmap**.
+* Treats `STREAMLINE_FEATURE_PROPOSAL.md` as the high-level concept doc.
+* Links out to Finance / Provenance docs instead of duplicating them.
+* Avoids repeating the whole feature description twice.
+
+You can paste this straight over `SensibLaw/TIMELINE_STREAM_VIZ_ROADMAP.md` and move the long “Streamline — Unified Narrative Timeline & Flow Visualisation” chunk into `STREAMLINE_FEATURE_PROPOSAL.md`.
+
+````markdown
+# Timeline Stream Viz — "Streamline" — Roadmap
+
+*A unified visual layer for story × law × finance timelines*
+
+This document describes the **implementation roadmap** for the Timeline Stream
+Visualisation System (“Streamline”) — a multi-lane ribbon/streamgraph view
+that sits on top of:
+
+- the shared **Layer-0 text substrate** and **L1–L6 ontology** (see `ARCHITECTURE_LAYERS.md`),
+- **TiRCorder**’s utterances, events, and narratives,
+- the **Finance** substrate (accounts, transactions, transfers; see `FINANCE_SCHEMA.md`),
+- **SensiBlaw**’s legal documents, claims, provisions, and cases,
+- and the shared provenance model (see `PROVENANCE.md`).
+
+For the high-level product/UX description of Streamline, see:
+
+> `STREAMLINE_FEATURE_PROPOSAL.md`
+
+This file focuses on **what we need to build**: data contracts, pipeline, and rendering.
+
+---
+
+## 1. Purpose (engineering view)
+
+Streamline should let a user:
+
+- Visually track **flows of time, speech, money, influence, and consequence**.
+- See **ribbons** whose width corresponds to a quantitative measure:
+
+  - audio intensity / speaker share,
+  - financial inflows/outflows,
+  - case/claim “pressure” (e.g. harm/claim density).
+
+- See **threads/siphons** peeling off the main flow:
+
+  - savings transfers,
+  - business expenses,
+  - legal escalations / branching events.
+
+- Pin **events**, **sentences**, **transactions**, **provisions**, and **claims**
+  directly onto the stream, and on click:
+
+  - open transcripts (Layer-0 / TiRCorder),
+  - open SensiBlaw documents & provisions,
+  - open raw financial transactions and receipts,
+  - open evidence packs and case law references.
+
+All while preserving **valid-time provenance** and never inventing new facts:
+Streamline is read-only over the existing database.
+
+---
+
+## 2. Core Data Inputs (by subsystem)
+
+The viz engine does **no direct DB access**. A backend layer fuses data from
+existing tables into a single JSON contract (Section 3).
+
+### 2.1 From TiRCorder (speech & narrative)
+
+From the shared text/discourse substrate:
+
+- `utterances`
+- `speakers`
+- `sentences`
+- `utterance_sentences`
+- optional speech features (energy/intensity per time slice)
+- life/events derived from speech (“I paid rent”, “My knee collapsed last night”)
+
+### 2.2 From Finance
+
+As defined in `FINANCE_SCHEMA.md` / `FINANCE_ADAPTERS.md`:
+
+- `accounts`
+- `transactions`
+- `transfers`
+- `transaction_tags` (classification; mirrors the “every token classified or deliberately ignored” rule)
+- `event_finance_links`
+- `finance_provenance`
+
+### 2.3 From SensiBlaw (legal)
+
+From the ontology / legal layers:
+
+- `documents` (legal)
+- `provisions` / `norm_sources` / `cases` / `legal_episodes`
+- `claims`
+- `harm_instances`
+- anchoring via `document_id` + `sentence_id`
+
+### 2.4 User timeline / life events
+
+From TiRCorder / shared `Event` model:
+
+- Life events (moves, breakups, school, injuries)
+- Work events
+- Medical events
+- `receipt_packs` (bundles of events + transactions + sentences, see `PROVENANCE.md`)
+
+---
+
+## 3. JSON Contract for the Viz Engine
+
+The renderer receives a **flattened, pre-fused view**. It does no inference.
+
+```jsonc
+{
+  "lanes": [
+    { "id": "acc_main", "label": "Cheque Account", "z": 0 },
+    { "id": "acc_savings", "label": "Savings", "z": -1 },
+    { "id": "acc_business", "label": "Business Account", "z": -2 },
+    { "id": "speech", "label": "Speech Stream", "z": 2 },
+    { "id": "legal", "label": "Legal Episodes", "z": 1 }
+  ],
+  "segments": [
+    {
+      "t": "2025-05-03T10:21:00Z",
+      "lane": "acc_savings",
+      "amount": -250000,
+      "transfer_id": 42,
+      "event": { "id": 311, "label": "Paid Bond" },
+      "anchors": {
+        "sentence_id": 9912,
+        "receipt_pack_id": 7
+      }
+    }
+  ],
+  "markers": [
+    {
+      "t": "2025-05-08T09:00:00Z",
+      "lane": "legal",
+      "kind": "LEGAL_HEARING",
+      "label": "Directions Hearing",
+      "event_id": 512,
+      "case_id": 9
+    }
+  ]
+}
+````
+
+* `lanes` describe visual tracks (accounts, speech, legal, etc.).
+* `segments` describe continuous quantitative flows at a given time `t`.
+* `markers` describe discrete events pinned to the same time axis.
+
+The backend translates from DB → this JSON; the frontend only draws.
+
+---
+
+## 4. Visual Grammar
+
+### 4.1 Ribbons (flows)
+
+A ribbon is a continuous band whose thickness reflects:
+
+* financial volume (cents),
+* speech features (energy, cadence, word density),
+* legal “pressure” (density of harms/claims / active episodes).
+
+### 4.2 Threads (siphons)
+
+When a transaction is part of a `transfer` pair:
+
+* a thin stream peels off the source lane,
+* curves smoothly into the destination lane,
+* width proportional to amount,
+* transparency proportional to `transfers.inferred_conf`.
+
+### 4.3 Event markers
+
+Markers are pinned to the exact `t` coordinate:
+
+* Life events → circle markers,
+* Utterance clusters / TiRC notes → speech bubbles,
+* Legal nodes (claims, hearings, orders) → justice-themed icons,
+* Finance triggers → pill markers on account lanes.
+
+**Hover:** FTS5 snippet preview (sentence, short description).
+**Click:** opens full detail in a side panel via provenance (see `PROVENANCE.md`).
+
+### 4.4 Stacking / z-depth
+
+Lanes carry a `z` property:
+
+* Speech above,
+* Legal overlays mid-stack,
+* Finance accounts below.
+
+Hover temporarily emphasises one lane and dims others to avoid spaghetti.
+
+---
+
+## 5. Backend Pipeline (DB → JSON)
+
+The backend is responsible for:
+
+### Step 1 — Data collection
+
+* TiRCorder recordings → transcript + diarization → `utterances`/`sentences`.
+* Finance adapters → `accounts`/`transactions`/`transfers`.
+* SensiBlaw NLP → `claims`/`harm_instances`/links to `sentences`.
+* Life events → `events` / `receipt_packs`.
+
+All of this reuses existing tables; Streamline doesn’t add new domain tables.
+
+### Step 2 — Time normalisation
+
+* Merge timestamps into a unified time axis:
+
+  * `utterances.start_time`,
+  * `transactions.posted_at`,
+  * `events.occurred_at`,
+  * `legal_episode` milestones.
+
+* Optionally snap events within a small window (e.g. ±2 minutes) to reduce jitter.
+
+### Step 3 — Transfer inference (finance)
+
+As per `FINANCE_SCHEMA.md`:
+
+* Infer transfer pairs into `transfers(id, src_txn_id, dst_txn_id, inferred_conf, rule)`.
+
+### Step 4 — Cross-linking (provenance)
+
+As per `PROVENANCE.md`:
+
+* Sentence mentions ↔ transaction IDs via `finance_provenance`.
+* Events ↔ finance via `event_finance_links`.
+* Events / sentences ↔ legal claims & harms via existing SensiBlaw links.
+* `receipt_packs` bundle items for export.
+
+### Step 5 — Ribbon preparation views
+
+Define a canonical finance view (example):
+
+```sql
+CREATE VIEW v_streamline_finance_segments AS
+SELECT
+  t.id            AS txn_id,
+  t.posted_at     AS t,
+  a.id            AS account_id,
+  a.display_name  AS lane_label,
+  t.amount_cents  AS amount_cents,
+  t.currency      AS currency,
+  tr.id           AS transfer_id,
+  tr.inferred_conf AS transfer_conf,
+  efl.event_id    AS event_id,
+  fp.sentence_id  AS sentence_id
+FROM transactions t
+JOIN accounts a
+  ON a.id = t.account_id
+LEFT JOIN transfers tr
+  ON tr.src_txn_id = t.id OR tr.dst_txn_id = t.id
+LEFT JOIN event_finance_links efl
+  ON efl.transaction_id = t.id
+LEFT JOIN finance_provenance fp
+  ON fp.transaction_id = t.id;
+```
+
+Create similar views for:
+
+* speech (utterance energy / token density),
+* legal overlays (claims/harm instances per time slice),
+* life events.
+
+### Step 6 — Emit JSON contract
+
+A small API endpoint (FastAPI / Flask / Starlette):
+
+* accepts filters (time window, case, actor, account),
+* queries the views,
+* emits the JSON contract from Section 3.
+
+The endpoint is the only thing the frontend cares about.
+
+---
+
+## 6. Rendering Technologies
+
+### Option A — Svelte + Canvas/WebGL (recommended)
+
+* Svelte for layout and state management.
+* Canvas or WebGL (regl / Pixi / Three) for ribbons and curves.
+
+Pros:
+
+* High performance on large timelines,
+* Good control over z-depth and animations.
+
+### Option B — Svelte + D3/SVG
+
+* Simpler for small datasets,
+* Easier iteration early on,
+* Might struggle with very long timelines.
+
+**Suggested path:**
+
+1. Start with Svelte + Canvas 2D for an MVP.
+2. If needed, move to WebGL for heavy datasets.
+
+---
+
+## 7. UI Interaction Model
+
+* **Hover:** show a tooltip with:
+
+  * snippet of `sentence.text`,
+  * key transaction fields (amount, counterparty),
+  * legal labels (claim/wrong/harm, system).
+
+* **Click:** open a right-hand pane showing:
+
+  * transcript range (TiRC),
+  * full bank transaction payload (Finance),
+  * provision excerpt and legal context (SensiBlaw),
+  * evidence pack metadata if available.
+
+* **Drag:** pan in time.
+
+* **Wheel / pinch:** zoom time axis.
+
+* **Toggles:** per-lane visibility (accounts, speech, legal, life).
+
+* **Scrubber:** video-editor style controller for quickly jumping around.
+
+---
+
+## 8. Privacy & Consent Integration
+
+Streamline must respect global consent / policy rules (see `CONSENT_POLICY.md`):
+
+* Finance lanes only appear if finance access is enabled.
+* Account numbers shown in masked form by default (`****5678`).
+* Legal text shown only if visibility flags permit.
+* Evidence exports (via `receipt_packs`) must be clearly labelled and user-initiated.
+
+No policy decisions live in the renderer; it only displays what the backend chooses to send.
+
+---
+
+## 9. Milestones
+
+### Milestone 1 — MVP (Finance + Events)
+
+* CSV/OFX → `accounts` / `transactions` via adapters.
+* Simple `transfers` inference.
+* Basic ribbon renderer for 1–2 accounts.
+* Event markers from `events` (life events, TiRC notes).
+* Hover previews using sentence snippets.
+
+### Milestone 2 — Speech & Legal Overlays
+
+* Add speech lane (utterance energy / token density).
+* Add legal lane for `legal_episodes` / claims / harms.
+* Cross-link events ↔ finance ↔ legal via provenance tables.
+
+### Milestone 3 — UX Polish
+
+* Curved Bezier ribbons.
+* Smooth siphons for transfers.
+* Z-depth and parallax.
+* Responsive performance for long timelines.
+
+### Milestone 4 — Evidence & Exports
+
+* Hook `receipt_packs` into the viz.
+* Evidence pack export (signed JSON + printable PDF).
+* Offline bundle for clinicians/case workers.
+
+---
+
+## 10. Summary
+
+Timeline Stream Viz (“Streamline”) is the **front window of ITIR**.
+
+It renders the existing SensiBlaw + TiRCorder + Finance stack as a single,
+interactive, evidence-anchored stream of life. The roadmap above focuses on
+the concrete steps needed to get from DB shapes to a performant, trustworthy,
+and extensible visual layer.
+
+```
+
+If you want, next I can:
+
+- Spit out a matching `STREAMLINE_FEATURE_PROPOSAL.md` that only does the high-level narrative and links to this roadmap, **or**
+- Draft a tiny `FINANCE_SCHEMA.md` that just documents the finance tables/constraints and removes the last chunk of duplication entirely from this file.
+```
+
+
+
+17/11/2025
+
 This roadmap captures the focus areas we are driving in parallel with the
 near-term deliverables outlined in the README. The objective is to ship a
 deterministic, provenance-aware pipeline that plugs directly into Gremlin while
