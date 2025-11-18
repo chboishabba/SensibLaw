@@ -65,6 +65,28 @@ providing a streamlined viewer for legal reasoning outputs.
 - Provide `gremlin/iframe.html` as a minimal wrapper that Gremlin can host to
   launch the Streamlit viewer with `?job_id=` routing.
 
+## 5. Event schema and storage evolution (DB-401 to DB-403)
+
+- Normalize events per the 18/11/2025 ontology refresh in `DATABASE.md` by
+  introducing first-class tables for `Event`, `EventParticipant` (linking
+  entities and event roles), `Event–WrongType` associations, `HarmInstance`
+  (per bearer + protected interest + effect), and `RemedyModality` as the
+  wrong-type-to-remedy bridge. Align table DDL with the Layer 3 guidance on
+  participants, harms, and modality coverage rather than the current
+  unstructured payloads.
+- Define migrations from the existing `sensiblaw/schemas/event.schema.yaml`
+  payload (`ids` + `story` object) into the normalized tables: lift each stored
+  story into an `Event` record (preserving narrative text and timestamps), map
+  prior `ids` into `Event–WrongType` rows or event tags, and create placeholder
+  `EventParticipant` and `HarmInstance` rows to keep historical data queryable
+  while richer actor/interest inference is added.
+- Update ingestion to translate TiRCorder narratives directly into the new
+  tables: persist raw transcripts against `Event`, derive participants from
+  RoleMarkers, tag likely WrongTypes for the Event–WrongType join, emit
+  HarmInstances (bearer + ProtectedInterestType + effect + WrongType context),
+  and attach candidate RemedyModalities so downstream reasoning can propose
+  culturally aligned redress options.
+
 ## Cross-cutting principles
 
 - Every node and service emits version metadata (`tool_name`, `semver`,
