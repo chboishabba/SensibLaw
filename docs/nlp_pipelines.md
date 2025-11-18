@@ -1,6 +1,6 @@
 # NLP Pipeline Processing Rules
 
-This document summarises the processing logic baked into SensibLaw’s NLP stack and records both:
+This document summarises the updated processing logic as of 18/11/2025 which is now being further baked into SensibLaw’s NLP stack and records; both:
 
 - the **current spaCy-based rule-harvesting pipeline**, and  
 - the **planned semantic inference layers** that bridge clause-level atoms to the ontology
