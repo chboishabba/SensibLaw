@@ -908,3 +908,329 @@ Once adapters populate `accounts` + `transactions`, the rest of the pipeline can
 Adapters are deliberately boring. That’s their superpower:
 
 > If they’re predictable, everything downstream (story, law, viz) can be rich without being brittle.
+
+
+Nice, this is a good place to line things up properly.
+
+I’ll treat this as: **“Given the existing SensiBlaw + TiRCorder DB shape, what exactly do the finance tables look like and how do they plug in cleanly?”**
+
+I’ll keep it concrete and schema-ish, but in a way that drops straight into your mental model.
+
+---
+
+## 0. Anchors we already have
+
+From your current design (Layer 0 + L1–L6 + TiRCorder):
+
+* **Layer 0 (Text substrate)**
+
+  * `documents(id, doc_type, text_block_id, created_at, …)`
+  * `sentences(id, document_id, sentence_index, start_char, end_char, text)`
+  * `tokens/lexemes/concepts/phrases` etc.
+
+* **TiRCorder-ish / discourse**
+
+  * `speakers(id, label, actor_id?)`
+  * `utterances(id, document_id, speaker_id, start_time, end_time, …)`
+  * `utterance_sentences(utterance_id, sentence_id, seq_index)`
+
+* **Ontology-ish (coarse)**
+
+  * `Actor` (person/org)
+  * `Event` (things happening in time)
+  * `Claim`, `Case` / LegalEpisode
+  * `EvidenceItem` / `HarmInstance`
+  * `WrongType`, `ProtectedInterest`, etc.
+
+Streamline wants to show **money flows as just another set of events/flows** in that same universe.
+
+---
+
+## 1. Core finance tables (canonical layer)
+
+Minimal, normalised, and “boring”:
+
+```sql
+CREATE TABLE accounts (
+    id              INTEGER PRIMARY KEY,
+    owner_actor_id  INTEGER,          -- FK → Actor(id), nullable for now
+    provider        TEXT,             -- 'CBA','NAB','ING','Wise'
+    account_type    TEXT NOT NULL,    -- 'cheque','savings','business','credit','loan','wallet'
+    currency        TEXT NOT NULL DEFAULT 'AUD',
+    external_id     TEXT,             -- bank acct no / IBAN / masked id
+    display_name    TEXT NOT NULL,    -- "Everyday", "Biz OpEx", etc.
+    is_primary      INTEGER NOT NULL DEFAULT 0,   -- 0/1
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+```sql
+CREATE TABLE transactions (
+    id             INTEGER PRIMARY KEY,
+    account_id     INTEGER NOT NULL REFERENCES accounts(id),
+    posted_at      TIMESTAMP NOT NULL,        -- booking date (valid-time candidate)
+    effective_at   TIMESTAMP,                 -- value date if distinct
+    amount_cents   INTEGER NOT NULL,          -- signed minor units
+    currency       TEXT NOT NULL,             -- keep even if same as account
+    counterparty   TEXT,                      -- free label
+    description    TEXT,                      -- bank memo / narrative
+    ext_ref        TEXT,                      -- FITID / MT940 ref / JSON ID
+    raw_payload    BLOB,                      -- original row/XML/JSON
+    source_format  TEXT NOT NULL,             -- 'csv','ofx','mt940','camt053','json'
+    imported_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_transactions_account_time
+    ON transactions(account_id, posted_at);
+```
+
+```sql
+-- Transfer pairs (inferred or explicit)
+CREATE TABLE transfers (
+    id            INTEGER PRIMARY KEY,
+    src_txn_id    INTEGER NOT NULL REFERENCES transactions(id),
+    dst_txn_id    INTEGER NOT NULL REFERENCES transactions(id),
+    inferred_conf REAL NOT NULL DEFAULT 0.9,  -- 0..1
+    rule          TEXT                        -- 'same_amount_window','mt940_ref','user_tag'
+);
+
+CREATE UNIQUE INDEX idx_transfers_pair
+    ON transfers(src_txn_id, dst_txn_id);
+```
+
+This is the **canonical finance substrate**. Nothing here “knows” about events, cases, sentences, etc. It’s just “what the bank believes”.
+
+---
+
+## 2. Plugging into the existing ontology
+
+### 2.1 Linking to actors
+
+We already have `Actor` in L1. Accounts should be **actor-scoped**, but we don’t need that to be perfect on day one.
+
+* `accounts.owner_actor_id → Actor.id`
+* For shared accounts, you can later add a join table:
+
+```sql
+CREATE TABLE account_actors (
+    account_id  INTEGER NOT NULL REFERENCES accounts(id),
+    actor_id    INTEGER NOT NULL, -- FK → Actor
+    role        TEXT NOT NULL,    -- 'holder','signatory','beneficiary'
+    PRIMARY KEY (account_id, actor_id)
+);
+```
+
+Streamline can then colour flows per actor if/when you get that metadata.
+
+---
+
+### 2.2 Transactions as events (L1)
+
+You already have `Event` as “something happened in time, involving actors”.
+
+You can either:
+
+* Treat `transactions` as a **specialised event table**, or
+* Add a thin link so each transaction *may* have a corresponding `Event` row.
+
+I’d keep it additive:
+
+```sql
+CREATE TABLE event_finance_links (
+    id             INTEGER PRIMARY KEY,
+    event_id       INTEGER NOT NULL,                 -- FK → Event(id)
+    transaction_id INTEGER NOT NULL REFERENCES transactions(id),
+    link_kind      TEXT NOT NULL,                    -- 'caused','evidence','context'
+    confidence     REAL NOT NULL DEFAULT 1.0
+);
+
+CREATE INDEX idx_event_finance_links_event
+    ON event_finance_links(event_id);
+```
+
+This way:
+
+* “Paid bond” can be a **life event** that links to one or more transactions.
+* “Centrelink backpay” can link to inflows.
+* “Garnishee for debt” can link to outflows etc.
+
+In the **Streamline** viz, we can then:
+
+* Draw event markers where `event_id` exists.
+* Pull labels from the `Event` table (which already fits your ontology).
+
+---
+
+## 3. Plugging into Layer 0 (text) for provenance
+
+You already decided that “everything important should be anchorable to sentences”.
+
+So we add:
+
+```sql
+CREATE TABLE finance_provenance (
+    transaction_id  INTEGER NOT NULL REFERENCES transactions(id),
+    sentence_id     INTEGER NOT NULL REFERENCES sentences(id),
+    note            TEXT,
+    PRIMARY KEY (transaction_id, sentence_id)
+);
+```
+
+This gives you:
+
+* For any ribbon segment (transaction) we can:
+
+  * Hover → show `snippet(sentence.text)` (FTS5-backed).
+  * Click → open the `document` in context.
+
+It mirrors SensiBlaw’s pattern:
+
+* `EvidenceItem` linked to `Document` / `Sentence`
+* Provisions linked to `Document`
+* Now: `Transaction` linked to `Sentence`
+
+Everything uses the **exact same substrate**.
+
+---
+
+## 4. Evidence packs & legal side
+
+You already planned signed **Receipts Packs** for legal/evidence use. Finance fits very naturally there.
+
+```sql
+CREATE TABLE receipt_packs (
+    id             INTEGER PRIMARY KEY,
+    pack_hash      TEXT NOT NULL UNIQUE,     -- hash of canonical JSON
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    signer_key_id  TEXT NOT NULL,
+    signature      BLOB NOT NULL
+);
+
+CREATE TABLE receipt_pack_items (
+    pack_id        INTEGER NOT NULL REFERENCES receipt_packs(id),
+    item_kind      TEXT NOT NULL,            -- 'transaction','sentence','event','document'
+    item_id        INTEGER NOT NULL,         -- interpreted by kind
+    PRIMARY KEY (pack_id, item_kind, item_id)
+);
+```
+
+This lets you create a pack like:
+
+* A set of `transactions`
+* The `sentences` where they were described
+* The `Event` summarising them
+* Optionally a `Claim` or `HarmInstance` from SensiBlaw
+
+Then sign the entire pack. Streamline just needs the `pack_id` to show “this section is exportable evidence”.
+
+---
+
+## 5. Views for Streamline
+
+Streamline wants a clean “just draw me” view. DB-wise, that means **pre-joining** the core things.
+
+### 5.1 A canonical finance ribbon view
+
+```sql
+CREATE VIEW v_streamline_finance_segments AS
+SELECT
+    t.id               AS txn_id,
+    t.account_id       AS account_id,
+    a.account_type     AS lane,             -- maps to viz lane id
+    a.display_name     AS lane_label,
+    t.posted_at        AS t,
+    t.amount_cents     AS amount_cents,
+    t.currency         AS currency,
+    tr.id              AS transfer_id,
+    tr.inferred_conf   AS transfer_conf,
+    efl.event_id       AS event_id,
+    efl.confidence     AS event_conf,
+    fp.sentence_id     AS sentence_id
+FROM transactions t
+JOIN accounts a
+  ON a.id = t.account_id
+LEFT JOIN transfers tr
+  ON tr.src_txn_id = t.id OR tr.dst_txn_id = t.id
+LEFT JOIN event_finance_links efl
+  ON efl.transaction_id = t.id
+LEFT JOIN finance_provenance fp
+  ON fp.transaction_id = t.id;
+```
+
+The **Streamline backend** can then:
+
+* Filter by `account_id`, time window, actor, case, etc.
+* Emit JSON shaped exactly as your `segments` contract.
+
+You can create **similar views** for:
+
+* Speech (utterance energy, sentence density)
+* Legal overlays (claims, wrong types, harms against the same time axis)
+
+and then unify them at the API layer.
+
+---
+
+## 6. “Every transaction classified or deliberately unclassified”
+
+You had this nice goal on the language side:
+
+> Every token is either categorised or deliberately ignorable.
+
+You can mirror that pattern for money.
+
+Add a **classification table**:
+
+```sql
+CREATE TABLE transaction_tags (
+    transaction_id INTEGER NOT NULL REFERENCES transactions(id),
+    tag_code       TEXT NOT NULL,     -- 'RENT','GROCERIES','CAR_REGO','UNKNOWN_REVIEW'
+    source         TEXT NOT NULL,     -- 'user','rule','ml_suggestion'
+    confidence     REAL NOT NULL DEFAULT 1.0,
+    PRIMARY KEY (transaction_id, tag_code, source)
+);
+```
+
+And optionally a `STOP_TAG` / `IGNORE` concept:
+
+* If a transaction is tagged as `tag_code = 'NOISE'` or `'UNCLASSIFIED_OK'`, you can say:
+
+  * “We looked at this; it’s explicitly not part of the narrative”.
+
+This is the **financial analogue** of:
+
+* `tokens.flags` + `lexeme_concepts` + `STOPWORDS`
+
+and gives you a tidy completeness story across both **words** and **money**.
+
+---
+
+## 7. How this plugs in conceptually
+
+* **Schema-wise**:
+
+  * Finance is just another **segment of your ontology** that:
+
+    * Points down to Layer 0 (`sentences`)
+    * Talks to L1 (`Events`, `Actors`)
+    * Can be pulled into SensiBlaw’s `EvidenceItem`/`Claim` graphs via `receipt_packs`.
+
+* **Streamline-wise**:
+
+  * It reads from views (`v_streamline_finance_segments`, etc.), not raw tables.
+  * It doesn’t care whether finance came from CSV or ISO20022, or whether an event is “TiRCorder” or “SensiBlaw” — just that they share the same time axis and IDs.
+
+* **Extensibility-wise**:
+
+  * You can bolt on:
+
+    * more adapter formats without schema change,
+    * more classifiers without changing Streamline,
+    * more legal structures without touching finance tables.
+
+---
+
+If you like, next I can:
+
+* Draft a **short SQL migration file** that adds these finance tables on top of your existing schema, or
+* Write a **Mermaid ER diagram** for “how finance entities sit next to Events / Actors / Sentences” to drop into `docs/streamline_schema.md`.
