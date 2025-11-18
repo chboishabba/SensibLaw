@@ -1739,3 +1739,363 @@ If you like, next I can:
 
 * Draft a **short SQL migration file** that adds these finance tables on top of your existing schema, or
 * Write a **Mermaid ER diagram** for “how finance entities sit next to Events / Actors / Sentences” to drop into `docs/streamline_schema.md`.
+
+
+Right, this is the juicy bit: **money + conversations** as *first-class* things that sit alongside “law” in the ontology, not bolted on afterwards.
+
+I’ll treat it as:
+
+1. How finances become true first-class citizens in the 6-layer stack
+2. How social / chat streams + sentiment plug into the same stack
+3. How we actually *see* patterns like “user more distressed + partner behaviour changes + money siphons” across views
+
+---
+
+## 1. Making finances truly first-class
+
+You already have the low-level finance schema (accounts, transactions, transfers) and linkage into Events + Sentences. To make them **ontologically first-class**, we plug them into the *same axes* as everything else:
+
+### a) Events & Actors (Layer 1)
+
+Treat each transaction as a *specialised event*, not a separate universe.
+
+* `Event.event_kind` gains:
+
+  * `FINANCIAL_TRANSACTION`
+  * `FINANCIAL_AGREEMENT` (e.g. “we agreed I’d pay all rent”)
+  * `FINANCIAL_SHOCK` (unexpected charge, garnishee, cut-off)
+  * `FINANCIAL_WITHHOLDING` (bill not paid, money not given)
+
+* Roles on those events:
+
+  * `PAYER`, `PAYEE`, `ACCOUNT_HOLDER`, `BENEFICIARY`, `INSTITUTION`
+
+* Link to transactions (from earlier):
+
+  ```sql
+  event_finance_links(event_id, transaction_id, link_kind='caused'|'evidence'|'context')
+  ```
+
+So “paid bond”, “partner drained savings”, “Centrelink stopped” are all *Events* that just happen to be evidenced by `transactions`.
+
+### b) Protected Interests & Harms (Layer 5)
+
+Make financial security explicit, not implicit:
+
+* `protected_interest_types` includes things like:
+
+  * `FINANCIAL_SECURITY`
+  * `HOUSING_STABILITY`
+  * `BASIC_NEEDS` (food, utilities)
+  * `ABILITY_TO_WORK` (e.g. car payments, tools, childcare)
+
+* `harm_classes` includes:
+
+  * `HARM_FINANCIAL`
+  * `HARM_HOUSING` (eviction/instability)
+  * `HARM_DEPENDENCY` (forced financial dependence)
+
+* `HarmInstance` for money:
+
+  ```text
+  event_id            → the financial event (“rent not paid” / “card maxed”)
+  protected_interest  → FINANCIAL_SECURITY / HOUSING_STABILITY
+  harm_class          → HARM_FINANCIAL / HARM_HOUSING
+  concept_id          → ECONOMIC_STRAIN / LOSS_OF_INCOME (semantic atom)
+  sentence_id         → where the user explains “he stopped paying rent”
+  ```
+
+Now finances show up in *exactly the same way* as bodily harms: as **harm instances** to protected interests, not “just numbers”.
+
+### c) Wrong Types & Duties (Layer 4)
+
+Introduce explicit wrongs around economic control:
+
+* `wrong_types` (per legal system / perspective):
+
+  * `ECONOMIC_ABUSE`
+  * `FINANCIAL_COERCION`
+  * `FINANCIAL_NEGLECT` (e.g. refusing to contribute to joint necessities)
+  * `CONTROL_OF_EARNINGS`
+  * `UNCONSENTED_DEBT` (taking loans in victim’s name)
+  * `WITHHOLDING_CHILD_SUPPORT`
+
+Each gets **elements** that bind to the finance layer:
+
+```text
+WrongType: ECONOMIC_ABUSE (AU.FAMILY.Violence)
+
+Elements:
+- CONDUCT: concept = UNFAIR_CONTROL_OF_MONEY
+- RELATIONSHIP: pattern = INTIMATE_PARTNER / CAREGIVER
+- RESULT: harm_class = HARM_FINANCIAL, HARM_DEPENDENCY
+- CONTEXT: condition = PATTERN_OVER_TIME (not one-off)
+```
+
+*How this hits finance:*
+
+* Patterns like:
+
+  * user income ↑, partner discretionary spending ↑, user cash reserves ↓
+  * repeated unpaid bills while partner has plenty of personal spending
+  * joint account emptied right before separation
+
+…become **evidence for those wrong types**, not just “interesting graphs”.
+
+### d) Value Frames (Layer 6)
+
+Finance is deeply moralised:
+
+* `value_frames` that touch money:
+
+  * `EQUITABLE_SHARING_IN_RELATIONSHIP`
+  * `CARING_FOR_DEPENDANTS`
+  * `AUTONOMY_OVER_ONE’S_EARNINGS`
+  * `HUMAN_RIGHTS_DECENT_STANDARD_OF_LIVING`
+  * `TIKANGA_WHAKAPAPA_DUTIES` (if e.g. money being withheld from whānau obligations)
+
+* `wrongtype_valueframes` + `protectedinterest_valueframes` say:
+
+  * economic abuse violates `AUTONOMY` + `CARING_FOR_DEPENDANTS`
+  * withholding school fees violates `CHILD_INTERESTS` + HR frames
+
+So money isn’t just “data”; it is tied to **what is considered just or unjust** in multiple systems.
+
+---
+
+## 2. Integrating social / chat streams + sentiment
+
+You already treat recordings / transcripts as Layer-0 Documents with Utterances. Social feeds are structurally the same.
+
+### a) Social feeds as Documents & Utterances
+
+For each platform / channel:
+
+* `documents`:
+
+  * `doc_type = 'SOCIAL_FEED' | 'DM_THREAD' | 'SMS_EXPORT' | 'EMAIL_THREAD'`
+  * text lives in `TextBlock`, then `sentences`.
+
+* Each message:
+
+  * `utterances` row with `start_time`, `sender_actor_id`, maybe `platform`.
+
+* Link utterances ↔ sentences via `utterance_sentences`.
+
+So a Twitter thread, WhatsApp chat, Facebook DM – all just become **streams of utterances** on the *same substrate* your court transcripts use.
+
+### b) Sentiment / concern / pattern features
+
+Per **sentence** or **utterance** you attach features like:
+
+```text
+sentiment_score   (e.g. -1..+1)
+emotion_primary   (JOY, ANGER, FEAR, SADNESS, SHAME, NUMB…)
+subjectivity      (0..1)
+concern_score     (0..1) – specialised “worry/concern” detector
+control_language  (0..1) – partner’s controlling / threatening language
+```
+
+Implementation-wise this can be a `utterance_features` table:
+
+```sql
+CREATE TABLE utterance_features (
+    utterance_id   INTEGER PRIMARY KEY REFERENCES utterances(id),
+    sentiment      REAL,         -- -1..1
+    arousal        REAL,         -- 0..1
+    concern_score  REAL,
+    anger_score    REAL,
+    fear_score     REAL,
+    shame_score    REAL,
+    control_score  REAL,         -- language about control / threats
+    blame_score    REAL          -- “this is your fault”, “you always…”
+);
+```
+
+Then you can **aggregate over time**, per relationship:
+
+```sql
+CREATE TABLE relationship_metrics (
+    id                INTEGER PRIMARY KEY,
+    relationship_id   INTEGER NOT NULL,   -- A↔B link
+    window_start      TIMESTAMP NOT NULL,
+    window_end        TIMESTAMP NOT NULL,
+    speaker_actor_id  INTEGER,            -- who is speaking
+    mean_sentiment    REAL,
+    mean_concern      REAL,
+    mean_control      REAL,
+    msg_count         INTEGER
+);
+```
+
+This is how you get “from date X onward, user’s concern ↑, partner’s control ↑”.
+
+### c) Relationship as shared container
+
+You can model:
+
+```sql
+relationships(id, actor_a_id, actor_b_id, relationship_kind)
+```
+
+Then:
+
+* finance:
+
+  * accounts tagged to either/both actors
+  * transactions tagged to relationship (“household spend” vs “personal spend”)
+
+* social:
+
+  * utterances tagged by which relationship they belong to (DM thread or chat with that partner)
+
+* events:
+
+  * `Event.relationship_id` for key incidents (arguments, moves, breakups)
+
+All your time-series aggregates become **per-relationship streams**.
+
+---
+
+## 3. Putting it together: streams & pattern detection
+
+Conceptually, you want **multiple streams** per relationship:
+
+* `Stream: CHAT_SENTIMENT` (per direction)
+* `Stream: FINANCIAL_BALANCE` (per account)
+* `Stream: FINANCIAL_DEPENDENCY` (how reliant A is on B’s money)
+* `Stream: LEGAL_PRESSURE` (count/weight of claims, orders, deadlines)
+
+### a) Define abstract “streams” on top of the DB
+
+You don’t have to create a new table, but it often helps:
+
+```sql
+CREATE TABLE streams (
+    id              INTEGER PRIMARY KEY,
+    relationship_id INTEGER,
+    stream_type     TEXT NOT NULL,   -- 'CHAT_SENTIMENT', 'FINANCE_NET', 'LEGAL_HARMS'
+    direction       TEXT,            -- 'A_TO_B','B_TO_A','JOINT'
+    label           TEXT NOT NULL
+);
+
+CREATE TABLE stream_points (
+    stream_id       INTEGER NOT NULL REFERENCES streams(id),
+    t               TIMESTAMP NOT NULL,
+    value           REAL NOT NULL,
+    payload         JSON,            -- optional: extra detail
+    PRIMARY KEY (stream_id, t)
+);
+```
+
+Then:
+
+* A chat sentiment stream for “User → Partner” has time points with `value = mean_concern_score` or `mean_sentiment`.
+* A finance stream has `value = net_outflow_from_user` or `balance`.
+* A legal stream has `value = # of active orders / severity score`.
+
+Your **Timeline Ribbon viz** just stitches these stream_points into ribbons.
+
+### b) Cross-stream alignment (the pattern you described)
+
+Example you gave:
+
+> starting date X – we notice that xyz pattern from partner also starts around then
+
+Concretely:
+
+* For relationship R (User ↔ Partner):
+
+  * Stream S1: `User concern_score over time` (chat/diary).
+  * Stream S2: `Partner control_score over time` (chat).
+  * Stream S3: `Net financial dependence of User on Partner` (ratio of User personal income vs Partner contributions + joint spending).
+
+We can:
+
+* Compute **rolling windows** (e.g. weekly):
+
+  * `mean_concern_user(t)`
+  * `mean_control_partner(t)`
+  * `dependency_ratio(t)`
+
+* Detect change points:
+
+  * “concern_user” jumps +2 SD after some date.
+  * “control_partner” jumps around the same period.
+  * “dependency_ratio” crosses a threshold (e.g. user now 80–90% dependent on partner’s income).
+
+Then we **annotate**:
+
+* A “pattern event”:
+
+  ```text
+  Event.event_kind = RELATIONAL_PATTERN_SHIFT
+  Event.context    = INTIMATE_RELATIONSHIP
+  Event.relationship_id = R
+  Event.occurred_at = approx change-point date
+  ```
+
+* And attach HarmInstances & candidate WrongTypes:
+
+  * `HarmInstance` with `protected_interest = FINANCIAL_SECURITY` / `PSYCHOLOGICAL_INTEGRITY`
+  * Candidate `WrongType = ECONOMIC_ABUSE` / `COERCIVE_CONTROL` (depending on jurisdiction)
+
+You display this in the viz as:
+
+> “Around June 2024:
+> – User’s concern in messages increased
+> – Partner’s controlling language increased
+> – User’s financial dependence also increased”
+
+but you are very clear that this is **pattern detection, not a verdict**.
+
+---
+
+## 4. Safety + interpretive stance
+
+Because this is sensitive as hell, the system should:
+
+* Treat all analytic flags as:
+
+  * **“Something to look at”**, not “your partner is definitely abusive”.
+
+* Always surface:
+
+  * The **raw evidence snippets** (messages, transactions) via sentence/doc links.
+  * The **ValueFrames** used (e.g. “this would worry family-violence services because it affects autonomy and financial security”).
+
+* Allow multiple perspectives:
+
+  * State legal frame (e.g. family-violence legislation).
+  * Human-rights child/women’s rights frame.
+  * Indigenous or religious frame if the user wants that lens.
+  * User’s own felt frame (“this feels unjust to me”).
+
+Morality is handled by **ValueFrames and perspectives**, not by hard-coding labels like “BAD_PARTNER” into the schema.
+
+---
+
+## 5. Short version
+
+* **Finances as first-class**:
+
+  * Transactions are Events.
+  * They produce HarmInstances on protected interests like `FINANCIAL_SECURITY`.
+  * WrongTypes like `ECONOMIC_ABUSE` and `FINANCIAL_NEGLECT` are defined in terms of patterns over those events.
+  * Remedies are things like maintenance orders, property splits, debt releases, etc.
+
+* **Social streams as first-class**:
+
+  * All messages are Utterances → Sentences → Tokens → Concepts.
+  * Sentiment / concern / control features are attached per utterance, aggregated per relationship/time window.
+
+* **Cross-view grouping**:
+
+  * Define relationship-scoped Streams (`CHAT_SENTIMENT`, `FINANCE_NET`, `LEGAL_HARMS`).
+  * Compute rolling metrics and change points.
+  * Represent major shifts as Events with candidate harms/wrongs.
+  * Visualise them together in the ribbon/timeline view with provenance and value-frame overlays.
+
+If you like, next I can sketch a **concrete worked example** end-to-end:
+
+> “From March to July, User’s messages get more worried, Partner’s language gets sharper, money starts being siphoned out of joint account, and the system surfaces this as a potential economic-abuse pattern with links to relevant law and value frames.”
