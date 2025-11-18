@@ -1,5 +1,202 @@
 # Database Roadmap
 
+For general roadmap please see [roadmap](docs/roadmap.md)
+
+
+Below is a clean, explicit **gap analysis** grounded directly in the documents you uploaded.
+Your question: **“Please analyse where our current documentation is diverging from our new spec.”**
+
+According to documents from **18 Nov 2025**, your *current repo documentation* (ROADMAP.md, roadmap.md, DATABASE.md, nlp_pipelines.md) diverges from the newly clarified ontology/spec in **five major ways**:
+
+---
+
+# ✅ 1. **Ontology Layers Missing or Only Partially Represented**
+
+### **What the new spec requires**
+
+The PDF lays out a **three-layer ontology**:
+
+* **Layer 1 – Normative systems & sources**
+* **Layer 2 – Wrong Types: roles, interests, mental states**
+* **Layer 3 – Events, harms, remedies**
+
+This is explicitly described in the spec summary in the PDF (e.g., LegalSystem hierarchy, WrongType structure, ProtectedInterest, HarmInstance, RemedyModality)
+
+### **Where the repo diverges**
+
+Your current documents focus heavily on:
+
+* **RuleAtoms + provisions**
+* **Pipeline mechanics**
+* **Document ingestion**
+
+But **none of the repo files actually define**:
+
+* `WrongType`
+* `ProtectedInterestType`
+* `ValueDimension`
+* `CulturalRegister`
+* `ActorClass`
+* `RelationshipKind`
+* `HarmInstance`
+* `RemedyModality`
+
+This is explicitly listed as missing in the PDF’s "Summary Table — What to Update"
+
+And confirmed by the ROADMAP.md file which says the ontology is “unmaterialized”
+
+---
+
+# ✅ 2. **No Value / Morality / Cultural Reasoning Layer in Repo Docs**
+
+### **Spec requirement**
+
+The PDF states clearly that a **moral/value justification layer** is required:
+
+* ValueFrame
+* CulturalRegister
+* Competing value-systems (equality vs patriarchal order vs religious orthodoxy)
+
+The spec requires this to be inserted into:
+
+* **ROADMAP.md**
+* **Database roadmap**
+* **NLP pipeline**
+
+### **Where repo diverges**
+
+There is **zero mention** of:
+
+* ValueFrames
+* Moral justifications
+* Cultural registers as first-class reasoning elements
+
+For instance, DATABASE.md describes a ValueDimension/ProtectedInterest design philosophically
+
+…but **nowhere is the ValueFrame layer defined, referenced, or required operationally**.
+
+---
+
+# ✅ 3. **NLP Pipeline Lacks WrongType, ActorClass, Interests, and Event Binding**
+
+The spec says:
+
+> *“Docs only have shallow actor roles… update pipeline to map actors → ActorClass, add WrongType inference, add protected-interest inference.”*
+
+### **Where current nlp_pipelines.md diverges**
+
+Current pipeline describes:
+
+* tokenization
+* sentence segmentation
+* dependency arcs
+* legal NER rules
+
+But there is **no connection between:**
+
+* RuleAtoms → ActorClass
+* Clauses → WrongType inference
+* Clauses → ProtectedInterestType
+* RuleAtoms → LegalSource binding (required by spec)
+
+Current docs still treat clause extraction as the end-point.
+
+The new spec treats it as the **start** of semantic inference.
+
+---
+
+# ✅ 4. **Database Roadmap Missing Most Ontology Tables**
+
+The spec explicitly states the repository is missing:
+
+* LegalSystem
+* NormSourceCategory
+* LegalSource
+* WrongType
+* WrongType_Source
+* ProtectedInterest
+* CulturalRegister
+* ActorClass
+* RoleMarker
+* RelationshipKind
+* HarmInstance
+* RemedyModality
+
+These missing pieces are shown in the PDF table:
+
+And ROADMAP.md confirms these layers are absent:
+
+The new spec requires all three ontology layers to be implemented before rule atoms are useful.
+
+---
+
+# ✅ 5. **Multi-Jurisdiction Support Not Reflected in Existing Docs**
+
+The spec now requires recognition of:
+
+* AU.COMMON
+* AU.STATE.QLD
+* PK.ISLAM.HANAFI
+* NZ.TIKANGA
+* US.STATE
+* EU *
+
+### **Where repo diverges**
+
+Current database roadmap treats the system as essentially:
+
+* AU-centric
+* Single legal tradition
+* No religious/customary law categories
+
+ROADMAP.md only references basic “jurisdiction codes” and does **not** model legal traditions or multiple co-existing normative systems.
+
+---
+
+# 📌 Executive Summary — Divergence Map
+
+| Area                                  | Spec Requirement                                        | Repo State                               | Evidence |
+| ------------------------------------- | ------------------------------------------------------- | ---------------------------------------- | -------- |
+| **Ontology Layers**                   | Must implement Layer1–3                                 | Only RuleAtoms + docs                    |          |
+| **Moral/value layer**                 | ValueFrames, CulturalRegisters, justification reasoning | Not present                              |          |
+| **WrongType system**                  | Pattern = roles + interest + harm + mental state        | Not defined                              |          |
+| **Protected Interests**               | Must be explicit                                        | Only conceptual narrative                |          |
+| **ActorClass, Relationship modeling** | Required                                                | Absent                                   |          |
+| **Remedies**                          | Required as structured modal types                      | Not mentioned in repo                    |          |
+| **Event–Harm modeling**               | Events must map to harms and wrong types                | Current event schema is opaque           |          |
+| **Pipeline actor → ontology mapping** | Must classify actors via ActorClass                     | Pipeline only records ‘party’ + raw role |          |
+| **Source binding**                    | RuleAtoms → LegalSource link required                   | Not implemented                          |          |
+
+---
+
+# 🎯 What You Should Do Next (Actionable Fixes)
+
+The spec itself includes an “executable plan” for migration:
+
+### **PHASE 1 — Add Layer 1 (Normative Systems)**
+
+LegalSystem, LegalSource, NormSourceCategory
+
+### **PHASE 2 — Add Layer 2 (Wrong Types)**
+
+WrongType, ProtectedInterest, ActorClass, MentalState
+
+### **PHASE 3 — Add Layer 3 (Events + Harms + Remedies)**
+
+Event, EventParticipant, HarmInstance, RemedyModality
+
+### **PHASE 4 — Update NLP Pipeline**
+
+Add: WrongType inference, ActorClass mapping, Protected-Interest inference
+
+### **PHASE 5 — Update ROADMAP.md**
+
+Add ontology sections + multi-system support
+
+
+# OLDER VERSION BELOW HERE:
+
+
 ## Context
 SensibLaw's database design aspires to a three-layer ontology spanning normative systems and sources, abstract wrong types, and concrete events with harms.【F:DATABASE.md†L5-L24】【F:DATABASE.md†L858-L892】 The current repository primarily implements a SQLite-backed document versioning store and thin JSON schemas for event ingestion, leaving most of the ontology unmaterialized.【F:src/storage/versioned_store.py†L31-L199】【F:sensiblaw/schemas/event.schema.yaml†L1-L11】 This roadmap compares the as-is state with the specification and lays out the steps to close the gap.
 
