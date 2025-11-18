@@ -1,6 +1,7 @@
 # Database Roadmap
 
-For general roadmap please see [roadmap](docs/roadmap.md)
+For general roadmap please see [roadmap](docs/roadmap.md). The [DATABSE.md file](DATABASE.md) outlines an outdated but relevant view of SensibLaw's Ontology & Database Design
+Specification based on a Three-Layer Ontology Structure - however we have now progressed to 6-layer or more.
 
 
 Below is a clean, explicit **gap analysis** grounded directly in the documents you uploaded.
