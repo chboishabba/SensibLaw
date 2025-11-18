@@ -332,7 +332,8 @@ So the *same* `Event` can be simultaneously:
   * feed into graph DBs,
   * run cross-system comparisons (“what are all the wrong types that protect child development against state actors, regardless of jurisdiction?”).
 
-If you like, next step I can compress this further into a **one-page schema diagram** text (or a CSV of the ontology tables + a few example rows) that you can drop straight into `docs/ontology.md` as the “TiRC + SensibLaw shared model” section.
+<img width="1998" height="1750" alt="sizeof_graph" src="https://github.com/user-attachments/assets/8f420432-1ec5-49f1-9a9f-ab75c74573da" />
+<img width="1189" height="462" alt="image" src="https://github.com/user-attachments/assets/0006141f-0652-442c-b887-9e6392b0b493" />
 
 
 
