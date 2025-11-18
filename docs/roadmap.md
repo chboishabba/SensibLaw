@@ -1,5 +1,14 @@
 # SensibLaw roadmap
 
+> Next-week direction (keep this note for context; do not remove existing content)
+> - Finalize a concise “why/what” overview so readers know the audience and assumptions within the first screen.
+> - Separate finance adapter/schema material into its own doc and link to it here to remove duplication.
+> - Add a short constraints callout (read-only over DB, provenance-first drill-downs, consent lanes toggle) to anchor scope.
+> - Tighten cross-references to `STREAMLINE_FEATURE_PROPOSAL.md`, `FINANCE_ADAPTERS.md`, and provenance docs instead of restating schemas.
+> - Keep the implementation roadmap focused on data contracts and rendering steps; move high-level UX narrative to the proposal doc.
+> - Inventory overlapping “Purpose” and “Core data inputs” sections and merge where possible for clarity.
+> - Leave existing timeline/JSON contract details intact, but add forward links where the canonical definitions live.
+
 18/11/2025
 Gotcha, this is basically three docs stapled together right now 😅
 
