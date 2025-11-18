@@ -12,6 +12,291 @@ This document describes the roadmap for building the **Timeline Stream Visualisa
 This is the main UX layer of ITIR:
 A **single, coherent timeline** where the user can see *what happened*, *what was said*, *how money moved*, and *what legal/structural frames apply* — all with provenance.
 
+
+
+Absolutely — now that the **full shape of the SensiBlaw + TiRCorder + Finance substrate** is clear (Layer-0 text substrate, L1–L6 ontology, the TiRCorder utterance/event stack, the finance adapters + transfers + provenance), we can re-describe the feature as a unified, technically clear proposal.
+
+Here is the **refined, architecturally accurate feature description**, now called **Streamline**.
+
+You can drop this into your README, ROADMAP, or as its own proposal file:
+**`STREAMLINE_FEATURE_PROPOSAL.md`**
+
+---
+
+# Streamline — Unified Narrative Timeline & Flow Visualisation
+
+*A cross-modal, provenance-anchored stream-timeline integrating speech, money, law, and life events.*
+
+Streamline is the visual heart of the ITIR ecosystem, fusing **TiRCorder**’s real-world recordings, **SensiBlaw**’s structured legal knowledge, and the new **Finance** substrate into one coherent, interactive timeline.
+
+Streamline does **not** invent new data structures — it **renders exactly what the database already describes**, via:
+
+* Layer-0 Text Substrate
+* Layer-1 to Layer-6 Legal Ontology
+* TiRCorder utterances & events
+* Finance accounts, transactions, transfers
+* Evidence packs, provenance links, concepts, protected interests, harms
+
+Everything flows back to **sentences**, **documents**, and **valid-time**.
+
+---
+
+# 1. What Streamline *is*
+
+Streamline is a **multi-lane, curved “flow of life” visualiser** where:
+
+* Time runs **downward** (Y-axis).
+* Each **lane** represents a system:
+
+  * Speech / Voice
+  * Personal Accounts (Cheque, Savings, Business, Credit)
+  * Legal Processes (Claims, Cases, Provisions, Wrong Types)
+  * Life Events / Personal history
+* **Ribbons** represent quantities changing over time:
+
+  * Financial amounts
+  * Speaker dominance / utterance energy
+  * Legal burden / case intensity
+* **Threads** (siphons) peel off the main flows:
+
+  * Money leaving the main account
+  * Sub-events branching from main life events
+  * Legal escalations from a base claim
+
+All elements are anchored to real evidence:
+
+* Click a ribbon → see the **transaction** and raw bank payload
+* Click an event → see the **utterance** or **sentence** where it was mentioned
+* Click a legal tag → see the **provision** text or **claim** narrative segment
+* Hover anything → FTS5 snippet + provenance snippet
+
+Streamline is **cinematic**, not just informational.
+
+---
+
+# 2. Functional Overview
+
+### **2.1 Unified Time Axis**
+
+All events, utterances, sentences, transactions, transfers, and legal references collapse into one timeline.
+
+We use:
+
+* `utterances.start_time`
+* `transactions.posted_at`
+* `documents.created_at`
+* `events.valid_time`
+* `provisions.as_at`
+
+Streamline aligns these into a clean, scrollable stack.
+
+---
+
+### **2.2 Ribbons (Continuous Flows)**
+
+#### Finance
+
+* Main account (e.g., Cheque) as a wide vertical ribbon.
+* Fluctuations reflect net inflow/outflow.
+* Transfers create thin peeling threads curving into other account lanes.
+
+#### Speech
+
+* Speech energy/utterance density plotted as a ribbon in the “speech lane”.
+* Diarization → color-coded mini-streams per speaker.
+
+#### Legal
+
+* Claims & wrong types appear as **horizontal overlays** or vertical stacked layers.
+* Duties, protected interests, harm classes appear as **thin metadata streams** aligned to sentences and events.
+
+---
+
+### **2.3 Events & Narrative Markers**
+
+Events from TiRCorder, SensiBlaw, and Finance all pin to their exact moment:
+
+* “Paid rent” (transaction)
+* “Lost job” (life event)
+* “Referred to s223 NTA” (legal system)
+* “Doctor said → xyz” (utterance linked to a concept)
+
+Event types can expand or collapse.
+
+---
+
+### **2.4 Provenance Everywhere**
+
+Every visible object carries:
+
+* `sentence_id`
+* `document_id`
+* `transaction_id`
+* `transfer_id`
+* `event_id`
+
+Streamline never creates synthetic data — it visualises *only what the database knows*.
+
+This makes it:
+
+* Auditable
+* Legally defensible
+* Explainable
+* Trustworthy
+
+---
+
+# 3. How Streamline Uses Your Existing DB Shapes
+
+### **3.1 Layer 0 → Streamline**
+
+Every ribbon segment can map back to:
+
+* Sentences (via `finance_provenance` or utterance links)
+* Lexeme & phrase concepts (to highlight important mentions)
+
+This gives you snippets and narrative context.
+
+---
+
+### **3.2 TiRCorder → Streamline**
+
+* `utterances` define the speech lane
+* `utterance_sentences` anchor narrative
+* diarization defines stream “sub-channels”
+* `Event` table ties speech to life events
+
+You get a chronological “pulse” of the voice.
+
+---
+
+### **3.3 Finance Layer → Streamline**
+
+* `accounts` = separate lanes
+* `transactions` = segments in those lanes
+* `transfers` = curved siphons connecting lanes
+* `event_finance_links` = life events attached to flows
+* `finance_provenance` = which sentences explain which money moves
+
+This enables the ribbon-stream visual structure.
+
+---
+
+### **3.4 SensiBlaw → Streamline**
+
+Layer 1–6 objects tie in as light overlays:
+
+| Ontology Layer              | Visual Form in Streamline   | Source                |
+| --------------------------- | --------------------------- | --------------------- |
+| Events & Actors             | timeline markers            | TiRCorder + SensiBlaw |
+| Claims & Cases              | wide-band overlays          | SensiBlaw             |
+| Norm Sources / Provisions   | collapsible annotation lane | SensiBlaw             |
+| Wrong Types / Duties        | thin metadata ribbons       | SensiBlaw             |
+| Protected Interests / Harms | coloured sidebands          | SensiBlaw             |
+| Value Frames / Remedies     | justification tags          | SensiBlaw             |
+
+Streamline shows **how the law sees the same timeline**.
+
+---
+
+# 4. Interaction Model
+
+### Hover
+
+* Snippet from relevant `sentence.text`
+* Preview transaction summary
+* Show legal justification (“This relates to WrongType: defamation / duty breached: reckless misrepresentation”)
+
+### Click
+
+Opens a right-hand panel with:
+
+* Transcript range
+* Raw bank transaction payload
+* Provision text (Akoma Ntoso)
+* Extracted concepts
+* Evidence pack (signed)
+
+### Zoom/Pan
+
+* Infinite scroll
+* Smooth WebGL transitions
+
+### Mode Toggles
+
+* Show/hide:
+
+  * Speech streams
+  * Financial lanes
+  * Legal overlays
+  * Life events
+  * Transfers (siphons)
+
+---
+
+# 5. Why Streamline Matters
+
+Streamline is the first system that:
+
+* Combines **speech**, **money**, **documents**, **legal analysis**, **emotions**, and **narrative**
+* Anchors everything to evidence
+* Computes nothing opaque
+* Allows a user to review their life as **connected flows**, not disconnected artifacts
+* Gives clinicians, caseworkers, lawyers, and the user themselves a shared, comprehensible timeline
+
+It’s a **visual narrative audit trail**.
+
+---
+
+# 6. Implementation Roadmap (Short)
+
+### Phase 1 — Data Plumbing
+
+* Materialize `v_ribbon_segments`
+* Build `/streamline/data` endpoint
+* Expose lanes and segments
+
+### Phase 2 — WebGL Pipeline
+
+* Bezier stream band renderer
+* Transfer curves
+* Z-depth stacking
+
+### Phase 3 — Interactions
+
+* Provenance hovers
+* Right-panel detail views
+* Snippet linking
+
+### Phase 4 — Legal overlays
+
+* Claim/wrong/harm strip renderers
+* Protected-interest mapping
+
+### Phase 5 — High polish
+
+* Animations
+* Parallax
+* Export to PDF
+* Evidence pack stamping
+
+---
+
+# 7. Summary
+
+**Streamline** is the unifying visual language of ITIR.
+
+It converts your **text substrate**, **legal ontology**, **utterances**, and **financial flows** into one honest, elegant, evidence-driven stream of life.
+
+
+
+
+
+
+
+
+
+
 ---
 
 ## 1. Purpose
