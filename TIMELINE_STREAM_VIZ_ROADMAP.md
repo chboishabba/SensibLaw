@@ -1,5 +1,149 @@
 # Timeline Stream Viz — "streamline" — Roadmap
 
+
+# Most up to date 18/11/2025 - dry'd
+
+# Timeline Stream Viz — "Streamline" — Roadmap
+
+*A unified visual layer for story × law × finance timelines*
+
+This document describes the **implementation roadmap** for the Timeline Stream
+Visualisation System (“Streamline”) — a multi-lane ribbon/streamgraph view
+that sits on top of:
+
+- the shared **Layer-0 text substrate** and **L1–L6 ontology** (see `ARCHITECTURE_LAYERS.md`),
+- **TiRCorder**’s utterances, events, and narratives,
+- the **Finance** substrate (accounts, transactions, transfers; see `FINANCE_SCHEMA.md`),
+- **SensiBlaw**’s legal documents, claims, provisions, and cases,
+- and the shared provenance model (see `PROVENANCE.md`).
+
+For the high-level product/UX description of Streamline, see:
+
+> `STREAMLINE_FEATURE_PROPOSAL.md`
+
+This file focuses on **what we need to build**: data contracts, pipeline, and rendering.
+
+---
+
+## 1. Purpose (engineering view)
+
+Streamline should let a user:
+
+- Visually track **flows of time, speech, money, influence, and consequence**.
+- See **ribbons** whose width corresponds to a quantitative measure:
+
+  - audio intensity / speaker share,
+  - financial inflows/outflows,
+  - case/claim “pressure” (e.g. harm/claim density).
+
+- See **threads/siphons** peeling off the main flow:
+
+  - savings transfers,
+  - business expenses,
+  - legal escalations / branching events.
+
+- Pin **events**, **sentences**, **transactions**, **provisions**, and **claims**
+  directly onto the stream, and on click:
+
+  - open transcripts (Layer-0 / TiRCorder),
+  - open SensiBlaw documents & provisions,
+  - open raw financial transactions and receipts,
+  - open evidence packs and case law references.
+
+All while preserving **valid-time provenance** and never inventing new facts:
+Streamline is read-only over the existing database.
+
+---
+
+## 2. Core Data Inputs (by subsystem)
+
+The viz engine does **no direct DB access**. A backend layer fuses data from
+existing tables into a single JSON contract (Section 3).
+
+### 2.1 From TiRCorder (speech & narrative)
+
+From the shared text/discourse substrate:
+
+- `utterances`
+- `speakers`
+- `sentences`
+- `utterance_sentences`
+- optional speech features (energy/intensity per time slice)
+- life/events derived from speech (“I paid rent”, “My knee collapsed last night”)
+
+### 2.2 From Finance
+
+As defined in `FINANCE_SCHEMA.md` / `FINANCE_ADAPTERS.md`:
+
+- `accounts`
+- `transactions`
+- `transfers`
+- `transaction_tags` (classification; mirrors the “every token classified or deliberately ignored” rule)
+- `event_finance_links`
+- `finance_provenance`
+
+### 2.3 From SensiBlaw (legal)
+
+From the ontology / legal layers:
+
+- `documents` (legal)
+- `provisions` / `norm_sources` / `cases` / `legal_episodes`
+- `claims`
+- `harm_instances`
+- anchoring via `document_id` + `sentence_id`
+
+### 2.4 User timeline / life events
+
+From TiRCorder / shared `Event` model:
+
+- Life events (moves, breakups, school, injuries)
+- Work events
+- Medical events
+- `receipt_packs` (bundles of events + transactions + sentences, see `PROVENANCE.md`)
+
+---
+
+## 3. JSON Contract for the Viz Engine
+
+The renderer receives a **flattened, pre-fused view**. It does no inference.
+
+```jsonc
+{
+  "lanes": [
+    { "id": "acc_main", "label": "Cheque Account", "z": 0 },
+    { "id": "acc_savings", "label": "Savings", "z": -1 },
+    { "id": "acc_business", "label": "Business Account", "z": -2 },
+    { "id": "speech", "label": "Speech Stream", "z": 2 },
+    { "id": "legal", "label": "Legal Episodes", "z": 1 }
+  ],
+  "segments": [
+    {
+      "t": "2025-05-03T10:21:00Z",
+      "lane": "acc_savings",
+      "amount": -250000,
+      "transfer_id": 42,
+      "event": { "id": 311, "label": "Paid Bond" },
+      "anchors": {
+        "sentence_id": 9912,
+        "receipt_pack_id": 7
+      }
+    }
+  ],
+  "markers": [
+    {
+      "t": "2025-05-08T09:00:00Z",
+      "lane": "legal",
+      "kind": "LEGAL_HEARING",
+      "label": "Directions Hearing",
+      "event_id": 512,
+      "case_id": 9
+    }
+  ]
+}
+
+
+
+
 *A unified visual layer for story × law × finance timelines*
 
 This document describes the roadmap for building the **Timeline Stream Visualisation System** — a multi-lane ribbon/streamgraph view that merges:
