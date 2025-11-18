@@ -150,6 +150,211 @@ Each ontology is a simple dictionary:
   "fairness": ["fair", "unfair", "equitable"],
   "environmental_protection": ["environment", "ecology"]
 }
+```
+
+Below is a **full analysis** of how your existing `ontology.md` diverges from the new, expanded ontology spec—**and a proposed rewritten version** that fits the new model while preserving backwards-compatible keyword tagging.
+
+---
+
+# ✅ Part 1 — Analysis: Where `ontology.md` Diverges from the New Spec
+
+Your current `ontology.md` describes an extremely **lightweight, keyword-based tagger**:
+
+* It only supports **two small ontologies**:
+
+  * `lpo.json` (Legal Principles Ontology)
+  * `cco.json` (Commercial Customs Ontology)
+* Each ontology is **flat**: `tag_name → [keywords]`
+* The tagger attaches `principles` and `customs` to a `Provision` based only on substring matching.
+
+This is **radically narrower** than the ontology described in the new spec (your PDF summary) and the expanded database design.
+
+---
+
+## 🔥 Divergence Summary
+
+### 1. **Spec requires three ontology layers**
+
+The new spec requires modelling:
+
+### **Layer 1 — Normative Systems & Sources**
+
+* LegalSystem
+* NormSourceCategory
+* LegalSource (Act, case, treaty, tikanga, religious source)
+* Provision → LegalSource link
+
+**Your current ontology.md does not mention any of these.**
+
+---
+
+### 2. **Spec requires Layer 2 — Wrong Types & Protected Interests**
+
+Includes:
+
+* WrongType
+* ProtectedInterestType
+* ActorClass
+* RoleMarker
+* RelationshipKind
+* MentalState
+* ValueFrame
+* ValueDimension
+* CulturalRegister
+* WrongType–Source patterns
+* WrongType–Interest mappings
+
+**None of these appear in your current ontology documentation.**
+
+Your current tagging supports only keyword-driven “principles” and “customs”.
+
+---
+
+### 3. **Spec requires Layer 3 — Event → Harm modelling**
+
+Includes:
+
+* `Event`
+* `HarmInstance`
+* Event–WrongType links
+* Event → ProtectedInterestType links
+
+Again, **no event/harm ontology appears in ontology.md**.
+
+---
+
+### 4. **Taxonomy structure is flat instead of faceted**
+
+Spec states that interests and wrongs must be faceted:
+
+* interest.subject_kind
+* interest.object_kind
+* interest.modality
+* wrong_type.actor_constraints
+* wrong_type.protected_interests
+* wrong_type.value_frames
+* wrong_type.legal_source_mappings
+
+The current ontology only supports:
+**`tag_name → [keywords]`**
+
+---
+
+### 5. **Ontology.json is replaced by multiple ontology tables**
+
+Spec says we will maintain structured tables:
+
+* LegalSource
+* WrongType
+* ProtectedInterestType
+* ValueFrame
+* CulturalRegister
+* ActorClass
+* RoleMarker
+* RelationshipKind
+* NormSourceCategory
+* RemedyModality
+
+Current ontology.md mentions only `lpo.json` and `cco.json`.
+
+---
+
+### 6. **Ontology Tagging must extend beyond provisions**
+
+Spec requires tagging for:
+
+* events (TiRC)
+* harms (SensibLaw)
+* actors (ActorClass)
+* wrongs (WrongType)
+* interests/value frames
+* multiple legal traditions (AU, Tikanga, Islamic, CRC, EU, US…)
+
+Current ontology.md is only “tag a single provision”.
+
+---
+
+### 7. **Tagger needs to evolve from keyword rules to model-based tagging**
+
+Spec requires hybrid:
+
+* keyword rules
+* matcher rules
+* dependency/neural classification
+* Wikitology-style semantic vectors
+* WrongType candidate inference
+
+Current ontology.md documents only a **substring keyword lookup**.
+
+---
+
+# 📌 Conclusion
+
+Your existing `ontology.md` is now **one very small corner** (“keyword tagging utilities”) of a much larger ontology system.
+
+It needs to be rewritten to:
+
+1. Reflect the **three-layer ontology architecture**
+2. Place the `lpo`/`cco` taggers as the **legacy/RuleAtom-level ontology helpers**
+3. Introduce the real ontology entities (LegalSystem, WrongType, ProtectedInterestType…)
+4. Show how NLP inference maps extracted clauses into the ontology
+
+The tagger extracts these keywords from raw text to provide quick, shallow
+semantic hints.
+
+## Usage
+
+```python
+from ontology.tagger import tag_text
+
+prov = tag_text("Fair business practices protect the environment.")
+print(prov.principles)  # ['fairness', 'environmental_protection']
+print(prov.customs)     # ['business_practice']
+```
+
+## Ingestion Pipeline Integration
+
+During ingestion, `emit_document` applies the tagger so every `Document` and
+`Provision` receives:
+
+* `principles` (from lpo.json)
+* `customs` (from cco.json)
+
+These tags may be used as **auxiliary signals** by higher-level classifiers
+(ProtectedInterest inference, WrongType candidate inference, etc.)
+
+---
+
+# 5. Evolution Toward Full Ontology Tagging
+
+The lightweight keyword system will remain, but the NLP pipeline is being
+extended to perform deep ontology mapping:
+
+* ActorRole → ActorClass
+* Syntactic object → ProtectedInterestType
+* Clause semantics → WrongType candidates
+* Document-level cues → ValueFrames
+* Legal references → LegalSource binding
+
+These semantic outputs are stored alongside RuleAtoms and power the reasoning
+engine.
+
+---
+
+# 6. Summary
+
+| Layer                | Purpose                       | In Current Code      | Documented Here |
+| -------------------- | ----------------------------- | -------------------- | --------------- |
+| **Layer 1**          | Norm systems/sources          | Partially (metadata) | Added           |
+| **Layer 2**          | WrongTypes, Interests, Values | Not implemented yet  | Added           |
+| **Layer 3**          | Events, Harms, Remedies       | Not implemented yet  | Added           |
+| **Keyword ontology** | Legacy tagging                | Implemented          | Preserved       |
+
+This updated document defines where the shallow taggers fit inside the full
+ontology architecture and prepares the project for the expanded schema defined
+in `DATABASE.md`.
+
+```
 
 
 
