@@ -122,3 +122,21 @@ definition of done for the milestone.
 ## One-line Summary
 
 **From:** regex & glossary only → **To:** spaCy-powered tokenization + syntactic tagging + rule matchers feeding the logic-tree assembler.
+
+---
+
+## spaCy pipeline hardening and ontology integration (updates from 18/11/2025)
+
+The spaCy pipeline now underpins tokenisation, sentence segmentation, NER, and rule matching for SensibLaw. The modules and files in scope are summarised in `docs/nlp_pipelines.md`, including adapters (`src/nlp/spacy_adapter.py`, `src/pipeline/tokens.py`), NER configuration (`src/pipeline/ner.py`, `patterns/legal_patterns.jsonl`), dependency harvesting (`src/rules/dependencies.py`), and rule matchers (`src/nlp/rules.py`). This section tracks the hardening work needed to stabilise those components and wire their outputs into the ontology layer.
+
+### Hardening scope
+
+- **Tokenisation & sentence segmentation:** Confirm deterministic segmentation across the adapters noted in `docs/nlp_pipelines.md`, align offsets with the downstream `RuleAtom` builder, and add guardrails for blank pipelines so fallback lemmatisation does not drift from the reference models.
+- **NER and rule matching:** Finalise the `EntityRuler` pattern set and reference resolver so legal references, actors, and penalties flow through the same `REFERENCE` spans that the matcher consumes; ensure matcher normalisation maintains canonical modality/condition/reference/penalty buckets.
+- **RuleAtom → ontology tables:** Persist rule-atom outputs (party/role, modality, condition, reference, penalty, dependency candidates) into the ontology tables introduced in `DATABASE.md` (LegalSystem, WrongType, ProtectedInterest, ValueFrame, Event/Harm). Add DAO/ingestion hooks so every `RuleMatchSummary` slot maps to the relevant table rows and linkage tables.
+
+### Milestones
+
+1. **Pipeline verification** — Lock deterministic token and sentence boundaries across the spaCy adapters, including tests for the modules listed in `docs/nlp_pipelines.md`.
+2. **Ontology binding** — Map rule-atom fields into ontology tables with repeatable ingestion jobs and round-trip validation (RuleAtom → DB → graph export).
+3. **Legal-BERT workflow introduction** — Bring the planned Legal-BERT semantic layer online to enrich actor classes, interest detection, and wrong-type inference ahead of graph persistence, reusing the spaCy spans and dependency candidates already defined in `docs/nlp_pipelines.md`.
