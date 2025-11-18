@@ -95,6 +95,247 @@ a structured, linked, machine-readable backbone.
 [![For information on CI, please see the yml.](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/SensibLaw/SensibLaw/actions/workflows/ci.yml)
 [![CI](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/SensibLaw/actions/workflows/ci.yml)
 
+
+
+Here’s the “data / ontology / topology” spine of all that, stripped of rhetoric.
+
+---
+
+## 1. What’s the *thing* being classified?
+
+**Core unit at the ontology level**
+
+* `WrongType` = *a named actionable wrong in some legal system*
+
+  * e.g. AU negligence, AU defamation, “harm to mana”, tikanga muru, CRC-based wrongful child removal, EU GDPR data-breach claim, US intrusion upon seclusion, etc.
+
+**Core unit at the data / timeline level**
+
+* `Event` = *something that actually happened in the world*, possibly with:
+
+  * `Claim` (“that was economic abuse”)
+  * `CaseIssue` (how the legal system frames it)
+  * `WrongTypeInstance` (how SensibLaw classifies it)
+
+Everything else (cases, principles, statutes, indigenous norms, human-rights instruments) is “context” for how an `Event` gets mapped to one or more `WrongType`s in a particular legal system. 
+
+---
+
+## 2. Layered world model (ontology as layers)
+
+The unified stack is:
+
+0. **World & artefacts (TiRC + shared core)**
+
+   * `Event`, `Actor`, `EvidenceItem`
+1. **Narrative & claims (TiRC)**
+
+   * `StorySegment`, perspectives, subjective tags (“this night broke me”)
+2. **Legal episodes / cases (joint)**
+
+   * `Case`, `CaseIssue`, `CaseEvent`
+3. **Normative systems & sources (SensibLaw)**
+
+   * `LegalSystem`, `NormSource` (statute, case, tikanga statement, treaty, religious text), `Provision`, `Principle`
+4. **Wrongs, duties, interests, harms (SensibLaw)**
+
+   * `WrongType`, `ProtectedInterestType`, `HarmInstance`, `Duty/Power/Immunity`
+5. **Value frames & remedies (SensibLaw)**
+
+   * `ValueFrame` (human rights, tikanga balance, child-rights, religious modesty, etc.)
+   * `Remedy` (with `modality` + `purpose`)
+
+TiRC “owns” 0–1, SensibLaw “owns” 3–5; **layer 2 (Case)** is shared territory.
+
+---
+
+## 3. Shared data core vs product-specific tables
+
+### 3.1 Shared core (TiRC + SensibLaw)
+
+These tables are product-agnostic and form the **common backbone**:
+
+* `core_actor`
+* `core_event`
+* `core_evidence_item`
+* `core_event_actor` (who did what in each event)
+* `core_relation` (generic relationships: spouse-of, parent-of, guardian-of, etc.)
+
+Both products **only ever hang off these** for real-world facts.
+
+### 3.2 TiRC-specific
+
+* `tirc_story_segment`, `tirc_session`, `tirc_tag`, `tirc_event_annotation`, `tirc_receipt_bundle`, etc.
+  All **FK into** `core_event`, `core_actor`, `core_evidence_item`.
+
+### 3.3 SensibLaw-specific
+
+* System / norm layer:
+
+  * `sl_legal_system`, `sl_norm_source`, `sl_provision`, `sl_principle`
+* Wrong/interest/value layer:
+
+  * `sl_wrong_type`, `sl_protected_interest_type`, `sl_value_frame`, `sl_remedy`
+* Application layer:
+
+  * `sl_case`, `sl_case_issue`, `sl_wrong_type_instance`, `sl_harm_instance`
+
+These always FK **down** into the core (`core_event`, `core_actor`, `core_evidence_item`) and **up** into norms/values (`sl_norm_source`, `sl_wrong_type`, `sl_value_frame`, `sl_remedy`).
+
+---
+
+## 4. Ontology of `WrongType`: faceted, not a giant tree
+
+The taxonomy of wrongs is *faceted* and normalised, not “one big hierarchy”.
+
+### 4.1 Normative system & duty source
+
+Normalised out of `WrongType`:
+
+* `nation`
+* `legal_system` (e.g. AU common law, Tikanga Māori, particular tribal code, CN Civil Code, IN constitutional)
+* `norm_source_category` (common law, statute, constitution, human-rights treaty, indigenous custom, religious norm, social norm)
+
+`WrongType` just FK’s into `legal_system` and `norm_source_category`.
+
+### 4.2 Protected interests (more atomic)
+
+Instead of a fat enum like `PHYSICAL_INTEGRITY | PROPERTY | ECONOMIC_INTEREST`, protected interests are decomposed into smaller dimensions:
+
+* `interest_subject_kind` – who/what is protected:
+
+  * INDIVIDUAL / GROUP / COMMUNITY / STATE / ENVIRONMENT / ANCESTORS / RIVER / TOTEM_SPECIES, etc.
+* `interest_object_kind` – what aspect:
+
+  * BODY / MIND / PROPERTY / DATA / REPUTATION / RELATIONSHIP / CULTURE / TERRITORY / ECOSYSTEM / LINEAGE…
+* `interest_modality` – what *kind* of protection:
+
+  * INTEGRITY, USE_AND_ENJOYMENT, CONTROL, PRIVACY, STATUS, HONOUR_MANA, DEVELOPMENT, NON_DOMINATION, etc.
+
+Then:
+
+* `protected_interest_type` = (subject_kind, object_kind, modality) tuple.
+* A `WrongType` can link to one or many `protected_interest_type`s via `wrong_type_protected_interest`.
+
+This lets “harm to mana”, “defamation”, “CRC child removal”, “GDPR data breach” all live in the same interest space without being flattened.
+
+### 4.3 Actor / relationship pattern
+
+Separate axis describing **who is in what relationship**:
+
+* PRIVATE_V_PRIVATE
+* STATE_V_PRIVATE
+* INSTITUTION_V_VULNERABLE_GROUP
+* KINSHIP_BASED
+* COMMUNITY_V_MEMBER
+* GUARDIAN_V_CHILD
+* PERSON_V_ENVIRONMENT
+  …stored in `wrong_type_actor_pattern`.
+
+This is where Indigenous, child-rights and human-rights wrongs fit naturally (kinship duties, community vs member, state vs detainee, etc.).
+
+### 4.4 Mental state
+
+Kept small and reusable, but normalised:
+
+* STRICT
+* NEGLIGENCE
+* RECKLESSNESS
+* INTENTION
+* MIXED_OR_TIERED
+
+Linked via `wrong_type_mental_state` (or a typed column if you keep it single-valued).
+
+### 4.5 Harm class (what actually happens)
+
+Distinct from *protected interest* (the right), this axis describes the **consequence**:
+
+* BODILY_INJURY, DEATH, PSYCHIATRIC_INJURY
+* PURE_ECONOMIC_LOSS, PROPERTY_DAMAGE
+* DIGNITARY_HARM (humiliation, honour/mana)
+* CULTURAL_HARM (sacred sites, Country, whakapapa)
+* ENVIRONMENTAL_HARM
+* FAMILY_RELATIONAL_HARM (child removal, kinship interference)
+* COMMUNITY_HARM (disharmony)
+* DATA_SECURITY_HARM
+* SPIRITUAL_HARM (taboo breaches, sorcery injuries)
+
+Saved in `wrong_type_harm_class`.
+
+### 4.6 Remedy / forum profile
+
+Not “racist special case” but a neutral way of capturing **how** different systems repair harm:
+
+* DAMAGES_MONEY
+* INJUNCTION / DECLARATION
+* RESTORATIVE_RITUAL (muru, apology ceremony, payback rites)
+* COLLECTIVE_COMPENSATION (to whānau / clan / community)
+* PEACEMAKING_PROCESS (tribal court / Indigenous dispute process)
+* HUMAN_RIGHTS_TRIBUNAL
+* INTERNATIONAL_COURT_OR_COMMISSION
+
+This makes “trespass to land”, “sacred-site desecration”, and “ECHR Article 8 privacy breach” comparable at the ontology level without erasing their remedy culture; stored in `wrong_type_remedy_profile`.
+
+### 4.7 Cross-system topology for wrong types
+
+A small `wrong_type_relation` table captures analogies and hierarchy:
+
+* `functional_analogue`
+* `broader_than` / `narrower_than`
+* `inspired_by`
+
+e.g.:
+
+* Tikanga `harm_to_mana` is `functional_analogue` of AU defamation + intentional emotional harm.
+* Indigenous sacred-site desecration is `functional_analogue` of nuisance/trespass but with primary `CULTURAL_SPIRITUAL` interest and `RESTORATIVE_RITUAL` remedies.
+
+---
+
+## 5. Overall topology: how the graph hangs together
+
+At the graph level, the topology looks like:
+
+* `Event` —(has_evidence)→ `EvidenceItem`
+* `Event` —(described_in)→ `StorySegment`
+* `Event` —(involves)→ `Actor` (via `core_event_actor`)
+* `Case` —(concerns)→ many `Event`s
+* `CaseIssue` —(frames)→ subset of `Event`s
+* `WrongTypeInstance` —(applies_to)→ `Event` (or cluster)
+* `WrongTypeInstance` —(instantiates)→ `WrongType`
+* `ProtectedInterestType` —(protected_by)→ `WrongType`
+* `HarmInstance` —(realises)→ `ProtectedInterestType` and attaches to `Event`
+* `WrongType` —(authorised_by)→ `NormSource` / `Principle` in some `LegalSystem`
+* `WrongType` —(evaluated_under)→ `ValueFrame`
+* `Remedy` —(responds_to)→ `WrongTypeInstance` / `HarmInstance`
+
+So the *same* `Event` can be simultaneously:
+
+* A TiRC narrative moment (“this night broke me”),
+* A tikanga `harm_to_mana`,
+* A non-actionable “verbal abuse” in AU tort,
+* A human-rights or child-rights violation in another system,
+  all by attaching multiple `WrongTypeInstance`s to the same `core_event`.
+
+---
+
+## 6. Data-management implications
+
+* **Single “core reality” store** for actors/events/evidence; TiRC and SensibLaw are just different projection layers.
+* **Ontology tables** (legal systems, norm sources, protected interests, wrong types, harms, value frames, remedies) are:
+
+  * heavily normalised,
+  * cross-system,
+  * versioned and receipt-tracked via SensibLaw’s existing VersionedStore.
+* **Topology is explicit**: relationships are FKs/edges, not inferred magic; easy to:
+
+  * export to JSON / RDF,
+  * feed into graph DBs,
+  * run cross-system comparisons (“what are all the wrong types that protect child development against state actors, regardless of jurisdiction?”).
+
+If you like, next step I can compress this further into a **one-page schema diagram** text (or a CSV of the ontology tables + a few example rows) that you can drop straight into `docs/ontology.md` as the “TiRC + SensibLaw shared model” section.
+
+
+
 Like coleslaw, it just makes sense.
 <img width="6811" height="16636" alt="NotebookLM Mind Map(2)" src="https://github.com/user-attachments/assets/f865a435-e1a7-4577-8c1b-58242c3adacc" />
 <img width="1024" height="1536" alt="8cd2e557-4ed0-47ae-81cd-ee1d1350718e" src="https://github.com/user-attachments/assets/b9e85e79-2537-477b-8aff-1469f32d4509" />
