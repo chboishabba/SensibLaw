@@ -1,5 +1,158 @@
 # NLP Pipeline Processing Rules
 
+This document summarises the processing logic baked into SensibLaw’s NLP stack and records both:
+
+- the **current spaCy-based rule-harvesting pipeline**, and  
+- the **planned semantic inference layers** that bridge clause-level atoms to the ontology
+  (LegalSystem, WrongType, ProtectedInterest, ValueFrame, Event/Harm).
+
+The goal is to align the code with the three-layer ontology defined in `DATABASE.md`:
+
+1. **Normative Systems & Sources** (LegalSystem, LegalSource, NormSourceCategory)
+2. **Wrong Types & Interests** (WrongType, ProtectedInterestType, ValueDimension, ActorClass, RelationshipKind, ValueFrame)
+3. **Events & Harms** (Event, HarmInstance, Event–WrongType link)   
+
+---
+
+## 1. End-to-end NLP pipeline (conceptual overview)
+
+The *target* NLP pipeline (some stages implemented, some planned) is:
+
+1. **Sentence segmentation** ✅  
+2. **Clause decomposition** ✅  
+3. **Syntactic argument extraction** ✅  
+4. **ActorRole → ActorClass mapping** (NEW, semantic)  
+5. **Predicate interpretation → Modality extraction** ✅  
+6. **Interest-bearing entity identification** (NEW, semantic)  
+7. **ProtectedInterest inference** (NEW, semantic)  
+8. **ValueFrame inference** (NEW, semantic)  
+9. **WrongType candidate inference** (NEW, semantic)  
+10. **RuleAtom generation** (structured rule unit) ✅  
+11. **Binding → LegalSource** (NEW, ontology link)  
+12. **Storage → DB ontology layer** (RuleAtoms + WrongTypes + interests + events)   
+
+**Current status (Nov 2025)**
+
+- Implemented: 1–3, 5, 10, 12 (for RuleAtoms only).  
+- Partially implemented: basic actor/party classification for rule text (pre-ActorClass). :contentReference[oaicite:4]{index=4}  
+- Not yet implemented: 4, 6–9, 11 (these sections define the intended behaviour and data contracts).
+
+The rest of this document is structured accordingly:
+
+- §2–§5: **implemented** spaCy + rule-harvesting behaviour.  
+- §6–§10: **planned semantic layers** to align with the ontology.
+
+---
+
+## 2. spaCy pipeline
+
+The spaCy pipeline underpins tokenisation, entity recognition, and rule harvesting. Its processing rules are implemented across the pipeline modules and matcher configuration files.
+
+### 2.1 Token stream construction
+
+- `SpacyAdapter` loads `en_core_web_sm` (or a blank English pipeline) with the named entity recogniser disabled, providing deterministic tokenisation even when pre-trained weights are unavailable. Each emitted token preserves surface text, lemmas, coarse POS tags, dependency labels, and entity types, while whitespace-only tokens are dropped. :contentReference[oaicite:5]{index=5}  
+- The shared adapter is exposed via `get_spacy_adapter()` so downstream code reuses a single cached instance with NER disabled, ensuring consistent segmentation across calls. :contentReference[oaicite:6]{index=6}  
+
+### 2.2 Sentence segmentation and lemmatisation
+
+- `src/nlp/spacy_adapter.py` attempts to load `en_core_web_sm` with NER disabled, falling back to `spacy.blank("en")` as needed. It guarantees sentence boundaries by adding a `sentencizer` when the pipeline lacks parsing components, and initialises a lookup lemmatiser where possible so every token exposes a lemma even when statistical resources are missing. :contentReference[oaicite:7]{index=7}  
+- `parse()` enforces string inputs, ensures the chosen pipeline can emit sentences, and serialises each sentence span into `{text, start, end, tokens}` records where every token carries text, lemma, POS, dependency label, and character offsets. The helper collapses the pipeline output into `{text, sents}` for downstream consumers. :contentReference[oaicite:8]{index=8}  
+
+---
+
+## 3. Legal named-entity enrichment
+
+Named entities provide anchors for **LegalSource** and **Actor** linking later.
+
+- `_ensure_entity_ruler()` guarantees an `EntityRuler` component is inserted (before `ner` when present), configures it to preserve existing entities, and hydrates it from `patterns/legal_patterns.jsonl`. Each pattern provides labelled templates for references to Acts, cases, and provisions. :contentReference[oaicite:9]{index=9}  
+- The custom `reference_resolver` merges rule-based spans (`doc.spans["REFERENCE"]`) and statistical entities with labels in `REFERENCE`, `PERSON`, `ORG`, or `LAW`. It de-duplicates overlapping spans and normalises a `reference_source` extension so downstream consumers can trace whether a hit came from the pattern set, an entity ID, or the entity label itself. :contentReference[oaicite:10]{index=10}  
+- `configure_ner_pipeline()` appends the resolver when missing, while `get_ner_pipeline()` caches the configured `Language` object so repeated calls reuse the same spaCy model and legal patterns. :contentReference[oaicite:11]{index=11}  
+
+These references will later be bound to `LegalSource` rows (statutes, cases, treaties, tikanga statements, religious texts) in the ontology layer.
+
+---
+
+## 4. Dependency harvesting (syntactic argument extraction)
+
+Dependency parsing underpins **steps 2–3** of the conceptual pipeline.
+
+- `_load_pipeline()` tries to load the small/medium/large English pipelines that ship with spaCy, raising a runtime error with installation guidance if none provide a dependency parser. This ensures dependency-based rules only run when parser weights are installed. :contentReference[oaicite:12]{index=12}  
+- `_collect_candidates()` iterates each sentence, normalises supported dependency arcs (e.g. coercing `dobj` to `obj` and `root` verbs to `verb`), extracts span text for argument roles, and deduplicates `DependencyCandidate` entries per label. Only arcs from `_SUPPORTED_DEPS` survive, keeping the downstream rule matcher focused on subject/object/complement relations. :contentReference[oaicite:13]{index=13}  
+- `get_dependencies()` orchestrates parsing, sentence iteration, and candidate aggregation, returning a `SentenceDependencies` list that buckets dependency roles by sentence text. :contentReference[oaicite:14]{index=14}  
+
+This stage gives us clause skeletons: **who** (subject/actor), **does what** (verb/action), and basic complements.
+
+---
+
+## 5. Rule matcher configuration & RuleAtom construction
+
+### 5.1 Rule matcher
+
+- `src/nlp/rules.py` registers a shared `Matcher` keyed by spaCy `Vocab`. The pattern table covers:
+  - modalities (`must`, `shall`, `may`, plus negative variants),
+  - conditional connectors (`if`, `unless`, `provided that`, etc.),
+  - references (sections, parts, Acts),
+  - penalty phrases.  
+  Matches are greedily resolved so the longest applicable span wins. :contentReference[oaicite:15]{index=15}  
+- Normalisation helpers collapse matched spans into canonical enums. `Modality.normalise()` and `ConditionalConnector.normalise()` convert free-text spans into controlled identifiers, removing duplicates and stripping punctuation so downstream logic trees receive clean modality, condition, reference, and penalty buckets. :contentReference[oaicite:16]{index=16}  
+- `match_rules()` executes the matcher, deduplicates values per semantic role, and returns a `RuleMatchSummary` containing ordered modality choices, canonical conditions, normalised references, and penalties. The first modality becomes `primary_modality`. :contentReference[oaicite:17]{index=17}  
+
+### 5.2 Rule construction and legacy atom flattening
+
+- Successful pattern matches become `Rule` dataclass instances holding `actor`, `modality`, `action`, `conditions`, `scope`, and the classified `elements`. Derived `party`, `role`, and `who_text` are stored alongside these attributes for later description. :contentReference[oaicite:18]{index=18}  
+- `_rules_to_atoms()` (in `src/pdf_ingest.py`) consumes the `Rule` list and:
+  - copies actor/modality/action text while stripping inline citations into `RuleReference` objects,
+  - reconstructs combined `text` for the rule,
+  - instantiates a `RuleAtom` with `party`, `role`, `who_text`, conditions, and scope,
+  - converts each offence element fragment (conduct, fault, circumstance, exception, result) into `RuleElement` rows,
+  - links `RuleReference` instances to glossary entries when possible,
+  - emits `RuleLint` entries when `party == UNKNOWN_PARTY`.   
+- `RuleAtom.to_atoms()` maps structured rules to legacy `Atom` records, and `Provision.ensure_rule_atoms()` keeps both views in sync. :contentReference[oaicite:20]{index=20}  
+
+At this point we have *syntactic* rule units. The next sections specify the **semantic layers** that will map these into WrongTypes, interests, harms, and value frames.
+
+---
+
+## 6. ActorRole → ActorClass mapping (NEW semantic layer)
+
+**Goal:** Map raw rule “party/role” phrases into the ontology’s `ActorClass`, `RoleMarker`, and `RelationshipKind` types, so we know *what sort of actor* the rule addresses.   
+
+**Inputs**
+
+- `Rule` / `RuleAtom` fields:
+  - `party`, `role`, `who_text`
+  - dependency-based subject spans
+- Named entities from §3:
+  - `PERSON`, `ORG`, `LAW`, references to public bodies, courts, agencies
+- External metadata (optional):
+  - known parties in the case / legal source (plaintiff, defendant, Crown, iwi, community, etc.)
+
+**Outputs**
+
+- A normalised `ActorClass` (e.g. `private.person`, `state.agency`, `community.collective`, `religious.officer`, `corporate.entity`)  
+- Optional `RoleMarker` and `RelationshipKind` for constraints embedded in the wrong type.
+
+**Contract**
+
+- For each `RuleAtom`, emit a semantic actor payload:
+
+  ```json
+  {
+    "actor_class_id": "...",
+    "role_marker_ids": ["..."],
+    "relationship_kind_ids": ["..."],
+    "source": "rule_actor_classifier_v1"
+  }
+
+
+
+
+The below is our previous version of this doc:
+
+
+
+# NLP Pipeline Processing Rules
+
 This document summarises the processing logic baked into the project’s spaCy-based pipeline and records the current state of the Legal-BERT workflow.
 
 ## spaCy pipeline
