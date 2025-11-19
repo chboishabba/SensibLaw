@@ -75,7 +75,6 @@ a structured, linked, machine-readable backbone.
 
 ## Most of our available docs:
 
-|  |  |  |  |
 | :--- | :--- | :--- | :--- |
 | [Analytical Layers](docs/analytical_layers.md) | [API](docs/api.md) | [Automation Intelligence](docs/automation_intelligence.md) | [CI Acceptance](docs/ci_acceptance.md) |
 | [CLI Examples](docs/cli_examples.md) | [Corpus Setup](docs/corpus_setup.md) | [Corrections UI](docs/corrections_ui.md) | [End to End](docs/end_to_end.md) |
@@ -84,6 +83,7 @@ a structured, linked, machine-readable backbone.
 | [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmap.md) | [DB Roadmap](DB_ROADMAP.md) |
 | [Versioning](docs/versioning.md) | [Research Paper](PAPER.md) | [Database Design Document](DATABASE.md) | [Schema](docs/schema.md) |
 | [Todo](todo.md) | [streamline - data visualisation](TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
+| [ITIR Integration Roadmap](docs/ITIR.md) |  |  |  |
 
 
 
