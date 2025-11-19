@@ -75,6 +75,7 @@ a structured, linked, machine-readable backbone.
 
 ## Most of our available docs:
 
+|  |  |  |  |
 | :--- | :--- | :--- | :--- |
 | [Analytical Layers](docs/analytical_layers.md) | [API](docs/api.md) | [Automation Intelligence](docs/automation_intelligence.md) | [CI Acceptance](docs/ci_acceptance.md) |
 | [CLI Examples](docs/cli_examples.md) | [Corpus Setup](docs/corpus_setup.md) | [Corrections UI](docs/corrections_ui.md) | [End to End](docs/end_to_end.md) |
