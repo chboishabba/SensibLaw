@@ -6,4 +6,4 @@
 - pdfminer.six → PDF parsing
 - FastAPI → API service
 - Requests → external data retrieval
-- Matplotlib → visualisation
+- Streamline (Canvas 2D + Regl/WebGL, Svelte/TypeScript front end as needed) → visualisation (see TIMELINE_STREAM_VIZ_ROADMAP.md and STREAMLINE_FEATURE_PROPOSAL.md)
