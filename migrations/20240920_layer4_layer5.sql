@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS event (
 CREATE TABLE IF NOT EXISTS event_participant (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    actor_id BIGINT NOT NULL REFERENCES actor(id) ON DELETE CASCADE,
     actor_class_id BIGINT NOT NULL REFERENCES actor_class(id),
     role_marker_id BIGINT REFERENCES role_marker(id),
     role_label TEXT,
@@ -30,6 +31,9 @@ CREATE TABLE IF NOT EXISTS event_participant (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_participant_unique
+    ON event_participant (event_id, actor_id, COALESCE(role_marker_id, -1));
 
 CREATE TABLE IF NOT EXISTS harm_instance (
     id BIGSERIAL PRIMARY KEY,
