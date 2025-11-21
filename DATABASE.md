@@ -24,10 +24,14 @@ Layer 0 holds the textual backbone used for provenance and narrative context. Th
 
 ## Events & Actors (Layer 1)
 
-Events anchor everything downstream. Actors supply the participants and can be enriched with external references (e.g., Wikidata IDs) without altering normative reasoning.
+Events anchor everything downstream. Actors stay intentionally minimal while detailed person/org facets live in separate tables that can be joined when available.
 
 - **Event**: life/legal/system events with time bounds (`Event.id`, `kind`, `valid_from`, `valid_to`).
-- **Actor**: people, organisations, state entities, or recognised legal persons (`Actor.id`, `kind`, `label`).
+- **Actor**: thin actor shell used for participation and finance joins (`Actor.id`, `kind`, `label`), leaving richer attributes to the tables below.
+- **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_code`).
+- **ActorPersonDetails**: natural person traits such as names, birthdate, pronouns, and optional postal address (`actor_id`, `given_name`, `family_name`, `birthdate`, `pronouns`, `gender`, `ethnicity`, `address_id`).
+- **ActorOrgDetails**: organisation registration and type metadata with optional registered address (`actor_id`, `legal_name`, `registration_no`, `org_type`, `address_id`).
+- **ActorContactPoint**: arbitrary contact points keyed to an actor (`actor_id`, `kind`, `value`, `label`).
 - **EventFinanceLink**: ties events to transactional evidence (`event_id`, `transaction_id`, `link_kind`, `confidence`).
 - **FinanceProvenance**: traces sentences that explain a transaction (`transaction_id`, `sentence_id`, `note`).
 

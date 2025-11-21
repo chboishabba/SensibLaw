@@ -6,6 +6,11 @@ erDiagram
 
     Actor ||--o{ Account : "owns / related via"
     Actor ||--o{ Event : "participates in"
+    Actor ||--|| ActorPersonDetails : "person details"
+    Actor ||--|| ActorOrgDetails : "org details"
+    Actor ||--o{ ActorContactPoint : "contact points"
+    Address ||--o{ ActorPersonDetails : "postal address"
+    Address ||--o{ ActorOrgDetails : "registered address"
 
     Document ||--o{ Sentence : "contains"
     Sentence ||--o{ UtteranceSentence : "mapped to"
@@ -72,6 +77,43 @@ erDiagram
         int     id
         string  kind          "person/org/etc"
         string  label
+    }
+
+    Address {
+        int     id
+        string  address_line1
+        string  address_line2
+        string  city
+        string  state_province
+        string  postal_code
+        string  country_code
+    }
+
+    ActorPersonDetails {
+        int     actor_id
+        string  given_name
+        string  family_name
+        date    birthdate
+        string  pronouns
+        string  gender
+        string  ethnicity
+        int     address_id
+    }
+
+    ActorOrgDetails {
+        int     actor_id
+        string  legal_name
+        string  registration_no
+        string  org_type
+        int     address_id
+    }
+
+    ActorContactPoint {
+        int     id
+        int     actor_id
+        string  kind          "email, phone, uri"
+        string  value
+        string  label         "home, work, registered"
     }
 
     Event {
