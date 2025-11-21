@@ -32,6 +32,26 @@ def test_seed_priority_legal_systems(db_connection):
     assert all(priority == 1 for code, priority in systems.items() if code in expected)
 
 
+def test_legal_systems_are_country_scoped(db_connection):
+    cursor = db_connection.execute(
+        """
+        SELECT ls.code, country.code as country_code, sub.code as subdivision_code
+        FROM legal_systems ls
+        JOIN countries country ON country.id = ls.country_id
+        LEFT JOIN subdivisions sub ON sub.id = ls.subdivision_id
+        ORDER BY ls.code
+        """
+    )
+    mappings = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+
+    assert mappings["AU.COMMON"] == ("AU", None)
+    assert mappings["AU.STATE.QLD"] == ("AU", "QLD")
+    assert mappings["PK.ISLAM.HANAFI"] == ("PK", None)
+    assert mappings["NZ.TIKANGA"] == ("NZ", None)
+    assert mappings["US.STATE"] == ("US", None)
+    assert mappings["EU"] == ("EU", None)
+
+
 def test_norm_source_uniqueness(db_connection):
     dao = LegalSourceDAO(db_connection)
     dao.create_source(
