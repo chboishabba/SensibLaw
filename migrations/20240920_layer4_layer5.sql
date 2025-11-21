@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS value_frame (
 
 CREATE TABLE IF NOT EXISTS remedy (
     id BIGSERIAL PRIMARY KEY,
-    harm_instance_id BIGINT NOT NULL REFERENCES harm_instance(id) ON DELETE CASCADE,
+    harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
     legal_system_id BIGINT NOT NULL REFERENCES legal_system(id),
     cultural_register_id BIGINT REFERENCES cultural_register(id),
     remedy_modality TEXT NOT NULL,
@@ -143,13 +143,8 @@ ON CONFLICT (frame_code) DO UPDATE SET
     description = EXCLUDED.description,
     updated_at = NOW();
 
--- Seed helper CTE allows migrations to link seeded value frames to canonical remedies
-WITH frame_ids AS (
-    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
-)
-INSERT INTO remedy (harm_instance_id, legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
+INSERT INTO remedy (legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
 SELECT
-    NULL::BIGINT, -- placeholder; bind to harms via application services
     ls.id,
     NULL::BIGINT,
     seed.remedy_modality,
@@ -158,11 +153,11 @@ SELECT
     seed.note
 FROM (
     VALUES
-        ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality'),
-        ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality'),
-        ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance'),
-        ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights')
-) AS seed(remedy_modality, remedy_code, terms, frame_code)
+        ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality', NULL::TEXT),
+        ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality', NULL::TEXT),
+        ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance', NULL::TEXT),
+        ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights', NULL::TEXT)
+) AS seed(remedy_modality, remedy_code, terms, frame_code, note)
 CROSS JOIN legal_system ls
 WHERE NOT EXISTS (
     SELECT 1 FROM remedy r
@@ -170,12 +165,22 @@ WHERE NOT EXISTS (
 );
 
 -- Map seeded remedies to their frames whenever both are present
+WITH frame_ids AS (
+    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
+), seed(remedy_code, frame_code) AS (
+    VALUES
+        ('COMPENSATION', 'gender_equality'),
+        ('INJUNCTION', 'gender_equality'),
+        ('APOLOGY', 'tikanga_balance'),
+        ('CUSTODY_ORDER', 'child_rights')
+)
 INSERT INTO value_frame_remedies (value_frame_id, remedy_id)
 SELECT DISTINCT
     f.id,
     r.id
-FROM frame_ids f
-JOIN remedy r ON r.remedy_code IN ('COMPENSATION', 'INJUNCTION', 'APOLOGY', 'CUSTODY_ORDER')
+FROM seed s
+JOIN frame_ids f ON f.frame_code = s.frame_code
+JOIN remedy r ON r.remedy_code = s.remedy_code
 WHERE NOT EXISTS (
     SELECT 1 FROM value_frame_remedies vfr
     WHERE vfr.value_frame_id = f.id AND vfr.remedy_id = r.id
