@@ -109,9 +109,9 @@ This roadmap translates the current multi-layer ontology into deliverable milest
 *Goal: ensure the ontology and database remain consistent as systems expand.*
 
 **Deliverables**
-- Data quality checks (unique citations per `LegalSource`, referential integrity across layers).
-- Versioning policy for `WrongType`, `Remedy`, and `ValueFrame` updates.
-- Playbooks for onboarding new legal systems and registering new value frames.
+- Data quality checks (unique citations per `LegalSource`, referential integrity across layers) wired into CI via `python scripts/validate_integrity.py`.
+- Versioning policy for `WrongType`, `Remedy`, and `ValueFrame` updates, with migration/backwards-compatibility rules documented in `docs/ontology_versioning.md`.
+- Playbooks for onboarding new legal systems and registering new value frames captured in `docs/onboarding_playbooks.md` and enforced through fixtures/validation tests.
 
 **Ownership & Sequencing**
 - Owner: Ontology Lead + Data Engineering.

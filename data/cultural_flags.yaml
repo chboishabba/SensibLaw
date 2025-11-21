@@ -30,3 +30,64 @@ PUBLIC_DOMAIN:
     policy: "No consent required; retain full text with provenance noted."
   aliases:
     - public_domain
+MODERN:
+  canonical_name: "Modern source"
+  description: "Contemporary materials with standard access expectations."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "Standard handling; normal retention and review workflows apply."
+  aliases:
+    - modern
+FOUNDATIONAL:
+  canonical_name: "Foundational constitutional source"
+  description: "Core constitutional and structural sources that underpin a legal system."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "Prefer authoritative text; treat changes as schema-affecting events."
+  aliases:
+    - foundational
+ENVIRONMENT:
+  canonical_name: "Environmental authority"
+  description: "Environmental statutes, regulations, or instruments."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "Track value-frame impacts for ecological harms and protections."
+  aliases:
+    - environment
+QUEENSLAND:
+  canonical_name: "Queensland-specific source"
+  description: "Materials scoped to the State of Queensland."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "Apply Queensland jurisdiction tagging and validate against local value frames."
+  aliases:
+    - queensland
+HISTORIC:
+  canonical_name: "Historic authority"
+  description: "Legacy or historical materials retained for provenance and precedent."
+  defaults:
+    redaction: none
+    consent_required: false
+  annotation:
+    policy: "Preserve provenance; surface superseded status to downstream consumers."
+  aliases:
+    - historic
+FIRST_NATIONS:
+  canonical_name: "First Nations authority"
+  description: "Sources grounded in First Nations law and tikanga."
+  defaults:
+    redaction: none
+    consent_required: true
+  annotation:
+    policy: "Require community consent; preserve cultural context and stewardship metadata."
+  aliases:
+    - first_nations
+    - first nations
