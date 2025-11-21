@@ -119,6 +119,8 @@ erDiagram
 
     Event {
         int     id
+        int     wrong_type_id  "links to doctrinal wrong/offence"
+        int     legal_system_id "derived from WrongType and enforced via FK"
         string  kind          "life, legal, system"
         string  label
         datetime valid_from

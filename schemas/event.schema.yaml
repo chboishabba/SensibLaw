@@ -5,7 +5,34 @@ required:
   - data
 properties:
   type:
+    const: event
     type: string
   data:
     type: object
-additionalProperties: true
+    required:
+      - label
+      - event_kind
+    properties:
+      label:
+        type: string
+      event_kind:
+        type: string
+      wrong_type_id:
+        type: integer
+        description: "Wrong type anchor; legal_system_id is inferred from this relation."
+      occurred_at:
+        type: string
+        format: date-time
+      valid_from:
+        type: string
+        format: date-time
+      valid_to:
+        type: string
+        format: date-time
+      location:
+        type: string
+      metadata:
+        type: object
+        additionalProperties: true
+    additionalProperties: false
+additionalProperties: false
