@@ -372,15 +372,13 @@ This document describes the **implementation roadmap** for the Timeline Stream
 Visualisation System (“Streamline”) — a multi-lane ribbon/streamgraph view
 that sits on top of:
 
-- the shared **Layer-0 text substrate** and **L1–L6 ontology** (see `ARCHITECTURE_LAYERS.md`),
+- the shared **Layer-0 text substrate** and **L1–L6 ontology** (see [`ARCHITECTURE_LAYERS.md`](docs/ARCHITECTURE_LAYERS.md)),
 - **TiRCorder**’s utterances, events, and narratives,
-- the **Finance** substrate (accounts, transactions, transfers; see `FINANCE_SCHEMA.md`),
+- the **Finance** substrate (accounts, transactions, transfers; see [`FINANCE_SCHEMA.md`](docs/FINANCE_SCHEMA.md)),
 - **SensiBlaw**’s legal documents, claims, provisions, and cases,
-- and the shared provenance model (see `PROVENANCE.md`).
+- and the shared provenance model (see [`PROVENANCE.md`](docs/PROVENANCE.md)).
 
-For the high-level product/UX description of Streamline, see:
-
-> `STREAMLINE_FEATURE_PROPOSAL.md`
+For the high-level product/UX description of Streamline, see [`STREAMLINE_FEATURE_PROPOSAL.md`](docs/STREAMLINE_FEATURE_PROPOSAL.md).
 
 This file focuses on **what we need to build**: data contracts, pipeline, and rendering.
 
