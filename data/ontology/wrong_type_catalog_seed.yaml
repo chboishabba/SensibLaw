@@ -1,0 +1,104 @@
+authoring_guidance:
+  naming: >-
+    Use concise, system-scoped codes (e.g., "assault_common", "mana_defamation")
+    that combine conduct plus distinguishing context. Pair each code with a
+    human-readable label that mirrors how practitioners refer to the wrong.
+  versioning: >-
+    Start new wrong types at version "v1". Increment to v2/v3 when doctrinal
+    elements materially change; keep prior versions for traceability to earlier
+    decisions or statutory regimes.
+  citations: >-
+    Each wrong type should carry at least one authoritative LegalSource citation
+    (statute section, leading case, tikanga reference). Store pinpoint text in
+    `wrong_type_source.pinpoint` when available and record the relation type
+    (defines, creates, leading_case, commentary) to preserve provenance.
+
+catalogs:
+  - legal_system_code: AU.COMMON
+    norm_source_category_code: STATUTE
+    protected_interests:
+      - code: bodily_integrity
+        label: Bodily integrity
+        description: Protects freedom from unwanted physical contact and injury.
+      - code: property_security
+        label: Property security
+        description: Guards possessory and proprietary interests against taking or damage.
+    wrong_types:
+      - code: assault_common
+        version: v1
+        label: Common law assault
+        summary: Threatened or attempted application of force causing apprehension.
+        protected_interest_codes: [bodily_integrity]
+        mental_states: [intent, recklessness]
+        sources:
+          - citation: "Crimes Act 1900 (NSW) s 59"
+            relation_type: defines
+          - citation: "Fagan v Metropolitan Police Commissioner [1969] 1 QB 439"
+            relation_type: leading_case
+      - code: larceny_statute
+        version: v1
+        label: Statutory larceny
+        summary: Dishonest taking and carrying away of property belonging to another.
+        protected_interest_codes: [property_security]
+        mental_states: [intent]
+        sources:
+          - citation: "Crimes Act 1900 (NSW) ss 117–118"
+            relation_type: defines
+
+  - legal_system_code: NZ.TIKANGA
+    norm_source_category_code: CUSTOM
+    protected_interests:
+      - code: mana_preservation
+        label: Mana preservation
+        description: Protects the standing, dignity, and authority of individuals and hapū.
+      - code: whenua_guardianship
+        label: Whenua guardianship
+        description: Safeguards collective stewardship obligations over land and waterways.
+    wrong_types:
+      - code: mana_diminution
+        version: v1
+        label: Diminution of mana
+        summary: Conduct that unjustifiably undermines mana or social standing.
+        protected_interest_codes: [mana_preservation]
+        mental_states: [intent, negligence]
+        sources:
+          - citation: "Wai 2500 Te Rohe Pōtae Inquiry (principles findings)"
+            relation_type: leading_case
+      - code: whenua_breach
+        version: v1
+        label: Breach of kaitiaki obligations over whenua
+        summary: Actions compromising stewardship duties tied to whenua or awa.
+        protected_interest_codes: [whenua_guardianship]
+        mental_states: [negligence, recklessness]
+        sources:
+          - citation: "Local tikanga determinations referenced by iwi/hapū"
+            relation_type: custom_record
+
+  - legal_system_code: EU
+    norm_source_category_code: TREATY
+    protected_interests:
+      - code: data_privacy
+        label: Data privacy
+        description: Protects control over personal data and its lawful processing.
+      - code: equality_non_discrimination
+        label: Equality and non-discrimination
+        description: Safeguards equal treatment across protected grounds within EU law.
+    wrong_types:
+      - code: gdpr_unlawful_processing
+        version: v1
+        label: GDPR unlawful processing
+        summary: Processing personal data without a valid legal basis or transparency.
+        protected_interest_codes: [data_privacy]
+        mental_states: [intent, negligence, strict]
+        sources:
+          - citation: "GDPR Articles 6–7"
+            relation_type: defines
+      - code: equality_direct_discrimination
+        version: v1
+        label: Direct discrimination under EU equality directives
+        summary: Less favourable treatment on protected grounds without justification.
+        protected_interest_codes: [equality_non_discrimination]
+        mental_states: [intent, negligence]
+        sources:
+          - citation: "Directive 2000/43/EC art 2"
+            relation_type: defines
