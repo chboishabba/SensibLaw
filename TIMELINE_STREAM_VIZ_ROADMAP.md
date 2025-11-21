@@ -21,6 +21,27 @@ A single roadmap for building the Streamline timeline visualisation that fuses f
 
 Dependencies: adapters emit canonical transaction rows; TiRCorder provides sentence-level features; legal layer emits harms/wrongs linked to evidence.
 
+# Most up to date 
+18/11/2025 - dry'd
+
+# Timeline Stream Viz — "Streamline" — Roadmap
+
+*A unified visual layer for story × law × finance timelines*
+
+This document describes the **implementation roadmap** for the Timeline Stream
+Visualisation System (“Streamline”) — a multi-lane ribbon/streamgraph view
+that sits on top of:
+
+- the shared **Layer-0 text substrate** and **L1–L6 ontology** (see [`ARCHITECTURE_LAYERS.md`](docs/ARCHITECTURE_LAYERS.md)),
+- **TiRCorder**’s utterances, events, and narratives,
+- the **Finance** substrate (accounts, transactions, transfers; see [`FINANCE_SCHEMA.md`](docs/FINANCE_SCHEMA.md)),
+- **SensiBlaw**’s legal documents, claims, provisions, and cases,
+- and the shared provenance model (see [`PROVENANCE.md`](docs/PROVENANCE.md)).
+
+For the high-level product/UX description of Streamline, see [`STREAMLINE_FEATURE_PROPOSAL.md`](docs/STREAMLINE_FEATURE_PROPOSAL.md).
+
+This file focuses on **what we need to build**: data contracts, pipeline, and rendering.
+
 ---
 
 ## 3. Visual Grammar
