@@ -39,6 +39,32 @@ erDiagram
     ReceiptPackItem }o--|| Document : "may include (item_kind='document')"
 
     %% =========================
+    %% Legal systems, sources, and duties
+    %% =========================
+
+    LegalSystem ||--o{ LegalSource : "issues"
+    NormSourceCategory ||--o{ LegalSource : "classifies"
+    LegalSource ||--o{ Provision : "contains"
+
+    LegalSystem ||--o{ WrongType : "scopes"
+    NormSourceCategory ||--o{ WrongType : "primary_category"
+    WrongType ||--o{ WrongElementRequirement : "defined_by"
+    WrongType ||--o{ ActorConstraint : "constrains_actor"
+
+    %% =========================
+    %% Protected interests and remedies
+    %% =========================
+
+    ValueDimension ||--o{ ProtectedInterestType : "structures"
+    CulturalRegister ||--o{ ProtectedInterestType : "inflects"
+    ProtectedInterestType ||--o{ HarmInstance : "harmed_in"
+    Event ||--o{ HarmInstance : "causes"
+
+    Event ||--o{ EventRemedy : "remedied_by"
+    RemedyModality ||--o{ EventRemedy : "modality"
+    ValueFrame ||--o{ EventRemedy : "justified_by"
+
+    %% =========================
     %% Entity definitions
     %% =========================
 
@@ -153,4 +179,103 @@ erDiagram
         int     pack_id
         string  item_kind     "transaction,sentence,event,document"
         int     item_id
+    }
+
+    LegalSystem {
+        int     id
+        string  code           "AU.COMMON, NZ.TIKANGA, etc"
+        string  tradition      "common, tikanga, indigenous, civil"
+        string  community      "community or state anchor"
+        string  source_form    "statute, case, tikanga_rule"
+    }
+
+    NormSourceCategory {
+        int     id
+        string  code           "STATUTE, CASE, TREATY, CUSTOM"
+        string  label
+    }
+
+    LegalSource {
+        int     id
+        int     legal_system_id
+        int     norm_source_category_id
+        string  citation       "[1992] HCA 23, Crimes Act 1961"
+        string  title
+    }
+
+    Provision {
+        int     id
+        int     legal_source_id
+        string  ref_path       "section/paragraph path"
+        string  heading
+    }
+
+    WrongType {
+        int     id
+        int     legal_system_id
+        int     norm_source_category_id
+        string  code           "OFFENCE code / doctrinal tag"
+        string  label
+    }
+
+    WrongElementRequirement {
+        int     id
+        int     wrong_type_id
+        string  element_kind   "duty, breach, causation, defence"
+        string  description
+        int     issue_id
+    }
+
+    ActorConstraint {
+        int     id
+        int     wrong_type_id
+        string  constraint_kind "actor capability / role"
+        string  description
+    }
+
+    ValueDimension {
+        int     id
+        string  family         "integrity, status, control"
+        string  aspect         "body, reputation, information"
+    }
+
+    CulturalRegister {
+        int     id
+        string  label          "mana, face, izzat"
+        string  community
+    }
+
+    ProtectedInterestType {
+        int     id
+        int     value_dimension_id
+        int     cultural_register_id
+        string  description
+    }
+
+    HarmInstance {
+        int     id
+        int     event_id
+        int     protected_interest_type_id
+        string  severity       "low, medium, high"
+        string  note
+    }
+
+    ValueFrame {
+        int     id
+        string  frame_code     "gender_equality, tikanga_balance"
+        string  description
+    }
+
+    RemedyModality {
+        int     id
+        string  modality_code  "MONETARY, STATUS_CHANGE, SYMBOLIC"
+        string  description
+    }
+
+    EventRemedy {
+        int     id
+        int     event_id
+        int     remedy_modality_id
+        int     value_frame_id
+        string  terms          "amount/conditions"
     }
