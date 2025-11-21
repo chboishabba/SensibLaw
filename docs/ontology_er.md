@@ -333,7 +333,6 @@ erDiagram
         int     event_id
         int     harm_instance_id
         int     remedy_catalog_id
-        int     remedy_modality_id
         int     value_frame_id
         string  terms          "amount/conditions"
         string  note
