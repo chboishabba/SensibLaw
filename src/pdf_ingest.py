@@ -11,16 +11,18 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
-from pdfminer.high_level import extract_text
+from pdfminer.high_level import extract_pages
 
 from src.culture.overlay import get_default_overlay
+from src.glossary.linker import GlossaryLinker
 from src.glossary.service import lookup as lookup_gloss
 from src.ingestion.cache import HTTPCache
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
+    GlossaryLink,
     Provision,
     RuleAtom,
     RuleElement,
@@ -450,24 +452,31 @@ def _clean_page_line(line: str) -> Optional[str]:
     return cleaned or None
 
 
-def extract_pdf_text(pdf_path: Path) -> List[dict]:
-    """Extract text and headings from a PDF, returning pages with numbers."""
+def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
+    """Yield text and headings from ``pdf_path`` one page at a time."""
 
-    raw = extract_text(str(pdf_path)) or ""
-    pages: List[dict] = []
-    for i, page_text in enumerate(raw.split("\f"), start=1):
-        lines: List[str] = []
-        for raw_line in page_text.splitlines():
-            cleaned_line = _clean_page_line(raw_line)
-            if not cleaned_line:
+    with pdf_path.open("rb") as pdf_file:
+        for page_number, layout in enumerate(extract_pages(pdf_file), start=1):
+            lines: List[str] = []
+            for element in layout:
+                get_text = getattr(element, "get_text", None)
+                if not callable(get_text):
+                    continue
+                text = get_text()
+                if not text:
+                    continue
+                for raw_line in text.splitlines():
+                    cleaned_line = _clean_page_line(raw_line)
+                    if cleaned_line:
+                        lines.append(cleaned_line)
+
+            if not lines:
                 continue
-            lines.append(cleaned_line)
-        if not lines:
-            continue
-        heading = lines[0]
-        body = " ".join(lines[1:]) if len(lines) > 1 else ""
-        pages.append({"page": i, "heading": heading, "text": body, "lines": lines})
-    return pages
+
+            heading = lines[0]
+            body_lines = lines[1:]
+            body = " ".join(body_lines) if body_lines else ""
+            yield {"page": page_number, "heading": heading, "text": body, "lines": lines}
 
 
 def _normalise_toc_candidate(parts: List[str]) -> str:
@@ -1301,6 +1310,7 @@ def _rules_to_atoms(
     registry = (
         glossary_registry if glossary_registry is not None else GlossaryRegistry()
     )
+    linker = GlossaryLinker(registry)
     for r in rules:
         actor = getattr(r, "actor", None)
         party = getattr(r, "party", None) or UNKNOWN_PARTY
@@ -1329,20 +1339,10 @@ def _rules_to_atoms(
         rule_references.extend(condition_refs)
         rule_references.extend(scope_refs)
 
-        subject_gloss = who_text or actor or None
-        subject_metadata: Optional[Dict[str, Any]] = None
-        subject_glossary_id: Optional[int] = None
-        if registry is not None:
-            subject_entry: Optional[GlossaryRecord] = None
-            for candidate in (who_text, actor, party):
-                if candidate:
-                    subject_entry = registry.resolve(candidate)
-                    if subject_entry:
-                        break
-            if subject_entry:
-                subject_gloss = subject_entry.definition
-                subject_metadata = _clone_metadata(subject_entry.metadata)
-                subject_glossary_id = subject_entry.id
+        subject_link = linker.link(
+            candidates=(who_text, actor, party),
+            fallback_text=who_text or actor or None,
+        )
 
         rule_atom = RuleAtom(
             atom_type="rule",
@@ -1356,9 +1356,7 @@ def _rules_to_atoms(
             conditions=conditions,
             scope=scope,
             text=text,
-            subject_gloss=subject_gloss,
-            subject_gloss_metadata=subject_metadata,
-            glossary_id=subject_glossary_id,
+            subject_link=subject_link,
             references=rule_references,
         )
 
@@ -1370,9 +1368,7 @@ def _rules_to_atoms(
             who_text=rule_atom.who_text,
             conditions=rule_atom.conditions,
             text=rule_atom.text,
-            gloss=rule_atom.subject_gloss,
-            gloss_metadata=rule_atom.subject_gloss_metadata,
-            glossary_id=rule_atom.glossary_id,
+            glossary=subject_link,
         )
 
         for role, fragments in (getattr(r, "elements", None) or {}).items():
@@ -1383,39 +1379,34 @@ def _rules_to_atoms(
                 if not cleaned_fragment:
                     continue
                 gloss_entry = module_lookup_gloss(cleaned_fragment)
-                resolved_entry: Optional[GlossaryRecord] = None
-                if registry is not None and gloss_entry:
-                    resolved_entry = registry.register_definition(
-                        gloss_entry.phrase,
-                        gloss_entry.text,
-                        gloss_entry.metadata,
-                    )
-                if registry is not None and resolved_entry is None:
-                    resolved_entry = registry.resolve(cleaned_fragment)
-
-                gloss_text = who_text or cleaned_fragment
-                gloss_metadata = None
-                glossary_id = None
-                if resolved_entry:
-                    gloss_text = resolved_entry.definition
-                    gloss_metadata = _clone_metadata(resolved_entry.metadata)
-                    glossary_id = resolved_entry.id
-                elif gloss_entry:
-                    gloss_text = gloss_entry.text
-                    if gloss_entry.metadata is not None:
-                        gloss_metadata = dict(gloss_entry.metadata)
+                element_link = linker.link(
+                    candidates=(cleaned_fragment, who_text, actor),
+                    glossary_entry=gloss_entry,
+                    fallback_text=who_text or cleaned_fragment,
+                )
+                if element_link is None:
+                    element_link = GlossaryLink(text=who_text or cleaned_fragment)
                 rule_atom.elements.append(
                     RuleElement(
                         role=role,
                         text=cleaned_fragment,
                         conditions=conditions if role == "circumstance" else None,
-                        gloss=gloss_text,
-                        gloss_metadata=gloss_metadata,
+                        glossary=element_link,
                         references=fragment_refs,
-                        glossary_id=glossary_id,
                         atom_type="element",
                     )
                 )
+        for reference in rule_references:
+            reference_link = linker.link(
+                candidates=(
+                    reference.citation_text,
+                    reference.work,
+                    reference.section,
+                ),
+                fallback_text=reference.citation_text or reference.work,
+            )
+            if reference_link is not None:
+                reference.glossary = reference_link
         if party == UNKNOWN_PARTY:
             rule_atom.lints.append(
                 RuleLint(
@@ -2043,6 +2034,108 @@ def save_document(doc: Document, output_path: Path) -> None:
         f.write(doc.to_json())
 
 
+def iter_process_pdf(
+    pdf: Path,
+    output: Optional[Path] = None,
+    jurisdiction: Optional[str] = None,
+    citation: Optional[str] = None,
+    title: Optional[str] = None,
+    cultural_flags: Optional[List[str]] = None,
+    document_date: Optional[date] = None,
+    db_path: Optional[Path] = None,
+    doc_id: Optional[int] = None,
+    break_after_chars: Optional[int] = None,
+) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    """Yield progress updates for :func:`process_pdf` steps.
+
+    Each iteration yields a ``(stage, payload)`` tuple describing the work that has
+    just completed. Callers can advance the generator manually to "step" through the
+    ingestion pipeline.
+    """
+
+    if doc_id is not None and db_path is None:
+        raise ValueError("A database path must be provided when specifying --doc-id")
+
+    storage: Optional[Storage] = None
+    registry: Optional[GlossaryRegistry] = None
+    doc: Optional[Document] = None
+    try:
+        if db_path:
+            storage = Storage(db_path)
+        registry = GlossaryRegistry(storage)
+        char_threshold = break_after_chars if break_after_chars and break_after_chars > 0 else None
+        pages: List[dict] = []
+        char_count = 0
+        breakpoint_triggered = False
+        for page in extract_pdf_text(pdf):
+            pages.append(page)
+            body_text = str(page.get("text") or "")
+            heading_text = str(page.get("heading") or "")
+            char_count += len(body_text) + len(heading_text)
+            if char_threshold is not None and not breakpoint_triggered and char_count >= char_threshold:
+                breakpoint_triggered = True
+                yield (
+                    "extraction",
+                    {
+                        "pages": list(pages),
+                        "char_count": char_count,
+                        "complete": False,
+                        "breakpoint": char_threshold,
+                    },
+                )
+
+        yield (
+            "extraction",
+            {
+                "pages": list(pages),
+                "char_count": char_count,
+                "complete": True,
+                "breakpoint": char_threshold,
+            },
+        )
+
+        doc = build_document(
+            pages,
+            pdf,
+            jurisdiction,
+            citation,
+            title,
+            cultural_flags,
+            document_date=document_date,
+            glossary_registry=registry,
+        )
+        yield ("build", {"document": doc})
+    finally:
+        if registry is not None:
+            registry.close()
+        if storage is not None:
+            storage.close()
+
+    if doc is None:
+        raise RuntimeError("PDF ingestion failed to build a document")
+
+    out = output or Path("data/pdfs") / (pdf.stem + ".json")
+    stored_doc_id: Optional[int] = None
+    if db_path:
+        store = VersionedStore(db_path)
+        try:
+            actual_doc_id = doc_id if doc_id is not None else store.generate_id()
+            if not doc.metadata.canonical_id:
+                doc.metadata.canonical_id = str(actual_doc_id)
+            store.validate_revision_payload(doc)
+            store.add_revision(actual_doc_id, doc, doc.metadata.date)
+            stored_doc_id = actual_doc_id
+            yield ("persist", {"stored_doc_id": stored_doc_id, "document": doc})
+        finally:
+            store.close()
+
+    save_document(doc, out)
+    yield (
+        "save",
+        {"document": doc, "stored_doc_id": stored_doc_id, "output_path": out},
+    )
+
+
 def process_pdf(
     pdf: Path,
     output: Optional[Path] = None,
@@ -2056,47 +2149,32 @@ def process_pdf(
 ) -> Tuple[Document, Optional[int]]:
     """Extract text, parse sections, run rule extraction and persist."""
 
-    if doc_id is not None and db_path is None:
-        raise ValueError("A database path must be provided when specifying --doc-id")
-
-    storage: Optional[Storage] = None
-    registry: Optional[GlossaryRegistry] = None
-    try:
-        if db_path:
-            storage = Storage(db_path)
-        registry = GlossaryRegistry(storage)
-        pages = extract_pdf_text(pdf)
-        doc = build_document(
-            pages,
-            pdf,
-            jurisdiction,
-            citation,
-            title,
-            cultural_flags,
-            document_date=document_date,
-            glossary_registry=registry,
-        )
-    finally:
-        if registry is not None:
-            registry.close()
-        if storage is not None:
-            storage.close()
-    out = output or Path("data/pdfs") / (pdf.stem + ".json")
-
+    result_doc: Optional[Document] = None
     stored_doc_id: Optional[int] = None
-    if db_path:
-        store = VersionedStore(db_path)
-        try:
-            actual_doc_id = doc_id if doc_id is not None else store.generate_id()
-            if not doc.metadata.canonical_id:
-                doc.metadata.canonical_id = str(actual_doc_id)
-            store.add_revision(actual_doc_id, doc, doc.metadata.date)
-            stored_doc_id = actual_doc_id
-        finally:
-            store.close()
+    for stage, payload in iter_process_pdf(
+        pdf,
+        output=output,
+        jurisdiction=jurisdiction,
+        citation=citation,
+        title=title,
+        cultural_flags=cultural_flags,
+        document_date=document_date,
+        db_path=db_path,
+        doc_id=doc_id,
+    ):
+        if stage == "build":
+            result_doc = payload.get("document")
+        elif stage == "persist":
+            stored_doc_id = payload.get("stored_doc_id")
+            result_doc = payload.get("document") or result_doc
+        elif stage == "save":
+            result_doc = payload.get("document") or result_doc
+            stored_doc_id = payload.get("stored_doc_id", stored_doc_id)
 
-    save_document(doc, out)
-    return doc, stored_doc_id
+    if result_doc is None:
+        raise RuntimeError("PDF ingestion did not yield a document")
+
+    return result_doc, stored_doc_id
 
 
 def main() -> None:

@@ -30,7 +30,7 @@
   "rules": [
     {
       "actor": "A person",
-      "modality": "must not",
+      "modality": "modality.must_not",
       "action": "litter in public places",
       "conditions": null,
       "scope": null,
@@ -48,7 +48,7 @@
     },
     {
       "actor": "Officials",
-      "modality": "may",
+      "modality": "modality.may",
       "action": "issue fines",
       "conditions": "when offences occur",
       "scope": null,

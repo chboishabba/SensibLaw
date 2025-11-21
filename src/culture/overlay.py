@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import yaml
 
 from src.models.document import Document
 from src.models.provision import Provision
+from .registry import CulturalFlagMetadata, CulturalFlagRegistry, load_registry
 
 
 @dataclass(frozen=True)
@@ -33,52 +34,79 @@ class CulturalRule:
 class CulturalOverlay:
     """Apply cultural sensitivity rules to documents and provisions."""
 
-    def __init__(self, rules: Dict[str, CulturalRule]):
+    def __init__(
+        self,
+        registry: CulturalFlagRegistry,
+        rules: Dict[str, CulturalRule],
+    ):
+        self._registry = registry
         self._rules = dict(rules)
 
     @classmethod
-    def from_yaml(cls, path: Path) -> "CulturalOverlay":
-        """Load overlay rules from ``path``."""
+    def from_yaml(cls, registry_path: Path, rules_path: Path) -> "CulturalOverlay":
+        """Load overlay rules and registry configuration."""
 
-        with path.open("r", encoding="utf-8") as handle:
+        registry = load_registry(registry_path)
+
+        with rules_path.open("r", encoding="utf-8") as handle:
             payload = yaml.safe_load(handle) or {}
 
         rules = {
             str(flag): CulturalRule.from_dict(config or {})
             for flag, config in payload.items()
         }
-        return cls(rules)
+        return cls(registry, rules)
 
     def apply(self, document: Document) -> Document:
         """Apply overlay rules to ``document`` in-place and return it."""
 
-        flags = [
-            flag for flag in (document.metadata.cultural_flags or []) if flag in self._rules
-        ]
-        if not flags:
+        metadata = document.metadata
+        resolved_flags = self._resolve_flags(metadata.cultural_flags or [])
+        if not resolved_flags:
             return document
 
-        metadata = document.metadata
-        existing_annotations = set(metadata.cultural_annotations)
-        existing_redactions = set(metadata.cultural_redactions)
+        metadata.cultural_flags = [flag.identifier for flag in resolved_flags]
 
-        for flag in flags:
-            rule = self._rules[flag]
+        existing_annotations = {
+            ann.get("flag")
+            for ann in metadata.cultural_annotations
+            if isinstance(ann, dict) and ann.get("kind") == "flag"
+        }
+        normalized_redactions: List[str] = []
+        existing_redactions = set()
+        for recorded in metadata.cultural_redactions:
+            resolved = self._registry.resolve(recorded)
+            identifier = resolved.identifier if resolved else str(recorded)
+            if identifier not in existing_redactions:
+                normalized_redactions.append(identifier)
+                existing_redactions.add(identifier)
+        metadata.cultural_redactions = normalized_redactions
+
+        for flag in resolved_flags:
+            rule = self._rules.get(flag.identifier) or CulturalRule(
+                redaction=flag.redaction,
+                consent_required=flag.consent_required,
+                transform=None,
+            )
             annotation = self._build_annotation(flag, rule)
-            if annotation not in existing_annotations:
+            if flag.identifier not in existing_annotations:
                 metadata.cultural_annotations.append(annotation)
-                existing_annotations.add(annotation)
-            if rule.redaction == "omit" and flag not in existing_redactions:
-                metadata.cultural_redactions.append(flag)
-                existing_redactions.add(flag)
+                existing_annotations.add(flag.identifier)
+            if rule.redaction == "omit" and flag.identifier not in existing_redactions:
+                metadata.cultural_redactions.append(flag.identifier)
+                existing_redactions.add(flag.identifier)
             if rule.consent_required:
                 metadata.cultural_consent_required = True
 
-        body_text, _, transforms = self._apply_rules_to_text(document.body, flags)
+        canonical_flags = [flag.identifier for flag in resolved_flags]
+
+        body_text, _, transforms = self._apply_rules_to_text(
+            document.body, canonical_flags
+        )
         document.body = body_text
 
         for provision in document.provisions:
-            self._apply_to_provision(provision, flags, dict(transforms))
+            self._apply_to_provision(provision, canonical_flags, dict(transforms))
 
         return document
 
@@ -129,16 +157,33 @@ class CulturalOverlay:
                     applied["hash"] = result
         return result, redacted_by, applied
 
-    @staticmethod
-    def _build_annotation(flag: str, rule: CulturalRule) -> str:
+    def _build_annotation(
+        self, flag: CulturalFlagMetadata, rule: CulturalRule
+    ) -> Dict[str, str]:
         transform = rule.transform or "none"
-        return (
-            f"{flag}: redaction={rule.redaction}, "
-            f"consent_required={str(rule.consent_required)}, transform={transform}"
+        policy_text = flag.render_policy(
+            redaction=rule.redaction,
+            consent=rule.consent_required,
+            transform=transform,
         )
+        return {"kind": "flag", "flag": flag.identifier, "policy": policy_text}
+
+    def _resolve_flags(self, raw_flags: Sequence[str]) -> List[CulturalFlagMetadata]:
+        resolved: List[CulturalFlagMetadata] = []
+        seen = set()
+        for flag in raw_flags:
+            if not flag:
+                continue
+            metadata = self._registry.resolve(flag)
+            if metadata and metadata.identifier not in seen:
+                resolved.append(metadata)
+                seen.add(metadata.identifier)
+        return resolved
 
 
-_DEFAULT_RULES_PATH = Path(__file__).resolve().parents[2] / "data" / "cultural_rules.yaml"
+_BASE_PATH = Path(__file__).resolve().parents[2] / "data"
+_DEFAULT_FLAGS_PATH = _BASE_PATH / "cultural_flags.yaml"
+_DEFAULT_RULES_PATH = _BASE_PATH / "cultural_rules.yaml"
 _default_overlay: Optional[CulturalOverlay] = None
 
 
@@ -147,7 +192,9 @@ def get_default_overlay() -> CulturalOverlay:
 
     global _default_overlay
     if _default_overlay is None:
-        _default_overlay = CulturalOverlay.from_yaml(_DEFAULT_RULES_PATH)
+        _default_overlay = CulturalOverlay.from_yaml(
+            _DEFAULT_FLAGS_PATH, _DEFAULT_RULES_PATH
+        )
     return _default_overlay
 
 

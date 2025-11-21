@@ -20,13 +20,23 @@ import src.pdf_ingest as pdf_ingest
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
+    GlossaryLink,
     Provision,
     RuleAtom,
     RuleElement,
     RuleLint,
     RuleReference,
 )
+from src.models.sentence import Sentence
 from src.storage import VersionedStore
+from src.storage.versioned_store import PayloadTooLargeError
+
+
+def index_columns(conn, index_name: str) -> list[str]:
+    """Return the ordered column names for a SQLite index."""
+
+    rows = conn.execute(f"PRAGMA index_xinfo('{index_name}')").fetchall()
+    return [row["name"] for row in rows if row["cid"] >= 0]
 
 
 def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
@@ -93,32 +103,69 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     return store, doc_id
 
 
-def add_nested_revision(store: VersionedStore, doc_id: int, *, effective: date) -> int:
-    child = Provision(
-        text="Nested child",
-        identifier="s 1(a)",
-        heading="Child heading",
-        node_type="subsection",
+def _make_metadata() -> DocumentMetadata:
+    return DocumentMetadata(
+        jurisdiction="AU",
+        citation="Citation",
+        date=date(2024, 1, 1),
     )
-    parent = Provision(
-        text="Nested parent",
-        identifier="s 1",
-        heading="Parent heading",
-        node_type="section",
-        children=[child],
+
+
+def test_add_revision_respects_body_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_body_size=8,
     )
-    meta = DocumentMetadata(
-        jurisdiction="US",
-        citation="nested-123",
-        date=effective,
-        source_url="http://example.com/nested",
-        retrieved_at=datetime(2020, 1, 2, 3, 4, 5),
-        checksum="nested",  # reuse checksum for convenience
-        licence="CC-BY",
-        canonical_id="canon-nested",
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "x" * 9,
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="body payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
+
+
+def test_add_revision_respects_metadata_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_metadata_size=10,
     )
-    document = Document(meta, "nested body", provisions=[parent])
-    return store.add_revision(doc_id, document, effective)
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "short body",
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="metadata payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
+
+
+def test_add_revision_respects_document_json_limit(tmp_path: Path) -> None:
+    store = VersionedStore(
+        str(tmp_path / "store.db"),
+        max_document_size=10,
+    )
+    try:
+        doc_id = store.generate_id()
+        metadata = _make_metadata()
+        document = Document(
+            metadata,
+            "short body",
+            sentences=[Sentence(text="stub", start_char=0, end_char=0, index=0)],
+        )
+        with pytest.raises(PayloadTooLargeError, match="document JSON payload"):
+            store.add_revision(doc_id, document, metadata.date)
+    finally:
+        store.close()
 
 
 def test_snapshot(tmp_path: Path):
@@ -200,12 +247,6 @@ def test_atom_references_join_table(tmp_path: Path):
         ).fetchall()
         assert [row["citation_text"] for row in rows] == ["Second reference"]
 
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (doc_id, 2),
-        )
-        store.conn.commit()
-
         snapshot = store.snapshot(doc_id, date(2022, 1, 1))
         assert snapshot is not None
         atom = snapshot.provisions[0].atoms[0]
@@ -237,6 +278,36 @@ def test_rule_atom_subjects_persisted(tmp_path: Path):
         store.close()
 
 
+def test_provision_and_rule_atom_fts(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    try:
+        provision_rows = store.conn.execute(
+            """
+            SELECT provision_id
+            FROM provision_text_fts
+            WHERE doc_id = ? AND rev_id = ? AND provision_text_fts MATCH ?
+            ORDER BY provision_id
+            """,
+            (doc_id, 2, "second"),
+        ).fetchall()
+        assert provision_rows
+        assert [row["provision_id"] for row in provision_rows] == [1]
+
+        atom_rows = store.conn.execute(
+            """
+            SELECT rule_id
+            FROM rule_atom_text_fts
+            WHERE doc_id = ? AND rev_id = ? AND rule_atom_text_fts MATCH ?
+            ORDER BY rule_id
+            """,
+            (doc_id, 2, "second"),
+        ).fetchall()
+        assert atom_rows
+        assert [row["rule_id"] for row in atom_rows] == [1]
+    finally:
+        store.close()
+
+
 def test_rule_atom_subjects_loaded(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
@@ -254,6 +325,57 @@ def test_rule_atom_subjects_loaded(tmp_path: Path):
         store.close()
 
 
+def test_rule_atom_indexes_include_rule_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute("PRAGMA index_list('rule_atoms')").fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_atoms_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_atoms_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+        ]
+    finally:
+        store.close()
+
+
+def test_rule_atom_subject_indexes_include_rule_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute(
+            "PRAGMA index_list('rule_atom_subjects')"
+        ).fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_atom_subjects_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_atom_subjects_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+        ]
+    finally:
+        store.close()
+
+
+def test_rule_element_indexes_include_element_id(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        index_rows = store.conn.execute("PRAGMA index_list('rule_elements')").fetchall()
+        index_names = {row["name"] for row in index_rows}
+        assert "idx_rule_elements_doc_rev" in index_names
+        assert index_columns(store.conn, "idx_rule_elements_doc_rev") == [
+            "doc_id",
+            "rev_id",
+            "provision_id",
+            "rule_id",
+            "element_id",
+        ]
+    finally:
+        store.close()
+
+
 def test_atoms_view_created_for_new_store(tmp_path: Path):
     db_path = tmp_path / "store.db"
     store = VersionedStore(str(db_path))
@@ -265,6 +387,51 @@ def test_atoms_view_created_for_new_store(tmp_path: Path):
         assert row["type"] == "view"
     finally:
         store.close()
+
+
+def test_revisions_table_excludes_document_json(tmp_path: Path) -> None:
+    store = VersionedStore(str(tmp_path / "schema.db"))
+    try:
+        columns = {
+            row["name"] for row in store.conn.execute("PRAGMA table_info(revisions)")
+        }
+        assert "document_json" not in columns
+    finally:
+        store.close()
+
+
+def test_migration_script_removes_document_json(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    db_path = tmp_path / "store.db"
+    store.close()
+
+    legacy_conn = sqlite3.connect(str(db_path))
+    legacy_conn.row_factory = sqlite3.Row
+    with legacy_conn:
+        legacy_conn.execute("ALTER TABLE revisions ADD COLUMN document_json TEXT")
+        legacy_conn.execute(
+            "UPDATE revisions SET document_json = '{}' WHERE doc_id = ?",
+            (doc_id,),
+        )
+
+    from scripts.migrate_drop_document_json import drop_document_json_column
+
+    dropped = drop_document_json_column(legacy_conn)
+    assert dropped
+
+    columns = {
+        row["name"] for row in legacy_conn.execute("PRAGMA table_info(revisions)")
+    }
+    assert "document_json" not in columns
+    legacy_conn.close()
+
+    reopened = VersionedStore(str(db_path))
+    try:
+        snapshot = reopened.snapshot(doc_id, date(2022, 1, 1))
+        assert snapshot is not None
+        assert snapshot.provisions
+    finally:
+        reopened.close()
 
 
 def test_toc_join(tmp_path: Path):
@@ -435,22 +602,23 @@ def test_glossary_references_persist(tmp_path: Path):
             canonical_id="canon-123",
         )
 
+        shared_link = GlossaryLink(text="Example term", glossary_id=glossary_id)
+
         subject_atom = Atom(
             type="rule",
             text="Example subject",
             refs=[],
-            gloss="Example term",
-            glossary_id=glossary_id,
+            glossary=shared_link,
         )
 
         rule_atom = RuleAtom(
             subject=subject_atom,
-            glossary_id=glossary_id,
+            subject_link=shared_link,
             references=[],
             elements=[
                 RuleElement(
                     text="Element referencing term",
-                    glossary_id=glossary_id,
+                    glossary=shared_link,
                     references=[],
                 )
             ],
@@ -525,6 +693,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             licence="CC",
             canonical_id="canon-upsert",
         )
+        subject_link = GlossaryLink(
+            text="Initial gloss",
+            metadata={"stage": "initial"},
+            glossary_id=3,
+        )
         subject = Atom(
             type="rule",
             role="initial-role",
@@ -534,9 +707,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             conditions="Initial conditions",
             text="Initial subject text",
             refs=["Initial ref"],
-            gloss="Initial gloss",
-            gloss_metadata={"stage": "initial"},
-            glossary_id=3,
+            glossary=subject_link,
         )
         initial_rule_atom = RuleAtom(
             atom_type="rule",
@@ -551,15 +722,18 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             scope="Initial scope",
             text="Initial rule text",
             subject=subject,
+            subject_link=subject_link,
             references=[RuleReference(citation_text="Initial citation")],
             elements=[
                 RuleElement(
                     role="initial element",
                     text="Initial element text",
                     conditions="Initial element conditions",
-                    gloss="Initial element gloss",
-                    gloss_metadata={"stage": "initial"},
-                    glossary_id=5,
+                    glossary=GlossaryLink(
+                        text="Initial element gloss",
+                        metadata={"stage": "initial"},
+                        glossary_id=5,
+                    ),
                     references=[
                         RuleReference(citation_text="Initial element citation")
                     ],
@@ -612,6 +786,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             (doc_id, rev_id, provision_id),
         ).fetchone()[0]
 
+        updated_subject_link = GlossaryLink(
+            text="Updated gloss",
+            metadata={"stage": "updated"},
+            glossary_id=11,
+        )
         updated_subject = Atom(
             type="rule",
             role="updated-role",
@@ -621,9 +800,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             conditions="Updated subject conditions",
             text="Updated subject text",
             refs=["Updated subject ref"],
-            gloss="Updated gloss",
-            gloss_metadata={"stage": "updated"},
-            glossary_id=11,
+            glossary=updated_subject_link,
         )
         updated_rule_atom = RuleAtom(
             toc_id=toc_id,
@@ -639,9 +816,7 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
             scope="Updated scope",
             text="Updated rule text",
             subject=updated_subject,
-            subject_gloss="Updated gloss",
-            subject_gloss_metadata={"stage": "updated"},
-            glossary_id=11,
+            subject_link=updated_subject_link,
             references=[
                 RuleReference(
                     work="Updated Work",
@@ -655,9 +830,11 @@ def test_repeated_rule_ingestion_updates_existing_rows(tmp_path: Path) -> None:
                     role="updated element",
                     text="Updated element text",
                     conditions="Updated element conditions",
-                    gloss="Updated element gloss",
-                    gloss_metadata={"stage": "updated"},
-                    glossary_id=13,
+                    glossary=GlossaryLink(
+                        text="Updated element gloss",
+                        metadata={"stage": "updated"},
+                        glossary_id=13,
+                    ),
                     references=[
                         RuleReference(
                             work="Elem Work",
@@ -832,12 +1009,6 @@ def test_rule_atom_subjects_backfill(tmp_path: Path):
 def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (doc_id, 2),
-        )
-        store.conn.commit()
-
         rows = store.conn.execute(
             """
             SELECT atom_id, type, role, text, refs
@@ -855,6 +1026,116 @@ def test_atoms_view_reconstructs_subject_rows(tmp_path: Path):
         assert first["role"] is None
         assert first["text"] == "Perform the second duty"
         assert first["refs"] == '["Second reference"]'
+    finally:
+        store.close()
+
+
+def test_atoms_view_includes_elements_and_lints(tmp_path: Path) -> None:
+    store = VersionedStore(str(tmp_path / "store.db"))
+    try:
+        doc_id = store.generate_id()
+        metadata = DocumentMetadata(
+            jurisdiction="TestState",
+            citation="Test Act 2024",
+            date=date(2024, 5, 1),
+        )
+
+        subject_link = GlossaryLink(
+            text="Subject gloss",
+            metadata={"phase": "subject"},
+            glossary_id=101,
+        )
+        subject_atom = Atom(
+            type="rule",
+            text="Structured subject text",
+            refs=["Subject reference"],
+            glossary=subject_link,
+        )
+
+        element_link = GlossaryLink(
+            text="Element gloss",
+            metadata={"phase": "element"},
+            glossary_id=202,
+        )
+        element = RuleElement(
+            atom_type="element",
+            role="requirement",
+            text="Element detail",
+            references=[
+                RuleReference(
+                    work="  Work Title",
+                    section="s 2  ",
+                    pinpoint="   p. 10",
+                    glossary=GlossaryLink(glossary_id=element_link.glossary_id),
+                )
+            ],
+            glossary=element_link,
+        )
+
+        lint_metadata = {"severity": "medium", "note": "Check element text"}
+        lint = RuleLint(
+            atom_type="lint",
+            code="LINT01",
+            message="Element lint message",
+            metadata=lint_metadata,
+        )
+
+        rule_atom = RuleAtom(
+            atom_type="rule",
+            text="Structured subject text",
+            subject=subject_atom,
+            subject_link=subject_link,
+            references=[RuleReference(citation_text="Explicit citation")],
+            elements=[element],
+            lints=[lint],
+        )
+
+        provision = Provision(
+            text="Provision with structured rule atom",
+            identifier="s 10",
+            heading="Section 10",
+            node_type="section",
+            rule_atoms=[rule_atom],
+        )
+
+        rev_id = store.add_revision(
+            doc_id,
+            Document(metadata, "Structured body", provisions=[provision]),
+            metadata.date,
+        )
+
+        rows = store.conn.execute(
+            """
+            SELECT atom_id, type, text, refs, gloss_metadata, glossary_id
+            FROM atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY atom_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+
+        assert len(rows) >= 3, "expected subject, element, and lint rows"
+        subject_row, element_row, lint_row = rows[0], rows[1], rows[2]
+
+        assert subject_row["atom_id"] == 1
+        assert subject_row["text"] == "Structured subject text"
+        assert subject_row["refs"] == json.dumps(["Subject reference"])
+        assert subject_row["glossary_id"] == subject_link.glossary_id
+
+        assert element_row["atom_id"] == 2
+        assert element_row["type"] == "element"
+        element_refs = json.loads(element_row["refs"])
+        assert element_refs, "expected aggregated element references"
+        assert all(ref == ref.strip() for ref in element_refs if ref)
+        normalised_refs = [" ".join(ref.split()) for ref in element_refs if ref]
+        assert normalised_refs == ["Work Title s 2 p. 10"]
+        assert element_row["glossary_id"] == element_link.glossary_id
+
+        assert lint_row["atom_id"] == 3
+        assert lint_row["type"] == "lint"
+        assert lint_row["refs"] is None
+        assert json.loads(lint_row["gloss_metadata"]) == lint_metadata
+        assert lint_row["glossary_id"] == subject_link.glossary_id
     finally:
         store.close()
 
@@ -1019,6 +1300,242 @@ def test_migration_removes_duplicate_rule_atoms(tmp_path: Path):
         migrated.close()
 
 
+def test_rule_atoms_deduplicate_with_metadata_whitespace(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    db_path = store.path
+    try:
+        atom_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY provision_id, rule_id
+            LIMIT 1
+            """,
+            (doc_id, 2),
+        ).fetchone()
+        assert atom_row is not None
+
+        subject_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            (
+                atom_row["doc_id"],
+                atom_row["rev_id"],
+                atom_row["provision_id"],
+                atom_row["rule_id"],
+            ),
+        ).fetchone()
+        assert subject_row is not None
+
+        element_row = store.conn.execute(
+            """
+            SELECT *
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            ORDER BY element_id
+            LIMIT 1
+            """,
+            (
+                atom_row["doc_id"],
+                atom_row["rev_id"],
+                atom_row["provision_id"],
+                atom_row["rule_id"],
+            ),
+        ).fetchone()
+        if element_row is None:
+            store.conn.execute(
+                """
+                INSERT INTO rule_elements (
+                    doc_id, rev_id, provision_id, rule_id, element_id, text_hash,
+                    atom_type, role, text, conditions, gloss, gloss_metadata, glossary_id
+                )
+                VALUES (?, ?, ?, ?, 1, 'manual-hash', ?, ?, 'Manual element',
+                        'Manual conditions', 'Manual gloss', '{}', NULL)
+                """,
+                (
+                    atom_row["doc_id"],
+                    atom_row["rev_id"],
+                    atom_row["provision_id"],
+                    atom_row["rule_id"],
+                    atom_row["atom_type"],
+                    atom_row["role"],
+                ),
+            )
+            store.conn.commit()
+            element_row = store.conn.execute(
+                """
+                SELECT *
+                FROM rule_elements
+                WHERE doc_id = ? AND rev_id = ?
+                  AND provision_id = ? AND rule_id = ?
+                ORDER BY element_id
+                LIMIT 1
+                """,
+                (
+                    atom_row["doc_id"],
+                    atom_row["rev_id"],
+                    atom_row["provision_id"],
+                    atom_row["rule_id"],
+                ),
+            ).fetchone()
+        assert element_row is not None
+
+        fk_state = store.conn.execute("PRAGMA foreign_keys").fetchone()[0]
+        store.conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            if store.conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'view' AND name = 'atoms'"
+            ).fetchone():
+                store.conn.execute("DROP VIEW atoms")
+
+            for table_name in ("rule_atoms", "rule_atom_subjects", "rule_elements"):
+                store.conn.execute(
+                    f"CREATE TABLE {table_name}_raw AS SELECT * FROM {table_name}"
+                )
+                store.conn.execute(f"DROP TABLE {table_name}")
+                store.conn.execute(
+                    f"ALTER TABLE {table_name}_raw RENAME TO {table_name}"
+                )
+        finally:
+            store.conn.execute(f"PRAGMA foreign_keys = {fk_state}")
+
+        key = (
+            atom_row["doc_id"],
+            atom_row["rev_id"],
+            atom_row["provision_id"],
+            atom_row["rule_id"],
+        )
+        element_key = key + (element_row["element_id"],)
+
+        store.conn.execute(
+            "DELETE FROM rule_atoms WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ?",
+            key,
+        )
+        store.conn.execute(
+            "DELETE FROM rule_atom_subjects WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ?",
+            key,
+        )
+        store.conn.execute(
+            "DELETE FROM rule_elements WHERE doc_id = ? AND rev_id = ?"
+            " AND provision_id = ? AND rule_id = ? AND element_id = ?",
+            element_key,
+        )
+
+        canonical_metadata = '{"stage":"alpha"}'
+        irregular_metadata = '{  "stage"  : "alpha"  }'
+        canonical_element_metadata = '{"phase":"beta"}'
+        irregular_element_metadata = '{  "phase"  :  "beta" }'
+
+        atom_columns = list(atom_row.keys())
+        placeholders = ", ".join("?" for _ in atom_columns)
+        column_sql = ", ".join(atom_columns)
+
+        def _atom_values(metadata: str) -> list:
+            values = [atom_row[column] for column in atom_columns]
+            metadata_index = atom_columns.index("subject_gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_atoms ({column_sql}) VALUES ({placeholders})",
+            _atom_values(irregular_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_atoms ({column_sql}) VALUES ({placeholders})",
+            _atom_values(canonical_metadata),
+        )
+
+        subject_columns = list(subject_row.keys())
+        subject_placeholders = ", ".join("?" for _ in subject_columns)
+        subject_sql = ", ".join(subject_columns)
+
+        def _subject_values(metadata: str) -> list:
+            values = [subject_row[column] for column in subject_columns]
+            metadata_index = subject_columns.index("gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_atom_subjects ({subject_sql}) VALUES ({subject_placeholders})",
+            _subject_values(irregular_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_atom_subjects ({subject_sql}) VALUES ({subject_placeholders})",
+            _subject_values(canonical_metadata),
+        )
+
+        element_columns = list(element_row.keys())
+        element_placeholders = ", ".join("?" for _ in element_columns)
+        element_sql = ", ".join(element_columns)
+
+        def _element_values(metadata: str) -> list:
+            values = [element_row[column] for column in element_columns]
+            metadata_index = element_columns.index("gloss_metadata")
+            values[metadata_index] = metadata
+            return values
+
+        store.conn.execute(
+            f"INSERT INTO rule_elements ({element_sql}) VALUES ({element_placeholders})",
+            _element_values(irregular_element_metadata),
+        )
+        store.conn.execute(
+            f"INSERT INTO rule_elements ({element_sql}) VALUES ({element_placeholders})",
+            _element_values(canonical_element_metadata),
+        )
+
+        store.conn.commit()
+    finally:
+        store.close()
+
+    migrated = VersionedStore(db_path)
+    try:
+        atom_rows = migrated.conn.execute(
+            """
+            SELECT subject_gloss_metadata
+            FROM rule_atoms
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            key,
+        ).fetchall()
+        assert len(atom_rows) == 1
+        assert atom_rows[0]["subject_gloss_metadata"] == canonical_metadata
+
+        subject_rows = migrated.conn.execute(
+            """
+            SELECT gloss_metadata
+            FROM rule_atom_subjects
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ?
+            """,
+            key,
+        ).fetchall()
+        assert len(subject_rows) == 1
+        assert subject_rows[0]["gloss_metadata"] == canonical_metadata
+
+        element_rows = migrated.conn.execute(
+            """
+            SELECT gloss_metadata
+            FROM rule_elements
+            WHERE doc_id = ? AND rev_id = ?
+              AND provision_id = ? AND rule_id = ? AND element_id = ?
+            """,
+            element_key,
+        ).fetchall()
+        assert len(element_rows) == 1
+        assert element_rows[0]["gloss_metadata"] == canonical_element_metadata
+    finally:
+        migrated.close()
+
+
 def test_migration_preserves_rule_atoms_with_distinct_party_role(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     db_path = store.path
@@ -1113,17 +1630,211 @@ def test_migration_preserves_rule_atoms_with_distinct_party_role(tmp_path: Path)
         migrated.close()
 
 
+def test_tables_use_without_rowid(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        for table_name in ("provisions", "rule_atoms", "rule_elements"):
+            info_rows = store.conn.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+            assert info_rows, f"expected columns for {table_name}"
+
+            with pytest.raises(sqlite3.OperationalError):
+                store.conn.execute(f"SELECT rowid FROM {table_name} LIMIT 1")
+    finally:
+        store.close()
+
+
+def test_migration_converts_rowid_tables(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy_rowid.db"
+    conn = sqlite3.connect(db_path)
+    try:
+        with conn:
+            conn.executescript(
+                """
+                CREATE TABLE documents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT
+                );
+
+                CREATE TABLE revisions (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    effective_date TEXT NOT NULL,
+                    metadata TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    source_url TEXT,
+                    retrieved_at TEXT,
+                    checksum TEXT,
+                    licence TEXT,
+                    document_json TEXT,
+                    PRIMARY KEY (doc_id, rev_id),
+                    FOREIGN KEY (doc_id) REFERENCES documents(id)
+                );
+
+                CREATE TABLE toc (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    toc_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    node_type TEXT,
+                    identifier TEXT,
+                    title TEXT,
+                    stable_id TEXT,
+                    position INTEGER NOT NULL,
+                    page_number INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, toc_id)
+                );
+
+                CREATE TABLE provisions (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    parent_id INTEGER,
+                    identifier TEXT,
+                    heading TEXT,
+                    node_type TEXT,
+                    toc_id INTEGER,
+                    text TEXT,
+                    rule_tokens TEXT,
+                    references_json TEXT,
+                    principles TEXT,
+                    customs TEXT,
+                    cultural_flags TEXT,
+                    PRIMARY KEY (doc_id, rev_id, provision_id)
+                );
+
+                CREATE TABLE rule_atoms (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    text_hash TEXT NOT NULL,
+                    toc_id INTEGER,
+                    stable_id TEXT,
+                    atom_type TEXT,
+                    role TEXT,
+                    party TEXT,
+                    who TEXT,
+                    who_text TEXT,
+                    actor TEXT,
+                    modality TEXT,
+                    action TEXT,
+                    conditions TEXT,
+                    scope TEXT,
+                    text TEXT,
+                    subject_gloss TEXT,
+                    subject_gloss_metadata TEXT,
+                    glossary_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id)
+                );
+
+                CREATE TABLE rule_elements (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    provision_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    element_id INTEGER NOT NULL,
+                    text_hash TEXT,
+                    atom_type TEXT,
+                    role TEXT,
+                    text TEXT,
+                    conditions TEXT,
+                    gloss TEXT,
+                    gloss_metadata TEXT,
+                    glossary_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id)
+                );
+                """
+            )
+
+            conn.execute("INSERT INTO documents (id) VALUES (1)")
+            conn.execute(
+                """
+                INSERT INTO revisions (
+                    doc_id, rev_id, effective_date, metadata, body,
+                    source_url, retrieved_at, checksum, licence, document_json
+                )
+                VALUES (1, 1, '2020-01-01', '{}', 'body', NULL, NULL, NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO provisions (
+                    doc_id, rev_id, provision_id, parent_id, identifier, heading,
+                    node_type, toc_id, text, rule_tokens, references_json,
+                    principles, customs, cultural_flags
+                )
+                VALUES (1, 1, 1, NULL, 's 1', 'Heading', 'section', NULL,
+                        'Provision text', NULL, '{}', NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO rule_atoms (
+                    doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, stable_id,
+                    atom_type, role, party, who, who_text, actor, modality, action,
+                    conditions, scope, text, subject_gloss, subject_gloss_metadata, glossary_id
+                )
+                VALUES (1, 1, 1, 1, 'hash', NULL, 'stable', 'rule', 'role', 'party',
+                        NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Atom text',
+                        NULL, NULL, NULL)
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO rule_elements (
+                    doc_id, rev_id, provision_id, rule_id, element_id, text_hash,
+                    atom_type, role, text, conditions, gloss, gloss_metadata, glossary_id
+                )
+                VALUES (1, 1, 1, 1, 1, NULL, 'element', 'role', 'Element text',
+                        NULL, NULL, NULL, NULL)
+                """
+            )
+    finally:
+        conn.close()
+
+    store = VersionedStore(str(db_path))
+    try:
+        heading = store.conn.execute(
+            "SELECT heading FROM provisions WHERE doc_id = 1 AND rev_id = 1"
+        ).fetchone()
+        assert heading is not None
+        assert heading["heading"] == "Heading"
+
+        atom_row = store.conn.execute(
+            "SELECT text FROM rule_atoms WHERE doc_id = 1 AND rev_id = 1 AND rule_id = 1"
+        ).fetchone()
+        assert atom_row is not None
+        assert atom_row["text"] == "Atom text"
+
+        element_row = store.conn.execute(
+            "SELECT text FROM rule_elements WHERE doc_id = 1 AND rev_id = 1 AND element_id = 1"
+        ).fetchone()
+        assert element_row is not None
+        assert element_row["text"] == "Element text"
+
+        for table_name in ("provisions", "rule_atoms", "rule_elements"):
+            with pytest.raises(sqlite3.OperationalError):
+                store.conn.execute(f"SELECT rowid FROM {table_name} LIMIT 1")
+    finally:
+        store.close()
+
+
 def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 sample")
     db_path = tmp_path / "store.db"
     output_path = tmp_path / "out.json"
 
-    monkeypatch.setattr(
-        pdf_ingest,
-        "extract_text",
-        lambda _: "1 Heading\nAlice must pay Bob.",
-    )
+    def fake_extract_pdf_text(_path: Path):
+        yield {
+            "page": 1,
+            "heading": "1 Heading",
+            "text": "Alice must pay Bob.",
+            "lines": ["1 Heading", "Alice must pay Bob."],
+        }
+
+    monkeypatch.setattr(pdf_ingest, "extract_pdf_text", fake_extract_pdf_text)
     monkeypatch.setattr(pdf_ingest, "section_parser", None)
 
     document, stored_doc_id = pdf_ingest.process_pdf(
@@ -1177,18 +1888,6 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         assert snapshot is not None
         assert snapshot.provisions
         assert snapshot.provisions[0].atoms
-
-        # Removing JSON payload should still allow reconstruction from normalized tables.
-        store.conn.execute(
-            "UPDATE revisions SET document_json = NULL WHERE doc_id = ? AND rev_id = ?",
-            (stored_doc_id, 1),
-        )
-        store.conn.commit()
-
-        snapshot_no_json = store.snapshot(stored_doc_id, document.metadata.date)
-        assert snapshot_no_json is not None
-        assert snapshot_no_json.provisions
-        assert snapshot_no_json.provisions[0].atoms
     finally:
         store.close()
 
@@ -1267,5 +1966,21 @@ def test_toc_entries_round_trip(tmp_path: Path) -> None:
         assert snapshot.toc_entries[0].children[0].page_number == 6
         assert snapshot.provisions[0].stable_id == parent_row["stable_id"]
         assert snapshot.provisions[0].children[0].stable_id == child_row["stable_id"]
+    finally:
+        store.close()
+
+
+def test_revisions_effective_date_index(tmp_path: Path) -> None:
+    store, _ = make_store(tmp_path)
+    try:
+        indexes = store.conn.execute("PRAGMA index_list(revisions)").fetchall()
+        index_names = {row["name"] for row in indexes}
+        assert "idx_revisions_doc_effective_desc" in index_names
+
+        details = store.conn.execute(
+            "PRAGMA index_xinfo(idx_revisions_doc_effective_desc)"
+        ).fetchall()
+        effective_row = next(row for row in details if row["name"] == "effective_date")
+        assert effective_row["desc"] == 1
     finally:
         store.close()

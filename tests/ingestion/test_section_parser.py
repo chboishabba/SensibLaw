@@ -111,20 +111,37 @@ def test_section_15_reference_normalization():
 def test_logic_token_annotation_assigns_classes():
     text = "A person must not drive if intoxicated under s 5B."
     doc = annotate_logic_tokens(text)
-    tokens = [(token.text, token._.class_) for token in doc if not token.is_space]
+    tokens = [
+        (token.text, token._.class_, token._.class_reason)
+        for token in doc
+        if not token.is_space
+    ]
     assert tokens == [
-        ("A", LogicTokenClass.ACTOR),
-        ("person", LogicTokenClass.ACTOR),
-        ("must", LogicTokenClass.MODALITY),
-        ("not", LogicTokenClass.MODALITY),
-        ("drive", LogicTokenClass.ACTION),
-        ("if", LogicTokenClass.CONDITION),
-        ("intoxicated", LogicTokenClass.CONDITION),
-        ("under", LogicTokenClass.CONDITION),
-        ("s", LogicTokenClass.REFERENCE),
-        ("5B.", LogicTokenClass.REFERENCE),
+        ("A", LogicTokenClass.ACTOR, "preceding modality treated as actor"),
+        ("person", LogicTokenClass.ACTOR, "preceding modality treated as actor"),
+        ("must", LogicTokenClass.MODALITY, "matched rule matcher pattern MODALITY"),
+        ("not", LogicTokenClass.MODALITY, "matched rule matcher pattern MODALITY"),
+        ("drive", LogicTokenClass.ACTION, "post-modality span labelled as action"),
+        ("if", LogicTokenClass.CONDITION, "matched rule matcher pattern CONDITION"),
+        (
+            "intoxicated",
+            LogicTokenClass.CONDITION,
+            "filled in by condition scope expansion",
+        ),
+        (
+            "under",
+            LogicTokenClass.CONDITION,
+            "filled in by condition scope expansion",
+        ),
+        ("s", LogicTokenClass.REFERENCE, "matched reference extractor for 's 5B'"),
+        (
+            "5B.",
+            LogicTokenClass.REFERENCE,
+            "matched reference extractor for 's 5B'",
+        ),
     ]
     assert all(token._.class_ is not None for token in doc)
+    assert all(token._.class_reason for token in doc if not token.is_space)
 
 
 def test_logic_token_annotation_handles_subject_to_reference():
@@ -143,8 +160,11 @@ def test_fetch_section_includes_token_classes():
     token_classes = data["rules"].get("token_classes", [])
     assert token_classes
     labels = {entry["text"]: entry["class"] for entry in token_classes}
+    reasons = {entry["text"]: entry["reason"] for entry in token_classes}
     assert labels["person"] == "ACTOR"
     assert labels["must"] == "MODALITY"
     assert labels["if"] == "CONDITION"
     assert labels["s"] == "REFERENCE"
-    assert all({"text", "start", "end", "class"} <= set(entry) for entry in token_classes)
+    assert reasons["must"] == "matched rule matcher pattern MODALITY"
+    assert reasons["s"] == "matched reference extractor for 's 5B'"
+    assert all({"text", "start", "end", "class", "reason"} <= set(entry) for entry in token_classes)

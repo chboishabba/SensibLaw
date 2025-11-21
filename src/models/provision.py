@@ -5,6 +5,28 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 
+def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if metadata is None:
+        return None
+    return dict(metadata)
+
+
+@dataclass
+class GlossaryLink:
+    """Shared glossary linkage metadata."""
+
+    text: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    glossary_id: Optional[int] = None
+
+    def clone(self) -> "GlossaryLink":
+        return GlossaryLink(
+            text=self.text,
+            metadata=_clone_metadata(self.metadata),
+            glossary_id=self.glossary_id,
+        )
+
+
 @dataclass
 class Atom:
     """A minimal knowledge atom extracted from a provision."""
@@ -17,9 +39,7 @@ class Atom:
     conditions: Optional[str] = None
     text: Optional[str] = None
     refs: List[str] = field(default_factory=list)
-    gloss: Optional[str] = None
-    gloss_metadata: Optional[Dict[str, Any]] = None
-    glossary_id: Optional[int] = None
+    glossary: Optional[GlossaryLink] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the atom to a dictionary."""
@@ -34,9 +54,7 @@ class Atom:
             "text": self.text,
             "refs": list(self.refs),
             "gloss": self.gloss,
-            "gloss_metadata": (
-                dict(self.gloss_metadata) if self.gloss_metadata is not None else None
-            ),
+            "gloss_metadata": _clone_metadata(self.gloss_metadata),
             "glossary_id": self.glossary_id,
         }
 
@@ -53,14 +71,52 @@ class Atom:
             conditions=data.get("conditions"),
             text=data.get("text"),
             refs=list(data.get("refs", [])),
-            gloss=data.get("gloss"),
-            gloss_metadata=(
-                dict(data["gloss_metadata"])
-                if "gloss_metadata" in data and data["gloss_metadata"] is not None
-                else None
-            ),
-            glossary_id=data.get("glossary_id"),
+            glossary=GlossaryLink(
+                text=data.get("gloss"),
+                metadata=(
+                    dict(data["gloss_metadata"])
+                    if "gloss_metadata" in data and data["gloss_metadata"] is not None
+                    else None
+                ),
+                glossary_id=data.get("glossary_id"),
+            )
         )
+
+    @property
+    def gloss(self) -> Optional[str]:
+        return self.glossary.text if self.glossary else None
+
+    @gloss.setter
+    def gloss(self, value: Optional[str]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.text = value
+
+    @property
+    def gloss_metadata(self) -> Optional[Dict[str, Any]]:
+        return self.glossary.metadata if self.glossary else None
+
+    @gloss_metadata.setter
+    def gloss_metadata(self, value: Optional[Dict[str, Any]]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.metadata = _clone_metadata(value)
+
+    @property
+    def glossary_id(self) -> Optional[int]:
+        return self.glossary.glossary_id if self.glossary else None
+
+    @glossary_id.setter
+    def glossary_id(self, value: Optional[int]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.glossary_id = value
 
 
 @dataclass
@@ -71,7 +127,7 @@ class RuleReference:
     section: Optional[str] = None
     pinpoint: Optional[str] = None
     citation_text: Optional[str] = None
-    glossary_id: Optional[int] = None
+    glossary: Optional[GlossaryLink] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -84,12 +140,15 @@ class RuleReference:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RuleReference":
+        glossary_id = data.get("glossary_id")
         return cls(
             work=data.get("work"),
             section=data.get("section"),
             pinpoint=data.get("pinpoint"),
             citation_text=data.get("citation_text"),
-            glossary_id=data.get("glossary_id"),
+            glossary=(
+                GlossaryLink(glossary_id=glossary_id) if glossary_id is not None else None
+            ),
         )
 
     def to_legacy_text(self) -> str:
@@ -100,6 +159,18 @@ class RuleReference:
         parts = [self.work, self.section, self.pinpoint]
         return " ".join(part for part in parts if part) or ""
 
+    @property
+    def glossary_id(self) -> Optional[int]:
+        return self.glossary.glossary_id if self.glossary else None
+
+    @glossary_id.setter
+    def glossary_id(self, value: Optional[int]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.glossary_id = value
+
 
 @dataclass
 class RuleElement:
@@ -108,9 +179,7 @@ class RuleElement:
     role: Optional[str] = None
     text: Optional[str] = None
     conditions: Optional[str] = None
-    gloss: Optional[str] = None
-    gloss_metadata: Optional[Dict[str, Any]] = None
-    glossary_id: Optional[int] = None
+    glossary: Optional[GlossaryLink] = None
     references: List[RuleReference] = field(default_factory=list)
     atom_type: Optional[str] = None
 
@@ -120,9 +189,7 @@ class RuleElement:
             "text": self.text,
             "conditions": self.conditions,
             "gloss": self.gloss,
-            "gloss_metadata": (
-                dict(self.gloss_metadata) if self.gloss_metadata is not None else None
-            ),
+            "gloss_metadata": _clone_metadata(self.gloss_metadata),
             "glossary_id": self.glossary_id,
             "references": [ref.to_dict() for ref in self.references],
             "atom_type": self.atom_type,
@@ -134,16 +201,54 @@ class RuleElement:
             role=data.get("role"),
             text=data.get("text"),
             conditions=data.get("conditions"),
-            gloss=data.get("gloss"),
-            gloss_metadata=(
-                dict(data["gloss_metadata"])
-                if "gloss_metadata" in data and data["gloss_metadata"] is not None
-                else None
+            glossary=GlossaryLink(
+                text=data.get("gloss"),
+                metadata=(
+                    dict(data["gloss_metadata"])
+                    if "gloss_metadata" in data and data["gloss_metadata"] is not None
+                    else None
+                ),
+                glossary_id=data.get("glossary_id"),
             ),
-            glossary_id=data.get("glossary_id"),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             atom_type=data.get("atom_type"),
         )
+
+    @property
+    def gloss(self) -> Optional[str]:
+        return self.glossary.text if self.glossary else None
+
+    @gloss.setter
+    def gloss(self, value: Optional[str]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.text = value
+
+    @property
+    def gloss_metadata(self) -> Optional[Dict[str, Any]]:
+        return self.glossary.metadata if self.glossary else None
+
+    @gloss_metadata.setter
+    def gloss_metadata(self, value: Optional[Dict[str, Any]]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.metadata = _clone_metadata(value)
+
+    @property
+    def glossary_id(self) -> Optional[int]:
+        return self.glossary.glossary_id if self.glossary else None
+
+    @glossary_id.setter
+    def glossary_id(self, value: Optional[int]) -> None:
+        if value is None and self.glossary is None:
+            return
+        if self.glossary is None:
+            self.glossary = GlossaryLink()
+        self.glossary.glossary_id = value
 
 
 @dataclass
@@ -194,9 +299,7 @@ class RuleAtom:
     conditions: Optional[str] = None
     scope: Optional[str] = None
     text: Optional[str] = None
-    subject_gloss: Optional[str] = None
-    subject_gloss_metadata: Optional[Dict[str, Any]] = None
-    glossary_id: Optional[int] = None
+    subject_link: Optional[GlossaryLink] = None
     subject: Optional[Atom] = None
     references: List[RuleReference] = field(default_factory=list)
     elements: List[RuleElement] = field(default_factory=list)
@@ -218,11 +321,7 @@ class RuleAtom:
             "scope": self.scope,
             "text": self.text,
             "subject_gloss": self.subject_gloss,
-            "subject_gloss_metadata": (
-                dict(self.subject_gloss_metadata)
-                if self.subject_gloss_metadata is not None
-                else None
-            ),
+            "subject_gloss_metadata": _clone_metadata(self.subject_gloss_metadata),
             "glossary_id": self.glossary_id,
             "subject": self.subject.to_dict() if self.subject is not None else None,
             "references": [ref.to_dict() for ref in self.references],
@@ -246,14 +345,16 @@ class RuleAtom:
             conditions=data.get("conditions"),
             scope=data.get("scope"),
             text=data.get("text"),
-            subject_gloss=data.get("subject_gloss"),
-            subject_gloss_metadata=(
-                dict(data["subject_gloss_metadata"])
-                if "subject_gloss_metadata" in data
-                and data["subject_gloss_metadata"] is not None
-                else None
+            subject_link=GlossaryLink(
+                text=data.get("subject_gloss"),
+                metadata=(
+                    dict(data["subject_gloss_metadata"])
+                    if "subject_gloss_metadata" in data
+                    and data["subject_gloss_metadata"] is not None
+                    else None
+                ),
+                glossary_id=data.get("glossary_id"),
             ),
-            glossary_id=data.get("glossary_id"),
             subject=(Atom.from_dict(data["subject"]) if data.get("subject") else None),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             elements=[RuleElement.from_dict(e) for e in data.get("elements", [])],
@@ -261,6 +362,42 @@ class RuleAtom:
                 RuleLint.from_dict(lint_data) for lint_data in data.get("lints", [])
             ],
         )
+
+    @property
+    def subject_gloss(self) -> Optional[str]:
+        return self.subject_link.text if self.subject_link else None
+
+    @subject_gloss.setter
+    def subject_gloss(self, value: Optional[str]) -> None:
+        if value is None and self.subject_link is None:
+            return
+        if self.subject_link is None:
+            self.subject_link = GlossaryLink()
+        self.subject_link.text = value
+
+    @property
+    def subject_gloss_metadata(self) -> Optional[Dict[str, Any]]:
+        return self.subject_link.metadata if self.subject_link else None
+
+    @subject_gloss_metadata.setter
+    def subject_gloss_metadata(self, value: Optional[Dict[str, Any]]) -> None:
+        if value is None and self.subject_link is None:
+            return
+        if self.subject_link is None:
+            self.subject_link = GlossaryLink()
+        self.subject_link.metadata = _clone_metadata(value)
+
+    @property
+    def glossary_id(self) -> Optional[int]:
+        return self.subject_link.glossary_id if self.subject_link else None
+
+    @glossary_id.setter
+    def glossary_id(self, value: Optional[int]) -> None:
+        if value is None and self.subject_link is None:
+            return
+        if self.subject_link is None:
+            self.subject_link = GlossaryLink()
+        self.subject_link.glossary_id = value
 
     def get_subject_atom(self) -> Atom:
         """Return the canonical subject representation for this rule atom."""
@@ -306,6 +443,23 @@ class RuleAtom:
             if base_atom and base_atom.glossary_id is not None
             else self.glossary_id
         )
+        glossary: Optional[GlossaryLink]
+        if (
+            gloss is not None
+            or gloss_metadata is not None
+            or glossary_id is not None
+        ):
+            glossary = GlossaryLink(
+                text=gloss,
+                metadata=_clone_metadata(gloss_metadata),
+                glossary_id=glossary_id,
+            )
+        elif base_atom and base_atom.glossary is not None:
+            glossary = base_atom.glossary.clone()
+        elif self.subject_link is not None:
+            glossary = self.subject_link.clone()
+        else:
+            glossary = None
         if base_atom and base_atom.refs:
             refs = list(base_atom.refs)
         else:
@@ -319,9 +473,7 @@ class RuleAtom:
             conditions=conditions,
             text=text,
             refs=refs,
-            gloss=gloss,
-            gloss_metadata=gloss_metadata,
-            glossary_id=glossary_id,
+            glossary=glossary,
         )
 
     def to_atoms(self) -> List[Atom]:
@@ -340,9 +492,11 @@ class RuleAtom:
                 conditions=subject_atom.conditions,
                 text=subject_atom.text,
                 refs=list(subject_atom.refs),
-                gloss=subject_atom.gloss,
-                gloss_metadata=subject_atom.gloss_metadata,
-                glossary_id=subject_atom.glossary_id,
+                glossary=(
+                    subject_atom.glossary.clone()
+                    if subject_atom.glossary is not None
+                    else None
+                ),
             )
         )
 
@@ -357,13 +511,32 @@ class RuleAtom:
                     conditions=element.conditions,
                     text=element.text,
                     refs=[ref.to_legacy_text() for ref in element.references],
-                    gloss=element.gloss,
-                    gloss_metadata=element.gloss_metadata,
-                    glossary_id=element.glossary_id,
+                    glossary=(
+                        element.glossary.clone()
+                        if element.glossary is not None
+                        else None
+                    ),
                 )
             )
 
         for lint in self.lints:
+            lint_glossary: Optional[GlossaryLink]
+            if (
+                subject_atom.gloss is not None
+                or subject_atom.glossary_id is not None
+                or lint.metadata is not None
+            ):
+                lint_glossary = GlossaryLink(
+                    text=subject_atom.gloss,
+                    metadata=_clone_metadata(lint.metadata),
+                    glossary_id=subject_atom.glossary_id,
+                )
+            else:
+                lint_glossary = (
+                    subject_atom.glossary.clone()
+                    if subject_atom.glossary is not None
+                    else None
+                )
             flattened.append(
                 Atom(
                     type=lint.atom_type or "lint",
@@ -372,9 +545,7 @@ class RuleAtom:
                     who=subject_atom.who,
                     who_text=subject_atom.who_text,
                     text=lint.message,
-                    gloss=subject_atom.gloss,
-                    gloss_metadata=lint.metadata,
-                    glossary_id=subject_atom.glossary_id,
+                    glossary=lint_glossary,
                 )
             )
 
@@ -565,13 +736,11 @@ class Provision:
                 conditions=base_atom.conditions,
                 text=base_atom.text,
                 refs=list(base_atom.refs),
-                gloss=base_atom.gloss,
-                gloss_metadata=(
-                    dict(base_atom.gloss_metadata)
-                    if base_atom.gloss_metadata is not None
+                glossary=(
+                    base_atom.glossary.clone()
+                    if base_atom.glossary is not None
                     else None
                 ),
-                glossary_id=base_atom.glossary_id,
             )
             rule = RuleAtom(
                 atom_type=base_atom.type or "rule",
@@ -581,11 +750,9 @@ class Provision:
                 who_text=base_atom.who_text,
                 conditions=base_atom.conditions,
                 text=base_atom.text,
-                subject_gloss=base_atom.gloss,
-                subject_gloss_metadata=base_atom.gloss_metadata,
+                subject_link=subject_atom.glossary,
                 subject=subject_atom,
                 references=[build_reference(ref) for ref in base_atom.refs],
-                glossary_id=base_atom.glossary_id,
             )
             structured.append(rule)
             return rule
@@ -617,10 +784,12 @@ class Provision:
                         role=atom.role,
                         text=atom.text,
                         conditions=atom.conditions,
-                        gloss=atom.gloss,
-                        gloss_metadata=atom.gloss_metadata,
+                        glossary=(
+                            atom.glossary.clone()
+                            if atom.glossary is not None
+                            else None
+                        ),
                         references=[build_reference(ref) for ref in atom.refs],
-                        glossary_id=atom.glossary_id,
                         atom_type=atom.type,
                     )
                 )

@@ -10,8 +10,16 @@ def test_pdf_fetch_cli(tmp_path):
     (stub_pkg / "pdfminer").mkdir(parents=True)
     (stub_pkg / "pdfminer" / "__init__.py").write_text("")
     (stub_pkg / "pdfminer" / "high_level.py").write_text(
+        "from types import SimpleNamespace\n\n"
+        "def _pages():\n"
+        "    text = ('1 Heading One\\nAgents must file reports.\\f2 Heading Two\\n"
+        "Directors may refuse permits.')\n"
+        "    for page in text.split('\\f'):\n"
+        "        yield [SimpleNamespace(get_text=lambda page=page: page)]\n\n"
+        "def extract_pages(path):\n"
+        "    return _pages()\n\n"
         "def extract_text(path):\n"
-        "    return '1 Heading One\\nAgents must file reports.\\f2 Heading Two\\nDirectors may refuse permits.'\n"
+        "    return ''.join(page.get_text() + '\\f' for layout in _pages() for page in layout)\n"
     )
 
     pdf_path = tmp_path / "sample.pdf"

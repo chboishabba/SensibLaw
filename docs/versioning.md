@@ -12,7 +12,8 @@ queries.
 - `revisions.document_json` – JSON column containing the full
   [`Document`](../src/models/document.py) structure, including nested
   [`Provision`](../src/models/provision.py) entries and their atoms.
-- `revisions_fts` – FTS5 index over revision text and metadata for search.
+- `provision_text_fts` – FTS5 index over provision text extracted from structured rows.
+- `rule_atom_text_fts` – FTS5 index over structured rule atom text.
 
 Each revision also records provenance fields:
 
@@ -23,10 +24,10 @@ Each revision also records provenance fields:
 
 ## Writing revisions
 
-`VersionedStore.add_revision` serialises the entire `Document` instance into
-`document_json`.  Consumers can therefore rely on snapshots reflecting the
-structured metadata, provision hierarchy, and extracted atoms produced at
-ingest time.
+`VersionedStore.add_revision` persists the document body and metadata alongside
+the normalized provision, rule atom, and TOC tables.  Snapshots therefore
+reflect the structured metadata, provision hierarchy, and extracted atoms
+captured at ingest time without requiring a JSON blob in the `revisions` table.
 
 ## Snapshots
 
@@ -38,10 +39,10 @@ sensiblaw get --id 1 --as-at 2023-01-01
 ```
 
 The returned JSON includes the provenance metadata captured for the selected
-revision and the full [`Document`](../src/models/document.py) payload stored in
-`document_json`.  Consumers should expect the same schema as defined in the
-data models, with provision and atom structures matching
-[`Provision`](../src/models/provision.py).
+revision and the full [`Document`](../src/models/document.py) payload
+reconstructed from the normalized tables.  Consumers should expect the same
+schema as defined in the data models, with provision and atom structures
+matching [`Provision`](../src/models/provision.py).
 
 ## Diffs
 

@@ -1,0 +1,133 @@
+actors:
+  court:
+    role: decision_maker
+    who_text: the court
+    aliases:
+      - court
+      - the court
+      - tribunal
+  judge:
+    role: decision_maker
+    who_text: the judge
+    aliases:
+      - judge
+      - the judge
+      - justice
+      - magistrate
+      - sentencing judge
+  legislature:
+    role: legislature
+    who_text: the legislature
+    aliases:
+      - legislature
+      - parliament
+      - congress
+      - assembly
+      - house of representatives
+      - senate
+  executive:
+    role: executive
+    who_text: the executive
+    aliases:
+      - executive
+      - government
+      - the government
+      - cabinet
+      - prime minister
+      - president
+      - governor
+      - premier
+  prosecution:
+    role: prosecutor
+    who_text: the prosecution
+    aliases:
+      - prosecution
+      - the prosecution
+      - prosecutor
+      - prosecutors
+      - crown
+      - director of public prosecutions
+      - dpp
+      - attorney general
+      - the state
+      - district attorney
+  defence:
+    role: accused
+    who_text: the accused
+    aliases:
+      - defendant
+      - defendants
+      - defence
+      - defense
+      - accused
+      - respondent
+      - respondents
+      - appellant
+      - offender
+      - offenders
+      - prisoner
+      - person charged
+      - the person charged
+  police:
+    role: law_enforcement
+    who_text: law enforcement
+    aliases:
+      - police
+      - police officer
+      - police officers
+      - constable
+      - constables
+      - sheriff
+      - law enforcement
+  victim:
+    role: victim
+    who_text: the victim
+    aliases:
+      - victim
+      - victims
+      - complainant
+      - complainants
+      - survivor
+      - survivors
+  party:
+    role: party
+    who_text: the party
+    aliases:
+      - party
+      - parties
+      - litigant
+      - litigants
+      - applicant
+      - applicants
+      - claimant
+      - claimants
+      - plaintiff
+      - plaintiffs
+  public:
+    role: public
+    who_text: the public
+    aliases:
+      - public
+      - the public
+      - community
+      - communities
+      - people
+      - citizens
+      - society
+      - members of the public
+  public_body:
+    role: public_body
+    who_text: the authority
+    aliases:
+      - minister
+      - the minister
+      - secretary
+      - director
+      - commission
+      - board
+      - authority
+      - department
+      - agency
+      - regulator
+      - council
+      - committee

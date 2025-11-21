@@ -1,7 +1,10 @@
 from pathlib import Path
 
 import pytest
+import spacy
 
+from src.nlp.rules import match_rules
+from src.nlp.taxonomy import ConditionalConnector, ConditionalPolarity, Modality
 from src.pdf_ingest import build_document
 from src.rules.extractor import extract_rules
 
@@ -20,6 +23,21 @@ def graffiti_clause() -> str:
         "A person commits the offence of graffiti if the person intentionally marks "
         "property without the consent of the owner unless the marking is authorised."
     )
+
+
+@pytest.fixture
+def compliance_clause() -> str:
+    return "The operator must file reports when requested."
+
+
+@pytest.fixture
+def positive_condition_sentence() -> str:
+    return "If the regulator approves, the applicant may proceed."
+
+
+@pytest.fixture
+def negative_condition_sentence() -> str:
+    return "Unless the regulator objects, the applicant may proceed."
 
 
 def test_murder_elements_are_classified(murder_clause: str) -> None:
@@ -56,6 +74,14 @@ def test_graffiti_elements_are_classified(graffiti_clause: str) -> None:
     )
 
 
+def test_normative_clause_emits_taxonomy_modality(
+    compliance_clause: str,
+) -> None:
+    rules = extract_rules(compliance_clause)
+    assert len(rules) == 1
+    assert rules[0].modality == Modality.MUST.value
+
+
 def test_leading_condition_extracted_and_classified() -> None:
     text = (
         "If the court is satisfied that the applicant meets the criteria, "
@@ -67,6 +93,7 @@ def test_leading_condition_extracted_and_classified() -> None:
 
     rule = rules[0]
     assert rule.conditions == "If the court is satisfied that the applicant meets the criteria"
+    assert rule.modality == Modality.MAY.value
     assert not rule.actor.lower().startswith("if")
     assert any(
         "if the court is satisfied that the applicant meets the criteria" in frag.lower()
@@ -85,6 +112,7 @@ def test_leading_condition_keeps_first_clause_actor() -> None:
     rule = rules[0]
     assert rule.actor.lower().startswith("the applicant")
     assert rule.conditions == "If the court is satisfied"
+    assert rule.modality == Modality.MUST.value
 
 
 def test_document_atoms_include_element_roles(
@@ -113,3 +141,23 @@ def test_document_atoms_include_element_roles(
     assert any("resulting in the death" in (text or "").lower() for text in _atoms_for("result"))
     assert any("without the consent" in (text or "").lower() for text in _atoms_for("circumstance"))
     assert any("unless the marking" in (text or "").lower() for text in _atoms_for("exception"))
+
+
+def test_condition_connector_polarities(
+    positive_condition_sentence: str, negative_condition_sentence: str
+) -> None:
+    nlp = spacy.blank("en")
+
+    positive_summary = match_rules(nlp(positive_condition_sentence))
+    assert positive_summary.conditions == [ConditionalConnector.IF.value]
+    assert (
+        ConditionalConnector(positive_summary.conditions[0]).polarity
+        == ConditionalPolarity.POSITIVE
+    )
+
+    negative_summary = match_rules(nlp(negative_condition_sentence))
+    assert negative_summary.conditions == [ConditionalConnector.UNLESS.value]
+    assert (
+        ConditionalConnector(negative_summary.conditions[0]).polarity
+        == ConditionalPolarity.NEGATIVE
+    )

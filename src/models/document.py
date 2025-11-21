@@ -53,6 +53,7 @@ class DocumentMetadata:
         cco_tags: Optional list of cross-cultural obligation tags.
         cultural_flags: Optional list of cultural sensitivity flags.
         cultural_annotations: Derived annotations about cultural overlays.
+            Each annotation is a mapping describing the applied policy.
         cultural_redactions: Flags whose rules redacted content.
         cultural_consent_required: Whether any cultural rule requires consent.
         jurisdiction_codes: Optional list of standardized jurisdiction codes.
@@ -71,7 +72,7 @@ class DocumentMetadata:
     lpo_tags: Optional[List[str]] = None
     cco_tags: Optional[List[str]] = None
     cultural_flags: Optional[List[str]] = None
-    cultural_annotations: List[str] = field(default_factory=list)
+    cultural_annotations: List[Dict[str, Any]] = field(default_factory=list)
     cultural_redactions: List[str] = field(default_factory=list)
     cultural_consent_required: bool = False
     canonical_id: Optional[str] = None
@@ -113,7 +114,15 @@ class DocumentMetadata:
             lpo_tags=data.get("lpo_tags"),
             cco_tags=data.get("cco_tags"),
             cultural_flags=data.get("cultural_flags"),
-            cultural_annotations=list(data.get("cultural_annotations", [])),
+            cultural_annotations=[
+                entry
+                if isinstance(entry, dict)
+                else {
+                    "kind": "legacy",
+                    "text": str(entry),
+                }
+                for entry in data.get("cultural_annotations", [])
+            ],
             cultural_redactions=list(data.get("cultural_redactions", [])),
             cultural_consent_required=bool(
                 data.get("cultural_consent_required", False)

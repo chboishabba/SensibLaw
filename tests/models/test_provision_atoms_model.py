@@ -1,4 +1,4 @@
-from src.models.provision import Atom, Provision
+from src.models.provision import Atom, GlossaryLink, Provision
 
 
 def test_provision_atom_round_trip_preserves_party_and_who_text():
@@ -11,8 +11,7 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
         conditions="if ordered",
         text="must pay damages",
         refs=["s 10"],
-        gloss="Obligation to compensate",
-        glossary_id=3,
+        glossary=GlossaryLink(text="Obligation to compensate", glossary_id=3),
     )
     provision = Provision(text="Damages provision", atoms=[atom])
 
@@ -27,3 +26,5 @@ def test_provision_atom_round_trip_preserves_party_and_who_text():
     assert round_tripped.atoms == [atom]
     assert round_tripped.atoms[0].refs == ["s 10"]
     assert round_tripped.rule_atoms, "structured rule atoms should be reconstructed"
+    assert round_tripped.atoms[0].glossary is not None
+    assert round_tripped.atoms[0].glossary.glossary_id == 3
