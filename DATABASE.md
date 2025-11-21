@@ -12,7 +12,7 @@ This document describes the authoritative SensibLaw ontology as a **Layer‑0 te
 | **Layer 3 — Norm Sources & Provisions** | Jurisdictions, legal sources, and citations that authorise duties. | `LegalSystem`, `NormSourceCategory`, `LegalSource`, `Provision` | `LegalSystem.id`, `NormSourceCategory.id`, `LegalSource.id → legal_system_id, norm_source_category_id`, `Provision.id → legal_source_id` |
 | **Layer 4 — Wrong Types & Duties** | Abstract wrongs/offences and the doctrinal elements that define them. | `WrongType`, `WrongTypeSourceLink`, `WrongElementRequirement`, `MentalState`, `ActorConstraint` | `WrongType.id → legal_system_id, norm_source_category_id`, `WrongTypeSourceLink.wrong_type_id ↔ legal_source_id`, `WrongElementRequirement.id → wrong_type_id`, `ActorConstraint.id → wrong_type_id` |
 | **Layer 5 — Protected Interests & Harms** | What the law protects and how events damage those interests. | `ValueDimension`, `CulturalRegister`, `ProtectedInterestType`, `HarmInstance` | `ValueDimension.id`, `CulturalRegister.id`, `ProtectedInterestType.id → value_dimension_id, cultural_register_id?`, `HarmInstance.id → event_id, protected_interest_type_id` |
-| **Layer 6 — Value Frames & Remedies** | Moral frames, community perspectives, and outcome modalities. | `ValueFrame`, `RemedyModality`, `EventRemedy`, `Perspective` | `ValueFrame.id`, `RemedyModality.id`, `EventRemedy.id → event_id, remedy_modality_id`, `Perspective.id → value_frame_id` |
+| **Layer 6 — Value Frames & Remedies** | Moral frames, community perspectives, and outcome modalities. | `ValueFrame`, `RemedyModality`, `RemedyCatalog`, `EventRemedy`, `Perspective` | `ValueFrame.id`, `RemedyModality.id`, `RemedyCatalog.id → remedy_modality_id`, `EventRemedy.id → event_id, remedy_catalog_id?`, `Perspective.id → value_frame_id` |
 
 ## Text Substrate (Layer 0)
 
@@ -26,9 +26,9 @@ Layer 0 holds the textual backbone used for provenance and narrative context. Th
 
 Events anchor everything downstream. Actors stay intentionally minimal while detailed person/org facets live in separate tables that can be joined when available.
 
-- **Event**: life/legal/system events with time bounds (`Event.id`, `kind`, `valid_from`, `valid_to`).
+- **Event**: life/legal/system events with time bounds (`Event.id`, `kind`, `valid_from`, `valid_to`). When an event is linked to a `WrongType`, its `legal_system_id` must match the wrong type’s `legal_system_id`; a composite foreign key enforces the alignment and lets downstream services infer the jurisdiction directly from `wrong_type_id`.
 - **Actor**: thin actor shell used for participation and finance joins (`Actor.id`, `kind`, `label`), leaving richer attributes to the tables below.
-- **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_code`).
+- **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_id`, `subdivision_id` → `Country`/`Subdivision`).
 - **ActorPersonDetails**: natural person traits such as names, birthdate, pronouns, and optional postal address (`actor_id`, `given_name`, `family_name`, `birthdate`, `pronouns`, `gender`, `ethnicity`, `address_id`).
 - **ActorOrgDetails**: organisation registration and type metadata with optional registered address (`actor_id`, `legal_name`, `registration_no`, `org_type`, `address_id`).
 - **ActorContactPoint**: arbitrary contact points keyed to an actor (`actor_id`, `kind`, `value`, `label`).
@@ -78,7 +78,8 @@ The top layer captures moral perspectives and the forms of redress associated wi
 - **ValueFrame**: expresses justificatory frames (e.g., `gender_equality`, `tikanga_balance`, `child_rights`, `ecological_stewardship`).
 - **Perspective**: optional qualifier that records whose viewpoint the frame reflects (community, state, victim, accused).
 - **RemedyModality**: enumerates remedy families (`MONETARY`, `LIBERTY_RESTRICTION`, `STATUS_CHANGE`, `SYMBOLIC`, `RESTORATIVE_RITUAL`, `STRUCTURAL`).
-- **EventRemedy**: joins events (or claims) to proposed or ordered remedies (`event_id`, `remedy_modality_id`, amount/terms fields) and tags them with the applicable `ValueFrame`/`Perspective`.
+- **RemedyCatalog**: reusable remedy templates keyed by `remedy_modality_id` and localised to a legal system or cultural register. Reference these to seed common remedies without binding them to a specific harm/event instance.
+- **EventRemedy**: joins events (or claims) to proposed or ordered remedies (`event_id`, optional `harm_instance_id`, `remedy_catalog_id`, amount/terms fields) and tags them with the applicable `ValueFrame`/`Perspective`. The remedy modality now flows from the linked `RemedyCatalog`.
 
 ## Relationships and Cross-Layer Flow
 
@@ -108,7 +109,8 @@ erDiagram
     Event ||--o{ HarmInstance : causes
 
     Event ||--o{ EventRemedy : remedied_by
-    RemedyModality ||--o{ EventRemedy : modality
+    RemedyModality ||--o{ RemedyCatalog : family
+    RemedyCatalog ||--o{ EventRemedy : template
     ValueFrame ||--o{ EventRemedy : justified_by
     Perspective ||--o{ EventRemedy : viewpoint
 ```
