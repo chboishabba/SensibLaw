@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS remedy_modality (
 
 CREATE TABLE IF NOT EXISTS remedy_catalog (
     id BIGSERIAL PRIMARY KEY,
+    harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
     legal_system_id BIGINT NOT NULL REFERENCES legal_system(id),
     cultural_register_id BIGINT REFERENCES cultural_register(id),
     remedy_modality_id BIGINT NOT NULL REFERENCES remedy_modality(id),
@@ -191,6 +192,21 @@ ON CONFLICT (frame_code) DO UPDATE SET
     description = EXCLUDED.description,
     updated_at = NOW();
 
+INSERT INTO remedy (legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
+SELECT
+    ls.id,
+    NULL::BIGINT,
+    seed.remedy_modality,
+    seed.remedy_code,
+    seed.terms,
+    seed.note
+FROM (
+    VALUES
+        ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality', NULL::TEXT),
+        ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality', NULL::TEXT),
+        ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance', NULL::TEXT),
+        ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights', NULL::TEXT)
+) AS seed(remedy_modality, remedy_code, terms, frame_code, note)
 INSERT INTO remedy_modality (modality_code, label, description) VALUES
     ('MONETARY', 'Monetary compensation', 'Payments, fines, or other financial transfer remedies'),
     ('STRUCTURAL', 'Structural or injunctive', 'Orders that change ongoing behaviour or conditions'),
@@ -226,6 +242,23 @@ WHERE NOT EXISTS (
     WHERE rc.remedy_code = s.remedy_code AND rc.legal_system_id = ls.id
 );
 
+-- Map seeded remedies to their frames whenever both are present
+WITH frame_ids AS (
+    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
+), seed(remedy_code, frame_code) AS (
+    VALUES
+        ('COMPENSATION', 'gender_equality'),
+        ('INJUNCTION', 'gender_equality'),
+        ('APOLOGY', 'tikanga_balance'),
+        ('CUSTODY_ORDER', 'child_rights')
+)
+INSERT INTO value_frame_remedies (value_frame_id, remedy_id)
+SELECT DISTINCT
+    f.id,
+    r.id
+FROM seed s
+JOIN frame_ids f ON f.frame_code = s.frame_code
+JOIN remedy r ON r.remedy_code = s.remedy_code
 WITH modality_ids AS (
     SELECT modality_code, id FROM remedy_modality WHERE modality_code IN ('MONETARY', 'STRUCTURAL', 'RESTORATIVE_RITUAL', 'STATUS_CHANGE')
 ), frame_ids AS (
