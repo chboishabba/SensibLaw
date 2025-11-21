@@ -1,6 +1,7 @@
 -- Milestone 4 & 5 migrations: Events, Harms, Evidence, Value Frames, and Remedies
 -- Tables assume prior milestones created LegalSystem, ActorClass, RoleMarker,
--- ProtectedInterestType, CulturalRegister, and any WrongType scaffolding.
+-- ProtectedInterestType (see schemas/migrations/004_protected_interest_type.sql),
+-- CulturalRegister, and any WrongType scaffolding.
 
 BEGIN;
 
@@ -87,6 +88,7 @@ SELECT
     h.id AS harm_instance_id,
     h.event_id,
     h.protected_interest_type_id,
+    pit.label AS protected_interest_label,
     pit.description AS protected_interest_description,
     pit.value_dimension_id,
     pit.cultural_register_id,
