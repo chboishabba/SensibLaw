@@ -168,6 +168,18 @@ SELECT
     vf.id AS value_frame_id,
     vf.frame_code,
     vf.label AS value_frame_label,
+    r.id AS remedy_id,
+    r.remedy_modality,
+    r.remedy_code,
+    r.terms,
+    r.note,
+    e.legal_system_id,
+    r.cultural_register_id
+FROM value_frame vf
+JOIN value_frame_remedies vfr ON vfr.value_frame_id = vf.id
+JOIN remedy r ON r.id = vfr.remedy_id
+LEFT JOIN harm_instance h ON h.id = r.harm_instance_id
+LEFT JOIN event e ON e.id = h.event_id;
     rc.id AS remedy_catalog_id,
     rc.remedy_code,
     rc.terms,
@@ -192,6 +204,13 @@ ON CONFLICT (frame_code) DO UPDATE SET
     description = EXCLUDED.description,
     updated_at = NOW();
 
+-- Seed helper CTE allows migrations to link seeded value frames to canonical remedies
+WITH frame_ids AS (
+    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
+)
+INSERT INTO remedy (harm_instance_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
+SELECT
+    NULL::BIGINT, -- placeholder; bind to harms via application services
 INSERT INTO remedy (legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
 SELECT
     ls.id,
@@ -202,6 +221,14 @@ SELECT
     seed.note
 FROM (
     VALUES
+        ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality'),
+        ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality'),
+        ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance'),
+        ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights')
+) AS seed(remedy_modality, remedy_code, terms, frame_code)
+WHERE NOT EXISTS (
+    SELECT 1 FROM remedy r
+    WHERE r.remedy_code = seed.remedy_code
         ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality', NULL::TEXT),
         ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality', NULL::TEXT),
         ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance', NULL::TEXT),
