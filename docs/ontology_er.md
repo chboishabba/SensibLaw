@@ -66,7 +66,8 @@ erDiagram
     Event ||--o{ HarmInstance : "causes"
 
     Event ||--o{ EventRemedy : "remedied_by"
-    RemedyModality ||--o{ EventRemedy : "modality"
+    RemedyModality ||--o{ RemedyCatalog : "family"
+    RemedyCatalog ||--o{ EventRemedy : "template"
     ValueFrame ||--o{ EventRemedy : "justified_by"
 
     %% =========================
@@ -314,10 +315,23 @@ erDiagram
         string  description
     }
 
+    RemedyCatalog {
+        int     id
+        int     remedy_modality_id
+        int     legal_system_id
+        int     cultural_register_id
+        string  remedy_code     "COMPENSATION, INJUNCTION"
+        string  terms           "template terms"
+        string  note
+    }
+
     EventRemedy {
         int     id
         int     event_id
+        int     harm_instance_id
+        int     remedy_catalog_id
         int     remedy_modality_id
         int     value_frame_id
         string  terms          "amount/conditions"
+        string  note
     }
