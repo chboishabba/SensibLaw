@@ -7,7 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .models import EdgeType, LegalGraph, NodeType
 
@@ -72,6 +72,26 @@ class PredictionSet:
         return items
 
 
+@dataclass(frozen=True)
+class SemanticRecommendation:
+    """Recommendation for an ontology entity (Milestones 3–5)."""
+
+    identifier: str
+    node_type: NodeType
+    score: float
+    rationale: str
+
+
+@dataclass(frozen=True)
+class SemanticRecommendations:
+    """Bundle of semantic recommendations across ontology layers."""
+
+    wrong_types: List[SemanticRecommendation]
+    protected_interests: List[SemanticRecommendation]
+    events: List[SemanticRecommendation]
+    remedies: List[SemanticRecommendation]
+
+
 PREDICTION_VERSION = 1
 
 
@@ -93,6 +113,46 @@ def legal_graph_to_triples(graph: LegalGraph) -> TriplePack:
         triples.append((edge.source, edge.type.value, edge.target))
         labels.append(_relation_label(edge))
     return TriplePack(triples=triples, relation_labels=labels)
+
+
+def _collect_corpus(graph: LegalGraph) -> str:
+    """Collect textual metadata from nodes to use for heuristic scoring."""
+
+    parts: List[str] = []
+    for node in graph.nodes.values():
+        parts.append(str(node.identifier))
+        metadata = getattr(node, "metadata", {}) or {}
+        for value in metadata.values():
+            if isinstance(value, str):
+                parts.append(value)
+    return " \n".join(parts).lower()
+
+
+def _score_catalog(
+    *,
+    catalog: Mapping[str, Iterable[str]],
+    corpus: str,
+    node_type: NodeType,
+    base_score: float = 0.1,
+    rationale_prefix: str,
+) -> List[SemanticRecommendation]:
+    recommendations: List[SemanticRecommendation] = []
+    for identifier, keywords in catalog.items():
+        tokens = list(keywords) or [identifier]
+        score = sum(corpus.count(token.lower()) for token in tokens)
+        if score == 0:
+            score = base_score
+        rationale = f"{rationale_prefix}: matched {', '.join(tokens)}"
+        recommendations.append(
+            SemanticRecommendation(
+                identifier=identifier,
+                node_type=node_type,
+                score=float(score),
+                rationale=rationale,
+            )
+        )
+    recommendations.sort(key=lambda rec: rec.score, reverse=True)
+    return recommendations
 
 
 def get_case_identifiers(graph: LegalGraph) -> List[str]:
@@ -408,6 +468,63 @@ def build_prediction_set(
     )
 
 
+def infer_semantic_recommendations(
+    graph: LegalGraph,
+    *,
+    wrong_type_catalog: Mapping[str, Iterable[str]],
+    protected_interest_catalog: Mapping[str, Iterable[str]],
+    remedy_catalog: Mapping[str, Iterable[str]],
+    event_labels: Optional[Iterable[str]] = None,
+) -> SemanticRecommendations:
+    """Emit Milestones 3–5 recommendations from a populated :class:`LegalGraph`."""
+
+    corpus = _collect_corpus(graph)
+    wrong_types = _score_catalog(
+        catalog=wrong_type_catalog,
+        corpus=corpus,
+        node_type=NodeType.WRONG_TYPE,
+        rationale_prefix="WrongType heuristic",
+    )
+    protected_interests = _score_catalog(
+        catalog=protected_interest_catalog,
+        corpus=corpus,
+        node_type=NodeType.PROTECTED_INTEREST,
+        rationale_prefix="Protected interest heuristic",
+    )
+
+    if event_labels is None:
+        event_labels = [
+            f"event:{identifier}"
+            for identifier, node in graph.nodes.items()
+            if getattr(node, "type", None) in {NodeType.CASE, NodeType.DOCUMENT, NodeType.EVENT}
+        ]
+    events = [
+        SemanticRecommendation(
+            identifier=label,
+            node_type=NodeType.EVENT,
+            score=1.0 + index * 0.01,
+            rationale="Seeded from case/provision context",
+        )
+        for index, label in enumerate(event_labels)
+    ]
+
+    remedy_base = 0.05 + (protected_interests[0].score if protected_interests else 0.0)
+    remedies = _score_catalog(
+        catalog=remedy_catalog,
+        corpus=corpus,
+        node_type=NodeType.REMEDY,
+        base_score=remedy_base,
+        rationale_prefix="Remedy heuristic",
+    )
+
+    return SemanticRecommendations(
+        wrong_types=wrong_types,
+        protected_interests=protected_interests,
+        events=events,
+        remedies=remedies,
+    )
+
+
 def persist_predictions_json(predictions: PredictionSet, path: Path) -> None:
     """Serialise ``predictions`` to ``path`` in JSON format."""
 
@@ -603,4 +720,7 @@ __all__ = [
     "load_predictions_json",
     "load_predictions_sqlite",
     "PREDICTION_VERSION",
+    "SemanticRecommendation",
+    "SemanticRecommendations",
+    "infer_semantic_recommendations",
 ]
