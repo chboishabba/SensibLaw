@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sensiblaw.db import ActorMappingDAO, LegalSourceDAO, MigrationRunner
+from sensiblaw.db.migrations import MIGRATIONS_DIR
 
 
 @pytest.fixture()
@@ -103,3 +104,45 @@ def test_relationship_kinds_include_system_specific(db_connection):
     assert "contract" in nz_kinds
     hanafi_kinds = dao.relationship_kinds(legal_system_code="PK.ISLAM.HANAFI")
     assert "religious" in hanafi_kinds
+
+
+def test_addresses_migrate_country_and_subdivision_links():
+    connection = sqlite3.connect(":memory:")
+    migration_paths = sorted(MIGRATIONS_DIR.glob("*.sql"))
+    legacy_paths = [
+        path for path in migration_paths if path.name != "003_addresses_country_references.sql"
+    ]
+    address_migration = [
+        path for path in migration_paths if path.name == "003_addresses_country_references.sql"
+    ]
+    MigrationRunner(connection, migration_paths=legacy_paths).apply_all()
+
+    connection.execute(
+        """
+        INSERT INTO addresses (address_line1, address_line2, city, state_province, postal_code, country_code)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        ("123 Example St", None, "Brisbane", "QLD", "4000", "AU"),
+    )
+
+    MigrationRunner(connection, migration_paths=address_migration).apply_all()
+
+    columns = [row[1] for row in connection.execute("PRAGMA table_info(addresses)")]
+    assert "country_code" not in columns
+    assert "country_id" in columns
+    assert "subdivision_id" in columns
+
+    cursor = connection.execute(
+        """
+        SELECT addr.country_id, addr.subdivision_id, country.code, sub.code
+        FROM addresses addr
+        LEFT JOIN countries country ON country.id = addr.country_id
+        LEFT JOIN subdivisions sub ON sub.id = addr.subdivision_id
+        """
+    )
+    country_id, subdivision_id, country_code, subdivision_code = cursor.fetchone()
+
+    assert country_code == "AU"
+    assert subdivision_code == "QLD"
+    assert country_id is not None
+    assert subdivision_id is not None

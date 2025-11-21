@@ -87,7 +87,8 @@ erDiagram
         string  city
         string  state_province
         string  postal_code
-        string  country_code
+        int     country_id
+        int     subdivision_id
     }
 
     ActorPersonDetails {
