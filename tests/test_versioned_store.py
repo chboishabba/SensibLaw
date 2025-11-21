@@ -468,6 +468,118 @@ def test_toc_join(tmp_path: Path):
         store.close()
 
 
+def test_toc_position_uniqueness_enforced(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    try:
+        rev_id = add_nested_revision(store, doc_id, effective=date(2022, 2, 2))
+        child_row = store.conn.execute(
+            """
+            SELECT toc_id, parent_id, position
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ? AND parent_id IS NOT NULL
+            LIMIT 1
+            """,
+            (doc_id, rev_id),
+        ).fetchone()
+        assert child_row is not None
+        parent_id = child_row["parent_id"]
+        position = child_row["position"]
+        next_id_row = store.conn.execute(
+            """
+            SELECT COALESCE(MAX(toc_id), 0) + 1 AS next_id
+            FROM toc
+            WHERE doc_id = ? AND rev_id = ?
+            """,
+            (doc_id, rev_id),
+        ).fetchone()
+        assert next_id_row is not None
+        next_id = next_id_row["next_id"]
+        with pytest.raises(sqlite3.IntegrityError):
+            with store.conn:
+                store.conn.execute(
+                    """
+                    INSERT INTO toc (
+                        doc_id, rev_id, toc_id, parent_id, node_type, identifier, title,
+                        stable_id, position, page_number
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        doc_id,
+                        rev_id,
+                        next_id,
+                        parent_id,
+                        "subsection",
+                        "dup",
+                        "Duplicate",
+                        f"test/stable-{next_id}",
+                        position,
+                        None,
+                    ),
+                )
+    finally:
+        store.close()
+
+
+def test_provision_position_uniqueness_enforced(tmp_path: Path) -> None:
+    store, doc_id = make_store(tmp_path)
+    try:
+        rev_id = add_nested_revision(store, doc_id, effective=date(2022, 2, 3))
+        child_row = store.conn.execute(
+            """
+            SELECT provision_id, parent_id, position
+            FROM provisions
+            WHERE doc_id = ? AND rev_id = ? AND parent_id IS NOT NULL
+            LIMIT 1
+            """,
+            (doc_id, rev_id),
+        ).fetchone()
+        assert child_row is not None
+        parent_id = child_row["parent_id"]
+        position = child_row["position"]
+        next_id_row = store.conn.execute(
+            """
+            SELECT COALESCE(MAX(provision_id), 0) + 1 AS next_id
+            FROM provisions
+            WHERE doc_id = ? AND rev_id = ?
+            """,
+            (doc_id, rev_id),
+        ).fetchone()
+        assert next_id_row is not None
+        next_id = next_id_row["next_id"]
+        with pytest.raises(sqlite3.IntegrityError):
+            with store.conn:
+                store.conn.execute(
+                    """
+                    INSERT INTO provisions (
+                        doc_id, rev_id, provision_id, parent_id, position, identifier,
+                        heading, node_type, toc_id, text, rule_tokens, references_json,
+                        principles, customs, cultural_flags
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        doc_id,
+                        rev_id,
+                        next_id,
+                        parent_id,
+                        position,
+                        "dup",
+                        "Duplicate provision",
+                        "section",
+                        None,
+                        "Duplicate text",
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ),
+                )
+    finally:
+        store.close()
+
+
 def test_glossary_references_persist(tmp_path: Path):
     store, doc_id = make_store(tmp_path)
     try:

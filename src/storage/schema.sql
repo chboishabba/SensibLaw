@@ -118,12 +118,16 @@ ON toc(doc_id, rev_id, parent_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_toc_stable
 ON toc(doc_id, stable_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_toc_parent_position
+ON toc(doc_id, rev_id, parent_id, position);
+
 
 CREATE TABLE IF NOT EXISTS provisions (
     doc_id INTEGER NOT NULL,
     rev_id INTEGER NOT NULL,
     provision_id INTEGER NOT NULL,
     parent_id INTEGER,
+    position INTEGER,
     identifier TEXT,
     heading TEXT,
     node_type TEXT,
@@ -146,6 +150,9 @@ ON provisions(doc_id, rev_id, provision_id);
 
 CREATE INDEX IF NOT EXISTS idx_provisions_toc
 ON provisions(doc_id, rev_id, toc_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_provisions_parent_position
+ON provisions(doc_id, rev_id, parent_id, position);
 
 CREATE VIEW IF NOT EXISTS atoms AS
 WITH subject_rows AS (

@@ -102,6 +102,7 @@ class VersionedStore:
                     self._active_doc_prefix = previous
 
     def _init_schema(self) -> None:
+        self._enforce_sibling_position_uniqueness()
         with self.conn:
             self.conn.executescript(
                 """
@@ -153,11 +154,16 @@ class VersionedStore:
                 CREATE UNIQUE INDEX idx_toc_stable
                 ON toc(doc_id, stable_id);
 
+                DROP INDEX IF EXISTS idx_toc_parent_position;
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_toc_parent_position
+                ON toc(doc_id, rev_id, parent_id, position);
+
                 CREATE TABLE IF NOT EXISTS provisions (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,
                     provision_id INTEGER NOT NULL,
                     parent_id INTEGER,
+                    position INTEGER NOT NULL,
                     identifier TEXT,
                     heading TEXT,
                     node_type TEXT,
@@ -176,6 +182,10 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_provisions_doc_rev
                 ON provisions(doc_id, rev_id, provision_id);
+
+                DROP INDEX IF EXISTS idx_provisions_parent_position;
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_provisions_parent_position
+                ON provisions(doc_id, rev_id, parent_id, position);
 
 
                 CREATE TABLE IF NOT EXISTS rule_atoms (
@@ -380,6 +390,7 @@ class VersionedStore:
                 );
                 """
             )
+        self._enforce_sibling_position_uniqueness()
         self._ensure_column("rule_atoms", "text_hash", "TEXT")
         self._ensure_column("rule_elements", "text_hash", "TEXT")
         self._populate_text_hashes()
@@ -417,6 +428,100 @@ class VersionedStore:
             with self.conn:
                 self.conn.execute(
                     f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                )
+
+    def _has_column(self, table: str, column: str) -> bool:
+        if self._object_type(table) != "table":
+            return False
+        cur = self.conn.execute(f"PRAGMA table_info({table})")
+        return any(row["name"] == column for row in cur.fetchall())
+
+    def _enforce_sibling_position_uniqueness(self) -> None:
+        """Ensure sibling ordering columns are populated and unique."""
+
+        # Add the position column for provisions if it's missing, then backfill data.
+        self._ensure_column("provisions", "position", "INTEGER")
+
+        self._normalise_positions("toc", "toc_id")
+        self._normalise_positions("provisions", "provision_id")
+
+        with self.conn:
+            if self._has_column("toc", "position"):
+                self.conn.execute("DROP INDEX IF EXISTS idx_toc_parent_position")
+                self.conn.execute(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_toc_parent_position
+                    ON toc(doc_id, rev_id, parent_id, position)
+                    """
+                )
+            if self._has_column("provisions", "position"):
+                self.conn.execute("DROP INDEX IF EXISTS idx_provisions_parent_position")
+                self.conn.execute(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_provisions_parent_position
+                    ON provisions(doc_id, rev_id, parent_id, position)
+                    """
+                )
+
+    def _normalise_positions(self, table: str, id_column: str) -> None:
+        """Populate missing sibling positions and resolve duplicates."""
+
+        if not self._has_column(table, "position"):
+            return
+
+        groups = self.conn.execute(
+            f"""
+            SELECT doc_id, rev_id, parent_id
+            FROM {table}
+            GROUP BY doc_id, rev_id, parent_id
+            """
+        ).fetchall()
+
+        updates: list[tuple[int, int]] = []
+        for group in groups:
+            doc_id = group["doc_id"]
+            rev_id = group["rev_id"]
+            parent_id = group["parent_id"]
+            if parent_id is None:
+                siblings = self.conn.execute(
+                    f"""
+                    SELECT rowid AS row_id, position
+                    FROM {table}
+                    WHERE doc_id = ? AND rev_id = ? AND parent_id IS NULL
+                    ORDER BY position, {id_column}
+                    """,
+                    (doc_id, rev_id),
+                ).fetchall()
+            else:
+                siblings = self.conn.execute(
+                    f"""
+                    SELECT rowid AS row_id, position
+                    FROM {table}
+                    WHERE doc_id = ? AND rev_id = ? AND parent_id = ?
+                    ORDER BY position, {id_column}
+                    """,
+                    (doc_id, rev_id, parent_id),
+                ).fetchall()
+
+            used_positions: set[int] = set()
+            next_candidate = 1
+            for row in siblings:
+                position = row["position"]
+                candidate = position if isinstance(position, int) and position > 0 else None
+                if candidate is None:
+                    candidate = next_candidate
+                while candidate in used_positions:
+                    candidate += 1
+                used_positions.add(candidate)
+                if candidate != position:
+                    updates.append((candidate, row["row_id"]))
+                next_candidate = candidate + 1
+
+        if updates:
+            with self.conn:
+                self.conn.executemany(
+                    f"UPDATE {table} SET position = ? WHERE rowid = ?",
+                    updates,
                 )
 
     def _populate_text_hashes(self) -> None:
@@ -2132,11 +2237,14 @@ class VersionedStore:
             )
 
         provision_counter = 0
+        provision_positions: defaultdict[Optional[int], int] = defaultdict(int)
 
         def visit(provision: Provision, parent_id: Optional[int]) -> None:
             nonlocal provision_counter
             provision_counter += 1
             current_id = provision_counter
+            provision_positions[parent_id] += 1
+            position = provision_positions[parent_id]
 
             references_json = None
             if provision.references:
@@ -2161,17 +2269,18 @@ class VersionedStore:
             self.conn.execute(
                 """
                 INSERT INTO provisions (
-                    doc_id, rev_id, provision_id, parent_id, identifier,
+                    doc_id, rev_id, provision_id, parent_id, position, identifier,
                     heading, node_type, toc_id, text, rule_tokens, references_json,
                     principles, customs, cultural_flags
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     doc_id,
                     rev_id,
                     current_id,
                     parent_id,
+                    position,
                     provision.identifier,
                     provision.heading,
                     provision.node_type,
@@ -2338,7 +2447,7 @@ class VersionedStore:
 
         provision_rows = self.conn.execute(
             """
-            SELECT doc_id, rev_id, provision_id, parent_id, identifier, heading,
+            SELECT doc_id, rev_id, provision_id, parent_id, position, identifier, heading,
                    node_type, toc_id, text, rule_tokens, references_json, principles, customs,
                    cultural_flags
             FROM provisions
@@ -2674,7 +2783,7 @@ class VersionedStore:
             pass
 
         provisions: dict[int, Provision] = {}
-        root_ids: List[int] = []
+        children_map: defaultdict[Optional[int], List[Tuple[int, int]]] = defaultdict(list)
 
         for row in provision_rows:
             rule_tokens = json.loads(row["rule_tokens"]) if row["rule_tokens"] else {}
@@ -2710,6 +2819,7 @@ class VersionedStore:
                 customs=list(customs),
             )
             provision.stable_id = toc_stable_map.get(row["toc_id"])
+            provision.position = row["position"]
             if using_structured:
                 provision.rule_atoms.extend(
                     rule_atoms_by_provision.get(row["provision_id"], [])
@@ -2721,6 +2831,18 @@ class VersionedStore:
                 )
                 provision.ensure_rule_atoms()
             provisions[row["provision_id"]] = provision
+            position_value = row["position"] if row["position"] is not None else 0
+            children_map[row["parent_id"]].append((position_value, row["provision_id"]))
+        def build(parent_id: Optional[int]) -> List[Provision]:
+            ordered_children = sorted(
+                children_map.get(parent_id, []), key=lambda item: (item[0], item[1])
+            )
+            result: List[Provision] = []
+            for _, child_id in ordered_children:
+                child = provisions[child_id]
+                child.children = build(child_id)
+                result.append(child)
+            return result
 
         for row in provision_rows:
             parent_id = row["parent_id"]
