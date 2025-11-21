@@ -28,7 +28,7 @@ Events anchor everything downstream. Actors stay intentionally minimal while det
 
 - **Event**: life/legal/system events with time bounds (`Event.id`, `kind`, `valid_from`, `valid_to`). When an event is linked to a `WrongType`, its `legal_system_id` must match the wrong type’s `legal_system_id`; a composite foreign key enforces the alignment and lets downstream services infer the jurisdiction directly from `wrong_type_id`.
 - **Actor**: thin actor shell used for participation and finance joins (`Actor.id`, `kind`, `label`), leaving richer attributes to the tables below.
-- **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_code`).
+- **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_id`, `subdivision_id` → `Country`/`Subdivision`).
 - **ActorPersonDetails**: natural person traits such as names, birthdate, pronouns, and optional postal address (`actor_id`, `given_name`, `family_name`, `birthdate`, `pronouns`, `gender`, `ethnicity`, `address_id`).
 - **ActorOrgDetails**: organisation registration and type metadata with optional registered address (`actor_id`, `legal_name`, `registration_no`, `org_type`, `address_id`).
 - **ActorContactPoint**: arbitrary contact points keyed to an actor (`actor_id`, `kind`, `value`, `label`).
