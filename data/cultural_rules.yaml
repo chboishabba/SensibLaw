@@ -10,3 +10,27 @@ PUBLIC_DOMAIN:
   redaction: none
   consent_required: false
   transform: null
+MODERN:
+  redaction: none
+  consent_required: false
+  transform: null
+FOUNDATIONAL:
+  redaction: none
+  consent_required: false
+  transform: null
+ENVIRONMENT:
+  redaction: none
+  consent_required: false
+  transform: null
+QUEENSLAND:
+  redaction: none
+  consent_required: false
+  transform: null
+HISTORIC:
+  redaction: none
+  consent_required: false
+  transform: null
+FIRST_NATIONS:
+  redaction: omit
+  consent_required: true
+  transform: null
