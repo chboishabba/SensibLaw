@@ -88,7 +88,6 @@ CREATE TABLE IF NOT EXISTS event_remedy (
     event_id BIGINT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
     harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
     remedy_catalog_id BIGINT REFERENCES remedy_catalog(id),
-    remedy_modality_id BIGINT NOT NULL REFERENCES remedy_modality(id),
     value_frame_id BIGINT REFERENCES value_frame(id),
     terms TEXT,
     note TEXT,
@@ -135,6 +134,27 @@ FROM harm_instance h
 JOIN event e ON e.id = h.event_id
 JOIN protected_interest_type pit ON pit.id = h.protected_interest_type_id
 GROUP BY pit.id, pit.description, e.legal_system_id;
+
+-- View: event remedies enriched with modality metadata sourced from the catalog
+DROP VIEW IF EXISTS event_remedy_with_modality;
+CREATE VIEW event_remedy_with_modality AS
+SELECT
+    er.id,
+    er.event_id,
+    er.harm_instance_id,
+    er.remedy_catalog_id,
+    er.value_frame_id,
+    er.terms,
+    er.note,
+    er.created_at,
+    er.updated_at,
+    rc.remedy_modality_id,
+    rm.modality_code,
+    rm.label AS remedy_modality_label,
+    rm.description AS remedy_modality_description
+FROM event_remedy er
+LEFT JOIN remedy_catalog rc ON rc.id = er.remedy_catalog_id
+LEFT JOIN remedy_modality rm ON rm.id = rc.remedy_modality_id;
 
 -- View: remedy library joined to value frames for quick lookup
 DROP VIEW IF EXISTS remedy_library_by_value_frame;
