@@ -64,8 +64,7 @@ CREATE TABLE IF NOT EXISTS value_frame (
 
 CREATE TABLE IF NOT EXISTS remedy (
     id BIGSERIAL PRIMARY KEY,
-    harm_instance_id BIGINT NOT NULL REFERENCES harm_instance(id) ON DELETE CASCADE,
-    legal_system_id BIGINT NOT NULL REFERENCES legal_system(id),
+    harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
     cultural_register_id BIGINT REFERENCES cultural_register(id),
     remedy_modality TEXT NOT NULL,
     remedy_code TEXT,
@@ -127,11 +126,13 @@ SELECT
     r.remedy_code,
     r.terms,
     r.note,
-    r.legal_system_id,
+    e.legal_system_id,
     r.cultural_register_id
 FROM value_frame vf
 JOIN value_frame_remedies vfr ON vfr.value_frame_id = vf.id
-JOIN remedy r ON r.id = vfr.remedy_id;
+JOIN remedy r ON r.id = vfr.remedy_id
+LEFT JOIN harm_instance h ON h.id = r.harm_instance_id
+LEFT JOIN event e ON e.id = h.event_id;
 
 -- Seed a small library of value frames and remedies for reference builds
 INSERT INTO value_frame (frame_code, label, description) VALUES
@@ -147,10 +148,9 @@ ON CONFLICT (frame_code) DO UPDATE SET
 WITH frame_ids AS (
     SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
 )
-INSERT INTO remedy (harm_instance_id, legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
+INSERT INTO remedy (harm_instance_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
 SELECT
     NULL::BIGINT, -- placeholder; bind to harms via application services
-    ls.id,
     NULL::BIGINT,
     seed.remedy_modality,
     seed.remedy_code,
@@ -163,10 +163,9 @@ FROM (
         ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance'),
         ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights')
 ) AS seed(remedy_modality, remedy_code, terms, frame_code)
-CROSS JOIN legal_system ls
 WHERE NOT EXISTS (
     SELECT 1 FROM remedy r
-    WHERE r.remedy_code = seed.remedy_code AND r.legal_system_id = ls.id
+    WHERE r.remedy_code = seed.remedy_code
 );
 
 -- Map seeded remedies to their frames whenever both are present
