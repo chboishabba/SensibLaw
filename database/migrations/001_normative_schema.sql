@@ -49,6 +49,52 @@ CREATE TABLE IF NOT EXISTS actor_classes (
     description TEXT
 );
 
+-- Layer 1 actor scaffolding and fixtures for downstream tooling
+CREATE TABLE IF NOT EXISTS actors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    label TEXT NOT NULL,
+    actor_class_id INTEGER REFERENCES actor_classes(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS addresses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    address_line1 TEXT NOT NULL,
+    address_line2 TEXT,
+    city TEXT,
+    state_province TEXT,
+    postal_code TEXT,
+    country_code TEXT
+);
+
+CREATE TABLE IF NOT EXISTS actor_person_details (
+    actor_id INTEGER PRIMARY KEY REFERENCES actors(id) ON DELETE CASCADE,
+    given_name TEXT NOT NULL,
+    family_name TEXT NOT NULL,
+    birthdate DATE,
+    pronouns TEXT,
+    gender TEXT,
+    ethnicity TEXT,
+    address_id INTEGER REFERENCES addresses(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS actor_org_details (
+    actor_id INTEGER PRIMARY KEY REFERENCES actors(id) ON DELETE CASCADE,
+    legal_name TEXT NOT NULL,
+    registration_no TEXT,
+    org_type TEXT,
+    address_id INTEGER REFERENCES addresses(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS actor_contact_points (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id INTEGER NOT NULL REFERENCES actors(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    value TEXT NOT NULL,
+    label TEXT,
+    UNIQUE (actor_id, kind, value)
+);
+
 CREATE TABLE IF NOT EXISTS role_markers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     marker TEXT NOT NULL,
