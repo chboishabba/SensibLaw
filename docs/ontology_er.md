@@ -122,6 +122,7 @@ erDiagram
         string  label
         datetime valid_from
         datetime valid_to
+        int     address_id    "FK to Address; replaces legacy location"
     }
 
     Document {
