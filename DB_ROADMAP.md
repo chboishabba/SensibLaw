@@ -2,6 +2,24 @@
 
 This roadmap translates the current multi-layer ontology into deliverable milestones the engineering team can execute. It removes the prior PDF gap-analysis narrative and instead lists concrete tables, sequencing, and ownership to reach a production-ready schema.
 
+## Milestone 0 — Layer 0: Concept Substrate
+*Goal: introduce a reusable concept layer that deduplicates labels, aliases, and external identifiers for text/ontology work.*
+
+**Tables/Entities**
+- `Concept` (stable code, label, description, type/source metadata, timestamps)
+- `ConceptAliasText` + `ConceptAlias` (deduplicated alias strings mapped onto concepts with optional kind/notes)
+- `ConceptAliasToken` (tokenised surfaces for fast lexical lookups)
+- `ConceptExternalRef` (unique `(concept_id, provider, external_id)` tuples for Wikidata/DBpedia/etc.)
+- `ActorExternalRef` (optional actor mapping to external providers for disambiguation)
+
+**Deliverables**
+- SQLite migration under `database/migrations/002_concept_substrate.sql` enabling foreign keys and lookup indexes on concept codes and alias text.
+- Guidance aligned with `docs/external_ontologies.md` on how to attach external knowledge without polluting normative layers.
+
+**Ownership & Sequencing**
+- Owner: Data Engineering + Ontology Lead.
+- Dependencies: none; precedes Milestone 1 to support concept tagging and ontology enrichment.
+
 ## Milestone 1 — Layer 1: Normative Systems & Sources
 *Goal: model the legal universe and source hierarchy that all downstream layers reference.*
 
