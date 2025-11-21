@@ -48,9 +48,9 @@ This roadmap translates the current multi-layer ontology into deliverable milest
 - `MentalState` (intent, recklessness, negligence, strict)
 
 **Deliverables**
-- Migrations establishing cardinality constraints (e.g., `WrongType` requires at least one `ProtectedInterest`).
-- Seed catalog of priority wrong types per `LegalSystem` with citations.
-- Authoring guidance for new WrongTypes, including naming and versioning conventions.
+- SQL migrations (`schemas/migrations/003_milestone3_wrong_types.sql`) establishing cardinality constraints (e.g., `WrongType` requires at least one `ProtectedInterest`) and referencing Milestone 1–2 tables (`legal_system`, `norm_source_category`, `legal_source`, `cultural_register`) for system-scoped enforcement.
+- Seed catalog of priority wrong types per `LegalSystem` with citations and protected interest mappings (`data/ontology/wrong_type_catalog_seed.yaml`).
+- Authoring guidance for new WrongTypes (naming, versioning, provenance) co-located with the seed catalog.
 
 **Ownership & Sequencing**
 - Owner: Ontology Lead.
