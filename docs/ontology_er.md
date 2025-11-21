@@ -66,7 +66,8 @@ erDiagram
     Event ||--o{ HarmInstance : "causes"
 
     Event ||--o{ EventRemedy : "remedied_by"
-    RemedyModality ||--o{ EventRemedy : "modality"
+    RemedyModality ||--o{ RemedyCatalog : "family"
+    RemedyCatalog ||--o{ EventRemedy : "template"
     ValueFrame ||--o{ EventRemedy : "justified_by"
 
     %% =========================
@@ -86,7 +87,8 @@ erDiagram
         string  city
         string  state_province
         string  postal_code
-        string  country_code
+        int     country_id
+        int     subdivision_id
     }
 
     ActorPersonDetails {
@@ -118,6 +120,8 @@ erDiagram
 
     Event {
         int     id
+        int     wrong_type_id  "links to doctrinal wrong/offence"
+        int     legal_system_id "derived from WrongType and enforced via FK"
         string  kind          "life, legal, system"
         string  label
         datetime valid_from
@@ -314,10 +318,22 @@ erDiagram
         string  description
     }
 
+    RemedyCatalog {
+        int     id
+        int     remedy_modality_id
+        int     legal_system_id
+        int     cultural_register_id
+        string  remedy_code     "COMPENSATION, INJUNCTION"
+        string  terms           "template terms"
+        string  note
+    }
+
     EventRemedy {
         int     id
         int     event_id
-        int     remedy_modality_id
+        int     harm_instance_id
+        int     remedy_catalog_id
         int     value_frame_id
         string  terms          "amount/conditions"
+        string  note
     }

@@ -57,6 +57,7 @@ SensibLaw's ontology now follows a **Layer‑0 text substrate plus six legal lay
 - **ValueFrame**: justificatory frames (e.g., `gender_equality`, `tikanga_balance`, `child_rights`, `ecological_stewardship`).
 - **Perspective**: optional qualifier that records whose viewpoint the frame reflects (community, state, victim, accused).
 - **RemedyModality**: remedy families (`MONETARY`, `LIBERTY_RESTRICTION`, `STATUS_CHANGE`, `SYMBOLIC`, `RESTORATIVE_RITUAL`, `STRUCTURAL`).
+- **RemedyCatalog**: reusable templates for common remedies, keyed to `remedy_modality_id` and localised by legal system or cultural register.
 - **EventRemedy**: joins events (or claims) to proposed or ordered remedies and tags them with the applicable `ValueFrame`/`Perspective`.
 
 ## Relationships and Sources of Truth

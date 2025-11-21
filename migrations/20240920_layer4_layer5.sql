@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS event (
 CREATE TABLE IF NOT EXISTS event_participant (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    actor_id BIGINT NOT NULL REFERENCES actor(id) ON DELETE CASCADE,
     actor_class_id BIGINT NOT NULL REFERENCES actor_class(id),
     role_marker_id BIGINT REFERENCES role_marker(id),
     role_label TEXT,
@@ -30,6 +31,9 @@ CREATE TABLE IF NOT EXISTS event_participant (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_participant_unique
+    ON event_participant (event_id, actor_id, COALESCE(role_marker_id, -1));
 
 CREATE TABLE IF NOT EXISTS harm_instance (
     id BIGSERIAL PRIMARY KEY,
@@ -62,12 +66,34 @@ CREATE TABLE IF NOT EXISTS value_frame (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS remedy (
+CREATE TABLE IF NOT EXISTS remedy_modality (
+    id BIGSERIAL PRIMARY KEY,
+    modality_code TEXT NOT NULL UNIQUE,
+    label TEXT,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS remedy_catalog (
     id BIGSERIAL PRIMARY KEY,
     harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
+    legal_system_id BIGINT NOT NULL REFERENCES legal_system(id),
     cultural_register_id BIGINT REFERENCES cultural_register(id),
-    remedy_modality TEXT NOT NULL,
+    remedy_modality_id BIGINT NOT NULL REFERENCES remedy_modality(id),
     remedy_code TEXT,
+    terms TEXT,
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS event_remedy (
+    id BIGSERIAL PRIMARY KEY,
+    event_id BIGINT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    harm_instance_id BIGINT REFERENCES harm_instance(id) ON DELETE CASCADE,
+    remedy_catalog_id BIGINT REFERENCES remedy_catalog(id),
+    value_frame_id BIGINT REFERENCES value_frame(id),
     terms TEXT,
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -76,8 +102,8 @@ CREATE TABLE IF NOT EXISTS remedy (
 
 CREATE TABLE IF NOT EXISTS value_frame_remedies (
     value_frame_id BIGINT NOT NULL REFERENCES value_frame(id) ON DELETE CASCADE,
-    remedy_id BIGINT NOT NULL REFERENCES remedy(id) ON DELETE CASCADE,
-    PRIMARY KEY (value_frame_id, remedy_id)
+    remedy_catalog_id BIGINT NOT NULL REFERENCES remedy_catalog(id) ON DELETE CASCADE,
+    PRIMARY KEY (value_frame_id, remedy_catalog_id)
 );
 
 -- View: auto-link harms to their protected interests for downstream services
@@ -114,6 +140,27 @@ JOIN event e ON e.id = h.event_id
 JOIN protected_interest_type pit ON pit.id = h.protected_interest_type_id
 GROUP BY pit.id, pit.description, e.legal_system_id;
 
+-- View: event remedies enriched with modality metadata sourced from the catalog
+DROP VIEW IF EXISTS event_remedy_with_modality;
+CREATE VIEW event_remedy_with_modality AS
+SELECT
+    er.id,
+    er.event_id,
+    er.harm_instance_id,
+    er.remedy_catalog_id,
+    er.value_frame_id,
+    er.terms,
+    er.note,
+    er.created_at,
+    er.updated_at,
+    rc.remedy_modality_id,
+    rm.modality_code,
+    rm.label AS remedy_modality_label,
+    rm.description AS remedy_modality_description
+FROM event_remedy er
+LEFT JOIN remedy_catalog rc ON rc.id = er.remedy_catalog_id
+LEFT JOIN remedy_modality rm ON rm.id = rc.remedy_modality_id;
+
 -- View: remedy library joined to value frames for quick lookup
 DROP VIEW IF EXISTS remedy_library_by_value_frame;
 CREATE VIEW remedy_library_by_value_frame AS
@@ -133,6 +180,19 @@ JOIN value_frame_remedies vfr ON vfr.value_frame_id = vf.id
 JOIN remedy r ON r.id = vfr.remedy_id
 LEFT JOIN harm_instance h ON h.id = r.harm_instance_id
 LEFT JOIN event e ON e.id = h.event_id;
+    rc.id AS remedy_catalog_id,
+    rc.remedy_code,
+    rc.terms,
+    rc.note,
+    rc.legal_system_id,
+    rc.cultural_register_id,
+    rm.modality_code,
+    rm.label AS remedy_modality_label,
+    rm.description AS remedy_modality_description
+FROM value_frame vf
+JOIN value_frame_remedies vfr ON vfr.value_frame_id = vf.id
+JOIN remedy_catalog rc ON rc.id = vfr.remedy_catalog_id
+JOIN remedy_modality rm ON rm.id = rc.remedy_modality_id;
 
 -- Seed a small library of value frames and remedies for reference builds
 INSERT INTO value_frame (frame_code, label, description) VALUES
@@ -151,6 +211,9 @@ WITH frame_ids AS (
 INSERT INTO remedy (harm_instance_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
 SELECT
     NULL::BIGINT, -- placeholder; bind to harms via application services
+INSERT INTO remedy (legal_system_id, cultural_register_id, remedy_modality, remedy_code, terms, note)
+SELECT
+    ls.id,
     NULL::BIGINT,
     seed.remedy_modality,
     seed.remedy_code,
@@ -166,18 +229,85 @@ FROM (
 WHERE NOT EXISTS (
     SELECT 1 FROM remedy r
     WHERE r.remedy_code = seed.remedy_code
+        ('MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'gender_equality', NULL::TEXT),
+        ('STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'gender_equality', NULL::TEXT),
+        ('RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'tikanga_balance', NULL::TEXT),
+        ('STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'child_rights', NULL::TEXT)
+) AS seed(remedy_modality, remedy_code, terms, frame_code, note)
+INSERT INTO remedy_modality (modality_code, label, description) VALUES
+    ('MONETARY', 'Monetary compensation', 'Payments, fines, or other financial transfer remedies'),
+    ('STRUCTURAL', 'Structural or injunctive', 'Orders that change ongoing behaviour or conditions'),
+    ('RESTORATIVE_RITUAL', 'Restorative ritual', 'Symbolic or tikanga-based restorative actions'),
+    ('STATUS_CHANGE', 'Status change', 'Orders that alter legal status or custody arrangements')
+ON CONFLICT (modality_code) DO UPDATE SET
+    label = EXCLUDED.label,
+    description = EXCLUDED.description,
+    updated_at = NOW();
+
+WITH modality_ids AS (
+    SELECT modality_code, id FROM remedy_modality WHERE modality_code IN ('MONETARY', 'STRUCTURAL', 'RESTORATIVE_RITUAL', 'STATUS_CHANGE')
+), seed_remedies(frame_code, modality_code, remedy_code, terms, note) AS (
+    VALUES
+        ('gender_equality', 'MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'Seeded compensation template'),
+        ('gender_equality', 'STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'Seeded injunction template'),
+        ('tikanga_balance', 'RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'Seeded apology template'),
+        ('child_rights', 'STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'Seeded custody order template')
+)
+INSERT INTO remedy_catalog (legal_system_id, cultural_register_id, remedy_modality_id, remedy_code, terms, note)
+SELECT
+    ls.id,
+    NULL::BIGINT,
+    m.id,
+    s.remedy_code,
+    s.terms,
+    s.note
+FROM seed_remedies s
+JOIN modality_ids m ON m.modality_code = s.modality_code
+CROSS JOIN legal_system ls
+WHERE NOT EXISTS (
+    SELECT 1 FROM remedy_catalog rc
+    WHERE rc.remedy_code = s.remedy_code AND rc.legal_system_id = ls.id
 );
 
 -- Map seeded remedies to their frames whenever both are present
+WITH frame_ids AS (
+    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
+), seed(remedy_code, frame_code) AS (
+    VALUES
+        ('COMPENSATION', 'gender_equality'),
+        ('INJUNCTION', 'gender_equality'),
+        ('APOLOGY', 'tikanga_balance'),
+        ('CUSTODY_ORDER', 'child_rights')
+)
 INSERT INTO value_frame_remedies (value_frame_id, remedy_id)
 SELECT DISTINCT
     f.id,
     r.id
-FROM frame_ids f
-JOIN remedy r ON r.remedy_code IN ('COMPENSATION', 'INJUNCTION', 'APOLOGY', 'CUSTODY_ORDER')
+FROM seed s
+JOIN frame_ids f ON f.frame_code = s.frame_code
+JOIN remedy r ON r.remedy_code = s.remedy_code
+WITH modality_ids AS (
+    SELECT modality_code, id FROM remedy_modality WHERE modality_code IN ('MONETARY', 'STRUCTURAL', 'RESTORATIVE_RITUAL', 'STATUS_CHANGE')
+), frame_ids AS (
+    SELECT frame_code, id FROM value_frame WHERE frame_code IN ('gender_equality', 'tikanga_balance', 'child_rights')
+), seed_remedies(frame_code, modality_code, remedy_code, terms, note) AS (
+    VALUES
+        ('gender_equality', 'MONETARY', 'COMPENSATION', 'Compensation for financial or reputational loss', 'Seeded compensation template'),
+        ('gender_equality', 'STRUCTURAL', 'INJUNCTION', 'Injunction or order to prevent ongoing harm', 'Seeded injunction template'),
+        ('tikanga_balance', 'RESTORATIVE_RITUAL', 'APOLOGY', 'Restorative apology anchored in tikanga', 'Seeded apology template'),
+        ('child_rights', 'STATUS_CHANGE', 'CUSTODY_ORDER', 'Custody or guardianship order prioritising welfare', 'Seeded custody order template')
+)
+INSERT INTO value_frame_remedies (value_frame_id, remedy_catalog_id)
+SELECT DISTINCT
+    f.id,
+    rc.id
+FROM seed_remedies s
+JOIN frame_ids f ON f.frame_code = s.frame_code
+JOIN modality_ids m ON m.modality_code = s.modality_code
+JOIN remedy_catalog rc ON rc.remedy_code = s.remedy_code AND rc.remedy_modality_id = m.id
 WHERE NOT EXISTS (
     SELECT 1 FROM value_frame_remedies vfr
-    WHERE vfr.value_frame_id = f.id AND vfr.remedy_id = r.id
+    WHERE vfr.value_frame_id = f.id AND vfr.remedy_catalog_id = rc.id
 );
 
 COMMIT;
