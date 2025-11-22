@@ -26,6 +26,28 @@ class ActorClassRecord:
     description: Optional[str]
 
 
+@dataclass
+class ConceptExternalRefRecord:
+    id: int
+    concept_id: int
+    provider: str
+    external_id: str
+    external_url: Optional[str]
+    notes: Optional[str]
+    confidence: Optional[float]
+
+
+@dataclass
+class ActorExternalRefRecord:
+    id: int
+    actor_id: int
+    provider: str
+    external_id: str
+    external_url: Optional[str]
+    notes: Optional[str]
+    confidence: Optional[float]
+
+
 class BaseDAO:
     def __init__(self, connection: sqlite3.Connection):
         self.connection = connection
@@ -294,6 +316,129 @@ class ActorMappingDAO(BaseDAO):
             params,
         )
         return [str(row["code"]) for row in rows]
+
+
+class ExternalRefDAO(BaseDAO):
+    """CRUD helpers for concept and actor external references."""
+
+    def _resolve_concept_id(self, value: int | str) -> int:
+        if isinstance(value, int):
+            return value
+        row = self._fetchone("SELECT id FROM concepts WHERE code = ?", (value,))
+        if not row:
+            msg = f"Unknown concept identifier: {value}"
+            raise ValueError(msg)
+        return int(row["id"])
+
+    def upsert_concept_ref(
+        self,
+        *,
+        concept: int | str,
+        provider: str,
+        external_id: str,
+        external_url: str | None = None,
+        notes: str | None = None,
+        confidence: float | None = None,
+    ) -> int:
+        concept_id = self._resolve_concept_id(concept)
+        cursor = self.connection.execute(
+            """
+            INSERT INTO concept_external_refs (
+                concept_id, provider, external_id, external_url, notes, confidence
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(concept_id, provider, external_id) DO UPDATE SET
+                external_url=excluded.external_url,
+                notes=excluded.notes,
+                confidence=excluded.confidence
+            """,
+            (concept_id, provider, external_id, external_url, notes, confidence),
+        )
+        self.connection.commit()
+        if cursor.lastrowid:
+            return int(cursor.lastrowid)
+        existing = self._fetchone(
+            "SELECT id FROM concept_external_refs WHERE concept_id = ? AND provider = ? AND external_id = ?",
+            (concept_id, provider, external_id),
+        )
+        return int(existing["id"]) if existing else 0
+
+    def upsert_actor_ref(
+        self,
+        *,
+        actor_id: int,
+        provider: str,
+        external_id: str,
+        external_url: str | None = None,
+        notes: str | None = None,
+        confidence: float | None = None,
+    ) -> int:
+        cursor = self.connection.execute(
+            """
+            INSERT INTO actor_external_refs (
+                actor_id, provider, external_id, external_url, notes, confidence
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(actor_id, provider, external_id) DO UPDATE SET
+                external_url=excluded.external_url,
+                notes=excluded.notes,
+                confidence=excluded.confidence
+            """,
+            (actor_id, provider, external_id, external_url, notes, confidence),
+        )
+        self.connection.commit()
+        if cursor.lastrowid:
+            return int(cursor.lastrowid)
+        existing = self._fetchone(
+            "SELECT id FROM actor_external_refs WHERE actor_id = ? AND provider = ? AND external_id = ?",
+            (actor_id, provider, external_id),
+        )
+        return int(existing["id"]) if existing else 0
+
+    def list_concept_refs(self, concept: int | str) -> list[ConceptExternalRefRecord]:
+        concept_id = self._resolve_concept_id(concept)
+        rows = self._fetchall(
+            """
+            SELECT id, concept_id, provider, external_id, external_url, notes, confidence
+            FROM concept_external_refs
+            WHERE concept_id = ?
+            ORDER BY provider, external_id
+            """,
+            (concept_id,),
+        )
+        return [
+            ConceptExternalRefRecord(
+                id=int(row["id"]),
+                concept_id=int(row["concept_id"]),
+                provider=str(row["provider"]),
+                external_id=str(row["external_id"]),
+                external_url=row["external_url"],
+                notes=row["notes"],
+                confidence=row["confidence"],
+            )
+            for row in rows
+        ]
+
+    def list_actor_refs(self, actor_id: int) -> list[ActorExternalRefRecord]:
+        rows = self._fetchall(
+            """
+            SELECT id, actor_id, provider, external_id, external_url, notes, confidence
+            FROM actor_external_refs
+            WHERE actor_id = ?
+            ORDER BY provider, external_id
+            """,
+            (actor_id,),
+        )
+        return [
+            ActorExternalRefRecord(
+                id=int(row["id"]),
+                actor_id=int(row["actor_id"]),
+                provider=str(row["provider"]),
+                external_id=str(row["external_id"]),
+                external_url=row["external_url"],
+                notes=row["notes"],
+                confidence=row["confidence"],
+            )
+            for row in rows
+        ]
 
 
 def ensure_database(connection: sqlite3.Connection) -> None:
