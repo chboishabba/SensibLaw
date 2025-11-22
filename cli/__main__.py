@@ -3,11 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from src.graph.inference import (
     PREDICTION_VERSION,
@@ -29,6 +30,15 @@ from src.graph.inference import (
     train_transe,
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+from src.ontology.enrichment import (
+    PROVIDER_NAMES,
+    batch_lookup,
+    fetch_rows,
+    serialise_candidates,
+    upsert_external_ref,
+    write_candidates,
+    LookupCandidate,
+)
 
 from . import receipts as receipts_cli
 
@@ -37,6 +47,81 @@ def _print_json(data: object) -> None:
     """Serialise ``data`` to JSON and print it to stdout."""
 
     print(json.dumps(data, ensure_ascii=False))
+
+
+def _prompt_candidate_choices(
+    entity_label: str, provider: str, candidates: List[LookupCandidate]
+) -> List[int]:
+    """Prompt the user to select candidate indices for an entity."""
+
+    if not candidates:
+        return []
+    print(f"\n{provider} candidates for {entity_label}:")
+    for idx, candidate in enumerate(candidates, start=1):
+        description = candidate.description
+        summary = f" — {description}" if description else ""
+        print(f"  [{idx}] {candidate.label} ({candidate.external_id}){summary}")
+    raw = input("Choose candidates to upsert (comma separated, blank to skip): ").strip()
+    if not raw:
+        return []
+    selections: List[int] = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            index = int(token)
+        except ValueError:
+            continue
+        if 1 <= index <= len(candidates):
+            selections.append(index - 1)
+    return selections
+
+
+def _interactive_upsert(
+    connection: sqlite3.Connection,
+    *,
+    table: str,
+    entity: Mapping[str, object],
+    candidates: Mapping[str, List[LookupCandidate]],
+) -> None:
+    label = str(entity.get("label") or entity.get("code") or entity.get("id"))
+    for provider, provider_candidates in candidates.items():
+        selected = _prompt_candidate_choices(label, provider, provider_candidates)
+        for idx in selected:
+            chosen = provider_candidates[idx]
+            upsert_external_ref(
+                connection,
+                table=table,
+                entity_id=int(entity["id"]),
+                provider=provider,
+                candidate=chosen,
+            )
+    connection.commit()
+
+
+def _enrich_table(
+    args: argparse.Namespace,
+    *,
+    table: str,
+    columns: Sequence[str],
+    extra_queries: Callable[[Mapping[str, object]], Iterable[str]] | None = None,
+) -> None:
+    providers = args.providers or list(PROVIDER_NAMES)
+    with sqlite3.connect(args.db) as connection:
+        connection.row_factory = sqlite3.Row
+        entities = fetch_rows(connection, table, columns)
+        payload: List[Mapping[str, object]] = []
+        for entity in entities:
+            queries = [entity.get("code"), entity.get("label")]
+            if extra_queries:
+                queries.extend(extra_queries(entity))
+            lookup_results = batch_lookup(queries, providers, limit=args.limit)
+            serialised = serialise_candidates(entity, lookup_results)
+            payload.append(serialised)
+            if args.interactive:
+                _interactive_upsert(connection, table=table, entity=entity, candidates=lookup_results)
+    write_candidates(payload, args.out)
 
 
 def _load_graph_data(path: Path | str | None, *, flag: str = "--graph") -> dict:
@@ -932,6 +1017,19 @@ def _handle_tools(args: argparse.Namespace) -> None:
         raise SystemExit("Unknown tools command")
 
 
+def _handle_ontology_concepts_enrich(args: argparse.Namespace) -> None:
+    _enrich_table(args, table="concepts", columns=["id", "code", "label"])
+
+
+def _handle_ontology_actors_enrich(args: argparse.Namespace) -> None:
+    _enrich_table(
+        args,
+        table="actors",
+        columns=["id", "label", "kind"],
+        extra_queries=lambda entity: [entity.get("kind")],
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -999,6 +1097,50 @@ def build_parser() -> argparse.ArgumentParser:
     concepts_match.add_argument("text_arg", nargs="?")
     concepts_match.add_argument("--text")
     concepts_match.set_defaults(func=_handle_concepts_match, parser=concepts_match)
+
+    ontology = sub.add_parser("ontology", help="Ontology enrichment helpers")
+    ontology_sub = ontology.add_subparsers(dest="ontology_command")
+    ontology_sub.required = True
+
+    ontology_concepts = ontology_sub.add_parser(
+        "concepts-enrich", help="Lookup external references for concepts"
+    )
+    ontology_concepts.add_argument("--db", type=Path, required=True, help="SQLite database path")
+    ontology_concepts.add_argument(
+        "--providers",
+        nargs="+",
+        choices=PROVIDER_NAMES,
+        default=list(PROVIDER_NAMES),
+        help="External providers to query",
+    )
+    ontology_concepts.add_argument("--limit", type=int, default=5, help="Max candidates per provider")
+    ontology_concepts.add_argument("--out", type=Path, help="Where to write candidates JSON")
+    ontology_concepts.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Interactively select candidates to upsert",
+    )
+    ontology_concepts.set_defaults(func=_handle_ontology_concepts_enrich)
+
+    ontology_actors = ontology_sub.add_parser(
+        "actors-enrich", help="Lookup external references for actors"
+    )
+    ontology_actors.add_argument("--db", type=Path, required=True, help="SQLite database path")
+    ontology_actors.add_argument(
+        "--providers",
+        nargs="+",
+        choices=PROVIDER_NAMES,
+        default=list(PROVIDER_NAMES),
+        help="External providers to query",
+    )
+    ontology_actors.add_argument("--limit", type=int, default=5, help="Max candidates per provider")
+    ontology_actors.add_argument("--out", type=Path, help="Where to write candidates JSON")
+    ontology_actors.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Interactively select candidates to upsert",
+    )
+    ontology_actors.set_defaults(func=_handle_ontology_actors_enrich)
 
     query = sub.add_parser("query", help="Run a concept query or case lookup")
     query_sub = query.add_subparsers(dest="query_command")
