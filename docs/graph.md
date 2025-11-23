@@ -171,6 +171,20 @@ python -m sensiblaw.cli graph inference rank \
   --top-k 5
 ```
 
+### Exporting triples
+
+Use the ``graph export`` command to serialise the in-memory graph into
+triples. By default the export includes only graph edges; pass
+``--include-external-refs`` to also emit ``owl:sameAs`` and
+``skos:exactMatch`` links for any external references attached to concept or
+actor nodes.
+
+```bash
+python -m sensiblaw.cli graph export \
+  --graph data/knowledge_graph.json \
+  --include-external-refs
+```
+
 ### Streamlit integration
 
 The Streamlit knowledge-graph tab reads the persisted predictions from either a

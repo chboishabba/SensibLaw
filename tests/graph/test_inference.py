@@ -70,6 +70,37 @@ def test_legal_graph_to_triples_includes_relation_labels() -> None:
     assert triples.relation_labels == ["applies relationship"]
 
 
+def test_legal_graph_to_triples_includes_external_refs_when_opted_in() -> None:
+    graph = LegalGraph()
+    graph.add_node(
+        GraphNode(
+            type=NodeType.CONCEPT,
+            identifier="concept-1",
+            metadata={"external_refs": [{"provider": "wikidata", "external_id": "Q42"}]},
+        )
+    )
+    graph.add_node(
+        GraphNode(
+            type=NodeType.PERSON,
+            identifier="actor-1",
+            metadata={"external_refs": [{"provider": "orcid", "external_id": "0000-0002"}]},
+        )
+    )
+
+    triples = legal_graph_to_triples(graph, include_external_refs=True)
+
+    expected = {
+        ("concept-1", "owl:sameAs", "wikidata:Q42"),
+        ("concept-1", "skos:exactMatch", "wikidata:Q42"),
+        ("actor-1", "owl:sameAs", "orcid:0000-0002"),
+    }
+    assert expected.issubset(set(triples.triples))
+
+    label_map = {triple: label for triple, label in triples.iter_with_labels()}
+    for triple in expected:
+        assert label_map[triple] in {"owl:sameAs", "skos:exactMatch"}
+
+
 def test_train_transe_and_score_predictions(monkeypatch: pytest.MonkeyPatch) -> None:
     recorded = {}
 

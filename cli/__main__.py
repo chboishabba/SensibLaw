@@ -537,6 +537,15 @@ def _handle_graph_query(args: argparse.Namespace) -> None:
     _print_json({"nodes": selected_nodes, "edges": selected_edges})
 
 
+def _handle_graph_export(args: argparse.Namespace) -> None:
+    data = _load_graph_data(args.graph, flag="--graph")
+    graph = _graph_from_payload(data)
+    triples_pack = legal_graph_to_triples(
+        graph, include_external_refs=args.include_external_refs
+    )
+    _print_json(asdict(triples_pack))
+
+
 def _handle_graph_inference_train(args: argparse.Namespace) -> None:
     relation = _normalise_relation(args.relation)
     data = _load_graph_data(args.graph)
@@ -1039,6 +1048,14 @@ def build_parser() -> argparse.ArgumentParser:
     graph_query.add_argument("--start")
     graph_query.add_argument("--depth", type=int, default=1)
     graph_query.set_defaults(func=_handle_graph_query)
+    graph_export = graph_sub.add_parser("export", help="Export graph triples")
+    graph_export.add_argument("--graph", type=Path, required=True)
+    graph_export.add_argument(
+        "--include-external-refs",
+        action="store_true",
+        help="Include owl:sameAs/skos:exactMatch triples for external references",
+    )
+    graph_export.set_defaults(func=_handle_graph_export)
 
     inference = graph_sub.add_parser("inference", help="Knowledge graph inference utilities")
     inference_sub = inference.add_subparsers(dest="inference_command")

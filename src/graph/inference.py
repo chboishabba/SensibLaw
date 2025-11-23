@@ -104,7 +104,37 @@ def _relation_label(edge: Any) -> str:
     return edge.type.value if hasattr(edge, "type") else str(metadata.get("type", ""))
 
 
-def legal_graph_to_triples(graph: LegalGraph) -> TriplePack:
+def _external_ref_targets(metadata: Mapping[str, object]) -> Iterable[str]:
+    refs = metadata.get("external_refs", [])
+    if isinstance(refs, Mapping):
+        refs = [refs]
+    if not isinstance(refs, Iterable) or isinstance(refs, (str, bytes)):
+        return []
+
+    targets: List[str] = []
+    for ref in refs:
+        if isinstance(ref, str):
+            targets.append(ref)
+            continue
+        if not isinstance(ref, Mapping):
+            continue
+        provider = ref.get("provider") or ref.get("source")
+        external_id = ref.get("external_id") or ref.get("id") or ref.get("identifier")
+        if external_id is None:
+            continue
+        target = str(external_id)
+        if provider:
+            provider_text = str(provider).rstrip(":")
+            target = f"{provider_text}:{target}"
+        if provider and str(provider).lower() == "wikidata" and not target.startswith("wikidata:"):
+            target = f"wikidata:{external_id}"
+        targets.append(target)
+    return targets
+
+
+def legal_graph_to_triples(
+    graph: LegalGraph, *, include_external_refs: bool = False
+) -> TriplePack:
     """Convert the in-memory ``graph`` into PyKEEN compatible triples."""
 
     triples: List[Tuple[str, str, str]] = []
@@ -112,6 +142,20 @@ def legal_graph_to_triples(graph: LegalGraph) -> TriplePack:
     for edge in graph.edges:
         triples.append((edge.source, edge.type.value, edge.target))
         labels.append(_relation_label(edge))
+
+    if include_external_refs:
+        for node in graph.nodes.values():
+            targets = _external_ref_targets(node.metadata)
+            if not targets:
+                continue
+            predicates = ["owl:sameAs"]
+            if node.type == NodeType.CONCEPT:
+                predicates.append("skos:exactMatch")
+            for target in targets:
+                for predicate in predicates:
+                    triples.append((node.identifier, predicate, target))
+                    labels.append(predicate)
+
     return TriplePack(triples=triples, relation_labels=labels)
 
 
