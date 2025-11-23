@@ -336,6 +336,17 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_receipts_minhash
                 ON receipts(minhash);
 
+                CREATE TABLE IF NOT EXISTS ontology_lookup_log (
+                    id INTEGER PRIMARY KEY,
+                    term TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    external_id TEXT,
+                    label TEXT,
+                    description TEXT,
+                    confidence REAL,
+                    looked_up_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
+
                 CREATE TABLE IF NOT EXISTS rule_lints (
                     doc_id INTEGER NOT NULL,
                     rev_id INTEGER NOT NULL,

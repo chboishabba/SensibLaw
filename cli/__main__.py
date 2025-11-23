@@ -932,6 +932,29 @@ def _handle_tools(args: argparse.Namespace) -> None:
         raise SystemExit("Unknown tools command")
 
 
+def _collect_terms(args: argparse.Namespace) -> list[str]:
+    terms: list[str] = []
+    if args.terms:
+        terms.extend(args.terms)
+    if args.file:
+        path = Path(args.file)
+        if not path.exists():
+            raise SystemExit(f"File not found: {path}")
+        file_terms = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
+        terms.extend([term for term in file_terms if term])
+    if not terms:
+        raise SystemExit("At least one term is required")
+    return terms
+
+
+def _handle_ontology_lookup(args: argparse.Namespace) -> None:
+    from src.ontology.lookup import batch_lookup
+
+    terms = _collect_terms(args)
+    results = batch_lookup(terms, provider=args.provider, db_path=args.db)
+    _print_json([record.asdict() for record in results])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -1117,6 +1140,13 @@ def build_parser() -> argparse.ArgumentParser:
     provision.add_argument("--doc", required=True)
     provision.add_argument("--id", required=True)
     provision.set_defaults(func=_handle_provision)
+
+    ontology_lookup = sub.add_parser("ontology-lookup", help="Lookup ontology terms in batch")
+    ontology_lookup.add_argument("terms", nargs="*", help="Terms to lookup")
+    ontology_lookup.add_argument("--file", type=Path, help="Optional file containing newline-delimited terms")
+    ontology_lookup.add_argument("--provider", default="glossary", help="Lookup provider label")
+    ontology_lookup.add_argument("--db", type=Path, help="Optional SQLite database to log lookups")
+    ontology_lookup.set_defaults(func=_handle_ontology_lookup)
 
     austlii = sub.add_parser("austlii-fetch", help="Fetch legislation from AustLII")
     austlii.add_argument("--db", type=Path, required=True)
