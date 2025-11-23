@@ -3,11 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence
+
+import requests
 
 from src.graph.inference import (
     PREDICTION_VERSION,
@@ -275,6 +278,57 @@ def _handle_extract_rules(args: argparse.Namespace) -> None:
 
     rules = extract_rules(args.text)
     _print_json([rule.__dict__ for rule in rules])
+
+
+def _handle_ontology_lookup(args: argparse.Namespace) -> None:
+    from src.ontology.search import filter_candidates
+
+    response = requests.get(args.url, params={"q": args.term})
+    response.raise_for_status()
+    data = response.json()
+    if not isinstance(data, list):
+        raise SystemExit("Ontology service did not return a list")
+    results = filter_candidates(
+        args.term,
+        data,
+        threshold=args.threshold,
+        limit=args.limit,
+    )
+    _print_json(results)
+
+
+def _handle_ontology_upsert(args: argparse.Namespace) -> None:
+    from sensiblaw.db.dao import LegalSourceDAO, ensure_database
+
+    connection = sqlite3.connect(args.db)
+    try:
+        ensure_database(connection)
+        dao = LegalSourceDAO(connection)
+        source_id = dao.upsert_source(
+            legal_system_code=args.legal_system,
+            norm_source_category_code=args.category,
+            citation=args.citation,
+            title=args.title,
+            source_url=args.url,
+            promulgation_date=args.promulgation_date,
+            summary=args.summary,
+            notes=args.notes,
+        )
+        record = dao.get_by_citation(
+            legal_system_code=args.legal_system, citation=args.citation
+        )
+        payload = {"id": source_id, "citation": args.citation}
+        if record:
+            payload.update(
+                {
+                    "title": record.title,
+                    "category": record.norm_source_category_code,
+                    "legal_system": record.legal_system_code,
+                }
+            )
+        _print_json(payload)
+    finally:
+        connection.close()
 
 
 def _handle_extract_frl(args: argparse.Namespace) -> None:
@@ -976,6 +1030,26 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True)
     check_parser.set_defaults(func=_handle_check)
+
+    ontology = sub.add_parser("ontology", help="Ontology lookup and management")
+    ontology_sub = ontology.add_subparsers(dest="ontology_command")
+    lookup = ontology_sub.add_parser("lookup", help="Lookup ontology terms via HTTP")
+    lookup.add_argument("--term", required=True)
+    lookup.add_argument("--url", default="https://example.com/ontology")
+    lookup.add_argument("--threshold", type=float, default=0.0)
+    lookup.add_argument("--limit", type=int)
+    lookup.set_defaults(func=_handle_ontology_lookup)
+    upsert = ontology_sub.add_parser("upsert", help="Upsert ontology sources into SQLite")
+    upsert.add_argument("--db", required=True)
+    upsert.add_argument("--legal-system", required=True)
+    upsert.add_argument("--category", required=True)
+    upsert.add_argument("--citation", required=True)
+    upsert.add_argument("--title")
+    upsert.add_argument("--url")
+    upsert.add_argument("--promulgation-date")
+    upsert.add_argument("--summary")
+    upsert.add_argument("--notes")
+    upsert.set_defaults(func=_handle_ontology_upsert)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)
