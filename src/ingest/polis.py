@@ -18,8 +18,11 @@ rest of the project for concept seeds – a mapping containing a
 from __future__ import annotations
 
 import json
+import os
+import time
+from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 try:  # pragma: no cover - handled in tests via monkeypatching
     import requests  # type: ignore
@@ -32,6 +35,75 @@ except Exception:  # pragma: no cover
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "concepts"
 
 POLIS_API = "https://pol.is/api/v3/conversations"
+
+DEFAULT_MAX_RETRIES = int(os.environ.get("SENSIBLAW_MAX_RETRIES", 3))
+DEFAULT_SLEEP_BETWEEN_RETRIES = float(os.environ.get("SENSIBLAW_SLEEP_BETWEEN_RETRIES", 1.0))
+
+_REQUEST_CACHE: "OrderedDict[Tuple[str, str, Optional[int]], Dict]" = OrderedDict()
+_MAX_CACHE_SIZE = 128
+
+
+def _resolve_retry_config(
+    max_retries: Optional[int], sleep_between_retries: Optional[float]
+) -> Tuple[int, float]:
+    resolved_max = (
+        DEFAULT_MAX_RETRIES if max_retries is None else max(0, int(max_retries))
+    )
+    resolved_sleep = (
+        DEFAULT_SLEEP_BETWEEN_RETRIES
+        if sleep_between_retries is None
+        else max(0.0, float(sleep_between_retries))
+    )
+    return resolved_max, resolved_sleep
+
+
+def _cache_key(provider: str, term: str, limit: Optional[int]) -> Tuple[str, str, Optional[int]]:
+    return provider, term, limit
+
+
+def _get_cached_response(provider: str, term: str, limit: Optional[int]) -> Optional[Dict]:
+    key = _cache_key(provider, term, limit)
+    cached = _REQUEST_CACHE.get(key)
+    if cached is not None:
+        _REQUEST_CACHE.move_to_end(key)
+    return cached
+
+
+def _store_cached_response(provider: str, term: str, limit: Optional[int], data: Dict) -> None:
+    key = _cache_key(provider, term, limit)
+    _REQUEST_CACHE[key] = data
+    _REQUEST_CACHE.move_to_end(key)
+    while len(_REQUEST_CACHE) > _MAX_CACHE_SIZE:
+        _REQUEST_CACHE.popitem(last=False)
+
+
+def _get_with_retry(
+    url: str,
+    *,
+    max_retries: Optional[int] = None,
+    sleep_between_retries: Optional[float] = None,
+) -> Dict:
+    """Perform a GET request with retry/backoff and return JSON content."""
+
+    if requests is None:  # pragma: no cover - optional dependency guard
+        raise RuntimeError("requests library required for network operations")
+
+    retries, sleep_between = _resolve_retry_config(max_retries, sleep_between_retries)
+    attempt = 0
+
+    while True:
+        response = requests.get(url, timeout=30)
+        status = getattr(response, "status_code", None)
+        if status is None:
+            response.raise_for_status()
+        if status == 429 or (500 <= status < 600):
+            attempt += 1
+            if attempt > retries:
+                response.raise_for_status()
+            time.sleep(sleep_between * attempt)
+            continue
+        response.raise_for_status()
+        return response.json()
 
 
 def _statement_score(stmt: Dict) -> float:
@@ -49,13 +121,29 @@ def _statement_score(stmt: Dict) -> float:
     return float(agrees) - float(disagrees)
 
 
-def fetch_conversation(convo_id: str) -> List[Dict]:
+def fetch_conversation(
+    convo_id: str,
+    *,
+    limit: Optional[int] = None,
+    max_retries: Optional[int] = None,
+    sleep_between_retries: Optional[float] = None,
+) -> List[Dict]:
     """Fetch a Pol.is conversation and write concept seeds.
 
     Parameters
     ----------
     convo_id:
         The Pol.is conversation identifier.
+
+    limit:
+        Optional maximum number of statements to include, ordered by score.
+    max_retries:
+        Override the maximum number of retries for HTTP 429/5xx responses.
+        Falls back to the ``SENSIBLAW_MAX_RETRIES`` environment variable when
+        omitted.
+    sleep_between_retries:
+        Base sleep interval between retries. Backoff increases linearly per
+        attempt and defaults to ``SENSIBLAW_SLEEP_BETWEEN_RETRIES``.
 
     Returns
     -------
@@ -64,10 +152,22 @@ def fetch_conversation(convo_id: str) -> List[Dict]:
         ``cluster`` keys.
     """
 
+    provider = "polis"
     url = f"{POLIS_API}/{convo_id}"
-    response = requests.get(url, timeout=30)
-    response.raise_for_status()
-    data = response.json()
+    cached = _get_cached_response(provider, convo_id, limit)
+    if cached is None:
+        data = _get_with_retry(
+            url,
+            max_retries=max_retries,
+            sleep_between_retries=sleep_between_retries,
+        )
+        if limit is not None:
+            trimmed = dict(data)
+            trimmed["statements"] = data.get("statements", [])[:limit]
+            data = trimmed
+        _store_cached_response(provider, convo_id, limit, data)
+    else:
+        data = cached
 
     statements = data.get("statements", [])
     clusters = {c.get("id"): c for c in data.get("clusters", [])}
@@ -75,6 +175,8 @@ def fetch_conversation(convo_id: str) -> List[Dict]:
     # Order statements from highest to lowest score so that callers can
     # easily pick the top ranked item.
     ordered = sorted(statements, key=_statement_score, reverse=True)
+    if limit is not None:
+        ordered = ordered[:limit]
 
     seeds: List[Dict] = []
     for stmt in ordered:

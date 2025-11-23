@@ -334,7 +334,12 @@ def _handle_polis_import(args: argparse.Namespace) -> None:
     from src.ingest import polis as polis_ingest
     from src.receipts import build_pack
 
-    seeds = polis_ingest.fetch_conversation(args.conversation)
+    seeds = polis_ingest.fetch_conversation(
+        args.conversation,
+        limit=args.limit,
+        max_retries=args.max_retries,
+        sleep_between_retries=args.sleep_between_retries,
+    )
     args.out.mkdir(parents=True, exist_ok=True)
     for seed in seeds:
         seed_id = seed.get("id")
@@ -1021,6 +1026,9 @@ def build_parser() -> argparse.ArgumentParser:
     polis_import = polis_sub.add_parser("import", help="Import a Pol.is conversation")
     polis_import.add_argument("--conversation", required=True)
     polis_import.add_argument("--out", type=Path, required=True)
+    polis_import.add_argument("--limit", type=int)
+    polis_import.add_argument("--max-retries", type=int)
+    polis_import.add_argument("--sleep-between-retries", type=float)
     polis_import.set_defaults(func=_handle_polis_import)
 
     graph = sub.add_parser("graph", help="Graph operations")
