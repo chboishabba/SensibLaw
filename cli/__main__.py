@@ -8,7 +8,7 @@ import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 import requests
 
@@ -32,6 +32,9 @@ from src.graph.inference import (
     train_transe,
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+from src.sensiblaw.db import ExternalRefDAO
+from src.sensiblaw.db.dao import ensure_database
+from src.sensiblaw.ontology.ingest import batch_lookup, lookup_candidates
 
 from . import receipts as receipts_cli
 
@@ -40,6 +43,123 @@ def _print_json(data: object) -> None:
     """Serialise ``data`` to JSON and print it to stdout."""
 
     print(json.dumps(data, ensure_ascii=False))
+
+
+def _collect_terms(args: argparse.Namespace) -> list[str]:
+    terms: list[str] = []
+    if getattr(args, "terms", None):
+        terms.extend(args.terms)
+    if getattr(args, "file", None):
+        if not args.file.exists():
+            raise SystemExit(f"{args.file} does not exist")
+        lines = [line.strip() for line in args.file.read_text(encoding="utf-8").splitlines()]
+        terms.extend([line for line in lines if line])
+    return terms
+
+
+def _handle_ontology_lookup(args: argparse.Namespace) -> None:
+    terms = _collect_terms(args)
+    if not terms:
+        raise SystemExit("No terms supplied for ontology lookup")
+    results = batch_lookup(
+        terms,
+        providers=args.provider,
+        limit=args.limit,
+        timeout=args.timeout,
+    )
+    _print_json(results)
+
+
+def _load_batch_entries(batch_path: Path) -> list[dict[str, Any]]:
+    if not batch_path.exists():
+        raise SystemExit(f"{batch_path} does not exist")
+    payload = json.loads(batch_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise SystemExit("Batch payload must be a list")
+    return [dict(entry) for entry in payload]
+
+
+def _handle_ontology_upsert(args: argparse.Namespace) -> None:
+    entries: list[dict[str, Any]]
+    if args.batch:
+        entries = _load_batch_entries(args.batch)
+    else:
+        target_id: int | str | None
+        notes = args.notes
+        if args.kind == "concept":
+            target_id = args.concept
+            if target_id is None:
+                raise SystemExit("--concept is required when kind is 'concept'")
+            notes = notes or args.description
+        else:
+            target_id = args.actor_id
+            if target_id is None:
+                raise SystemExit("--actor-id is required when kind is 'actor'")
+        entries = [
+            {
+                "kind": args.kind,
+                "target_id": target_id,
+                "provider": args.provider,
+                "external_id": args.external_id,
+                "external_url": args.external_url,
+                "notes": notes,
+                "confidence": args.confidence,
+            }
+        ]
+
+    connection = sqlite3.connect(args.db)
+    ensure_database(connection)
+    dao = ExternalRefDAO(connection)
+    persisted: list[dict[str, object]] = []
+    for entry in entries:
+        kind = entry.get("kind", args.kind)
+        provider = entry.get("provider", args.provider)
+        external_id = entry.get("external_id", args.external_id)
+        external_url = entry.get("external_url", args.external_url)
+        notes = entry.get("notes", args.notes)
+        confidence_raw = entry.get("confidence", args.confidence)
+        confidence = float(confidence_raw) if confidence_raw is not None else None
+
+        if kind == "concept":
+            concept_ref = entry.get("target_id") or entry.get("concept_code")
+            if concept_ref is None:
+                raise SystemExit("Concept identifier or code required in payload")
+            record_id = dao.upsert_concept_ref(
+                concept=concept_ref,
+                provider=str(provider),
+                external_id=str(external_id),
+                external_url=external_url,
+                notes=notes,
+                confidence=confidence,
+            )
+        elif kind == "actor":
+            actor_id = entry.get("target_id") or entry.get("actor_id")
+            if actor_id is None:
+                raise SystemExit("Actor ID required in payload")
+            record_id = dao.upsert_actor_ref(
+                actor_id=int(actor_id),
+                provider=str(provider),
+                external_id=str(external_id),
+                external_url=external_url,
+                notes=notes,
+                confidence=confidence,
+            )
+        else:
+            raise SystemExit(f"Unsupported kind: {kind}")
+
+        persisted.append(
+            {
+                "id": record_id,
+                "kind": kind,
+                "provider": provider,
+                "external_id": external_id,
+                "external_url": external_url,
+                "notes": notes,
+                "confidence": confidence,
+            }
+        )
+    connection.close()
+    _print_json(persisted)
 
 
 def _load_graph_data(path: Path | str | None, *, flag: str = "--graph") -> dict:
@@ -1228,6 +1348,42 @@ def build_parser() -> argparse.ArgumentParser:
     harm_compute.add_argument("--story", type=Path, required=True)
     harm_compute.add_argument("--out", type=Path)
     harm_compute.set_defaults(func=_handle_harm_compute)
+
+    ontology = sub.add_parser("ontology", help="Ontology lookup and curation utilities")
+    ontology_sub = ontology.add_subparsers(dest="ontology_command")
+
+    ontology_lookup = ontology_sub.add_parser(
+        "lookup", help="Search Wikidata/DBpedia for candidate entities"
+    )
+    ontology_lookup.add_argument("--terms", nargs="*", help="Terms to search for")
+    ontology_lookup.add_argument(
+        "--file", type=Path, help="Optional file containing newline-delimited terms"
+    )
+    ontology_lookup.add_argument(
+        "--provider",
+        action="append",
+        choices=["wikidata", "dbpedia"],
+        help="Limit lookup to specific providers (repeatable)",
+    )
+    ontology_lookup.add_argument("--limit", type=int, default=10)
+    ontology_lookup.add_argument("--timeout", type=float, default=10.0)
+    ontology_lookup.set_defaults(func=_handle_ontology_lookup)
+
+    ontology_upsert = ontology_sub.add_parser(
+        "upsert", help="Persist curated ontology references"
+    )
+    ontology_upsert.add_argument("--db", type=Path, required=True)
+    ontology_upsert.add_argument("--kind", choices=["concept", "actor"], required=True)
+    ontology_upsert.add_argument("--provider", required=True)
+    ontology_upsert.add_argument("--external-id", required=True)
+    ontology_upsert.add_argument("--external-url")
+    ontology_upsert.add_argument("--notes")
+    ontology_upsert.add_argument("--description", help="Optional description to store as notes")
+    ontology_upsert.add_argument("--confidence", type=float)
+    ontology_upsert.add_argument("--concept", help="Concept code or identifier")
+    ontology_upsert.add_argument("--actor-id", type=int)
+    ontology_upsert.add_argument("--batch", type=Path, help="JSON list of reference payloads")
+    ontology_upsert.set_defaults(func=_handle_ontology_upsert)
 
     treatment = sub.add_parser("treatment", help="List sample treatment edges")
     treatment.add_argument("--doc", required=True)
