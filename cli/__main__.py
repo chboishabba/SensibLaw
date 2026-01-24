@@ -411,6 +411,36 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
         result["doc_id"] = stored_id
     if logic_tree_info is not None:
         result["logic_tree"] = logic_tree_info
+
+    if args.emit_identity:
+        from src.reference_identity import iter_references_from_document, normalize_for_identity
+
+        identities = [
+            normalize_for_identity(ref).__dict__
+            for ref in iter_references_from_document(doc)
+        ]
+        result["reference_identities"] = identities
+
+    if args.diff_against:
+        from src.models.document import Document
+        from src.reference_identity import iter_references_from_document
+        from src.reference_diff import diff_references
+
+        other_path = args.diff_against
+        other_data = json.loads(other_path.read_text())
+        if "document" in other_data:
+            other_doc = Document.from_dict(other_data["document"])
+        else:
+            other_doc = Document.from_dict(other_data)
+        lhs_refs = list(iter_references_from_document(other_doc))
+        rhs_refs = list(iter_references_from_document(doc))
+        diff = diff_references(lhs_refs, rhs_refs)
+        result["reference_diff"] = {
+            "added": sorted(diff.added),
+            "removed": sorted(diff.removed),
+            "unchanged": sorted(diff.unchanged),
+        }
+
     _print_json(result)
 
 
@@ -1151,6 +1181,16 @@ def build_parser() -> argparse.ArgumentParser:
     pdf_fetch.add_argument(
         "--logic-tree-source-id",
         help="Override source_id used when persisting the logic tree",
+    )
+    pdf_fetch.add_argument(
+        "--emit-identity",
+        action="store_true",
+        help="(placeholder) include reference identities in CLI output",
+    )
+    pdf_fetch.add_argument(
+        "--diff-against",
+        type=Path,
+        help="(placeholder) compute reference diff against another document",
     )
     pdf_fetch.add_argument(
         "--logic-tree-disable-fts",

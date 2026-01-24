@@ -2681,10 +2681,11 @@ def _extract_statutory_references_from_logic_tree(
                 clause_refs,
                 anchor_core_merge=True,
                 clause_id=clause_id,
+                anchor_used=source_label,
             )
         )
     return _canonicalize_references(
-        references, preferred_sources=("link", None)
+        references, preferred_sources=("link", None), anchor_used=source_label
     )
 
 
@@ -2908,7 +2909,10 @@ def build_document(
     )
     link_refs = _extract_hyperlink_references(pages, source_id=source.stem)
     statute_refs = _canonicalize_references(
-        link_refs + statute_refs, preferred_sources=("link", None)
+        link_refs + statute_refs,
+        preferred_sources=("link", None),
+        pages=[p.get("page") for p in pages if p.get("page") is not None],
+        anchor_used="body",
     )
     extra_refs = front_page_refs + statute_refs
 
