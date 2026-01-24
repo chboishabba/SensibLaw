@@ -2,11 +2,14 @@
 
 Contributions to SensibLaw are welcome. For a high-level roadmap linking tools
 to implementation areas, see [todo.md](todo.md). To get started, install the
-test dependencies and run the suite:
+development dependencies and run the suite:
 
 ```bash
-pip install -e .[test]
-pytest
+pip install -e .[dev,test]
+ruff format
+ruff check --fix
+mypy .
+pytest --maxfail=1 -q
 ```
 
 The test extras install [Hypothesis](https://hypothesis.readthedocs.io/) for property-based testing.

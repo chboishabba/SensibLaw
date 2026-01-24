@@ -120,3 +120,9 @@ erDiagram
 - **ER Diagram**: `docs/ontology_er.md` (Mermaid `erDiagram` for text, finance, and provenance entities).
 - **Event Schema**: `schemas/event.schema.yaml` (JSON schema used for serialized event payloads).
 - **Keyword Ontology (legacy)**: `docs/ontology.md` retains backward-compatible tagging guidance, but this document supersedes its three-layer framing.
+
+## Database Migration Tracks
+
+- SQLite migrations live in `database/migrations` and are exercised by tests via `MigrationRunner`.
+- The Postgres-first schema (no data carry-forward) is defined in `database/postgres_migrations`; apply with `scripts/apply_pg_migrations.sh` using your `PG*` env vars or `DATABASE_URL`.
+- Legacy, unrun SQL in `migrations/` and `schemas/migrations/` is superseded by the new Postgres track but retained for reference.

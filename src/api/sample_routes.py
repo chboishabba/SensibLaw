@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
 from typing import Any, Dict, List
 
 try:  # pragma: no cover - FastAPI is optional
@@ -24,6 +26,11 @@ except Exception:  # pragma: no cover
 from ontology.tagger import tag_text
 from pipeline import build_cloud, match_concepts, normalise
 from rules.extractor import extract_rules
+
+try:
+    from src import logic_tree
+except Exception:
+    import logic_tree  # type: ignore
 
 router = APIRouter()
 
@@ -96,4 +103,44 @@ def api_provision(
     return result
 
 
-__all__ = ["router", "api_subgraph", "api_treatment", "api_provision"]
+def _logic_tree_search(
+    query: str,
+    *,
+    limit: int = 20,
+    use_offsets: bool = True,
+    sqlite_path: str | Path | None = None,
+) -> List[Dict[str, Any]]:
+    path = Path(sqlite_path) if sqlite_path is not None else Path("artifacts/logic_tree.sqlite")
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="logic tree SQLite database not found")
+    try:
+        conn = sqlite3.connect(path)
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    try:
+        return logic_tree.search_fts_over_logic_tree(conn, query, limit=limit, use_offsets=use_offsets)
+    finally:
+        conn.close()
+
+
+@router.get("/logic-tree/search")
+def api_logic_tree_search(
+    query: str = Query(..., description="Search expression"),
+    limit: int = 20,
+    use_offsets: bool = True,
+    sqlite_path: str | None = None,
+) -> Dict[str, Any]:
+    """Search logic tree FTS index and return doc/node hits."""
+
+    results = _logic_tree_search(query, limit=limit, use_offsets=use_offsets, sqlite_path=sqlite_path)
+    return {"results": results}
+
+
+__all__ = [
+    "router",
+    "api_subgraph",
+    "api_treatment",
+    "api_provision",
+    "api_logic_tree_search",
+    "_logic_tree_search",
+]

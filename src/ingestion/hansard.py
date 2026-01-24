@@ -125,7 +125,8 @@ def fetch_debates(raw_debates: Iterable[Dict[str, str]]) -> Tuple[List[Dict[str,
         metadata = {
             "date": item.get("date"),
             "hash": sha,
-            "citations": [ref.to_dict() for ref in references],
+            # Hansard tests expect a lean citation payload without internal metadata
+            "citations": [ref.to_citation_dict() for ref in references],
         }
         nodes.append({
             "id": ident,

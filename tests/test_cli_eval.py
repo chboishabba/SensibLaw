@@ -1,9 +1,10 @@
 import subprocess
+import sys
 
 
 def test_eval_goldset_cli_succeeds():
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "cli",
         "eval",

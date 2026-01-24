@@ -3,6 +3,9 @@ from __future__ import annotations
 import inspect
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+import hashlib
+import json
+import re
 
 
 def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -127,9 +130,34 @@ class RuleReference:
     section: Optional[str] = None
     pinpoint: Optional[str] = None
     citation_text: Optional[str] = None
+    source: Optional[str] = None
+    uri: Optional[str] = None
+    identity_hash: Optional[str] = None
+    family_key: Optional[str] = None
+    year: Optional[int] = None
+    jurisdiction_hint: Optional[str] = None
+    provenance: Optional[Dict[str, Any]] = None
     glossary: Optional[GlossaryLink] = None
 
     def to_dict(self) -> Dict[str, Any]:
+        return {
+            "work": self.work,
+            "section": self.section,
+            "pinpoint": self.pinpoint,
+            "citation_text": self.citation_text,
+            "source": self.source,
+            "uri": self.uri,
+            "identity_hash": self.identity_hash,
+            "family_key": self.family_key,
+            "year": self.year,
+            "jurisdiction_hint": self.jurisdiction_hint,
+            "provenance": dict(self.provenance) if self.provenance is not None else None,
+            "glossary_id": self.glossary_id,
+        }
+
+    def to_citation_dict(self) -> Dict[str, Any]:
+        """Serialise a lean citation payload for graph/export consumers."""
+
         return {
             "work": self.work,
             "section": self.section,
@@ -146,6 +174,17 @@ class RuleReference:
             section=data.get("section"),
             pinpoint=data.get("pinpoint"),
             citation_text=data.get("citation_text"),
+            source=data.get("source"),
+            uri=data.get("uri"),
+            identity_hash=data.get("identity_hash"),
+            family_key=data.get("family_key"),
+            year=data.get("year"),
+            jurisdiction_hint=data.get("jurisdiction_hint"),
+            provenance=(
+                dict(data["provenance"])
+                if "provenance" in data and data["provenance"] is not None
+                else None
+            ),
             glossary=(
                 GlossaryLink(glossary_id=glossary_id) if glossary_id is not None else None
             ),
@@ -170,6 +209,60 @@ class RuleReference:
         if self.glossary is None:
             self.glossary = GlossaryLink()
         self.glossary.glossary_id = value
+
+    # Identity helpers (metadata-only; do not affect extraction behaviour)
+    def compute_identity(self) -> "RuleReference":
+        """Populate identity-related metadata deterministically."""
+
+        canonical_work = (self.work or "").strip().lower()
+
+        family_key = _build_family_key(canonical_work)
+        year_match = re.search(r"\b(\d{4})\b", canonical_work)
+        year = int(year_match.group(1)) if year_match else None
+        jurisdiction_hint = _extract_jurisdiction_hint(canonical_work)
+
+        identity_payload = {
+            "work": canonical_work or None,
+            "section": (self.section or "").strip().lower() or None,
+            "pinpoint": (self.pinpoint or "").strip().lower() or None,
+            "family_key": family_key,
+            "year": year,
+            "jurisdiction_hint": jurisdiction_hint,
+        }
+        identity_json = json.dumps(identity_payload, sort_keys=True, separators=(",", ":"))
+        identity_hash = hashlib.sha1(identity_json.encode("utf-8")).hexdigest()
+
+        self.family_key = family_key
+        self.year = year
+        self.jurisdiction_hint = jurisdiction_hint
+        self.identity_hash = identity_hash
+        return self
+
+
+def _build_family_key(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    cleaned = re.sub(r"\b\d{4}(?:-\d{4})?\b", "", value.lower())
+    cleaned = cleaned.replace("(", " ").replace(")", " ")
+    cleaned = re.sub(r"[^a-z&\s-]+", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,.;:-")
+    return cleaned or None
+
+
+def _extract_jurisdiction_hint(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    match = re.search(
+        r"\b(cth|commonwealth|aust|australia|nsw|vic|qld|wa|sa|tas|act|nt|hca)\b",
+        value,
+        re.IGNORECASE,
+    )
+    if match:
+        token = match.group(1).upper()
+        if token == "COMMONWEALTH" or token == "AUST" or token == "AUSTRALIA":
+            return "CTH"
+        return token
+    return None
 
 
 @dataclass

@@ -49,12 +49,14 @@ def test_extract_pdf(tmp_path):
             "heading": "Heading 1",
             "text": "Hello World",
             "lines": ["Heading 1", "Hello", "World"],
+            "links": [],
         },
         {
             "page": 2,
             "heading": "Heading2",
             "text": "Second Page",
             "lines": ["Heading2", "Second Page"],
+            "links": [],
         },
     ]
 

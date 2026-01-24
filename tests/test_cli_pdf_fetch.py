@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -21,16 +22,47 @@ def test_pdf_fetch_cli(tmp_path):
         "def extract_text(path):\n"
         "    return ''.join(page.get_text() + '\\f' for layout in _pages() for page in layout)\n"
     )
+    (stub_pkg / "pdfminer" / "layout.py").write_text(
+        "class LTAnno: ...\n"
+        "class LTChar:\n"
+        "    def __init__(self, x0=0, y0=0, x1=0, y1=0, pageid=1, char=None):\n"
+        "        self.x0, self.y0, self.x1, self.y1, self.pageid, self.char = x0, y0, x1, y1, pageid, char or ''\n"
+        "class LTTextContainer: ...\n"
+    )
+    (stub_pkg / "pdfminer" / "pdfdocument.py").write_text(
+        "class PDFDocument:\n"
+        "    def __init__(self, parser):\n"
+        "        self.parser = parser\n"
+    )
+    (stub_pkg / "pdfminer" / "pdfpage.py").write_text(
+        "class PDFPage:\n"
+        "    @staticmethod\n"
+        "    def create_pages(document):\n"
+        "        return []\n"
+    )
+    (stub_pkg / "pdfminer" / "pdfparser.py").write_text(
+        "class PDFParser:\n"
+        "    def __init__(self, buffer):\n"
+        "        self.buffer = buffer\n"
+        "    def set_document(self, document):\n"
+        "        self.document = document\n"
+    )
+    (stub_pkg / "pdfminer" / "pdftypes.py").write_text(
+        "def resolve1(value):\n"
+        "    return value\n"
+    )
 
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
     out_path = tmp_path / "out.json"
     db_path = tmp_path / "store.db"
+    logic_tree_dir = tmp_path / "logic_tree"
+    logic_tree_sqlite = logic_tree_dir / "logic_tree.sqlite"
 
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{stub_pkg}:{env.get('PYTHONPATH', '')}"
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "cli",
         "pdf-fetch",
@@ -45,6 +77,12 @@ def test_pdf_fetch_cli(tmp_path):
         "Provided Title",
         "--db",
         str(db_path),
+        "--logic-tree-artifacts",
+        str(logic_tree_dir),
+        "--logic-tree-sqlite",
+        str(logic_tree_sqlite),
+        "--logic-tree-source-id",
+        "sample-doc",
     ]
     completed = subprocess.run(cmd, capture_output=True, text=True, check=True, env=env)
     payload = json.loads(completed.stdout)
@@ -75,7 +113,7 @@ def test_pdf_fetch_cli(tmp_path):
         assert provision["atoms"], "expected atoms persisted to disk"
 
     get_cmd = [
-        "python",
+        sys.executable,
         "-m",
         "cli",
         "get",
@@ -89,3 +127,8 @@ def test_pdf_fetch_cli(tmp_path):
     assert retrieved["provisions"], "expected provisions from stored document"
     for provision in retrieved["provisions"]:
         assert provision["atoms"], "expected atoms persisted in database"
+
+    logic_tree_meta = payload.get("logic_tree")
+    assert logic_tree_meta, "expected logic tree metadata in CLI output"
+    assert Path(logic_tree_meta["json"]).exists()
+    assert Path(logic_tree_meta["sqlite"]).exists()

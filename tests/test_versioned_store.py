@@ -103,6 +103,64 @@ def make_store(tmp_path: Path) -> tuple[VersionedStore, int]:
     return store, doc_id
 
 
+def add_nested_revision(
+    store: VersionedStore, doc_id: int, *, effective: date
+) -> int:
+    """Add a revision containing parent/child toc + provisions for position tests."""
+
+    meta = DocumentMetadata(
+        jurisdiction="US",
+        citation="nested",
+        date=effective,
+        source_url="http://example.com",
+        retrieved_at=datetime(2022, 1, 1, 0, 0, 0),
+        checksum="nested",
+        licence="CC-BY",
+        canonical_id="nested-1",
+    )
+
+    child_provision = Provision(
+        text="Nested child provision",
+        identifier="(1)",
+        heading=None,
+        node_type="subsection",
+        toc_id=2,
+        position=1,
+    )
+    parent_provision = Provision(
+        text="Nested parent provision",
+        identifier="s 3",
+        heading="Nested parent",
+        node_type="section",
+        toc_id=1,
+        position=1,
+        children=[child_provision],
+    )
+
+    toc_child = DocumentTOCEntry(
+        node_type="subsection",
+        identifier="(1)",
+        title="Nested child",
+        page_number=None,
+    )
+    toc_parent = DocumentTOCEntry(
+        node_type="section",
+        identifier="s 3",
+        title="Nested parent",
+        page_number=1,
+        children=[toc_child],
+    )
+
+    document = Document(
+        meta,
+        "Nested body",
+        provisions=[parent_provision],
+        toc_entries=[toc_parent],
+    )
+
+    return store.add_revision(doc_id, document, effective)
+
+
 def _make_metadata() -> DocumentMetadata:
     return DocumentMetadata(
         jurisdiction="AU",

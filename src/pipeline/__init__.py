@@ -1,15 +1,15 @@
 """Lightweight processing pipeline utilities."""
 from __future__ import annotations
 
-from collections import Counter
-from functools import lru_cache
-from importlib import import_module
-from typing import Any, Dict, List
-from typing import Dict, List
-from dataclasses import dataclass, field
+import json
 import re
 import string
-from typing import ClassVar, Dict, Iterator, List, Sequence
+from collections import Counter
+from dataclasses import dataclass, field
+from functools import lru_cache
+from importlib import import_module
+from pathlib import Path
+from typing import Any, ClassVar, Dict, Iterator, List, Sequence
 from weakref import WeakSet
 
 from src.concepts.matcher import MATCHER
@@ -19,13 +19,20 @@ from src.tools.glossary import rewrite_text
 from src.tools.harm_index import compute_harm_index as harm_index
 
 from .tokens import Token, TokenStream, spacy_adapter
+from src import logic_tree
 
-from .ner import (
-    analyze_references,
-    get_ner_pipeline,
-    REFERENCE_SPAN_KEY,
-    REFERENCE_LABEL,
-)
+try:
+    from .ner import (
+        analyze_references,
+        get_ner_pipeline,
+        REFERENCE_SPAN_KEY,
+        REFERENCE_LABEL,
+    )
+except Exception:  # pragma: no cover - spaCy or deps may be unavailable
+    analyze_references = None
+    get_ner_pipeline = None
+    REFERENCE_SPAN_KEY = "reference_span"
+    REFERENCE_LABEL = "REFERENCE"
 
 
 class _TokenExtensionAccessor:
@@ -329,11 +336,62 @@ def _logic_tree_module() -> Any:
     raise RuntimeError("logic_tree module is not available")
 
 
-def build_logic_tree(tokens: TokenStream) -> Any:
+def build_logic_tree(tokens: TokenStream, *, source_id: str | None = None) -> Any:
     """Build a logic tree structure from ``tokens``."""
 
     module = _logic_tree_module()
-    return module.build(tokens)
+    if source_id is None:
+        return module.build(tokens)
+    return module.build(tokens, source_id=source_id)
+
+
+def build_and_persist_logic_tree(
+    text: str,
+    *,
+    source_id: str,
+    artifacts_dir: str | Path = "artifacts",
+    sqlite_path: str | Path | None = None,
+    enable_fts: bool = True,
+) -> Any:
+    """Normalise, tokenise, build a logic tree, and persist it as JSON.
+
+    Artifacts are written to ``{artifacts_dir}/{source_id}.logic_tree.json`` and
+    reflect the canonical logic-tree-v1 representation. Persistence is
+    idempotent for the same inputs (deterministic outputs).
+    """
+
+    normalized = normalise(text)
+    tokens = tokenise(str(normalized))
+    tree = build_logic_tree(tokens, source_id=source_id)
+
+    artifacts_path = Path(artifacts_dir)
+    artifacts_path.mkdir(parents=True, exist_ok=True)
+    output_path = artifacts_path / f"{source_id}.logic_tree.json"
+    with output_path.open("w", encoding="utf-8") as fp:
+        json.dump(tree.to_dict(), fp, ensure_ascii=False, indent=2)
+        fp.write("\n")
+
+    if sqlite_path is None:
+        sqlite_path = artifacts_path / "logic_tree.sqlite"
+
+    if sqlite_path is not None:
+        sqlite_path = Path(sqlite_path)
+        sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            import sqlite3
+
+            connection = sqlite3.connect(str(sqlite_path))
+            logic_tree.prepare_logic_tree_schema(connection)
+            logic_tree.project_logic_tree_to_sqlite(tree, connection, doc_id=source_id)
+            if enable_fts:
+                logic_tree.prepare_fts_schema(connection)
+                logic_tree.index_tokens_for_fts(connection, doc_id=source_id, tokens=tokens)
+            connection.close()
+        except Exception:
+            # FTS is optional; avoid failing ingestion if SQLite/FTS is unavailable.
+            pass
+
+    return tree
 
 
 __all__ = [
@@ -345,6 +403,9 @@ __all__ = [
     "build_cloud",
     "tokenise",
     "build_logic_tree",
+    "build_and_persist_logic_tree",
+    "prepare_fts_schema",
+    "index_tokens_for_fts",
     "spacy_adapter",
     "harm_index",
     "analyze_references",

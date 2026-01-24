@@ -38,3 +38,26 @@ dispatcher.dispatch(names=["Federal Register of Legislation"])
 
 This mechanism allows tests or scripts to run targeted ingestion workflows while
 still respecting throttling and format preferences.
+
+## PDF parsing logic (src/pdf_ingest.py)
+
+The PDF pipeline streams pages via pdfminer (`extract_pages`) so only the active
+page is materialised in memory. Parsing follows these steps:
+
+- **Table of contents detection and filtering.** `_parse_multi_column_toc()` and
+  `_parse_toc_page()` detect TOC pages using “contents” markers, dot leaders, and
+  trailing page numbers. Parsed entries become `DocumentTOCEntry` trees and the
+  same lookup is used to strip TOC pages before section splitting.
+- **Section splitting with parser fallback.** If an optional `section_parser`
+  plugin is present, `parse_sections()` defers to it. Otherwise it falls back to
+  `_fallback_parse_sections()`, which splits on `Section/Part/Division` headers
+  and reattaches any preamble text ahead of the first section.
+- **TOC noise removal.** `_strip_leading_table_of_contents()` and
+  `_strip_embedded_table_of_contents()` drop inline TOC blocks and headings with
+  page references or dot leaders before any splitting occurs.
+- **Guarding against false positives.** TOC-like headings (page refs, dot
+  leaders, page words) are ignored during regex splitting so the parser does not
+  emit empty provisions or misclassify contents pages as sections.
+
+See `docs/nlp_pipelines.md` for the subsequent rule extraction flow once sections
+are available.

@@ -1,0 +1,27 @@
+digraph LogicTree {
+  "n0" [label="ROOT" style="filled" fillcolor="#111827"];
+  "n1" [label="CLAUSE: A person must not enter the premises without consent unless authorised." style="filled" fillcolor="#2563eb"];
+  "n2" [label="TOKEN: A" style="filled" fillcolor="#6b7280"];
+  "n3" [label="TOKEN: person" style="filled" fillcolor="#6b7280"];
+  "n4" [label="MODAL: must" style="filled" fillcolor="#a855f7"];
+  "n5" [label="TOKEN: not" style="filled" fillcolor="#6b7280"];
+  "n6" [label="ACTION: enter" style="filled" fillcolor="#0ea5e9"];
+  "n7" [label="TOKEN: the" style="filled" fillcolor="#6b7280"];
+  "n8" [label="TOKEN: premises" style="filled" fillcolor="#6b7280"];
+  "n9" [label="TOKEN: without" style="filled" fillcolor="#6b7280"];
+  "n10" [label="TOKEN: consent" style="filled" fillcolor="#6b7280"];
+  "n11" [label="EXCEPTION: unless" style="filled" fillcolor="#dc2626"];
+  "n12" [label="ACTION: authorised." style="filled" fillcolor="#0ea5e9"];
+  "n0" -> "n1" [label="SEQUENCE"];
+  "n1" -> "n2" [label="SEQUENCE"];
+  "n1" -> "n3" [label="SEQUENCE"];
+  "n1" -> "n4" [label="QUALIFIES"];
+  "n1" -> "n5" [label="SEQUENCE"];
+  "n1" -> "n6" [label="SEQUENCE"];
+  "n1" -> "n7" [label="SEQUENCE"];
+  "n1" -> "n8" [label="SEQUENCE"];
+  "n1" -> "n9" [label="SEQUENCE"];
+  "n1" -> "n10" [label="SEQUENCE"];
+  "n1" -> "n11" [label="EXCEPTS"];
+  "n1" -> "n12" [label="SEQUENCE"];
+}

@@ -6,6 +6,7 @@ from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 import threading
 import urllib.request
+import pytest
 
 
 def test_publish_static_site(tmp_path: Path):
@@ -31,7 +32,10 @@ def test_publish_static_site(tmp_path: Path):
 
     # Serve the site locally and fetch resources
     handler = partial(SimpleHTTPRequestHandler, directory=str(out_dir))
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    except PermissionError:
+        pytest.skip("Local sockets are not permitted in this environment")
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     thread.start()

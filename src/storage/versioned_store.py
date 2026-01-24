@@ -410,7 +410,6 @@ class VersionedStore:
         self._ensure_without_rowid_tables()
         self._ensure_unique_indexes()
         self._ensure_receipts_indexes()
-        self._ensure_document_json_column()
         self._backfill_rule_tables()
         self._ensure_atoms_view()
         self._ensure_column("rule_atoms", "glossary_id", "INTEGER")
@@ -496,7 +495,7 @@ class VersionedStore:
             if parent_id is None:
                 siblings = self.conn.execute(
                     f"""
-                    SELECT rowid AS row_id, position
+                    SELECT {id_column} AS row_id, position
                     FROM {table}
                     WHERE doc_id = ? AND rev_id = ? AND parent_id IS NULL
                     ORDER BY position, {id_column}
@@ -506,7 +505,7 @@ class VersionedStore:
             else:
                 siblings = self.conn.execute(
                     f"""
-                    SELECT rowid AS row_id, position
+                    SELECT {id_column} AS row_id, position
                     FROM {table}
                     WHERE doc_id = ? AND rev_id = ? AND parent_id = ?
                     ORDER BY position, {id_column}
@@ -931,6 +930,7 @@ class VersionedStore:
                         rev_id INTEGER NOT NULL,
                         provision_id INTEGER NOT NULL,
                         parent_id INTEGER,
+                        position INTEGER NOT NULL,
                         identifier TEXT,
                         heading TEXT,
                         node_type TEXT,
@@ -953,6 +953,8 @@ class VersionedStore:
                     "ON provisions(doc_id, rev_id, provision_id)",
                     "CREATE INDEX IF NOT EXISTS idx_provisions_toc\n"
                     "ON provisions(doc_id, rev_id, toc_id)",
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_provisions_parent_position\n"
+                    "ON provisions(doc_id, rev_id, parent_id, position)",
                 ),
             ),
             "rule_atoms": (
@@ -991,6 +993,10 @@ class VersionedStore:
                 (
                     "CREATE INDEX IF NOT EXISTS idx_rule_atoms_doc_rev\n"
                     "ON rule_atoms(doc_id, rev_id, provision_id)",
+                    "CREATE INDEX IF NOT EXISTS idx_rule_atoms_toc\n"
+                    "ON rule_atoms(doc_id, rev_id, toc_id)",
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_atoms_unique_text\n"
+                    "ON rule_atoms(doc_id, stable_id, party, role, text_hash)",
                 ),
             ),
             "rule_elements": (
@@ -2441,7 +2447,6 @@ class VersionedStore:
         for provision in provisions:
             visit(provision, None)
 
-    def _load_provisions(self, doc_id: int, rev_id: int) -> List[Provision]:
         if has_provision_fts and provision_text_entries:
             self.conn.executemany(
                 """
@@ -2855,6 +2860,7 @@ class VersionedStore:
                 result.append(child)
             return result
 
+        root_ids: List[int] = []
         for row in provision_rows:
             parent_id = row["parent_id"]
             current_id = row["provision_id"]

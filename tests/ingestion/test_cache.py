@@ -5,6 +5,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+import pytest
+
 from src.ingestion.cache import HTTPCache
 
 
@@ -107,7 +109,10 @@ def _start_server(body: bytes) -> tuple[HTTPServer, str]:
         def log_message(self, format, *args):  # pragma: no cover - silence
             pass
 
-    server = HTTPServer(("localhost", 0), Handler)
+    try:
+        server = HTTPServer(("localhost", 0), Handler)
+    except PermissionError:
+        pytest.skip("Local sockets are not permitted in this environment")
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     url = f"http://localhost:{server.server_port}/"
@@ -143,5 +148,4 @@ def test_source_manifests_exist():
     hca = json.loads((base / "hca_manifest.json").read_text())
     assert frl["base_url"].startswith("https://")
     assert hca["base_url"].startswith("https://")
-
 

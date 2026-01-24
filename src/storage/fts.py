@@ -32,17 +32,25 @@ class TextIndex:
     # Schema initialisation
     # ------------------------------------------------------------------
     def _init_schema(self) -> None:
-        with self.conn:
-            self.conn.execute(
-                """
-                CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(
-                    identifier UNINDEXED,
-                    type UNINDEXED,
-                    text,
-                    tokenize='porter'
-                );
-                """
-            )
+        try:
+            with self.conn:
+                self.conn.execute(
+                    """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(
+                        identifier UNINDEXED,
+                        type UNINDEXED,
+                        text,
+                        tokenize='porter'
+                    );
+                    """
+                )
+        except sqlite3.OperationalError as exc:
+            message = str(exc).lower()
+            if "fts5" in message or "no such module" in message:
+                raise RuntimeError(
+                    "SQLite build does not support FTS5; install the extension or use a compatible SQLite build."
+                ) from exc
+            raise
 
     def _load_graph(self) -> None:
         cur = self.conn.execute("SELECT identifier, type FROM node_fts")

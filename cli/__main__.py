@@ -378,9 +378,39 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
         db_path=args.db,
         doc_id=args.doc_id,
     )
+    source_id = (
+        args.logic_tree_source_id
+        or doc.metadata.canonical_id
+        or (str(stored_id) if stored_id is not None else None)
+        or args.path.stem
+    )
+
+    sqlite_path = args.logic_tree_sqlite or (args.logic_tree_artifacts / "logic_tree.sqlite")
+    logic_tree_info: dict[str, object] | None = None
+    try:
+        from src import pipeline
+
+        pipeline.build_and_persist_logic_tree(
+            doc.body,
+            source_id=source_id,
+            artifacts_dir=args.logic_tree_artifacts,
+            sqlite_path=sqlite_path,
+            enable_fts=not args.logic_tree_disable_fts,
+        )
+        logic_tree_info = {
+            "source_id": source_id,
+            "json": str(args.logic_tree_artifacts / f"{source_id}.logic_tree.json"),
+            "sqlite": str(sqlite_path),
+            "enable_fts": not args.logic_tree_disable_fts,
+        }
+    except Exception as exc:  # pragma: no cover - defensive to avoid failing ingestion
+        logic_tree_info = {"source_id": source_id, "error": f"logic tree build skipped: {exc}"}
+
     result = {"document": doc.to_dict()}
     if stored_id is not None:
         result["doc_id"] = stored_id
+    if logic_tree_info is not None:
+        result["logic_tree"] = logic_tree_info
     _print_json(result)
 
 
@@ -1002,9 +1032,14 @@ def _handle_tools(args: argparse.Namespace) -> None:
 
 def _collect_terms(args: argparse.Namespace) -> list[str]:
     terms: list[str] = []
-    if args.terms:
-        terms.extend(args.terms)
-    if args.file:
+    single = getattr(args, "term", None)
+    if single:
+        terms.append(single)
+    extra_terms = getattr(args, "terms", None) or []
+    if extra_terms:
+        terms.extend(extra_terms)
+    file_arg = getattr(args, "file", None)
+    if file_arg:
         path = Path(args.file)
         if not path.exists():
             raise SystemExit(f"File not found: {path}")
@@ -1015,11 +1050,15 @@ def _collect_terms(args: argparse.Namespace) -> list[str]:
     return terms
 
 
-def _handle_ontology_lookup(args: argparse.Namespace) -> None:
+def _handle_ontology_lookup_batch(args: argparse.Namespace) -> None:
     from src.ontology.lookup import batch_lookup
 
     terms = _collect_terms(args)
-    results = batch_lookup(terms, provider=args.provider, db_path=args.db)
+    results = batch_lookup(
+        terms,
+        provider=getattr(args, "provider", None),
+        db_path=getattr(args, "db", None),
+    )
     _print_json([record.asdict() for record in results])
 
 
@@ -1097,6 +1136,27 @@ def build_parser() -> argparse.ArgumentParser:
     pdf_fetch.add_argument("--cultural-flags", nargs="*")
     pdf_fetch.add_argument("--db", type=Path)
     pdf_fetch.add_argument("--doc-id", type=int)
+    pdf_fetch.add_argument(
+        "--logic-tree-artifacts",
+        type=Path,
+        default=Path("artifacts"),
+        help="Directory to persist logic tree JSON artifacts",
+    )
+    pdf_fetch.add_argument(
+        "--logic-tree-sqlite",
+        type=Path,
+        default=Path("artifacts/logic_tree.sqlite"),
+        help="SQLite path for logic tree projections",
+    )
+    pdf_fetch.add_argument(
+        "--logic-tree-source-id",
+        help="Override source_id used when persisting the logic tree",
+    )
+    pdf_fetch.add_argument(
+        "--logic-tree-disable-fts",
+        action="store_true",
+        help="Disable FTS indexing when projecting logic tree tokens",
+    )
     pdf_fetch.set_defaults(func=_handle_pdf_fetch)
 
     distinguish = sub.add_parser("distinguish", help="Compare a story against a case silhouette")
@@ -1245,7 +1305,7 @@ def build_parser() -> argparse.ArgumentParser:
     ontology_lookup.add_argument("--file", type=Path, help="Optional file containing newline-delimited terms")
     ontology_lookup.add_argument("--provider", default="glossary", help="Lookup provider label")
     ontology_lookup.add_argument("--db", type=Path, help="Optional SQLite database to log lookups")
-    ontology_lookup.set_defaults(func=_handle_ontology_lookup)
+    ontology_lookup.set_defaults(func=_handle_ontology_lookup_batch)
 
     austlii = sub.add_parser("austlii-fetch", help="Fetch legislation from AustLII")
     austlii.add_argument("--db", type=Path, required=True)

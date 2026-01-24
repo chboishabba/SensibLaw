@@ -19,6 +19,8 @@ from src.nlp.taxonomy import ConditionalConnector, Modality
 # Precompiled regex to capture leading numbering/heading from a block of text
 HEADING_RE = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\s+(?P<heading>.+)$")
 
+TOKEN_RE = re.compile(r"\S+|\s")
+
 PART_RE = re.compile(
     r"^Part\s+(?P<number>[A-Z0-9IVXLC]+)(?:\s*(?:[-–:]\s*)?(?P<heading>.+))?$",
     re.IGNORECASE,
@@ -546,7 +548,7 @@ class ParsedNode:
                 "modality": self.rule_tokens.get("modality"),
                 "conditions": list(self.rule_tokens.get("conditions", [])),
                 "references": [
-                    ref.to_dict() if hasattr(ref, "to_dict") else ref
+                    ref.to_citation_dict() if hasattr(ref, "to_citation_dict") else ref
                     for ref in self.rule_tokens.get("references", [])
                 ],
                 "token_classes": [
@@ -556,7 +558,10 @@ class ParsedNode:
                     for token in self.rule_tokens.get("token_classes", [])
                 ],
             },
-            "references": [ref.to_dict() for ref in self.references],
+            "references": [
+                ref.to_citation_dict() if hasattr(ref, "to_citation_dict") else ref
+                for ref in self.references
+            ],
             "children": [child.to_dict() for child in self.children],
         }
 
@@ -581,7 +586,10 @@ class Section:
             "rules": {
                 "modality": self.modality,
                 "conditions": list(self.conditions),
-                "references": [ref.to_dict() for ref in self.references],
+                "references": [
+                    ref.to_citation_dict() if hasattr(ref, "to_citation_dict") else ref
+                    for ref in self.references
+                ],
                 "token_classes": [dict(token) for token in self.token_classes],
             },
         }
@@ -749,7 +757,7 @@ def parse_sections(text: str) -> List[ParsedNode]:
     return nodes
 
 
-__all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section"]
+__all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section", "TOKEN_RE"]
 """Compatibility re-export for :mod:`section_parser` without overriding new APIs."""
 
 try:  # pragma: no cover - optional legacy dependency

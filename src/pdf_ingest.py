@@ -10,10 +10,17 @@ import sys
 from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
 from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTAnno, LTChar, LTTextContainer
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdftypes import resolve1
+from urllib.parse import parse_qs, unquote, urlparse
 
 from src.culture.overlay import get_default_overlay
 from src.glossary.linker import GlossaryLinker
@@ -28,12 +35,16 @@ from src.models.provision import (
     RuleElement,
     RuleLint,
     RuleReference,
+    _build_family_key,
 )
 from src.rules import UNKNOWN_PARTY
 from src.rules.extractor import extract_rules
+from src.nlp.taxonomy import Modality
+from src import logic_tree
+from src.pipeline import normalise
 from src.storage.core import Storage
 from src.storage.versioned_store import VersionedStore
-from src.text.citations import parse_case_citation
+from src.text.citations import CaseCitation, parse_case_citation
 
 
 logger = logging.getLogger(__name__)
@@ -127,6 +138,24 @@ class GlossaryRecord:
     term: str
     definition: str
     metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass(frozen=True)
+class Glyph:
+    page: int
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+    char: str
+
+
+@dataclass(frozen=True)
+class PdfLink:
+    page: int
+    rect: Tuple[float, float, float, float]
+    uri: Optional[str] = None
+    text: Optional[str] = None
 
 
 class GlossaryRegistry:
@@ -452,11 +481,112 @@ def _clean_page_line(line: str) -> Optional[str]:
     return cleaned or None
 
 
+def _extract_pdf_links(data: bytes) -> Dict[int, List[PdfLink]]:
+    """Extract hyperlink annotations keyed by page number."""
+
+    links: Dict[int, List[PdfLink]] = {}
+    try:
+        with BytesIO(data) as buffer:
+            parser = PDFParser(buffer)
+            document = PDFDocument(parser)
+            parser.set_document(document)
+            for page_number, page in enumerate(PDFPage.create_pages(document), start=1):
+                annotations = getattr(page, "annots", None)
+                if not annotations:
+                    continue
+                resolved = resolve1(annotations)
+                if not resolved:
+                    continue
+                for annotation_ref in resolved:
+                    annotation = resolve1(annotation_ref)
+                    if not isinstance(annotation, dict):
+                        continue
+                    subtype = annotation.get("Subtype")
+                    if subtype is not None and str(subtype) != "/Link":
+                        continue
+                    rect = resolve1(annotation.get("Rect"))
+                    if not rect or len(rect) != 4:
+                        continue
+                    action = annotation.get("A") or annotation.get("PA")
+                    uri: Optional[str] = None
+                    if action:
+                        resolved_action = resolve1(action)
+                        if isinstance(resolved_action, dict):
+                            uri_obj = resolved_action.get("URI") or resolved_action.get("uri")
+                            if uri_obj:
+                                uri = str(resolve1(uri_obj))
+                    if not uri:
+                        continue
+                    x0, y0, x1, y1 = [float(v) for v in rect]
+                    links.setdefault(page_number, []).append(
+                        PdfLink(page=page_number, rect=(x0, y0, x1, y1), uri=uri)
+                    )
+    except Exception:
+        return {}
+    return links
+
+
+def _collect_glyphs_from_layout(layout) -> List[Glyph]:
+    """Collect glyphs (characters) with bounding boxes from a pdfminer layout."""
+
+    glyphs: List[Glyph] = []
+
+    def _walk(element) -> None:
+        if isinstance(element, LTChar):
+            glyphs.append(
+                Glyph(
+                    page=getattr(element, "pageid", getattr(layout, "pageid", 0)),
+                    x0=float(element.x0),
+                    y0=float(element.y0),
+                    x1=float(element.x1),
+                    y1=float(element.y1),
+                    char=element.get_text(),
+                )
+            )
+            return
+        if isinstance(element, LTAnno):
+            return
+        if isinstance(element, LTTextContainer):
+            for child in element:
+                _walk(child)
+            return
+        for child in getattr(element, "_objs", []):
+            _walk(child)
+
+    _walk(layout)
+    return glyphs
+
+
+def _rects_intersect(a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> bool:
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    return not (ax1 <= bx0 or bx1 <= ax0 or ay1 <= by0 or by1 <= ay0)
+
+
+def _extract_link_text(rect: Tuple[float, float, float, float], glyphs: List[Glyph]) -> Optional[str]:
+    """Best-effort extraction of visible text within a hyperlink rectangle."""
+
+    inside = [
+        glyph
+        for glyph in glyphs
+        if _rects_intersect(rect, (glyph.x0, glyph.y0, glyph.x1, glyph.y1))
+    ]
+    if not inside:
+        return None
+    inside.sort(key=lambda g: (-g.y0, g.x0))
+    text = "".join(g.char for g in inside if g.char)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text or None
+
+
 def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
     """Yield text and headings from ``pdf_path`` one page at a time."""
 
-    with pdf_path.open("rb") as pdf_file:
+    data = pdf_path.read_bytes()
+    links_by_page = _extract_pdf_links(data)
+    with BytesIO(data) as pdf_file:
         for page_number, layout in enumerate(extract_pages(pdf_file), start=1):
+            glyphs = _collect_glyphs_from_layout(layout)
             lines: List[str] = []
             for element in layout:
                 get_text = getattr(element, "get_text", None)
@@ -476,7 +606,24 @@ def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
             heading = lines[0]
             body_lines = lines[1:]
             body = " ".join(body_lines) if body_lines else ""
-            yield {"page": page_number, "heading": heading, "text": body, "lines": lines}
+            page_links = []
+            for link in links_by_page.get(page_number, []):
+                link_text = _extract_link_text(link.rect, glyphs)
+                page_links.append(
+                    {
+                        "uri": link.uri,
+                        "rect": link.rect,
+                        "text": link_text,
+                        "page": link.page,
+                    }
+                )
+            yield {
+                "page": page_number,
+                "heading": heading,
+                "text": body,
+                "lines": lines,
+                "links": page_links,
+            }
 
 
 def _normalise_toc_candidate(parts: List[str]) -> str:
@@ -1205,6 +1352,34 @@ _PRINCIPLE_LEADING_ENUM = re.compile(r"^(?:\([a-z0-9]+\)\s+)+", re.IGNORECASE)
 
 _CITATION_NEUTRAL_RE = re.compile(r"\[\d{4}\]")
 _CITATION_WORD_RE = re.compile(r"\bv\.?\b", re.IGNORECASE)
+_CASE_NAME_RE = re.compile(r"[A-Z][A-Za-z0-9.'()& -]+? v [A-Z][A-Za-z0-9.'()& -]+")
+_YEAR_TOKEN_RE = re.compile(r"^\(\d{4}\)$")
+_SECTION_ID_PATTERN = re.compile(r"^\d+[A-Za-z]*(?:\([^)]+\))*$")
+
+_MODALITY_DISPLAY = {
+    Modality.MUST: "must",
+    Modality.MUST_NOT: "must not",
+    Modality.MAY: "may",
+    Modality.MAY_NOT: "may not",
+    Modality.SHALL: "shall",
+    Modality.SHALL_NOT: "shall not",
+}
+
+_FRONT_MISLEADING_TITLES = {"sticker label signal", "case name"}
+_JURISDICTION_EXCLUDE_TOKENS = {
+    "appl",
+    "applied",
+    "foll",
+    "followed",
+    "citation",
+    "year",
+    "case",
+    "name",
+    "sticker",
+    "label",
+    "signal",
+}
+_FRONT_CITATION_START = {"citation", "citation year"}
 
 
 def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
@@ -1216,6 +1391,17 @@ def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
     normalized = _PRINCIPLE_LEADING_NUMBERS.sub("", normalized)
     normalized = _PRINCIPLE_LEADING_ENUM.sub("", normalized)
     return normalized or None
+
+
+def _display_modality(value: Optional[str]) -> Optional[str]:
+    """Convert a modality identifier to human-readable text."""
+
+    if not value:
+        return None
+    modality = Modality.normalise(value)
+    if modality is None:
+        return value
+    return _MODALITY_DISPLAY.get(modality, value)
 
 
 def _looks_like_citation(candidate: str) -> bool:
@@ -1316,6 +1502,7 @@ def _rules_to_atoms(
         party = getattr(r, "party", None) or UNKNOWN_PARTY
         who_text = getattr(r, "who_text", None) or actor or None
         modality = getattr(r, "modality", None)
+        modality_display = _display_modality(modality)
 
         action_raw = getattr(r, "action", None)
         action, action_refs = _strip_inline_citations(action_raw)
@@ -1324,7 +1511,7 @@ def _rules_to_atoms(
         scope_raw = getattr(r, "scope", None)
         scope, scope_refs = _strip_inline_citations(scope_raw)
 
-        text_parts = [actor, modality, action]
+        text_parts = [actor, modality_display or modality, action]
         if conditions:
             text_parts.append(conditions)
         if scope:
@@ -1706,11 +1893,14 @@ def _looks_like_jurisdiction_line(line: str) -> bool:
     if re.search(r"[,;:]", stripped):
         return False
 
+    tokens = stripped.lower().split()
+    if any(token in _JURISDICTION_EXCLUDE_TOKENS for token in tokens):
+        return False
+
     lowered = stripped.lower()
     if lowered in _KNOWN_JURISDICTIONS:
         return True
 
-    tokens = stripped.split()
     if len(tokens) == 1:
         return lowered in _SINGLE_WORD_JURISDICTIONS or stripped.isupper()
 
@@ -1775,6 +1965,9 @@ def _extract_document_date_from_lines(lines: Iterable[str]) -> Optional[date]:
         stripped = str(line).strip()
         if not stripped:
             continue
+        tokens = stripped.lower().split()
+        if any(token in _JURISDICTION_EXCLUDE_TOKENS for token in tokens):
+            continue
         for pattern in _DATE_LINE_PATTERNS:
             match = pattern.search(stripped)
             if match:
@@ -1806,11 +1999,6 @@ def _determine_document_title(
 ) -> Optional[str]:
     """Return a best-effort title for the document."""
 
-    if inferred_title:
-        candidate = inferred_title.strip()
-        if candidate:
-            return candidate
-
     if provided_title:
         candidate = provided_title.strip()
         if candidate:
@@ -1818,13 +2006,38 @@ def _determine_document_title(
 
     if inferred_title:
         candidate = inferred_title.strip()
-        if candidate:
-            return candidate
+        lowered = candidate.lower()
+        if candidate and lowered not in _FRONT_MISLEADING_TITLES:
+            tokens = set(lowered.split())
+            if not tokens.intersection(_JURISDICTION_EXCLUDE_TOKENS):
+                return candidate
 
     for page in pages:
         heading = str(page.get("heading") or "").strip()
         if heading:
-            return heading
+            lowered = heading.lower()
+            if lowered not in _FRONT_MISLEADING_TITLES:
+                return heading
+
+    def _title_from_filename() -> Optional[str]:
+        stem = source.stem.replace("_", " ").strip()
+        stem = re.sub(r"(?i)\\.pdf$", "", stem)
+        stem = stem.strip()
+        if not stem:
+            return None
+        # Drop a leading year and court code if present.
+        stem = re.sub(r"^\\d{3,4}\\s+[A-Z]{2,}\\s+", "", stem)
+        return stem or None
+
+    filename_title = _title_from_filename()
+    if filename_title:
+        return filename_title
+
+    if inferred_title:
+        candidate = inferred_title.strip()
+        lowered = candidate.lower()
+        if candidate and lowered not in _FRONT_MISLEADING_TITLES:
+            return candidate
 
     fallback = source.stem.replace("_", " ").strip()
     return fallback or None
@@ -1866,6 +2079,745 @@ def _extract_document_date(pages: List[dict]) -> Optional[date]:
                     candidate_lines.append(line_text)
 
     return _extract_document_date_from_lines(candidate_lines)
+
+
+def _extract_case_names_from_lines(lines: List[str]) -> List[str]:
+    """Collect case names from the first page lines."""
+
+    names: List[str] = []
+    buffer: List[str] = []
+
+    def flush() -> None:
+        nonlocal buffer
+        if buffer:
+            candidate = " ".join(buffer).strip()
+            candidate = re.split(
+                r"(?i)\b(?:followed|applied|considered|considere d)\b", candidate
+            )[0].strip()
+            match = _CASE_NAME_RE.search(candidate)
+            if match:
+                names.append(match.group(0).strip())
+        buffer = []
+
+    for line in lines:
+        lower = line.lower()
+        if lower.startswith(("appl", "applied", "foll", "followed", "cons")):
+            flush()
+            continue
+        if " v " in lower or lower.endswith(" v") or lower.startswith("v "):
+            if buffer:
+                flush()
+            buffer.append(line)
+            continue
+        if buffer:
+            buffer.append(line)
+    flush()
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for name in names:
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(name)
+    return deduped
+
+
+def _extract_case_citations_from_tokens(tokens: List[str]) -> List[CaseCitation]:
+    """Rebuild case citation strings from tokenised table columns."""
+
+    citations: List[str] = []
+    buffer: List[str] = []
+    stop_tokens = {"fca", "fca –", "federal", "court", "nt", "followed", "followed", "foil", "discd", "discussed"}
+    for token in tokens:
+        if _YEAR_TOKEN_RE.match(token.strip()):
+            if buffer:
+                citations.append(" ".join(buffer))
+                buffer = []
+            buffer.append(token)
+            continue
+        lowered = token.strip().lower()
+        if buffer and lowered in stop_tokens:
+            citations.append(" ".join(buffer))
+            buffer = []
+            continue
+        if buffer:
+            buffer.append(token)
+    if buffer:
+        citations.append(" ".join(buffer))
+
+    parsed: List[CaseCitation] = []
+    seen: set[str] = set()
+    for text in citations:
+        citation = parse_case_citation(text)
+        key = citation.raw or text
+        if key in seen:
+            continue
+        seen.add(key)
+        parsed.append(citation)
+    return parsed
+
+
+def _case_citation_to_reference(
+    citation: CaseCitation, *, case_name: Optional[str] = None
+) -> RuleReference:
+    work = case_name or citation.case_name or citation.work_text()
+    section = citation.reported_citation or citation.neutral_citation
+    return RuleReference(
+        work=work,
+        section=section,
+        pinpoint=citation.pinpoint,
+        citation_text=citation.raw or section,
+    )
+
+
+_SECTION_INTRO_TOKENS = {"sec", "sec.", "section", "sections", "s", "ss", "secs", "secs."}
+_SECTION_JOINERS = {"and", "or"}
+_REFERENCE_BOUNDARY_TOKENS = {".", ";", ":"}
+_ACT_NAME_NOISE_PREFIXES = {"see"}
+_DEICTIC_ACT_MARKER = "__DEICTIC_ACT__"
+_DEICTIC_ACT_TOKENS = {
+    "the act",
+    "that act",
+    "this act",
+    "the nt act",
+    "the nsw nt act",
+    "the nta",
+}
+_ACT_ANCHOR_RE = re.compile(
+    r"(?P<anchor>[A-Za-z][A-Za-z0-9 .,&()\\-]*?(?:Act|Constitution)(?:\\s+\\d{4}(?:-\\d{4})?)?)",
+    re.IGNORECASE,
+)
+
+
+def _merge_provenance(
+    original: Optional[Dict[str, Any]],
+    clause_id: Optional[str],
+    pages: Optional[List[int]],
+    anchor_used: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    """Combine provenance hints without affecting behaviour."""
+    prov: Dict[str, Any] = {}
+    if original:
+        prov.update(original)
+    if clause_id is not None:
+        prov.setdefault("clause_id", clause_id)
+    if pages:
+        prov.setdefault("pages", list(pages))
+    if anchor_used is not None:
+        prov.setdefault("anchor_used", anchor_used)
+    return prov or None
+
+
+def _token_text_for_reference(token: Any) -> str:
+    return getattr(token, "text", None) or str(token)
+
+
+def _token_slice_to_text(
+    source_text: str, tokens: Sequence[Any], start: int, end: int
+) -> Optional[str]:
+    if not tokens or start >= len(tokens) or start >= end:
+        return None
+    start_offset = getattr(tokens[start], "idx", None)
+    end_offset = getattr(tokens[end - 1], "idx", None)
+    last_text = _token_text_for_reference(tokens[end - 1])
+    if start_offset is not None and end_offset is not None and last_text:
+        end_offset = end_offset + len(last_text)
+        snippet = source_text[start_offset:end_offset]
+        cleaned = " ".join(snippet.split())
+        return cleaned or None
+    joined = " ".join(_token_text_for_reference(tok) for tok in tokens[start:end]).strip()
+    return joined or None
+
+
+def _iter_clause_spans(tree: logic_tree.LogicTree, token_count: int) -> List[Tuple[int, int]]:
+    def _collect(target_types: Set[logic_tree.NodeType]) -> List[Tuple[int, int]]:
+        buckets: List[Tuple[int, int]] = []
+        for node in getattr(tree, "nodes", []):
+            if getattr(node, "node_type", None) in target_types and getattr(node, "span", None):
+                start, end = node.span  # type: ignore[misc]
+                buckets.append((int(start), int(end)))
+        return buckets
+
+    spans: List[Tuple[int, int]] = _collect({logic_tree.NodeType.REFERENCE})
+    if not spans:
+        spans = _collect({logic_tree.NodeType.MODAL})
+    if not spans:
+        spans = _collect({logic_tree.NodeType.CLAUSE})
+    if not spans:
+        spans.append((0, token_count))
+    if len(spans) > 1:
+        # Boundaries inside abbreviations (e.g. "sec.") can fragment clause spans,
+        # so fall back to scanning the whole token stream when spans are fragmented.
+        return [(0, token_count)]
+    spans.sort(key=lambda span: span[0])
+    return spans
+
+
+def _normalise_section_identifier(section_tokens: Sequence[Any]) -> Optional[str]:
+    if not section_tokens:
+        return None
+    raw = "".join(_token_text_for_reference(tok) for tok in section_tokens)
+    raw = raw.strip().strip(" ,.;:")
+    raw = raw.replace(" ", "")
+    if not raw:
+        return None
+    if not _SECTION_ID_PATTERN.match(raw):
+        return None
+    return raw
+
+
+def _collect_section_identifiers(
+    tokens: Sequence[Any], start: int, end: int
+) -> Tuple[List[str], int]:
+    sections: List[str] = []
+    current: List[Any] = []
+    idx = start
+    while idx < end:
+        raw = _token_text_for_reference(tokens[idx])
+        lower = raw.lower()
+        if not current and raw in {".", "-"}:
+            idx += 1
+            continue
+        if lower == "of":
+            if current:
+                section = _normalise_section_identifier(current)
+                if section:
+                    sections.append(section)
+            return sections, idx
+        if lower in _SECTION_INTRO_TOKENS:
+            if current:
+                section = _normalise_section_identifier(current)
+                if section:
+                    sections.append(section)
+            return sections, idx
+        if lower in _SECTION_JOINERS or raw in {","}:
+            if current:
+                section = _normalise_section_identifier(current)
+                if section:
+                    sections.append(section)
+                current = []
+            idx += 1
+            continue
+        if raw in _REFERENCE_BOUNDARY_TOKENS:
+            if current:
+                section = _normalise_section_identifier(current)
+                if section:
+                    sections.append(section)
+            return sections, idx
+        current.append(tokens[idx])
+        idx += 1
+    if current:
+        section = _normalise_section_identifier(current)
+        if section:
+            sections.append(section)
+    return sections, idx
+
+
+def _looks_like_next_section(tokens: Sequence[Any], start: int, end: int) -> bool:
+    for idx in range(start, min(end, start + 3)):
+        raw = _token_text_for_reference(tokens[idx]).lower().rstrip(".")
+        if raw in _SECTION_INTRO_TOKENS:
+            return True
+    return False
+
+
+def _collect_act_tokens(tokens: Sequence[Any], start: int, end: int) -> Tuple[List[Any], int]:
+    act_tokens: List[Any] = []
+    idx = start
+    anchor_seen = False
+    allowed_after_anchor = {"-", "–", "—", "(", ")", "[", "]", "of", "no"}
+    while idx < end:
+        raw = _token_text_for_reference(tokens[idx])
+        lower = raw.lower()
+        if lower in _SECTION_INTRO_TOKENS or raw in _REFERENCE_BOUNDARY_TOKENS or raw == ",":
+            break
+        if lower == "and" and _looks_like_next_section(tokens, idx + 1, end):
+            break
+        if anchor_seen:
+            if (
+                raw.isdigit()
+                or re.match(r"\d{2,4}", raw)
+                or lower in allowed_after_anchor
+                or raw in {"-", "–", "—"}
+            ):
+                act_tokens.append(tokens[idx])
+                idx += 1
+                continue
+            break
+        act_tokens.append(tokens[idx])
+        if "act" in lower or "constitution" in lower:
+            anchor_seen = True
+        idx += 1
+    while act_tokens and not _token_text_for_reference(act_tokens[-1]).strip():
+        act_tokens.pop()
+    return act_tokens, idx
+
+
+def _clean_act_name(act_tokens: Sequence[Any]) -> Optional[str]:
+    if not act_tokens:
+        return None
+    parts = [_token_text_for_reference(tok).strip() for tok in act_tokens]
+    parts = [part for part in parts if part]
+    if not parts:
+        return None
+    year_tokens = [part for part in parts if re.fullmatch(r"\d{4}", part)]
+    text = " ".join(parts)
+    for prefix in _ACT_NAME_NOISE_PREFIXES:
+        if text.lower().startswith(prefix + " "):
+            text = text[len(prefix) + 1 :].strip(" ,.;:")
+            break
+    text = re.sub(r"\s+", " ", text).strip(" ,.;:-")
+    lowered = text.lower()
+    if lowered in _DEICTIC_ACT_TOKENS or any(
+        lowered.startswith(token + " ") for token in _DEICTIC_ACT_TOKENS
+    ):
+        return _DEICTIC_ACT_MARKER
+    anchor_match = None
+    for match in _ACT_ANCHOR_RE.finditer(text):
+        anchor_match = match
+    if anchor_match is not None:
+        text = text[anchor_match.start() : anchor_match.end()].strip(" ,.;:-")
+    tokens = text.split()
+    anchor_index = None
+    for idx, token in enumerate(tokens):
+        if "act" in token.lower() or "constitution" in token.lower():
+            anchor_index = idx
+    if anchor_index is not None:
+        start = max(0, anchor_index - 5)
+        end = anchor_index + 1
+        while end < len(tokens):
+            cleaned = tokens[end].strip("()[]")
+            if re.fullmatch(r"\d{2,4}", cleaned) or cleaned in {"-", "–", "—"}:
+                end += 1
+                continue
+            break
+        tokens = tokens[start:end]
+    while tokens and (
+        re.fullmatch(r"[()\\[\\]\\d.-]+", tokens[0])
+        or re.fullmatch(r"[ivxlcdmIVXLCDM]{1,3}", tokens[0])
+    ):
+        tokens = tokens[1:]
+    text = " ".join(tokens)
+    text = re.sub(r"^[^A-Za-z]+", "", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,.;:-")
+    if year_tokens and not re.search(r"\b\d{4}\b", text):
+        text = f"{text} {year_tokens[0]}".strip()
+    if not text:
+        return None
+    if not re.search(r"\b(act|constitution)\b", text, re.IGNORECASE):
+        return None
+    if len(text) > 120:
+        return None
+    return text
+
+
+def _extract_clause_statutory_references(
+    tokens: Sequence[Any],
+    span: Tuple[int, int],
+    source_text: str,
+    *,
+    source_label: Optional[str] = None,
+    clause_id: Optional[str] = None,
+) -> List[RuleReference]:
+    references: List[RuleReference] = []
+    start, end = span
+    idx = start
+    last_anchor: Optional[str] = None
+    while idx < end:
+        token_text = _token_text_for_reference(tokens[idx]).lower().rstrip(".")
+        if token_text in _SECTION_INTRO_TOKENS:
+            sections, cursor = _collect_section_identifiers(tokens, idx + 1, end)
+            if not sections:
+                idx += 1
+                continue
+            if cursor >= end or _token_text_for_reference(tokens[cursor]).lower() != "of":
+                idx = cursor
+                continue
+            act_tokens, after_act = _collect_act_tokens(tokens, cursor + 1, end)
+            act_name = _clean_act_name(act_tokens)
+            if not act_name:
+                idx = after_act
+                continue
+            if act_name == _DEICTIC_ACT_MARKER:
+                if not last_anchor:
+                    idx = after_act
+                    continue
+                act_name = last_anchor
+            else:
+                last_anchor = act_name
+            citation_text = _token_slice_to_text(source_text, tokens, idx, after_act)
+            for pinpoint in sections:
+                references.append(
+                    RuleReference(
+                        work=act_name,
+                        section="section",
+                        pinpoint=pinpoint,
+                        citation_text=citation_text,
+                        source=source_label,
+                        provenance={"clause_id": clause_id} if clause_id else None,
+                    )
+                )
+            idx = after_act
+            continue
+        idx += 1
+    return references
+
+
+def _canonicalize_work_text(work: Optional[str]) -> Optional[str]:
+    if not work:
+        return None
+    original = work
+    year_in_original: Optional[str] = None
+    year_match = re.search(r"\b\d{4}(?:-\d{4})?\b", original)
+    if year_match:
+        year_in_original = year_match.group(0)
+    work = re.sub(r"\s+", " ", work).strip(" ,.;:-")
+    lowered = work.lower()
+    if re.search(r"\b(this|that|the)\s+act\b", lowered):
+        return _DEICTIC_ACT_MARKER
+    if lowered in _DEICTIC_ACT_TOKENS or any(
+        lowered.startswith(token + " ") for token in _DEICTIC_ACT_TOKENS
+    ):
+        return _DEICTIC_ACT_MARKER
+    anchor_match = None
+    for match in _ACT_ANCHOR_RE.finditer(work):
+        anchor_match = match
+    if anchor_match is not None:
+        work = anchor_match.group("anchor").strip(" ,.;:-")
+    tokens = work.split()
+    anchor_index = None
+    for idx, token in enumerate(tokens):
+        if "act" in token.lower() or "constitution" in token.lower():
+            anchor_index = idx
+    if anchor_index is not None:
+        start = max(0, anchor_index - 5)
+        end = anchor_index + 1
+        while end < len(tokens):
+            cleaned = tokens[end].strip("()[]")
+            if re.fullmatch(r"\d{2,4}", cleaned) or cleaned in {"-", "–", "—"}:
+                end += 1
+                continue
+            break
+        tokens = tokens[start:end]
+    while tokens and tokens[0].lower() in {"of", "the", "this", "that", "a", "an"}:
+        tokens = tokens[1:]
+    while tokens and (
+        re.fullmatch(r"[()\[\]\d.-]+", tokens[0])
+        or re.fullmatch(r"[ivxlcdmIVXLCDM]{1,3}", tokens[0])
+    ):
+        tokens = tokens[1:]
+    work = " ".join(tokens)
+    work = re.sub(r"^[^A-Za-z]+", "", work)
+    work = re.sub(r"\s+", " ", work).strip(" ,.;:-")
+    if not work:
+        return None
+    if not re.search(r"\b(act|constitution)\b", work, re.IGNORECASE):
+        return None
+    if year_in_original and year_in_original not in work:
+        work = f"{work} {year_in_original}".strip()
+    if len(work) > 120:
+        return None
+    return work.lower()
+
+
+def _canonicalize_references(
+    references: List[RuleReference],
+    *,
+    preferred_sources: Optional[Sequence[str]] = None,
+    anchor_core_merge: bool = False,
+    clause_id: Optional[str] = None,
+    pages: Optional[List[int]] = None,
+    anchor_used: Optional[str] = None,
+) -> List[RuleReference]:
+    canonical: List[RuleReference] = []
+    last_anchor: Optional[str] = None
+    for ref in references:
+        canonical_work = _canonicalize_work_text(ref.work)
+        if canonical_work == _DEICTIC_ACT_MARKER:
+            if not last_anchor:
+                continue
+            canonical_work = last_anchor
+        elif canonical_work:
+            last_anchor = canonical_work
+        else:
+            continue
+        canonical.append(
+            RuleReference(
+                work=canonical_work,
+                section=ref.section,
+                pinpoint=ref.pinpoint,
+                citation_text=ref.citation_text,
+                source=ref.source,
+                uri=ref.uri,
+                provenance=_merge_provenance(ref.provenance, clause_id, pages, anchor_used),
+                glossary=ref.glossary,
+                identity_hash=ref.identity_hash,
+                family_key=ref.family_key,
+                year=ref.year,
+                jurisdiction_hint=ref.jurisdiction_hint,
+            )
+        )
+
+    deduped: List[RuleReference] = []
+    seen: Dict[Tuple[Optional[str], Optional[str], Optional[str]], RuleReference] = {}
+
+    def _source_rank(source: Optional[str]) -> int:
+        if not preferred_sources:
+            return 0
+        try:
+            return preferred_sources.index(source)  # type: ignore[arg-type]
+        except Exception:
+            return len(preferred_sources)
+
+    def _anchor_family_key(value: Optional[str]) -> Optional[str]:
+        return _build_family_key(value)
+
+    if anchor_core_merge and canonical:
+        link_present = any(ref.source == "link" and ref.work for ref in canonical)
+        if not link_present:
+            def _anchor_score(value: RuleReference) -> Tuple[int, int, int, str]:
+                work_text = value.work or ""
+                has_year = 1 if re.search(r"\b\d{4}(?:-\d{4})?\b", work_text) else 0
+                clean_start = 1 if re.match(r"^[A-Za-z]", work_text) else 0
+                return (has_year, clean_start, len(work_text), work_text)
+
+            anchor_core_ref: Optional[RuleReference] = None
+            for ref in sorted(canonical, key=_anchor_score, reverse=True):
+                if ref.work:
+                    anchor_core_ref = ref
+                    break
+
+            anchor_core_work = anchor_core_ref.work if anchor_core_ref else None
+            anchor_core_family = _anchor_family_key(anchor_core_work) if anchor_core_work else None
+
+            rewritten: List[RuleReference] = []
+            for ref in canonical:
+                if ref.source == "link":
+                    rewritten.append(ref)
+                    continue
+                if ref.work == _DEICTIC_ACT_MARKER:
+                    if anchor_core_work:
+                        ref = RuleReference(
+                            work=anchor_core_work,
+                            section=ref.section,
+                            pinpoint=ref.pinpoint,
+                            citation_text=ref.citation_text,
+                            source=ref.source,
+                            uri=ref.uri,
+                            provenance=ref.provenance,
+                            identity_hash=ref.identity_hash,
+                            family_key=ref.family_key,
+                            year=ref.year,
+                            jurisdiction_hint=ref.jurisdiction_hint,
+                            glossary=ref.glossary,
+                        )
+                    else:
+                        continue
+                elif anchor_core_family:
+                    family_key = _anchor_family_key(ref.work)
+                    if family_key and (
+                        family_key == anchor_core_family
+                        or anchor_core_family.endswith(family_key)
+                        or family_key in anchor_core_family
+                    ):
+                        ref = RuleReference(
+                            work=anchor_core_work,
+                            section=ref.section,
+                            pinpoint=ref.pinpoint,
+                            citation_text=ref.citation_text,
+                            source=ref.source,
+                            uri=ref.uri,
+                            provenance=ref.provenance,
+                            identity_hash=ref.identity_hash,
+                            family_key=ref.family_key,
+                            year=ref.year,
+                            jurisdiction_hint=ref.jurisdiction_hint,
+                            glossary=ref.glossary,
+                        )
+                rewritten.append(ref)
+            canonical = rewritten
+
+    for ref in canonical:
+        key = (
+            ref.work.lower() if ref.work else None,
+            ref.section.lower() if ref.section else None,
+            ref.pinpoint.lower() if ref.pinpoint else None,
+        )
+        existing = seen.get(key)
+        if existing is None or _source_rank(ref.source) < _source_rank(existing.source):
+            seen[key] = ref
+
+    for ref in seen.values():
+        deduped.append(ref.compute_identity())
+    return deduped
+
+
+def _extract_statutory_references_from_logic_tree(
+    text: str, *, source_id: str, source_label: Optional[str] = None
+) -> List[RuleReference]:
+    if not text.strip():
+        return []
+    try:
+        normalized = normalise(text)
+    except Exception:
+        return []
+    tokens = list(normalized.tokens)
+    if not tokens:
+        return []
+    try:
+        tree = logic_tree.build(tokens, source_id=source_id)
+        clause_spans = _iter_clause_spans(tree, len(tokens))
+    except Exception:
+        clause_spans = [(0, len(tokens))]
+    references: List[RuleReference] = []
+    for idx, span in enumerate(clause_spans):
+        clause_id = f"{source_id}-clause-{idx}"
+        clause_refs = _extract_clause_statutory_references(
+            tokens, span, str(normalized), source_label=source_label, clause_id=clause_id
+        )
+        references.extend(
+            _canonicalize_references(
+                clause_refs,
+                anchor_core_merge=True,
+                clause_id=clause_id,
+            )
+        )
+    return _canonicalize_references(
+        references, preferred_sources=("link", None)
+    )
+
+
+def _parse_work_from_uri(uri: str) -> Optional[str]:
+    parsed = urlparse(uri)
+    path_tail = unquote(parsed.path.split("/")[-1])
+    path_tail = re.sub(r"\.[A-Za-z0-9]+$", "", path_tail)
+    path_tail = path_tail.replace("_", " ").replace("-", " ")
+    work = _canonicalize_work_text(path_tail)
+    if work:
+        return work
+    for values in parse_qs(parsed.query).values():
+        for value in values:
+            candidate = _canonicalize_work_text(unquote(value).replace("_", " "))
+            if candidate:
+                return candidate
+    return None
+
+
+def _parse_section_from_uri(uri: str) -> Optional[str]:
+    parsed = urlparse(uri)
+    candidates: List[str] = []
+    if parsed.fragment:
+        candidates.append(parsed.fragment)
+    if parsed.query:
+        candidates.append(parsed.query)
+    if parsed.path:
+        candidates.extend(parsed.path.split("/"))
+    for candidate in candidates:
+        candidate = candidate.replace("_", " ")
+        match = re.search(
+            r"(?:sec(?:tion)?|s)\s*[:=/\-]?\s*(?P<section>[0-9A-Za-z()]+)",
+            candidate,
+            re.IGNORECASE,
+        )
+        if match:
+            section = match.group("section")
+            return re.sub(r"\s+", "", section)
+        simple = re.search(r"^(?P<section>\d+[A-Za-z]*(?:\([^)]+\))*)$", candidate)
+        if simple:
+            return simple.group("section")
+    return None
+
+
+def _extract_hyperlink_references(
+    pages: List[dict], *, source_id: str
+) -> List[RuleReference]:
+    references: List[RuleReference] = []
+    for page in pages:
+        link_page = page.get("page")
+        for link in page.get("links") or []:
+            anchor_text = str(link.get("text") or "").strip()
+            uri = link.get("uri")
+            anchor_refs: List[RuleReference] = []
+            if anchor_text:
+                anchor_refs.extend(
+                    _extract_statutory_references_from_logic_tree(
+                        anchor_text, source_id=source_id, source_label="link"
+                    )
+                )
+                if not anchor_refs:
+                    work = _canonicalize_work_text(anchor_text)
+                    if work:
+                        anchor_refs.append(
+                            RuleReference(
+                                work=work,
+                                citation_text=anchor_text,
+                                source="link",
+                                uri=uri,
+                                provenance={"pages": [link_page], "anchor_used": "link"},
+                            )
+                        )
+            work_from_uri = _parse_work_from_uri(uri) if uri else None
+            section_from_uri = _parse_section_from_uri(uri) if uri else None
+            uri_refs: List[RuleReference] = []
+            if work_from_uri:
+                uri_refs.append(
+                    RuleReference(
+                        work=work_from_uri,
+                        section="section" if section_from_uri else None,
+                        pinpoint=section_from_uri,
+                        citation_text=anchor_text or uri,
+                        source="link",
+                        uri=uri,
+                        provenance={"pages": [link_page], "anchor_used": "link"},
+                    )
+                )
+            if uri_refs:
+                references.extend(uri_refs)
+                for ref in anchor_refs:
+                    if ref.section or ref.pinpoint:
+                        references.append(ref)
+            else:
+                references.extend(anchor_refs)
+    return _canonicalize_references(
+        references,
+        preferred_sources=("link",),
+        pages=[p.get("page") for p in pages if p.get("page") is not None],
+        anchor_used="link",
+    )
+
+
+def _extract_front_page_references(pages: List[dict]) -> List[RuleReference]:
+    """Derive case references from the front-page citation table."""
+
+    if not pages:
+        return []
+    lines = pages[0].get("lines") or []
+    if not isinstance(lines, list) or not lines:
+        return []
+
+    lower_lines = [str(line).strip().lower() for line in lines if str(line).strip()]
+    split_index = None
+    for idx, line in enumerate(lower_lines):
+        if any(line.startswith(prefix) for prefix in _FRONT_CITATION_START):
+            split_index = idx
+            break
+
+    if split_index is None:
+        return []
+
+    case_names = _extract_case_names_from_lines(lines[:split_index])
+    citation_tokens = [str(token).strip() for token in lines[split_index + 1 :] if str(token).strip()]
+    citations = _extract_case_citations_from_tokens(citation_tokens)
+
+    references: List[RuleReference] = []
+    for idx, citation in enumerate(citations):
+        paired_name = case_names[idx] if idx < len(case_names) else None
+        ref = _case_citation_to_reference(citation, case_name=paired_name)
+        ref.provenance = {"pages": [1], "anchor_used": "front_page"}
+        references.append(ref)
+
+    return references
 
 
 def build_document(
@@ -1932,6 +2884,10 @@ def build_document(
         or inferred_date
         or date.today()
     )
+    if not resolved_jurisdiction:
+        stem_upper = source.stem.upper()
+        if " HCA " in f" {stem_upper} " or stem_upper.startswith("HCA ") or " HCA" in stem_upper:
+            resolved_jurisdiction = "HCA"
 
     metadata = DocumentMetadata(
         jurisdiction=resolved_jurisdiction,
@@ -1946,6 +2902,15 @@ def build_document(
     registry = glossary_registry or _DEFAULT_GLOSSARY_REGISTRY
 
     provisions = parse_sections(section_body or "", toc_headings=toc_heading_candidates)
+    front_page_refs = _extract_front_page_references(pages)
+    statute_refs = _extract_statutory_references_from_logic_tree(
+        body, source_id=source.stem
+    )
+    link_refs = _extract_hyperlink_references(pages, source_id=source.stem)
+    statute_refs = _canonicalize_references(
+        link_refs + statute_refs, preferred_sources=("link", None)
+    )
+    extra_refs = front_page_refs + statute_refs
 
     definitions = _extract_definition_entries(body)
     structured_for_definitions: Optional[List[Provision]] = None
@@ -2015,6 +2980,23 @@ def build_document(
         )
         merged = _dedupe_principles([*existing, *rule_principles])
         prov.principles = merged
+        if prov is provisions[0] and extra_refs:
+            seen_refs: set[tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[int]]] = set(
+                tuple(ref) if isinstance(ref, (list, tuple)) else ()
+                for ref in prov.references
+            )
+            for ref in extra_refs:
+                serialised = (
+                    ref.work,
+                    ref.section,
+                    ref.pinpoint,
+                    ref.citation_text,
+                    ref.glossary_id,
+                )
+                if serialised in seen_refs:
+                    continue
+                seen_refs.add(serialised)
+                prov.references.append(serialised)
 
     document = Document(
         metadata=metadata,

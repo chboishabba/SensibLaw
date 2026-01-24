@@ -17,6 +17,43 @@ At a high level:
 If DBpedia and Wikitology treated Wikipedia as a global ontology for the Web,
 SensibLaw treats legal corpora as a global ontology for **law and lived experience**.
 
+## Development quickstart
+
+```bash
+pip install -e .[dev,test]
+ruff format
+ruff check --fix
+mypy .
+pytest --maxfail=1 -q
+```
+
+Useful entry points:
+
+- CLI: `python -m sensiblaw.cli --help`
+- Streamlit dashboard: `streamlit run streamlit_app.py`
+
+## Project layout
+
+- `src/` houses Python orchestration (`sensiblaw`, `sensiblaw_streamlit`, `fastapi`, `pydantic`).
+- `scripts/` contains shared utilities and helpers.
+- `sensiblaw/` includes CLI-ready entry points.
+- `sensiblaw_streamlit/` and `ui/` contain UI assets and experimental dashboards.
+- `data/` and `examples/` host legal corpora and fixtures.
+- `tests/` mirrors package paths, with fixtures under `tests/fixtures/` and seeded payloads under `tests/templates/`.
+- `docs/` tracks design notes, automation walkthroughs, and deep dives.
+
+## Key functions, processes, and APIs (where they live)
+
+- Data model backbone: `src/models/document.py` and `src/models/provision.py` define the `Document`, `Provision`, rule atoms, and metadata structures consumed across ingest, storage, and UI layers.
+- PDF ingest pipeline: `iter_process_pdf`/`process_pdf` in `src/pdf_ingest.py` drive text extraction → TOC parsing → rule extraction → optional `VersionedStore.add_revision` and JSON output (`save_document`).
+- Rule parsing & logic tree: `extract_rules` in `src/rules/extractor.py` finds modalities/faults/exceptions; `logic_tree.build` in `src/logic_tree.py` turns the token stream from `src/pipeline/__init__.py` / `src/pipeline/tokens.py` into deterministic clause trees.
+- Concepts & glossary links: `ConceptMatcher.match`/`MATCHER` in `src/concepts/matcher.py` power trigger-based hits; curated definitions sit in `src/glossary/service.py:lookup`, with deduped linking via `GlossaryLinker` in `src/glossary/linker.py` and the ingest-time registry in `src/pdf_ingest.py:GlossaryRegistry`.
+- Graph & inference: core node/edge types live in `src/graph/models.py`; ingestion helpers in `src/graph/ingest.py` map `Document` payloads to graphs; PyKEEN training and ranking helpers (`build_prediction_set`, `train_*`, `rank_predictions`) are in `src/graph/inference.py`.
+- Storage & receipts: `VersionedStore` in `src/storage/versioned_store.py` handles versioned document persistence/validation; the lighter CRUD store is `src/storage/core.py`; provenance receipts are built/checked in `src/receipts/build.py` and `src/receipts/verify.py`.
+- APIs: FastAPI routes for graph/test endpoints and provision atoms live in `src/api/routes.py`; the packaged server that mounts them (plus the corrections ledger UI) is `src/server/ledger_api.py`; demo story/rule endpoints are in `sensiblaw/api/routes.py`.
+- CLIs: the main command definitions are in `cli/__main__.py` (invoked via `python -m sensiblaw.cli` through the shim in `src/cli.py`); receipts-specific commands are under `cli/receipts.py`.
+- Streamlit console: `sensiblaw_streamlit/app.py` wires the tabs, with tab renderers in `sensiblaw_streamlit/tabs/` (`documents.py`, `text_concepts.py`, `knowledge_graph.py`, `case_comparison.py`, `utilities.py`).
+
 
 ## Conceptual Architecture (TiRC + SensibLaw)
 
