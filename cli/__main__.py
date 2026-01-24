@@ -441,6 +441,39 @@ def _handle_pdf_fetch(args: argparse.Namespace) -> None:
             "unchanged": sorted(diff.unchanged),
         }
 
+    if args.emit_obligations or args.diff_obligations_against:
+        from src.obligations import extract_obligations_from_document, obligation_to_dict
+        from src.obligation_identity import compute_identities, diff_obligations
+        from src.obligation_alignment import align_obligations, alignment_to_payload
+        obligations = extract_obligations_from_document(
+            doc,
+            enable_actor_binding=getattr(args, "enable_actor_binding", None),
+            enable_action_binding=getattr(args, "enable_action_binding", None),
+        )
+        if args.emit_obligations:
+            result["obligations"] = [obligation_to_dict(o) for o in obligations]
+        if args.diff_obligations_against:
+            from src.models.document import Document
+
+            other_data = json.loads(args.diff_obligations_against.read_text())
+            other_doc = Document.from_dict(other_data["document"]) if "document" in other_data else Document.from_dict(other_data)
+            other_obs = extract_obligations_from_document(
+                other_doc,
+                enable_actor_binding=getattr(args, "enable_actor_binding", None),
+                enable_action_binding=getattr(args, "enable_action_binding", None),
+            )
+            lhs_ids = compute_identities(other_obs)
+            rhs_ids = compute_identities(obligations)
+            odiff = diff_obligations(lhs_ids, rhs_ids)
+            result["obligation_diff"] = {
+                "added": sorted(odiff.added),
+                "removed": sorted(odiff.removed),
+                "unchanged": sorted(odiff.unchanged),
+            }
+            if getattr(args, "emit_obligation_alignment", False):
+                alignment = align_obligations(other_obs, obligations)
+                result["obligation_alignment"] = alignment_to_payload(alignment)
+
     _print_json(result)
 
 
@@ -1188,9 +1221,40 @@ def build_parser() -> argparse.ArgumentParser:
         help="(placeholder) include reference identities in CLI output",
     )
     pdf_fetch.add_argument(
+        "--emit-obligations",
+        action="store_true",
+        help="include extracted obligations in CLI output (semantic layer)",
+    )
+    pdf_fetch.add_argument(
+        "--disable-actor-binding",
+        action="store_const",
+        const=False,
+        dest="enable_actor_binding",
+        default=None,
+        help="turn off actor extraction/identity binding for obligations (uses env default when omitted)",
+    )
+    pdf_fetch.add_argument(
+        "--disable-action-binding",
+        action="store_const",
+        const=False,
+        dest="enable_action_binding",
+        default=None,
+        help="turn off action/object binding for obligations (uses env default when omitted)",
+    )
+    pdf_fetch.add_argument(
         "--diff-against",
         type=Path,
         help="(placeholder) compute reference diff against another document",
+    )
+    pdf_fetch.add_argument(
+        "--diff-obligations-against",
+        type=Path,
+        help="compute obligation diff against another document",
+    )
+    pdf_fetch.add_argument(
+        "--emit-obligation-alignment",
+        action="store_true",
+        help="emit obligation alignment payload (added/removed/unchanged/modified metadata deltas) when diffing",
     )
     pdf_fetch.add_argument(
         "--logic-tree-disable-fts",

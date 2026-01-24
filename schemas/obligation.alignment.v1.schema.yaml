@@ -1,0 +1,57 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: Obligation Alignment Report (v1)
+type: object
+required:
+  - version
+  - added
+  - removed
+  - unchanged
+  - modified
+properties:
+  version:
+    const: obligation.alignment.v1
+    type: string
+  added:
+    type: array
+    items:
+      type: object
+  removed:
+    type: array
+    items:
+      type: object
+  unchanged:
+    type: array
+    items:
+      type: object
+  modified:
+    type: array
+    items:
+      type: object
+      required:
+        - identity_hash
+        - old
+        - new
+        - changes
+      properties:
+        identity_hash:
+          type: string
+        old:
+          type: object
+        new:
+          type: object
+        changes:
+          type: array
+          items:
+            type: object
+            required: [field, old, new]
+            properties:
+              field:
+                type: string
+              old:
+                nullable: true
+              new:
+                nullable: true
+            additionalProperties: false
+      additionalProperties: false
+additionalProperties: false
+additionalProperties: false

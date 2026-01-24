@@ -1,48 +1,48 @@
-# Sprint: S3 — Reference Identity & Stability Layer
+# Sprint: S6 — Normative Reasoning Surfaces (Non-Judgmental)
 
 ## Goal
-Add a stability layer *above* extraction so statute references can be compared, diffed, and explained across documents without changing LT-REF-1…6 behavior.
+Expose queryable, explainable, and composable views over the frozen S4–S5 normative lattice **without** adding legal reasoning, compliance judgements, ontologies, or ML. Outputs must remain read-only, deterministic, and identity-neutral.
 
 ## Scope
-- Derive a deterministic `identity_hash` for each reference from existing canonical fields (work, family key, year, jurisdiction hint) without external registries.
-- Produce proof-safe diffs on `identity_hash` sets (added/removed/unchanged) for document or version comparisons.
-- Attach a lightweight provenance envelope (clause span id, page numbers, source, anchor used) for auditability; provenance must not affect identity.
+- Read-only query helpers across actor/action/object/scope/lifecycle metadata.
+- Explanation/trace payloads that map atoms back to clause IDs and text spans.
+- Cross-version obligation alignment reports (unchanged/modified/added/removed with metadata deltas).
+- Deterministic view projections (actor-centric, action-centric, timeline, clause-grouped).
+- Versioned JSON schemas for obligation, explanation, diff, and graph payloads.
+- No-reasoning guardrails and red-flag tests to freeze the descriptive-only contract.
 
 ## Constraints
-- Extraction invariants **frozen** (LT-REF-1…6); no behavior changes to link precedence or anchor-core dominance.
-- Identity is text-derived only; no statute dictionary, no network lookups.
-- Deterministic and monotone: adding identity/diff/provenance cannot create or remove references.
-- Keep outputs serializable and backward-compatible (field additions only).
+- Clause-local, text-derived only; no ontology lookup, inference, or compliance evaluation.
+- Identity/diff invariants (CR-ID, OBL-ID) remain frozen; new surfaces must not alter identities.
+- Deterministic ordering for all emitted collections; formatting/OCR noise must not change results.
+- Feature flags remain available; new surfaces should respect actor/action binding toggles.
 
 ## Deliverables
-- `ReferenceIdentity` helper that computes `identity_hash` and exposes family/year/jurisdiction hints from canonical text.
-- `ReferenceDiff` primitive operating on `identity_hash` sets with added/removed/unchanged buckets.
-- Provenance envelope stored alongside references for debugging (clause id, pages, source, anchor used).
-- Docs updated to include CR-ID invariants and diff/provenance rules; S2 invariants remain intact.
-- Tests: identity stability across runs/docs, OCR-variant collapse to same identity, distinct Acts produce distinct identities, diff correctness, provenance presence without behavior change.
+- S6.1 Query API (read-only filters; flag-respecting).
+- S6.2 Explanation surfaces (deterministic atom→span mapping).
+- S6.3 Cross-version alignment report with metadata deltas.
+- S6.4 Normative view projection builders (actor/action/timeline/clause).
+- S6.5 Versioned JSON schemas (obligation, explanation, diff, graph) with backward-compat parsing tests.
+- S6.6 Hard-stop guard doc + red-flag tests to prevent reasoning/ontology creep.
 
-## Plan
-1) **Identity spec:** Define CR-ID invariants (text-derived, deterministic, non-invasive) and map canonical fields → identity components.  
-2) **Identity helper:** Implement `ReferenceIdentity` + `identity_hash`; thread through existing reference objects without changing extraction.  
-3) **Diff primitive:** Add `ReferenceDiff` operating on identity sets; expose helpers for doc-to-doc comparison.  
-4) **Provenance envelope:** Attach clause span id + page numbers + source/anchor used; ensure it is optional and non-behavioral.  
-5) **Tests:** Add pytest coverage for identity stability, distinctness, OCR variant collapse, diff correctness, and provenance presence; rerun focused + relevant suites.  
-6) **Docs:** Update `docs/logic_tree_ir.md` (CR-ID invariants + diff/provenance guarantees); update changelog/notes if required.
+## Plan (sequencing)
+1) S6.1 Query API → validate payload fidelity without touching identity.
+2) S6.2 Explanations → make outputs auditable and stable.
+3) S6.3 Alignment → human-readable change summaries atop identity diff.
+4) S6.4 View projections → deterministic alternate lenses on the same graph.
+5) S6.5 External contracts → freeze schemas for downstream consumers.
+6) S6.6 Gate review → enforce “descriptive-only” boundary with tests/docs.
 
 ## Acceptance Criteria
-- Two PDFs naming the same Act/section yield the same `identity_hash`; OCR variants do not change identity.
-- Distinct Acts in the same clause produce distinct identities (no over-collapse).
-- Diffs report only genuine reference changes; reordering/pagination changes yield empty diffs.
-- Provenance is emitted but does **not** alter reference count/content; backward compatibility maintained.
-- All new tests pass; existing suites remain green.
+- Queries and explanations are deterministic under formatting/OCR/numbering changes and respect actor/action flags.
+- Alignment reports show metadata deltas without breaking unchanged identities.
+- View projections produce reproducible outputs; no invented nodes or edges.
+- Schemas are versioned and backward-compatible; round-trip tests pass.
+- Red-flag tests fail if compliance reasoning, ontology expansion, or inference is introduced.
+- Full regression suite remains green.
 
 ## Risks / Mitigations
-- **Over-collapse in identity:** keep family key + year in hash to separate near names.  
-- **Backward compatibility:** add fields instead of mutating existing ones; guard serialization.  
-- **Performance:** compute identity once per reference; cache if needed.  
-- **Spec drift:** freeze LT-REF-1…6; require new invariant to change extraction.
-
-## Open Questions
-- Do we want optional jurisdiction hints now, or defer until a registry layer exists?  
-- Should identity hash include section/pinpoint or remain work-scoped for some use cases?  
-- How should provenance be exposed downstream (debug-only vs API field)?
+- Risk: accidental reasoning creep → Mitigation: red-flag tests and explicit guard doc.
+- Risk: schema churn → Mitigation: versioned schemas with backward-compat harness.
+- Risk: nondeterministic ordering → Mitigation: stable sort keys across all surfaces.
+- Risk: flag bypass → Mitigation: unit tests for actor/action flag interactions on query/explanation outputs.

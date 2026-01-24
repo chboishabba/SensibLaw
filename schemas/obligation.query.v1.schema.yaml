@@ -1,0 +1,120 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: Obligation Query Result (v1)
+type: object
+required:
+  - version
+  - results
+properties:
+  version:
+    const: obligation.query.v1
+    type: string
+  results:
+    type: array
+    items:
+      $ref: "#/definitions/obligation"
+definitions:
+  span:
+    type: array
+    items:
+      - type: integer
+      - type: integer
+    minItems: 2
+    maxItems: 2
+  atom:
+    type: object
+    required: [text, normalized]
+    properties:
+      text:
+        type: string
+      normalized:
+        type: string
+      span:
+        oneOf:
+          - $ref: "#/definitions/span"
+          - type: "null"
+      clause_id:
+        type: string
+    additionalProperties: false
+  scope_atom:
+    allOf:
+      - $ref: "#/definitions/atom"
+      - type: object
+        required: [category]
+        properties:
+          category:
+            type: string
+            enum: [time, place, context]
+  lifecycle_atom:
+    allOf:
+      - $ref: "#/definitions/atom"
+      - type: object
+        required: [kind]
+        properties:
+          kind:
+            type: string
+            enum: [activation, termination]
+  condition_atom:
+    type: object
+    required: [type, clause_id]
+    properties:
+      type:
+        type: string
+      span:
+        oneOf:
+          - $ref: "#/definitions/span"
+          - type: "null"
+      clause_id:
+        type: string
+    additionalProperties: false
+  obligation:
+    type: object
+    required:
+      - type
+      - modality
+      - clause_id
+      - reference_identities
+    properties:
+      type:
+        type: string
+      modality:
+        type: string
+      clause_id:
+        type: string
+      actor:
+        oneOf:
+          - $ref: "#/definitions/atom"
+          - type: "null"
+      action:
+        oneOf:
+          - $ref: "#/definitions/atom"
+          - type: "null"
+      object:
+        oneOf:
+          - $ref: "#/definitions/atom"
+          - type: "null"
+      reference_identities:
+        type: array
+        items:
+          type: string
+        uniqueItems: true
+      conditions:
+        type: array
+        items:
+          $ref: "#/definitions/condition_atom"
+      scopes:
+        type: array
+        items:
+          $ref: "#/definitions/scope_atom"
+      lifecycle:
+        type: array
+        items:
+          $ref: "#/definitions/lifecycle_atom"
+      span:
+        oneOf:
+          - $ref: "#/definitions/span"
+          - type: "null"
+      provenance:
+        type: ["object", "null"]
+        additionalProperties: true
+    additionalProperties: false
+additionalProperties: false
