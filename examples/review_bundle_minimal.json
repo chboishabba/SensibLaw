@@ -1,0 +1,40 @@
+{
+  "obligations": {
+    "version": "obligation.v1",
+    "source_id": "HCA_1936_House_v_The_King",
+    "items": [
+      {
+        "obl_id": "obl-abc123",
+        "clause_id": "hvk-clause-3",
+        "text": "An appellate court must not interfere with a sentencing discretion unless error is shown.",
+        "modality": "must"
+      }
+    ]
+  },
+  "activation": {
+    "version": "obligation.activation.v1",
+    "events": [],
+    "results": []
+  },
+  "topology": {
+    "version": "obligation.crossdoc.v1",
+    "nodes": [
+      {
+        "obl_id": "obl-abc123",
+        "source_id": "HCA_1936_House_v_The_King",
+        "clause_id": "hvk-clause-3"
+      }
+    ],
+    "edges": []
+  },
+  "notes": [
+    {
+      "target": "obligation",
+      "identity_hash": "obl-abc123",
+      "note": "Classic statement of appellate restraint; phrasing is categorical.",
+      "author": "reviewer@example",
+      "timestamp": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "disagreements": []
+}

@@ -1,4 +1,5 @@
 $schema: "http://json-schema.org/draft-07/schema#"
+# NOTE: v1 is frozen. Any semantic change requires a new schema version.
 title: obligation.crossdoc.v1
 type: object
 required: [version, nodes, edges]
@@ -8,36 +9,33 @@ properties:
   nodes:
     type: array
     items:
-      type: string
+      type: object
+      required: [obl_id, source_id, clause_id]
+      properties:
+        obl_id: {type: string}
+        source_id: {type: string}
+        clause_id: {type: string}
     uniqueItems: true
   edges:
     type: array
     items:
       type: object
-      required: [from, to, type, basis]
+      required: [kind, from, to, text, provenance]
       properties:
+        kind:
+          enum: [supersedes, conflicts_with, exception_to, applies_despite, applies_subject_to]
         from:
           type: string
         to:
           type: string
-        type:
-          enum: [supersedes, amends, ceases_under, applies_instead_of]
-        basis:
+        text:
+          type: string
+        provenance:
           type: object
-          required: [document, text_span, reference_id]
+          required: [source_id, clause_id]
           properties:
-            document: {type: string}
-            text_span:
-              type: array
-              items: {type: integer}
-              minItems: 2
-              maxItems: 2
-            reference_id: {type: string}
-        effective_from:
-          type: string
-          nullable: true
-        effective_to:
-          type: string
-          nullable: true
+            source_id: {type: string}
+            clause_id: {type: string}
+      additionalProperties: false
     uniqueItems: true
 additionalProperties: false

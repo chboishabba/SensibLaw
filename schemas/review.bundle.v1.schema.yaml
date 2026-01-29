@@ -1,0 +1,35 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+# Review bundle is metadata-only. Any semantic change requires v2.
+title: review.bundle.v1
+type: object
+required: [obligations, activation, topology]
+properties:
+  obligations:
+    type: object
+  activation:
+    type: object
+  topology:
+    type: object
+  notes:
+    type: array
+    items:
+      type: object
+      required: [target, identity_hash, note, author, timestamp]
+      properties:
+        target: {type: string, enum: [obligation, edge]}
+        identity_hash: {type: string}
+        note: {type: string}
+        author: {type: string}
+        timestamp: {type: string}
+  disagreements:
+    type: array
+    items:
+      type: object
+      required: [target, identity_hash, reason, author, timestamp]
+      properties:
+        target: {type: string, enum: [obligation, edge]}
+        identity_hash: {type: string}
+        reason: {type: string}
+        author: {type: string}
+        timestamp: {type: string}
+additionalProperties: false

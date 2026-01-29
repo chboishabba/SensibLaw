@@ -1,8 +1,27 @@
 {
   "version": "obligation.crossdoc.v1",
   "nodes": [
-    "88e24b2ced674592c2c0aedfa139c7e8ac8a73f2",
-    "9c14d12e285657d5faa92c5920506289c18a7561"
+    {
+      "obl_id": "7dc0def9600a7b106a89d58d6a6f9a891f8e621f",
+      "source_id": "doc-old",
+      "clause_id": "doc-old-clause-0"
+    },
+    {
+      "obl_id": "b1d74dce0798267b4b3809497efc51a1f2ecbdcc",
+      "source_id": "doc-new",
+      "clause_id": "doc-new-clause-0"
+    }
   ],
-  "edges": []
+  "edges": [
+    {
+      "kind": "supersedes",
+      "from": "b1d74dce0798267b4b3809497efc51a1f2ecbdcc",
+      "to": "7dc0def9600a7b106a89d58d6a6f9a891f8e621f",
+      "text": "supersede",
+      "provenance": {
+        "source_id": "doc-new",
+        "clause_id": "doc-new-clause-0"
+      }
+    }
+  ]
 }

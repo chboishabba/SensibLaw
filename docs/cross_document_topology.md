@@ -1,61 +1,124 @@
-# Cross-Document Norm Topology (Sprint 7B Planning)
+# Cross-Document Norm Topology (Sprint 7B)
 
-Purpose: project explicit relationships across instruments without inference or precedence reasoning.
+Purpose: project **explicit** relationships across instruments **without inference, precedence, or ontology expansion**.
 
-## Edge grammar (explicit-only)
+## Edge set (closed)
 
-Allowed edge types and required trigger phrases (examples):
-- `supersedes` — “repeals”, “supersedes”, “replaces”
-- `amends` — “amends”, “inserts”, “substitutes”
-- `ceases_under` — “ceases under”, “expires under”, “ceases upon”
-- `applies_instead_of` — “despite”, “subject to”, “applies instead of”
+Only these edge kinds exist in `obligation.crossdoc.v1`:
 
-Rules:
-- Edge exists only if trigger phrase is present in text and cites source/target clauses.
-- Source/target must already exist as OBL-ID nodes.
-- No synonym/ontology expansion; phrases must appear verbatim (case-insensitive match).
-- Temporal qualifiers (“from 1 Jan 2020”, “until repeal”) attach only when explicitly present.
+- `supersedes` — explicit replacement/repeal
+- `conflicts_with` — explicit inconsistency statement
+- `exception_to` — explicit exception carved out
+- `applies_despite` — applies despite another provision
+- `applies_subject_to` — applies only if another provision holds
 
-## Payload: `obligation.crossdoc.v1` (draft)
+❌ No other edge kinds are permitted.
+
+## Preconditions (all must hold)
+
+1) Explicit textual marker present (grammar below).
+2) Resolvable reference to another instrument **and clause/section**.
+3) Reference resolves to a known obligation identity (OBL-ID) in the target doc.
+4) Marker + reference are clause-local (no cross-paragraph synthesis).
+5) Provenance recorded verbatim.
+
+If any precondition fails → **no edge**.
+
+## Grammar (regex, case-insensitive)
+
+### Supersession
+```
+\brepeals?\b
+\brevokes?\b
+\bsupersedes?\b
+\bhas effect instead of\b
+\bceases to have effect\b
+```
+
+### Conflict
+```
+\binconsistent with\b
+\bdespite any other provision\b
+\bto the extent of any inconsistency\b
+```
+
+### Exception
+```
+\bexcept as provided in\b
+\bdoes not apply to\b
+\bthis (section|regulation) does not apply\b
+```
+
+### Applies Despite
+```
+\bdespite (section|regulation)\b
+\bdespite anything in\b
+```
+
+### Applies Subject To
+```
+\bsubject to (section|regulation)\b
+\bsubject to this act\b
+```
+
+### Forbidden (must never emit edges)
+
+```
+\bhaving regard to\b
+\bconsistent with\b
+\bguided by\b
+\bfor the purposes of\b
+\bas if\b
+\btaken to\b
+```
+
+## Payload (frozen)
 
 ```jsonc
 {
   "version": "obligation.crossdoc.v1",
-  "nodes": ["<obligation_id>", "..."],
+  "nodes": [
+    {"obl_id": "<obligation_hash>", "source_id": "Act2024", "clause_id": "Act2024-clause-0"}
+  ],
   "edges": [
     {
-      "from": "<obligation_id>",
-      "to": "<obligation_id>",
-      "type": "supersedes|amends|ceases_under|applies_instead_of",
-      "basis": {
-        "document": "Act2020 s5",
-        "text_span": [123, 140],
-        "reference_id": "CR-ID-123"
-      },
-      "effective_from": "2020-01-01",
-      "effective_to": null
+      "kind": "supersedes",
+      "from": "<obl_id>",
+      "to": "<obl_id>",
+      "text": "supersedes",
+      "provenance": {"source_id": "Act2024", "clause_id": "Act2024-clause-3"}
     }
   ]
 }
 ```
 
+Ordering: nodes sorted by `obl_id`; edges sorted lexicographically by `(kind, from, to)`.
+
 ## Guardrails
-- ❌ No inferred edges; text span + reference_id are mandatory.
-- ❌ No conflict resolution / precedence ranking.
-- ❌ No ontology/semantic normalization beyond lowercase phrase match.
-- ✅ Deterministic ordering for nodes/edges for snapshotting.
-- ✅ Cycles are allowed but must be flagged; never pruned automatically.
-- ✅ Formatting/OCR/renumbering noise must not create or remove edges.
 
-## Tests to add (red-flag style)
-- Missing citation → no edge.
-- Formatting/renumbering variants yield identical edge sets.
-- Temporal overlays only when explicit dates exist.
-- Cycles detected but not resolved.
-- No “effective law”/“winner” field emitted.
+- ❌ No inferred edges; missing reference → no edge.
+- ❌ No compliance/precedence reasoning.
+- ❌ No ontology/synonym expansion beyond regex above.
+- ✅ Deterministic ordering for snapshotting.
+- ✅ Removing topology must not alter obligations.
 
-## Implementation plan (minimal sequence)
-1) Extract explicit edge candidates per document using phrase match + clause refs.
-2) Lift edges into cross-doc graph; keep payload deterministic.
-3) Snapshot graph outputs for a fixed corpus fixture.
-4) Add red-flag tests for the above guardrails.
+## Temporal overlays (Phase 2 — design only)
+
+Overlays annotate edges; they **never** change topology or activation.
+
+Allowed phrases: `on commencement`, `from the commencement of`, `until repeal`, `until expiry`.
+
+Disallowed: `currently`, `at present`, `as amended`, `from time to time` (would imply inference).
+
+Payload sketch (non-binding until Phase 2):
+
+```jsonc
+{
+  "edge_id": "<hash>",
+  "temporal": {
+    "effective_from": "2024-07-01",
+    "effective_until": null,
+    "text": "applies from 1 July 2024"
+  }
+}
+```
