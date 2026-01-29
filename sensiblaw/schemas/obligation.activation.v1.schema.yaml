@@ -1,0 +1,43 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: obligation.activation.v1
+type: object
+required:
+  - version
+  - active
+  - inactive
+  - terminated
+  - reasons
+properties:
+  version:
+    const: obligation.activation.v1
+  active:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  inactive:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  terminated:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  reasons:
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        type: object
+        required: [trigger, text, fact_key, fact_value]
+        properties:
+          trigger:
+            enum: [activation, termination]
+          text:
+            type: string
+          fact_key:
+            type: string
+          fact_value: {}
+additionalProperties: false

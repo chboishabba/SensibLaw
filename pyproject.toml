@@ -68,3 +68,8 @@ files = [
 
 [tool.coverage.report]
 fail_under = 80
+
+[tool.pytest.ini_options]
+markers = [
+    "redflag: non-negotiable guardrail tests that must stay green (no reasoning, no compliance, no identity drift)",
+]

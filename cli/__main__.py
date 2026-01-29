@@ -12,6 +12,20 @@ from typing import Dict, Iterable, List, Mapping, Optional, Sequence
 
 import requests
 
+from src.obligation_alignment import align_obligations, alignment_to_payload
+from src.obligation_projections import (
+    PROJECTION_SCHEMA_VERSION,
+    action_view,
+    actor_view,
+    clause_view,
+    timeline_view,
+)
+from src.obligation_views import (
+    EXPLANATION_SCHEMA_VERSION,
+    build_explanations,
+    explanations_to_payload,
+)
+from src.obligations import extract_obligations_from_text, obligation_to_dict
 from src.graph.inference import (
     PREDICTION_VERSION,
     PredictionSet,
@@ -32,6 +46,14 @@ from src.graph.inference import (
     train_transe,
 )
 from src.graph.models import EdgeType, GraphEdge, GraphNode, LegalGraph, NodeType
+from src.activation import (
+    ACTIVATION_VERSION,
+    FACT_ENVELOPE_VERSION,
+    Fact,
+    FactEnvelope,
+    activation_to_payload,
+    simulate_activation,
+)
 
 from . import receipts as receipts_cli
 
@@ -40,6 +62,36 @@ def _print_json(data: object) -> None:
     """Serialise ``data`` to JSON and print it to stdout."""
 
     print(json.dumps(data, ensure_ascii=False))
+
+
+def _load_text_arg(text: Optional[str], text_file: Optional[Path], *, label: str) -> str:
+    """Load text from either an inline string or a file path."""
+
+    if text:
+        return text
+    if text_file:
+        return text_file.read_text(encoding="utf-8")
+    raise SystemExit(label)
+
+
+def _load_facts(path: Optional[Path]) -> FactEnvelope:
+    if not path:
+        raise SystemExit("--facts is required when simulating activation")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    version = data.get("version", FACT_ENVELOPE_VERSION)
+    if version != FACT_ENVELOPE_VERSION:
+        raise SystemExit("Unsupported fact envelope version")
+    facts = []
+    for item in data.get("facts", []):
+        facts.append(
+            Fact(
+                key=item.get("key", ""),
+                value=item.get("value"),
+                at=item.get("at"),
+                source=item.get("source"),
+            )
+        )
+    return FactEnvelope(version=version, issued_at=data.get("issued_at"), facts=facts)
 
 
 def _load_graph_data(path: Path | str | None, *, flag: str = "--graph") -> dict:
@@ -278,6 +330,72 @@ def _handle_extract_rules(args: argparse.Namespace) -> None:
 
     rules = extract_rules(args.text)
     _print_json([rule.__dict__ for rule in rules])
+
+
+def _projection_payload(view: str, obligations) -> dict:
+    handlers = {
+        "actor": actor_view,
+        "action": action_view,
+        "clause": clause_view,
+        "timeline": timeline_view,
+    }
+    handler = handlers.get(view)
+    if handler is None:
+        raise SystemExit("unknown projection view")
+    return {
+        "version": PROJECTION_SCHEMA_VERSION,
+        "view": view,
+        "results": handler(obligations),
+    }
+
+
+def _handle_obligations(args: argparse.Namespace) -> None:
+    """Extract obligations and optionally emit projections/explanations/alignment."""
+
+    text = _load_text_arg(args.text, args.text_file, label="--text or --text-file is required")
+    obligations = extract_obligations_from_text(
+        text,
+        source_id=args.source_id,
+        enable_actor_binding=args.enable_actor_binding,
+        enable_action_binding=args.enable_action_binding,
+    )
+
+    result: dict[str, object] = {"obligations": [obligation_to_dict(o) for o in obligations]}
+
+    if args.emit_explanation:
+        explanations = build_explanations(text, obligations, source_id=args.source_id)
+        result["explanations"] = explanations_to_payload(explanations)
+
+    if args.emit_projections:
+        projections: dict[str, object] = {}
+        for view in args.emit_projections:
+            projections[view] = _projection_payload(view, obligations)
+        result["projections"] = projections
+
+    if args.diff_text or args.diff_text_file:
+        new_text = _load_text_arg(
+            args.diff_text,
+            args.diff_text_file,
+            label="--diff-text or --diff-text-file is required when diffing",
+        )
+        new_obs = extract_obligations_from_text(
+            new_text,
+            source_id=args.source_id,
+            enable_actor_binding=args.enable_actor_binding,
+            enable_action_binding=args.enable_action_binding,
+        )
+        if args.emit_obligation_alignment:
+            alignment = align_obligations(obligations, new_obs)
+            result["obligation_alignment"] = alignment_to_payload(alignment)
+    elif args.emit_obligation_alignment:
+        raise SystemExit("--emit-obligation-alignment requires --diff-text or --diff-text-file")
+
+    if args.simulate_activation:
+        envelope = _load_facts(args.facts)
+        activation = simulate_activation(obligations, envelope)
+        result["obligation_activation"] = activation_to_payload(activation)
+
+    _print_json(result)
 
 
 def _handle_ontology_lookup(args: argparse.Namespace) -> None:
@@ -1165,6 +1283,56 @@ def build_parser() -> argparse.ArgumentParser:
     extract_frl.add_argument("--data", type=Path)
     extract_frl.add_argument("--api-url", default="https://example.com")
     extract_frl.set_defaults(func=_handle_extract_frl)
+
+    obligations = sub.add_parser("obligations", help="Extract obligations and emit read-only views")
+    obligations.add_argument("--text", help="Raw text to extract obligations from")
+    obligations.add_argument("--text-file", type=Path, help="Path to text file to extract")
+    obligations.add_argument("--diff-text", help="New version of text for diff/alignment")
+    obligations.add_argument("--diff-text-file", type=Path, help="Path to new text for diff/alignment")
+    obligations.add_argument("--source-id", default="document")
+    obligations.add_argument(
+        "--disable-actor-binding",
+        action="store_const",
+        const=False,
+        dest="enable_actor_binding",
+        default=None,
+        help="turn off actor extraction/identity binding for obligations (uses env default when omitted)",
+    )
+    obligations.add_argument(
+        "--disable-action-binding",
+        action="store_const",
+        const=False,
+        dest="enable_action_binding",
+        default=None,
+        help="turn off action/object binding for obligations (uses env default when omitted)",
+    )
+    obligations.add_argument(
+        "--emit-projections",
+        nargs="+",
+        choices=("actor", "action", "clause", "timeline"),
+        help="emit deterministic projection views",
+    )
+    obligations.add_argument(
+        "--emit-explanation",
+        action="store_true",
+        help="emit obligation.explanation.v1 payload",
+    )
+    obligations.add_argument(
+        "--emit-obligation-alignment",
+        action="store_true",
+        help="when diffing, emit obligation.alignment.v1 payload",
+    )
+    obligations.add_argument(
+        "--simulate-activation",
+        action="store_true",
+        help="simulate activation using a FactEnvelope (adds obligation_activation block)",
+    )
+    obligations.add_argument(
+        "--facts",
+        type=Path,
+        help="path to FactEnvelope JSON used when --simulate-activation is set",
+    )
+    obligations.set_defaults(func=_handle_obligations, parser=obligations)
 
     check_parser = sub.add_parser("check", help="Check rules for issues")
     check_parser.add_argument("--rules", required=True)

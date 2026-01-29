@@ -1,0 +1,43 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: obligation.crossdoc.v1
+type: object
+required: [version, nodes, edges]
+properties:
+  version:
+    const: obligation.crossdoc.v1
+  nodes:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  edges:
+    type: array
+    items:
+      type: object
+      required: [from, to, type, basis]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        type:
+          enum: [supersedes, amends, ceases_under, applies_instead_of]
+        basis:
+          type: object
+          required: [document, text_span, reference_id]
+          properties:
+            document: {type: string}
+            text_span:
+              type: array
+              items: {type: integer}
+              minItems: 2
+              maxItems: 2
+            reference_id: {type: string}
+        effective_from:
+          type: string
+          nullable: true
+        effective_to:
+          type: string
+          nullable: true
+    uniqueItems: true
+additionalProperties: false

@@ -4,6 +4,8 @@ from typing import Dict, Iterable, List
 
 from src.obligations import ObligationAtom, obligation_to_dict
 
+PROJECTION_SCHEMA_VERSION = "obligation.projection.v1"
+
 
 def actor_view(obligations: Iterable[ObligationAtom]) -> List[Dict]:
     bucket: Dict[str, List[ObligationAtom]] = {}
@@ -61,4 +63,4 @@ def timeline_view(obligations: Iterable[ObligationAtom]) -> List[Dict]:
     return out
 
 
-__all__ = ["actor_view", "action_view", "clause_view", "timeline_view"]
+__all__ = ["actor_view", "action_view", "clause_view", "timeline_view", "PROJECTION_SCHEMA_VERSION"]

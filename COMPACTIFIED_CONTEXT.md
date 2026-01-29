@@ -4,20 +4,15 @@
 Compact snapshot of intent while applying the get-shit-done and update-docs-todo-implement workflows for Sprint S6 execution.
 
 ## Objective
-Close S5 (done) and execute S6 surfaces (query, explanation, schemas) with docs/TODO sequencing before code.
+Close S6 (done) and plan S7 surfaces (interfaces, activation metadata, cross-doc topology) with docs/TODO sequencing before code.
 
-## Near-term intent
-- Sprint S5 completed: actors, actions/objects, scopes, lifecycle, graph projection, and stability hardening are shipped and flag-gated.
-- Sprint S6 underway: S6.1 query API ✅, S6.2 explanation surfaces ✅, S6.4 projections ✅; S6.5 schema stubs seeded (query/explanation/alignment). Remaining: S6.3 alignment implementation, S6.5 finalize schemas, S6.6 guard review.
-- Tests-first discipline remains for each S6 sub-sprint; keep feature flags available if new surfaces could affect identity or outputs.
+## Near-term intent (S7)
+- Sprint S7 tracks: C) Human interfaces (snapshotted/locked), A) fact-driven activation (exposed via CLI/API, still non-reasoning), B) cross-document topology.
+- Sequencing: C → A → B. Feature flags stay in place for new payloads; deterministic ordering + schema versioning required.
 
-## Priority order (S6 sequencing)
-1) S6.1 Obligation Query API (read-only filters, flag-respecting) ✅  
-2) S6.2 Explanation & trace surfaces ✅  
-3) S6.3 Cross-version obligation alignment — ✅  
-4) S6.4 Normative view projections — ✅  
-5) S6.5 External consumer contracts (versioned schemas; stubs seeded) — schemas v1 seeded (query/explanation/alignment)  
-6) S6.6 Hard stop & gate review (no-reasoning guard tests) — ✅
+## Completed prior milestones
+- Sprint S5: actors, actions/objects, scopes, lifecycle, graph projection, stability hardening — shipped and flag-gated.
+- Sprint S6: query API, explanation surfaces, projections, alignment, schema stubs, and guard review completed; no-reasoning contract enforced.
 
 ## Milestone scope
 - Deliver read-only, deterministic surfaces over the existing normative lattice: queries, explanations, alignment, projections, schemas.

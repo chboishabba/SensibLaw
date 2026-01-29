@@ -1,0 +1,46 @@
+{
+  "version": "obligation.projection.v1",
+  "view": "timeline",
+  "results": [
+    {
+      "clause_id": "doc-clause-0",
+      "modality": "must",
+      "action": "keep",
+      "lifecycle": []
+    },
+    {
+      "clause_id": "doc-clause-1",
+      "modality": "must not",
+      "action": "enter",
+      "lifecycle": [
+        {
+          "kind": "activation",
+          "normalized": "on the premises",
+          "text": "on the premises"
+        }
+      ]
+    },
+    {
+      "clause_id": "doc-clause-2",
+      "modality": "must",
+      "action": "notify",
+      "lifecycle": [
+        {
+          "kind": "activation",
+          "normalized": "on commencement and",
+          "text": "on commencement and"
+        },
+        {
+          "kind": "activation",
+          "normalized": "upon revocation",
+          "text": "upon revocation ."
+        },
+        {
+          "kind": "termination",
+          "normalized": "ceases upon revocation",
+          "text": "ceases upon revocation ."
+        }
+      ]
+    }
+  ]
+}

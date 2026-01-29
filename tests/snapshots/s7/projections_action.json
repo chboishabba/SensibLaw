@@ -1,0 +1,229 @@
+{
+  "version": "obligation.projection.v1",
+  "view": "action",
+  "results": [
+    {
+      "action": "enter",
+      "obligations": [
+        {
+          "type": "prohibition",
+          "modality": "must not",
+          "clause_id": "doc-clause-1",
+          "actor": {
+            "text": "person",
+            "normalized": "person",
+            "span": [
+              9,
+              11
+            ],
+            "clause_id": "doc-clause-1"
+          },
+          "action": {
+            "text": "enter",
+            "normalized": "enter",
+            "span": [
+              13,
+              14
+            ],
+            "clause_id": "doc-clause-1"
+          },
+          "object": {
+            "text": "the area",
+            "normalized": "the area",
+            "span": [
+              14,
+              16
+            ],
+            "clause_id": "doc-clause-1"
+          },
+          "reference_identities": [],
+          "conditions": [],
+          "scopes": [
+            {
+              "category": "place",
+              "text": "on the premises",
+              "normalized": "on the premises",
+              "span": [
+                16,
+                19
+              ],
+              "clause_id": "doc-clause-1"
+            },
+            {
+              "category": "place",
+              "text": "on the premises .",
+              "normalized": "on the premises",
+              "span": [
+                16,
+                20
+              ],
+              "clause_id": "doc-clause-1"
+            }
+          ],
+          "lifecycle": [
+            {
+              "kind": "activation",
+              "text": "on the premises",
+              "normalized": "on the premises",
+              "span": [
+                16,
+                19
+              ],
+              "clause_id": "doc-clause-1"
+            }
+          ],
+          "span": [
+            9,
+            20
+          ],
+          "provenance": null
+        }
+      ]
+    },
+    {
+      "action": "keep",
+      "obligations": [
+        {
+          "type": "obligation",
+          "modality": "must",
+          "clause_id": "doc-clause-0",
+          "actor": {
+            "text": "the operator",
+            "normalized": "the operator",
+            "span": [
+              0,
+              2
+            ],
+            "clause_id": "doc-clause-0"
+          },
+          "action": {
+            "text": "keep",
+            "normalized": "keep",
+            "span": [
+              3,
+              4
+            ],
+            "clause_id": "doc-clause-0"
+          },
+          "object": {
+            "text": "records",
+            "normalized": "records",
+            "span": [
+              4,
+              5
+            ],
+            "clause_id": "doc-clause-0"
+          },
+          "reference_identities": [],
+          "conditions": [],
+          "scopes": [
+            {
+              "category": "time",
+              "text": "within 7 days",
+              "normalized": "within 7 days",
+              "span": [
+                5,
+                8
+              ],
+              "clause_id": "doc-clause-0"
+            },
+            {
+              "category": "time",
+              "text": "within 7 days .",
+              "normalized": "within 7 days",
+              "span": [
+                5,
+                9
+              ],
+              "clause_id": "doc-clause-0"
+            }
+          ],
+          "lifecycle": [],
+          "span": [
+            0,
+            9
+          ],
+          "provenance": null
+        }
+      ]
+    },
+    {
+      "action": "notify",
+      "obligations": [
+        {
+          "type": "obligation",
+          "modality": "must",
+          "clause_id": "doc-clause-2",
+          "actor": {
+            "text": "the licence holder",
+            "normalized": "the licence holder",
+            "span": [
+              20,
+              23
+            ],
+            "clause_id": "doc-clause-2"
+          },
+          "action": {
+            "text": "notify",
+            "normalized": "notify",
+            "span": [
+              24,
+              25
+            ],
+            "clause_id": "doc-clause-2"
+          },
+          "object": null,
+          "reference_identities": [],
+          "conditions": [
+            {
+              "type": "upon",
+              "span": [
+                20,
+                32
+              ],
+              "clause_id": "doc-clause-2"
+            }
+          ],
+          "scopes": [],
+          "lifecycle": [
+            {
+              "kind": "activation",
+              "text": "on commencement and",
+              "normalized": "on commencement and",
+              "span": [
+                25,
+                28
+              ],
+              "clause_id": "doc-clause-2"
+            },
+            {
+              "kind": "termination",
+              "text": "ceases upon revocation .",
+              "normalized": "ceases upon revocation",
+              "span": [
+                28,
+                32
+              ],
+              "clause_id": "doc-clause-2"
+            },
+            {
+              "kind": "activation",
+              "text": "upon revocation .",
+              "normalized": "upon revocation",
+              "span": [
+                29,
+                32
+              ],
+              "clause_id": "doc-clause-2"
+            }
+          ],
+          "span": [
+            20,
+            32
+          ],
+          "provenance": null
+        }
+      ]
+    }
+  ]
+}
