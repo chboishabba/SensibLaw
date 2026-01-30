@@ -1022,6 +1022,17 @@ def _handle_review(args: argparse.Namespace) -> None:
         raise SystemExit("review subcommand is required")
 
 
+def _handle_research_health(args: argparse.Namespace) -> None:
+    from src.reports.research_health import compute_research_health
+
+    report = compute_research_health(args.db)
+    payload = report.to_dict()
+    if args.pretty:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+
+
 def _handle_treatment(args: argparse.Namespace) -> None:
     from src import sample_data
 
@@ -1714,6 +1725,13 @@ def build_parser() -> argparse.ArgumentParser:
     review_export.add_argument("--collection", type=Path, required=True)
     review_export.add_argument("--out", type=Path, required=True)
     review_export.set_defaults(func=_handle_review)
+
+    report = sub.add_parser("report", help="Reporting utilities")
+    report_sub = report.add_subparsers(dest="report_command")
+    research_health = report_sub.add_parser("research-health", help="Corpus health metrics (non-semantic)")
+    research_health.add_argument("--db", type=Path, required=True, help="SQLite store path")
+    research_health.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
+    research_health.set_defaults(func=_handle_research_health)
 
     return parser
 

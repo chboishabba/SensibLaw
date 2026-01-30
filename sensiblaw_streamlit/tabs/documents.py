@@ -465,7 +465,7 @@ def _handle_processed_document(
     st.markdown("### Document preview")
     render_document_preview(document)
     _render_actor_summary(document)
-    _render_citations_panel(document)
+    _render_citations_panel(document, db_path=db_path, stored_id=stored_id)
     doc_payload = document.to_dict()
     st.session_state["document_form_jurisdiction"] = (
         document.metadata.jurisdiction or ""
@@ -483,25 +483,124 @@ def _handle_processed_document(
     _refresh_graph_with_document(document, db_path=db_path, stored_id=stored_id)
 
 
-def _render_citations_panel(document: Document) -> None:
+def _render_citations_panel(document: Document, *, db_path: Path, stored_id: Optional[int]) -> None:
     st.markdown("### Citations (extracted, read-only)")
     refs = extract_citations(document.body)
+    citation_status = st.session_state.setdefault("citation_status", {})
+
     if not refs:
         st.info("No neutral citations detected in document text.")
         return
+
     rows = []
+    unresolved_refs = []
+    unresolved_count = 0
     for ref in refs:
+        status_entry = citation_status.get(ref.raw_text, {})
+        status = status_entry.get("status", "unresolved")
+        resolver = status_entry.get("resolver", "—")
+        depth = status_entry.get("depth", 0)
+        normalized = f"[{ref.key.year}] {ref.key.court} {ref.key.number}" if ref.key else ""
         rows.append(
             {
-                "citation": ref.raw_text,
-                "normalized": f"[{ref.key.year}] {ref.key.court} {ref.key.number}" if ref.key else "",
-                "offset": ref.offset,
+                "Raw citation": ref.raw_text,
+                "Normalized key": normalized,
+                "Status": status,
+                "Resolver": resolver,
+                "Depth": depth,
             }
         )
+        if status != "resolved":
+            unresolved_refs.append(ref)
+            unresolved_count += 1
+
+    badge_col, _ = st.columns([1, 4])
+    badge_col.metric("Unresolved citations", unresolved_count)
+    if unresolved_count > 0:
+        st.warning("This document cites authorities that have not been ingested.")
+
     if pd is not None:
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
     else:
         st.json(rows, expanded=False)
+
+    if unresolved_refs:
+        # Deterministic unresolved artifact (deduped by normalized key or raw text).
+        seen_keys: set[str] = set()
+        unresolved_entries = []
+        for ref in unresolved_refs:
+            normalized_key = (
+                f"[{ref.key.year}] {ref.key.court} {ref.key.number}" if ref.key else ref.raw_text
+            )
+            if normalized_key in seen_keys:
+                continue
+            seen_keys.add(normalized_key)
+            unresolved_entries.append(
+                {
+                    "raw_text": ref.raw_text,
+                    "normalized_key": normalized_key,
+                    "reason": "unresolved",
+                    "attempted_resolvers": ["jade", "austlii"],
+                    "depth": 0,
+                }
+            )
+        unresolved_payload = {
+            "document_id": stored_id or document.metadata.canonical_id or "",
+            "generated_at": date.today().isoformat(),
+            "unresolved": unresolved_entries,
+        }
+        _download_json(
+            "Download unresolved citations",
+            unresolved_payload,
+            "unresolved_citations.json",
+            key="download_unresolved",
+        )
+    else:
+        st.info("All extracted citations are resolved (or none found).")
+
+    if unresolved_refs:
+        with st.expander("Follow a citation (bounded, adds at most one document)"):
+            target = st.selectbox(
+                "Select citation to follow",
+                options=[ref.raw_text for ref in unresolved_refs],
+                key="follow_citation_select",
+            )
+            depth_limit = st.number_input("Depth limit", min_value=1, max_value=2, value=1, step=1)
+            volume_limit = st.number_input("Max new documents", min_value=1, max_value=3, value=1, step=1)
+            follow = st.button("Follow citation", key="follow_citation_btn")
+            if follow and target:
+                if volume_limit <= 0:
+                    st.warning("Volume limit must be at least 1.")
+                    return
+                selected_ref = next(ref for ref in unresolved_refs if ref.raw_text == target)
+                query = (
+                    f"[{selected_ref.key.year}] {selected_ref.key.court} {selected_ref.key.number}"
+                    if selected_ref.key
+                    else selected_ref.raw_text
+                )
+                try:
+                    search_adapter = AustLiiSearchAdapter()
+                    fetch_adapter = AustLiiFetchAdapter()
+                    ingest_pdf_from_search(
+                        query=query,
+                        vc="/au",
+                        db_path=db_path,
+                        search_adapter=search_adapter,
+                        fetch_adapter=fetch_adapter,
+                        strategy="by_mnc" if selected_ref.key else "first",
+                        mnc=query if selected_ref.key else None,
+                    )
+                    citation_status[target] = {
+                        "status": "resolved",
+                        "resolver": "austlii",
+                        "depth": int(depth_limit),
+                        "max_new_docs": int(volume_limit),
+                    }
+                    st.success(
+                        f"Citation followed with bounds depth={int(depth_limit)}, max_new_docs={int(volume_limit)}."
+                    )
+                except Exception as exc:  # pragma: no cover - defensive
+                    st.error(f"Failed to follow citation: {exc}")
 
 
 def _display_step_log(

@@ -83,8 +83,22 @@ def _load_fixture(param_name: str, env_var: str) -> Optional[Dict[str, Any]]:
     - Falls back to env var pointing to an absolute path or filename inside UI_FIXTURE_DIR
     """
 
-    params = st.experimental_get_query_params()
-    candidate = params.get(param_name, [None])[0] or os.getenv(env_var)
+    try:
+        params = st.query_params  # modern Streamlit API
+    except Exception:  # pragma: no cover - fallback for older Streamlit
+        try:
+            params = st.experimental_get_query_params()
+        except Exception:
+            params = {}
+
+    candidate = None
+    if isinstance(params, dict):
+        value = params.get(param_name)
+        if isinstance(value, list):
+            candidate = value[0] if value else None
+        elif isinstance(value, str):
+            candidate = value
+    candidate = candidate or os.getenv(env_var)
     if not candidate:
         return None
 
