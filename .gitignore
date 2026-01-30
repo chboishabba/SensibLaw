@@ -50,6 +50,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+.playwright/
+playwright-report/
+test-results/
 
 # Translations
 *.mo
