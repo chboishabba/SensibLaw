@@ -1,0 +1,10 @@
+{
+  "version": "review.collection.v1",
+  "bundles": [
+    {
+      "path": "review_bundle_minimal.json",
+      "label": "Example bundle",
+      "note": "Reference sample for review UI"
+    }
+  ]
+}

@@ -3,4 +3,4 @@ python3 -m venv venv
 source venv/bin/activate
 git pull
 pip install -r requirements.txt
-streamlit run dashboard/app.py
+streamlit run streamlit_app.py

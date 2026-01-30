@@ -25,6 +25,9 @@ def render() -> None:
     st.write(
         "Quick access to glossary lookups, frame compilation, receipts, similarity fingerprints, FRL ingestion, rule checks, and harm scores."
     )
+    st.info(
+        "Labs surface: not covered by Sprint 9 invariants; tools here are demo-only and read-only."
+    )
 
     st.markdown("### Glossary lookup")
     with st.form("glossary_form"):

@@ -18,6 +18,20 @@
 - Near-term task focus
   - Freeze schema versions after any final tweaks; bump versions explicitly if changed.
   - Decide next sprint direction (A compliance simulation, B cross-doc norm topology, C human interfaces).
+  - Sprint 9 UI hardening (read-only, non-semantic):
+    - Add fixture-mode rendering for Text & Concepts, Knowledge Graph, Case Comparison tabs (query param + env overrides).
+    - Provide test fixtures under `tests/fixtures/ui` and unit checks for shape/forbidden language.
+    - Add Playwright smoke (opt-in) asserting fixtures render and no mutation controls/forbidden terms.
+    - Utilities tab: show “Labs / not covered by Sprint 9 invariants” banner; keep read-only.
+  - Sources (ingestion) discipline:
+    - Add AustLII SINO search adapter (deterministic URL builder + parser; rate-limited).
+    - Add AustLII fetch adapter (HTML/PDF, provenance only, rate-limited).
+    - Add citation normalisation helpers + tests (JADE/AustLII/PDF alignment).
+    - Add storage guard tests (DB delta, compression ratio) using one PDF fixture.
+  - Citation-follow expansion (bounded, non-semantic):
+    - Implement citation extraction → resolution → fetch → ingest with depth/volume bounds.
+    - Default resolver order: already-ingested → local → JADE (MNC) → AustLII (URL/search) → unresolved.
+    - Add orchestration tests and ensure provenance is recorded outside identity hashes.
 
 - Backlog (deferred)
   - Ingestion-to-query foundation — PDF → parsed artifacts → SQLite/FTS → traversal API → Graphviz DOT render with NLP Sprints 1–2 hooks (reactivate explicitly if needed).

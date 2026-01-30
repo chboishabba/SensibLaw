@@ -7,5 +7,6 @@ __all__ = [
     "text_concepts",
     "knowledge_graph",
     "case_comparison",
+    "collections",
     "utilities",
 ]

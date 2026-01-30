@@ -54,6 +54,7 @@ from src.activation import (
     activation_to_payload,
     simulate_activation,
 )
+from src.review_collection import export_collection
 
 from . import receipts as receipts_cli
 
@@ -1013,6 +1014,14 @@ def _handle_harm_compute(args: argparse.Namespace) -> None:
     _print_json(result)
 
 
+def _handle_review(args: argparse.Namespace) -> None:
+    if args.review_command == "export":
+        manifest = export_collection(args.collection, args.out)
+        _print_json({"status": "ok", "output": str(args.out), "manifest": manifest})
+    else:
+        raise SystemExit("review subcommand is required")
+
+
 def _handle_treatment(args: argparse.Namespace) -> None:
     from src import sample_data
 
@@ -1054,6 +1063,58 @@ def _handle_austlii_fetch(args: argparse.Namespace) -> None:
             store.add_revision(doc_id, document, effective)
     finally:
         store.close()
+
+
+def _handle_austlii_search(args: argparse.Namespace) -> None:
+    """Search AustLII SINO and fetch a single selected hit (no ingestion)."""
+    import json
+    from src.sources.austlii_sino import AustLiiSearchAdapter, SinoQuery
+    from src.sources.austlii_sino_parse import parse_sino_search_html
+    from src.sources.austlii_fetch import AustLiiFetchAdapter
+    from src.ingestion.austlii_pipeline import _select_hit
+
+    searcher = AustLiiSearchAdapter()
+    fetcher = AustLiiFetchAdapter()
+
+    html = searcher.search(
+        SinoQuery(
+            meta=args.vc,
+            query=args.query,
+            results=args.results,
+            offset=args.offset,
+            method=args.method,
+        )
+    )
+    hits = parse_sino_search_html(html)
+    hit, reason = _select_hit(
+        hits,
+        strategy=args.pick,
+        mnc=args.mnc,
+        index=args.index,
+        path_contains=args.path_contains,
+    )
+
+    fetched = fetcher.fetch(hit.url)
+
+    summary = {
+        "query": args.query,
+        "vc": args.vc,
+        "strategy": args.pick,
+        "selection_reason": reason,
+        "hit": {
+            "title": hit.title,
+            "url": hit.url,
+            "citation": hit.citation,
+            "database_heading": hit.database_heading,
+        },
+        "content_type": fetched.content_type,
+        "bytes": len(fetched.content),
+    }
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+    if args.out:
+        Path(args.out).write_bytes(fetched.content)
+        print(f"Saved content to {args.out}")
 
 
 def _handle_concepts(args: argparse.Namespace) -> None:
@@ -1585,6 +1646,24 @@ def build_parser() -> argparse.ArgumentParser:
     austlii.add_argument("--sections", default="")
     austlii.set_defaults(func=_handle_austlii_fetch)
 
+    austlii_search = sub.add_parser("austlii-search", help="Search AustLII SINO and fetch one hit (no ingestion)")
+    austlii_search.add_argument("--query", required=True, help="Search query")
+    austlii_search.add_argument("--vc", default="/au", help="Virtual concordance (meta) scope, default /au")
+    austlii_search.add_argument("--method", default="any", help="SINO method (any|all|phrase|...)")
+    austlii_search.add_argument("--results", type=int, default=20, help="Results per page")
+    austlii_search.add_argument("--offset", type=int, default=0, help="Results offset")
+    austlii_search.add_argument(
+        "--pick",
+        choices=["first", "by_index", "by_mnc", "by_path"],
+        default="first",
+        help="Selection strategy",
+    )
+    austlii_search.add_argument("--index", type=int, default=0, help="Index for by_index strategy")
+    austlii_search.add_argument("--mnc", help="Exact MNC for by_mnc strategy")
+    austlii_search.add_argument("--path-contains", help="Substring match for by_path strategy")
+    austlii_search.add_argument("--out", type=Path, help="Optional path to write fetched content")
+    austlii_search.set_defaults(func=_handle_austlii_search)
+
     tools = sub.add_parser("tools", help="Miscellaneous tools")
     tools_sub = tools.add_subparsers(dest="tools_command")
     claim_builder = tools_sub.add_parser("claim-builder", help="Interactive claim builder")
@@ -1628,6 +1707,13 @@ def build_parser() -> argparse.ArgumentParser:
     proof_tree.add_argument("--as-at")
     proof_tree.add_argument("--dot", action="store_true")
     proof_tree.set_defaults(func=_handle_proof_tree)
+
+    review = sub.add_parser("review", help="Review utilities")
+    review_sub = review.add_subparsers(dest="review_command")
+    review_export = review_sub.add_parser("export", help="Export a review collection to zip")
+    review_export.add_argument("--collection", type=Path, required=True)
+    review_export.add_argument("--out", type=Path, required=True)
+    review_export.set_defaults(func=_handle_review)
 
     return parser
 

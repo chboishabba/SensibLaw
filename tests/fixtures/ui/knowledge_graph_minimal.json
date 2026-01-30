@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    {"id": "OBL:1", "type": "obligation"},
+    {"id": "OBL:2", "type": "obligation"}
+  ],
+  "edges": [
+    {
+      "from": "OBL:1",
+      "to": "OBL:2",
+      "type": "exception_chain",
+      "citation": {
+        "clause_id": "s12(3)",
+        "text": "subject to section 12(3)"
+      }
+    }
+  ]
+}

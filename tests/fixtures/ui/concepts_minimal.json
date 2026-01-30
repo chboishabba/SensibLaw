@@ -1,0 +1,8 @@
+{
+  "text": "The operator must keep records.",
+  "matches": ["operator", "record keeping"],
+  "cloud": {
+    "operator": 1,
+    "record keeping": 2
+  }
+}

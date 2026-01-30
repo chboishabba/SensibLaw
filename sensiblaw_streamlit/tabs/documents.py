@@ -39,6 +39,10 @@ from sensiblaw_streamlit.tabs.knowledge_graph import _load_graph_from_store
 from src.api.routes import _graph as ROUTES_GRAPH
 from src.models.document import Document
 from src.pdf_ingest import iter_process_pdf, process_pdf
+from src.ingestion.citation_follow import extract_citations
+from src.ingestion.austlii_pipeline import ingest_pdf_from_search
+from src.sources.austlii_fetch import AustLiiFetchAdapter
+from src.sources.austlii_sino import AustLiiSearchAdapter
 from src.storage.versioned_store import VersionedStore
 
 
@@ -461,6 +465,7 @@ def _handle_processed_document(
     st.markdown("### Document preview")
     render_document_preview(document)
     _render_actor_summary(document)
+    _render_citations_panel(document)
     doc_payload = document.to_dict()
     st.session_state["document_form_jurisdiction"] = (
         document.metadata.jurisdiction or ""
@@ -476,6 +481,27 @@ def _handle_processed_document(
     st.session_state["last_document_payload"] = doc_payload
     st.session_state["expand_last_document"] = True
     _refresh_graph_with_document(document, db_path=db_path, stored_id=stored_id)
+
+
+def _render_citations_panel(document: Document) -> None:
+    st.markdown("### Citations (extracted, read-only)")
+    refs = extract_citations(document.body)
+    if not refs:
+        st.info("No neutral citations detected in document text.")
+        return
+    rows = []
+    for ref in refs:
+        rows.append(
+            {
+                "citation": ref.raw_text,
+                "normalized": f"[{ref.key.year}] {ref.key.court} {ref.key.number}" if ref.key else "",
+                "offset": ref.offset,
+            }
+        )
+    if pd is not None:
+        st.dataframe(pd.DataFrame(rows), use_container_width=True)
+    else:
+        st.json(rows, expanded=False)
 
 
 def _display_step_log(

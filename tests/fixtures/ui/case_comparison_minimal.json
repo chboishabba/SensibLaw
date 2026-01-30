@@ -1,0 +1,13 @@
+{
+  "left": {
+    "obligations": ["OBL:1", "OBL:2"]
+  },
+  "right": {
+    "obligations": ["OBL:2", "OBL:3"]
+  },
+  "diff": {
+    "added": ["OBL:3"],
+    "removed": ["OBL:1"],
+    "unchanged": ["OBL:2"]
+  }
+}

@@ -25,8 +25,10 @@ from sensiblaw_streamlit.shared import (
     _build_knowledge_graph_dot,
     _build_principle_graph_dot,
     _download_json,
+    _load_fixture,
     _render_dot,
     _render_table,
+    _warn_forbidden,
 )
 
 from src.api.routes import (
@@ -698,6 +700,24 @@ def render() -> None:
     st.write(
         "Generate subgraphs, execute legal tests, inspect case treatments, and fetch provision atoms."
     )
+
+    fixture = _load_fixture("graph_fixture", "SENSIBLAW_GRAPH_FIXTURE")
+    if fixture:
+        nodes = fixture.get("nodes", []) or []
+        edges = fixture.get("edges", []) or []
+        st.caption("Fixture mode (read-only, structural only)")
+        col_a, col_b = st.columns(2)
+        col_a.metric("Nodes", len(nodes))
+        col_b.metric("Edges", len(edges))
+        missing_citation = [edge for edge in edges if not edge.get("citation")]
+        if missing_citation:
+            st.error("All edges must include a citation in fixture mode.")
+        st.markdown("#### Nodes")
+        st.json(nodes, expanded=False)
+        st.markdown("#### Edges")
+        st.json(edges, expanded=False)
+        _warn_forbidden(json.dumps(fixture))
+        return
 
     default_store = st.session_state.get(
         "kg_graph_store_path", str(ROOT / "ui" / DEFAULT_DB_NAME)

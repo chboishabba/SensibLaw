@@ -1,0 +1,20 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: review.collection.v1
+type: object
+required: [version, bundles]
+properties:
+  version:
+    const: review.collection.v1
+  bundles:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [path]
+      properties:
+        path: {type: string}
+        label: {type: string}
+        note: {type: string}
+      additionalProperties: false
+    uniqueItems: true
+additionalProperties: false

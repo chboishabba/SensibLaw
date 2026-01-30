@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
@@ -11,6 +12,8 @@ from sensiblaw_streamlit.shared import (
     _download_json,
     _render_dot,
     _render_table,
+    _load_fixture,
+    _warn_forbidden,
     pd,
 )
 
@@ -26,6 +29,23 @@ def render() -> None:
     st.write(
         "Normalise text, surface concept matches, extract rules, and inspect ontology tagging outputs."
     )
+
+    fixture = _load_fixture("concepts_fixture", "SENSIBLAW_CONCEPTS_FIXTURE")
+    if fixture:
+        text = fixture.get("text", "")
+        matches = fixture.get("matches", [])
+        cloud = fixture.get("cloud", {})
+        st.caption("Fixture mode (non-semantic, read-only)")
+        st.code(text)
+        st.markdown("#### Concept matches")
+        st.write(matches)
+        st.markdown("#### Concept cloud")
+        if cloud:
+            st.json(cloud, expanded=False)
+        else:
+            st.info("No concepts in fixture.")
+        _warn_forbidden(json.dumps(fixture))
+        return
 
     sample_story_path = ROOT / "examples" / "distinguish_glj" / "story.txt"
     sample_text = (

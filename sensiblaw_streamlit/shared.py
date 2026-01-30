@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, is_dataclass
 from datetime import date
 from enum import Enum
@@ -25,6 +26,20 @@ except Exception:  # pragma: no cover - graphviz is optional at runtime
     Digraph = None  # type: ignore[assignment]
 
 ROOT = REPO_ROOT
+UI_FIXTURE_DIR = Path(os.getenv("SENSIBLAW_UI_FIXTURE_DIR", ROOT / "tests" / "fixtures" / "ui"))
+FORBIDDEN_TERMS = {
+    "compliance",
+    "breach",
+    "prevails",
+    "valid",
+    "invalid",
+    "stronger",
+    "weaker",
+    "satisfies",
+    "violates",
+    "binding",
+    "override",
+}
 
 
 def _ensure_parent(path: Path) -> None:
@@ -59,6 +74,41 @@ def _download_json(
         mime="application/json",
         key=key,
     )
+
+
+def _load_fixture(param_name: str, env_var: str) -> Optional[Dict[str, Any]]:
+    """Load a UI fixture if specified via query param or env var.
+
+    - Query param takes priority (e.g. ?graph_fixture=knowledge_graph_minimal.json)
+    - Falls back to env var pointing to an absolute path or filename inside UI_FIXTURE_DIR
+    """
+
+    params = st.experimental_get_query_params()
+    candidate = params.get(param_name, [None])[0] or os.getenv(env_var)
+    if not candidate:
+        return None
+
+    path = Path(candidate)
+    if not path.is_absolute():
+        path = UI_FIXTURE_DIR / candidate
+    if not path.exists():
+        st.error(f"Fixture not found: {path}")
+        return None
+
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:  # pragma: no cover - defensive
+        st.error(f"Failed to load fixture {path}: {exc}")
+        return None
+
+
+def _warn_forbidden(text: str) -> None:
+    """Emit a UI warning if forbidden semantic terms are present."""
+
+    lowered = text.lower()
+    hits = [term for term in FORBIDDEN_TERMS if term in lowered]
+    if hits:
+        st.error(f"Forbidden semantic terms detected: {', '.join(sorted(set(hits)))}")
 
 
 def _render_table(records: Iterable[Dict[str, Any]], *, key: str) -> None:

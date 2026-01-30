@@ -7,7 +7,12 @@ import json
 import streamlit as st
 
 from sensiblaw_streamlit.constants import SAMPLE_CASES, SAMPLE_STORY_FACTS
-from sensiblaw_streamlit.shared import _download_json, _render_table
+from sensiblaw_streamlit.shared import (
+    _download_json,
+    _load_fixture,
+    _render_table,
+    _warn_forbidden,
+)
 
 from src.distinguish.engine import compare_story_to_case
 from src.distinguish.loader import load_case_silhouette
@@ -18,6 +23,19 @@ def render() -> None:
     st.write(
         "Load a base silhouette and compare story fact tags to highlight overlaps and gaps."
     )
+
+    fixture = _load_fixture("case_fixture", "SENSIBLAW_CASE_FIXTURE")
+    if fixture:
+        st.caption("Fixture mode (structural diff only)")
+        diff = fixture.get("diff", {})
+        st.markdown("#### Added")
+        st.write(diff.get("added", []))
+        st.markdown("#### Removed")
+        st.write(diff.get("removed", []))
+        st.markdown("#### Unchanged")
+        st.write(diff.get("unchanged", []))
+        _warn_forbidden(json.dumps(fixture))
+        return
 
     case_label = st.selectbox("Base case", list(SAMPLE_CASES.keys()))
     citation = SAMPLE_CASES[case_label]

@@ -47,3 +47,9 @@ settings.register_profile(
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
 settings.load_profile("ci")
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "e2e: marks end-to-end UI/browser tests (opt-in via RUN_PLAYWRIGHT=1)")
+    config.addinivalue_line("markers", "slow: marks storage/ingest heavy tests")
+    config.addinivalue_line("markers", "live: marks live network tests (opt-in via RUN_LIVE_AUSTLII=1)")
