@@ -1031,8 +1031,6 @@ def _handle_research_health(args: argparse.Namespace) -> None:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
-
-
 def _handle_treatment(args: argparse.Namespace) -> None:
     from src import sample_data
 
@@ -1732,7 +1730,6 @@ def build_parser() -> argparse.ArgumentParser:
     research_health.add_argument("--db", type=Path, required=True, help="SQLite store path")
     research_health.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
     research_health.set_defaults(func=_handle_research_health)
-
     return parser
 
 

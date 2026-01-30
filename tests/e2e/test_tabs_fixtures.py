@@ -38,7 +38,6 @@ def test_tabs_render_fixtures():
         page.get_by_role("tab", name="Obligations").click()
         expect(page.get_by_text("Fixture mode", exact=False)).to_be_visible()
         expect(page.get_by_text("Obligations (read-only)", exact=False)).to_be_visible()
-
         # Knowledge Graph (fixture mode)
         page.get_by_role("tab", name="Knowledge Graph").click()
         expect(page.get_by_text("Fixture mode", exact=False)).to_be_visible()

@@ -36,7 +36,6 @@ This document defines the **non-semantic, deterministic contracts** for the Stre
 - Renders: obligation payloads verbatim with span inspector (read-only).
 - Optional sections (if present): signal hypotheses, promotion receipts.
 - No edits, approvals, or semantic labels.
-
 ### Utilities
 - Remains a labs surface; must display a banner that it is **not** covered by Sprint 9 invariants and performs no mutations.
 

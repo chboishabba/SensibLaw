@@ -518,7 +518,6 @@ def _render_citations_panel(document: Document, *, db_path: Path, stored_id: Opt
     badge_col.metric("Unresolved citations", unresolved_count)
     if unresolved_count > 0:
         st.warning("This document cites authorities that have not been ingested.")
-
     if pd is not None:
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
     else:
@@ -601,7 +600,6 @@ def _render_citations_panel(document: Document, *, db_path: Path, stored_id: Opt
                     )
                 except Exception as exc:  # pragma: no cover - defensive
                     st.error(f"Failed to follow citation: {exc}")
-
 
 def _display_step_log(
     stage: str,
