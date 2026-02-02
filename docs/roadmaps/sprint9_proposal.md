@@ -1,13 +1,10 @@
 # Sprint 9 Proposal — Operational Auditability at Scale (Non-Reasoning)
 
-Note: this proposal is superseded by `docs/roadmaps/sprint_s9.md`.
-Keep this file for historical context only.
-
 ## Goal (restated)
 Enable human review, comparison, and export of existing obligation artifacts **without** adding reasoning, inference, or semantic mutation.
 
 ## Scope (allowed)
-- Consume existing payloads only: `obligation.v1`, `obligation.activation.v1`, `obligation.crossdoc.v2`, `review.bundle.v1`.
+- Consume existing payloads only: `obligation.v1`, `obligation.activation.v1`, `obligation.crossdoc.v1`, `review.bundle.v1`.
 - Human metadata: `ReviewerNote`, `DisagreementMarker`, optional `ReviewStatus` (workflow-only).
 - Collection handling: load multiple bundles, compare presence/absence, export manifests.
 - UI: read-only Streamlit panels, filters, grouping, sorting, visual diffs of payload equality.
