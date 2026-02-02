@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from datetime import date
@@ -701,7 +702,23 @@ def render() -> None:
         "Generate subgraphs, execute legal tests, inspect case treatments, and fetch provision atoms."
     )
 
+    configured_fixture = os.getenv("SENSIBLAW_FORCE_GRAPH_FIXTURE") or os.getenv(
+        "SENSIBLAW_GRAPH_FIXTURE"
+    )
     fixture = _load_fixture("graph_fixture", "SENSIBLAW_GRAPH_FIXTURE")
+    if not fixture and configured_fixture:
+        path = Path(configured_fixture)
+        if not path.is_absolute():
+            path = ROOT / configured_fixture
+        if not path.exists():
+            st.error(f"Fixture not found: {path}")
+        else:
+            try:
+                fixture = json.loads(path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                st.error(f"Failed to load fixture {path}: {exc}")
+    if configured_fixture:
+        st.caption(f"Graph fixture configured: {configured_fixture}")
     if fixture:
         nodes = fixture.get("nodes", []) or []
         edges = fixture.get("edges", []) or []

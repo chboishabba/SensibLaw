@@ -8,6 +8,18 @@ const streamlitFromVenv = path.join(__dirname, 'venv', 'bin', 'streamlit');
 const streamlitExecutable = fs.existsSync(streamlitFromVenv)
   ? streamlitFromVenv
   : 'streamlit';
+const graphFixturePath = path.resolve(
+  __dirname,
+  'tests',
+  'fixtures',
+  'ui',
+  'knowledge_graph_docs.json',
+);
+const uiFixtureDir = path.resolve(__dirname, 'tests', 'fixtures', 'ui');
+
+process.env.SENSIBLAW_GRAPH_FIXTURE = graphFixturePath;
+process.env.SENSIBLAW_FORCE_GRAPH_FIXTURE = graphFixturePath;
+process.env.SENSIBLAW_UI_FIXTURE_DIR = uiFixtureDir;
 
 export default defineConfig({
   testDir: './playwright/tests',
@@ -34,14 +46,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `${streamlitExecutable} run sensiblaw_streamlit/app.py --server.port=${PORT} --server.headless true --browser.gatherUsageStats false --server.fileWatcherType none`,
+    command: `bash -c \"SENSIBLAW_GRAPH_FIXTURE=${graphFixturePath} SENSIBLAW_FORCE_GRAPH_FIXTURE=${graphFixturePath} ${streamlitExecutable} run sensiblaw_streamlit/app.py --server.port=${PORT} --server.headless true --browser.gatherUsageStats false --server.fileWatcherType none\"`,
     url: baseURL,
     timeout: 120_000,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     cwd: path.join(__dirname),
     env: {
       PYTHONPATH: path.join(__dirname),
       STREAMLIT_SERVER_HEADLESS: 'true',
+      SENSIBLAW_GRAPH_FIXTURE: graphFixturePath,
+      SENSIBLAW_FORCE_GRAPH_FIXTURE: graphFixturePath,
+      SENSIBLAW_UI_FIXTURE_DIR: uiFixtureDir,
     },
   },
 });

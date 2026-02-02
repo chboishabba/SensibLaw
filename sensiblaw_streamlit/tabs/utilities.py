@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import streamlit as st
 
@@ -18,6 +19,7 @@ from src.ingestion.frl import fetch_acts
 from src.rules import Rule
 from src.rules.reasoner import check_rules
 from src.harm.index import compute_harm
+from src.reports.research_health import compute_research_health
 
 
 def render() -> None:
@@ -153,6 +155,21 @@ def render() -> None:
             score = compute_harm(story)
             st.json(score)
             _download_json("Download harm score", score, "harm_score.json")
+
+    st.markdown("### Research health")
+    default_db = str(Path("ui") / "sensiblaw_documents.sqlite")
+    db_path = st.text_input("SQLite store path", value=default_db)
+    if st.button("Compute research-health report"):
+        db_file = Path(db_path).expanduser()
+        if not db_file.exists():
+            st.error(f"Database not found at {db_file}")
+        else:
+            report = compute_research_health(db_file).to_dict()
+            st.success("Report computed")
+            st.json(report)
+            st.caption(
+                "Includes tokens_per_document_mean to monitor compression and growth invariants."
+            )
 
 
 __all__ = ["render"]

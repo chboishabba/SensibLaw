@@ -10,6 +10,7 @@ from src.citations.normalize import CitationKey, normalize_mnc
 from src.ingestion.citation_follow import extract_citations
 from src.models.document import DocumentMetadata
 from src.storage.versioned_store import VersionedStore
+from src.text.tokenize_simple import count_tokens
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class ResearchHealth:
     db_size_mb: float
     db_delta_mb_per_doc_mean: float
     compression_ratio_mean: float
+    tokens_per_document_mean: float
 
     def to_dict(self) -> dict:
         return {
@@ -35,6 +37,7 @@ class ResearchHealth:
             "db_size_mb": self.db_size_mb,
             "db_delta_mb_per_doc_mean": self.db_delta_mb_per_doc_mean,
             "compression_ratio_mean": self.compression_ratio_mean,
+            "tokens_per_document_mean": self.tokens_per_document_mean,
         }
 
 
@@ -93,6 +96,7 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
             db_size_mb=size_mb,
             db_delta_mb_per_doc_mean=0.0,
             compression_ratio_mean=0.0,
+            tokens_per_document_mean=0.0,
         )
 
     # Build a map of existing documents by citation for simple resolution.
@@ -100,11 +104,13 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
 
     citations_total = 0
     citations_unresolved = 0
+    token_totals = 0
     compression_ratios: list[float] = []
 
     for _, metadata_json, body in rows:
         refs = extract_citations(body)
         citations_total += len(refs)
+        token_totals += count_tokens(body)
 
         body_bytes = body.encode("utf-8")
         if body_bytes:
@@ -123,6 +129,7 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
     compression_ratio_mean = round(
         (sum(compression_ratios) / len(compression_ratios)) if compression_ratios else 0.0, 2
     )
+    tokens_per_document_mean = round((token_totals / doc_count), 2) if doc_count else 0.0
 
     # Depth tracking isn’t persisted; report 0 when none, otherwise the minimal informative value.
     max_citation_depth = 1 if citations_total else 0
@@ -137,4 +144,5 @@ def compute_research_health(db_path: Path) -> ResearchHealth:
         db_size_mb=size_mb,
         db_delta_mb_per_doc_mean=db_delta_mb_per_doc_mean,
         compression_ratio_mean=compression_ratio_mean,
+        tokens_per_document_mean=tokens_per_document_mean,
     )

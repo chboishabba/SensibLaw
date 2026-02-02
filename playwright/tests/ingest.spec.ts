@@ -6,9 +6,9 @@ const headingText = 'SensibLaw Operations Console';
 test.describe('Documents ingest page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: headingText })).toBeVisible();
+    await expect(page.getByRole('heading', { name: headingText })).toBeVisible({ timeout: 10_000 });
     // The Documents tab is the first tab and renders by default.
-    await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('shows default store path and core controls', async ({ page }) => {
@@ -34,10 +34,11 @@ test.describe('Documents ingest page', () => {
 
   test('accepts an uploaded PDF without immediate processing', async ({ page }) => {
     const filePath = path.join(__dirname, 'fixtures/dummy.pdf');
-    const dropzone = page.locator('section[aria-label=\"Upload PDF for processing\"]');
+    const dropzone = page.locator('section[aria-label="Upload PDF for processing"]');
     const fileInput = dropzone.locator('input[type=file]').first();
     await fileInput.setInputFiles(filePath);
     await expect(page.getByText('dummy.pdf')).toBeVisible();
+    await expect(page.getByText('Following paragraph cited by')).toHaveCount(0);
 
     // Do not click "Process PDF" to avoid running the heavy ingestion pipeline in CI.
     await expect(page.getByRole('button', { name: 'Process PDF' })).toBeEnabled();

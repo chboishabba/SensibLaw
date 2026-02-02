@@ -4,9 +4,9 @@
   "private": true,
   "description": "Playwright end-to-end tests for the SensibLaw Streamlit console",
   "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:debug": "PWDEBUG=1 playwright test"
+    "test:e2e": "SENSIBLAW_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json SENSIBLAW_FORCE_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json playwright test",
+    "test:e2e:ui": "SENSIBLAW_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json SENSIBLAW_FORCE_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json npx playwright test --ui",
+    "test:e2e:debug": "SENSIBLAW_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json SENSIBLAW_FORCE_GRAPH_FIXTURE=tests/fixtures/ui/knowledge_graph_docs.json PWDEBUG=1 playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0"

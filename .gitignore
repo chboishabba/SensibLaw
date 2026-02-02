@@ -213,3 +213,4 @@ __marimo__/
 data/pdfs/*.json
 parsed*.json
 text.file
+ui/old.sensiblaw_documents.sqlite

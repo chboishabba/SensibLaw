@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    {
+      "id": "Document#1",
+      "type": "document",
+      "metadata": {
+        "title": "Doc One",
+        "citation": "[2024] HCA 1"
+      }
+    },
+    {
+      "id": "Document#2",
+      "type": "document",
+      "metadata": {
+        "title": "Doc Two",
+        "citation": "[2023] HCA 2"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "Document#1",
+      "target": "Document#2",
+      "type": "cites",
+      "citation": {
+        "raw": "[2023] HCA 2"
+      }
+    },
+    {
+      "source": "Document#2",
+      "target": "Document#1",
+      "type": "ingested_from",
+      "citation": {
+        "raw": "[2024] HCA 1"
+      }
+    }
+  ]
+}

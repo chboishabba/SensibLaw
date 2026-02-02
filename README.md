@@ -118,9 +118,9 @@ a structured, linked, machine-readable backbone.
 | [CLI Examples](docs/cli_examples.md) | [Corpus Setup](docs/corpus_setup.md) | [Corrections UI](docs/corrections_ui.md) | [End to End](docs/end_to_end.md) |
 | [Fuzzing](docs/fuzzing.md) | [Goldset Harness](docs/goldset_harness.md) | [Graph](docs/graph.md) | [Ingestion](docs/ingestion.md) |
 | [Negotiation Tree](docs/negotiation_tree.md) | [NLP Pipelines](docs/nlp_pipelines.md) | [Ontology](docs/ontology.md) | [Parity View](docs/parity_view.md) |
-| [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmap.md) | [DB Roadmap](DB_ROADMAP.md) |
+| [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmaps/roadmap.md) | [DB Roadmap](docs/roadmaps/DB_ROADMAP.md) |
 | [Versioning](docs/versioning.md) | [Research Paper](PAPER.md) | [Database Design Document](DATABASE.md) | [Schema](docs/schema.md) |
-| [Todo](todo.md) | [streamline - data visualisation](TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
+| [Todo](todo.md) | [streamline - data visualisation](docs/roadmaps/TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
 | [ITIR Integration Roadmap](docs/ITIR.md) |    | [External Ontologies](external_ontologies.md) | [Wikidata Queries](wikidata_queries.md) |
 
 

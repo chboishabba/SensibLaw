@@ -39,6 +39,7 @@ def test_research_health_counts_and_resolution(tmp_path: Path) -> None:
     assert report.unresolved_percent == 0.0
     assert report.citations_per_doc_mean == round(report.citations_total / report.documents, 2)
     assert report.compression_ratio_mean > 0
+    assert report.tokens_per_document_mean == 7.5
 
 
 def test_research_health_empty_store(tmp_path: Path) -> None:
@@ -49,3 +50,4 @@ def test_research_health_empty_store(tmp_path: Path) -> None:
     assert report.citations_total == 0
     assert report.citations_unresolved == 0
     assert report.compression_ratio_mean == 0.0
+    assert report.tokens_per_document_mean == 0.0
