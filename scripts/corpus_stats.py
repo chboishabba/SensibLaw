@@ -77,18 +77,21 @@ def main() -> None:
     cum_tokens = 0
     cum_vocab = set()
     print("\nCumulative growth (sorted by name):")
-    print("doc | new_tokens | doc_vocab | new_vocab_added | cum_tokens | cum_vocab")
+    print(
+        "doc | new_tokens | doc_vocab | new_vocab_added | mvd | cum_tokens | cum_vocab"
+    )
     for pdf in pdfs:
         r = results.get(pdf.name)
         if not r:
             continue
         new_tokens = r["tokens"]
         new_vocab = r["vocab"] - cum_vocab
+        mvd = len(new_vocab) / max(new_tokens, 1)
         cum_tokens += new_tokens
         cum_vocab |= r["vocab"]
         print(
             f"{pdf.name} | {new_tokens} | {len(r['vocab'])} | {len(new_vocab)} | "
-            f"{cum_tokens} | {len(cum_vocab)}"
+            f"{mvd:.4f} | {cum_tokens} | {len(cum_vocab)}"
         )
 
     # Corpus-level top tokens

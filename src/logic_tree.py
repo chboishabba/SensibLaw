@@ -160,25 +160,47 @@ class LogicTree:
             edges=edges,
         )
 
-    def to_dot(self) -> str:
-        """Return a deterministic Graphviz DOT representation of the tree."""
-        lines = ["digraph LogicTree {"]
+    def to_dot(self, *, include_tokens: bool = False, include_sequence_edges: bool = False) -> str:
+        """Return a deterministic Graphviz DOT representation of the tree.
+
+        - By default, hides TOKEN nodes to emphasise structure.
+        - SEQUENCE edges are rendered with constraint=false to avoid flattening layout.
+        """
+
+        include_node = (
+            lambda n: include_tokens or n.node_type is not NodeType.TOKEN
+        )
+
+        lines = ["digraph LogicTree {", "  rankdir=TB;"]
         for node in sorted(self.nodes, key=_node_sort_key):
+            if not include_node(node):
+                continue
             label = node.node_type.value
             if node.text:
                 label = f"{label}: {node.text}"
             color = NODE_COLOR.get(node.node_type)
             attr_parts = [f'label="{label}"']
             if color:
-                attr_parts.append(f'style="filled"')
+                attr_parts.append('style="filled"')
                 attr_parts.append(f'fillcolor="{color}"')
             attrs = " ".join(attr_parts)
             lines.append(f'  "{node.id}" [{attrs}];')
 
         for edge in sorted(self.edges, key=lambda e: _edge_sort_key(e, self._span_lookup)):
-            lines.append(
-                f'  "{edge.parent_id}" -> "{edge.child_id}" [label="{edge.edge_type.value}"];'
-            )
+            parent = self._node_index.get(edge.parent_id)
+            child = self._node_index.get(edge.child_id)
+            if parent is None or child is None:
+                continue
+            if not include_node(parent) or not include_node(child):
+                continue
+
+            attrs: list[str] = [f'label="{edge.edge_type.value}"']
+            if edge.edge_type is EdgeType.SEQUENCE:
+                if not include_sequence_edges:
+                    attrs.append('constraint=false')
+                    attrs.append('style="dotted"')
+                    attrs.append('color="#9ca3af"')
+            lines.append(f'  "{edge.parent_id}" -> "{edge.child_id}" [{\" \".join(attrs)}];')
 
         lines.append("}")
         return "\n".join(lines)
