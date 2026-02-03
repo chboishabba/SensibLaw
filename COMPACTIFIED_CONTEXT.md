@@ -100,6 +100,7 @@ Intersections with roadmap/todo/readme (2026-02-03):
 - `SensibLaw/todo.md`: S6 read-only deterministic surfaces and ingestion discipline align with explanation/trace requests, PDF integration, CI hardening, and schema/guardrail emphasis in the chats.
 
 ## Sources
-This snapshot currently has no chat-sourced statements. When it does, cite the
-origin as `CONVERSATION_ID:line#` using the line-numbered excerpts generated in
+Chat-sourced statements are now referenced from the compression/ITIR overlay
+discussion (see `698218f7-9ca4-83a1-969d-0ffc3d6264e4:1-80`).
+Use `CONVERSATION_ID:line#` citing the line-numbered excerpts in
 `__CONTEXT/last_sync/`.

@@ -200,7 +200,7 @@ class LogicTree:
                     attrs.append('constraint=false')
                     attrs.append('style="dotted"')
                     attrs.append('color="#9ca3af"')
-            lines.append(f'  "{edge.parent_id}" -> "{edge.child_id}" [{\" \".join(attrs)}];')
+            lines.append(f'  "{edge.parent_id}" -> "{edge.child_id}" [{" ".join(attrs)}];')
 
         lines.append("}")
         return "\n".join(lines)

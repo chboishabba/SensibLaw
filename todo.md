@@ -32,7 +32,13 @@
     - [x] Add token duplication guard + overlap growth pytest using Mabo + overlapping citation fixture.
     - [x] Add citation-follow stability test (token hash before/after) and concept identity test across ingest/Text & Concepts.
     - [x] Extend research-health CLI to include `tokens_per_document_mean` with golden fixture test.
+    - [ ] Keep the research-health compression ratio guard aligned with the Shannon-limit regression and triage any departures.
     - [x] Add marginal vocabulary density (MVD) to corpus stats output for diagnostics.
+    - [ ] Extend corpus_stats to report token entropy proxy + empirical compression ratio, with per-doc and corpus-level tests.
+    - [ ] Define deterministic span-promotion rules to approximate LZ phrase discovery (thresholds, stability tests, reversible expansion).
+    - [ ] Specify a stable "phrase atom" contract (naming/IDs, auditability, cross-run determinism).
+    - [ ] Implement one-pass span promotion and leftmost-longest rewrite with deterministic tie-breakers.
+    - [ ] Add SL/ITIR overlay boundary contract (targets, layers, evidence pointers) and keep it mutation-free.
     - [x] Add corpus characterisation doc tying MVD/rr5 regimes to SL vs ITIR.
     - [x] Add static guard test preventing `tokenize_simple` creep beyond metrics modules.
     - [x] Document tokenizer/sentence/structure contract and AIF-core note (`docs/tokenizer_contract.md`).

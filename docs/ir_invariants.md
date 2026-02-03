@@ -35,7 +35,10 @@ Only the token layer owns text; all other layers derive from spans.
 - **Research workflow e2e**: upload PDF → unresolved citation badge decrements after follow; DB growth within budget; research-health report metrics reflect changes.
 - **Production fixtures**: PDF-backed overlap test (e.g., Mabo) ensures sublinear growth on real sources.
 - **Health dashboards**: research-health report publishes `tokens_per_document_mean` to monitor compression drift.
+- **Shannon-limit compression guard**: research-health now tests that the stored compression ratio never slips below the entropy-derived Shannon limit for the ingested text, signaling when new documents are compressing worse than physically possible.
 - **Page provenance**: page numbers live in `page_map` metadata (page → token range); they never enter the token stream or affect diffs.
+
+Note: compression metrics operate on canonicalized token streams. Shannon estimates are heuristic diagnostics and are not treated as hard lower bounds at the corpus level.
 
 ## Operational doctrine
 
