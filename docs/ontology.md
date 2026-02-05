@@ -23,9 +23,13 @@ SensibLaw's ontology now follows a **Layer‑0 text substrate plus six legal lay
 - **Sentence**: sentence-level slices of documents linked to their parent `Document`.
 - **Utterance** and **UtteranceSentence**: diarised speech segments and the ordered mapping of sentences back to the originating utterance.
 
+TiRCorder integration must populate Layer 0 directly (no parallel transcript
+stores) and link `Utterance` → `Sentence` via `UtteranceSentence` to preserve
+speaker/time provenance.
+
 ### Layer 1 — Events & Actors
 - **Event**: life/legal/system events with time bounds.
-- **Actor**: people, organisations, state entities, or recognised legal persons.
+- **Actor**: people, organisations, state entities, or recognised legal persons (kept minimal; rich attributes live in detail tables).
 - **EventFinanceLink**: ties events to transactional evidence.
 - **FinanceProvenance**: traces sentences that explain a transaction.
 

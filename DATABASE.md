@@ -27,7 +27,7 @@ Layer 0 holds the textual backbone used for provenance and narrative context. Th
 Events anchor everything downstream. Actors stay intentionally minimal while detailed person/org facets live in separate tables that can be joined when available.
 
 - **Event**: life/legal/system events with time bounds (`Event.id`, `kind`, `valid_from`, `valid_to`). When an event is linked to a `WrongType`, its `legal_system_id` must match the wrong type’s `legal_system_id`; a composite foreign key enforces the alignment and lets downstream services infer the jurisdiction directly from `wrong_type_id`.
-- **Actor**: thin actor shell used for participation and finance joins (`Actor.id`, `kind`, `label`), leaving richer attributes to the tables below.
+- **Actor**: thin actor shell used for participation and finance joins (`Actor.id`, `kind`, `label`, `created_at`), leaving richer attributes to the tables below. Biographical or narrative fields never live on `Actor`.
 - **Address**: reusable postal fragments for mail or registered addresses (`Address.id`, `address_line1`, `city`, `postal_code`, `country_id`, `subdivision_id` → `Country`/`Subdivision`).
 - **ActorPersonDetails**: natural person traits such as names, birthdate, pronouns, and optional postal address (`actor_id`, `given_name`, `family_name`, `birthdate`, `pronouns`, `gender`, `ethnicity`, `address_id`).
 - **ActorOrgDetails**: organisation registration and type metadata with optional registered address (`actor_id`, `legal_name`, `registration_no`, `org_type`, `address_id`).
@@ -118,6 +118,25 @@ erDiagram
 ## Authoritative Artifacts
 
 - **ER Diagram**: `docs/ontology_er.md` (Mermaid `erDiagram` for text, finance, and provenance entities).
+
+## TiRCorder Integration Requirements (Layer 0–1)
+
+To normalize TiRCorder narrative data onto the shared substrate, TiRCorder must
+conform to these Layer 0–1 requirements:
+
+- **Standardized text units**: all transcripts/notes flow into `Document` → `Sentence` → `Token` (via `TextBlock`) as the provenance backbone.
+- **Lexical & concept layer**: TiRCorder populates `lexemes`, `concepts`, and `phrase_occurrences` so terms map to canonical meanings.
+- **Utterance anchoring**: `Utterance` rows map to `Sentence` rows via `UtteranceSentence` to preserve who-said-what-when.
+- **Actor unification**: TiRCorder `speakers` resolve to `Actor` (plus `ActorPersonDetails`/`ActorOrgDetails`/`ActorAliases` as needed).
+
+Finance timeline integration (Layer 1 + provenance) requires:
+
+- **Finance tables**: add `accounts`, `transactions`, and `transfers` as first-class entities.
+- **Narrative linkage**: populate `FinanceProvenance` (transaction ↔ sentence) and `EventFinanceLink` (transaction ↔ event).
+
+All TiRCorder ingestion must use deterministic, audit-safe utilities (normalizers,
+concept matchers, and resilient fetchers) to stay compatible with SensibLaw’s
+guardrails.
 - **Event Schema**: `schemas/event.schema.yaml` (JSON schema used for serialized event payloads).
 - **Keyword Ontology (legacy)**: `docs/ontology.md` retains backward-compatible tagging guidance, but this document supersedes its three-layer framing.
 

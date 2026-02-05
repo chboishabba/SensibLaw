@@ -10,18 +10,21 @@ These invariants define the non‑negotiable rules for storing and referencing t
 2. **Span‑only references**  
    Every higher‑level object (citations, mentions, concepts, rules, graph nodes/edges) references `(doc_id, token_start, token_end)` or an equivalent span; any stored text is debug/cache‑only and discardable.
 
-3. **No duplicate concepts**  
+3. **Layer 3 SpanRoleHypothesis only**  
+   Any pre‑ontological artifact (role hypotheses, noun candidates, span flags) must be stored as a span with `(doc_id, rev_id, span_start, span_end, span_source)` where `span_source` declares token- or char-based offsets. It may carry `role_hypothesis`, `extractor`, and `confidence`, but must not assert cross‑document identity or overwrite text. Promotion to ontology requires explicit, auditable rules.
+
+4. **No duplicate concepts**  
    A normalized concept key maps to exactly one concept row/node. New documents add mentions, not new concept objects for the same key.
 
-4. **Sublinear growth on overlap**  
+5. **Sublinear growth on overlap**  
    Ingesting documents that heavily overlap existing material increases storage primarily via mentions and structure, not by re‑storing text. DB size growth must be materially less than added raw PDF size for overlapping corpora.
 
-5. **Token immutability and idempotence**  
+6. **Token immutability and idempotence**  
    `(doc_id, token_index)` is unique and stable for a given version. Re‑ingesting the same bytes is idempotent; following citations must not mutate prior token indices.
 
 ## Expected data flow
 
-PDF → canonical text → deterministic tokens (whitespace stripped, unicode/ case normalized) → spans → citations / concepts / graph.
+PDF → canonical text → deterministic tokens (whitespace stripped, unicode/ case normalized) → spans → Layer 3 role hypotheses → promotions → ontology / graph.
 
 Only the token layer owns text; all other layers derive from spans.
 
@@ -31,6 +34,7 @@ Only the token layer owns text; all other layers derive from spans.
 - **Overlap growth test**: ingest A, then B that quotes A ⇒ token delta for B < 0.7 × tokens(A).  
 - **Citation follow stability**: ingest A, record token hash; follow citation to ingest B; token hash of A is unchanged.  
 - **Span rehydration**: delete cached snippets; re-render mention/citation text from spans; output matches expectations.  
+- **Layer 3 regeneration**: delete pre‑ontological span tables and rebuild; regenerated hypotheses match (order, spans, metadata).  
 - **Concept identity**: “abuse of process” / “permanent stay” / “fair trial” occurrences across ingest + text tools resolve to one concept row with multiple mentions.  
 - **Research workflow e2e**: upload PDF → unresolved citation badge decrements after follow; DB growth within budget; research-health report metrics reflect changes.
 - **Production fixtures**: PDF-backed overlap test (e.g., Mabo) ensures sublinear growth on real sources.

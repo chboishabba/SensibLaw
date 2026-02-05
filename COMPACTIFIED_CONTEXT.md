@@ -25,6 +25,13 @@ Close S6 (done) and plan S7 surfaces (interfaces, activation metadata, cross-doc
 - Python 3.11 target with 3.10 fallback; Ruff formatting.
 - Clause-local, text-derived extraction; no cross-clause inference.
 
+## Recent decisions (2026-02-05)
+- Layer 3 artifacts are span-only **SpanRoleHypothesis** records with explicit span sources; promotion to ontology requires auditable rules and regeneration tests.
+- Documented promotion gates (defined-term, repetition, modal participation) and signal-based promotion blocking in `docs/promotion_rules.md`.
+- Added SpanSignalHypothesis spec and promotion gate evaluation scaffolding (receipts + storage tables).
+- Documented the four Layer 3 hypothesis families (role, structure, alignment, signal).
+- Implemented SpanSignalHypothesis extractors for basic glyph/layout signals.
+
 ## Open questions
 - Do we need richer fixtures for multi-verb phrases or nested scopes as we exercise S6 queries/views?
 - Which consumers (CLI, API, Streamlit) should receive the first query/explanation surface?

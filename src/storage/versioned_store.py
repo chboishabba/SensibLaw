@@ -10,7 +10,7 @@ from textwrap import dedent
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple
 
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
@@ -22,6 +22,9 @@ from src.models.provision import (
     RuleLint,
     RuleReference,
 )
+from src.models.promotion import PromotionReceipt
+from src.models.span_role_hypothesis import SpanRoleHypothesis
+from src.models.span_signal_hypothesis import SpanSignalHypothesis
 
 
 class PayloadTooLargeError(ValueError):
@@ -315,6 +318,61 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_rule_element_refs_doc_rev
                 ON rule_element_references(doc_id, rev_id, provision_id, rule_id, element_id);
+
+                CREATE TABLE IF NOT EXISTS span_role_hypotheses (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    span_id INTEGER NOT NULL,
+                    span_start INTEGER NOT NULL,
+                    span_end INTEGER NOT NULL,
+                    span_source TEXT NOT NULL,
+                    role_hypothesis TEXT,
+                    extractor TEXT,
+                    evidence TEXT,
+                    confidence REAL,
+                    metadata TEXT,
+                    PRIMARY KEY (doc_id, rev_id, span_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_span_role_hypotheses_doc_rev
+                ON span_role_hypotheses(doc_id, rev_id, span_start, span_end);
+
+                CREATE TABLE IF NOT EXISTS span_signal_hypotheses (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    span_id INTEGER NOT NULL,
+                    span_start INTEGER NOT NULL,
+                    span_end INTEGER NOT NULL,
+                    span_source TEXT NOT NULL,
+                    signal_type TEXT NOT NULL,
+                    extractor TEXT,
+                    evidence TEXT,
+                    confidence REAL,
+                    metadata TEXT,
+                    PRIMARY KEY (doc_id, rev_id, span_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_span_signal_hypotheses_doc_rev
+                ON span_signal_hypotheses(doc_id, rev_id, span_start, span_end);
+
+                CREATE TABLE IF NOT EXISTS promotion_receipts (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    receipt_id INTEGER NOT NULL,
+                    gate_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    hypothesis TEXT NOT NULL,
+                    evidence TEXT NOT NULL,
+                    metadata TEXT,
+                    PRIMARY KEY (doc_id, rev_id, receipt_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_promotion_receipts_doc_rev
+                ON promotion_receipts(doc_id, rev_id, receipt_id);
 
                 CREATE TABLE IF NOT EXISTS glossary (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1755,6 +1813,242 @@ class VersionedStore:
                 doc_id, rev_id, document.provisions, toc_entries, document.metadata
             )
         return rev_id
+
+    # ------------------------------------------------------------------
+    # Span role hypotheses
+    # ------------------------------------------------------------------
+    def replace_span_role_hypotheses(
+        self,
+        doc_id: int,
+        rev_id: int,
+        hypotheses: Iterable[SpanRoleHypothesis],
+    ) -> int:
+        """Replace span-only role hypotheses for a document revision."""
+
+        ordered = sorted(
+            hypotheses,
+            key=lambda item: (
+                item.span_start,
+                item.span_end,
+                item.role_hypothesis or "",
+            ),
+        )
+        rows = []
+        for index, item in enumerate(ordered, start=1):
+            rows.append(
+                (
+                    doc_id,
+                    rev_id,
+                    index,
+                    item.span_start,
+                    item.span_end,
+                    item.span_source,
+                    item.role_hypothesis,
+                    item.extractor,
+                    item.evidence,
+                    item.confidence,
+                    json.dumps(item.metadata or {}),
+                )
+            )
+        with self.conn:
+            self.conn.execute(
+                "DELETE FROM span_role_hypotheses WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+            if rows:
+                self.conn.executemany(
+                    """
+                    INSERT INTO span_role_hypotheses (
+                        doc_id, rev_id, span_id, span_start, span_end, span_source,
+                        role_hypothesis, extractor, evidence, confidence, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    rows,
+                )
+        return len(rows)
+
+    def replace_span_signal_hypotheses(
+        self,
+        doc_id: int,
+        rev_id: int,
+        hypotheses: Iterable[SpanSignalHypothesis],
+    ) -> int:
+        """Replace span-only signal hypotheses for a document revision."""
+
+        ordered = sorted(
+            hypotheses,
+            key=lambda item: (
+                item.span_start,
+                item.span_end,
+                item.signal_type,
+            ),
+        )
+        rows = []
+        for index, item in enumerate(ordered, start=1):
+            rows.append(
+                (
+                    doc_id,
+                    rev_id,
+                    index,
+                    item.span_start,
+                    item.span_end,
+                    item.span_source,
+                    item.signal_type,
+                    item.extractor,
+                    item.evidence,
+                    item.confidence,
+                    json.dumps(item.metadata or {}),
+                )
+            )
+        with self.conn:
+            self.conn.execute(
+                "DELETE FROM span_signal_hypotheses WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+            if rows:
+                self.conn.executemany(
+                    """
+                    INSERT INTO span_signal_hypotheses (
+                        doc_id, rev_id, span_id, span_start, span_end, span_source,
+                        signal_type, extractor, evidence, confidence, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    rows,
+                )
+        return len(rows)
+
+    def list_span_signal_hypotheses(
+        self, doc_id: int, rev_id: int
+    ) -> List[SpanSignalHypothesis]:
+        """Return stored span signal hypotheses for a document revision."""
+
+        rows = self.conn.execute(
+            """
+            SELECT span_start, span_end, span_source, signal_type, extractor,
+                   evidence, confidence, metadata
+            FROM span_signal_hypotheses
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY span_start, span_end, span_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        hypotheses: List[SpanSignalHypothesis] = []
+        for row in rows:
+            metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+            hypotheses.append(
+                SpanSignalHypothesis(
+                    span_start=int(row["span_start"]),
+                    span_end=int(row["span_end"]),
+                    span_source=str(row["span_source"]),
+                    signal_type=str(row["signal_type"]),
+                    extractor=row["extractor"],
+                    evidence=row["evidence"],
+                    confidence=row["confidence"],
+                    metadata=metadata,
+                )
+            )
+        return hypotheses
+
+    def replace_promotion_receipts(
+        self,
+        doc_id: int,
+        rev_id: int,
+        receipts: Iterable[PromotionReceipt],
+    ) -> int:
+        """Replace promotion receipts for a document revision."""
+
+        ordered = list(receipts)
+        rows = []
+        for index, receipt in enumerate(ordered, start=1):
+            rows.append(
+                (
+                    doc_id,
+                    rev_id,
+                    index,
+                    receipt.gate_id,
+                    receipt.status,
+                    receipt.reason,
+                    json.dumps(receipt.hypothesis),
+                    json.dumps(receipt.evidence),
+                    json.dumps(receipt.metadata or {}),
+                )
+            )
+        with self.conn:
+            self.conn.execute(
+                "DELETE FROM promotion_receipts WHERE doc_id = ? AND rev_id = ?",
+                (doc_id, rev_id),
+            )
+            if rows:
+                self.conn.executemany(
+                    """
+                    INSERT INTO promotion_receipts (
+                        doc_id, rev_id, receipt_id, gate_id, status, reason,
+                        hypothesis, evidence, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    rows,
+                )
+        return len(rows)
+
+    def list_promotion_receipts(
+        self, doc_id: int, rev_id: int
+    ) -> List[PromotionReceipt]:
+        """Return stored promotion receipts for a document revision."""
+
+        rows = self.conn.execute(
+            """
+            SELECT gate_id, status, reason, hypothesis, evidence, metadata
+            FROM promotion_receipts
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY receipt_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        receipts: List[PromotionReceipt] = []
+        for row in rows:
+            receipts.append(
+                PromotionReceipt(
+                    gate_id=str(row["gate_id"]),
+                    status=str(row["status"]),
+                    reason=str(row["reason"]),
+                    hypothesis=json.loads(row["hypothesis"]),
+                    evidence=json.loads(row["evidence"]),
+                    metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+                )
+            )
+        return receipts
+
+    def list_span_role_hypotheses(
+        self, doc_id: int, rev_id: int
+    ) -> List[SpanRoleHypothesis]:
+        """Return stored span role hypotheses for a document revision."""
+
+        rows = self.conn.execute(
+            """
+            SELECT span_start, span_end, span_source, role_hypothesis, extractor,
+                   evidence, confidence, metadata
+            FROM span_role_hypotheses
+            WHERE doc_id = ? AND rev_id = ?
+            ORDER BY span_start, span_end, span_id
+            """,
+            (doc_id, rev_id),
+        ).fetchall()
+        hypotheses: List[SpanRoleHypothesis] = []
+        for row in rows:
+            metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+            hypotheses.append(
+                SpanRoleHypothesis(
+                    span_start=int(row["span_start"]),
+                    span_end=int(row["span_end"]),
+                    span_source=str(row["span_source"]),
+                    role_hypothesis=row["role_hypothesis"],
+                    extractor=row["extractor"],
+                    evidence=row["evidence"],
+                    confidence=row["confidence"],
+                    metadata=metadata,
+                )
+            )
+        return hypotheses
 
     # ------------------------------------------------------------------
     # Retrieval and diff utilities

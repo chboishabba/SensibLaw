@@ -18,6 +18,13 @@
 - Near-term task focus
   - Freeze schema versions after any final tweaks; bump versions explicitly if changed.
   - Decide next sprint direction (A compliance simulation, B cross-doc norm topology, C human interfaces).
+  - TiRCorder integration (Layer 0–1 alignment):
+    - Normalize TiRCorder transcripts/notes into `Document` → `Sentence` → `Token` with `TextBlock` provenance.
+    - Populate `lexemes`, `concepts`, `phrase_occurrences` from TiRCorder text streams.
+    - Map `Utterance` ↔ `Sentence` via `UtteranceSentence` for speaker/time alignment.
+    - Resolve TiRCorder `speakers` into `Actor` + detail/alias tables (keep `Actor` minimal).
+    - Add finance tables (`accounts`, `transactions`, `transfers`) and link via `FinanceProvenance` + `EventFinanceLink`.
+    - Adopt deterministic NLP + ingestion utilities (normalizers, matchers, rate-limited fetchers).
   - Sprint 9 UI hardening (read-only, non-semantic):
     - Add fixture-mode rendering for Text & Concepts, Knowledge Graph, Case Comparison tabs (query param + env overrides).
     - Provide test fixtures under `tests/fixtures/ui` and unit checks for shape/forbidden language.
@@ -38,6 +45,12 @@
     - [ ] Define deterministic span-promotion rules to approximate LZ phrase discovery (thresholds, stability tests, reversible expansion).
     - [ ] Specify a stable "phrase atom" contract (naming/IDs, auditability, cross-run determinism).
     - [ ] Implement one-pass span promotion and leftmost-longest rewrite with deterministic tie-breakers.
+    - [x] Define Layer 3 span-only role hypothesis contract (SpanRoleHypothesis) and storage location.
+    - [x] Specify promotion gates from Layer 3 spans to ontology tables (auditable, deterministic).
+    - [x] Implement promotion gate evaluation + receipts (rule IDs, evidence spans).
+    - [x] Implement SpanSignalHypothesis extractors (glyphs, OCR, layout signals).
+    - [x] Document Layer 3 families explicitly (Role, Structure, Alignment, Signal).
+    - [x] Add Layer 3 regeneration tests (drop spans, rebuild, compare metadata + ordering).
     - [ ] Add SL/ITIR overlay boundary contract (targets, layers, evidence pointers) and keep it mutation-free.
     - [x] Add corpus characterisation doc tying MVD/rr5 regimes to SL vs ITIR.
     - [x] Add static guard test preventing `tokenize_simple` creep beyond metrics modules.
