@@ -4,6 +4,8 @@
 - Docs: publish S7–S9 roadmaps (span authority, cross-doc topology, read-only UI).
 - Docs: add human tools integration guidance + multi-modal system doctrine.
 - Docs: update span-signal/promotion/IR invariants to require revision-scoped spans.
+- Docs: add timeline ribbon conserved-allocation model and UI invariants.
+- Docs: add ITIR ribbon module references + UI selector contract + lens DSL.
 - TextSpan: add canonical `TextSpan(revision_id, start_char, end_char)` model.
 - Storage: persist TextSpan for rule atoms/elements (span_start/span_end/span_source).
 - Ingestion: attach TextSpan to new rule atoms/elements; hard-error on missing spans.
@@ -23,7 +25,9 @@
 - Docs: add trauma/authoritarian pressure user story layer.
 - Docs: add access-scope and legal reconstruction user story layer.
 - Docs: add judicial-context user story layer (judges/staff/bailiffs/family).
+- Docs: add public-figure user story (Zohran Mamdani context collapse).
 - Docs: add lexeme layer contract + tokenizer/corpus updates.
+- Schema: add timeline ribbon JSON schema (draft-07) for conserved allocation spine.
 - Docs: add media ethics UI guidelines + hostile cross-exam script.
 - Docs: document ingest db-path default + compression stats.
 - Text: add lexeme normalizer + compression stats helper.
@@ -34,3 +38,6 @@
 - Storage: add lexeme/phrase tables to versioned store schema.
 - Ingestion: persist lexeme occurrences per revision (span-anchored).
 - Tests: add lexeme occurrence span anchoring coverage.
+- Tests: add timeline ribbon conservation property tests.
+- Tests: add ribbon UI conservation Playwright spec (gated by `RIBBON_DEMO_URL`).
+- Ribbon: add lens DSL evaluator + phase-regime lens packs scaffold.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any, Iterable, Mapping
 
-from sensiblaw.db import ContextFieldDAO, MigrationRunner
+from sensiblaw.db import ContextFieldDAO
 
 Overlay = Mapping[str, Any]
 
@@ -17,7 +17,6 @@ def ingest_context_fields(connection: sqlite3.Connection, overlays: Iterable[Ove
     Optional: source, retrieved_at, location, time_start, time_end, payload, provenance, symbolic.
     """
 
-    MigrationRunner(connection).apply_all()
     dao = ContextFieldDAO(connection)
     for overlay in overlays:
         dao.upsert_context_field(

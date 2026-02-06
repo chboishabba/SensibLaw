@@ -124,6 +124,12 @@ Both professions cannot afford silent drift. SB/ITIR exists to ensure:
 - Home: tentative diagnosis remains hypothesis.
 - Failure prevented: cargo-cult repairs and overconfidence.
 
+### Public figure (Zohran Mamdani — campaign to office)
+- Context envelopes on interviews/speeches/jokes: framing, audience, and medium recorded; no decontextualized excerpts by default.
+- Role-separated views (personal/campaign/office) with no automatic merge; commitments only when explicit.
+- ITIR surfaces context drift warnings when clips leave original audience or time window.
+- Failure prevented: identity flattening, narrative laundering, and misclassification of role-bound statements.
+
 ## Organization-level narratives (admins, teams, regulators)
 
 These extend the individual stories with **team/admin/org** perspectives. The

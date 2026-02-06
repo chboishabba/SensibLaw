@@ -1,0 +1,8 @@
+{
+  "model": "whisperx-small",
+  "language": "en",
+  "segments": [
+    { "start": 0.00, "end": 1.20, "text": "hello world", "confidence": 0.91, "speaker": "SPEAKER_00" },
+    { "start": 1.20, "end": 2.40, "text": "testing whisperx", "confidence": 0.87, "speaker": "SPEAKER_01" }
+  ]
+}
