@@ -77,6 +77,7 @@ class DocumentMetadata:
     cultural_consent_required: bool = False
     canonical_id: Optional[str] = None
     provenance: Optional[str] = None
+    compression_stats: Dict[str, Any] = field(default_factory=dict)
 
     jurisdiction_codes: List[str] = field(default_factory=list)
     ontology_tags: Dict[str, List[str]] = field(default_factory=dict)
@@ -129,6 +130,7 @@ class DocumentMetadata:
             ),
             canonical_id=data.get("canonical_id"),
             provenance=data.get("provenance"),
+            compression_stats=dict(data.get("compression_stats", {})),
             jurisdiction_codes=list(data.get("jurisdiction_codes", [])),
             ontology_tags=dict(data.get("ontology_tags", {})),
             source_url=data.get("source_url"),

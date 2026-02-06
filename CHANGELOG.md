@@ -25,6 +25,12 @@
 - Docs: add judicial-context user story layer (judges/staff/bailiffs/family).
 - Docs: add lexeme layer contract + tokenizer/corpus updates.
 - Docs: add media ethics UI guidelines + hostile cross-exam script.
+- Docs: document ingest db-path default + compression stats.
+- Text: add lexeme normalizer + compression stats helper.
+- Ingest: compute compression stats at PDF ingest.
+- CLI: add --db-path to pdf_ingest.
+- Tests: add compression stats and lexeme normalizer coverage.
+- Tests: verify ingest-time compression stats persisted and recomputable.
 - Storage: add lexeme/phrase tables to versioned store schema.
 - Ingestion: persist lexeme occurrences per revision (span-anchored).
 - Tests: add lexeme occurrence span anchoring coverage.

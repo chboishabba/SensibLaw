@@ -5,6 +5,7 @@ import types
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from src.text.compression_stats import compute_compression_stats
 
 def _make_text_container(text: str) -> types.SimpleNamespace:
     return types.SimpleNamespace(get_text=lambda text=text: text)
@@ -127,3 +128,26 @@ def test_extract_pdf_streams_pages_incrementally(tmp_path):
     assert len(remaining) == 1
     assert remaining[0]["page"] == 2
     assert second.calls == 1
+
+
+def test_iter_process_pdf_emits_compression_stats(tmp_path):
+    pdf_ingest = _load_pdf_ingest(
+        [[_make_text_container("Heading 1\nAlice must pay Bob.")]]
+    )
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4")
+
+    stages = list(
+        pdf_ingest.iter_process_pdf(
+            pdf_path,
+            jurisdiction="TestState",
+            citation="Test Act",
+            title="Test Act",
+        )
+    )
+    build_payload = next(payload for stage, payload in stages if stage == "build")
+    document = build_payload["document"]
+    assert document.metadata.compression_stats
+    assert document.metadata.compression_stats == compute_compression_stats(
+        document.body
+    ).to_dict()

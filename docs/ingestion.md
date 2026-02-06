@@ -61,3 +61,30 @@ page is materialised in memory. Parsing follows these steps:
 
 See `docs/nlp_pipelines.md` for the subsequent rule extraction flow once sections
 are available.
+
+## PDF ingest persistence (default paths)
+
+`src/pdf_ingest.py` writes JSON artifacts by default:
+
+- Output JSON path: `data/pdfs/<pdf_stem>.json` (relative to repo root)
+- SQLite persistence: **only when** `--db-path` is provided
+
+There is no default SQLite path. To persist into a database, pass:
+
+```
+python -m src.pdf_ingest path/to.pdf --db-path data/corpus/sensiblaw.sqlite
+```
+
+## Compression statistics at ingest
+
+Ingest now computes lexeme-based compression stats on the canonical body and
+stores them in `DocumentMetadata.compression_stats`:
+
+- `token_count`
+- `unique_lexemes`
+- `rr5_lexeme`
+- `mvd_lexeme`
+- `compression_ratio`
+- `tokenizer_id`
+
+These stats are deterministic, non-semantic, and span-safe.

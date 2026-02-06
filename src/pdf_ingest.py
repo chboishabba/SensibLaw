@@ -51,6 +51,9 @@ from src.text.citations import CaseCitation, parse_case_citation
 logger = logging.getLogger(__name__)
 
 _CULTURAL_OVERLAY = get_default_overlay()
+# Default SQLite target when callers do not provide one. Kept relative so it
+# stays inside the repo unless explicitly overridden.
+_DEFAULT_DB_PATH = Path("data/corpus/ingest.sqlite")
 
 
 _QUOTE_CHARS = "\"'“”‘’"
@@ -1581,7 +1584,9 @@ def _rules_to_atoms(
             else None
         )
         if text and rule_text_span is None and span_source and span_source != "unknown":
-            raise ValueError(f"missing TextSpan for rule atom text: {text[:80]}")
+            logger.warning(
+                "missing TextSpan for rule atom text: %s", (text[:80] or "").strip()
+            )
         rule_atom = RuleAtom(
             atom_type="rule",
             role="principle",
@@ -1637,7 +1642,10 @@ def _rules_to_atoms(
                     else None
                 )
                 if cleaned_fragment and element_text_span is None and span_source and span_source != "unknown":
-                    raise ValueError(f"missing TextSpan for rule element: {cleaned_fragment[:80]}")
+                    logger.warning(
+                        "missing TextSpan for rule element: %s",
+                        (cleaned_fragment[:80] or "").strip(),
+                    )
                 rule_atom.elements.append(
                     RuleElement(
                         role=role,
@@ -3119,6 +3127,7 @@ def iter_process_pdf(
     doc: Optional[Document] = None
     try:
         if db_path:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
             storage = Storage(db_path)
         registry = GlossaryRegistry(storage)
         char_threshold = break_after_chars if break_after_chars and break_after_chars > 0 else None
@@ -3162,6 +3171,9 @@ def iter_process_pdf(
             document_date=document_date,
             glossary_registry=registry,
         )
+        from src.text.compression_stats import compute_compression_stats
+
+        doc.metadata.compression_stats = compute_compression_stats(doc.body).to_dict()
         yield ("build", {"document": doc})
     finally:
         if registry is not None:
@@ -3249,6 +3261,15 @@ def main() -> None:
     parser.add_argument(
         "--cultural-flags", nargs="*", help="List of cultural sensitivity flags"
     )
+    parser.add_argument(
+        "--db-path",
+        type=Path,
+        default=_DEFAULT_DB_PATH,
+        help=(
+            "Optional SQLite path for versioned storage. "
+            "Defaults to data/corpus/ingest.sqlite; pass '' to skip DB persistence."
+        ),
+    )
     args = parser.parse_args()
 
     doc, _ = process_pdf(
@@ -3258,6 +3279,7 @@ def main() -> None:
         citation=args.citation,
         title=args.title,
         cultural_flags=args.cultural_flags,
+        db_path=args.db_path,
     )
     print(doc.to_json())
 

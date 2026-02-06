@@ -90,3 +90,9 @@ See also
 - `docs/tokenizer_contract.md`
 - `docs/corpus_characterisation.md`
 - `docs/ir_invariants.md`
+
+Deterministic lexeme normalization
+----------------------------------
+Normalization uses Unicode NFKC + casefold for words, with formatting preserved
+via flags. This collapses surface variants while retaining canonical spans.
+See `src/text/lexeme_normalizer.py` for the authoritative implementation.

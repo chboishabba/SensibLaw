@@ -30,6 +30,7 @@ from src.models.provision import (
 from src.models.sentence import Sentence
 from src.storage import VersionedStore
 from src.storage.versioned_store import PayloadTooLargeError
+from src.text.compression_stats import compute_compression_stats
 
 
 def index_columns(conn, index_name: str) -> list[str]:
@@ -1904,6 +1905,10 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
     )
 
     assert stored_doc_id is not None
+    assert document.metadata.compression_stats
+    assert document.metadata.compression_stats == compute_compression_stats(
+        document.body
+    ).to_dict()
 
     store = VersionedStore(str(db_path))
     try:
@@ -1946,6 +1951,16 @@ def test_process_pdf_persists_normalized(tmp_path: Path, monkeypatch):
         assert snapshot is not None
         assert snapshot.provisions
         assert snapshot.provisions[0].atoms
+
+        meta_row = store.conn.execute(
+            "SELECT metadata, body FROM revisions WHERE doc_id = ? AND rev_id = ?",
+            (stored_doc_id, 1),
+        ).fetchone()
+        assert meta_row is not None
+        stored_meta = DocumentMetadata.from_dict(json.loads(meta_row["metadata"]))
+        assert stored_meta.compression_stats == compute_compression_stats(
+            meta_row["body"]
+        ).to_dict()
     finally:
         store.close()
 
