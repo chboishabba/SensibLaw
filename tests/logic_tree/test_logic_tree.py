@@ -152,13 +152,10 @@ def test_dot_snapshot_is_stable() -> None:
     expected = "\n".join(
         [
             "digraph LogicTree {",
+            "  rankdir=TB;",
             '  "n0" [label="ROOT" style="filled" fillcolor="#111827"];',
             '  "n1" [label="CLAUSE: A person" style="filled" fillcolor="#2563eb"];',
-            '  "n2" [label="TOKEN: A" style="filled" fillcolor="#6b7280"];',
-            '  "n3" [label="TOKEN: person" style="filled" fillcolor="#6b7280"];',
-            '  "n0" -> "n1" [label="SEQUENCE"];',
-            '  "n1" -> "n2" [label="SEQUENCE"];',
-            '  "n1" -> "n3" [label="SEQUENCE"];',
+            '  "n0" -> "n1" [label="SEQUENCE" constraint=false style="dotted" color="#9ca3af"];',
             "}",
         ]
     )

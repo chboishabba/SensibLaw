@@ -4,6 +4,7 @@ from pathlib import Path
 ALLOWED = {
     Path("src/text/tokenize_simple.py"),
     Path("src/reports/research_health.py"),
+    Path("src/text/compression_stats.py"),
 }
 
 
