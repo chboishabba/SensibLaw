@@ -1,7 +1,10 @@
 # TiRCorder ↔ WhisperX WebUI Adapter (Execution Envelope Contract)
 
-Purpose: ingest WhisperX-WebUI outputs into SB as execution envelopes plus
-audio_segment events, without inference or semantic labels.
+Purpose: emit WhisperX-WebUI outputs from TiRCorder as SB-ready execution
+envelopes plus `audio_segment` events, without inference or semantic labels.
+
+This adapter is **write-only**: TiRCorder emits JSON envelopes alongside
+transcripts. SB/ITIR can ingest those envelopes later.
 
 ## Inputs
 - WhisperX JSON transcript with fields:
@@ -9,6 +12,17 @@ audio_segment events, without inference or semantic labels.
   - `language`: optional
   - `segments`: list with `start`, `end`, `text`, `confidence`, optional `speaker`
 - Optional audio file path (hash only; audio not ingested)
+
+## TiRCorder config (webui)
+Set these under `transcription.webui` in `tircorder/config.json`:
+
+- `emit_envelope` (bool, default `false`): write an execution envelope JSON.
+- `envelope_dir` (string, optional): directory to write the envelope JSON.
+  - If omitted, uses the audio file directory.
+- `envelope_format` (string, optional): currently `sb_execution_envelope_v1`.
+
+Envelope output path defaults to:
+`<audio_stem>.execution_envelope.json`
 
 ## SB representation
 
