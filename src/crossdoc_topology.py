@@ -7,24 +7,18 @@ from src.models.document import Document
 from src.obligation_identity import compute_identities
 from src.obligations import ObligationAtom, extract_obligations_from_document, extract_obligations_from_text
 
-CROSSDOC_VERSION = "obligation.crossdoc.v1"
+CROSSDOC_VERSION = "obligation.crossdoc.v2"
 
 EDGE_PATTERNS: Dict[str, re.Pattern] = {
-    "supersedes": re.compile(
-        r"\b(repeals?|revokes?|supersede[sd]?|supersedes?|has effect instead of|ceases to have effect)\b", re.IGNORECASE
-    ),
-    "conflicts_with": re.compile(
-        r"\b(inconsistent with|despite any other provision|to the extent of any inconsistency)\b", re.IGNORECASE
-    ),
-    "exception_to": re.compile(
-        r"\b(except as provided in|does not apply to|this (?:section|regulation) does not apply)\b", re.IGNORECASE
-    ),
-    "applies_despite": re.compile(r"\bdespite (?:section|regulation|anything in)\b", re.IGNORECASE),
-    "applies_subject_to": re.compile(r"\bsubject to (?:section|regulation|this act)\b", re.IGNORECASE),
+    "repeals": re.compile(r"\b(repeals?|revokes?|ceases to have effect)\b", re.IGNORECASE),
+    "modifies": re.compile(r"\b(amends?|modif(?:y|ies)|varies|updates)\b", re.IGNORECASE),
+    "references": re.compile(r"\b(see|refer to|as provided in|as set out in)\b", re.IGNORECASE),
+    "cites": re.compile(r"\b(cites?|cited in|as cited in)\b", re.IGNORECASE),
 }
 
 FORBIDDEN_PHRASES = re.compile(
-    r"\b(having regard to|consistent with|guided by|for the purposes of|as if|taken to)\b", re.IGNORECASE
+    r"\b(conflict|conflicts?|override|overrides?|prevails?|controls?)(?!\s+act\b)\b",
+    re.IGNORECASE,
 )
 
 
@@ -85,6 +79,7 @@ def _find_edges(
                         "provenance": {
                             "source_id": source_id,
                             "clause_id": ob.clause_id,
+                            "span": list(ob.span) if ob.span else None,
                         },
                     }
                 )

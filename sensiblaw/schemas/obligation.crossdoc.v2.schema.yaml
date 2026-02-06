@@ -1,0 +1,46 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+# v2: non-judgmental cross-document topology (references/modifies/repeals/cites).
+title: obligation.crossdoc.v2
+type: object
+required: [version, nodes, edges]
+properties:
+  version:
+    const: obligation.crossdoc.v2
+  nodes:
+    type: array
+    items:
+      type: object
+      required: [obl_id, source_id, clause_id]
+      properties:
+        obl_id: {type: string}
+        source_id: {type: string}
+        clause_id: {type: string}
+    uniqueItems: true
+  edges:
+    type: array
+    items:
+      type: object
+      required: [kind, from, to, text, provenance]
+      properties:
+        kind:
+          enum: [references, modifies, repeals, cites]
+        from:
+          type: string
+        to:
+          type: string
+        text:
+          type: string
+        provenance:
+          type: object
+          required: [source_id, clause_id]
+          properties:
+            source_id: {type: string}
+            clause_id: {type: string}
+            span:
+              type: [array, "null"]
+              items: {type: integer}
+              minItems: 2
+              maxItems: 2
+      additionalProperties: false
+    uniqueItems: true
+additionalProperties: false

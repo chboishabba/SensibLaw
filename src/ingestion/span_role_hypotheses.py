@@ -16,8 +16,9 @@ def build_span_role_hypotheses(document: Document) -> List[SpanRoleHypothesis]:
     if not document.body:
         return []
 
+    span_source = document.metadata.canonical_id or document.metadata.citation or "unknown"
     hypotheses: List[SpanRoleHypothesis] = []
-    hypotheses.extend(_extract_defined_terms(document.body))
+    hypotheses.extend(_extract_defined_terms(document.body, span_source))
 
     return sorted(
         hypotheses,
@@ -25,7 +26,7 @@ def build_span_role_hypotheses(document: Document) -> List[SpanRoleHypothesis]:
     )
 
 
-def _extract_defined_terms(text: str) -> Iterable[SpanRoleHypothesis]:
+def _extract_defined_terms(text: str, span_source: str) -> Iterable[SpanRoleHypothesis]:
     for pattern in (_QUOTED_MEANS, _SMART_QUOTED_MEANS):
         for match in pattern.finditer(text):
             term_start = match.start("lemma")
@@ -33,7 +34,7 @@ def _extract_defined_terms(text: str) -> Iterable[SpanRoleHypothesis]:
             yield SpanRoleHypothesis(
                 span_start=term_start,
                 span_end=term_end,
-                span_source="body_char",
+                span_source=span_source,
                 role_hypothesis="defined_term",
                 extractor="defined_term_regex",
                 evidence="definition",

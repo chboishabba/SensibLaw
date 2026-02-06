@@ -1,16 +1,15 @@
-# Cross-Document Norm Topology (Sprint 7B)
+# Cross-Document Norm Topology (Sprint S8)
 
 Purpose: project **explicit** relationships across instruments **without inference, precedence, or ontology expansion**.
 
 ## Edge set (closed)
 
-Only these edge kinds exist in `obligation.crossdoc.v1`:
+Only these edge kinds exist in `obligation.crossdoc.v2`:
 
-- `supersedes` — explicit replacement/repeal
-- `conflicts_with` — explicit inconsistency statement
-- `exception_to` — explicit exception carved out
-- `applies_despite` — applies despite another provision
-- `applies_subject_to` — applies only if another provision holds
+- `repeals` — explicit repeal/revocation
+- `modifies` — explicit amendment/modification
+- `references` — explicit reference pointer
+- `cites` — explicit citation pointer
 
 ❌ No other edge kinds are permitted.
 
@@ -26,67 +25,62 @@ If any precondition fails → **no edge**.
 
 ## Grammar (regex, case-insensitive)
 
-### Supersession
+### Repeals
 ```
 \brepeals?\b
 \brevokes?\b
-\bsupersedes?\b
-\bhas effect instead of\b
 \bceases to have effect\b
 ```
 
-### Conflict
+### Modifies
 ```
-\binconsistent with\b
-\bdespite any other provision\b
-\bto the extent of any inconsistency\b
-```
-
-### Exception
-```
-\bexcept as provided in\b
-\bdoes not apply to\b
-\bthis (section|regulation) does not apply\b
+\bamends?\b
+\bmodif(?:y|ies)\b
+\bvaries\b
+\bupdates\b
 ```
 
-### Applies Despite
+### References
 ```
-\bdespite (section|regulation)\b
-\bdespite anything in\b
+\bsee\b
+\brefer to\b
+\bas provided in\b
+\bas set out in\b
 ```
 
-### Applies Subject To
+### Cites
 ```
-\bsubject to (section|regulation)\b
-\bsubject to this act\b
+\bcites?\b
+\bcited in\b
+\bas cited in\b
 ```
 
 ### Forbidden (must never emit edges)
 
 ```
-\bhaving regard to\b
-\bconsistent with\b
-\bguided by\b
-\bfor the purposes of\b
-\bas if\b
-\btaken to\b
+\bconflict\b
+\bconflicts?\b
+\boverride\b
+\boverrides?\b
+\bprevails?\b
+\bcontrols?\b
 ```
 
 ## Payload (frozen)
 
 ```jsonc
 {
-  "version": "obligation.crossdoc.v1",
+  "version": "obligation.crossdoc.v2",
   "nodes": [
     {"obl_id": "<obligation_hash>", "source_id": "Act2024", "clause_id": "Act2024-clause-0"}
   ],
   "edges": [
     {
-      "kind": "supersedes",
+      "kind": "repeals",
       "from": "<obl_id>",
       "to": "<obl_id>",
-      "text": "supersedes",
-      "provenance": {"source_id": "Act2024", "clause_id": "Act2024-clause-3"}
+      "text": "repeals",
+      "provenance": {"source_id": "Act2024", "clause_id": "Act2024-clause-3", "span": [12, 45]}
     }
   ]
 }

@@ -6,7 +6,7 @@ and pre-ontological, and they never modify canonical text.
 
 ## Core fields
 
-- `span_start`, `span_end`, `span_source`
+- `span_start`, `span_end`, `span_source` (where `span_source` is the revision identifier)
 - `signal_type`
 - `extractor`
 - `evidence`
@@ -25,7 +25,7 @@ and pre-ontological, and they never modify canonical text.
 
 ## Rules
 
-1. **Span-only**: must reference `(doc_id, rev_id, span_start, span_end, span_source)`.
+1. **Span-only**: must reference `(revision_id, span_start, span_end)`.
 2. **No cleanup**: signals do not rewrite or normalize text.
 3. **Deterministic**: extractors must be repeatable and order-stable.
 4. **Promotion blocking**: signal spans may block promotion gates when they

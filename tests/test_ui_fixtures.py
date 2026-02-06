@@ -45,3 +45,10 @@ def test_concepts_fixture_structure_and_language():
     assert data.get("matches")
     serialized = json.dumps(data).lower()
     assert FORBIDDEN_TERMS.isdisjoint(serialized)
+
+
+def test_obligations_fixture_structure_and_language():
+    data = _load("obligations_minimal.json")
+    assert data.get("results")
+    serialized = json.dumps(data).lower()
+    assert FORBIDDEN_TERMS.isdisjoint(serialized)

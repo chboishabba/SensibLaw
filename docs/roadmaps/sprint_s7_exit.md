@@ -5,7 +5,7 @@ Status: **Closed.** No further semantic or structural changes allowed without a 
 ## What is frozen
 - Interfaces (API + CLI) for obligations, explanations, projections, alignment, activation.
 - Activation semantics (descriptive only) and payload `obligation.activation.v1`.
-- Cross-document topology grammar, schema, and extractor (`obligation.crossdoc.v1`).
+- Cross-document topology grammar, schema, and extractor (`obligation.crossdoc.v2`).
 - All snapshots under `tests/snapshots/s7/`.
 
 ## Forbidden without new sprint

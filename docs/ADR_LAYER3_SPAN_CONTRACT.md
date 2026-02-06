@@ -13,7 +13,7 @@ Layer 3 will store **span-only role hypotheses** and nothing stronger. The prefe
 
 A Layer 3 record:
 
-- MUST reference a stable text span: `(doc_id, rev_id, span_start, span_end, span_source)` where `span_source` declares whether offsets are token- or char-based.
+- MUST reference a stable text span: `(revision_id, span_start, span_end)` where `revision_id` is stored in `span_source`.
 - MAY include `role_hypothesis`, `extractor`, `evidence`, and `confidence` metadata.
 - MUST NOT assert cross-document identity or merge spans into a single global entity.
 - MUST be regenerable from Layer 0/2 outputs without reading or rewriting canonical text.

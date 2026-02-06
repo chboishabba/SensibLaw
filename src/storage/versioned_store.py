@@ -22,9 +22,11 @@ from src.models.provision import (
     RuleLint,
     RuleReference,
 )
+from src.models.text_span import TextSpan
 from src.models.promotion import PromotionReceipt
 from src.models.span_role_hypothesis import SpanRoleHypothesis
 from src.models.span_signal_hypothesis import SpanSignalHypothesis
+from src.text.lexeme_index import collect_lexeme_occurrences
 
 
 class PayloadTooLargeError(ValueError):
@@ -129,6 +131,69 @@ class VersionedStore:
 
                 CREATE INDEX IF NOT EXISTS idx_revisions_doc_effective_desc
                 ON revisions(doc_id, effective_date DESC);
+
+                CREATE TABLE IF NOT EXISTS lexemes (
+                    lexeme_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    norm_text TEXT NOT NULL UNIQUE,
+                    norm_kind TEXT NOT NULL DEFAULT 'word',
+                    metadata TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_lexemes_kind
+                ON lexemes(norm_kind);
+
+                CREATE TABLE IF NOT EXISTS lexeme_occurrences (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    occ_id INTEGER NOT NULL,
+                    lexeme_id INTEGER NOT NULL REFERENCES lexemes(lexeme_id),
+                    start_char INTEGER NOT NULL,
+                    end_char INTEGER NOT NULL,
+                    token_index INTEGER,
+                    flags INTEGER NOT NULL DEFAULT 0,
+                    surface_hash TEXT,
+                    PRIMARY KEY (doc_id, rev_id, occ_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                ) WITHOUT ROWID;
+
+                CREATE INDEX IF NOT EXISTS idx_lexeme_occurrences_lexeme
+                ON lexeme_occurrences(lexeme_id);
+
+                CREATE INDEX IF NOT EXISTS idx_lexeme_occurrences_span
+                ON lexeme_occurrences(doc_id, rev_id, start_char, end_char);
+
+                CREATE TABLE IF NOT EXISTS phrase_atoms (
+                    phrase_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lexeme_seq_hash TEXT NOT NULL UNIQUE,
+                    lexeme_count INTEGER NOT NULL,
+                    lexeme_ids_json TEXT NOT NULL,
+                    norm_text TEXT,
+                    metadata TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_phrase_atoms_len
+                ON phrase_atoms(lexeme_count);
+
+                CREATE TABLE IF NOT EXISTS phrase_occurrences (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    phrase_occ_id INTEGER NOT NULL,
+                    phrase_id INTEGER NOT NULL REFERENCES phrase_atoms(phrase_id),
+                    start_char INTEGER NOT NULL,
+                    end_char INTEGER NOT NULL,
+                    start_occ_id INTEGER,
+                    end_occ_id INTEGER,
+                    method TEXT NOT NULL,
+                    receipt_id INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, phrase_occ_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                ) WITHOUT ROWID;
+
+                CREATE INDEX IF NOT EXISTS idx_phrase_occurrences_phrase
+                ON phrase_occurrences(phrase_id);
+
+                CREATE INDEX IF NOT EXISTS idx_phrase_occurrences_span
+                ON phrase_occurrences(doc_id, rev_id, start_char, end_char);
 
                 CREATE TABLE IF NOT EXISTS toc (
                     doc_id INTEGER NOT NULL,
@@ -475,6 +540,12 @@ class VersionedStore:
         self._ensure_column("rule_elements", "glossary_id", "INTEGER")
         self._ensure_column("rule_atom_references", "glossary_id", "INTEGER")
         self._ensure_column("rule_element_references", "glossary_id", "INTEGER")
+        self._ensure_column("rule_atoms", "span_start", "INTEGER")
+        self._ensure_column("rule_atoms", "span_end", "INTEGER")
+        self._ensure_column("rule_atoms", "span_source", "TEXT")
+        self._ensure_column("rule_elements", "span_start", "INTEGER")
+        self._ensure_column("rule_elements", "span_end", "INTEGER")
+        self._ensure_column("rule_elements", "span_source", "TEXT")
 
         self._backfill_glossary_ids()
         self._backfill_text_indexes()
@@ -1040,6 +1111,9 @@ class VersionedStore:
                         subject_gloss TEXT,
                         subject_gloss_metadata TEXT,
                         glossary_id INTEGER,
+                        span_start INTEGER,
+                        span_end INTEGER,
+                        span_source TEXT,
                         PRIMARY KEY (doc_id, rev_id, provision_id, rule_id),
                         FOREIGN KEY (doc_id, rev_id, provision_id)
                             REFERENCES provisions(doc_id, rev_id, provision_id),
@@ -1074,6 +1148,9 @@ class VersionedStore:
                         gloss TEXT,
                         gloss_metadata TEXT,
                         glossary_id INTEGER,
+                        span_start INTEGER,
+                        span_end INTEGER,
+                        span_source TEXT,
                         PRIMARY KEY (doc_id, rev_id, provision_id, rule_id, element_id),
                         FOREIGN KEY (doc_id, rev_id, provision_id, rule_id)
                             REFERENCES rule_atoms(doc_id, rev_id, provision_id, rule_id)
@@ -1812,6 +1889,7 @@ class VersionedStore:
             self._store_provisions(
                 doc_id, rev_id, document.provisions, toc_entries, document.metadata
             )
+            self._store_lexeme_occurrences(doc_id, rev_id, document.body)
         return rev_id
 
     # ------------------------------------------------------------------
@@ -1835,11 +1913,12 @@ class VersionedStore:
         )
         rows = []
         for index, item in enumerate(ordered, start=1):
+            span_id = item.span_id or index
             rows.append(
                 (
                     doc_id,
                     rev_id,
-                    index,
+                    span_id,
                     item.span_start,
                     item.span_end,
                     item.span_source,
@@ -1885,11 +1964,12 @@ class VersionedStore:
         )
         rows = []
         for index, item in enumerate(ordered, start=1):
+            span_id = item.span_id or index
             rows.append(
                 (
                     doc_id,
                     rev_id,
-                    index,
+                    span_id,
                     item.span_start,
                     item.span_end,
                     item.span_source,
@@ -1924,7 +2004,7 @@ class VersionedStore:
 
         rows = self.conn.execute(
             """
-            SELECT span_start, span_end, span_source, signal_type, extractor,
+            SELECT span_id, span_start, span_end, span_source, signal_type, extractor,
                    evidence, confidence, metadata
             FROM span_signal_hypotheses
             WHERE doc_id = ? AND rev_id = ?
@@ -1940,6 +2020,7 @@ class VersionedStore:
                     span_start=int(row["span_start"]),
                     span_end=int(row["span_end"]),
                     span_source=str(row["span_source"]),
+                    span_id=int(row["span_id"]),
                     signal_type=str(row["signal_type"]),
                     extractor=row["extractor"],
                     evidence=row["evidence"],
@@ -2025,7 +2106,7 @@ class VersionedStore:
 
         rows = self.conn.execute(
             """
-            SELECT span_start, span_end, span_source, role_hypothesis, extractor,
+            SELECT span_id, span_start, span_end, span_source, role_hypothesis, extractor,
                    evidence, confidence, metadata
             FROM span_role_hypotheses
             WHERE doc_id = ? AND rev_id = ?
@@ -2041,6 +2122,7 @@ class VersionedStore:
                     span_start=int(row["span_start"]),
                     span_end=int(row["span_end"]),
                     span_source=str(row["span_source"]),
+                    span_id=int(row["span_id"]),
                     role_hypothesis=row["role_hypothesis"],
                     extractor=row["extractor"],
                     evidence=row["evidence"],
@@ -2750,6 +2832,54 @@ class VersionedStore:
                 provision_text_entries,
             )
 
+    def _store_lexeme_occurrences(self, doc_id: int, rev_id: int, body: str) -> None:
+        occurrences = collect_lexeme_occurrences(body)
+        if not occurrences:
+            return
+
+        lexeme_kinds: dict[str, str] = {}
+        for occ in occurrences:
+            lexeme_kinds.setdefault(occ.norm_text, occ.kind)
+
+        with self.conn:
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO lexemes (norm_text, norm_kind) VALUES (?, ?)",
+                [(norm_text, lexeme_kinds[norm_text]) for norm_text in lexeme_kinds],
+            )
+
+            placeholders = ",".join("?" for _ in lexeme_kinds)
+            rows = self.conn.execute(
+                f"SELECT lexeme_id, norm_text FROM lexemes WHERE norm_text IN ({placeholders})",
+                list(lexeme_kinds.keys()),
+            ).fetchall()
+            lexeme_ids = {row["norm_text"]: row["lexeme_id"] for row in rows}
+
+            payload = []
+            for index, occ in enumerate(occurrences, start=1):
+                payload.append(
+                    (
+                        doc_id,
+                        rev_id,
+                        index,
+                        lexeme_ids[occ.norm_text],
+                        occ.start_char,
+                        occ.end_char,
+                        index - 1,
+                        occ.flags,
+                        None,
+                    )
+                )
+
+            self.conn.executemany(
+                """
+                INSERT INTO lexeme_occurrences (
+                    doc_id, rev_id, occ_id, lexeme_id, start_char, end_char,
+                    token_index, flags, surface_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                payload,
+            )
+
     def _load_provisions(
         self, doc_id: int, rev_id: int
     ) -> Tuple[List[Provision], bool]:
@@ -2800,6 +2930,9 @@ class VersionedStore:
                 ra.subject_gloss,
                 ra.subject_gloss_metadata,
                 ra.glossary_id AS rule_glossary_id,
+                ra.span_start,
+                ra.span_end,
+                ra.span_source,
                 rs.type AS subject_type,
                 rs.role AS subject_role,
                 rs.party AS subject_party,
@@ -2840,7 +2973,7 @@ class VersionedStore:
             element_rows = self.conn.execute(
                 """
                 SELECT provision_id, rule_id, element_id, atom_type, role, text, conditions,
-                       gloss, gloss_metadata, glossary_id
+                       gloss, gloss_metadata, glossary_id, span_start, span_end, span_source
                 FROM rule_elements
                 WHERE doc_id = ? AND rev_id = ?
                 ORDER BY provision_id, rule_id, element_id
@@ -2954,6 +3087,20 @@ class VersionedStore:
                     text=row["text"],
                     subject_link=subject_link,
                     references=references,
+                    text_span=(
+                        TextSpan(
+                            revision_id=str(row["span_source"]),
+                            start_char=int(row["span_start"]),
+                            end_char=int(row["span_end"]),
+                        )
+                        if row["span_start"] is not None
+                        and row["span_end"] is not None
+                        and row["span_source"] is not None
+                        else None
+                    ),
+                    span_status=None
+                    if row["span_start"] is not None
+                    else "legacy_missing",
                 )
                 if not rule_atom.stable_id and row["toc_id"] is not None:
                     rule_atom.stable_id = toc_stable_map.get(row["toc_id"])
@@ -3072,6 +3219,20 @@ class VersionedStore:
                     conditions=row["conditions"],
                     glossary=element_glossary,
                     references=references,
+                    text_span=(
+                        TextSpan(
+                            revision_id=str(row["span_source"]),
+                            start_char=int(row["span_start"]),
+                            end_char=int(row["span_end"]),
+                        )
+                        if row["span_start"] is not None
+                        and row["span_end"] is not None
+                        and row["span_source"] is not None
+                        else None
+                    ),
+                    span_status=None
+                    if row["span_start"] is not None
+                    else "legacy_missing",
                 )
                 parent = rule_lookup.get((row["provision_id"], row["rule_id"]))
                 if parent is not None:
@@ -3318,14 +3479,20 @@ class VersionedStore:
             seen_hashes.add(atom_hash)
             rule_counter += 1
             rule_index = rule_counter
+            span_start = rule_atom.text_span.start_char if rule_atom.text_span else None
+            span_end = rule_atom.text_span.end_char if rule_atom.text_span else None
+            span_source = (
+                rule_atom.text_span.revision_id if rule_atom.text_span else None
+            )
             self.conn.execute(
                 """
                 INSERT INTO rule_atoms (
                     doc_id, rev_id, provision_id, rule_id, text_hash, toc_id, stable_id, atom_type, role, party,
                     who, who_text, actor, modality, action, conditions, scope,
-                    text, subject_gloss, subject_gloss_metadata, glossary_id
+                    text, subject_gloss, subject_gloss_metadata, glossary_id,
+                    span_start, span_end, span_source
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (doc_id, rev_id, provision_id, rule_id) DO UPDATE SET
                     text_hash = excluded.text_hash,
                     toc_id = excluded.toc_id,
@@ -3342,7 +3509,10 @@ class VersionedStore:
                     text = excluded.text,
                     subject_gloss = excluded.subject_gloss,
                     subject_gloss_metadata = excluded.subject_gloss_metadata,
-                    glossary_id = excluded.glossary_id
+                    glossary_id = excluded.glossary_id,
+                    span_start = excluded.span_start,
+                    span_end = excluded.span_end,
+                    span_source = excluded.span_source
                 """,
                 (
                     doc_id,
@@ -3366,6 +3536,9 @@ class VersionedStore:
                     rule_atom.subject_gloss,
                     subject_metadata_json,
                     rule_atom.glossary_id,
+                    span_start,
+                    span_end,
+                    span_source,
                 ),
             )
 
@@ -3450,13 +3623,23 @@ class VersionedStore:
                     gloss=element.gloss,
                     gloss_metadata=element_metadata_json,
                 )
+                element_span_start = (
+                    element.text_span.start_char if element.text_span else None
+                )
+                element_span_end = (
+                    element.text_span.end_char if element.text_span else None
+                )
+                element_span_source = (
+                    element.text_span.revision_id if element.text_span else None
+                )
                 self.conn.execute(
                     """
                     INSERT INTO rule_elements (
                         doc_id, rev_id, provision_id, rule_id, element_id, text_hash, atom_type,
-                        role, text, conditions, gloss, gloss_metadata, glossary_id
+                        role, text, conditions, gloss, gloss_metadata, glossary_id,
+                        span_start, span_end, span_source
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (doc_id, rev_id, provision_id, rule_id, element_id) DO UPDATE SET
                         text_hash = excluded.text_hash,
                         atom_type = excluded.atom_type,
@@ -3465,7 +3648,10 @@ class VersionedStore:
                         conditions = excluded.conditions,
                         gloss = excluded.gloss,
                         gloss_metadata = excluded.gloss_metadata,
-                        glossary_id = excluded.glossary_id
+                        glossary_id = excluded.glossary_id,
+                        span_start = excluded.span_start,
+                        span_end = excluded.span_end,
+                        span_source = excluded.span_source
                     """,
                     (
                         doc_id,
@@ -3481,6 +3667,9 @@ class VersionedStore:
                         element.gloss,
                         element_metadata_json,
                         element.glossary_id,
+                        element_span_start,
+                        element_span_end,
+                        element_span_source,
                     ),
                 )
 

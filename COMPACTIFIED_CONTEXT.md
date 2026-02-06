@@ -1,18 +1,21 @@
 # COMPACTIFIED_CONTEXT
 
 ## Purpose
-Compact snapshot of intent while applying the get-shit-done and update-docs-todo-implement workflows for Sprint S6 execution.
+Compact snapshot of intent while applying the get-shit-done and update-docs-todo-implement workflows for S7–S9 execution.
 
 ## Objective
-Close S6 (done) and plan S7 surfaces (interfaces, activation metadata, cross-doc topology) with docs/TODO sequencing before code.
+Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with docs/TODO sequencing and deterministic tests.
 
-## Near-term intent (S7)
-- Sprint S7 tracks: C) Human interfaces (snapshotted/locked), A) fact-driven activation (exposed via CLI/API, still non-reasoning), B) cross-document topology.
-- Sequencing: C → A → B. Feature flags stay in place for new payloads; deterministic ordering + schema versioning required.
+## Near-term intent
+- Preserve span authority and read-only surfaces; do not add reasoning or compliance logic.
+- Keep Layer 3 regeneration deterministic and promotion gates auditable.
 
 ## Completed prior milestones
 - Sprint S5: actors, actions/objects, scopes, lifecycle, graph projection, stability hardening — shipped and flag-gated.
 - Sprint S6: query API, explanation surfaces, projections, alignment, schema stubs, and guard review completed; no-reasoning contract enforced.
+- Sprint S7: TextSpan contract + Layer 3 enforcement for rule atoms/elements.
+- Sprint S8: non-judgmental cross-doc topology (`obligation.crossdoc.v2`).
+- Sprint S9: read-only UI hardening (fixtures, Playwright smoke, obligations tab).
 
 ## Milestone scope
 - Deliver read-only, deterministic surfaces over the existing normative lattice: queries, explanations, alignment, projections, schemas.
@@ -25,12 +28,12 @@ Close S6 (done) and plan S7 surfaces (interfaces, activation metadata, cross-doc
 - Python 3.11 target with 3.10 fallback; Ruff formatting.
 - Clause-local, text-derived extraction; no cross-clause inference.
 
-## Recent decisions (2026-02-05)
-- Layer 3 artifacts are span-only **SpanRoleHypothesis** records with explicit span sources; promotion to ontology requires auditable rules and regeneration tests.
-- Documented promotion gates (defined-term, repetition, modal participation) and signal-based promotion blocking in `docs/promotion_rules.md`.
-- Added SpanSignalHypothesis spec and promotion gate evaluation scaffolding (receipts + storage tables).
-- Documented the four Layer 3 hypothesis families (role, structure, alignment, signal).
-- Implemented SpanSignalHypothesis extractors for basic glyph/layout signals.
+## Recent decisions (2026-02-06)
+- Canonical TextSpan model added (`revision_id`, `start_char`, `end_char`) and persisted on rule atoms/elements.
+- Promotion receipts now carry span IDs; signals block promotion on overlap.
+- Cross-doc topology upgraded to `obligation.crossdoc.v2` with `repeals/modifies/references/cites`.
+- Read-only UI hardened: obligations tab, fixture payloads, and forbidden-language guard.
+- Multi-modal doctrine + human tools integration captured for ITIR/SensibLaw.
 - docTR profiling notes captured for SensibLaw root PDFs (pdfminer: 515 pages, 1,623,269 chars) with a follow-up timing run scheduled for 2026-02-06.
 
 ## Open questions

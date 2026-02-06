@@ -20,6 +20,14 @@ Tokenizers
   - Example: `spacy_word_v3` (scope=semantics, stable=false)
 - Stable tokenizers may appear in invariants/tests; unstable ones may not.
 
+Lexeme layer (redundancy substrate)
+----------------------------------
+- Lexemes collapse surface variance (case/formatting) while preserving spans.
+- Lexeme occurrences are anchored to canonical character offsets, not token IDs.
+- Lexemes are **pre-semantic**; they must not carry meaning or concepts.
+- Phrase atoms built from lexemes are deterministic and reversible.
+- See `docs/lexeme_layer.md` for the authoritative contract.
+
 Sentences
 ---------
 - A sentence is an ordered sequence of token IDs for a single tokenizer.

@@ -30,6 +30,14 @@ SL is not "compression plus zlib". The target behavior is LZ-style factorisation
 - The gap between `empirical_compression_ratio` and `lz_entropy_floor` is the amount of phrase structure that has not been promoted to stable composite atoms yet.
 - `token_entropy_proxy` remains a descriptive proxy only; it is not a bound or invariant.
 
+Lexeme layer (redundancy substrate)
+-----------------------------------
+Lexeme normalization collapses casing/format noise before phrase promotion. This improves
+repeat statistics without changing canonical spans:
+- `rr5` and `mvd` are computed on lexeme-normalized tokens when available.
+- Lexeme occurrences remain span-anchored; no semantic labels are introduced.
+- Phrase atoms are built over lexeme sequences, preserving reversibility.
+
 Deterministic span promotion (minimal design)
 ---------------------------------------------
 Goal: expose an LZ-like factorisation over canonical tokens without compromising SL determinism or auditability.

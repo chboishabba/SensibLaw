@@ -12,7 +12,7 @@ are derived deterministically from canonical text spans.
 ## Core principles
 
 1. **Span-only inputs**: promotions use span hypotheses that carry
-   `(doc_id, rev_id, span_start, span_end, span_source)` and metadata.
+   `(revision_id, span_start, span_end)` and metadata (revision_id is stored in `span_source`).
 2. **No in-place mutation**: Layer 3 records are immutable after creation.
 3. **Auditable rules**: every promotion is traceable to a rule ID and evidence spans.
 4. **Deterministic outputs**: given identical inputs, promotion yields identical

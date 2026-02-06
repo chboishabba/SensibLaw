@@ -7,6 +7,8 @@ import hashlib
 import json
 import re
 
+from .text_span import TextSpan
+
 
 def _clone_metadata(metadata: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if metadata is None:
@@ -275,6 +277,8 @@ class RuleElement:
     glossary: Optional[GlossaryLink] = None
     references: List[RuleReference] = field(default_factory=list)
     atom_type: Optional[str] = None
+    text_span: Optional[TextSpan] = None
+    span_status: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -286,6 +290,8 @@ class RuleElement:
             "glossary_id": self.glossary_id,
             "references": [ref.to_dict() for ref in self.references],
             "atom_type": self.atom_type,
+            "text_span": self.text_span.to_dict() if self.text_span else None,
+            "span_status": self.span_status,
         }
 
     @classmethod
@@ -305,6 +311,10 @@ class RuleElement:
             ),
             references=[RuleReference.from_dict(r) for r in data.get("references", [])],
             atom_type=data.get("atom_type"),
+            text_span=TextSpan.from_dict(data["text_span"])
+            if data.get("text_span")
+            else None,
+            span_status=data.get("span_status"),
         )
 
     @property
@@ -397,6 +407,8 @@ class RuleAtom:
     references: List[RuleReference] = field(default_factory=list)
     elements: List[RuleElement] = field(default_factory=list)
     lints: List[RuleLint] = field(default_factory=list)
+    text_span: Optional[TextSpan] = None
+    span_status: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -420,6 +432,8 @@ class RuleAtom:
             "references": [ref.to_dict() for ref in self.references],
             "elements": [element.to_dict() for element in self.elements],
             "lints": [lint.to_dict() for lint in self.lints],
+            "text_span": self.text_span.to_dict() if self.text_span else None,
+            "span_status": self.span_status,
         }
 
     @classmethod
@@ -454,6 +468,10 @@ class RuleAtom:
             lints=[
                 RuleLint.from_dict(lint_data) for lint_data in data.get("lints", [])
             ],
+            text_span=TextSpan.from_dict(data["text_span"])
+            if data.get("text_span")
+            else None,
+            span_status=data.get("span_status"),
         )
 
     @property
@@ -846,6 +864,7 @@ class Provision:
                 subject_link=subject_atom.glossary,
                 subject=subject_atom,
                 references=[build_reference(ref) for ref in base_atom.refs],
+                span_status="legacy_missing",
             )
             structured.append(rule)
             return rule
@@ -884,6 +903,7 @@ class Provision:
                         ),
                         references=[build_reference(ref) for ref in atom.refs],
                         atom_type=atom.type,
+                        span_status="legacy_missing",
                     )
                 )
                 continue

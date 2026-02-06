@@ -60,3 +60,8 @@ ITIR/SensibLaw is a multi-modal life system: it assists, remembers, schedules,
 and organises at human speed while enforcing provenance, consistency, and ground
 truth at machine speed—with explicit boundaries between intent, hypothesis, and
 commitment.
+
+## Against Victor's Memory
+This system preserves sequence, provenance, and explicit absence without
+claiming historical authority. It keeps disagreement visible rather than
+resolved and refuses to treat capture as meaning.

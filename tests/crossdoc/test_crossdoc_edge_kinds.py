@@ -22,26 +22,26 @@ def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
     "kind, body, ref_work, ref_section",
     [
         (
-            "conflicts_with",
-            "This clause must apply to the extent of any inconsistency with section 5 of the Old Act.",
+            "repeals",
+            "The court must repeal section 5 of the Old Act.",
             "Old Act",
             "5",
         ),
         (
-            "exception_to",
-            "Except as provided in section 3 of the Carveout Act, this section must apply.",
+            "modifies",
+            "The court must amend section 3 of the Carveout Act.",
             "Carveout Act",
             "3",
         ),
         (
-            "applies_despite",
-            "Despite section 7 of the Override Act, this section must apply.",
+            "references",
+            "The court must see section 7 of the Override Act for definitions.",
             "Override Act",
             "7",
         ),
         (
-            "applies_subject_to",
-            "Subject to section 9 of the Base Act, the operator must notify.",
+            "cites",
+            "The court must cite section 9 of the Base Act.",
             "Base Act",
             "9",
         ),
@@ -67,10 +67,10 @@ def test_edge_kinds_positive(kind, body, ref_work, ref_section):
 @pytest.mark.parametrize(
     "body",
     [
-        "This clause applies to the extent of any inconsistency with section 5 of the Old Act.",
-        "Except as provided in section 3 of the Carveout Act, this section applies.",
-        "Despite section 7 of the Override Act, this section applies.",
-        "Subject to section 9 of the Base Act, the operator must notify.",
+        "The court must repeal section 5 of the Old Act.",
+        "The court must amend section 3 of the Carveout Act.",
+        "The court must see section 7 of the Override Act for definitions.",
+        "The court must cite section 9 of the Base Act.",
     ],
 )
 def test_edge_requires_reference_identity(body):
@@ -81,7 +81,7 @@ def test_edge_requires_reference_identity(body):
 
 def test_topology_does_not_mutate_obligation_identities():
     ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
-    doc = _doc("The minister must supersede section 1 of the Old Act.", [ref], source_id="doc-new")
+    doc = _doc("The minister must repeal section 1 of the Old Act.", [ref], source_id="doc-new")
 
     obligations_before = extract_obligations_from_document(doc)
     ids_before = {oid.identity_hash for oid in compute_identities(obligations_before)}

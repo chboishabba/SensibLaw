@@ -37,6 +37,7 @@ from src.models.provision import (
     RuleReference,
     _build_family_key,
 )
+from src.models.text_span import TextSpan
 from src.rules import UNKNOWN_PARTY
 from src.rules.extractor import extract_rules
 from src.nlp.taxonomy import Modality
@@ -1486,8 +1487,46 @@ def _dedupe_principles(values: Iterable[str]) -> List[str]:
     return unique
 
 
+def _span_source_for_document(metadata: DocumentMetadata) -> str:
+    return metadata.canonical_id or metadata.citation or "unknown"
+
+
+def _find_text_span(body: str, fragment: Optional[str]) -> Optional[Tuple[int, int]]:
+    if not body or not fragment:
+        return None
+    needle = fragment.strip()
+    if not needle:
+        return None
+    idx = body.find(needle)
+    if idx != -1:
+        return (idx, idx + len(needle))
+    # Fallback: normalize whitespace for deterministic matching.
+    normal_body = re.sub(r"\s+", " ", body)
+    normal_fragment = re.sub(r"\s+", " ", needle)
+    idx = normal_body.find(normal_fragment)
+    if idx == -1:
+        return None
+    # Approximate mapping back to original string.
+    prefix = normal_body[:idx]
+    cursor = 0
+    for token in prefix.split(" "):
+        if not token:
+            continue
+        token_idx = body.find(token, cursor)
+        if token_idx == -1:
+            break
+        cursor = token_idx + len(token)
+    start = cursor
+    end = start + len(normal_fragment)
+    return (start, end)
+
+
 def _rules_to_atoms(
-    rules, glossary_registry: Optional[GlossaryRegistry] = None
+    rules,
+    *,
+    glossary_registry: Optional[GlossaryRegistry] = None,
+    document_body: Optional[str] = None,
+    span_source: Optional[str] = None,
 ) -> List[RuleAtom]:
     rule_atoms: List[RuleAtom] = []
     module_lookup_gloss = getattr(
@@ -1531,6 +1570,18 @@ def _rules_to_atoms(
             fallback_text=who_text or actor or None,
         )
 
+        rule_span = _find_text_span(document_body or "", text or text_combined)
+        rule_text_span = (
+            TextSpan(
+                revision_id=span_source or "unknown",
+                start_char=rule_span[0],
+                end_char=rule_span[1],
+            )
+            if rule_span
+            else None
+        )
+        if text and rule_text_span is None and span_source and span_source != "unknown":
+            raise ValueError(f"missing TextSpan for rule atom text: {text[:80]}")
         rule_atom = RuleAtom(
             atom_type="rule",
             role="principle",
@@ -1545,6 +1596,8 @@ def _rules_to_atoms(
             text=text,
             subject_link=subject_link,
             references=rule_references,
+            text_span=rule_text_span,
+            span_status="ok" if rule_text_span else "missing_span",
         )
 
         rule_atom.subject = Atom(
@@ -1573,6 +1626,18 @@ def _rules_to_atoms(
                 )
                 if element_link is None:
                     element_link = GlossaryLink(text=who_text or cleaned_fragment)
+                element_span = _find_text_span(document_body or "", cleaned_fragment)
+                element_text_span = (
+                    TextSpan(
+                        revision_id=span_source or "unknown",
+                        start_char=element_span[0],
+                        end_char=element_span[1],
+                    )
+                    if element_span
+                    else None
+                )
+                if cleaned_fragment and element_text_span is None and span_source and span_source != "unknown":
+                    raise ValueError(f"missing TextSpan for rule element: {cleaned_fragment[:80]}")
                 rule_atom.elements.append(
                     RuleElement(
                         role=role,
@@ -1581,6 +1646,8 @@ def _rules_to_atoms(
                         glossary=element_link,
                         references=fragment_refs,
                         atom_type="element",
+                        text_span=element_text_span,
+                        span_status="ok" if element_text_span else "missing_span",
                     )
                 )
         for reference in rule_references:
@@ -2974,7 +3041,12 @@ def build_document(
     for prov in provisions:
         prov.ensure_rule_atoms()
         rules = extract_rules(prov.text)
-        rule_atoms = _rules_to_atoms(rules, glossary_registry=registry)
+        rule_atoms = _rules_to_atoms(
+            rules,
+            glossary_registry=registry,
+            document_body=body,
+            span_source=_span_source_for_document(metadata),
+        )
         prov.rule_atoms.extend(rule_atoms)
         prov.sync_legacy_atoms()
         existing = _dedupe_principles(prov.principles)

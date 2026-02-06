@@ -52,8 +52,10 @@ def evaluate_promotions(
     normalized_labels = _build_normalized_labels(document, ordered)
     repeated_labels = _find_repeated_labels(ordered, normalized_labels, config)
 
-    for hypothesis in ordered:
+    for index, hypothesis in enumerate(ordered, start=1):
         hypothesis_record = hypothesis.to_record()
+        if hypothesis_record.get("span_id") is None:
+            hypothesis_record["span_id"] = index
         label = normalized_labels.get(id(hypothesis), "")
         if not label:
             receipts.append(
@@ -163,8 +165,12 @@ def _build_normalized_labels(
     return labels
 
 
+def _span_source_for_document(document: Document) -> str:
+    return document.metadata.canonical_id or document.metadata.citation or "unknown"
+
+
 def _span_text(document: Document, hypothesis: SpanRoleHypothesis) -> str:
-    if hypothesis.span_source != "body_char":
+    if hypothesis.span_source != _span_source_for_document(document):
         return ""
     return document.body[hypothesis.span_start : hypothesis.span_end]
 
@@ -207,7 +213,7 @@ def _has_modal_nearby(
     hypothesis: SpanRoleHypothesis,
     config: PromotionConfig,
 ) -> bool:
-    if hypothesis.span_source != "body_char":
+    if hypothesis.span_source != _span_source_for_document(document):
         return False
     window = config.modal_window_chars()
     start = max(0, hypothesis.span_start - window)
@@ -221,11 +227,9 @@ def _is_blocked_by_signal(
     signal_hypotheses: Sequence[SpanSignalHypothesis],
 ) -> List[SpanSignalHypothesis]:
     blocked = []
-    if hypothesis.span_source != "body_char":
+    if not hypothesis.span_source:
         return blocked
     for signal in signal_hypotheses:
-        if signal.signal_type not in {"encoding_loss", "ocr_uncertain"}:
-            continue
         if signal.span_source != hypothesis.span_source:
             continue
         if _overlaps(hypothesis.span_start, hypothesis.span_end, signal.span_start, signal.span_end):

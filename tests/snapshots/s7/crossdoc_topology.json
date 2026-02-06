@@ -1,5 +1,5 @@
 {
-  "version": "obligation.crossdoc.v1",
+  "version": "obligation.crossdoc.v2",
   "nodes": [
     {
       "obl_id": "7dc0def9600a7b106a89d58d6a6f9a891f8e621f",
@@ -7,20 +7,24 @@
       "clause_id": "doc-old-clause-0"
     },
     {
-      "obl_id": "b1d74dce0798267b4b3809497efc51a1f2ecbdcc",
+      "obl_id": "e6db050b3febf6513e2f50064291519cf26128b7",
       "source_id": "doc-new",
       "clause_id": "doc-new-clause-0"
     }
   ],
   "edges": [
     {
-      "kind": "supersedes",
-      "from": "b1d74dce0798267b4b3809497efc51a1f2ecbdcc",
+      "kind": "repeals",
+      "from": "e6db050b3febf6513e2f50064291519cf26128b7",
       "to": "7dc0def9600a7b106a89d58d6a6f9a891f8e621f",
-      "text": "supersede",
+      "text": "repeal",
       "provenance": {
         "source_id": "doc-new",
-        "clause_id": "doc-new-clause-0"
+        "clause_id": "doc-new-clause-0",
+        "span": [
+          0,
+          11
+        ]
       }
     }
   ]

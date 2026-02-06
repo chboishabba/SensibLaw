@@ -1,13 +1,13 @@
 # TODO
 
-- Milestone (current): **Sprint S7 — Span Authority & Provenance Closure** — planned.
-- Previous milestone: **Sprint S6 — Normative Reasoning Surfaces (Non-Judgmental)** — ✅ complete.
-- Active sprint focus: make every interpretive artifact span-traceable without adding reasoning.
+- Milestone (current): **Sprint S9 — Human Interfaces (Read-Only, Trust-First)** — ✅ complete.
+- Previous milestone: **Sprint S8 — Cross-Document Norm Topology (Non-Judgmental)** — ✅ complete.
+- Active sprint focus: preserve span authority + read-only surfaces; no reasoning creep.
 
 ## S7–S9 (current arc)
-1) S7 — Span Authority & Provenance Closure (TextSpan contract, Layer 3 enforcement, promotion gate hardening)
-2) S8 — Cross-Document Norm Topology (non-judgmental graph, span-derived edges only)
-3) S9 — Human Interfaces (read-only, trust-first UI with span inspectors and diff views)
+1) S7 — Span Authority & Provenance Closure (TextSpan contract, Layer 3 enforcement, promotion gate hardening) — ✅ complete
+2) S8 — Cross-Document Norm Topology (non-judgmental graph, span-derived edges only) — ✅ complete
+3) S9 — Human Interfaces (read-only, trust-first UI with span inspectors and diff views) — ✅ complete
 
 ## Epistemic modes (doctrine)
 - Define explicit statuses: hypothesis, intention, projection, narrative, evidence, commitment.
@@ -34,11 +34,11 @@
     - Resolve TiRCorder `speakers` into `Actor` + detail/alias tables (keep `Actor` minimal).
     - Add finance tables (`accounts`, `transactions`, `transfers`) and link via `FinanceProvenance` + `EventFinanceLink`.
     - Adopt deterministic NLP + ingestion utilities (normalizers, matchers, rate-limited fetchers).
-  - Sprint 9 UI hardening (read-only, non-semantic):
-    - Add fixture-mode rendering for Text & Concepts, Knowledge Graph, Case Comparison tabs (query param + env overrides).
-    - Provide test fixtures under `tests/fixtures/ui` and unit checks for shape/forbidden language.
-    - Add Playwright smoke (opt-in) asserting fixtures render and no mutation controls/forbidden terms.
-    - Utilities tab: show “Labs / not covered by Sprint 9 invariants” banner; keep read-only.
+  - Sprint 9 UI hardening (read-only, non-semantic) — ✅ done:
+    - Fixture-mode rendering for Text & Concepts, Knowledge Graph, Case Comparison, Obligations tabs.
+    - Test fixtures under `tests/fixtures/ui` + forbidden language checks.
+    - Playwright smoke (opt-in) asserting fixture render + no mutation controls/forbidden terms.
+    - Utilities tab: “Labs / not covered by Sprint 9 invariants” banner; read-only.
   - Sources (ingestion) discipline:
     - Add AustLII SINO search adapter (deterministic URL builder + parser; rate-limited).
     - Add AustLII fetch adapter (HTML/PDF, provenance only, rate-limited).

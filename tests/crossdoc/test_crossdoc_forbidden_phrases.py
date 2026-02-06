@@ -17,12 +17,11 @@ def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
 @pytest.mark.parametrize(
     "phrase",
     [
-        "having regard to",
-        "consistent with",
-        "guided by",
-        "for the purposes of",
-        "as if",
-        "taken to",
+        "conflict with",
+        "overrides",
+        "prevails over",
+        "controls",
+        "conflicts with",
     ],
 )
 def test_forbidden_phrases_never_emit_edges(phrase):

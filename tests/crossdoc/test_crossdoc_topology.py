@@ -22,8 +22,8 @@ def _doc(body: str, refs: list[RuleReference], source_id: str) -> Document:
 
 
 def test_crossdoc_topology_snapshot(tmp_path):
-    # doc-new supersedes Old Act s1; doc-old holds the referenced clause.
-    body_new = "The minister must supersede section 1 of the Old Act."
+    # doc-new repeals Old Act s1; doc-old holds the referenced clause.
+    body_new = "The minister must repeal section 1 of the Old Act."
     ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
     body_old = "Section 1 must apply to all operators."
     ref_old = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"})
@@ -58,8 +58,8 @@ def test_phrase_without_reference_emits_no_edge():
     assert payload["edges"] == []  # phrase present but no reference identities
 
 
-def test_supersedes_edge_requires_reference_identity():
-    body_new = "The minister must supersede section 1 of the Old Act."
+def test_repeals_edge_requires_reference_identity():
+    body_new = "The minister must repeal section 1 of the Old Act."
     ref = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-new-clause-0"})
     body_old = "Section 1 applies to all operators."
     ref_old = RuleReference(work="Old Act", section="1", provenance={"clause_id": "doc-old-clause-0"})
@@ -68,16 +68,16 @@ def test_supersedes_edge_requires_reference_identity():
 
     payload = build_crossdoc_topology({"doc-new": doc_new, "doc-old": doc_old})
 
-    # One edge emitted (kind supersedes) with required provenance fields.
+    # One edge emitted (kind repeals) with required provenance fields.
     assert len(payload["edges"]) == 1
     edge = payload["edges"][0]
-    assert edge["kind"] == "supersedes"
+    assert edge["kind"] == "repeals"
     assert edge["provenance"]["source_id"] == "doc-new"
     assert edge["provenance"]["clause_id"].startswith("doc-new-clause-")
 
 
 def test_crossdoc_schema_compliance():
-    schema_path = Path("sensiblaw/schemas/obligation.crossdoc.v1.schema.yaml")
+    schema_path = Path("sensiblaw/schemas/obligation.crossdoc.v2.schema.yaml")
     schema = yaml.safe_load(schema_path.read_text())
     payload = json.loads(Path("tests/snapshots/s7/crossdoc_topology.json").read_text())
     jsonschema.validate(payload, schema)

@@ -1,0 +1,37 @@
+{
+  "version": "obligation.query.v1",
+  "results": [
+    {
+      "type": "obligation",
+      "modality": "must",
+      "clause_id": "doc-1-clause-0",
+      "actor": {
+        "text": "operator",
+        "normalized": "operator",
+        "span": [0, 1],
+        "content_span": [0, 1],
+        "clause_id": "doc-1-clause-0"
+      },
+      "action": {
+        "text": "notify",
+        "normalized": "notify",
+        "span": [2, 3],
+        "content_span": [2, 3],
+        "clause_id": "doc-1-clause-0"
+      },
+      "object": null,
+      "reference_identities": ["REF-OLD-ACT-S1"],
+      "conditions": [],
+      "scopes": [],
+      "lifecycle": [],
+      "span": [0, 4],
+      "clause_text": "operator must notify regulator",
+      "signal_hypotheses": [],
+      "promotion_receipts": [],
+      "provenance": {
+        "source_id": "doc-1",
+        "clause_id": "doc-1-clause-0"
+      }
+    }
+  ]
+}

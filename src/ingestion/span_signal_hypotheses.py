@@ -14,19 +14,19 @@ _PAGE_NUMBER_PATTERN = re.compile(r"(?m)^\s*\d{1,4}\s*$")
 _ALL_CAPS_PATTERN = re.compile(r"\b[A-Z]{4,}\b")
 
 
-def build_span_signal_hypotheses(text: str) -> List[SpanSignalHypothesis]:
+def build_span_signal_hypotheses(text: str, *, span_source: str = "unknown") -> List[SpanSignalHypothesis]:
     """Build deterministic signal hypotheses from text spans."""
 
     if not text:
         return []
 
     hypotheses: List[SpanSignalHypothesis] = []
-    hypotheses.extend(_extract_non_ascii(text))
-    hypotheses.extend(_extract_encoding_loss(text))
-    hypotheses.extend(_extract_list_markers(text))
-    hypotheses.extend(_extract_punctuation_damage(text))
-    hypotheses.extend(_extract_layout_artifacts(text))
-    hypotheses.extend(_extract_visual_emphasis(text))
+    hypotheses.extend(_extract_non_ascii(text, span_source))
+    hypotheses.extend(_extract_encoding_loss(text, span_source))
+    hypotheses.extend(_extract_list_markers(text, span_source))
+    hypotheses.extend(_extract_punctuation_damage(text, span_source))
+    hypotheses.extend(_extract_layout_artifacts(text, span_source))
+    hypotheses.extend(_extract_visual_emphasis(text, span_source))
 
     return sorted(
         hypotheses,
@@ -34,7 +34,7 @@ def build_span_signal_hypotheses(text: str) -> List[SpanSignalHypothesis]:
     )
 
 
-def _extract_non_ascii(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_non_ascii(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for idx, char in enumerate(text):
         if char in {"\n", "\r", "\t"}:
             continue
@@ -42,7 +42,7 @@ def _extract_non_ascii(text: str) -> Iterable[SpanSignalHypothesis]:
             yield SpanSignalHypothesis(
                 span_start=idx,
                 span_end=idx + 1,
-                span_source="body_char",
+                span_source=span_source,
                 signal_type="non_ascii_glyph",
                 extractor="non_ascii_scan",
                 evidence=char,
@@ -51,12 +51,12 @@ def _extract_non_ascii(text: str) -> Iterable[SpanSignalHypothesis]:
             )
 
 
-def _extract_encoding_loss(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_encoding_loss(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for match in re.finditer(r"\uFFFD", text):
         yield SpanSignalHypothesis(
             span_start=match.start(),
             span_end=match.end(),
-            span_source="body_char",
+            span_source=span_source,
             signal_type="encoding_loss",
             extractor="replacement_char_scan",
             evidence="\uFFFD",
@@ -64,7 +64,7 @@ def _extract_encoding_loss(text: str) -> Iterable[SpanSignalHypothesis]:
         )
 
 
-def _extract_list_markers(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_list_markers(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for match in _LIST_MARKER_PATTERN.finditer(text):
         marker = match.group("marker")
         if not marker:
@@ -74,7 +74,7 @@ def _extract_list_markers(text: str) -> Iterable[SpanSignalHypothesis]:
         yield SpanSignalHypothesis(
             span_start=start,
             span_end=end,
-            span_source="body_char",
+            span_source=span_source,
             signal_type="list_marker",
             extractor="list_marker_regex",
             evidence=marker.strip(),
@@ -82,12 +82,12 @@ def _extract_list_markers(text: str) -> Iterable[SpanSignalHypothesis]:
         )
 
 
-def _extract_punctuation_damage(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_punctuation_damage(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for match in _PUNCT_DAMAGE_PATTERN.finditer(text):
         yield SpanSignalHypothesis(
             span_start=match.start(),
             span_end=match.end(),
-            span_source="body_char",
+            span_source=span_source,
             signal_type="punctuation_damage",
             extractor="punctuation_repeat_regex",
             evidence=match.group(0),
@@ -95,12 +95,12 @@ def _extract_punctuation_damage(text: str) -> Iterable[SpanSignalHypothesis]:
         )
 
 
-def _extract_layout_artifacts(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_layout_artifacts(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for match in _PAGE_NUMBER_PATTERN.finditer(text):
         yield SpanSignalHypothesis(
             span_start=match.start(),
             span_end=match.end(),
-            span_source="body_char",
+            span_source=span_source,
             signal_type="layout_artifact",
             extractor="page_number_line",
             evidence=match.group(0).strip(),
@@ -108,7 +108,7 @@ def _extract_layout_artifacts(text: str) -> Iterable[SpanSignalHypothesis]:
         )
 
 
-def _extract_visual_emphasis(text: str) -> Iterable[SpanSignalHypothesis]:
+def _extract_visual_emphasis(text: str, span_source: str) -> Iterable[SpanSignalHypothesis]:
     for match in _ALL_CAPS_PATTERN.finditer(text):
         token = match.group(0)
         if token.isnumeric():
@@ -116,7 +116,7 @@ def _extract_visual_emphasis(text: str) -> Iterable[SpanSignalHypothesis]:
         yield SpanSignalHypothesis(
             span_start=match.start(),
             span_end=match.end(),
-            span_source="body_char",
+            span_source=span_source,
             signal_type="visual_emphasis",
             extractor="all_caps_token",
             evidence=token,

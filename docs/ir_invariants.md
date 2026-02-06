@@ -11,7 +11,7 @@ These invariants define the non‑negotiable rules for storing and referencing t
    Every higher‑level object (citations, mentions, concepts, rules, graph nodes/edges) references `(doc_id, token_start, token_end)` or an equivalent span; any stored text is debug/cache‑only and discardable.
 
 3. **Layer 3 SpanRoleHypothesis only**  
-   Any pre‑ontological artifact (role hypotheses, noun candidates, span flags) must be stored as a span with `(doc_id, rev_id, span_start, span_end, span_source)` where `span_source` declares token- or char-based offsets. It may carry `role_hypothesis`, `extractor`, and `confidence`, but must not assert cross‑document identity or overwrite text. Promotion to ontology requires explicit, auditable rules.
+   Any pre‑ontological artifact (role hypotheses, noun candidates, span flags) must be stored as a span with `(revision_id, span_start, span_end)` where `revision_id` is recorded in `span_source`. It may carry `role_hypothesis`, `extractor`, and `confidence`, but must not assert cross‑document identity or overwrite text. Promotion to ontology requires explicit, auditable rules.
 
 4. **No duplicate concepts**  
    A normalized concept key maps to exactly one concept row/node. New documents add mentions, not new concept objects for the same key.

@@ -117,8 +117,8 @@ a structured, linked, machine-readable backbone.
 | [Analytical Layers](docs/analytical_layers.md) | [API](docs/api.md) | [Automation Intelligence](docs/automation_intelligence.md) | [CI Acceptance](docs/ci_acceptance.md) |
 | [CLI Examples](docs/cli_examples.md) | [Corpus Setup](docs/corpus_setup.md) | [Corrections UI](docs/corrections_ui.md) | [End to End](docs/end_to_end.md) |
 | [Fuzzing](docs/fuzzing.md) | [Goldset Harness](docs/goldset_harness.md) | [Graph](docs/graph.md) | [Ingestion](docs/ingestion.md) |
-| [Human Tools Integration](docs/human_tools_integration.md) | [Multi-Modal Doctrine](docs/multimodal_system_doctrine.md) | [Negotiation Tree](docs/negotiation_tree.md) | [NLP Pipelines](docs/nlp_pipelines.md) |
-| [Parity View](docs/parity_view.md) |  |  |  |
+| [Human Tools Integration](docs/human_tools_integration.md) | [Multi-Modal Doctrine](docs/multimodal_system_doctrine.md) | [Panopticon Refusal](docs/panopticon_refusal.md) | [User Stories](docs/user_stories.md) |
+| [Parity View](docs/parity_view.md) | [Lexeme Layer](docs/lexeme_layer.md) | [Media Ethics UI](docs/media_ethics_ui.md) |  |
 | [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmaps/roadmap.md) | [DB Roadmap](docs/roadmaps/DB_ROADMAP.md) |
 | [Versioning](docs/versioning.md) | [Research Paper](PAPER.md) | [Database Design Document](DATABASE.md) | [Schema](docs/schema.md) |
 | [Todo](todo.md) | [streamline - data visualisation](docs/roadmaps/TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |

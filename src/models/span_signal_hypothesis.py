@@ -16,6 +16,7 @@ class SpanSignalHypothesis:
     evidence: Optional[str] = None
     confidence: Optional[float] = None
     metadata: Optional[Dict[str, Any]] = None
+    span_id: Optional[int] = None
 
     def to_record(self) -> Dict[str, Any]:
         """Serialize to a record suitable for storage."""
@@ -24,6 +25,7 @@ class SpanSignalHypothesis:
             "span_start": self.span_start,
             "span_end": self.span_end,
             "span_source": self.span_source,
+            "span_id": self.span_id,
             "signal_type": self.signal_type,
             "extractor": self.extractor,
             "evidence": self.evidence,

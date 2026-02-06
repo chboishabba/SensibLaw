@@ -63,6 +63,41 @@ def test_rules_to_atoms_includes_party_who_text_and_gloss(monkeypatch):
     assert legacy_element.glossary_id == element.glossary_id
 
 
+def test_rules_to_atoms_attaches_text_span_with_revision_id(monkeypatch):
+    monkeypatch.setattr("src.pdf_ingest.lookup_gloss", lambda term: None)
+
+    rule = Rule(
+        actor="A person",
+        modality="must",
+        action="pay damages",
+        party="person",
+        who_text="A person",
+        elements={"object": ["damages"]},
+    )
+    body = "A person must pay damages."
+
+    rule_atoms = _rules_to_atoms(
+        [rule],
+        document_body=body,
+        span_source="doc-1",
+    )
+
+    structured = rule_atoms[0]
+    assert structured.text_span is not None
+    assert structured.text_span.revision_id == "doc-1"
+    assert (
+        body[structured.text_span.start_char : structured.text_span.end_char]
+        == structured.text
+    )
+
+    element = structured.elements[0]
+    assert element.text_span is not None
+    assert (
+        body[element.text_span.start_char : element.text_span.end_char]
+        == element.text
+    )
+
+
 def test_element_atoms_fall_back_to_who_text_when_no_gloss(monkeypatch):
     monkeypatch.setattr("src.pdf_ingest.lookup_gloss", lambda term: None)
 

@@ -20,6 +20,10 @@ def _make_document() -> Document:
     return Document(meta, body)
 
 
+def _span_source(doc: Document) -> str:
+    return doc.metadata.canonical_id or doc.metadata.citation or "unknown"
+
+
 def test_evaluate_promotions_defined_term() -> None:
     doc = _make_document()
     hypotheses = build_span_role_hypotheses(doc)
@@ -36,7 +40,7 @@ def test_signal_blocks_promotion() -> None:
     signal = SpanSignalHypothesis(
         span_start=hypotheses[0].span_start,
         span_end=hypotheses[0].span_end,
-        span_source="body_char",
+        span_source=_span_source(doc),
         signal_type="ocr_uncertain",
     )
     _candidates, receipts = evaluate_promotions(doc, hypotheses, [signal])

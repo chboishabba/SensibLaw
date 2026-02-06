@@ -31,10 +31,15 @@ This document defines the **non-semantic, deterministic contracts** for the Stre
 - Renders: added/removed/unchanged obligation IDs exactly as provided; shows IDs verbatim.
 - No scoring, no “stronger/weaker/prevails”.
 
+### Obligations (fixture contract)
+- Input: `obligations_fixture` query param or `SENSIBLAW_OBLIGATIONS_FIXTURE`.
+- Renders: obligation payloads verbatim with span inspector (read-only).
+- Optional sections (if present): signal hypotheses, promotion receipts.
+- No edits, approvals, or semantic labels.
+
 ### Utilities
 - Remains a labs surface; must display a banner that it is **not** covered by Sprint 9 invariants and performs no mutations.
 
 ## Testing expectations
 - Unit: fixture shape checks (counts, citations present, forbidden terms absent).
 - Playwright (opt-in via `RUN_PLAYWRIGHT=1`): load page with fixture query params; assert each tab renders fixture data, has no mutation controls, and contains no forbidden language.
-

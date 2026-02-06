@@ -21,6 +21,7 @@ def test_tabs_render_fixtures():
         f"{base_url}?graph_fixture=knowledge_graph_minimal.json"
         "&case_fixture=case_comparison_minimal.json"
         "&concepts_fixture=concepts_minimal.json"
+        "&obligations_fixture=obligations_minimal.json"
     )
 
     with playwright.sync_playwright() as pw:
@@ -32,6 +33,11 @@ def test_tabs_render_fixtures():
         page.get_by_role("tab", name="Text & Concepts").click()
         expect(page.get_by_text("Fixture mode", exact=False)).to_be_visible()
         expect(page.get_by_text("Concept matches")).to_be_visible()
+
+        # Obligations (fixture mode)
+        page.get_by_role("tab", name="Obligations").click()
+        expect(page.get_by_text("Fixture mode", exact=False)).to_be_visible()
+        expect(page.get_by_text("Obligations (read-only)", exact=False)).to_be_visible()
 
         # Knowledge Graph (fixture mode)
         page.get_by_role("tab", name="Knowledge Graph").click()

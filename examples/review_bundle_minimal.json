@@ -17,7 +17,7 @@
     "results": []
   },
   "topology": {
-    "version": "obligation.crossdoc.v1",
+    "version": "obligation.crossdoc.v2",
     "nodes": [
       {
         "obl_id": "obl-abc123",
