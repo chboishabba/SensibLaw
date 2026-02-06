@@ -1,5 +1,8 @@
 # Sprint 9 Proposal — Operational Auditability at Scale (Non-Reasoning)
 
+Note: this proposal is superseded by `docs/roadmaps/sprint_s9.md`.
+Keep this file for historical context only.
+
 ## Goal (restated)
 Enable human review, comparison, and export of existing obligation artifacts **without** adding reasoning, inference, or semantic mutation.
 

@@ -31,6 +31,7 @@ Close S6 (done) and plan S7 surfaces (interfaces, activation metadata, cross-doc
 - Added SpanSignalHypothesis spec and promotion gate evaluation scaffolding (receipts + storage tables).
 - Documented the four Layer 3 hypothesis families (role, structure, alignment, signal).
 - Implemented SpanSignalHypothesis extractors for basic glyph/layout signals.
+- docTR profiling notes captured for SensibLaw root PDFs (pdfminer: 515 pages, 1,623,269 chars) with a follow-up timing run scheduled for 2026-02-06.
 
 ## Open questions
 - Do we need richer fixtures for multi-verb phrases or nested scopes as we exercise S6 queries/views?

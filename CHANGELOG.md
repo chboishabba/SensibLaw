@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Docs: add S7–S9 roadmaps (span authority, cross-doc topology, read-only UI).
+- Docs: add human tools integration guidance (Logseq/Obsidian boundaries).
+- Docs: add multi-modal system doctrine and link it from core docs.
 - Docs: define Layer 3 SpanRoleHypothesis contract (ADR + IR invariants).
 - Docs: add TODOs for Layer 3 span storage, promotion gates, regeneration tests.
 - Storage: add `span_role_hypotheses` table and helpers in `VersionedStore`.

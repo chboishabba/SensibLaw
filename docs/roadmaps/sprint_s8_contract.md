@@ -1,5 +1,8 @@
 # Sprint 8 Contract — Human Review & Audit (Non-Semantic)
 
+Note: this contract is superseded by `docs/roadmaps/sprint_s8.md` and `docs/roadmaps/sprint_s9.md`.
+Keep this file for historical context only.
+
 Scope: enable humans to inspect, annotate, and export obligation state without adding reasoning or compliance logic.
 
 ## Allowed

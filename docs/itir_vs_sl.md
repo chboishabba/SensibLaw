@@ -44,6 +44,8 @@ Differences are policy and enforcement, not architecture.
 - Single canonical parser/tokeniser.
 - SL is the “strict profile”: deterministic, auditable, no inference; legal-specific enrichers gated by mode.
 - ITIR/TIRC are “interpretive profiles”: richer analyses, but outputs must reference SL spans and remain reversible.
+- Multi-modal operation is allowed (assistive, intent-tracking, scheduling) so long
+  as epistemic status is explicit and authority boundaries are enforced.
 
 ## Safe handshake object
 - **Mention:** `(doc_id, span, role, confidence, source)`.

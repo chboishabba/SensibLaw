@@ -1,10 +1,19 @@
 # TODO
 
-- Milestone (current): **Sprint S6 — Normative Reasoning Surfaces (Non-Judgmental)** — in progress.
-- Previous milestone: **Sprint S5 — Normative Structure & Reach** — ✅ complete.
-- Active sprint focus: deliver S6 read-only surfaces over obligations without adding reasoning/ontology/ML.
+- Milestone (current): **Sprint S7 — Span Authority & Provenance Closure** — planned.
+- Previous milestone: **Sprint S6 — Normative Reasoning Surfaces (Non-Judgmental)** — ✅ complete.
+- Active sprint focus: make every interpretive artifact span-traceable without adding reasoning.
 
-- S6 sequencing (execute in order):
+## S7–S9 (current arc)
+1) S7 — Span Authority & Provenance Closure (TextSpan contract, Layer 3 enforcement, promotion gate hardening)
+2) S8 — Cross-Document Norm Topology (non-judgmental graph, span-derived edges only)
+3) S9 — Human Interfaces (read-only, trust-first UI with span inspectors and diff views)
+
+## Epistemic modes (doctrine)
+- Define explicit statuses: hypothesis, intention, projection, narrative, evidence, commitment.
+- Ensure any UI surfaces show status and never auto-promote.
+
+## S6 sequencing (completed)
   1) S6.1 Obligation Query API (read-only filters by actor/action/object/scope/lifecycle; respect flags) — ✅ done
   2) S6.2 Explanation & trace surfaces (atoms → spans, deterministic ordering) — ✅ done
   3) S6.3 Cross-version obligation alignment (unchanged/modified/added/removed with metadata deltas) — ✅ done
@@ -52,6 +61,8 @@
     - [x] Document Layer 3 families explicitly (Role, Structure, Alignment, Signal).
     - [x] Add Layer 3 regeneration tests (drop spans, rebuild, compare metadata + ordering).
     - [ ] Add SL/ITIR overlay boundary contract (targets, layers, evidence pointers) and keep it mutation-free.
+    - [ ] Sync SL/ITIR overlay boundary contract with SB forbidden-field list and red-team boundary rules.
+    - [ ] Define SB activity_event ingest contract (read-only, immutable boundaries, annotation-only overlays).
     - [x] Add corpus characterisation doc tying MVD/rr5 regimes to SL vs ITIR.
     - [x] Add static guard test preventing `tokenize_simple` creep beyond metrics modules.
     - [x] Document tokenizer/sentence/structure contract and AIF-core note (`docs/tokenizer_contract.md`).
