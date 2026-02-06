@@ -41,3 +41,6 @@
 - Tests: add timeline ribbon conservation property tests.
 - Tests: add ribbon UI conservation Playwright spec (gated by `RIBBON_DEMO_URL`).
 - Ribbon: add lens DSL evaluator + phase-regime lens packs scaffold.
+- Ribbon: add Streamlit ribbon demo tab with selector contract output.
+- Ribbon: add ribbon compute helper for segment mass/width normalization.
+- Ingest: add `--context-overlays` option to persist context_fields alongside PDFs.

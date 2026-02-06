@@ -1,6 +1,8 @@
 """PDF ingestion utilities producing :class:`Document` objects."""
 
 import argparse
+import json
+import sqlite3
 import calendar
 import hashlib
 import json
@@ -3110,6 +3112,7 @@ def iter_process_pdf(
     document_date: Optional[date] = None,
     db_path: Optional[Path] = None,
     doc_id: Optional[int] = None,
+    context_overlays: Optional[List[dict]] = None,
     break_after_chars: Optional[int] = None,
 ) -> Iterator[Tuple[str, Dict[str, Any]]]:
     """Yield progress updates for :func:`process_pdf` steps.
@@ -3199,6 +3202,18 @@ def iter_process_pdf(
         finally:
             store.close()
 
+    if db_path and context_overlays:
+        from sensiblaw.db import MigrationRunner
+        from sensiblaw.ingest.context_overlays import ingest_context_fields
+
+        connection = sqlite3.connect(db_path)
+        try:
+            MigrationRunner(connection).apply_all()
+            ingest_context_fields(connection, context_overlays)
+            yield ("context_overlays", {"count": len(context_overlays)})
+        finally:
+            connection.close()
+
     save_document(doc, out)
     yield (
         "save",
@@ -3216,6 +3231,7 @@ def process_pdf(
     document_date: Optional[date] = None,
     db_path: Optional[Path] = None,
     doc_id: Optional[int] = None,
+    context_overlays: Optional[List[dict]] = None,
 ) -> Tuple[Document, Optional[int]]:
     """Extract text, parse sections, run rule extraction and persist."""
 
@@ -3231,6 +3247,7 @@ def process_pdf(
         document_date=document_date,
         db_path=db_path,
         doc_id=doc_id,
+        context_overlays=context_overlays,
     ):
         if stage == "build":
             result_doc = payload.get("document")
@@ -3245,6 +3262,17 @@ def process_pdf(
         raise RuntimeError("PDF ingestion did not yield a document")
 
     return result_doc, stored_doc_id
+
+
+def _load_context_overlays(path: Path) -> List[dict]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        overlays = payload.get("overlays", [])
+    else:
+        overlays = payload
+    if not isinstance(overlays, list):
+        raise ValueError("Context overlays must be a list or {overlays:[...]} object")
+    return [dict(item) for item in overlays]
 
 
 def main() -> None:
@@ -3270,7 +3298,16 @@ def main() -> None:
             "Defaults to data/corpus/ingest.sqlite; pass '' to skip DB persistence."
         ),
     )
+    parser.add_argument(
+        "--context-overlays",
+        type=Path,
+        help="Optional JSON file containing context overlay records to store.",
+    )
     args = parser.parse_args()
+
+    context_overlays = None
+    if args.context_overlays:
+        context_overlays = _load_context_overlays(args.context_overlays)
 
     doc, _ = process_pdf(
         args.pdf,
@@ -3280,6 +3317,7 @@ def main() -> None:
         title=args.title,
         cultural_flags=args.cultural_flags,
         db_path=args.db_path,
+        context_overlays=context_overlays,
     )
     print(doc.to_json())
 

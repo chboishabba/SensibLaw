@@ -97,3 +97,15 @@ stores them in `DocumentMetadata.compression_stats`:
 - `tokenizer_id`
 
 These stats are deterministic, non-semantic, and span-safe.
+
+## Context overlays (non-authoritative)
+
+Optional context overlays (weather, market, astronomy, symbolic) can be ingested
+alongside documents. Overlays are stored in `context_fields` via
+`sensiblaw.ingest.context_overlays.ingest_context_fields` and are **never**
+interpreted as document truth.
+
+Recommended usage:
+- Ingest overlays separately from document parsing.
+- Preserve provenance and loss profile in each overlay record.
+- Do not auto-merge overlays across domains without explicit user choice.

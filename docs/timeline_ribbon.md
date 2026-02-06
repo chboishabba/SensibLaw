@@ -242,3 +242,12 @@ narrative coercion while remaining inspectable and auditable.
 
 See `itir-ribbon/ui_contract.md` for the required `data-testid`/`data-*` attributes
 used by conservation tests.
+
+## Demo + Playwright
+
+A Streamlit ribbon demo should expose the selector contract above and be
+addressable via `RIBBON_DEMO_URL` when running Playwright:
+
+- Playwright test: `SensibLaw/playwright/tests/ribbon.conservation.spec.ts`
+- Env var: `RIBBON_DEMO_URL=http://127.0.0.1:<port>/?tab=Ribbon`
+- The demo must support lens switching and emit `data-width-norm` for segments.

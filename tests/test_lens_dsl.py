@@ -24,7 +24,7 @@ def test_evaluate_const_signal_blend():
     }
     signals = {"a": [1.0, 2.0, 3.0]}
     rho = evaluate_rho(lens, signals)
-    assert rho == [1.4, 2.0, 2.6]
+    assert rho == pytest.approx([1.4, 2.0, 2.6])
 
 
 def test_mask_zeroes_values():

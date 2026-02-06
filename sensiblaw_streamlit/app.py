@@ -10,6 +10,7 @@ from sensiblaw_streamlit.tabs import (
     documents,
     obligations,
     knowledge_graph,
+    ribbon,
     text_concepts,
     utilities,
 )
@@ -27,7 +28,16 @@ def configure_page() -> None:
 def main() -> None:
     configure_page()
 
-    documents_tab, obligations_tab, text_tab, graph_tab, comparison_tab, collections_tab, utilities_tab = st.tabs(
+    (
+        documents_tab,
+        obligations_tab,
+        text_tab,
+        graph_tab,
+        comparison_tab,
+        collections_tab,
+        ribbon_tab,
+        utilities_tab,
+    ) = st.tabs(
         [
             "Documents",
             "Obligations",
@@ -35,6 +45,7 @@ def main() -> None:
             "Knowledge Graph",
             "Case Comparison",
             "Collections",
+            "Ribbon",
             "Utilities",
         ]
     )
@@ -51,6 +62,8 @@ def main() -> None:
         case_comparison.render()
     with collections_tab:
         collections.render()
+    with ribbon_tab:
+        ribbon.render()
     with utilities_tab:
         utilities.render()
 

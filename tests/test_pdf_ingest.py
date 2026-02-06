@@ -1,5 +1,6 @@
 import importlib
 import json
+import sqlite3
 import sys
 import types
 from pathlib import Path
@@ -151,3 +152,40 @@ def test_iter_process_pdf_emits_compression_stats(tmp_path):
     assert document.metadata.compression_stats == compute_compression_stats(
         document.body
     ).to_dict()
+
+
+def test_process_pdf_ingests_context_overlays(tmp_path):
+    pdf_ingest = _load_pdf_ingest([[_make_text_container("Heading 1\nBody")]])
+
+    pdf_path = tmp_path / "overlay.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4")
+    db_path = tmp_path / "ingest.sqlite"
+
+    overlays = [
+        {
+            "context_id": "ctx-1",
+            "context_type": "context_field.weather",
+            "source": "local",
+            "retrieved_at": "2026-02-06T00:00:00Z",
+            "time_start": "2026-02-06T00:00:00Z",
+            "time_end": "2026-02-06T01:00:00Z",
+            "payload": {"temp_c": 32.1},
+            "provenance": {"ingest": "test"},
+            "symbolic": False,
+        }
+    ]
+
+    pdf_ingest.process_pdf(pdf_path, db_path=db_path, context_overlays=overlays)
+
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            "SELECT context_id, context_type FROM context_fields WHERE context_id = ?",
+            ("ctx-1",),
+        ).fetchone()
+    finally:
+        connection.close()
+
+    assert row is not None
+    assert row["context_type"] == "context_field.weather"
