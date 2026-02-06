@@ -67,12 +67,21 @@ are available.
 `src/pdf_ingest.py` writes JSON artifacts by default:
 
 - Output JSON path: `data/pdfs/<pdf_stem>.json` (relative to repo root)
-- SQLite persistence: **only when** `--db-path` is provided
+- SQLite persistence: defaults to `data/corpus/ingest.sqlite`
 
-There is no default SQLite path. To persist into a database, pass:
+Notes:
+- Pass a custom DB with `--db-path /tmp/my_ingest.sqlite`.
+- Pass an empty string `--db-path ''` to skip DB persistence and emit JSON only.
 
 ```
-python -m src.pdf_ingest path/to.pdf --db-path data/corpus/sensiblaw.sqlite
+# Default (JSON + DB at data/corpus/ingest.sqlite)
+python -m src.pdf_ingest path/to.pdf
+
+# Custom DB
+python -m src.pdf_ingest path/to.pdf --db-path /tmp/custom.sqlite
+
+# JSON-only (no DB write)
+python -m src.pdf_ingest path/to.pdf --db-path ''
 ```
 
 ## Compression statistics at ingest
