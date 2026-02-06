@@ -73,3 +73,6 @@ fail_under = 80
 markers = [
     "redflag: non-negotiable guardrail tests that must stay green (no reasoning, no compliance, no identity drift)",
 ]
+pythonpath = [
+    "src",
+]

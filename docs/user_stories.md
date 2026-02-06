@@ -198,6 +198,41 @@ overwrite individual timelines, and admins cannot “clean up” history.
 - No real-time authority or recommendations.
 - Absence-as-signal is mandatory.
 - Epistemic separation enforced (hypothesis ≠ commitment).
+
+## Trauma-affected primary user (anonymised)
+
+> Persona note (non-user-facing): primary user lives with long-term psychological
+> injury; memory can be non-linear and fragmented; forced coherence or loss of
+> context is itself harmful. The system must privilege safety and agency over
+> completeness or speed.
+
+### ITIR
+- Record without explaining: user can log an event fragment with no motive,
+  interpretation, or emotional label; "unknown / not ready" is terminal.
+- Preserve context with gaps: approximate dates, relative ordering, and
+  confidence flags are accepted; no auto-fill or timeline coercion.
+- Safe review: progressive disclosure by default; no surprise expansion; no
+  auto-surfaced "related" events.
+- Coexisting truths: conflicting accounts can persist without reconciliation or
+  canonical preference.
+
+### SB
+- Patterns without conclusions: optional overlays for repetition/proximity;
+  never diagnoses, moral claims, or causal assertions.
+- Anti case-study: no automatic summaries or "insights"; any synthesis requires
+  explicit action and declares omissions.
+
+### Cross-suite (Right to Context)
+- Prevent decontextualized sharing: exports include context envelopes by
+  default; removing context triggers warnings and immutable logs.
+- Right to not know: "unknown" is a valid end state; no reminders to "complete"
+  stories; no progress metrics tied to completeness; no nudging toward
+  interpretation.
+
+### Explicit non-goals
+- No diagnosis, intent inference, timeline enforcement, credibility ranking, or
+  clarity-over-safety optimization.
+- No preference for institutional readability over user agency.
 - Cross-agency fusion is opt-in, delayed, and non-reversible by default.
 
 ## Modern org stack (dev → team → CEO → finance)
@@ -375,3 +410,42 @@ overwrite individual timelines, and admins cannot “clean up” history.
 - No outcome suggestions or “similar case” surfacing.
 - No predictive appeal success or public reaction modeling.
 - No judge consistency scoring or argument ranking.
+
+
+## Context fields (weather / market / astronomy / astrology)
+
+Principle: external fields of force, not facts about the user. Align by time/place only; never drive inference, advice, alerts, or prioritisation.
+
+- Weather: optional band of observed readings; no behavioural claims (e.g., "heat caused...").
+- Market: index/volatility strips only; no portfolio inference, profit framing, or nudges; label "public market context (non-personal)".
+- Astronomy: sunrise/sunset/moon glyphs; optional shading; never prescriptive.
+- Astrology: symbolic overlay, opt-in, visual-only, labeled "symbolic / non-causal"; never auto-attached to events.
+- Exports/summaries must declare whether context fields are included/excluded; removing context logs a loss entry.
+
+## Explicit non-goals (context & interpretation)
+- No causal language ("caused, influenced, impacted") in context panels.
+- No risk/advice/diagnosis derived from context fields.
+- No automatic linkage of symbolic overlays to events.
+
+
+## Plural temporal/knowledge users (farmer, symbolic cycles)
+
+### Farmer
+- Uses seasons/phenology, distrusts "insights"; enables LES overlays for slow variables (rainfall memory, frost windows, heat load) and optional regional Indigenous seasonal calendars.
+- SB entries: situated actions (“delayed planting”, “moved stock”) stamped with LES snapshot; no system explanation.
+- ITIR: browse by season; replay environment alongside actions without advice.
+
+### Symbolic/astrology-oriented user
+- Enables astronomical state and optional symbolic calendar (opt-in, labeled non-causal).
+- SB holds self-authored meaning only (“felt unsettled”, “waited”); system never links symbols to behaviour.
+- ITIR: overlays symbolic cycles parallel to events; togglable; no fusion.
+
+### Same person is both
+- LES hosts multiple models side-by-side (meteorological, agro-ecological, Indigenous seasonal, symbolic) without merging or prioritising.
+- SB logs actions/notes without forced justification; ambiguity allowed.
+- ITIR replays time with multiple models visible; user notices patterns, system asserts none.
+
+### Anti-collapse rules
+- No causal/normative claims tying context to behaviour (e.g., “because Mercury retrograde”, “productivity dropped due to drought”).
+- No merging of Indigenous calendars into Gregorian; no translation of symbolic systems into advice.
+- Explicit model provenance and type (environmental vs symbolic) in overlays.

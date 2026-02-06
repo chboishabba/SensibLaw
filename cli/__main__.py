@@ -54,7 +54,6 @@ from src.activation import (
     activation_to_payload,
     simulate_activation,
 )
-from src.review_collection import export_collection
 
 from . import receipts as receipts_cli
 

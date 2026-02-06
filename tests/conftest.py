@@ -1,55 +1,81 @@
 from __future__ import annotations
 
+import os
+import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
-from hypothesis import HealthCheck, settings
 import pytest
 
-from src.pdf_ingest import build_document, extract_pdf_text
+from src.pdf_ingest import process_pdf
+from src.models.provision import RuleReference
+
+# Ensure src/ is importable during collection (before fixtures run).
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = PROJECT_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+
+@pytest.fixture(autouse=True)
+def prefer_venv_python(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure subprocesses use the project venv and see the src package.
+
+    Many CLI tests shell out with a literal ``python -m src.cli ...``. This fixture
+    prefixes PATH with the repo's .venv/bin and sets PYTHONPATH to ``src`` so those
+    subprocesses run in the same environment as pytest.
+    """
+
+    repo_root = Path(__file__).resolve().parents[1]
+    venv_bin = repo_root.parent / ".venv" / "bin"
+    path = os.environ.get("PATH", "")
+    if venv_bin.exists():
+        monkeypatch.setenv("PATH", f"{venv_bin}:{path}")
+    monkeypatch.setenv("PYTHONPATH", str(repo_root / "src"))
+    if str(repo_root / "src") not in sys.path:
+        sys.path.insert(0, str(repo_root / "src"))
+
+
+@dataclass(frozen=True)
+class _SimpleRef:
+    work: str | None
+    section: str | None
+    pinpoint: str | None
+    citation_text: str | None
+    source: str | None = None
+
+
+def iter_refs(doc):
+    """Yield all RuleReference-like objects from a document."""
+
+    def _coerce(ref):
+        if isinstance(ref, RuleReference):
+            return ref
+        if isinstance(ref, (tuple, list)):
+            work, section, pinpoint, citation_text, source, *_ = list(ref) + [None] * 5
+            return _SimpleRef(work, section, pinpoint, citation_text, source)
+        return None
+
+    def _walk(provisions):
+        for prov in provisions or []:
+            for ref in getattr(prov, "references", []) or []:
+                coerced = _coerce(ref)
+                if coerced:
+                    yield coerced
+            for atom in getattr(prov, "rule_atoms", []) or []:
+                for ref in getattr(atom, "references", []) or []:
+                    coerced = _coerce(ref)
+                    if coerced:
+                        yield coerced
+            yield from _walk(getattr(prov, "children", []) or [])
+
+    yield from _walk(getattr(doc, "provisions", []) or [])
 
 
 @pytest.fixture(scope="session")
-def native_title_nsw_pdf() -> Path:
-    return Path("Native Title (New South Wales) Act 1994 (NSW).pdf")
-
-
-@pytest.fixture(scope="session")
-def native_title_nsw_doc(native_title_nsw_pdf: Path):
-    pages = list(extract_pdf_text(native_title_nsw_pdf))
-    return build_document(pages, native_title_nsw_pdf)
-
-
-def _iter_provisions(provisions: Iterable) -> Iterable:
-    for provision in provisions:
-        yield provision
-        children = getattr(provision, "children", None) or []
-        yield from _iter_provisions(children)
-
-
-def iter_refs(doc) -> Iterable:
-    """Yield reference-like objects tolerant of dict/tuple/obj shapes."""
-
-    for provision in _iter_provisions(getattr(doc, "provisions", []) or []):
-        for ref in getattr(provision, "references", []) or []:
-            if hasattr(ref, "work"):
-                yield ref
-            elif isinstance(ref, (list, tuple)):
-                work = ref[0] if ref else None
-                section = ref[1] if len(ref) > 1 else None
-                pinpoint = ref[2] if len(ref) > 2 else None
-                yield type("R", (), {"work": work, "section": section, "pinpoint": pinpoint, "source": None})()
-            elif isinstance(ref, dict):
-                yield type("R", (), ref)()
-
-settings.register_profile(
-    "ci",
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
-)
-settings.load_profile("ci")
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "e2e: marks end-to-end UI/browser tests (opt-in via RUN_PLAYWRIGHT=1)")
-    config.addinivalue_line("markers", "slow: marks storage/ingest heavy tests")
-    config.addinivalue_line("markers", "live: marks live network tests (opt-in via RUN_LIVE_AUSTLII=1)")
+def native_title_nsw_doc():
+    pdf = Path("Native Title (New South Wales) Act 1994 (NSW).pdf")
+    if not pdf.exists():
+        pytest.skip("native title NSW PDF fixture missing")
+    doc, _ = process_pdf(pdf, db_path="")
+    return doc

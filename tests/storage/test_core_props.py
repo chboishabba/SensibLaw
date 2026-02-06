@@ -1,6 +1,6 @@
 import string
 
-from hypothesis import given, settings, strategies as st
+from hypothesis import HealthCheck, given, settings, strategies as st
 
 from src.storage.core import Storage
 
@@ -18,7 +18,11 @@ data_strategy = st.dictionaries(
 )
 
 
-@settings(max_examples=25, deadline=None)
+@settings(
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
 @given(type_str=st.text(alphabet=string.ascii_letters, min_size=1, max_size=10), data=data_strategy)
 def test_node_round_trip(tmp_path, type_str, data):
     store = Storage(tmp_path / "test.db")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional
@@ -24,6 +25,20 @@ class ActorClassRecord:
     code: str
     label: str
     description: Optional[str]
+
+
+@dataclass
+class ContextFieldRecord:
+    context_id: str
+    context_type: str
+    source: str | None
+    retrieved_at: str | None
+    location: str | None
+    time_start: str | None
+    time_end: str | None
+    symbolic: bool
+    payload: Any
+    provenance: Any
 
 
 class BaseDAO:
@@ -294,6 +309,111 @@ class ActorMappingDAO(BaseDAO):
             params,
         )
         return [str(row["code"]) for row in rows]
+
+
+class ContextFieldDAO(BaseDAO):
+    """Read/write helpers for context_fields overlays (non-authoritative)."""
+
+    def upsert_context_field(
+        self,
+        *,
+        context_id: str,
+        context_type: str,
+        source: str | None = None,
+        retrieved_at: str | None = None,
+        location: str | None = None,
+        time_start: str | None = None,
+        time_end: str | None = None,
+        payload: Any | None = None,
+        provenance: Any | None = None,
+        symbolic: bool = False,
+    ) -> None:
+        payload_json = json.dumps(payload) if payload is not None else None
+        provenance_json = json.dumps(provenance) if provenance is not None else None
+        self.connection.execute(
+            """
+            INSERT INTO context_fields (
+                context_id, context_type, source, retrieved_at, location, time_start, time_end, payload, provenance, symbolic
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(context_id) DO UPDATE SET
+                context_type=excluded.context_type,
+                source=excluded.source,
+                retrieved_at=excluded.retrieved_at,
+                location=excluded.location,
+                time_start=excluded.time_start,
+                time_end=excluded.time_end,
+                payload=excluded.payload,
+                provenance=excluded.provenance,
+                symbolic=excluded.symbolic,
+                updated_at=datetime('now')
+            """,
+            (
+                context_id,
+                context_type,
+                source,
+                retrieved_at,
+                location,
+                time_start,
+                time_end,
+                payload_json,
+                provenance_json,
+                1 if symbolic else 0,
+            ),
+        )
+        self.connection.commit()
+
+    def get(self, context_id: str) -> ContextFieldRecord | None:
+        row = self._fetchone(
+            """
+            SELECT context_id, context_type, source, retrieved_at, location,
+                   time_start, time_end, payload, provenance, symbolic
+            FROM context_fields WHERE context_id = ?
+            """,
+            (context_id,),
+        )
+        if not row:
+            return None
+        return ContextFieldRecord(
+            context_id=str(row["context_id"]),
+            context_type=str(row["context_type"]),
+            source=row["source"],
+            retrieved_at=row["retrieved_at"],
+            location=row["location"],
+            time_start=row["time_start"],
+            time_end=row["time_end"],
+            symbolic=bool(row["symbolic"]),
+            payload=json.loads(row["payload"]) if row["payload"] else None,
+            provenance=json.loads(row["provenance"]) if row["provenance"] else None,
+        )
+
+    def list_by_type(self, context_type: str) -> list[ContextFieldRecord]:
+        rows = self._fetchall(
+            """
+            SELECT context_id, context_type, source, retrieved_at, location,
+                   time_start, time_end, payload, provenance, symbolic
+            FROM context_fields
+            WHERE context_type = ?
+            ORDER BY time_start
+            """,
+            (context_type,),
+        )
+        records: list[ContextFieldRecord] = []
+        for row in rows:
+            records.append(
+                ContextFieldRecord(
+                    context_id=str(row["context_id"]),
+                    context_type=str(row["context_type"]),
+                    source=row["source"],
+                    retrieved_at=row["retrieved_at"],
+                    location=row["location"],
+                    time_start=row["time_start"],
+                    time_end=row["time_end"],
+                    symbolic=bool(row["symbolic"]),
+                    payload=json.loads(row["payload"]) if row["payload"] else None,
+                    provenance=json.loads(row["provenance"]) if row["provenance"] else None,
+                )
+            )
+        return records
 
 
 def ensure_database(connection: sqlite3.Connection) -> None:

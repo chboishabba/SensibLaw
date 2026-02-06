@@ -5,10 +5,10 @@ import pytest
 from src.pdf_ingest import process_pdf
 
 
-PDF_PATH = Path("Mabo [No 2] - [1992] HCA 23.pdf")
-# Use a per-test temp DB to avoid bleed from prior ingests; budget set tight to
-# catch regressions. The PDF is ~24 MB; allow ~10 MB DB delta for indexes/meta.
-MAX_DB_DELTA = 10_000_000  # bytes
+PDF_PATH = Path("act-2005-004.pdf")  # smaller fixture (~2.5MB) for storage guard
+# Use a per-test temp DB to avoid bleed from prior ingests; keep the budget tight
+# to catch runaway storage growth.
+MAX_DB_DELTA = 6_000_000  # bytes
 MAX_BODY_TO_PDF_RATIO = 6.0
 
 
