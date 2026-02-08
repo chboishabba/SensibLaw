@@ -36,6 +36,36 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Multi-modal doctrine + human tools integration captured for ITIR/SensibLaw.
 - docTR profiling notes captured for SensibLaw root PDFs (pdfminer: 515 pages, 1,623,269 chars) with a follow-up timing run scheduled for 2026-02-06.
 
+## Chat context sync (2026-02-07)
+- Source conversation: `ADR language vs SensibLaw`
+  (`6986d38e-4b5c-839b-813a-608aa0de88d5`),
+  latest assistant reply synced at `2026-02-07T06:01:41.279462Z`.
+- Core extract:
+  - SensibLaw should be framed as a domain profile over a domain-neutral
+    lexical compression engine.
+  - Reuse model: engine mechanics stay stable; SL/SB/infra profiles constrain
+    admissibility only.
+  - Guardrail: profiles may restrict accepted axes/groups but must not alter
+    compression behavior.
+
+## Chat context revalidation (2026-02-08)
+- Revalidated live for `6986d38e-4b5c-839b-813a-608aa0de88d5`:
+  title `ADR language vs SensibLaw`, last author `assistant`, last message
+  timestamp `2026-02-07T06:01:41.279462Z` (unchanged).
+- Flow:
+  - evolved from ADR-vs-ingest framing into a stable engine/profile split.
+  - moved normative ADR wording toward ingest-safe invariants/constraints.
+  - refined compression from flat groups to declared lexical axes.
+- Blockers:
+  - ADR wording can reintroduce intent/authority leakage at Layer 0 ingest.
+  - profile-specific terms can be mistaken for core engine behavior.
+  - grouping can drift into implicit inference if not reversible and span-anchored.
+- Progress:
+  - engine/profile separation is now explicit and timestamp-verified.
+  - actionable artifacts were queued in suite planning/TODO for
+    `compression_engine.md`, profile contracts, lint rules, and cross-profile
+    safety tests.
+
 ## Open questions
 - Do we need richer fixtures for multi-verb phrases or nested scopes as we exercise S6 queries/views?
 - Which consumers (CLI, API, Streamlit) should receive the first query/explanation surface?
