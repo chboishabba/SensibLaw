@@ -1,0 +1,208 @@
+{
+  "db_presence": {
+    "696d865d-79a8-8321-a88c-2e37b963a4be": {
+      "canonical_thread_messages": 0,
+      "found": false,
+      "source_id_messages": 0
+    },
+    "69717668-cc4c-8323-ab77-b32f03173024": {
+      "canonical_thread_messages": 0,
+      "found": false,
+      "source_id_messages": 0
+    },
+    "697346d3-4a90-839b-85ac-c64fc3e297db": {
+      "canonical_thread_messages": 0,
+      "found": false,
+      "source_id_messages": 0
+    },
+    "6973629a-c688-8321-9236-a032b48a58b0": {
+      "canonical_thread_messages": 0,
+      "found": false,
+      "source_id_messages": 0
+    },
+    "6974cb58-dbe0-8321-b2b5-ce0429cb4480": {
+      "canonical_thread_messages": 0,
+      "found": false,
+      "source_id_messages": 0
+    }
+  },
+  "files": [
+    {
+      "conversation_ids": [
+        "6974cb58-dbe0-8321-b2b5-ce0429cb4480"
+      ],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Branch \u00b7 DASHI vs LES.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 2,
+      "uri_samples": [
+        "https://chatgpt.com/c/6974cb58-dbe0-8321-b2b5-ce0429cb4480",
+        "https://chatgpt.com/"
+      ]
+    },
+    {
+      "conversation_ids": [
+        "6973629a-c688-8321-9236-a032b48a58b0"
+      ],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Branch \u00b7 Engine Sound Simulation Methods.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 14,
+      "uri_samples": [
+        "https://chatgpt.com/c/6973629a-c688-8321-9236-a032b48a58b0",
+        "https://diglib.eg.org/items/8c90eb94-3232-4136-9b24-0d7d896399de?utm_source=chatgpt.com",
+        "https://colab.ws/articles/10.1145%2F3675375?utm_source=chatgpt.com",
+        "https://cwyman.org/papers/tog25_ReSTIR_BDPT.pdf?utm_source=chatgpt.com",
+        "https://pages.cs.wisc.edu/~shaohua/research/Thesis/SMCRThesis.pdf?utm_source=chatgpt.com",
+        "https://graphics.stanford.edu/papers/veach_thesis/thesis-bw.pdf?utm_source=chatgpt.com",
+        "https://chatgpt.com/",
+        "https://history.siggraph.org/learning/interactive-sound-propagation-using-compact-acoustic-transfer-operators-by-antani-chandak-savioja-and-manocha/?utm_source=chatgpt.com"
+      ]
+    },
+    {
+      "conversation_ids": [
+        "696d865d-79a8-8321-a88c-2e37b963a4be"
+      ],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Branch \u00b7 Formalism Bridging GR and MDL.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 21,
+      "uri_samples": [
+        "https://en.wikipedia.org/wiki/General_covariance?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Diffeomorphism?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Tensor_field?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Bitensor?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Ricci_calculus?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Jet_%28mathematics%29?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Taylor_series?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Cartan%27s_equivalence_method?utm_source=chatgpt.com"
+      ]
+    },
+    {
+      "conversation_ids": [
+        "697346d3-4a90-839b-85ac-c64fc3e297db"
+      ],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Branch \u00b7 Rubik's Cube and S(3).pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 2,
+      "uri_samples": [
+        "https://chatgpt.com/c/697346d3-4a90-839b-85ac-c64fc3e297db",
+        "https://chatgpt.com/"
+      ]
+    },
+    {
+      "conversation_ids": [
+        "69717668-cc4c-8323-ab77-b32f03173024"
+      ],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Branch \u00b7 Topology and MDA_MDL.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 55,
+      "uri_samples": [
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/what-is-a-manifold-20251103/?utm_source=chatgpt.com",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/",
+        "https://www.quantamagazine.org/two-twisty-shapes-resolve-a-centuries-old-topology-puzzle-20260120/"
+      ]
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/DASHI Physics.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 23,
+      "uri_samples": [
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://jerryhsu.io/wp-content/uploads/2025/05/Sig25__Stable_Cosserat_Rods.pdf",
+        "https://arxiv.org/html/2403.06321v1"
+      ]
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Filament Fining Implementation.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 1,
+      "uri_samples": [
+        "https://chatgpt.com/"
+      ]
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/JavaCrust Project Idea.pdf",
+      "has_chatgpt_links": false,
+      "share_ids": [],
+      "uri_count": 0,
+      "uri_samples": []
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/SensibLaw Ontology & Database Design Specification.pdf",
+      "has_chatgpt_links": false,
+      "share_ids": [],
+      "uri_count": 0,
+      "uri_samples": []
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Shrikhande graph plot.pdf",
+      "has_chatgpt_links": false,
+      "share_ids": [],
+      "uri_count": 0,
+      "uri_samples": []
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/V5 Operator Definition.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 1,
+      "uri_samples": [
+        "https://chatgpt.com/"
+      ]
+    },
+    {
+      "conversation_ids": [],
+      "file": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs/Visualising Collapse and Sparsity.pdf",
+      "has_chatgpt_links": true,
+      "share_ids": [],
+      "uri_count": 16,
+      "uri_samples": [
+        "https://en.wikipedia.org/wiki/Carlo_Rovelli?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Carlo_Rovelli?utm_source=chatgpt.com",
+        "https://en.wikipedia.org/wiki/Carlo_Rovelli?utm_source=chatgpt.com",
+        "https://dx.doi.org/10.1038/s41467-025-65661-8",
+        "https://dx.doi.org/10.1038/s41467-025-65661-8",
+        "https://phys.org/news/2025-12-image-sensor-optical-limits.html",
+        "https://dx.doi.org/10.1038/s41467-025-65661-8",
+        "https://phys.org/news/2025-12-image-sensor-optical-limits.html"
+      ]
+    }
+  ],
+  "summary": {
+    "chatgpt_pdf_count": 9,
+    "conversation_id_count": 5,
+    "conversation_ids": [
+      "696d865d-79a8-8321-a88c-2e37b963a4be",
+      "69717668-cc4c-8323-ab77-b32f03173024",
+      "697346d3-4a90-839b-85ac-c64fc3e297db",
+      "6973629a-c688-8321-9236-a032b48a58b0",
+      "6974cb58-dbe0-8321-b2b5-ce0429cb4480"
+    ],
+    "db_found_conversation_ids": 0,
+    "input_dir": "/home/c/Documents/code/ITIR-suite/SensibLaw/test_generic_docs",
+    "pdf_count": 12,
+    "pdfs_with_conversation_id": 5,
+    "share_id_count": 0
+  }
+}
