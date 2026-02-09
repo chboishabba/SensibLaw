@@ -132,12 +132,12 @@ Add a single, clean join table:
 
 ```sql
 CREATE TABLE concept_external_refs (
-    id            INTEGER PRIMARY KEY,
-    concept_id    INTEGER NOT NULL REFERENCES concepts(id),
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    concept_id    INTEGER NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
     provider      TEXT NOT NULL,            -- 'wikidata','dbpedia','yago','wordnet'
-    external_id   TEXT NOT NULL,            -- Q-ID, URL, synset ID
-    label         TEXT,                     -- optional: cached label
-    confidence    REAL DEFAULT 1.0,
+    external_id   TEXT NOT NULL,            -- Q-ID, full URI, synset ID
+    external_url  TEXT,                     -- optional: canonical URL (often same as external_id for URI providers)
+    notes         TEXT,                     -- optional curator notes / type hints
     UNIQUE (concept_id, provider, external_id)
 );
 ```
@@ -146,11 +146,13 @@ Optionally, a similar structure for Actors:
 
 ```sql
 CREATE TABLE actor_external_refs (
-    actor_id     INTEGER NOT NULL REFERENCES actors(id),
-    provider     TEXT NOT NULL,
-    external_id  TEXT NOT NULL,
-    confidence   REAL DEFAULT 1.0,
-    PRIMARY KEY (actor_id, provider, external_id)
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id      INTEGER NOT NULL REFERENCES actors(id) ON DELETE CASCADE,
+    provider      TEXT NOT NULL,
+    external_id   TEXT NOT NULL,
+    external_url  TEXT,
+    notes         TEXT,
+    UNIQUE (actor_id, provider, external_id)
 );
 ```
 

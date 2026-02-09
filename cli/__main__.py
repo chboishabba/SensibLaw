@@ -449,6 +449,99 @@ def _handle_ontology_upsert(args: argparse.Namespace) -> None:
         connection.close()
 
 
+def _handle_ontology_external_refs_upsert(args: argparse.Namespace) -> None:
+    """Upsert curated external ontology references into SQLite.
+
+    This is a small helper to load curated batches into `concept_external_refs`
+    and `actor_external_refs`. It is intentionally not a live lookup step.
+    """
+
+    from sensiblaw.db.dao import ensure_database
+
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    connection = sqlite3.connect(args.db)
+    connection.row_factory = sqlite3.Row
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+
+        concept_rows = payload.get("concept_external_refs") or []
+        actor_rows = payload.get("actor_external_refs") or []
+
+        results: dict = {"concept_external_refs": 0, "actor_external_refs": 0}
+
+        for row in concept_rows:
+            concept_code = row.get("concept_code")
+            provider = row.get("provider")
+            external_id = row.get("external_id")
+            if not concept_code or not provider or not external_id:
+                raise SystemExit("concept_external_refs rows require concept_code, provider, external_id")
+
+            concept = cur.execute(
+                "SELECT id FROM concepts WHERE code = ?",
+                (concept_code,),
+            ).fetchone()
+            if concept is None:
+                raise SystemExit(f"Unknown concept_code: {concept_code}")
+
+            cur.execute(
+                """
+                INSERT INTO concept_external_refs (concept_id, provider, external_id, external_url, notes)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(concept_id, provider, external_id)
+                DO UPDATE SET external_url = excluded.external_url, notes = excluded.notes;
+                """,
+                (
+                    int(concept["id"]),
+                    str(provider),
+                    str(external_id),
+                    row.get("external_url"),
+                    row.get("notes"),
+                ),
+            )
+            results["concept_external_refs"] += 1
+
+        for row in actor_rows:
+            actor_id = row.get("actor_id")
+            provider = row.get("provider")
+            external_id = row.get("external_id")
+            if actor_id is None or not provider or not external_id:
+                raise SystemExit("actor_external_refs rows require actor_id, provider, external_id")
+
+            cur.execute(
+                """
+                INSERT INTO actor_external_refs (actor_id, provider, external_id, external_url, notes)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(actor_id, provider, external_id)
+                DO UPDATE SET external_url = excluded.external_url, notes = excluded.notes;
+                """,
+                (
+                    int(actor_id),
+                    str(provider),
+                    str(external_id),
+                    row.get("external_url"),
+                    row.get("notes"),
+                ),
+            )
+            results["actor_external_refs"] += 1
+
+        if args.dry_run:
+            connection.rollback()
+        else:
+            connection.commit()
+
+        _print_json(
+            {
+                "ok": True,
+                "dry_run": bool(args.dry_run),
+                "db": args.db,
+                **results,
+            }
+        )
+    finally:
+        connection.close()
+
+
 def _handle_extract_frl(args: argparse.Namespace) -> None:
     from src.ingestion.frl import fetch_acts
 
@@ -1426,6 +1519,19 @@ def build_parser() -> argparse.ArgumentParser:
     upsert.add_argument("--summary")
     upsert.add_argument("--notes")
     upsert.set_defaults(func=_handle_ontology_upsert)
+
+    ext_refs = ontology_sub.add_parser(
+        "external-refs-upsert",
+        help="Upsert curated external refs (concept_external_refs / actor_external_refs) into SQLite",
+    )
+    ext_refs.add_argument("--db", required=True, help="Path to SQLite database")
+    ext_refs.add_argument("--file", type=Path, required=True, help="Path to curated JSON batch")
+    ext_refs.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and report counts but do not commit changes",
+    )
+    ext_refs.set_defaults(func=_handle_ontology_external_refs_upsert)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)

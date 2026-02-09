@@ -44,3 +44,8 @@
 - Ribbon: add Streamlit ribbon demo tab with selector contract output.
 - Ribbon: add ribbon compute helper for segment mass/width normalization.
 - Ingest: add `--context-overlays` option to persist context_fields alongside PDFs.
+- DBpedia: add curation-time lookup helpers (Lookup API + SPARQL) and query docs.
+- DBpedia: allow Lookup API helper to emit a curated external-refs batch skeleton (`--emit-batch`) compatible with `ontology external-refs-upsert`.
+- Ontology: add CLI command `ontology external-refs-upsert` to load curated `actor_external_refs` / `concept_external_refs` batches into SQLite.
+- DB: make SQLite migration runner idempotent by tracking applied migrations in `schema_migrations` (prevents re-running transitional migrations like legal_system normalization).
+- Graph: preserve DBpedia URI-form external IDs in `owl:sameAs`/`skos:exactMatch` exports; canonicalize Wikidata Q-IDs to `wikidata:Q...`.

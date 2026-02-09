@@ -197,6 +197,9 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Local caches (never commit)
+.cache_local/
+
 # PyPI configuration file
 .pypirc
 

@@ -90,6 +90,7 @@ See also
 - `docs/tokenizer_contract.md`
 - `docs/corpus_characterisation.md`
 - `docs/ir_invariants.md`
+- `docs/lexeme_normalizer_character_class_layer.md` (character-class rules + flags)
 
 Deterministic lexeme normalization
 ----------------------------------

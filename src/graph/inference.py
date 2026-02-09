@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -112,6 +113,7 @@ def _external_ref_targets(metadata: Mapping[str, object]) -> Iterable[str]:
         return []
 
     targets: List[str] = []
+    url_prefix = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
     for ref in refs:
         if isinstance(ref, str):
             targets.append(ref)
@@ -122,12 +124,32 @@ def _external_ref_targets(metadata: Mapping[str, object]) -> Iterable[str]:
         external_id = ref.get("external_id") or ref.get("id") or ref.get("identifier")
         if external_id is None:
             continue
-        target = str(external_id)
-        if provider:
-            provider_text = str(provider).rstrip(":")
-            target = f"{provider_text}:{target}"
-        if provider and str(provider).lower() == "wikidata" and not target.startswith("wikidata:"):
-            target = f"wikidata:{external_id}"
+        target = str(external_id).strip()
+        if not target:
+            continue
+
+        provider_text = str(provider).rstrip(":") if provider else ""
+        provider_lower = provider_text.lower() if provider_text else ""
+
+        # If the external_id is already a URL/IRI, keep it as-is (important for DBpedia).
+        if url_prefix.match(target):
+            targets.append(target)
+            continue
+
+        # If the identifier is already a CURIE (e.g., wikidata:Q42), keep it.
+        if provider_lower and target.lower().startswith(f"{provider_lower}:"):
+            targets.append(target)
+            continue
+
+        if provider_lower == "wikidata":
+            # Canonicalize to a consistent CURIE form.
+            targets.append(f"wikidata:{target}")
+            continue
+
+        if provider_text:
+            targets.append(f"{provider_text}:{target}")
+            continue
+
         targets.append(target)
     return targets
 

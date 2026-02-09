@@ -143,5 +143,7 @@ guardrails.
 ## Database Migration Tracks
 
 - SQLite migrations live in `database/migrations` and are exercised by tests via `MigrationRunner`.
+  `MigrationRunner` tracks applied migrations in a `schema_migrations` table so `ensure_database()`
+  is safe to call repeatedly.
 - The Postgres-first schema (no data carry-forward) is defined in `database/postgres_migrations`; apply with `scripts/apply_pg_migrations.sh` using your `PG*` env vars or `DATABASE_URL`.
 - Legacy, unrun SQL in `migrations/` and `schemas/migrations/` is superseded by the new Postgres track but retained for reference.

@@ -13,8 +13,8 @@ This note explains how external providers populate SensibLaw tables and seed fil
 ## Wikidata / Wikibase ingestion ("wikidb")
 
 1. **Find candidates.** Choose a SPARQL snippet from `docs/wikidata_queries.md` (for fuzzy name or category lookups) and run it against the public endpoint to gather candidate IDs and labels.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L13-L34】
-2. **Curate a batch.** Assemble chosen IDs into a JSON file following the `concept_external_refs` / `actor_external_refs` payload structure that records the internal concept code or actor ID, provider (`wikidata`/`dbpedia`/`yago`/`wordnet`), external ID, label, and optional confidence score.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L36-L73】
-3. **Upsert into SQLite.** Run the documented Python snippet to translate `concept_code` to `concept_id` and insert or refresh rows in both tables using `ON CONFLICT` to keep deduplicated links.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L75-L108】
+2. **Curate a batch.** Assemble chosen IDs into a JSON file following the `concept_external_refs` / `actor_external_refs` payload structure that records the internal concept code or actor ID, provider (`wikidata`/`dbpedia`/`yago`/`wordnet`), external ID, and optional `external_url`/`notes`.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L36-L73】
+3. **Upsert into SQLite.** Run the CLI helper to translate `concept_code` to `concept_id` and insert or refresh rows in both tables using `ON CONFLICT` to keep deduplicated links.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L75-L108】
 4. **Verify and export.** Query the tables to confirm the ingest, then re-run any graph export jobs (with `--include-external-refs` where relevant) so downstream tools see the new `owl:sameAs` / `skos:exactMatch` triples.【F:docs/ONTOLOGY_EXTERNAL_REFS.md†L110-L119】
 
 ## Pol.is conversation ingestion
