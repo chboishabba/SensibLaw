@@ -58,4 +58,26 @@
 - Wikipedia: add sentence-local actor/action/object expansion over timeline candidates (heuristic, labeled, non-causal) for curation-time visualization.
 - Wikipedia: fix timeline sentence splitting to avoid truncation at common abbreviations (e.g. `U.S.`), and normalize separator templates (e.g. `{{snd}}`) before stripping wikitext.
 - Wikipedia: harden AAO extraction to (a) recognize `gave birth`, (b) avoid misclassifying `"to <noun phrase>"` as purpose, and (c) suppress root-surname mapping when the surname is part of a two-token name (e.g. `Laura Bush`).
+- Wikipedia: add OAC `span_candidates` lane as **unresolved mentions only** (exclude resolved-entity overlaps + time-only NPs), with optional `hygiene.view_score` for view-layer sorting (truth != view).
+- Wikipedia: make AAO purpose extraction dependency-gated via pinned spaCy (infinitival `"to" -> VERB` only; no verb allowlist) and attach extracted purpose to the last step by default when multi-step output is present.
+- Wikipedia: add deterministic spaCy fallback action selection when explicit verb patterns miss (`fallback_action_spacy` warning).
+- Wikipedia: strip citation-style sentence tails in timeline extraction (e.g. `..., Bush, George W.` and `... . Rutenberg, Jim (...)`) before anchor parsing to avoid polluted event text and downstream span noise.
+- Wikipedia: protect middle-initial abbreviations during sentence splitting (e.g. `George W. Bush`) to avoid truncating timeline events into citation-like fragments.
+- Wikipedia: improve AAO coverage for `reported ... but cautioned ...` prose by adding split-step extraction (`reported`/`cautioned`/`weakening`), broader verb patterns, and sentence-local surface objects (e.g. `the war`) when unlinked but load-bearing.
+- Wikipedia: refine AAO step subjects using deterministic dependency attachments to reduce false co-subjects from object mentions (e.g. birth/vote sentences).
+- Wikipedia: emit minimal `chains[]` metadata for multi-step AAO events and add derived purpose-steps when a purpose clause is present but not already represented as a step.
+- Wikipedia: harden person-title guardrails (`alliance`, `forces`, `troops`, etc.) and extend action coverage (`initiated`, `discharged`, `suspended`, `told`, `voted`).
+- Wikipedia: add dependency-object fallback extraction for unlinked object phrases and emit per-object resolver hints (`exact`/`near`) against sentence links, paragraph links, and candidate-title rows.
 - Ontology: add a small curation helper to upsert a minimal `actors(kind,label)` row into an ontology SQLite DB.
+- Ingest: add `hca_case_demo_ingest.py` link-selection scoring so multi-link rows resolve to the intended artifact (e.g., judgment summary PDF vs judgment HTML page).
+- Ingest: add HCA recording transcript/caption hardening with AV transcript fallback, Vimeo `config/request` fallback, and HLS/DASH manifest capture for no-progressive streams.
+- Ingest: extend HCA AAO output to emit explicit signal lanes (`artifact_status`, `recording_artifact`, `narrative_sentence`) and merge sentence-local narrative AAO extracted from ingested PDF text.
+- Ingest: add SB observer-signal payload export for HCA demo bundles (`sb_signals.json`) so adapter events can be consumed by SB without asserting normative truth.
+- Ingest: shift HCA narrative sentence gating to parser-first (spaCy token/POS checks) and reserve regex for worst-case fallback splitting/hygiene only.
+- Ingest: add narrative citation extraction for HCA sentence events (`citations[]`) with follower hints ordered as `wikipedia -> wiki_connector -> source_document -> source_pdf`; citation-like object noise is filtered from AAO object lists.
+- Ingest: add parser-native narrative `sl_references[]` lane for HCA events by joining source `document_json` references (`provisions`, `rule_tokens`, `rule_atoms`) back onto sentence-level events with provenance fields (`source_document_json`, `provision_stable_id`, `rule_atom_stable_id`).
+- Ingest: propagate `sl_references[]` into `sb_signals.json` and include `wiki_connector` follow hints (`wiki_pull_api.py`, preferred `pywikibot`) alongside existing citation follower hints.
+- Ingest: enrich HCA narrative events with `party`, `toc_context[]`, `legal_section_markers`, and `timeline_facts[]` (DATE-entity anchored, deterministic) and emit top-level `fact_timeline[]` for linear chronology views over out-of-order prose.
+- Ingest: move HCA `party` attribution to parser-first document-structure inference (`toc_entries`, metadata, sentence token cues), with explicit `party_source`/`party_evidence`/`party_scores` and label fallback only when unresolved.
+- Ingest: add bounded source-pack puller (`scripts/source_pack_manifest_pull.py`) that fetches explicit `seed_urls` only and emits deterministic `manifest.json`, `timeline.json`, and `timeline_graph.json` artifacts for legal-principles bootstrap workflows.
+- Ingest: add bounded authority-link follow pass (`scripts/source_pack_authority_follow.py`) with explicit depth/doc caps (`max_depth`, `max_new_docs`) and deterministic follow artifacts (`follow_manifest.json`, `follow_timeline.json`, `follow_timeline_graph.json`).

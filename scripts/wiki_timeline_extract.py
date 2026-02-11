@@ -79,6 +79,22 @@ SEP_TEMPLATES = [
     re.compile(r"\{\{\s*snd\s*\}\}", flags=re.IGNORECASE),
 ]
 
+# Citation/reference tails that occasionally survive strip_code and pollute event text.
+# Example:
+#   "... projects,Bush, George W."
+#   "... exam.Rutenberg, Jim (May 17, 2004)."
+CITATION_TAIL_RE = [
+    re.compile(
+        r"(?:,|\.)\s*[A-Z][a-z]+,\s*[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s*\([^)]{3,60}\)\.?$"
+    ),
+    re.compile(
+        r"(?:,|\.)\s*[A-Z][a-z]+,\s*[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\.?$"
+    ),
+    re.compile(
+        r"(?:,|\.)\s*[A-Z][a-z]+,\s*[A-Z][^,]{1,180},\s*[A-Z][a-z]+\s+\d{1,2},\s+\d{4}\.?$"
+    ),
+]
+
 
 def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
@@ -277,8 +293,29 @@ def _restore_abbrevs(text: str, repl: Dict[str, str]) -> str:
 def _split_sentences(plain: str) -> List[str]:
     """Deterministic sentence splitting with basic abbreviation protection."""
     protected, repl = _protect_abbrevs(plain)
+    # Protect middle initials in names (e.g., "George W. Bush") so we don't split at "W."
+    protected = re.sub(r"\b([A-Z])\.(?=\s+[A-Z][a-z])", r"\1__INITDOT__", protected)
     parts = [s.strip() for s in re.split(r"(?<=[.?!])\s+", protected) if s.strip()]
-    return [_restore_abbrevs(p, repl) for p in parts]
+    out = []
+    for p in parts:
+        p = p.replace("__INITDOT__", ".")
+        out.append(_restore_abbrevs(p, repl))
+    return out
+
+
+def _cleanup_sentence_text(sentence: str) -> str:
+    s = str(sentence or "")
+    # Recover spacing in common citation joins (e.g. "exam.Rutenberg")
+    s = re.sub(r"([a-z0-9])([.!?])([A-Z])", r"\1\2 \3", s)
+    s = re.sub(r",([A-Z])", r", \1", s)
+    s = _collapse_ws(s)
+
+    # Drop trailing author/date reference tails.
+    for pat in CITATION_TAIL_RE:
+        s2 = pat.sub("", s).strip()
+        if s2 != s:
+            s = s2
+    return _collapse_ws(s)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -324,6 +361,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         sentences = _split_sentences(plain)
 
         for s in sentences:
+            s = _cleanup_sentence_text(s)
+            if not s:
+                continue
             anchor = _parse_anchor(s)
             if not anchor:
                 continue

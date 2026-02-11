@@ -199,6 +199,7 @@ cython_debug/
 
 # Local caches (never commit)
 .cache_local/
+demo/ingest/
 
 # PyPI configuration file
 .pypirc

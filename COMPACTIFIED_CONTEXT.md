@@ -36,6 +36,21 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Multi-modal doctrine + human tools integration captured for ITIR/SensibLaw.
 - docTR profiling notes captured for SensibLaw root PDFs (pdfminer: 515 pages, 1,623,269 chars) with a follow-up timing run scheduled for 2026-02-06.
 
+## Recent decisions (2026-02-11)
+- HCA demo ingest (`case-s942025`) now prefers scored document links per row label; summary rows resolve to summary PDFs, not judgment HTML when both exist.
+- Recording ingest no longer relies on a single Vimeo endpoint:
+  - primary: `/video/<id>/config`
+  - fallback: `/video/<id>/config/request` discovered from player HTML.
+- Demo media export now includes transcript fallback from AV page transcript links plus HLS/DASH manifest artifacts when progressive MP4 URLs are absent.
+- HCA AAO payload is now dual-lane:
+  - `artifact_status` / `recording_artifact` rows from table/media adapter state.
+  - `narrative_sentence` rows from sentence-local AAO extraction over ingested PDF text.
+- HCA demo now emits `sb_signals.json` as observer-ready signals; contract is explicitly non-authoritative and reversible (truth/view separation preserved).
+- HCA narrative sentence filtering moved to parser-first deterministic checks (spaCy token/POS), with regex retained only for fallback sentence splitting/hygiene.
+- HCA narrative lane now emits structured `citations[]` and Wikipedia-first follower hints; citation tokens are no longer left as generic AAO objects.
+- HCA narrative lane now also emits parser-native `sl_references[]` from source `document_json` reference lanes (`provisions`, `rule_tokens`, `rule_atoms`) with source provenance on each row.
+- SB observer payloads now carry both `citations[]` and `sl_references[]` lanes, with `wiki_connector` follow hints (`wiki_pull_api.py`, preferred `pywikibot`) included in follower metadata.
+
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`
   (`6986d38e-4b5c-839b-813a-608aa0de88d5`),

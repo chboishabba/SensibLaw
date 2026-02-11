@@ -1,0 +1,122 @@
+{
+  "pack_id": "legal_principles_au_v1",
+  "version": 1,
+  "scope": "AU legal-principles bootstrap (benchbooks + primary authority discovery + wiki identity support)",
+  "provenance": {
+    "context_thread_id": "698c1cec-51c0-839a-a81b-c821aa4eabbb",
+    "context_thread_title": "Browne v Dunn Parsing",
+    "created_on": "2026-02-11"
+  },
+  "contracts": {
+    "truth_vs_view": "benchbooks and wiki are support lanes; primary cases/statutes remain authority anchors",
+    "citation_follow": {
+      "mode": "bounded",
+      "max_depth_required": true,
+      "max_new_docs_required": true
+    },
+    "wiki_role": "identity_disambiguation_only"
+  },
+  "sources": [
+    {
+      "id": "jcv_benchbooks_index",
+      "name": "Judicial College of Victoria Bench Books",
+      "tier": "structured_doctrine_guidance",
+      "kind": "benchbook_index_html",
+      "base_url": "https://judicialcollege.vic.edu.au/bench-books",
+      "seed_urls": [
+        "https://judicialcollege.vic.edu.au/bench-books",
+        "https://resources.judicialcollege.vic.edu.au/article/1053858"
+      ],
+      "preferred_fetch": "html",
+      "status_probe": {
+        "checked_on": "2026-02-11",
+        "status_code": 200
+      },
+      "wiki_connector_seeds": [
+        "Browne v Dunn",
+        "cross-examination",
+        "procedural fairness"
+      ]
+    },
+    {
+      "id": "aija_benchbooks_index",
+      "name": "AIJA Bench Books",
+      "tier": "structured_doctrine_guidance",
+      "kind": "benchbook_index_html",
+      "base_url": "https://aija.org.au/product-category/bench-books/",
+      "seed_urls": [
+        "https://aija.org.au/product-category/bench-books/",
+        "https://dfvbenchbook.aija.org.au/article/1085400"
+      ],
+      "preferred_fetch": "html",
+      "status_probe": {
+        "checked_on": "2026-02-11",
+        "status_code": 200
+      },
+      "wiki_connector_seeds": [
+        "Browne v Dunn",
+        "evidence law",
+        "cross-examination"
+      ]
+    },
+    {
+      "id": "fwc_benchbooks",
+      "name": "Fair Work Commission Benchbooks",
+      "tier": "structured_doctrine_guidance",
+      "kind": "benchbook_index_html_pdf",
+      "base_url": "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks",
+      "seed_urls": [
+        "https://www.fwc.gov.au/hearings-decisions/case-law-benchbooks",
+        "https://www.fwc.gov.au/benchbook/unfair-dismissals-benchbook",
+        "https://www.fwc.gov.au/documents/benchbooks/unfair-dismissals-benchbook.pdf"
+      ],
+      "preferred_fetch": "html_then_pdf",
+      "status_probe": {
+        "checked_on": "2026-02-11",
+        "status_code": 200
+      },
+      "wiki_connector_seeds": [
+        "unfair dismissal",
+        "procedural fairness"
+      ]
+    },
+    {
+      "id": "austlii_databases",
+      "name": "AustLII Databases Directory",
+      "tier": "primary_authority_discovery",
+      "kind": "directory_html",
+      "base_url": "https://www.austlii.edu.au/databases.html",
+      "seed_urls": [
+        "https://www.austlii.edu.au/databases.html"
+      ],
+      "preferred_fetch": "html",
+      "status_probe": {
+        "checked_on": "2026-02-11",
+        "status_code": 200
+      },
+      "wiki_connector_seeds": [
+        "High Court of Australia",
+        "Australia law"
+      ]
+    },
+    {
+      "id": "jade_registry",
+      "name": "JADE Registry",
+      "tier": "authority_locator_support",
+      "kind": "directory_html",
+      "base_url": "https://jade.io/",
+      "seed_urls": [
+        "https://jade.io/"
+      ],
+      "preferred_fetch": "html",
+      "status_probe": {
+        "checked_on": "2026-02-11",
+        "status_code": 200
+      },
+      "wiki_connector_seeds": [
+        "Australia law",
+        "case citation"
+      ]
+    }
+  ]
+}

@@ -6,9 +6,8 @@ jsonschema
 pyyaml
 graphviz
 networkx
-spacy>=3.5,<4
+spacy==3.8.11
 streamlit
-spacy>=3.7,<4
 
 # dev/test
 pytest
