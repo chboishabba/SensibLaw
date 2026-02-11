@@ -222,7 +222,7 @@ def _external_refs_batch_payload(
     }
 
 
-def main() -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="DBpedia Lookup API search (string -> candidate URIs).")
     ap.add_argument("term", help="Search term (e.g. 'Westmead Hospital')")
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL, help=f"Lookup base URL (default: {DEFAULT_BASE_URL})")
@@ -254,7 +254,7 @@ def main() -> int:
     ap.add_argument("--pick", type=int, default=None, help="1-based candidate row index to emit into the batch")
     ap.add_argument("--actor-id", type=int, default=None, help="Actor ID to anchor emitted actor_external_refs row")
     ap.add_argument("--concept-code", default=None, help="Concept code to anchor emitted concept_external_refs row")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     params = {"format": "JSON", "query": args.term, "maxResults": str(args.max_results)}
     if args.type:
@@ -266,6 +266,22 @@ def main() -> int:
     if not args.no_cache:
         cached = _read_cache(cache_dir, cache_key, max_age_s=max(0, args.cache_max_age_s))
         if cached is not None:
+            # Cache hits should still support batch emission (curation workflow).
+            if args.emit_batch is not None:
+                try:
+                    batch = _external_refs_batch_payload(
+                        term=args.term,
+                        url=url,
+                        rows=cached.get("rows") or [],
+                        pick=args.pick,
+                        actor_id=args.actor_id,
+                        concept_code=args.concept_code,
+                    )
+                    args.emit_batch.parent.mkdir(parents=True, exist_ok=True)
+                    args.emit_batch.write_text(json.dumps(batch, indent=2, sort_keys=True), encoding="utf-8")
+                except Exception as exc:
+                    print(f"error: unable to write --emit-batch file from cache: {exc}", file=sys.stderr)
+                    return 2
             print(json.dumps(cached, indent=2, sort_keys=True))
             return 0
 

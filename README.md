@@ -17,6 +17,28 @@ At a high level:
 If DBpedia and Wikitology treated Wikipedia as a global ontology for the Web,
 SensibLaw treats legal corpora as a global ontology for **law and lived experience**.
 
+## Current module features (what exists today)
+
+- **Ingestion**
+  - PDF ingest pipeline (text extraction, TOC/section parsing, anchors, JSON outputs): `src/pdf_ingest.py`, `src/section_parser.py`
+  - External source fetchers/parsers (AustLII + Jade + rate limiting): `src/sources/`
+  - Story import (facts/timelines into structured payloads): `src/story_importer.py`
+- **Rule extraction + deterministic IR**
+  - Rule/exceptions/modality extraction: `src/rules/`
+  - Clause/logic tree IR builder: `src/logic_tree.py`
+  - Reading-fatigue helpers (tokenization, citation handling, similarity, lexeme normalization/indexing): `src/text/`
+- **Provenance + integrity**
+  - Versioned store (append-only revisions + validation): `src/storage/versioned_store.py`
+  - Reference identity/diff + receipts pack generation/verification: `src/reference_identity.py`, `src/reference_diff.py`, `src/receipts/`
+- **User-facing surfaces (Streamlit/CLI/API)**
+  - CLI entrypoints (including receipts and review workflows): `cli/`, `src/cli.py`
+  - Streamlit operations console (tabbed): `streamlit_app.py`, `sensiblaw_streamlit/`
+  - Streamlit review UI (read-only bundle inspector): `ui/app.py`, `ui/panels/`
+  - FastAPI surfaces (programmatic web API; not the Streamlit UI): `src/api/`, `src/server/`
+  - Web/Streamlit component map (for UI contributors): `docs/web_module_map.md`
+- **Tests + harnesses**
+  - Pytest suite with fixtures/templates and targeted regression coverage: `tests/`, `src/tests/`
+
 ## Development quickstart
 
 ```bash

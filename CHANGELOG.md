@@ -49,3 +49,13 @@
 - Ontology: add CLI command `ontology external-refs-upsert` to load curated `actor_external_refs` / `concept_external_refs` batches into SQLite.
 - DB: make SQLite migration runner idempotent by tracking applied migrations in `schema_migrations` (prevents re-running transitional migrations like legal_system normalization).
 - Graph: preserve DBpedia URI-form external IDs in `owl:sameAs`/`skos:exactMatch` exports; canonicalize Wikidata Q-IDs to `wikidata:Q...`.
+- DBpedia: fix Lookup API helper so `--emit-batch` works on cache hits (curation workflow no longer depends on a fresh network fetch).
+- Wikipedia: add MediaWiki API pull helper to snapshot wikitext + provenance + capped category traversal into gitignored caches.
+- Wikipedia: emit per-title progress to stderr during pulls and include environment sanity metadata (`python`, `driver_requested`, `drivers_used`) in stdout JSON.
+- Wikipedia: add candidate extraction + distribution report + bounded DBpedia lookup-queue generators (all curation-time; gitignored outputs).
+- Wikipedia: add Graphviz renderer for the raw candidate graph (pre-trim sanity) and a DBpedia queue runner (cache-first; optional network) for batch identity glue.
+- Wikipedia: add timeline candidate extractor from revision-locked wikitext snapshots (date-anchored, section-aware, non-authoritative).
+- Wikipedia: add sentence-local actor/action/object expansion over timeline candidates (heuristic, labeled, non-causal) for curation-time visualization.
+- Wikipedia: fix timeline sentence splitting to avoid truncation at common abbreviations (e.g. `U.S.`), and normalize separator templates (e.g. `{{snd}}`) before stripping wikitext.
+- Wikipedia: harden AAO extraction to (a) recognize `gave birth`, (b) avoid misclassifying `"to <noun phrase>"` as purpose, and (c) suppress root-surname mapping when the surname is part of a two-token name (e.g. `Laura Bush`).
+- Ontology: add a small curation helper to upsert a minimal `actors(kind,label)` row into an ontology SQLite DB.
