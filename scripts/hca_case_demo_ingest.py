@@ -64,6 +64,20 @@ _MONTH_TOKEN_TO_INT = {
     "december": 12,
 }
 
+_MONTH_NAME_PATTERN = (
+    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|"
+    r"Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
+)
+
+# Chronology tables often collapse into one long sentence in parsed PDFs.
+# Split those rows into date-scoped narrative chunks before AAO extraction.
+_DATE_ROW_START_RE = re.compile(
+    rf"(?:^|\s)((?:\d{{1,2}}(?:\s*-\s*\d{{1,2}})?\s+{_MONTH_NAME_PATTERN}\s+\d{{4}})|"
+    rf"(?:(?:Early|Mid|Late)\s+\d{{4}}(?:s)?))",
+    flags=re.IGNORECASE,
+)
+
 
 def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
@@ -864,6 +878,16 @@ def _extract_ints(text: str) -> List[int]:
     return out
 
 
+FOLLOWER_ORDER = [
+    "wikipedia",
+    "wiki_connector",
+    "austlii",
+    "jade",
+    "source_document",
+    "source_pdf",
+]
+
+
 def _citation_follow_hints(citation_text: str, source_document_json: str, source_pdf: str) -> List[Dict[str, str]]:
     q = urllib.parse.quote_plus(str(citation_text or "").strip())
     hints: List[Dict[str, str]] = []
@@ -883,6 +907,20 @@ def _citation_follow_hints(citation_text: str, source_document_json: str, source
                 "driver": "pywikibot",
                 "wiki": "enwiki",
                 "title": str(citation_text or "").strip(),
+            }
+        )
+        hints.append(
+            {
+                "provider": "austlii",
+                "mode": "search",
+                "url": f"https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query={q}",
+            }
+        )
+        hints.append(
+            {
+                "provider": "jade",
+                "mode": "search",
+                "url": f"https://jade.io/search?q={q}",
             }
         )
     if source_document_json:
@@ -912,6 +950,8 @@ def _looks_like_citation_text(text: str) -> bool:
         return True
     if "CAB " in s or s.startswith("CAB"):
         return True
+    if re.search(r"\b(?:CAB|SC|AS|RS|ABFM)\b", s):
+        return True
     if s.isdigit() and len(s) <= 3:
         return True
     return False
@@ -937,7 +977,7 @@ def _extract_citations(text: str, source_document_json: str = "", source_pdf: st
             "text": ctext,
             "kind": kind,
             "targets": _extract_ints(ctext),
-            "follower_order": ["wikipedia", "wiki_connector", "source_document", "source_pdf"],
+            "follower_order": list(FOLLOWER_ORDER),
             "follow": _citation_follow_hints(ctext, source_document_json=source_document_json, source_pdf=source_pdf),
         }
         if prefix:
@@ -1257,7 +1297,7 @@ def _select_sl_references_for_sentence(
                 "source_pdf": str(source_pdf or ""),
                 "provision_stable_id": row.get("provision_stable_id"),
                 "rule_atom_stable_id": row.get("rule_atom_stable_id"),
-                "follower_order": ["wikipedia", "wiki_connector", "source_document", "source_pdf"],
+                "follower_order": list(FOLLOWER_ORDER),
                 "follow": _citation_follow_hints(
                     follow_text,
                     source_document_json=str(source_document_json or row.get("source_document_json") or ""),
@@ -1581,12 +1621,121 @@ def _extract_temporal_anchors_from_sentence(
                         "kind": "date_mention",
                     }
                 )
+            # Supplement DATE entities with cue-qualified bare year tokens.
+            # This catches phrases like "since at least 1954" that some models
+            # may skip as DATE entities in dense legal prose.
+            cue_prev = {
+                "in",
+                "since",
+                "from",
+                "by",
+                "on",
+                "during",
+                "before",
+                "after",
+                "until",
+                "till",
+                "around",
+            }
+            for i, tok in enumerate(doc):
+                t = str(getattr(tok, "text", "") or "").strip("[](),.;:")
+                if not t.isdigit() or len(t) != 4:
+                    continue
+                year = int(t)
+                if year < 1800 or year > 2200:
+                    continue
+                prev1 = str(doc[i - 1].text).lower() if i > 0 else ""
+                prev2 = str(doc[i - 2].text).lower() if i > 1 else ""
+                has_temporal_cue = prev1 in cue_prev or (prev2 == "at" and prev1 == "least")
+                if not has_temporal_cue:
+                    continue
+                key = (year, None, None, "year")
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(
+                    {
+                        "year": year,
+                        "month": None,
+                        "day": None,
+                        "precision": "year",
+                        "text": t,
+                        "kind": "date_token",
+                    }
+                )
         except Exception:
             pass
     if out:
+        # If we have a stronger same-year anchor (month/day), suppress bare
+        # year-only anchors for that year to avoid duplicated fact rows like
+        # 1969-01-15 and 1969-00-00 for the same step.
+        years_with_strong_anchor = {
+            int(a.get("year") or 0)
+            for a in out
+            if str(a.get("precision") or "") in {"month", "day"} and int(a.get("year") or 0) > 0
+        }
+        if years_with_strong_anchor:
+            filtered: List[Dict[str, object]] = []
+            for a in out:
+                year = int(a.get("year") or 0)
+                precision = str(a.get("precision") or "")
+                text = _collapse_ws(str(a.get("text") or ""))
+                if precision == "year" and year in years_with_strong_anchor and re.fullmatch(r"\d{4}", text):
+                    continue
+                filtered.append(a)
+            out = filtered
         out.sort(key=_anchor_sort_key)
         return out
     return [dict(fallback_anchor)]
+
+
+def _split_chronology_sentence(text: str, nlp: Optional[object] = None) -> List[str]:
+    s = _collapse_ws(text)
+    if not s:
+        return []
+    starts = [m.start(1) for m in _DATE_ROW_START_RE.finditer(s) if m and m.start(1) >= 0]
+    if len(starts) < 2 and "date event reference" not in s.lower():
+        return [s]
+    if len(starts) < 2:
+        return [s]
+
+    out: List[str] = []
+    for i, start in enumerate(starts):
+        end = starts[i + 1] if i + 1 < len(starts) else len(s)
+        chunk = _collapse_ws(s[start:end])
+        if len(chunk) < 20:
+            continue
+        if nlp is not None:
+            try:
+                doc = nlp(chunk)
+                has_verb = any(getattr(t, "pos_", "") in {"VERB", "AUX"} for t in doc)
+                if not has_verb:
+                    continue
+            except Exception:
+                pass
+        out.append(chunk)
+    return out or [s]
+
+
+def _clean_fact_objects(raw_objects: object) -> List[str]:
+    seen: Set[str] = set()
+    out: List[str] = []
+    for x in raw_objects if isinstance(raw_objects, list) else []:
+        s = _collapse_ws(x)
+        if not s:
+            continue
+        if _looks_like_citation_text(s):
+            continue
+        if re.fullmatch(r"\d{4}", s):
+            continue
+        if re.fullmatch(rf"\d{{1,2}}(?:\s*-\s*\d{{1,2}})?\s+{_MONTH_NAME_PATTERN}\s+\d{{4}}", s, flags=re.IGNORECASE):
+            continue
+        k = s.lower()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(s)
+    return out
 
 
 def _build_timeline_facts_for_event(
@@ -1611,7 +1760,11 @@ def _build_timeline_facts_for_event(
             continue
         action = _collapse_ws(step.get("action"))
         subjects = sorted(set(_collapse_ws(x) for x in step.get("subjects") or [] if _collapse_ws(x)))
-        objects = sorted(set(_collapse_ws(x) for x in step.get("objects") or [] if _collapse_ws(x)))
+        entity_objects_raw = step.get("entity_objects")
+        object_lane = entity_objects_raw if isinstance(entity_objects_raw, list) and entity_objects_raw else step.get("objects")
+        objects = sorted(set(_clean_fact_objects(object_lane)))
+        numeric_objects = sorted(set(_clean_fact_objects(step.get("numeric_objects"))))
+        modifier_objects = sorted(set(_clean_fact_objects(step.get("modifier_objects"))))
         purpose = _collapse_ws(step.get("purpose"))
         if not action and not subjects and not objects:
             continue
@@ -1626,6 +1779,8 @@ def _build_timeline_facts_for_event(
                     "subjects": subjects,
                     "action": action or None,
                     "objects": objects,
+                    "numeric_objects": numeric_objects,
+                    "modifier_objects": modifier_objects,
                     "purpose": purpose or None,
                     "text": sentence_text,
                 }
@@ -1750,8 +1905,11 @@ def _doc_sentences(document_json_path: Path, max_sentences: int, nlp: Optional[o
             if not isinstance(row, dict):
                 continue
             text = _collapse_ws(row.get("text"))
-            if _is_narrative_sentence(text, nlp=nlp):
-                out.append(text)
+            for chunk in _split_chronology_sentence(text, nlp=nlp):
+                if _is_narrative_sentence(chunk, nlp=nlp):
+                    out.append(chunk)
+                if len(out) >= max_sentences:
+                    break
             if len(out) >= max_sentences:
                 break
     if out:
@@ -1759,8 +1917,11 @@ def _doc_sentences(document_json_path: Path, max_sentences: int, nlp: Optional[o
 
     body = _collapse_ws(payload.get("body"))
     for text in _sentence_split_fallback(body, nlp=nlp):
-        if _is_narrative_sentence(text, nlp=nlp):
-            out.append(text)
+        for chunk in _split_chronology_sentence(text, nlp=nlp):
+            if _is_narrative_sentence(chunk, nlp=nlp):
+                out.append(chunk)
+            if len(out) >= max_sentences:
+                break
         if len(out) >= max_sentences:
             break
     return out

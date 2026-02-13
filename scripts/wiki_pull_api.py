@@ -32,6 +32,20 @@ WIKIS: dict[str, str] = {
 }
 
 
+class _RequestPacer:
+    def __init__(self, *, wiki_rps: float) -> None:
+        self._interval = 1.0 / max(0.01, float(wiki_rps))
+        self._last_at = 0.0
+
+    def wait(self) -> None:
+        now = time.monotonic()
+        if self._last_at > 0:
+            wait_s = self._interval - (now - self._last_at)
+            if wait_s > 0:
+                time.sleep(wait_s)
+        self._last_at = time.monotonic()
+
+
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -40,7 +54,9 @@ def _utc_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def _get_json(url: str, *, timeout_s: int) -> dict:
+def _get_json(url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None) -> dict:
+    if pacer is not None:
+        pacer.wait()
     req = urllib.request.Request(
         url,
         headers={
@@ -110,6 +126,7 @@ def _fetch_latest_wikitext(
     max_categories: int,
     include_wikitext: bool,
     timeout_s: int,
+    pacer: Optional[_RequestPacer],
 ) -> PageSnapshot:
     if wiki not in WIKIS:
         raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(WIKIS))})")
@@ -132,7 +149,7 @@ def _fetch_latest_wikitext(
         "plnamespace": 0,
     }
     url = _build_url(base, params)
-    payload = _get_json(url, timeout_s=timeout_s)
+    payload = _get_json(url, timeout_s=timeout_s, pacer=pacer)
 
     warnings: List[str] = []
     query = payload.get("query") or {}
@@ -222,6 +239,7 @@ def _fetch_latest_pywikibot(
     max_links: int,
     max_categories: int,
     include_wikitext: bool,
+    pacer: Optional[_RequestPacer],
 ) -> PageSnapshot:
     # pywikibot normally expects a user-config.py; this env var allows
     # read-only operation without it.
@@ -243,6 +261,8 @@ def _fetch_latest_pywikibot(
 
     warnings: List[str] = []
     page = pywikibot.Page(site, title)
+    if pacer is not None:
+        pacer.wait()
     try:
         page.get(get_redirect=True)
     except Exception:  # pragma: no cover
@@ -303,6 +323,7 @@ def _fetch_category_members(
     category_title: str,
     max_members: int,
     timeout_s: int,
+    pacer: Optional[_RequestPacer],
 ) -> List[str]:
     if wiki not in WIKIS:
         raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(WIKIS))})")
@@ -322,7 +343,7 @@ def _fetch_category_members(
         if cmcontinue:
             params["cmcontinue"] = cmcontinue
         url = _build_url(base, params)
-        payload = _get_json(url, timeout_s=timeout_s)
+        payload = _get_json(url, timeout_s=timeout_s, pacer=pacer)
         query = payload.get("query") or {}
         cms = query.get("categorymembers") or []
         for row in cms:
@@ -373,6 +394,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--max-categories", type=int, default=50)
     p.add_argument("--no-wikitext", action="store_true", help="Skip wikitext body in snapshot JSON")
     p.add_argument("--timeout-s", type=int, default=30)
+    p.add_argument(
+        "--wiki-rps",
+        type=float,
+        default=1.0,
+        help="Max requests per second for wiki API/category calls (default: %(default)s)",
+    )
     p.add_argument("--category-traverse", action="store_true", help="Fetch 1-hop category member lists (capped)")
     p.add_argument("--category-max-members", type=int, default=200)
     p.add_argument(
@@ -403,6 +430,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         raise SystemExit("no titles provided (use --title or --titles-file)")
 
     include_wikitext = not args.no_wikitext
+    pacer = _RequestPacer(wiki_rps=max(0.01, float(args.wiki_rps)))
     out_paths: List[str] = []
     traverse_paths: List[str] = []
     drivers_used: List[str] = []
@@ -436,6 +464,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 max_links=int(args.max_links),
                 max_categories=int(args.max_categories),
                 include_wikitext=include_wikitext,
+                pacer=pacer,
             )
         else:
             snap = _fetch_latest_wikitext(
@@ -445,6 +474,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 max_categories=int(args.max_categories),
                 include_wikitext=include_wikitext,
                 timeout_s=int(args.timeout_s),
+                pacer=pacer,
             )
         out_path = _write_snapshot(Path(args.out_dir), snap)
         out_paths.append(str(out_path))
@@ -472,6 +502,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     category_title=cat,
                     max_members=int(args.category_max_members),
                     timeout_s=int(args.timeout_s),
+                    pacer=pacer,
                 )
             traverse_payload = {
                 "wiki": snap.wiki,
@@ -499,6 +530,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "python": python_exe,
                 "driver_requested": args.driver,
                 "drivers_used": drivers_used,
+                "wiki_rps": float(args.wiki_rps),
                 "snapshots": out_paths,
                 "category_traversal": traverse_paths,
             },

@@ -1,6 +1,89 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia timeline extraction: add deterministic special-event mention anchors
+  for `September 11 attacks` / `9/11` prose mentions without explicit year,
+  emitting `2001-09-11` mention anchors without creating synthetic narrative text.
+- Wikipedia/HCA AAO: add dedicated `numeric_objects` lane at step/event level
+  so numeric quantities (e.g., `89 percent`, `7.2%`) are separated from entity
+  and modifier lanes.
+- Wikipedia/HCA AAO: add deterministic numeric second pass over sentence text
+  to recover numeric mentions that are not promoted via dependency object lanes.
+- Ingest (HCA fact timeline): include `numeric_objects` in synthesized
+  `timeline_facts[]` rows so chronology views can inspect quantitative facts
+  separately from entity objects.
+- Tests: add `test_wiki_timeline_numeric_lane.py` for numeric lane/admissibility
+  coverage.
+- Wikipedia timeline extraction: add inline `kind=mention` anchor extraction for
+  embedded month/day/year references inside sentences (e.g., anniversary lines
+  mentioning `September 11, 2001`) so month buckets capture referenced events
+  without inventing synthetic prose entries.
+- Wikipedia AAO fallback hardening: stop promoting generic `-ing` tokens as
+  actions in text-only fallback (prevents nominal phrases like `turning point`
+  from becoming actions), and tighten spaCy fallback to prefer clause-head
+  finite/root verbs over arbitrary participles.
+- Wikipedia timeline extraction: add conservative section-heading date-anchor fallback
+  for first prose sentence when sentence-local anchors are absent (example:
+  `September 11, 2001 attacks` now yields a weak `2001-09-11` event anchor),
+  plus media-caption filtering so `thumb|...` lines are not emitted as events.
+- Tests: add heading-anchor/media-caption coverage in
+  `test_wiki_timeline_extract_section_anchor.py`.
+- Docs/planning: add architecture addenda bundle beyond `WrongType` covering
+  epistemic layering terminology, graph neutrality/rendering contracts,
+  frame-scope projection validation, and evidence/attribution frame typing:
+  `architecture_addenda_index_20260212.md`,
+  `epistemic_layering_structural_interpretation_20260212.md`,
+  `graph_epistemic_neutrality_contract_20260212.md`,
+  `frame_scope_projection_validator_20260212.md`,
+  `evidence_attribution_frame_contract_v2_20260212.md`.
+- Wikipedia/HCA AAO coalescing: tighten deterministic object/step coalescing by
+  (a) adding identity-aware object keys from exact resolver hints, (b) making
+  step dedupe keys order-insensitive for subject/object sets, and (c) preferring
+  canonical entity labels from exact hint titles to reduce alias echo nodes
+  (`Bush` vs `George W. Bush`) in truth-lane outputs.
+- Tests: add `test_wiki_timeline_coalescing.py` covering identity-key merges,
+  canonical entity label preference, and order-insensitive step dedupe keys.
+- Wikipedia/HCA AAO: canonicalize event/step actions to lemma-first output
+  keys (e.g. `reported` -> `report`) and preserve inflection metadata in
+  `action_meta` (`surface`, `tense`, `aspect`, `verb_form`, `voice`) with
+  optional `action_surface` for display/replay.
+- Tests/guardrails: add `test_wiki_timeline_no_semantic_regex_regressions.py`
+  to prevent reintroducing `REPORTED_SUBJECT_RE`-style semantic regex subject
+  injection and `reported/cautioned` sentence-family regex branches in the
+  wiki timeline AAO extractor.
+- Docs: add deterministic Evidence Promotion Contract draft
+  (`docs/planning/evidence_promotion_contract_20260212.md`) to formalize
+  truth-vs-view boundaries for evidence overlays.
+- Wikipedia/HCA AAO: add dependency-based modal-container promotion
+  (`have/be` + `xcomp`) so constructions like "had a tendency/opportunity to X"
+  emit `X` as the step action and store the wrapper as a modifier instead of
+  treating `have` as the primary action.
+- Wikipedia/HCA AAO: strengthen parser fallback action selection to prefer
+  non-wrapper verbs (`xcomp/ccomp/acl/...`) over `have/be` when available in
+  the same sentence.
+- Ingest (HCA fact timeline): prefer step `entity_objects` over raw `objects`
+  when synthesizing `timeline_facts[]`, while preserving `modifier_objects`
+  separately for optional view-layer diagnostics.
+- Wikipedia: harden AAO object canonicalization so determiner variants (`the X`
+  vs `X`) de-duplicate deterministically with resolver-aware preference; non-link
+  object rows now merge hints instead of creating echo nodes.
+- Wikipedia: make derived purpose-step extraction verb-gated (spaCy structure
+  first, conservative fallback) so non-verbal heads like `for` are not emitted
+  as actions.
+- Wikipedia: add explicit `entity_objects` and `modifier_objects` lanes to AAO
+  steps/events so view layers can hide clause mechanics by default without
+  deleting truth-layer extraction artifacts.
+- Ingest: citation/sl-reference follow hints in HCA demo lanes now include
+  `austlii` and `jade` providers (in addition to wiki/source-document lanes),
+  so review workflows can surface legal-source follow targets directly.
+- Ingest: source-pack pull/follow scripts now enforce explicit per-host
+  request pacing with conservative defaults (`legal_rps=0.25`, `wiki_rps=1.0`,
+  `default_rps=0.5`) and record the policy in emitted manifests.
+- Ingest: wiki snapshot pull now supports explicit wiki API pacing
+  (`--wiki-rps`, default `1.0`) so category traversal stays bounded and polite.
+- Ingest (HCA narrative): temporal anchor extraction now supplements spaCy
+  DATE entities with cue-qualified bare year tokens (e.g. "since at least
+  1954"), so multi-year legal sentences can emit multiple timeline facts.
 - Docs: publish S7–S9 roadmaps (span authority, cross-doc topology, read-only UI).
 - Docs: add human tools integration guidance + multi-modal system doctrine.
 - Docs: update span-signal/promotion/IR invariants to require revision-scoped spans.
@@ -68,6 +151,11 @@
 - Wikipedia: emit minimal `chains[]` metadata for multi-step AAO events and add derived purpose-steps when a purpose clause is present but not already represented as a step.
 - Wikipedia: harden person-title guardrails (`alliance`, `forces`, `troops`, etc.) and extend action coverage (`initiated`, `discharged`, `suspended`, `told`, `voted`).
 - Wikipedia: add dependency-object fallback extraction for unlinked object phrases and emit per-object resolver hints (`exact`/`near`) against sentence links, paragraph links, and candidate-title rows.
+- Wikipedia: normalize request-clause AAO extraction so `at ... request` yields requester-led steps (`action=request`) with role-correct subjects/objects instead of leaking request actions onto the main actors.
+- Wikipedia: add negation-aware action labels (`not_*`) and clause-link chain kinds (`content_clause`, `infinitive_clause`) for complement structures (e.g. `told` -> `not_voted`).
+- Wikipedia: stabilize AAO action vocabulary by storing negation as structured metadata (`step.negation`) while keeping canonical base actions; `not_*` is now a view concern.
+- Wikipedia: add profile-driven extraction config (`--profile`) with pinned output provenance (`extraction_profile`) for action regex inventory and requester title labels.
+- Wikipedia: refine subject-surface extraction for conjunctions so dependency subjects preserve both actors in coordinated subjects (`Bush and Bill Clinton`) without collapsing to one.
 - Ontology: add a small curation helper to upsert a minimal `actors(kind,label)` row into an ontology SQLite DB.
 - Ingest: add `hca_case_demo_ingest.py` link-selection scoring so multi-link rows resolve to the intended artifact (e.g., judgment summary PDF vs judgment HTML page).
 - Ingest: add HCA recording transcript/caption hardening with AV transcript fallback, Vimeo `config/request` fallback, and HLS/DASH manifest capture for no-progressive streams.
@@ -81,3 +169,8 @@
 - Ingest: move HCA `party` attribution to parser-first document-structure inference (`toc_entries`, metadata, sentence token cues), with explicit `party_source`/`party_evidence`/`party_scores` and label fallback only when unresolved.
 - Ingest: add bounded source-pack puller (`scripts/source_pack_manifest_pull.py`) that fetches explicit `seed_urls` only and emits deterministic `manifest.json`, `timeline.json`, and `timeline_graph.json` artifacts for legal-principles bootstrap workflows.
 - Ingest: add bounded authority-link follow pass (`scripts/source_pack_authority_follow.py`) with explicit depth/doc caps (`max_depth`, `max_new_docs`) and deterministic follow artifacts (`follow_manifest.json`, `follow_timeline.json`, `follow_timeline_graph.json`).
+- Ingest (HCA timeline facts): split chronology-table sentence rows into date-scoped chunks before AAO extraction, suppress redundant year-only anchors when a stronger same-year month/day anchor exists, and filter citation/date noise from `timeline_facts[].objects` to reduce circular-looking fact fan-out.
+- Wikipedia AAO: de-noise parser input by stripping parenthetical citation tails before dependency extraction; keeps canonical event text unchanged while reducing `CAB/SC/...` leakage into extracted actions/objects/purpose.
+- Wikipedia AAO: normalize possessive evidence subjects to person actors (`X's evidence` -> `X`) and apply shared entity-surface cleanup for footnote/citation tails in subject/object lanes.
+- Wikipedia AAO: promote person/party-role dep objects (`Fr ...`, `Mr ...`, `the appellant/respondent`) into `entity_objects` when unresolved, so legal-narrative actor visibility survives without ID-only gating.
+- Wikipedia AAO: replace hardcoded `reported/cautioned` sentence-family split + `REPORTED_SUBJECT_RE` injection with profile-driven dependency communication chains (`communication_verbs` + `ccomp/xcomp` embedded steps + attribution modifiers).

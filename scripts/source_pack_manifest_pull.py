@@ -13,6 +13,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import time
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
@@ -35,6 +36,40 @@ AUTHORITY_HOST_SUFFIXES = (
     "legislation.nt.gov.au",
     "jade.io",
 )
+
+
+class _RequestPacer:
+    def __init__(self, *, legal_rps: float, wiki_rps: float, default_rps: float) -> None:
+        self._legal_interval = 1.0 / max(0.01, float(legal_rps))
+        self._wiki_interval = 1.0 / max(0.01, float(wiki_rps))
+        self._default_interval = 1.0 / max(0.01, float(default_rps))
+        self._last_request_at: Dict[str, float] = {}
+
+    def _bucket_for_url(self, url: str) -> str:
+        h = _host(url)
+        if h.endswith(("wikipedia.org", "wikimedia.org")):
+            return "wiki"
+        if _is_authority_host(url):
+            return "legal"
+        return "default"
+
+    def _interval_for_bucket(self, bucket: str) -> float:
+        if bucket == "wiki":
+            return self._wiki_interval
+        if bucket == "legal":
+            return self._legal_interval
+        return self._default_interval
+
+    def wait_for(self, url: str) -> None:
+        bucket = self._bucket_for_url(url)
+        interval = self._interval_for_bucket(bucket)
+        now = time.monotonic()
+        last = self._last_request_at.get(bucket)
+        if last is not None:
+            wait_s = interval - (now - last)
+            if wait_s > 0:
+                time.sleep(wait_s)
+        self._last_request_at[bucket] = time.monotonic()
 
 
 def _utc_now_iso() -> str:
@@ -113,7 +148,9 @@ class _LinkAndTitleParser(HTMLParser):
         return _collapse_ws("".join(self._title_buf))
 
 
-def _fetch(url: str, timeout: int, user_agent: str) -> Dict[str, object]:
+def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPacer] = None) -> Dict[str, object]:
+    if pacer is not None:
+        pacer.wait_for(url)
     req = urllib.request.Request(url, headers={"User-Agent": user_agent}, method="GET")
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - bounded explicit fetch
         data = resp.read()
@@ -242,11 +279,21 @@ def _iter_seed_rows(pack: Dict[str, object]) -> Iterable[Tuple[Dict[str, object]
                 yield source, url.strip()
 
 
-def run(pack_path: Path, out_dir: Path, timeout: int, max_links_per_doc: int, max_authority_links_per_doc: int) -> Dict[str, object]:
+def run(
+    pack_path: Path,
+    out_dir: Path,
+    timeout: int,
+    max_links_per_doc: int,
+    max_authority_links_per_doc: int,
+    legal_rps: float,
+    wiki_rps: float,
+    default_rps: float,
+) -> Dict[str, object]:
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack_id = str(pack.get("pack_id") or pack_path.stem)
     user_agent = f"ITIR-suite/source-pack-manifest-pull ({pack_id})"
     generated_at = _utc_now_iso()
+    pacer = _RequestPacer(legal_rps=legal_rps, wiki_rps=wiki_rps, default_rps=default_rps)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = out_dir / "raw"
@@ -278,7 +325,7 @@ def run(pack_path: Path, out_dir: Path, timeout: int, max_links_per_doc: int, ma
             "raw_path": None,
         }
         try:
-            fetched = _fetch(seed_url, timeout=timeout, user_agent=user_agent)
+            fetched = _fetch(seed_url, timeout=timeout, user_agent=user_agent, pacer=pacer)
             content = fetched["bytes"] if isinstance(fetched["bytes"], bytes) else b""
             final_url = str(fetched["final_url"])
             content_type = str(fetched["content_type"] or "")
@@ -362,6 +409,11 @@ def run(pack_path: Path, out_dir: Path, timeout: int, max_links_per_doc: int, ma
         "generated_at": generated_at,
         "pack_path": str(pack_path),
         "contracts": pack.get("contracts") if isinstance(pack.get("contracts"), dict) else {},
+        "fetch_policy": {
+            "legal_rps": float(legal_rps),
+            "wiki_rps": float(wiki_rps),
+            "default_rps": float(default_rps),
+        },
         "documents": docs_sorted,
         "errors": errors,
         "summary": {
@@ -431,6 +483,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=40,
         help="Maximum authority-host links retained per document (default: %(default)s)",
     )
+    ap.add_argument(
+        "--legal-rps",
+        type=float,
+        default=0.25,
+        help="Max requests per second for legal hosts (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--wiki-rps",
+        type=float,
+        default=1.0,
+        help="Max requests per second for wiki hosts (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--default-rps",
+        type=float,
+        default=0.5,
+        help="Max requests per second for non-legal/non-wiki hosts (default: %(default)s)",
+    )
     args = ap.parse_args(argv)
 
     result = run(
@@ -439,6 +509,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         timeout=max(1, int(args.timeout)),
         max_links_per_doc=max(1, int(args.max_links_per_doc)),
         max_authority_links_per_doc=max(1, int(args.max_authority_links_per_doc)),
+        legal_rps=max(0.01, float(args.legal_rps)),
+        wiki_rps=max(0.01, float(args.wiki_rps)),
+        default_rps=max(0.01, float(args.default_rps)),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

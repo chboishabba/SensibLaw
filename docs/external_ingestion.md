@@ -169,7 +169,7 @@ still valid observer signals for StatiBaker:
 - `narrative_sentence` AAO events -> provisional timeline/actor/action/object
   signals for review surfaces.
 - `citations[]` -> review-time follower hints with ordered providers
-  (`wikipedia` first, then `wiki_connector`, then source document/pdf).
+  (`wikipedia`, `wiki_connector`, `austlii`, `jade`, then source document/pdf).
 - `sl_references[]` -> parser-native reference lane for structured joins into
   SL artifacts while remaining observer-only at this stage.
 

@@ -51,6 +51,16 @@ IN_MY_RE = re.compile(
 IN_Y_RE = re.compile(
     r"^\s*In\s+(\d{4})\b",
 )
+INLINE_MDY_RE = re.compile(r"\b([A-Z][a-z]+)\s+(\d{1,2}),\s+(\d{4})\b")
+SEPT11_EVENT_RE = re.compile(
+    r"\b(?:the\s+)?(?:attacks?\s+of\s+)?(?:September\s+11(?:,\s*2001)?(?:\s*,)?\s*(?:terrorist\s+)?attacks?|9/11)\b",
+    flags=re.IGNORECASE,
+)
+
+# Section-heading date hints, used conservatively as fallback anchors when
+# sentence-level anchors are absent (e.g., "September 11, 2001 attacks").
+SECTION_MDY_RE = re.compile(r"\b([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})\b")
+SECTION_MY_RE = re.compile(r"\b([A-Z][a-z]+)\s+(\d{4})\b")
 
 REFNOTE_RE = re.compile(r"\[(?:\d+|note\s+\d+)\]")
 
@@ -213,6 +223,97 @@ def _parse_anchor(line: str) -> Optional[DateAnchor]:
     return None
 
 
+def _parse_section_anchor(section: str) -> Optional[DateAnchor]:
+    s = _collapse_ws(str(section or ""))
+    if not s:
+        return None
+
+    m = SECTION_MDY_RE.search(s)
+    if m:
+        month_name = m.group(1).lower()
+        month = MONTHS.get(month_name)
+        if month:
+            return DateAnchor(
+                year=int(m.group(3)),
+                month=month,
+                day=int(m.group(2)),
+                precision="day",
+                text=s,
+                kind="weak",
+            )
+
+    m = SECTION_MY_RE.search(s)
+    if m:
+        month_name = m.group(1).lower()
+        month = MONTHS.get(month_name)
+        if month:
+            return DateAnchor(
+                year=int(m.group(2)),
+                month=month,
+                day=None,
+                precision="month",
+                text=s,
+                kind="weak",
+            )
+
+    return None
+
+
+def _parse_inline_anchors(line: str) -> List[DateAnchor]:
+    out: List[DateAnchor] = []
+    seen = set()
+    s = str(line or "")
+    for m in INLINE_MDY_RE.finditer(s):
+        month_name = m.group(1).lower()
+        month = MONTHS.get(month_name)
+        if not month:
+            continue
+        day = int(m.group(2))
+        year = int(m.group(3))
+        key = (year, month, day)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            DateAnchor(
+                year=year,
+                month=month,
+                day=day,
+                precision="day",
+                text=m.group(0).strip(),
+                kind="mention",
+            )
+        )
+    return out
+
+
+def _parse_special_event_anchors(line: str) -> List[DateAnchor]:
+    """Extract deterministic event-date mentions when prose omits explicit year.
+
+    Scope is intentionally narrow: only highly stable global event phrase forms.
+    """
+    out: List[DateAnchor] = []
+    seen = set()
+    s = str(line or "")
+
+    for m in SEPT11_EVENT_RE.finditer(s):
+        key = (2001, 9, 11)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            DateAnchor(
+                year=2001,
+                month=9,
+                day=11,
+                precision="day",
+                text=m.group(0).strip(),
+                kind="mention",
+            )
+        )
+    return out
+
+
 def _iter_section_paragraphs(wikitext: str) -> Iterable[Tuple[str, str]]:
     """Yield (section, paragraph_wikitext) pairs."""
     section = "(lead)"
@@ -318,6 +419,19 @@ def _cleanup_sentence_text(sentence: str) -> str:
     return _collapse_ws(s)
 
 
+def _looks_like_media_caption(text: str) -> bool:
+    s = _collapse_ws(str(text or "")).lower()
+    if not s:
+        return False
+    if "thumb|" in s:
+        return True
+    if s.startswith(("left|", "right|", "upright|", "frame|", "frameless|")):
+        return True
+    if "px|" in s and "|" in s:
+        return True
+    return False
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Extract date-anchored timeline candidates from a wiki snapshot.")
     ap.add_argument("--snapshot", type=Path, required=True, help="Path to snapshot JSON (from wiki_pull_api.py)")
@@ -345,6 +459,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     events: List[dict] = []
     idx = 0
+    section_heading_emitted: Dict[str, bool] = {}
     for section, para_wt in _iter_section_paragraphs(wikitext):
         if section_filters:
             sec = section.lower()
@@ -360,27 +475,59 @@ def main(argv: Optional[List[str]] = None) -> int:
         # We want a stable, curation-friendly unit, not perfect NLP.
         sentences = _split_sentences(plain)
 
-        for s in sentences:
+        section_anchor = _parse_section_anchor(section)
+        for si, s in enumerate(sentences):
             s = _cleanup_sentence_text(s)
             if not s:
                 continue
-            anchor = _parse_anchor(s)
-            if not anchor:
+            if _looks_like_media_caption(s):
                 continue
-            idx += 1
+            anchors: List[DateAnchor] = []
+            anchor = _parse_anchor(s)
+            if anchor:
+                anchors.append(anchor)
+            if not anchor and section_anchor is not None and not section_heading_emitted.get(section, False):
+                # Conservative heading fallback:
+                # only first sentence in a section paragraph stream, only when
+                # the sentence lacks its own explicit anchor, to avoid broad
+                # synthetic backfilling.
+                if si == 0:
+                    anchors.append(section_anchor)
+                    section_heading_emitted[section] = True
+
+            for ia in _parse_inline_anchors(s):
+                if not any(
+                    a.year == ia.year and a.month == ia.month and a.day == ia.day and a.precision == ia.precision
+                    for a in anchors
+                ):
+                    anchors.append(ia)
+            for sa in _parse_special_event_anchors(s):
+                if not any(
+                    a.year == sa.year and a.month == sa.month and a.day == sa.day and a.precision == sa.precision
+                    for a in anchors
+                ):
+                    anchors.append(sa)
+
+            if not anchors:
+                continue
+
             # Sentence-local link capture reduces irrelevant paragraph links.
             links = _links_in_sentence(para_wt, s)
             para_links = _wikitext_links(para_wt)
-            events.append(
-                {
-                    "event_id": f"ev:{idx:04d}",
-                    "anchor": anchor.to_json(),
-                    "section": section,
-                    "text": s,
-                    "links": links[:50],
-                    "links_para": para_links[:120],
-                }
-            )
+            for a in anchors:
+                idx += 1
+                events.append(
+                    {
+                        "event_id": f"ev:{idx:04d}",
+                        "anchor": a.to_json(),
+                        "section": section,
+                        "text": s,
+                        "links": links[:50],
+                        "links_para": para_links[:120],
+                    }
+                )
+                if len(events) >= int(args.max_events):
+                    break
             if len(events) >= int(args.max_events):
                 break
         if len(events) >= int(args.max_events):

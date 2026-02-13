@@ -1,0 +1,77 @@
+{
+  "profile_id": "wiki_timeline_aoo_v1",
+  "profile_version": "1.0.0",
+  "requester_title_labels": {
+    "president": "U.S. President"
+  },
+  "modal_container_grammar": {
+    "have": {
+      "container_deps": ["dobj", "obj", "attr"],
+      "container_nouns": ["tendency", "opportunity", "ability", "capacity", "failure", "requirement"],
+      "require_to": true,
+      "promote": "xcomp"
+    },
+    "be": {
+      "container_deps": ["attr", "acomp", "oprd"],
+      "container_nouns": ["able", "likely", "required"],
+      "require_to": true,
+      "promote": "xcomp"
+    }
+  },
+  "communication_chain": {
+    "communication_verbs": ["report", "say", "state", "warn", "caution", "announce", "hold", "find", "conclude", "contend", "argue", "note", "tell"],
+    "emit_attribution_step": true,
+    "emit_embedded_steps": true,
+    "embedded_step_limit": 2,
+    "embedded_step_heads": ["ROOT", "conj"],
+    "embedded_subject_policy": "prefer_local_subject",
+    "attribution_modifier_key": "according_to"
+  },
+  "action_patterns": [
+    { "label": "initiated", "pattern": "\\binitiat(?:e|ed|es|ing)\\b" },
+    { "label": "discharged", "pattern": "\\bdischarg(?:e|ed|es|ing)\\b" },
+    { "label": "suspended", "pattern": "\\bsuspend(?:ed|s|ing)\\b" },
+    { "label": "told", "pattern": "\\btold\\b|\\btell(?:s|ing)?\\b" },
+    { "label": "voted", "pattern": "\\bvote(?:d|s|ing)?\\b" },
+    { "label": "reported", "pattern": "\\breported\\b|\\breport(?:s|ed|ing)?\\b" },
+    { "label": "cautioned", "pattern": "\\bcautioned\\b|\\bcaution(?:s|ed|ing)?\\b" },
+    { "label": "gave_birth", "pattern": "\\bgave\\s+birth\\b" },
+    { "label": "defeated", "pattern": "\\bdefeat(?:ed|ing|s)?\\b" },
+    { "label": "continued", "pattern": "\\bcontinue(?:d|s|ing)?\\b" },
+    { "label": "weakened", "pattern": "\\bweaken(?:ed|ing|s)?\\b" },
+    { "label": "intensified", "pattern": "\\bintensified\\b" },
+    { "label": "began", "pattern": "\\bbegan\\b|\\bbeginning\\b" },
+    { "label": "nominated", "pattern": "\\bnominated\\b|\\bnominate\\b" },
+    { "label": "urged", "pattern": "\\burged\\b|\\burge\\b" },
+    { "label": "commissioned_into", "pattern": "\\bcommissioned\\b.*\\binto\\b" },
+    { "label": "commissioned", "pattern": "\\bcommissioned\\b" },
+    { "label": "threw", "pattern": "\\bthrew\\b|\\bthrow\\b" },
+    { "label": "entered", "pattern": "\\bentered\\b|\\benter\\b" },
+    { "label": "gave_speech", "pattern": "\\b(?:was\\s+)?giving\\s+a\\s+speech\\b|\\bgave\\s+a\\s+speech\\b" },
+    { "label": "led", "pattern": "\\bled\\b|\\blead\\b" },
+    { "label": "advised", "pattern": "\\badvised\\b|\\badvise\\b" },
+    { "label": "departed", "pattern": "\\bdepart(?:ed)?\\b" },
+    { "label": "requested", "pattern": "\\brequested\\b|\\brequest(?:s|ed)?\\b" },
+    { "label": "completed", "pattern": "\\bcomplete(?:d)?\\b" },
+    { "label": "withdrew", "pattern": "\\bwithdrew\\b|\\bwithdrawn\\b|\\bwithdraw\\b" },
+    { "label": "retired", "pattern": "\\bretired\\b|\\bretirement\\b" },
+    { "label": "died", "pattern": "\\bdied\\b|\\bdeath\\b" },
+    { "label": "killed", "pattern": "\\bkilled\\b|\\bkill\\b" },
+    { "label": "approved", "pattern": "\\bapproved\\b|\\bapprove\\b" },
+    { "label": "bailout", "pattern": "\\bbailout\\b|\\bbail(?:ed)?\\s+out\\b" },
+    { "label": "takeover", "pattern": "\\btakeover\\b|\\btook\\s+over\\b|\\btaken\\s+over\\b" },
+    { "label": "established", "pattern": "\\bestablished\\b" },
+    { "label": "called", "pattern": "\\bcalled\\b" },
+    { "label": "joined", "pattern": "\\bjoined\\b" },
+    { "label": "selected", "pattern": "\\bselected\\b" },
+    { "label": "signed", "pattern": "\\bsigned\\b" },
+    { "label": "launched", "pattern": "\\blaunched\\b" },
+    { "label": "arranged", "pattern": "\\barranged\\b" },
+    { "label": "merged", "pattern": "\\bmerged\\b" },
+    { "label": "ran", "pattern": "\\bran for\\b|\\bran\\b" },
+    { "label": "won", "pattern": "\\bwon\\b" },
+    { "label": "re_elected", "pattern": "\\bre-?elected\\b" },
+    { "label": "said", "pattern": "\\bsaid\\b" },
+    { "label": "released", "pattern": "\\breleased\\b" }
+  ]
+}

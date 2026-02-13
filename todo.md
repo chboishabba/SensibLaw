@@ -25,6 +25,96 @@
 - Tests-first rule: add pytest coverage for each sub-sprint before wiring code; feature-flag new surfaces if identity/output risk exists.
 
 - Near-term task focus
+  - AAO extractor de-hardcoding contract (wiki_timeline_aoo_extract.py):
+    - origin_online_id: `698bdf6e-43f8-839c-9089-34ee3d3338dd` (documented provenance only; no live fetch)
+    - hardcoded now:
+      - requester title -> `"U.S. President"` subject injection in request-step normalization
+      - static action regex map + sentence-specific split branches
+      - static person-token guardrails and title-word blocklists
+      - surface phrase object insertion for known prose shapes
+      - root actor/surname defaults tied to Bush dataset
+    - required to eliminate hardcoding:
+      - external office-role mapping (ID-backed) for requester/title expansion
+      - profile-driven action/split config (versioned, provenance-emitted)
+      - dependency-first clause/frame builder (regex as fallback only)
+      - typed entity/object promotion contract to replace surface phrase injections
+      - dataset bootstrap manifest for root actor aliases (no hardcoded CLI literals)
+      - regression goldset + invariants for request/passive/chain/object scenarios
+    - DONE (first step): extractor now loads a versioned external profile (`--profile`) for
+      action regex inventory and requester title labels, and emits profile provenance in artifact output.
+    - DONE (second step): AAO object dedupe now canonicalizes determiner variants (`the X` vs `X`)
+      and prefers resolver-strong rows deterministically; purpose-step generation is verb-gated
+      (spaCy parse first, conservative fallback) so non-verbs such as `for` no longer become actions.
+    - DONE (fourth step): dependency modal-container promotion now rewrites `have/be` + `xcomp`
+      constructions into semantic action heads (e.g. "had a tendency/opportunity to X" -> `X`)
+      with wrapper metadata stored as a step modifier.
+    - DONE (fallback hardening): parser fallback action chooser now prefers non-wrapper verbs
+      in complement/relative lanes over `have/be` when present in the same sentence.
+    - DONE (third step): AAO now emits explicit `entity_objects` vs `modifier_objects` lanes at
+      both event and step level, keeping truth broad while letting views suppress clause mechanics.
+    - DONE (fifth step): HCA fact-timeline synthesis now prefers `entity_objects` for `objects`
+      output and keeps `modifier_objects` as a separate field to avoid abstract-mechanics fan-out.
+    - DONE (subject/object hygiene): sentence parsing now strips parenthetical citation tails before
+      dependency extraction, resolves possessive subject wrappers (`X's evidence`) to person actors,
+      and applies shared footnote/citation cleanup so person/party mentions (e.g. `Fr Dillon`,
+      `the appellant`) are retained in `entity_objects` rather than lost to modifier-only lanes.
+    - DONE (communication chains): replaced sentence-family `reported/cautioned` branch and
+      `REPORTED_SUBJECT_RE` subject injection with profile-driven dependency extraction of
+      communication/complement chains (`ccomp`/`xcomp`) plus attribution modifiers.
+    - DONE (action canonicalization): emit lemma-first `action` keys in event/step outputs and
+      preserve surface/morph metadata (`action_meta`: tense/aspect/verb_form/voice, plus optional
+      `action_surface`) so dedupe uses canonical actions without losing display detail.
+    - DONE (contract): documented deterministic coalescing contract for wiki AAO lanes
+      (`docs/planning/wiki_timeline_coalescing_contract_20260212.md`) covering
+      entity/action/step/evidence boundaries and forbidden fuzzy/regex merge inputs.
+    - DONE (docs bundle): captured broader architectural addenda beyond `WrongType`
+      in:
+      - `docs/planning/architecture_addenda_index_20260212.md`
+      - `docs/planning/epistemic_layering_structural_interpretation_20260212.md`
+      - `docs/planning/graph_epistemic_neutrality_contract_20260212.md`
+      - `docs/planning/frame_scope_projection_validator_20260212.md`
+      - `docs/planning/evidence_attribution_frame_contract_v2_20260212.md`
+    - DONE (CI guard): add regression test that blocks reintroduction of semantic regex shortcuts
+      for reported/cautioned subject/action inference in `wiki_timeline_aoo_extract.py`;
+      keep regex usage limited to citation/date/hygiene parsing lanes.
+    - DONE (coalescing hardening): step dedupe now uses normalized set semantics
+      (order-insensitive subject/object identity) with identity-aware object keys
+      sourced from exact resolver hints; cross-frame projection guardrails remain
+      pending in the timeline scope validator task.
+    - TODO (scope validator): add projection invariant checks for frame-scoped timeline rows
+      (`entity_participation`/frame lineage) to catch "date -> action -> everything"
+      fan-out regressions during ingest/view synthesis.
+    - TODO (UI neutrality pass): implement explicit node/edge class rendering contract
+      from `graph_epistemic_neutrality_contract_20260212.md` (modifier lane styling,
+      evidence overlay styling, and scope/profile badges).
+    - TODO (frame typing): add explicit frame classes (`PROPOSITION`, `ASSERTION`,
+      `EVIDENCE`, `REASONING`) and typed edge-basis metadata during extraction and
+      graph payload emission per `evidence_attribution_frame_contract_v2_20260212.md`.
+    - TODO (adapter reliability): add an explicit `--offline-from-local` mode to
+      `hca_case_demo_ingest.py` so network/DNS failure cannot collapse manifest URLs or produce
+      shallow artifact-only payloads when local `raw/` + `ingest/*.document.json` already exist.
+    - DONE (timeline circularity guard): HCA ingest now pre-splits chronology-table rows into
+      date-scoped sentence chunks, de-duplicates same-year weaker anchors (`YYYY` dropped when
+      `YYYY-MM`/`YYYY-MM-DD` exists), and strips citation/date noise from `timeline_facts` objects.
+    - DONE (wiki timeline heading-anchor fallback): `wiki_timeline_extract.py` now supports
+      conservative section-heading date anchors (e.g., `September 11, 2001 attacks`) for the
+      first prose sentence when sentence-local anchors are absent; media-caption lines are skipped.
+    - DONE (inline mention anchors): timeline extraction now emits additional weak
+      `kind=mention` anchors for embedded month/day/year mentions within a sentence
+      (e.g., `September 11, 2001`), without synthesizing new prose rows.
+    - DONE (special event mention anchors): timeline extraction now also captures
+      deterministic `September 11 attacks` / `9/11` references without explicit
+      year as `2001-09-11` mention anchors (frame-scoped, non-causal).
+    - DONE (AAO fallback cleanup): text fallback no longer promotes generic `-ing` nominal phrases
+      as actions, and parser fallback now prefers finite/root clause heads over arbitrary participles.
+    - DONE (numeric lane + second pass): wiki AAO now emits dedicated `numeric_objects`
+      at step/event level (separate from `entity_objects` and `modifier_objects`) and runs a
+      deterministic sentence second pass for numeric mentions (e.g., percentages) so numbers
+      are captured without polluting entity/object lanes.
+    - DONE (fact timeline numeric carry-through): HCA timeline fact synthesis now preserves
+      step `numeric_objects` alongside `objects`/`modifier_objects` for chronology views.
+    - TODO (cross-time mention lane): add non-synthetic `MENTIONS_EVENT` overlay edges for
+      referenced global events (event mention != timeline row insertion), with explicit frame scope.
   - Freeze schema versions after any final tweaks; bump versions explicitly if changed.
   - Decide next sprint direction (A compliance simulation, B cross-doc norm topology, C human interfaces).
   - TiRCorder integration (Layer 0–1 alignment):
