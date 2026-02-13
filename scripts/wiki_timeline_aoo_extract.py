@@ -165,6 +165,77 @@ def _extract_possessive_person(surface: str) -> Optional[str]:
     out = _clean_entity_surface(str(m.group(1) or ""))
     return out or None
 
+
+def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optional[str], Optional[str], bool]:
+    if doc is None:
+        return None, None, False
+    for tok in doc:
+        lemma = str(getattr(tok, "lemma_", "") or "").lower()
+        pos = str(getattr(tok, "pos_", "") or "")
+        if lemma != "request" or pos not in {"NOUN", "PROPN"}:
+            continue
+
+        poss_tokens = [c for c in tok.children if str(getattr(c, "dep_", "") or "") in {"poss", "nmod:poss"}]
+        expanded = []
+        for p in poss_tokens:
+            expanded.append(p)
+            expanded.extend(list(getattr(p, "conjuncts", [])))
+
+        candidate = None
+        for p in expanded:
+            surf = _clean_entity_surface(_subject_surface_for_token(doc, p))
+            if not surf:
+                continue
+            low = surf.lower()
+            if low in {"his", "her", "their", "its", "my", "our", "your", "whose"}:
+                continue
+            candidate = surf
+            break
+
+        if not candidate:
+            continue
+
+        resolved = alias_map.get(candidate) or candidate
+        subtree_tokens = [str(getattr(x, "text", "") or "").lower() for x in getattr(tok, "subtree", [])]
+        has_title = "president" in subtree_tokens
+        return candidate, resolved, has_title
+
+    return None, None, False
+
+
+def _extract_passive_agents_from_doc(doc) -> List[str]:
+    if doc is None:
+        return []
+    out: List[str] = []
+    seen = set()
+
+    def add(v: str) -> None:
+        raw = _clean_entity_surface(v)
+        if not raw:
+            return
+        norm = _normalize_agent_label(raw)
+        key = norm.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(norm)
+
+    for tok in doc:
+        dep = str(getattr(tok, "dep_", "") or "")
+        lemma = str(getattr(tok, "lemma_", "") or "").lower()
+        if dep != "agent" and not (dep == "prep" and lemma == "by"):
+            continue
+        for c in tok.children:
+            cdep = str(getattr(c, "dep_", "") or "")
+            if cdep not in {"pobj", "obj"}:
+                continue
+            add(_subject_surface_for_token(doc, c))
+            for cj in getattr(c, "conjuncts", []):
+                add(_subject_surface_for_token(doc, cj))
+
+    return out
+
+
 REQUEST_RE = re.compile(r"\bat\s+(?:President\s+)?([A-Z][a-z]+)(?:'s)?\s+request\b", re.IGNORECASE)
 
 
@@ -863,12 +934,25 @@ _LEADING_DETERMINER_RE = re.compile(r"^(?:the|a|an)\s+", re.IGNORECASE)
 _NON_VERB_HEAD_WORDS = {"for", "with", "into", "of", "in", "on", "at", "by", "from", "about"}
 _NUMERIC_VALUE_RE = re.compile(r"^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?$")
 _NUMERIC_MENTION_RE = re.compile(
-    r"\b(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:%|percent|per\s+cent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp)?\b",
+    r"(?:(?:us\$|a\$|[$€£])\s*|(?:usd|aud|eur|gbp)\s+)?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:%|percent|per\s+cent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp)?",
     re.IGNORECASE,
 )
 _NUMERIC_COMPACT_SUFFIX_RE = re.compile(
     r"(?i)^([+-]?(?:\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?))\s*(%|percent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp)$"
 )
+_NUMERIC_SCALE_TOKENS = {"hundred", "thousand", "million", "billion", "trillion"}
+_NUMERIC_CURRENCY_WORD_TOKENS = {"usd", "aud", "eur", "gbp"}
+_NUMERIC_CURRENCY_PREFIX_TOKENS = {
+    "$": "usd",
+    "us$": "usd",
+    "a$": "aud",
+    "€": "eur",
+    "£": "gbp",
+    "usd": "usd",
+    "aud": "aud",
+    "eur": "eur",
+    "gbp": "gbp",
+}
 _NUMERIC_WORD_TOKENS = {
     "zero",
     "one",
@@ -950,6 +1034,17 @@ _NUMERIC_FILLER_TOKENS = {
     "over",
     "under",
 }
+_NUMERIC_ROLE_TRANSACTION_ACTIONS = {
+    "buy",
+    "purchase",
+    "acquire",
+    "sell",
+    "arrange",
+    "launch",
+}
+_NUMERIC_ROLE_INVEST_ACTIONS = {"invest", "fund"}
+_NUMERIC_ROLE_REVENUE_ACTIONS = {"earn", "make", "generate", "collect", "receive"}
+_NUMERIC_ROLE_COST_ACTIONS = {"cost", "spend", "pay", "allocate"}
 
 
 def _normalize_numeric_mention(raw: str) -> str:
@@ -957,10 +1052,18 @@ def _normalize_numeric_mention(raw: str) -> str:
     if not t:
         return ""
     t = re.sub(r"(?i)\bper\s+cent\b", "percent", t)
+    currency_code = ""
+    m_cur = re.match(r"(?i)^(us\$|a\$|\$|€|£|usd|aud|eur|gbp)\s*(.+)$", t)
+    if m_cur:
+        cur = str(m_cur.group(1) or "").strip().lower()
+        t = str(m_cur.group(2) or "").strip()
+        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(cur, "")
     compact = t.replace(" ", "")
     m = _NUMERIC_COMPACT_SUFFIX_RE.match(compact)
     if m:
         t = f"{m.group(1)} {m.group(2)}"
+    if currency_code and not re.search(r"(?i)\b(?:usd|aud|eur|gbp|dollars?)\b", t):
+        t = f"{t} {currency_code}"
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -968,16 +1071,43 @@ def _numeric_key(raw: str) -> str:
     t = _normalize_numeric_mention(raw)
     if not t:
         return ""
-
-    m = re.match(
-        r"(?i)^([+-]?(?:\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?))(?:\s*(%|percent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp))?$",
-        t.strip(),
-    )
-    if not m:
+    parts = [p for p in str(t).strip().split() if p]
+    if not parts:
         return ""
-
-    num_raw = str(m.group(1) or "").strip()
-    unit = str(m.group(2) or "").strip().lower()
+    num_raw = str(parts[0] or "").strip()
+    if not num_raw:
+        return ""
+    unit_parts = [str(x).strip().lower() for x in parts[1:] if str(x).strip()]
+    canonical_units: List[str] = []
+    for u in unit_parts:
+        if u in {"%", "percentage", "percent"}:
+            canonical_units.append("percent")
+            continue
+        if u in {"dollar", "dollars", "usd"}:
+            canonical_units.append("usd")
+            continue
+        if u in {"aud", "eur", "gbp"}:
+            canonical_units.append(u)
+            continue
+        if u in {"years", "year"}:
+            canonical_units.append("year")
+            continue
+        if u in {"months", "month"}:
+            canonical_units.append("month")
+            continue
+        if u in {"days", "day"}:
+            canonical_units.append("day")
+            continue
+        if u in {"lines", "line"}:
+            canonical_units.append("line")
+            continue
+        if u in {"points", "point"}:
+            canonical_units.append("point")
+            continue
+        if u in _NUMERIC_SCALE_TOKENS:
+            canonical_units.append(u)
+            continue
+        return ""
 
     dec: Optional[Decimal] = None
     if _babel_parse_decimal is not None:
@@ -990,14 +1120,298 @@ def _numeric_key(raw: str) -> str:
         try:
             dec = Decimal(num_raw.replace(",", ""))
         except InvalidOperation:
-            return re.sub(r"\s+", " ", t.lower()).strip()
+            return ""
 
     value = format(dec.normalize(), "f")
     if "." in value:
         value = value.rstrip("0").rstrip(".")
     if value == "-0":
         value = "0"
+    unit = ""
+    if canonical_units:
+        uniq_units = list(dict.fromkeys(canonical_units))
+        if len(uniq_units) == 1:
+            unit = uniq_units[0]
+        elif len(uniq_units) == 2:
+            scale = next((u for u in uniq_units if u in _NUMERIC_SCALE_TOKENS), "")
+            currency = next((u for u in uniq_units if u in _NUMERIC_CURRENCY_WORD_TOKENS), "")
+            if scale and currency:
+                unit = f"{scale}_{currency}"
+            else:
+                return ""
+        else:
+            return ""
     return f"{value}|{unit}"
+
+
+def _numeric_unit_from_key(nk: str) -> str:
+    k = str(nk or "").strip()
+    if "|" not in k:
+        return ""
+    return k.split("|", 1)[1].strip().lower()
+
+
+def _infer_numeric_role(action: str, nk: str, context: str) -> str:
+    act = _base_action_label(action)
+    unit = _numeric_unit_from_key(nk)
+    ctx = f" {_norm_phrase(context)} "
+
+    if unit == "percent":
+        return "percentage_of" if " of " in ctx else "rate"
+
+    is_currency = bool(unit in {"usd", "aud", "eur", "gbp"} or unit.endswith("_usd") or unit.endswith("_aud") or unit.endswith("_eur") or unit.endswith("_gbp"))
+    if is_currency:
+        if act in _NUMERIC_ROLE_INVEST_ACTIONS:
+            return "personal_investment"
+        if act in _NUMERIC_ROLE_REVENUE_ACTIONS:
+            return "revenue"
+        if act in _NUMERIC_ROLE_COST_ACTIONS:
+            return "cost"
+        if act in _NUMERIC_ROLE_TRANSACTION_ACTIONS:
+            if " purchase " in ctx or " acquire " in ctx or " sale " in ctx or " sell " in ctx or " stake " in ctx:
+                return "transaction_price"
+            if " for " in ctx:
+                return "transaction_price"
+        return "cost"
+
+    return "count"
+
+
+def _extract_numeric_span_candidates(doc) -> List[dict]:
+    if doc is None:
+        return []
+    out: List[dict] = []
+    seen = set()
+
+    def emit(span, source: str) -> None:
+        raw = str(getattr(span, "text", "") or "").strip()
+        if not raw:
+            return
+        val = _normalize_numeric_mention(raw)
+        start_tok_i = int(getattr(span, "start", -1))
+        currency_code = ""
+        if start_tok_i >= 0:
+            try:
+                first_tok = str(getattr(doc[start_tok_i], "text", "") or "").strip().lower()
+                if first_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
+                    currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(first_tok, "")
+                elif start_tok_i > 0:
+                    prev_tok = str(getattr(doc[start_tok_i - 1], "text", "") or "").strip().lower()
+                    if prev_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
+                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
+            except Exception:
+                currency_code = ""
+        if currency_code and not re.search(r"(?i)\b(?:usd|aud|eur|gbp|dollars?)\b", val):
+            val = _normalize_numeric_mention(f"{val} {currency_code}")
+        nk = _numeric_key(val)
+        if not nk:
+            return
+        if re.fullmatch(r"(?:19|20)\d{2}\|", nk):
+            # Time anchors are handled in temporal lanes, not numeric claims.
+            return
+        start = int(getattr(span, "start_char", -1))
+        end = int(getattr(span, "end_char", -1))
+        root = getattr(span, "root", None)
+        root_i = int(getattr(root, "i", -1)) if root is not None else -1
+        key = (start, end, nk)
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(
+            {
+                "start": start,
+                "end": end,
+                "root_i": root_i,
+                "raw": raw,
+                "value": val,
+                "key": nk,
+                "source": source,
+            }
+        )
+
+    try:
+        for ent in getattr(doc, "ents", []):
+            label = str(getattr(ent, "label_", "") or "")
+            if label in {"CARDINAL", "QUANTITY", "PERCENT", "MONEY"}:
+                emit(ent, "doc_ent")
+    except Exception:
+        pass
+
+    try:
+        toks = list(doc)
+        i = 0
+        while i < len(toks):
+            tok = toks[i]
+            ttxt = str(getattr(tok, "text", "") or "").strip()
+            lower = ttxt.lower()
+            looks_numeric = (
+                bool(getattr(tok, "like_num", False))
+                or bool(_NUMERIC_VALUE_RE.fullmatch(lower))
+                or bool(_NUMERIC_COMPACT_SUFFIX_RE.match(ttxt.replace(" ", "")))
+                or any(ch.isdigit() for ch in ttxt)
+            )
+            if not looks_numeric:
+                i += 1
+                continue
+            start_i = i
+            if i > 0:
+                prev = str(getattr(toks[i - 1], "text", "") or "").strip().lower()
+                if prev in _NUMERIC_CURRENCY_PREFIX_TOKENS:
+                    start_i = i - 1
+
+            j = i + 1
+            while j < len(toks):
+                nxt = str(getattr(toks[j], "text", "") or "").strip().lower()
+                if nxt in _NUMERIC_UNIT_TOKENS or nxt in _NUMERIC_SCALE_TOKENS or nxt in _NUMERIC_CURRENCY_WORD_TOKENS or nxt == "%":
+                    j += 1
+                    continue
+                break
+            span = doc[start_i:j]
+            emit(span, "token_scan")
+            i = j
+    except Exception:
+        pass
+
+    out.sort(key=lambda x: (int(x.get("start", -1)), int(x.get("end", -1)), str(x.get("key") or "")))
+    return out
+
+
+def _governing_verb_token(doc, token_i: int):
+    if doc is None:
+        return None
+    if token_i < 0 or token_i >= len(doc):
+        return None
+    cur = doc[token_i]
+    for _ in range(16):
+        pos = str(getattr(cur, "pos_", "") or "")
+        dep = str(getattr(cur, "dep_", "") or "")
+        if pos in {"VERB", "AUX"} and dep != "aux":
+            return cur
+        nxt = getattr(cur, "head", None)
+        if nxt is None or nxt is cur:
+            break
+        cur = nxt
+    return None
+
+
+def _nearest_token_distance(indices: List[int], target: int) -> int:
+    if not indices:
+        return 10**9
+    return min(abs(int(x) - int(target)) for x in indices)
+
+
+def _extract_step_numeric_claims(doc, text: str, steps: List[dict]) -> Dict[int, List[dict]]:
+    if doc is None or not steps:
+        return {}
+
+    step_lemmas: List[set] = []
+    step_verb_indices: List[List[int]] = []
+    for s in steps:
+        action = str(s.get("action") or "")
+        lemmas = {str(x).lower() for x in _action_lemmas(action) if str(x).strip()}
+        step_lemmas.append(lemmas)
+        idxs: List[int] = []
+        for tok in doc:
+            pos = str(getattr(tok, "pos_", "") or "")
+            if pos not in {"VERB", "AUX"}:
+                continue
+            lemma = str(getattr(tok, "lemma_", "") or "").lower()
+            if lemma in lemmas:
+                idxs.append(int(getattr(tok, "i", -1)))
+        step_verb_indices.append(sorted([x for x in idxs if x >= 0]))
+
+    claims_by_step: Dict[int, List[dict]] = {i: [] for i in range(len(steps))}
+    seen_step_claim = set()
+    cands = _extract_numeric_span_candidates(doc)
+    for cand in cands:
+        root_i = int(cand.get("root_i", -1))
+        gov = _governing_verb_token(doc, root_i)
+        target_idx: Optional[int] = None
+        alignment = "nearest_step"
+        if gov is not None:
+            gov_lemma = str(getattr(gov, "lemma_", "") or "").lower()
+            gov_i = int(getattr(gov, "i", -1))
+            matched = [i for i, lems in enumerate(step_lemmas) if gov_lemma in lems]
+            if matched:
+                target_idx = min(
+                    matched,
+                    key=lambda i: _nearest_token_distance(step_verb_indices[i], gov_i),
+                )
+                alignment = "dep_governor"
+            else:
+                anc = getattr(gov, "head", None)
+                hops = 0
+                while anc is not None and anc is not getattr(anc, "head", None) and hops < 12:
+                    apos = str(getattr(anc, "pos_", "") or "")
+                    if apos in {"VERB", "AUX"}:
+                        anc_lemma = str(getattr(anc, "lemma_", "") or "").lower()
+                        anc_i = int(getattr(anc, "i", -1))
+                        anc_match = [i for i, lems in enumerate(step_lemmas) if anc_lemma in lems]
+                        if anc_match:
+                            target_idx = min(
+                                anc_match,
+                                key=lambda i: _nearest_token_distance(step_verb_indices[i], anc_i),
+                            )
+                            alignment = "dep_verb_chain"
+                            break
+                    anc = getattr(anc, "head", None)
+                    hops += 1
+
+        if target_idx is None:
+            scored = [
+                (i, _nearest_token_distance(step_verb_indices[i], root_i))
+                for i in range(len(steps))
+                if step_verb_indices[i]
+            ]
+            if scored:
+                target_idx = sorted(scored, key=lambda t: (t[1], t[0]))[0][0]
+            elif len(steps) == 1:
+                target_idx = 0
+
+        if target_idx is None:
+            continue
+
+        step = steps[target_idx]
+        action = str(step.get("action") or "")
+        context_text = str(cand.get("raw") or "")
+        if gov is not None:
+            try:
+                subtree_tokens = list(getattr(gov, "subtree", []))
+                if subtree_tokens:
+                    st = min(int(getattr(t, "i", 0)) for t in subtree_tokens)
+                    en = max(int(getattr(t, "i", 0)) for t in subtree_tokens) + 1
+                    context_text = str(doc[st:en].text or context_text)
+            except Exception:
+                pass
+
+        nk = str(cand.get("key") or "")
+        role = _infer_numeric_role(action, nk, context_text)
+        applies_to: Optional[str] = None
+        if role == "personal_investment":
+            subs = [str(x) for x in (step.get("subjects") or []) if str(x).strip()]
+            applies_to = subs[0] if subs else None
+        elif role == "transaction_price":
+            ents = [str(x) for x in (step.get("entity_objects") or step.get("objects") or []) if str(x).strip()]
+            applies_to = ents[0] if ents else None
+
+        claim_key = (target_idx, nk, role)
+        if claim_key in seen_step_claim:
+            continue
+        seen_step_claim.add(claim_key)
+        claim = {
+            "key": nk,
+            "value": str(cand.get("value") or ""),
+            "role": role,
+            "alignment": alignment,
+            "governing_action": _base_action_label(action),
+        }
+        if applies_to:
+            claim["applies_to"] = applies_to
+        claims_by_step[target_idx].append(claim)
+
+    for idx in list(claims_by_step.keys()):
+        claims_by_step[idx].sort(key=lambda x: (str(x.get("key") or ""), str(x.get("role") or "")))
+    return claims_by_step
 
 
 def _strip_leading_determiner(text: str) -> str:
@@ -1234,8 +1648,16 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
         seen.add(k)
         out.append(c)
 
-    # Preferred path: token-local extraction from parser output.
+    # Preferred path: parser spans first, then token-local extraction.
     if doc is not None:
+        try:
+            for ent in getattr(doc, "ents", []):
+                label = str(getattr(ent, "label_", "") or "")
+                if label in {"CARDINAL", "QUANTITY", "PERCENT", "MONEY"}:
+                    _emit(str(getattr(ent, "text", "") or ""))
+        except Exception:
+            pass
+
         try:
             toks = list(doc)
             i = 0
@@ -1254,6 +1676,11 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 if not is_num:
                     i += 1
                     continue
+
+                currency_code = ""
+                if i > 0:
+                    prev_tok = str(getattr(toks[i - 1], "text", "") or "").strip().lower()
+                    currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
 
                 parts = [ttxt]
                 j = i + 1
@@ -1297,6 +1724,11 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                         j += 1
                         continue
                     break
+
+                if currency_code:
+                    low_parts = {str(x).strip().lower() for x in parts if str(x).strip()}
+                    if not any(x in {"usd", "aud", "eur", "gbp", "dollar", "dollars"} for x in low_parts):
+                        parts.append(currency_code)
 
                 # Skip obvious month/day/year contexts.
                 win_start = max(0, int(getattr(tok, "idx", 0) or 0) - 16)
@@ -2252,20 +2684,28 @@ def main(argv: Optional[List[str]] = None) -> int:
         requester_resolved: Optional[str] = None
         requester_has_title = False
         requester_title_label = requester_title_labels.get("president", DEFAULT_REQUESTER_TITLE_LABELS.get("president", "U.S. President"))
-        rm = REQUEST_RE.search(parse_text)
-        if rm:
-            requester = rm.group(1)
-            requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
+
+        # Dependency-first requester extraction; regex fallback remains safety rail.
+        requester, requester_resolved, requester_has_title = _extract_requester_from_doc(doc, alias_map)
+        requester_source = "dep:request"
+        if not requester:
+            rm = REQUEST_RE.search(parse_text)
+            if rm:
+                requester = rm.group(1)
+                requester_resolved = alias_map.get(requester) or requester
+                requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
+                requester_source = "fallback_regex:request"
+                warnings.append("fallback_requester_regex")
 
         tokens = _extract_actor_tokens(parse_text)
         actors: List[dict] = []
 
         # Requester (alias-resolved if possible).
         if requester:
-            resolved = alias_map.get(requester) or requester
+            resolved = requester_resolved or alias_map.get(requester) or requester
             requester_resolved = resolved
             actors.append(
-                {"label": requester, "resolved": resolved, "role": "requester", "source": "pattern:request"}
+                {"label": requester, "resolved": resolved, "role": "requester", "source": requester_source}
             )
             if requester_has_title:
                 actors.append(
@@ -2273,7 +2713,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "label": "President",
                         "resolved": requester_title_label,
                         "role": "requester_meta",
-                        "source": "pattern:request_title",
+                        "source": f"{requester_source}:title",
                     }
                 )
 
@@ -2313,13 +2753,19 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if _looks_like_person_title(title):
                     actors.append({"label": title, "resolved": title, "role": "subject", "source": "wikilink_person"})
 
-        # Passive agent: "were advised by the U.S." etc.
-        am = BY_AGENT_RE.search(parse_text)
-        if am:
-            agent_raw = (am.group(1) or "").strip()
-            if agent_raw:
-                agent = _normalize_agent_label(agent_raw)
-                actors.append({"label": agent_raw, "resolved": agent, "role": "subject", "source": "pattern:by_agent"})
+        # Passive agent extraction: dependency-first; regex fallback is safety rail.
+        dep_agents = _extract_passive_agents_from_doc(doc)
+        if dep_agents:
+            for agent in dep_agents:
+                actors.append({"label": agent, "resolved": agent, "role": "subject", "source": "dep:by_agent"})
+        else:
+            am = BY_AGENT_RE.search(parse_text)
+            if am:
+                agent_raw = (am.group(1) or "").strip()
+                if agent_raw:
+                    agent = _normalize_agent_label(agent_raw)
+                    actors.append({"label": agent_raw, "resolved": agent, "role": "subject", "source": "fallback_regex:by_agent"})
+                    warnings.append("fallback_by_agent_regex")
 
         # De-dupe by resolved label.
         seen = set()
@@ -2893,6 +3339,23 @@ def main(argv: Optional[List[str]] = None) -> int:
             s["numeric_objects"] = numeric_objects
             s["modifier_objects"] = modifier_objects
 
+        # Step-scoped numeric role typing and multi-verb alignment.
+        step_numeric_claims = _extract_step_numeric_claims(doc, text, steps)
+        for i, s in enumerate(steps):
+            claims = list(step_numeric_claims.get(i) or [])
+            s["numeric_claims"] = claims
+            if claims:
+                seen_num = {_numeric_key(str(x)) for x in (s.get("numeric_objects") or []) if str(x).strip()}
+                for c in claims:
+                    nk = str(c.get("key") or "")
+                    val = str(c.get("value") or "")
+                    if not nk or not val:
+                        continue
+                    if nk in seen_num:
+                        continue
+                    seen_num.add(nk)
+                    s.setdefault("numeric_objects", []).append(val)
+
         chains: List[dict] = []
         if len(steps) > 1:
             for i in range(len(steps) - 1):
@@ -2945,6 +3408,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             seen_event_numeric.add(nk)
             event_numeric_objects.append(_normalize_numeric_mention(n))
 
+        event_numeric_claims: List[dict] = []
+        for idx, s in enumerate(steps):
+            for c in (s.get("numeric_claims") or []):
+                if not isinstance(c, dict):
+                    continue
+                cc = dict(c)
+                cc["step_index"] = int(idx)
+                event_numeric_claims.append(cc)
+
         out_events.append(
             {
                 "event_id": ev.get("event_id"),
@@ -2959,6 +3431,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "objects": objects,
                 "entity_objects": event_entity_objects,
                 "numeric_objects": event_numeric_objects,
+                "numeric_claims": event_numeric_claims,
                 "modifier_objects": event_modifier_objects,
                 "purpose": purpose,
                 "chains": chains,
@@ -2999,10 +3472,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "events": out_events,
         "notes": [
             "Sentence-local AAO extraction. Non-causal. Non-authoritative.",
-            "Actors are heuristic: requester/subject roles are extracted by simple patterns and alias maps.",
+            "Actors are heuristic: requester/subject roles are dependency-first with regex fallback safety rails and alias maps.",
             "Objects are primarily wikilinks from the timeline event with dependency/surface fallbacks; absence does not imply non-existence.",
             "Non-wikilink objects may include resolver_hints against sentence links, paragraph links, and candidate titles.",
-            "Numeric mentions are emitted in a dedicated numeric_objects lane (including sentence second-pass captures).",
+            "Numeric mentions are emitted in dedicated numeric lanes (`numeric_objects` and step-scoped `numeric_claims` with role/alignment metadata).",
             "Actions are canonical verb labels; negation is stored separately under step.negation (no not_* action proliferation).",
             "Span candidates are unresolved mentions (TextSpan-like) for view-layer surfacing/promotion; they are not entities.",
         ],

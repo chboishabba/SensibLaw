@@ -1,6 +1,42 @@
 # Changelog
 
 ## Unreleased
+- Docs: add canonical v2 requirements register
+  (`docs/wiki_timeline_requirements_v2_20260213.md`) and align requirement IDs/status
+  for extraction, ontology, attribution, conflict logic, anchor graduation, and validation.
+- Docs: mark `docs/wiki_timeline_requirements_v2_20260213.md` as the active
+  tracker and keep `docs/wiki_timeline_requirements_698e95ec_20260213.md` as
+  provenance/history mapping.
+- Docs: add robust-context thread requirements register
+  (`docs/wiki_timeline_requirements_698e95ec_20260213.md`) with implemented vs
+  pending traceability across extractor, UI, and ontology integration tasks.
+- Docs: expand robust-context requirement coverage in the same register to
+  include identity/non-coercion invariants, claim-bearing classification,
+  quantified conflict tri-state, anchor graduation, typed edge basis metadata,
+  numeric semantic role typing, and explicit non-goals (`R15..R27`).
+- Docs: add sourcing/attribution ontology spec
+  (`docs/sourcing_attribution_ontology_20260213.md`) and extend requirements
+  register with sourcing/attribution requirements (`R28..R29`).
+- Docs: add explicit 10-point architecture gap-closure matrix to
+  `docs/wiki_timeline_requirements_698e95ec_20260213.md` mapping each review
+  concern to requirement IDs and current status.
+- Models/tests: add sourcing/attribution model scaffold
+  (`src/models/attribution_claims.py`) with deterministic id helpers, chain-cycle
+  validation, graph edge projection helpers, and coverage in
+  `tests/test_attribution_claims.py`.
+- Wikipedia/HCA AAO: add step-scoped `numeric_claims` with parser-first
+  governing-verb alignment and baseline numeric role typing
+  (`transaction_price`, `personal_investment`, `revenue`, `cost`, `rate`,
+  `count`, `percentage_of`) to prevent multi-verb numeric flattening.
+- Tests: extend numeric-lane coverage for numeric role inference and multi-verb
+  alignment stress case (`arranged ... for $89 million` vs `invested $500,000`).
+- Docs: extend numeric contract with step-scoped NumericRole guidance and
+  minimum role taxonomy for multi-verb alignment.
+- Wikipedia/HCA AAO numeric normalization: preserve currency prefixes/symbols
+  (`$`, `US$`, `A$`, `€`, `£`) in canonical numeric keys, including scale +
+  currency composites (e.g., `$5.6trillion` -> `5.6|trillion_usd`).
+- Tests: extend numeric-lane coverage for currency-bearing mentions and keys
+  (e.g., `$500,000` and `$5.6trillion`).
 - Wikipedia timeline extraction: add deterministic special-event mention anchors
   for `September 11 attacks` / `9/11` prose mentions without explicit year,
   emitting `2001-09-11` mention anchors without creating synthetic narrative text.

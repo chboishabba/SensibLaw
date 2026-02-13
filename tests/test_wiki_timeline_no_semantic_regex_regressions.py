@@ -28,3 +28,11 @@ def test_dependency_chain_path_is_present() -> None:
     assert "DEFAULT_COMMUNICATION_CHAIN_CONFIG" in src
     assert "_extract_communication_chain_steps" in src
     assert "_profile_communication_chain_config" in src
+
+
+def test_requester_and_by_agent_are_dependency_first_with_fallbacks() -> None:
+    src = _source()
+    assert "_extract_requester_from_doc" in src
+    assert "_extract_passive_agents_from_doc" in src
+    assert "fallback_requester_regex" in src
+    assert "fallback_by_agent_regex" in src

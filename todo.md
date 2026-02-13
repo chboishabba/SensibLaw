@@ -25,6 +25,29 @@
 - Tests-first rule: add pytest coverage for each sub-sprint before wiring code; feature-flag new surfaces if identity/output risk exists.
 
 - Near-term task focus
+- Text-method inventory (2026-02-13) — regex usage map + alignment note
+  - inventory command:
+    - `rg -n "\bre\.(compile|search|match|fullmatch|finditer|findall|sub|split|subn)\(" SensibLaw/scripts SensibLaw/src -S`
+  - top regex hotspots (count = direct `re.*` calls):
+    - `src/pdf_ingest.py` (86)
+    - `scripts/wiki_timeline_aoo_extract.py` (74)
+    - `scripts/hca_case_demo_ingest.py` (31)
+    - `scripts/wiki_timeline_extract.py` (23)
+    - `src/ingestion/hca.py` (19)
+    - `src/reliability/pre_brief.py` (18)
+  - alignment status against parser-first/value-key split:
+    - aligned now (numeric lane):
+      - `scripts/wiki_timeline_aoo_extract.py` numeric spans are parser-first (spaCy entity/token), value-keyed via Decimal/Babel (`_numeric_key`), regex fallback only.
+    - acceptable regex-primary lanes (format parsing, not semantic extraction):
+      - HTML/document parsing lanes (`scripts/hca_case_demo_ingest.py`, `src/ingestion/hca.py`, `src/pdf_ingest.py`)
+      - citation/date formatting lanes (`scripts/wiki_timeline_extract.py`, citation helpers)
+    - remaining semantic regex debt (needs de-hardcoding):
+      - `scripts/wiki_timeline_aoo_extract.py` requester/action sentence-family branches (`REQUEST_RE`, `BY_AGENT_RE`, action/surface phrase branches)
+      - `scripts/wiki_timeline_aoo_extract.py` legacy surface split heuristics (`joined/commissioned`, `speech/threw`, etc.)
+  - next cleanup pass (text-method focused):
+    - replace requester/action surface regex branches with dependency/profile rules where possible
+    - keep regex only in citation/date/hygiene and explicit fallback lanes with warnings
+    - add guard tests for grouped numerics and unit-only noise (done), extend to requester/action de-regex invariants
   - AAO extractor de-hardcoding contract (wiki_timeline_aoo_extract.py):
     - origin_online_id: `698bdf6e-43f8-839c-9089-34ee3d3338dd` (documented provenance only; no live fetch)
     - hardcoded now:
@@ -74,6 +97,10 @@
       - `docs/planning/graph_epistemic_neutrality_contract_20260212.md`
       - `docs/planning/frame_scope_projection_validator_20260212.md`
       - `docs/planning/evidence_attribution_frame_contract_v2_20260212.md`
+      - `docs/numeric_representation_contract_20260213.md`
+      - `docs/sourcing_attribution_ontology_20260213.md`
+      - `docs/wiki_timeline_requirements_v2_20260213.md` (canonical requirements register + status trace)
+      - `docs/wiki_timeline_requirements_698e95ec_20260213.md` (thread-provenance trace artifact)
     - DONE (CI guard): add regression test that blocks reintroduction of semantic regex shortcuts
       for reported/cautioned subject/action inference in `wiki_timeline_aoo_extract.py`;
       keep regex usage limited to citation/date/hygiene parsing lanes.
@@ -113,8 +140,49 @@
       are captured without polluting entity/object lanes.
     - DONE (fact timeline numeric carry-through): HCA timeline fact synthesis now preserves
       step `numeric_objects` alongside `objects`/`modifier_objects` for chronology views.
+    - DONE (AAO-all numeric key coalescing): `itir-svelte` wiki timeline AAO-all now
+      canonicalizes numeric links/counts by `value|unit` keys in view logic (labels remain
+      human-readable), preventing raw-string fan-out (`21` vs `21,500`, `%` variants, compact suffixes).
+    - DONE (currency-aware numeric keys): wiki AAO numeric normalization now preserves currency
+      symbols/prefixes (`$`, `US$`, `A$`, `€`, `£`) and emits deterministic currency-bearing
+      keys (e.g., `$5.6trillion` -> `5.6|trillion_usd`, `$500,000` -> `500000|usd`), with
+      matching AAO/AAO-all view-side key parsing/labels.
+    - DONE (context anchor precision rendering): `wiki-timeline-aoo-all` context rows now display
+      event anchor precision directly (day/month/year from the event anchor) rather than downcasting
+      to the currently selected time bucket granularity.
     - TODO (cross-time mention lane): add non-synthetic `MENTIONS_EVENT` overlay edges for
       referenced global events (event mention != timeline row insertion), with explicit frame scope.
+    - TODO (numeric ontology v0.1): implement materialized numeric entities and claim structures
+      from `docs/numeric_representation_contract_20260213.md`:
+      - `Magnitude` registry (value+unit identity),
+      - `QuantifiedClaim` (sig figs, interval, modality, scope),
+      - `RangeClaim` / `RatioClaim` structured lanes,
+      - `NumericSurface` phenotype provenance per claim.
+    - TODO (requirements register v2 follow-through): implement the newly documented
+      `R11..R23` backlog from `docs/wiki_timeline_requirements_v2_20260213.md`,
+      with priority on:
+      - identity/non-coercion invariants and formatting-identity separation (`R7..R9`),
+      - claim-bearing event classification + quantified conflict tri-state (`R15..R16`),
+      - numeric semantic role typing expansion (`R11`),
+      - granularity-safe temporal comparison and anchor graduation (`R14`, `R19`, `R20`),
+      - typed edge-basis metadata + frame-scope validation hard-fail checks (`R22`),
+      - optional CMP/CMPL view projection as a non-mutating display transform.
+      - keep the "Architecture Gap Closure Matrix (10-point review)" section in
+        `docs/wiki_timeline_requirements_698e95ec_20260213.md` current as a provenance map,
+        while updating implementation status in `docs/wiki_timeline_requirements_v2_20260213.md`.
+    - DONE (numeric role typing baseline): wiki AAO now emits step-scoped `numeric_claims`
+      with parser-first governing-verb alignment and deterministic role labels
+      (transaction_price/personal_investment/revenue/cost/rate/count/percentage_of).
+    - TODO (numeric role typing expansion): broaden taxonomy + conflict/claim integration
+      beyond baseline role mapping and extend coverage for additional finance/event patterns.
+    - TODO (sourcing/attribution ontology v0.1): implement sourcing/attribution
+      requirements (`R17..R18`) from
+      `docs/wiki_timeline_requirements_v2_20260213.md` using
+      `docs/sourcing_attribution_ontology_20260213.md`:
+      - `SourceEntity`, `Attribution`, `ExtractionRecord` model objects,
+      - deterministic id helpers and chain-cycle guard,
+      - attribution attachments on claim-bearing AAO lanes (without role pollution),
+      - attribution-aware metadata in quantified conflict outputs.
   - Freeze schema versions after any final tweaks; bump versions explicitly if changed.
   - Decide next sprint direction (A compliance simulation, B cross-doc norm topology, C human interfaces).
   - TiRCorder integration (Layer 0–1 alignment):

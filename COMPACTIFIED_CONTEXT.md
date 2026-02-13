@@ -51,6 +51,39 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - HCA narrative lane now also emits parser-native `sl_references[]` from source `document_json` reference lanes (`provisions`, `rule_tokens`, `rule_atoms`) with source provenance on each row.
 - SB observer payloads now carry both `citations[]` and `sl_references[]` lanes, with `wiki_connector` follow hints (`wiki_pull_api.py`, preferred `pywikibot`) included in follower metadata.
 
+## Recent decisions (2026-02-13)
+- Wiki AAO context rendering in `itir-svelte` now preserves event anchor precision in
+  context rows (`YYYY-MM-DD` when day anchor exists) instead of downcasting to the
+  current timeline bucket granularity.
+- Numeric key normalization now preserves explicit currency markers/symbols in canonical
+  keys (e.g., `$5.6trillion` -> `5.6|trillion_usd`; `$500,000` -> `500000|usd`) while
+  keeping parser-first numeric span detection with regex fallback only.
+- Context sync revalidated via robust fetch for online thread
+  `698e95ec-1154-83a0-b40c-d3a432f97239` (DB-first miss, live fetch success).
+- Added thread-derived requirements register:
+  `docs/wiki_timeline_requirements_698e95ec_20260213.md` to track implementation
+  coverage and pending gaps from that context thread.
+- Expanded that requirements register to include later-thread architecture
+  requirements (`R15..R27`), covering identity/non-coercion, claim-bearing
+  classification, quantified conflict logic, anchor graduation, typed edge basis
+  metadata, numeric role typing, and explicit non-goals.
+- Added sourcing/attribution layer artifacts from the same thread:
+  - `docs/sourcing_attribution_ontology_20260213.md`,
+  - `R28..R29` in `docs/wiki_timeline_requirements_698e95ec_20260213.md`,
+  - model/test scaffold at `src/models/attribution_claims.py` and
+  `tests/test_attribution_claims.py`.
+- Added explicit architecture review closure matrix (10-point mapping) to
+  `docs/wiki_timeline_requirements_698e95ec_20260213.md` to keep requirement
+  IDs and statuses aligned with review feedback.
+- Added canonical requirements register v2:
+  `docs/wiki_timeline_requirements_v2_20260213.md` and switched active
+  implementation tracking to v2 IDs/status fields (thread-trace register kept
+  as provenance/history).
+- Added baseline numeric role typing/alignment in wiki AAO extraction:
+  step-scoped `numeric_claims` now attach canonical numeric values to governing
+  verb steps with deterministic role labels (including `transaction_price` and
+  `personal_investment` for multi-verb money sentences).
+
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`
   (`6986d38e-4b5c-839b-813a-608aa0de88d5`),
