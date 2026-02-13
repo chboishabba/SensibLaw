@@ -30,6 +30,40 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     _babel_parse_decimal = None
 
+try:
+    from src.models.attribution_claims import (
+        AttributionType as _AttributionType,
+        SourceEntityType as _SourceEntityType,
+        attribution_id as _attribution_id,
+        extraction_record_id as _extraction_record_id,
+        source_entity_id as _source_entity_id,
+    )
+except Exception:  # pragma: no cover - optional dependency
+    _AttributionType = None
+    _SourceEntityType = None
+    _attribution_id = None
+    _extraction_record_id = None
+    _source_entity_id = None
+
+try:
+    from src.models.numeric_claims import magnitude_id as _magnitude_id
+except Exception:  # pragma: no cover - optional dependency
+    _magnitude_id = None
+
+try:
+    from src.nlp.epistemic_classifier import EpistemicClassifier as _EpistemicClassifier
+except Exception:  # pragma: no cover - optional dependency
+    _EpistemicClassifier = None
+
+try:
+    from src.nlp.ontology_mapping import (
+        canonical_action_morphology as _canonical_action_morphology,
+        unknown_action_morphology as _unknown_action_morphology,
+    )
+except Exception:  # pragma: no cover - optional dependency
+    _canonical_action_morphology = None
+    _unknown_action_morphology = None
+
 
 PERSON_NAME_RE = re.compile(r"^[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,4}$")
 
@@ -84,6 +118,10 @@ PARTY_ROLE_LABELS = {
     "diocese",
 }
 HONORIFIC_RE = re.compile(r"^(?:Mr|Mrs|Ms|Dr|Fr|Father|Justice|Judge)\.?\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)?$")
+REQUESTER_TITLE_PREFIX_RE = re.compile(
+    r"^(?:President|Prime Minister|PM|Senator|Governor|Justice|Judge|Mr|Mrs|Ms|Dr)\.?\s+",
+    re.IGNORECASE,
+)
 CITATION_TOKEN_RE = re.compile(r"\b(?:CAB|SC|AS|RS|ABFM)\b", re.IGNORECASE)
 CITATION_PAREN_RE = re.compile(r"\(([^)]{1,180})\)")
 CITATION_TRAIL_RE = re.compile(r"(?:\s*[\[(](?:CAB|SC|AS|RS|ABFM)[^\])]{0,60}[\])])+\s*$", re.IGNORECASE)
@@ -166,6 +204,39 @@ def _extract_possessive_person(surface: str) -> Optional[str]:
     return out or None
 
 
+def _normalize_requester_surface(surface: str) -> str:
+    s = _clean_entity_surface(surface)
+    if not s:
+        return ""
+    # Handle both attached and token-split possessives: "Obama's" / "Obama 's".
+    s = re.sub(r"\s+(?:'s|’s)\b", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"(?:'s|’s)\b", "", s, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _resolve_requester_label(candidate: str, alias_map: Dict[str, str]) -> str:
+    c = _normalize_requester_surface(candidate)
+    if not c:
+        return ""
+    alias_lower = {str(k).strip().lower(): str(v) for k, v in (alias_map or {}).items() if str(k).strip() and str(v).strip()}
+    probes = [c]
+    core = REQUESTER_TITLE_PREFIX_RE.sub("", c).strip()
+    if core:
+        probes.append(core)
+    for base in [core, c]:
+        if base:
+            parts = base.split()
+            if parts:
+                probes.append(parts[-1])
+    for p in probes:
+        if p in alias_map:
+            return str(alias_map[p])
+        pl = p.lower()
+        if pl in alias_lower:
+            return alias_lower[pl]
+    return core or c
+
+
 def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optional[str], Optional[str], bool]:
     if doc is None:
         return None, None, False
@@ -183,7 +254,7 @@ def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optiona
 
         candidate = None
         for p in expanded:
-            surf = _clean_entity_surface(_subject_surface_for_token(doc, p))
+            surf = _normalize_requester_surface(_subject_surface_for_token(doc, p))
             if not surf:
                 continue
             low = surf.lower()
@@ -195,9 +266,10 @@ def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optiona
         if not candidate:
             continue
 
-        resolved = alias_map.get(candidate) or candidate
+        candidate = _normalize_requester_surface(candidate)
+        resolved = _resolve_requester_label(candidate, alias_map)
         subtree_tokens = [str(getattr(x, "text", "") or "").lower() for x in getattr(tok, "subtree", [])]
-        has_title = "president" in subtree_tokens
+        has_title = "president" in subtree_tokens or str(candidate).lower().startswith("president ")
         return candidate, resolved, has_title
 
     return None, None, False
@@ -566,6 +638,16 @@ def _profile_communication_chain_config(profile_payload: dict) -> Dict[str, obje
     return cfg
 
 
+def _profile_epistemic_verbs(profile_payload: dict, comm_cfg: Dict[str, object]) -> List[str]:
+    explicit = profile_payload.get("epistemic_verbs")
+    if isinstance(explicit, list):
+        out = [str(x or "").strip().lower() for x in explicit if str(x or "").strip()]
+        if out:
+            return list(dict.fromkeys(out))
+    comm = [str(x or "").strip().lower() for x in (comm_cfg.get("communication_verbs") or []) if str(x or "").strip()]
+    return list(dict.fromkeys(comm))
+
+
 def _try_load_spacy(model: str) -> Tuple[Optional[object], Optional[dict], Optional[str]]:
     try:
         import spacy  # type: ignore
@@ -839,20 +921,139 @@ def _action_lemmas(action: str) -> Tuple[str, ...]:
     return ACTION_LEMMAS.get(base, (base,))
 
 
+def _is_claim_bearing_action(action: str, epistemic_verbs: List[str]) -> bool:
+    verbs = {str(x or "").strip().lower() for x in (epistemic_verbs or []) if str(x or "").strip()}
+    if not verbs:
+        return False
+    for lemma in _action_lemmas(action):
+        if str(lemma or "").strip().lower() in verbs:
+            return True
+    return False
+
+
+def _step_has_claim_modifier(step: dict) -> bool:
+    mods = step.get("modifiers") if isinstance(step, dict) else None
+    if not isinstance(mods, list):
+        return False
+    for m in mods:
+        if not isinstance(m, dict):
+            continue
+        kind = str(m.get("kind") or "").strip().lower()
+        if kind in {"attribution", "communication_attribution"}:
+            return True
+    return False
+
+
+def _token_has_epistemic_dependency_signal(tok) -> bool:
+    for ch in getattr(tok, "children", []):
+        dep = str(getattr(ch, "dep_", "") or "")
+        if dep in {"ccomp", "xcomp"}:
+            return True
+    return False
+
+
+def _step_token_map_for_actions(doc, steps: List[dict]) -> Dict[int, object]:
+    if doc is None or not steps:
+        return {}
+    out: Dict[int, object] = {}
+    used = set()
+    for idx, step in enumerate(steps):
+        lemmas = {str(x or "").strip().lower() for x in _action_lemmas(str(step.get("action") or "")) if str(x or "").strip()}
+        if not lemmas:
+            continue
+        cands = []
+        for tok in doc:
+            if str(getattr(tok, "pos_", "") or "") not in {"VERB", "AUX"}:
+                continue
+            lemma = str(getattr(tok, "lemma_", "") or "").strip().lower()
+            if lemma not in lemmas:
+                continue
+            cands.append(tok)
+        if not cands:
+            continue
+        pick = next((t for t in cands if int(getattr(t, "i", -1)) not in used), None)
+        if pick is None:
+            pick = cands[0]
+        ti = int(getattr(pick, "i", -1))
+        if ti >= 0:
+            used.add(ti)
+        out[idx] = pick
+    return out
+
+
+def _claim_modality_for_action(action: str) -> str:
+    lemmas = {str(x or "").strip().lower() for x in _action_lemmas(action)}
+    if lemmas & {"estimate", "forecast", "project", "predict"}:
+        return "projection"
+    if lemmas & {"report", "find", "conclude", "hold", "note"}:
+        return "reported"
+    return "stated"
+
+
+def _annotate_claim_bearing_steps(
+    doc,
+    steps: List[dict],
+    event_id: str,
+    epistemic_verbs: List[str],
+    classifier: Optional[object] = None,
+) -> List[int]:
+    claim_indices: List[int] = []
+    step_tok = _step_token_map_for_actions(doc, steps)
+    for idx, step in enumerate(steps):
+        action = str(step.get("action") or "")
+        dep_signal = False
+        tok = step_tok.get(idx)
+        classifier_epistemic = False
+        if tok is not None:
+            dep_signal = _token_has_epistemic_dependency_signal(tok)
+            if classifier is not None:
+                try:
+                    ci = classifier.classify_from_doc(doc, int(getattr(tok, "i", -1)))
+                    ptype = str(getattr(getattr(ci, "predicate_type", None), "value", "") or "")
+                    if ptype:
+                        step["predicate_type"] = ptype
+                    step["predicate_confidence"] = float(getattr(ci, "confidence", 0.0) or 0.0)
+                    feats = getattr(ci, "features", None)
+                    if isinstance(feats, dict):
+                        step["classification_features"] = feats
+                    classifier_epistemic = ptype == "epistemic"
+                except Exception:
+                    pass
+        mod_signal = _step_has_claim_modifier(step)
+        lex_signal = _is_claim_bearing_action(action, epistemic_verbs)
+        # Dependency/modifier/classifier signals are primary; lexical is fallback for sparse parses.
+        structural_signal = bool(classifier_epistemic or dep_signal or mod_signal)
+        is_claim = bool(structural_signal or (not structural_signal and lex_signal))
+        step["claim_bearing"] = bool(is_claim)
+        if not is_claim:
+            continue
+        claim_indices.append(idx)
+        step["claim_modality"] = _claim_modality_for_action(action)
+        step["claim_id"] = f"{event_id}:step:{idx}"
+    return claim_indices
+
+
 def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
     base = _base_action_label(action)
     if not base:
         return "", None
     lemmas = {str(x or "").strip().lower() for x in _action_lemmas(base) if str(x or "").strip()}
     if not doc:
-        return (next(iter(lemmas)) if lemmas else base), {
-            "surface": str(action or ""),
-            "tense": None,
-            "aspect": None,
-            "verb_form": None,
-            "voice": None,
-            "source": "fallback:action_lemmas",
-        }
+        fallback_lemma = next(iter(lemmas)) if lemmas else base
+        if _unknown_action_morphology is not None:
+            meta = _unknown_action_morphology(surface=str(action or ""), source="fallback:action_lemmas")
+        else:
+            meta = {
+                "surface": str(action or ""),
+                "tense": "unknown",
+                "aspect": "unknown",
+                "verb_form": "unknown",
+                "voice": "unknown",
+                "mood": "unknown",
+                "modality": "asserted",
+                "source": "fallback:action_lemmas",
+            }
+        return fallback_lemma, meta
 
     candidates = []
     for t in doc:
@@ -863,14 +1064,21 @@ def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
         if lemma in lemmas:
             candidates.append(t)
     if not candidates:
-        return (next(iter(lemmas)) if lemmas else base), {
-            "surface": str(action or ""),
-            "tense": None,
-            "aspect": None,
-            "verb_form": None,
-            "voice": None,
-            "source": "fallback:action_lemmas",
-        }
+        fallback_lemma = next(iter(lemmas)) if lemmas else base
+        if _unknown_action_morphology is not None:
+            meta = _unknown_action_morphology(surface=str(action or ""), source="fallback:action_lemmas")
+        else:
+            meta = {
+                "surface": str(action or ""),
+                "tense": "unknown",
+                "aspect": "unknown",
+                "verb_form": "unknown",
+                "voice": "unknown",
+                "mood": "unknown",
+                "modality": "asserted",
+                "source": "fallback:action_lemmas",
+            }
+        return fallback_lemma, meta
 
     def _rank(tok) -> Tuple[int, int, int]:
         dep = str(getattr(tok, "dep_", "") or "")
@@ -889,28 +1097,24 @@ def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
 
     tok = sorted(candidates, key=_rank)[0]
     lemma = str(getattr(tok, "lemma_", "") or base).strip().lower() or base
-    morph = getattr(tok, "morph", None)
-
-    def _morph_value(name: str) -> Optional[str]:
-        if morph is None:
-            return None
-        try:
-            vals = morph.get(name)
-            if vals:
-                return str(vals[0])
-        except Exception:
-            return None
-        return None
-
-    voice = "Passive" if any(str(getattr(c, "dep_", "") or "") == "auxpass" for c in tok.children) else "Active"
-    meta = {
-        "surface": str(getattr(tok, "text", "") or action or ""),
-        "tense": _morph_value("Tense"),
-        "aspect": _morph_value("Aspect"),
-        "verb_form": _morph_value("VerbForm"),
-        "voice": voice,
-        "source": "dep_lemma",
-    }
+    if _canonical_action_morphology is not None:
+        meta = _canonical_action_morphology(
+            tok,
+            surface=str(getattr(tok, "text", "") or action or ""),
+            source="dep_lemma",
+            modality_hint="asserted",
+        )
+    else:
+        meta = {
+            "surface": str(getattr(tok, "text", "") or action or ""),
+            "tense": "unknown",
+            "aspect": "unknown",
+            "verb_form": "unknown",
+            "voice": "unknown",
+            "mood": "unknown",
+            "modality": "asserted",
+            "source": "dep_lemma",
+        }
     return lemma, meta
 
 
@@ -930,7 +1134,6 @@ def _token_set(s: str) -> set:
     return out
 
 
-_LEADING_DETERMINER_RE = re.compile(r"^(?:the|a|an)\s+", re.IGNORECASE)
 _NON_VERB_HEAD_WORDS = {"for", "with", "into", "of", "in", "on", "at", "by", "from", "about"}
 _NUMERIC_VALUE_RE = re.compile(r"^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?$")
 _NUMERIC_MENTION_RE = re.compile(
@@ -941,6 +1144,13 @@ _NUMERIC_COMPACT_SUFFIX_RE = re.compile(
     r"(?i)^([+-]?(?:\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?))\s*(%|percent|million|billion|trillion|thousand|hundred|years?|months?|days?|lines?|points?|dollars?|usd|aud|eur|gbp)$"
 )
 _NUMERIC_SCALE_TOKENS = {"hundred", "thousand", "million", "billion", "trillion"}
+_NUMERIC_SCALE_MULTIPLIERS = {
+    "hundred": Decimal("1e2"),
+    "thousand": Decimal("1e3"),
+    "million": Decimal("1e6"),
+    "billion": Decimal("1e9"),
+    "trillion": Decimal("1e12"),
+}
 _NUMERIC_CURRENCY_WORD_TOKENS = {"usd", "aud", "eur", "gbp"}
 _NUMERIC_CURRENCY_PREFIX_TOKENS = {
     "$": "usd",
@@ -1052,6 +1262,12 @@ def _normalize_numeric_mention(raw: str) -> str:
     if not t:
         return ""
     t = re.sub(r"(?i)\bper\s+cent\b", "percent", t)
+    toks = [x for x in t.split() if x]
+    if toks:
+        m0 = _NUMERIC_COMPACT_SUFFIX_RE.match(str(toks[0]))
+        if m0:
+            toks = [str(m0.group(1)), str(m0.group(2))] + toks[1:]
+            t = " ".join(toks)
     currency_code = ""
     m_cur = re.match(r"(?i)^(us\$|a\$|\$|€|£|usd|aud|eur|gbp)\s*(.+)$", t)
     if m_cur:
@@ -1122,12 +1338,25 @@ def _numeric_key(raw: str) -> str:
         except InvalidOperation:
             return ""
 
-    value = format(dec.normalize(), "f")
-    if "." in value:
-        value = value.rstrip("0").rstrip(".")
-    if value == "-0":
-        value = "0"
+    def _value_text(d: Decimal, scientific: bool = False) -> str:
+        if scientific:
+            sci = format(d.normalize(), "E")
+            mantissa, exponent = sci.split("E", 1)
+            mantissa = mantissa.rstrip("0").rstrip(".")
+            if not mantissa:
+                mantissa = "0"
+            return f"{mantissa}e{int(exponent)}"
+        out = format(d.normalize(), "f")
+        if "." in out:
+            out = out.rstrip("0").rstrip(".")
+        if out == "-0":
+            out = "0"
+        return out
+
     unit = ""
+    scale = ""
+    currency = ""
+    use_scientific = False
     if canonical_units:
         uniq_units = list(dict.fromkeys(canonical_units))
         if len(uniq_units) == 1:
@@ -1135,12 +1364,17 @@ def _numeric_key(raw: str) -> str:
         elif len(uniq_units) == 2:
             scale = next((u for u in uniq_units if u in _NUMERIC_SCALE_TOKENS), "")
             currency = next((u for u in uniq_units if u in _NUMERIC_CURRENCY_WORD_TOKENS), "")
-            if scale and currency:
-                unit = f"{scale}_{currency}"
-            else:
+            if not (scale and currency):
                 return ""
+            multiplier = _NUMERIC_SCALE_MULTIPLIERS.get(scale)
+            if multiplier is None:
+                return ""
+            dec = dec * multiplier
+            unit = currency
+            use_scientific = True
         else:
             return ""
+    value = _value_text(dec, scientific=use_scientific)
     return f"{value}|{unit}"
 
 
@@ -1149,6 +1383,211 @@ def _numeric_unit_from_key(nk: str) -> str:
     if "|" not in k:
         return ""
     return k.split("|", 1)[1].strip().lower()
+
+
+def _numeric_value_from_key(nk: str) -> str:
+    k = str(nk or "").strip()
+    if "|" not in k:
+        return ""
+    return k.split("|", 1)[0].strip()
+
+
+def _significant_figures_from_text(num_text: str) -> Optional[int]:
+    s = str(num_text or "").strip().lower().replace(",", "")
+    if not s:
+        return None
+    if s[0] in {"+", "-"}:
+        s = s[1:]
+    if not s:
+        return None
+    if "." in s:
+        if s.startswith("0."):
+            frac = s.split(".", 1)[1]
+            frac = frac.lstrip("0")
+            return len(frac) if frac else 1
+        digits = s.replace(".", "")
+        digits = digits.lstrip("0")
+        return len(digits) if digits else 1
+    digits = s.lstrip("0")
+    return len(digits) if digits else 1
+
+
+def _numeric_expression_metadata(raw: str, nk: str) -> dict:
+    src = _normalize_numeric_mention(raw)
+    if not src:
+        return {
+            "mantissa_text": None,
+            "scale_word": None,
+            "exponent_from_scale": None,
+            "significant_figures": None,
+            "coercion_applied": False,
+        }
+    toks = [t for t in src.split() if t]
+    mantissa_text = ""
+    scale_word = None
+    exponent = None
+    if toks:
+        first = str(toks[0] or "")
+        m_comp = _NUMERIC_COMPACT_SUFFIX_RE.match(first)
+        if m_comp:
+            mantissa_text = str(m_comp.group(1) or "").replace(",", "")
+            cand_scale = str(m_comp.group(2) or "").strip().lower()
+            if cand_scale in _NUMERIC_SCALE_TOKENS:
+                scale_word = cand_scale
+        else:
+            mantissa_text = first.replace(",", "")
+            if len(toks) > 1:
+                cand_scale = str(toks[1] or "").strip().lower()
+                if cand_scale in _NUMERIC_SCALE_TOKENS:
+                    scale_word = cand_scale
+    if scale_word in _NUMERIC_SCALE_MULTIPLIERS:
+        try:
+            exp_str = format(_NUMERIC_SCALE_MULTIPLIERS[scale_word], "E").split("E", 1)[1]
+            exponent = int(exp_str)
+        except Exception:
+            exponent = None
+    sig_figs = _significant_figures_from_text(mantissa_text)
+    canonical_value = _numeric_value_from_key(nk)
+    coercion_applied = False
+    if mantissa_text and canonical_value:
+        try:
+            coercion_applied = format(Decimal(mantissa_text).normalize(), "f").rstrip("0").rstrip(".") != canonical_value
+        except Exception:
+            coercion_applied = bool(scale_word)
+    elif scale_word:
+        coercion_applied = True
+    return {
+        "mantissa_text": mantissa_text or None,
+        "scale_word": scale_word,
+        "exponent_from_scale": exponent,
+        "significant_figures": sig_figs,
+        "coercion_applied": bool(coercion_applied),
+    }
+
+
+def _numeric_surface_metadata(raw: str) -> dict:
+    text = re.sub(r"\s+", " ", str(raw or "").strip())
+    if not text:
+        return {
+            "currency_symbol_position": "none",
+            "compact_suffix_used": False,
+            "scale_word_used": False,
+            "thousands_separator_used": False,
+            "spacing_pattern": "unknown",
+            "raw_surface_hash": None,
+        }
+    low = text.lower()
+    currency_symbol_position = "none"
+    if re.match(r"^\s*(?:us\$|a\$|\$|€|£)", text, flags=re.IGNORECASE):
+        currency_symbol_position = "prefix"
+    elif re.search(r"(?:us\$|a\$|\$|€|£)\s*$", text, flags=re.IGNORECASE):
+        currency_symbol_position = "suffix"
+    compact_suffix_used = bool(re.search(r"\d(?:k|m|bn|b|t)\b", low))
+    scale_word_used = bool(re.search(r"\b(?:hundred|thousand|million|billion|trillion)\b", low)) or bool(
+        re.search(r"\d(?:hundred|thousand|million|billion|trillion)\b", low)
+    )
+    thousands_separator_used = bool(re.search(r"\d,\d", text))
+    if re.search(r"\d(?:hundred|thousand|million|billion|trillion)\b", low) or re.search(
+        r"(?:us\$|a\$|\$|€|£)\d", text, flags=re.IGNORECASE
+    ):
+        spacing_pattern = "no_space"
+    elif re.search(r"\d\s+(?:hundred|thousand|million|billion|trillion)\b", low):
+        spacing_pattern = "space"
+    else:
+        spacing_pattern = "unknown"
+    return {
+        "currency_symbol_position": currency_symbol_position,
+        "compact_suffix_used": compact_suffix_used,
+        "scale_word_used": scale_word_used,
+        "thousands_separator_used": thousands_separator_used,
+        "spacing_pattern": spacing_pattern,
+        "raw_surface_hash": hashlib.sha1(low.encode("utf-8")).hexdigest()[:16] if low else None,
+    }
+
+
+def _numeric_normalized_payload(nk: str, raw: str = "") -> dict:
+    value = _numeric_value_from_key(nk)
+    unit = _numeric_unit_from_key(nk)
+    scale = ""
+    currency = ""
+    if "_" in unit:
+        left, right = unit.split("_", 1)
+        if left in _NUMERIC_SCALE_TOKENS and right in _NUMERIC_CURRENCY_WORD_TOKENS:
+            scale = left
+            currency = right
+    elif unit in _NUMERIC_CURRENCY_WORD_TOKENS:
+        currency = unit
+    elif unit in _NUMERIC_SCALE_TOKENS:
+        scale = unit
+
+    out = {
+        "value": value,
+        "unit": unit,
+        "scale": scale or None,
+        "currency": currency or None,
+        "expression": _numeric_expression_metadata(raw, nk),
+        "surface": _numeric_surface_metadata(raw),
+    }
+    if _magnitude_id is not None and value:
+        try:
+            out["magnitude_id"] = _magnitude_id(Decimal(value), unit)
+        except Exception:
+            out["magnitude_id"] = f"mag:{value}|{unit}"
+    elif value:
+        out["magnitude_id"] = f"mag:{value}|{unit}"
+    return out
+
+
+def _years_in_text(text: str) -> List[int]:
+    out = set()
+    for y in re.findall(r"\b(?:19|20)\d{2}\b", str(text or "")):
+        try:
+            out.add(int(y))
+        except Exception:
+            continue
+    return sorted(out)
+
+
+def _nearest_years_from_doc(doc, token_i: int, limit: int = 2) -> List[int]:
+    if doc is None:
+        return []
+    pairs: List[Tuple[int, int]] = []
+    try:
+        for ent in getattr(doc, "ents", []):
+            if str(getattr(ent, "label_", "") or "") != "DATE":
+                continue
+            ys = _years_in_text(str(getattr(ent, "text", "") or ""))
+            if not ys:
+                continue
+            st = int(getattr(ent, "start", token_i))
+            en = int(getattr(ent, "end", token_i + 1)) - 1
+            dist = min(abs(int(token_i) - st), abs(int(token_i) - en))
+            for y in ys:
+                pairs.append((dist, int(y)))
+    except Exception:
+        return []
+    if not pairs:
+        return []
+    out: List[int] = []
+    seen = set()
+    for _, y in sorted(pairs, key=lambda t: (int(t[0]), int(t[1]))):
+        if y in seen:
+            continue
+        seen.add(y)
+        out.append(y)
+        if len(out) >= max(1, int(limit)):
+            break
+    return out
+
+
+def _compact_time_anchor(anchor: Optional[dict]) -> Optional[dict]:
+    if not isinstance(anchor, dict):
+        return None
+    out = {}
+    for k in ("year", "month", "day", "precision", "kind", "text"):
+        if k in anchor and anchor.get(k) not in (None, ""):
+            out[k] = anchor.get(k)
+    return out or None
 
 
 def _infer_numeric_role(action: str, nk: str, context: str) -> str:
@@ -1182,6 +1621,14 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
         return []
     out: List[dict] = []
     seen = set()
+    date_ranges: List[Tuple[int, int]] = []
+    try:
+        for ent in getattr(doc, "ents", []):
+            if str(getattr(ent, "label_", "") or "") != "DATE":
+                continue
+            date_ranges.append((int(getattr(ent, "start_char", -1)), int(getattr(ent, "end_char", -1))))
+    except Exception:
+        date_ranges = []
 
     def emit(span, source: str) -> None:
         raw = str(getattr(span, "text", "") or "").strip()
@@ -1211,6 +1658,11 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
             return
         start = int(getattr(span, "start_char", -1))
         end = int(getattr(span, "end_char", -1))
+        overlaps_date = any(ds < end and start < de for ds, de in date_ranges if ds >= 0 and de > ds)
+        if overlaps_date:
+            unit = _numeric_unit_from_key(nk)
+            if unit in {"", "year", "month", "day"}:
+                return
         root = getattr(span, "root", None)
         root_i = int(getattr(root, "i", -1)) if root is not None else -1
         key = (start, end, nk)
@@ -1300,7 +1752,12 @@ def _nearest_token_distance(indices: List[int], target: int) -> int:
     return min(abs(int(x) - int(target)) for x in indices)
 
 
-def _extract_step_numeric_claims(doc, text: str, steps: List[dict]) -> Dict[int, List[dict]]:
+def _extract_step_numeric_claims(
+    doc,
+    text: str,
+    steps: List[dict],
+    event_anchor: Optional[dict] = None,
+) -> Dict[int, List[dict]]:
     if doc is None or not steps:
         return {}
 
@@ -1322,6 +1779,7 @@ def _extract_step_numeric_claims(doc, text: str, steps: List[dict]) -> Dict[int,
 
     claims_by_step: Dict[int, List[dict]] = {i: [] for i in range(len(steps))}
     seen_step_claim = set()
+    compact_anchor = _compact_time_anchor(event_anchor)
     cands = _extract_numeric_span_candidates(doc)
     for cand in cands:
         root_i = int(cand.get("root_i", -1))
@@ -1404,7 +1862,17 @@ def _extract_step_numeric_claims(doc, text: str, steps: List[dict]) -> Dict[int,
             "role": role,
             "alignment": alignment,
             "governing_action": _base_action_label(action),
+            "normalized": _numeric_normalized_payload(nk, raw=str(cand.get("raw") or "")),
         }
+        years = _nearest_years_from_doc(doc, root_i, limit=2)
+        if not years:
+            years = _years_in_text(context_text)
+        if not years:
+            years = _years_in_text(text)
+        if years:
+            claim["time_years"] = years
+        if compact_anchor:
+            claim["time_anchor"] = dict(compact_anchor)
         if applies_to:
             claim["applies_to"] = applies_to
         claims_by_step[target_idx].append(claim)
@@ -1414,9 +1882,225 @@ def _extract_step_numeric_claims(doc, text: str, steps: List[dict]) -> Dict[int,
     return claims_by_step
 
 
+def _dedupe_numeric_objects_prefer_currency(values: List[str]) -> List[str]:
+    chosen: Dict[str, Tuple[int, bool, str]] = {}
+    for idx, raw in enumerate(values or []):
+        val = _normalize_numeric_mention(str(raw or ""))
+        if not val:
+            continue
+        parts = [p for p in val.split() if p]
+        has_currency = any(p.lower() in _NUMERIC_CURRENCY_WORD_TOKENS for p in parts)
+        base = " ".join([p for p in parts if p.lower() not in _NUMERIC_CURRENCY_WORD_TOKENS]).strip().lower()
+        key = base or val.lower()
+        prev = chosen.get(key)
+        if prev is None:
+            chosen[key] = (idx, has_currency, val)
+            continue
+        prev_idx, prev_has_currency, prev_val = prev
+        if has_currency and not prev_has_currency:
+            chosen[key] = (idx, has_currency, val)
+        elif has_currency == prev_has_currency and idx < prev_idx:
+            chosen[key] = (idx, has_currency, val)
+        else:
+            chosen[key] = (prev_idx, prev_has_currency, prev_val)
+    return [x[2] for x in sorted(chosen.values(), key=lambda t: t[0])]
+
+
+def _fallback_source_entity_id(entity_type: str, title: str, url: str, version_hash: str) -> str:
+    payload = f"{entity_type}|{title}|{url}|{version_hash}".strip().lower()
+    return f"source:{hashlib.sha1(payload.encode('utf-8')).hexdigest()[:16]}"
+
+
+def _build_source_entity(snapshot: dict) -> dict:
+    snap = snapshot if isinstance(snapshot, dict) else {}
+    title = str(snap.get("title") or "Wikipedia timeline source").strip() or "Wikipedia timeline source"
+    url = str(snap.get("source_url") or "").strip()
+    version_hash = str(snap.get("revid") or "").strip()
+    publication_date = str(snap.get("rev_timestamp") or "").strip() or None
+    if _source_entity_id is not None and _SourceEntityType is not None:
+        sid = _source_entity_id(
+            _SourceEntityType.WIKIPEDIA_ARTICLE,
+            title,
+            url=url,
+            version_hash=version_hash,
+        )
+        stype = _SourceEntityType.WIKIPEDIA_ARTICLE.value
+    else:
+        sid = _fallback_source_entity_id("wikipedia_article", title, url, version_hash)
+        stype = "wikipedia_article"
+    return {
+        "id": sid,
+        "type": stype,
+        "title": title,
+        "publication_date": publication_date,
+        "url": url or None,
+        "version_hash": version_hash or None,
+    }
+
+
+def _attribution_id_for_claim(
+    claim_id: str,
+    attributed_actor_id: str,
+    attribution_type: str,
+    source_entity_id: str,
+    reporting_actor_id: str = "",
+) -> str:
+    if _attribution_id is not None and _AttributionType is not None:
+        enum_type = _AttributionType.REPORTED_STATEMENT if attribution_type == "reported_statement" else _AttributionType.DIRECT_STATEMENT
+        return _attribution_id(
+            claim_id=claim_id,
+            attributed_actor_id=attributed_actor_id,
+            attribution_type=enum_type,
+            source_entity_id_value=source_entity_id,
+            reporting_actor_id=reporting_actor_id,
+        )
+    payload = f"{claim_id}|{attributed_actor_id}|{attribution_type}|{source_entity_id}|{reporting_actor_id}".lower()
+    return f"attr:{hashlib.sha1(payload.encode('utf-8')).hexdigest()[:16]}"
+
+
+def _build_event_attributions(
+    event_id: str,
+    steps: List[dict],
+    source_entity_id: str,
+    communication_verbs: List[str],
+) -> List[dict]:
+    comm = {str(x or "").strip().lower() for x in (communication_verbs or []) if str(x or "").strip()}
+    out: List[dict] = []
+    seen = set()
+    for idx, step in enumerate(steps):
+        if not bool(step.get("claim_bearing")):
+            continue
+        subs = [str(x).strip() for x in (step.get("subjects") or []) if str(x).strip()]
+        if not subs:
+            continue
+        action = str(step.get("action") or "")
+        lemmas = {str(x or "").strip().lower() for x in _action_lemmas(action)}
+        attr_type = "reported_statement" if (lemmas & comm) else "direct_statement"
+        claim_id = str(step.get("claim_id") or f"{event_id}:step:{idx}")
+        attributed_actor = subs[0]
+        aid = _attribution_id_for_claim(claim_id, attributed_actor, attr_type, source_entity_id)
+        key = (claim_id, attributed_actor.lower(), attr_type)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            {
+                "id": aid,
+                "claim_id": claim_id,
+                "step_index": int(idx),
+                "attributed_actor_id": attributed_actor,
+                "attribution_type": attr_type,
+                "source_entity_id": source_entity_id,
+                "certainty_level": "explicit",
+                "extraction_method": "summary",
+            }
+        )
+    out.sort(key=lambda x: (int(x.get("step_index", 0)), str(x.get("attributed_actor_id") or "")))
+    return out
+
+
+def _requester_coverage_summary(events: List[dict]) -> dict:
+    total = 0
+    request_signal_events = 0
+    requester_events = 0
+    missing_requester_event_ids: List[str] = []
+    for ev in events or []:
+        if not isinstance(ev, dict):
+            continue
+        total += 1
+        actors = ev.get("actors") or []
+        has_requester = any(
+            str(a.get("role") or "").strip().lower() in {"requester", "requester_meta"}
+            for a in actors
+            if isinstance(a, dict)
+        )
+        text = str(ev.get("text") or "")
+        has_request_clause = bool(re.search(r"\bat\s+[^.]{1,120}?\brequest\b", text, flags=re.IGNORECASE))
+        if not (has_request_clause or has_requester):
+            continue
+        request_signal_events += 1
+        if has_requester:
+            requester_events += 1
+        else:
+            missing_requester_event_ids.append(str(ev.get("event_id") or ""))
+    return {
+        "total_events": int(total),
+        "request_signal_events": int(request_signal_events),
+        "requester_events": int(requester_events),
+        "missing_requester_event_ids": [x for x in missing_requester_event_ids if x],
+    }
+
+
+def _normalize_actor_rows(actors: List[dict]) -> List[dict]:
+    out: List[dict] = []
+    for a in actors or []:
+        if not isinstance(a, dict):
+            continue
+        row = dict(a)
+        role = str(row.get("role") or "").strip().lower()
+        label = str(row.get("label") or "").strip()
+        resolved = str(row.get("resolved") or "").strip()
+        if role in {"subject", "requester"}:
+            n_label = _normalize_subject_label(label)
+            n_resolved = _normalize_subject_label(resolved or label)
+            if n_label:
+                row["label"] = n_label
+            if n_resolved:
+                row["resolved"] = n_resolved
+        else:
+            # Keep non-subject lanes cleaned but do not force determiner stripping.
+            c_label = _clean_entity_surface(label)
+            c_resolved = _clean_entity_surface(resolved)
+            if c_label:
+                row["label"] = c_label
+            if c_resolved:
+                row["resolved"] = c_resolved
+        out.append(row)
+    return out
+
+
+def _build_extraction_record(source_entity_id: str, parser_info: Optional[dict], generated_at: str) -> dict:
+    parser_version = "wiki_timeline_aoo_extract@unknown"
+    if isinstance(parser_info, dict):
+        model = str(parser_info.get("model") or parser_info.get("model_name") or "unknown").strip()
+        version = str(parser_info.get("model_version") or "").strip()
+        parser_version = f"wiki_timeline_aoo_extract@{model}{('-' + version) if version else ''}"
+    if _extraction_record_id is not None:
+        rid = _extraction_record_id(
+            source_entity_id_value=source_entity_id,
+            parser_version=parser_version,
+            extraction_timestamp=generated_at,
+        )
+    else:
+        payload = f"{source_entity_id}|{parser_version}|{generated_at}".lower()
+        rid = f"xrec:{hashlib.sha1(payload.encode('utf-8')).hexdigest()[:16]}"
+    return {
+        "id": rid,
+        "source_entity_id": source_entity_id,
+        "parser_version": parser_version,
+        "extraction_timestamp": generated_at,
+        "confidence_score": None,
+    }
+
+
 def _strip_leading_determiner(text: str) -> str:
-    t = re.sub(r"\s+", " ", str(text or "").strip())
-    return _LEADING_DETERMINER_RE.sub("", t, count=1).strip()
+    t = " ".join(str(text or "").strip().split())
+    if not t:
+        return ""
+    parts = t.split(" ")
+    if not parts:
+        return ""
+    first = parts[0].strip().lower()
+    if first in {"the", "a", "an"} and len(parts) > 1:
+        return " ".join(parts[1:]).strip()
+    return t
+
+
+def _normalize_subject_label(text: str) -> str:
+    s = _clean_entity_surface(text)
+    if not s:
+        return ""
+    return _clean_entity_surface(_strip_leading_determiner(s))
 
 
 def _object_keys(title: str) -> List[str]:
@@ -1514,7 +2198,7 @@ def _preferred_entity_label(title: str, row: Optional[dict]) -> str:
 def _step_subject_key(subjects: List[str]) -> Tuple[str, ...]:
     vals = set()
     for s in subjects or []:
-        cleaned = _clean_entity_surface(str(s or ""))
+        cleaned = _normalize_subject_label(str(s or ""))
         if not cleaned:
             continue
         vals.add(cleaned.lower())
@@ -1632,8 +2316,20 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
 
     out: List[str] = []
     seen = set()
+    date_ranges: List[Tuple[int, int]] = []
+    if doc is not None:
+        try:
+            for ent in getattr(doc, "ents", []):
+                if str(getattr(ent, "label_", "") or "") != "DATE":
+                    continue
+                st = int(getattr(ent, "start_char", -1))
+                en = int(getattr(ent, "end_char", -1))
+                if st >= 0 and en > st:
+                    date_ranges.append((st, en))
+        except Exception:
+            date_ranges = []
 
-    def _emit(cand: str) -> None:
+    def _emit(cand: str, start_char: int = -1, end_char: int = -1, window_text: str = "") -> None:
         c = _normalize_numeric_mention(cand)
         if not c:
             return
@@ -1645,6 +2341,17 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
         k = _numeric_key(c)
         if not k or k in seen:
             return
+        unit = _numeric_unit_from_key(k)
+        value = _numeric_value_from_key(k)
+        if start_char >= 0 and end_char > start_char:
+            overlaps_date = any(ds < end_char and start_char < de for ds, de in date_ranges)
+            if overlaps_date and unit in {"", "year", "month", "day"}:
+                return
+        if unit in {"", "year", "month", "day"}:
+            ctx = str(window_text or "").lower()
+            if ctx and any(month in ctx for month in MONTH_WORDS):
+                if value.isdigit() and (len(value) <= 2 or len(value) == 4):
+                    return
         seen.add(k)
         out.append(c)
 
@@ -1654,7 +2361,9 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
             for ent in getattr(doc, "ents", []):
                 label = str(getattr(ent, "label_", "") or "")
                 if label in {"CARDINAL", "QUANTITY", "PERCENT", "MONEY"}:
-                    _emit(str(getattr(ent, "text", "") or ""))
+                    est = int(getattr(ent, "start_char", -1))
+                    een = int(getattr(ent, "end_char", -1))
+                    _emit(str(getattr(ent, "text", "") or ""), start_char=est, end_char=een)
         except Exception:
             pass
 
@@ -1668,19 +2377,33 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                     i += 1
                     continue
                 lower = ttxt.lower()
+                compact = ttxt.replace(" ", "")
+                token_currency_code = ""
+                compact_num = compact
+                for pfx in ("us$", "a$", "$", "€", "£"):
+                    if compact_num.lower().startswith(pfx):
+                        token_currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(pfx, "")
+                        compact_num = compact_num[len(pfx) :]
+                        break
                 is_num = (
                     bool(getattr(tok, "like_num", False))
                     or bool(_NUMERIC_VALUE_RE.fullmatch(lower))
-                    or bool(_NUMERIC_COMPACT_SUFFIX_RE.match(ttxt.replace(" ", "")))
+                    or bool(_NUMERIC_COMPACT_SUFFIX_RE.match(compact))
+                    or bool(_NUMERIC_VALUE_RE.fullmatch(compact_num.lower()))
+                    or bool(_NUMERIC_COMPACT_SUFFIX_RE.match(compact_num))
                 )
                 if not is_num:
                     i += 1
                     continue
 
-                currency_code = ""
+                start_i = i
+                currency_code = token_currency_code
                 if i > 0:
                     prev_tok = str(getattr(toks[i - 1], "text", "") or "").strip().lower()
-                    currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
+                    if prev_tok in _NUMERIC_CURRENCY_PREFIX_TOKENS:
+                        start_i = i - 1
+                    if not currency_code:
+                        currency_code = _NUMERIC_CURRENCY_PREFIX_TOKENS.get(prev_tok, "")
 
                 parts = [ttxt]
                 j = i + 1
@@ -1744,7 +2467,15 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                         i = j
                         continue
 
-                _emit(candidate)
+                span_start_char = int(getattr(toks[start_i], "idx", -1) or -1)
+                if j > start_i:
+                    end_tok = toks[j - 1]
+                else:
+                    end_tok = tok
+                span_end_char = int(getattr(end_tok, "idx", -1) or -1)
+                if span_end_char >= 0:
+                    span_end_char += len(str(getattr(end_tok, "text", "") or ""))
+                _emit(candidate, start_char=span_start_char, end_char=span_end_char, window_text=window)
                 i = j
                 continue
         except Exception:
@@ -1766,7 +2497,7 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
             if any(month in window for month in MONTH_WORDS):
                 if re.fullmatch(r"\d{1,2}|\d{4}", _normalize_numeric_mention(cand)):
                     continue
-            _emit(cand)
+            _emit(cand, start_char=int(m.start()), end_char=int(m.end()), window_text=window)
 
     return out
 
@@ -2078,41 +2809,41 @@ def _subject_surface_for_token(doc, tok) -> str:
 
 
 def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, root_surname: str) -> str:
-    s = _clean_entity_surface(surface)
+    s = _normalize_subject_label(surface)
     if not s:
         return s
     poss = _extract_possessive_person(s)
     if poss:
-        return poss
+        return _normalize_subject_label(poss)
     low = s.lower()
     if low in {"he", "him", "his"} and root_actor:
-        return root_actor
+        return _normalize_subject_label(root_actor)
     if low in {"that", "which", "who"}:
         return ""
 
-    s_norm = _norm_phrase(s)
+    s_norm = _norm_phrase(_strip_leading_determiner(s))
     best = None
     best_len = -1
     for a in actors:
-        resolved = str(a.get("resolved") or "").strip()
-        label = str(a.get("label") or "").strip()
+        resolved = _normalize_subject_label(str(a.get("resolved") or ""))
+        label = _normalize_subject_label(str(a.get("label") or ""))
         for cand in (resolved, label):
             if not cand:
                 continue
-            c_norm = _norm_phrase(cand)
+            c_norm = _norm_phrase(_strip_leading_determiner(cand))
             if not c_norm:
                 continue
             if s_norm == c_norm or s_norm in c_norm or c_norm in s_norm:
                 if len(cand) > best_len:
-                    best = resolved or cand
+                    best = _normalize_subject_label(resolved or cand)
                     best_len = len(cand)
     if best:
         return best
 
     # Surname fallback for standalone root-actor references.
     if root_surname and re.search(rf"\b{re.escape(root_surname)}\b", s, flags=re.IGNORECASE):
-        return root_actor or s
-    return _clean_entity_surface(s)
+        return _normalize_subject_label(root_actor or s)
+    return _normalize_subject_label(s)
 
 
 def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, root_surname: str) -> List[str]:
@@ -2444,6 +3175,24 @@ def _purpose_to_step(purpose: Optional[str], fallback_subjects: List[str], nlp: 
     }
 
 
+def _infer_requester_from_steps(steps: List[dict], requester_title_label: str) -> Optional[str]:
+    title_norm = str(requester_title_label or "").strip().lower()
+    for s in steps or []:
+        if _base_action_label(str(s.get("action") or "")) != "request":
+            continue
+        subs = [str(x).strip() for x in (s.get("subjects") or []) if str(x).strip()]
+        for sub in subs:
+            low = sub.lower()
+            if low in {"president", "prime minister", "pm"}:
+                continue
+            if title_norm and low == title_norm:
+                continue
+            return sub
+        if subs:
+            return subs[0]
+    return None
+
+
 def _surname_is_part_of_name(text: str, surname: str, blocked_first_tokens: Optional[set] = None) -> bool:
     # Heuristic: if sentence contains "<Capitalized> <Surname>", treat surname as part of a name
     # and avoid mapping it to the root actor by default.
@@ -2536,6 +3285,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     requester_title_labels = _profile_requester_title_labels(profile_payload)
     modal_container_grammar = _profile_modal_container_grammar(profile_payload)
     communication_chain_config = _profile_communication_chain_config(profile_payload)
+    epistemic_verbs = _profile_epistemic_verbs(profile_payload, communication_chain_config)
     action_pattern_specs = _profile_action_pattern_specs(profile_payload)
     action_patterns = _compile_action_patterns(action_pattern_specs)
     if not action_patterns:
@@ -2551,6 +3301,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "requester_title_labels": requester_title_labels,
         "modal_container_grammar": modal_container_grammar,
         "communication_chain": communication_chain_config,
+        "epistemic_verbs": epistemic_verbs,
+        "predicate_classifier": "src.nlp.epistemic_classifier" if _EpistemicClassifier is not None else "builtin_step_signals",
         "error": profile_error,
     }
 
@@ -2558,6 +3310,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     events = tl.get("events") or []
     if not isinstance(events, list):
         raise SystemExit("invalid timeline: events[] missing")
+    source_entity = _build_source_entity(tl.get("snapshot") or {})
 
     alias_map: Dict[str, str] = {}
     candidate_titles: List[str] = []
@@ -2576,8 +3329,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser_error = None
     if not args.no_spacy:
         nlp, parser_info, parser_error = _try_load_spacy(str(args.spacy_model))
+    classifier = _EpistemicClassifier(nlp) if (_EpistemicClassifier is not None and nlp is not None) else None
 
     out_events: List[dict] = []
+    generated_at = _utc_now_iso()
     # Track recurrence of span candidates across events (truth capture; view promotion uses thresholds).
     span_seen: Dict[Tuple[str, str], set] = {}
     for ev in events[: int(args.max_events)]:
@@ -2691,8 +3446,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not requester:
             rm = REQUEST_RE.search(parse_text)
             if rm:
-                requester = rm.group(1)
-                requester_resolved = alias_map.get(requester) or requester
+                requester = _normalize_requester_surface(rm.group(1))
+                requester_resolved = _resolve_requester_label(requester, alias_map)
                 requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
                 requester_source = "fallback_regex:request"
                 warnings.append("fallback_requester_regex")
@@ -2702,7 +3457,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # Requester (alias-resolved if possible).
         if requester:
-            resolved = requester_resolved or alias_map.get(requester) or requester
+            resolved = _normalize_subject_label(requester_resolved or alias_map.get(requester) or requester)
+            requester = _normalize_subject_label(requester)
             requester_resolved = resolved
             actors.append(
                 {"label": requester, "resolved": resolved, "role": "requester", "source": requester_source}
@@ -2757,24 +3513,36 @@ def main(argv: Optional[List[str]] = None) -> int:
         dep_agents = _extract_passive_agents_from_doc(doc)
         if dep_agents:
             for agent in dep_agents:
-                actors.append({"label": agent, "resolved": agent, "role": "subject", "source": "dep:by_agent"})
+                n_agent = _normalize_subject_label(agent)
+                actors.append({"label": n_agent, "resolved": n_agent, "role": "subject", "source": "dep:by_agent"})
         else:
             am = BY_AGENT_RE.search(parse_text)
             if am:
                 agent_raw = (am.group(1) or "").strip()
                 if agent_raw:
                     agent = _normalize_agent_label(agent_raw)
-                    actors.append({"label": agent_raw, "resolved": agent, "role": "subject", "source": "fallback_regex:by_agent"})
+                    actors.append(
+                        {
+                            "label": _normalize_subject_label(agent_raw),
+                            "resolved": _normalize_subject_label(agent),
+                            "role": "subject",
+                            "source": "fallback_regex:by_agent",
+                        }
+                    )
                     warnings.append("fallback_by_agent_regex")
+
+        actors = _normalize_actor_rows(actors)
 
         # De-dupe by resolved label.
         seen = set()
         deduped: List[dict] = []
         for a in actors:
-            key = str(a.get("resolved") or a.get("label") or "")
+            key = _normalize_subject_label(str(a.get("resolved") or a.get("label") or ""))
             if not key or key in seen:
                 continue
             seen.add(key)
+            a["resolved"] = key
+            a["label"] = _normalize_subject_label(str(a.get("label") or key))
             deduped.append(a)
         actors = deduped
 
@@ -2784,10 +3552,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         if dep_subjects:
             existing = {str(a.get("resolved") or "").strip().lower() for a in actors}
             for ds in dep_subjects:
-                k = str(ds or "").strip().lower()
+                ds_norm = _normalize_subject_label(ds)
+                k = str(ds_norm or "").strip().lower()
                 if not k or k in existing:
                     continue
-                actors.append({"label": ds, "resolved": ds, "role": "subject", "source": "dep_subject"})
+                actors.append({"label": ds_norm, "resolved": ds_norm, "role": "subject", "source": "dep_subject"})
                 existing.add(k)
 
         # Objects: prefer sentence-local wikilinks from the timeline artifact.
@@ -3092,6 +3861,30 @@ def main(argv: Optional[List[str]] = None) -> int:
                 keep = [s for s in steps if _base_action_label(str(s.get("action") or "")) not in {"requested", "request"}]
                 steps = [request_step] + keep
 
+        # Fallback: if request action exists but requester role wasn't extracted
+        # from dependency/regex, infer it deterministically from request-step subjects.
+        if (not requester_resolved) and steps:
+            inferred_req = _infer_requester_from_steps(steps, requester_title_label)
+            if inferred_req:
+                requester = _normalize_subject_label(inferred_req)
+                requester_resolved = _normalize_subject_label(_resolve_requester_label(inferred_req, alias_map) or inferred_req)
+                already = {
+                    (str(a.get("resolved") or a.get("label") or "").strip().lower(), str(a.get("role") or "").strip().lower())
+                    for a in actors
+                    if isinstance(a, dict)
+                }
+                key = (requester_resolved.strip().lower(), "requester")
+                if key not in already:
+                    actors.append(
+                        {
+                            "label": requester,
+                            "resolved": requester_resolved,
+                            "role": "requester",
+                            "source": "fallback_step:request",
+                        }
+                    )
+                    warnings.append("fallback_requester_from_step")
+
         # Start a minimal nesting/chain lane: if a purpose clause is present, emit a derived
         # purpose-step (verb + object phrase) when it is not already represented.
         if steps and purpose:
@@ -3262,6 +4055,16 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # De-dupe steps (action + subjects + objects).
         for s in steps:
+            subj_vals: List[str] = []
+            subj_seen = set()
+            for sub in (s.get("subjects") or []):
+                ns = _normalize_subject_label(sub)
+                k = ns.lower()
+                if not ns or k in subj_seen:
+                    continue
+                subj_seen.add(k)
+                subj_vals.append(ns)
+            s["subjects"] = subj_vals
             raw_action = str(s.get("action") or "").strip()
             if not raw_action:
                 continue
@@ -3299,6 +4102,22 @@ def main(argv: Optional[List[str]] = None) -> int:
             dedup_steps.append(s)
         steps = dedup_steps
 
+        event_id = str(ev.get("event_id") or "")
+        claim_step_indices = _annotate_claim_bearing_steps(
+            doc,
+            steps,
+            event_id,
+            epistemic_verbs,
+            classifier=classifier,
+        )
+        allowed_step_numeric_keys: Optional[set] = None
+        if doc is not None:
+            allowed_step_numeric_keys = set()
+            for n in _extract_numeric_mentions(text, doc=doc):
+                nk = _numeric_key(str(n))
+                if nk:
+                    allowed_step_numeric_keys.add(nk)
+
         for s in steps:
             st_objs = [x for x in (s.get("objects") or []) if x]
             entity_objects: List[str] = []
@@ -3327,6 +4146,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                     lk = _numeric_key(cleaned_obj)
                     if not lk:
                         continue
+                    if allowed_step_numeric_keys is not None and lk not in allowed_step_numeric_keys:
+                        continue
                     if lk not in seen_numeric:
                         seen_numeric.add(lk)
                         numeric_objects.append(_normalize_numeric_mention(cleaned_obj))
@@ -3340,9 +4161,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             s["modifier_objects"] = modifier_objects
 
         # Step-scoped numeric role typing and multi-verb alignment.
-        step_numeric_claims = _extract_step_numeric_claims(doc, text, steps)
+        step_numeric_claims = _extract_step_numeric_claims(doc, text, steps, event_anchor=ev.get("anchor"))
         for i, s in enumerate(steps):
             claims = list(step_numeric_claims.get(i) or [])
+            if claims and s.get("claim_id"):
+                for c in claims:
+                    if isinstance(c, dict):
+                        c["claim_id"] = str(s.get("claim_id") or "")
             s["numeric_claims"] = claims
             if claims:
                 seen_num = {_numeric_key(str(x)) for x in (s.get("numeric_objects") or []) if str(x).strip()}
@@ -3407,6 +4232,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 continue
             seen_event_numeric.add(nk)
             event_numeric_objects.append(_normalize_numeric_mention(n))
+        event_numeric_objects = _dedupe_numeric_objects_prefer_currency(event_numeric_objects)
 
         event_numeric_claims: List[dict] = []
         for idx, s in enumerate(steps):
@@ -3416,6 +4242,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 cc = dict(c)
                 cc["step_index"] = int(idx)
                 event_numeric_claims.append(cc)
+
+        event_attributions = _build_event_attributions(
+            event_id=event_id,
+            steps=steps,
+            source_entity_id=str(source_entity.get("id") or ""),
+            communication_verbs=[str(x or "") for x in (communication_chain_config.get("communication_verbs") or [])],
+        )
 
         out_events.append(
             {
@@ -3436,6 +4269,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "purpose": purpose,
                 "chains": chains,
                 "span_candidates": span_candidates,
+                "claim_bearing": bool(claim_step_indices),
+                "claim_step_indices": claim_step_indices,
+                "attributions": event_attributions,
                 "warnings": warnings,
             }
         )
@@ -3455,9 +4291,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             if seen_events is not None:
                 c["recurrence"] = {"seen_events": int(seen_events)}
 
+    requester_coverage = _requester_coverage_summary(out_events)
     out = {
         "ok": True,
-        "generated_at": _utc_now_iso(),
+        "generated_at": generated_at,
         "parser": (
             parser_info
             if parser_info
@@ -3468,6 +4305,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             "path": str(args.timeline),
             "snapshot": tl.get("snapshot"),
         },
+        "source_entity": source_entity,
+        "extraction_record": _build_extraction_record(str(source_entity.get("id") or ""), parser_info, generated_at),
+        "requester_coverage": requester_coverage,
         "root_actor": {"label": root_actor, "surname": root_surname},
         "events": out_events,
         "notes": [
@@ -3476,6 +4316,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Objects are primarily wikilinks from the timeline event with dependency/surface fallbacks; absence does not imply non-existence.",
             "Non-wikilink objects may include resolver_hints against sentence links, paragraph links, and candidate titles.",
             "Numeric mentions are emitted in dedicated numeric lanes (`numeric_objects` and step-scoped `numeric_claims` with role/alignment metadata).",
+            "Claim-bearing steps are tagged via profile-driven epistemic verbs, with event-scoped attribution attachments.",
             "Actions are canonical verb labels; negation is stored separately under step.negation (no not_* action proliferation).",
             "Span candidates are unresolved mentions (TextSpan-like) for view-layer surfacing/promotion; they are not entities.",
         ],

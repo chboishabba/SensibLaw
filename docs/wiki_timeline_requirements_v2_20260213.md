@@ -74,7 +74,7 @@ provenance and historical mapping.
 **Requirement**
 - Canonical magnitude identity independent of formatting.
 - No integer-expansion precision inflation.
-- Currency-aware canonical keys.
+- Currency-aware canonical keys (scale+currency normalized to scientific value + currency unit; no composite scale-currency unit tags).
 - Deterministic canonical ID function.
 **Status:** Implemented (current slice)
 
@@ -92,7 +92,7 @@ provenance and historical mapping.
 - Store format as bitmask/flags.
 - Surface regeneration deterministic.
 - Avoid duplicate raw string storage.
-**Status:** Partially implemented
+**Status:** Partially implemented (numeric claims now emit expression+surface metadata; bitmask compression/storage model still pending)
 
 # Numeric Ontology Integration
 
@@ -102,7 +102,7 @@ provenance and historical mapping.
 - `%` normalization.
 - Compact suffix normalization.
 - Canonical key-based coalescing in view.
-**Status:** Implemented
+**Status:** Implemented (scale+currency now canonicalized to scientific value + currency unit; composite scale-currency unit tags removed)
 
 ### R11. Numeric Role Typing
 **Requirement**
@@ -116,7 +116,7 @@ provenance and historical mapping.
   - `count`
   - `percentage_of`
 - Prevent flattening heterogeneous monetary roles.
-**Status:** Partially implemented (baseline step-scoped role typing + alignment emitted; taxonomy/conflict integration pending)
+**Status:** Partially implemented (baseline step-scoped role typing + alignment emitted; claim payload now includes normalized numeric parts and explicit time attribution fields; taxonomy/conflict integration pending)
 
 ### R12. Range & Ratio Structured Modeling
 **Requirement**
@@ -165,16 +165,13 @@ Projection containment != conflict.
 
 ### R16. Epistemic Verb Classification
 **Requirement**
-- Maintain list of epistemic verbs:
-  - estimated
-  - projected
-  - reported
-  - said
-  - claimed
-  - found
+- Use dependency-first epistemic detection for claim-bearing steps
+  (communication/attribution clause signals such as clausal complements).
+- Allow profile-provided lexical fallback only when dependency signals are absent.
+- Avoid extractor-hardcoded epistemic verb tables.
 - Mark claim-bearing events explicitly.
 - Conflict logic applies only to claim-bearing events.
-**Status:** Pending
+**Status:** Partially implemented (dependency-first classifier + profile lexical fallback emitted in extractor; nominalized attribution patterns still pending)
 
 # Attribution & Sourcing
 
@@ -184,17 +181,33 @@ Projection containment != conflict.
   - attributed_actor
   - reporting_actor
   - source_entity
+- Preserve requester lane fidelity:
+  - detect requester from dependency/step structure,
+  - canonicalize requester labels (no possessive/noise surface),
+  - avoid collapsing requester projections to `req:none` when request evidence exists.
+- Surface requester coverage diagnostics in projection views:
+  - when `req:none` is selected, show `requester_coverage` counters,
+  - report missing requester event IDs from extraction output,
+  - report current-window request-signal vs requester-match counts so no-request windows are explicit.
+- Canonicalize actor/subject labels by stripping leading definite article
+  (`the X` -> `X`) in extraction output so subject identity does not fragment
+  across article/no-article forms.
 - Evidence must not pollute role lanes.
 - Support direct vs reported distinction.
-**Status:** Partially implemented
+**Status:** Partially implemented (event-level attribution attachments emitted for claim-bearing steps; requester canonicalization + step fallback landed; extractor emits requester coverage counters and AAO-all now surfaces `req:none` window/global diagnostics; full SourceEntity/Attribution ontology integration still pending)
 
 ### R18. SourceEntity Modeling
 **Requirement**
 - Materialize `SourceEntity` objects.
 - Track publication date, version, hash.
 - Link AAO events to source entities.
+- Expose source context in non-role projection lanes:
+  - AAO-all should show a Source lane wired from source/provenance labels to action nodes via context edges.
+  - Source lane labels should be provenance-oriented (source entity/provider/parser), not role actors.
+- Expose extraction lens context in non-role projection lanes:
+  - AAO-all should show a Lens lane sourced from extraction profile + event lens tags (claim-bearing/SL lane markers).
 - Support respectful rate policy tracking.
-**Status:** Implemented (operations slice), ontology pending
+**Status:** Partially implemented (extractor emits `source_entity` + `extraction_record`; AAO-all now surfaces Source/Lens lanes via context edges; ontology/storage integration and lane assertion tests pending)
 
 # Anchor Graduation
 
@@ -246,15 +259,26 @@ Explicitly state:
 - No revision-chain inference in current slice.
 **Status:** Not yet formalized
 
+### R24. Extractor -> Ontology Mapping Contract
+**Requirement**
+- Ontology fields must be parser-agnostic and canonical (not raw spaCy/Babel class values).
+- Each ontology field used in output must define:
+  - extractor source attribute(s),
+  - normalization rule,
+  - fallback rule.
+- Mapping behavior must be deterministic and test-covered.
+**Status:** Partially implemented (ActionEvent morphology mapping is now implemented in `src/nlp/ontology_mapping.py` with canonical enum output + tests; numeric/temporal mapping expansion pending)
+
 # Open Gaps (Actionable)
 1. Implement numeric role typing expansion (R11).
 2. Materialize temporal entities (R13-R14).
 3. Implement conflict logic engine (R15).
 4. Add anchor graduation state machines (R19-R20).
 5. Complete epistemic verb tagging (R16).
-6. Finalize typed edge basis metadata.
+6. Finalize typed edge basis metadata and attribution graph edge projection.
 7. Implement frame-scope validator (R22).
 8. Formalize Non-Goals section (R23).
+9. Complete numeric/temporal extractor->ontology mapping coverage and tests (R24).
 
 # Document Notes
 - This is a requirements register, not a schema spec.

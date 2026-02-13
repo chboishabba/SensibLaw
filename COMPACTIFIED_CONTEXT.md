@@ -56,7 +56,7 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   context rows (`YYYY-MM-DD` when day anchor exists) instead of downcasting to the
   current timeline bucket granularity.
 - Numeric key normalization now preserves explicit currency markers/symbols in canonical
-  keys (e.g., `$5.6trillion` -> `5.6|trillion_usd`; `$500,000` -> `500000|usd`) while
+  keys (e.g., `$5.6trillion` -> `5.6e12|usd`; `$500,000` -> `500000|usd`) while
   keeping parser-first numeric span detection with regex fallback only.
 - Context sync revalidated via robust fetch for online thread
   `698e95ec-1154-83a0-b40c-d3a432f97239` (DB-first miss, live fetch success).
@@ -83,6 +83,41 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   step-scoped `numeric_claims` now attach canonical numeric values to governing
   verb steps with deterministic role labels (including `transaction_price` and
   `personal_investment` for multi-verb money sentences).
+- Added claim-bearing extraction baseline in wiki AAO:
+  step/event outputs now include profile-driven epistemic tags
+  (`claim_bearing`, `claim_modality`, `claim_id`, `claim_step_indices`).
+- Replaced extractor-hardcoded epistemic verb defaults with a dedicated
+  deterministic classifier component (`src/nlp/epistemic_classifier.py`) and
+  integrated dependency-first predicate typing into claim-bearing annotation,
+  with profile lexical fallback retained for sparse parse cases.
+- Added attribution/sourcing emission baseline in wiki AAO:
+  event-level `attributions` (direct/reported for claim-bearing steps) plus
+  top-level `source_entity` and `extraction_record` provenance objects.
+- Added numeric claim context enrichment:
+  claim payloads now emit structured normalized parts
+  (`normalized.value/unit/scale/currency/magnitude_id`) and explicit temporal
+  attribution (`time_anchor` and `time_years`) for timeline/date traceability.
+- Added requester extraction hardening:
+  possessive/title requester surfaces are canonicalized and alias-resolved
+  (`President Obama's` -> `Barack Obama`) with deterministic fallback from
+  `request` step subjects if possessor extraction is missing.
+- Added requester coverage diagnostics:
+  extractor now emits top-level `requester_coverage` counters and missing-event IDs
+  for request-clause signals that did not resolve a requester actor.
+- Added parser-agnostic ontology mapping baseline:
+  `src/nlp/ontology_mapping.py` now canonicalizes action morphology fields
+  (`tense/aspect/verb_form/voice/mood/modality`) with deterministic `unknown`
+  fallbacks; extractor `action_meta` is wired through this mapping.
+- Numeric currency+scale normalization no longer emits composite unit tags such as
+  `trillion_usd`; keys are emitted as scientific value + currency
+  (e.g., `$5.6trillion` -> `5.6e12|usd`).
+- Numeric claims now preserve ontology-layer separation explicitly:
+  `normalized` includes canonical magnitude identity plus
+  `expression` (mantissa/scale/exponent/sig-fig/coercion) and
+  `surface` (symbol/spacing/separator/hash) metadata.
+- Subject/actor normalization now strips leading definite articles in extraction
+  output (`the United States` -> `United States`) so subject-node identity does
+  not fragment across article/no-article variants.
 
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`
@@ -187,6 +222,17 @@ Intersections with roadmap/todo/readme (2026-02-03):
 - `ROADMAP.md`: focus on deterministic chat-history ingest into SQLite with SL/TIRC views overlaps with threads about ingest, explanation surfaces, timeline visualization, and cross-thread analysis.
 - `SensibLaw/README.md`: shared TiRC + SensibLaw layered architecture aligns with ontology/taxonomy, actor table, PDF-to-graph, and timeline/claims discussions.
 - `SensibLaw/todo.md`: S6 read-only deterministic surfaces and ingestion discipline align with explanation/trace requests, PDF integration, CI hardening, and schema/guardrail emphasis in the chats.
+
+## Context update (2026-02-13)
+- Requester TODO progression:
+  - extractor-level `requester_coverage` counters already emitted,
+  - AAO-all now uses those counters for `req:none` diagnostics in the context pane,
+  - `req:none` selection now maps to missing requester event IDs so gap rows are inspectable,
+  - follow-up TODO remains for automated UI assertions around requester-gap states.
+- Projection lane progression:
+  - AAO-all now includes dedicated non-role `Source` and `Lens` lanes,
+  - those lanes are connected to actions via `context` overlay edges,
+  - context rows now expose `sources` and `lenses` chips for traceability.
 
 ## Sources
 Chat-sourced statements are now referenced from the compression/ITIR overlay

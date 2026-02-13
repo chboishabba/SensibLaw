@@ -36,3 +36,11 @@ def test_requester_and_by_agent_are_dependency_first_with_fallbacks() -> None:
     assert "_extract_passive_agents_from_doc" in src
     assert "fallback_requester_regex" in src
     assert "fallback_by_agent_regex" in src
+
+
+def test_leading_determiner_normalization_is_not_regex_based() -> None:
+    src = _source()
+    m = re.search(r"def _strip_leading_determiner\(text: str\) -> str:\n(?P<body>(?:    .*\n){1,20})", src)
+    assert m is not None
+    body = m.group("body")
+    assert "re." not in body

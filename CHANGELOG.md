@@ -1,12 +1,67 @@
 # Changelog
 
 ## Unreleased
+- Docs/TODO: formalize requester coverage UI diagnostics contract under R17
+  (`req:none` must surface global/window requester gap counters and missing
+  requester event IDs) and split follow-up UI assertions into a dedicated TODO.
+- Docs/TODO: extend R18/source modeling contract to require AAO-all Source/Lens
+  non-role lanes (context-edge overlays), and track follow-up lane assertion
+  tests as explicit TODOs.
+- NLP/AAO: add parser-agnostic mapping module `src/nlp/ontology_mapping.py` and
+  wire extractor action morphology emission through canonical enums
+  (`tense/aspect/verb_form/voice/mood/modality`) with deterministic `unknown`
+  fallbacks (R24 baseline implementation).
+- Wikipedia/HCA AAO numeric keys: stop emitting composite scale-currency units
+  (e.g. `trillion_usd`) and normalize currency-scaled values to scientific form
+  keys instead (e.g. `$5.6trillion` -> `5.6e12|usd`), while keeping plain
+  currency values unchanged (`$500,000` -> `500000|usd`).
+- Wikipedia/HCA AAO numeric mention pass: fix parser-doc token scans for split
+  currency compact forms (`$` + `5.6trillion`) and dedupe event numeric objects
+  to prefer currency-bearing variants over scale-only duplicates.
+- Wikipedia/HCA AAO numeric claims: add explicit semantic-expression and
+  surface-phenotype substructures under `numeric_claims[].normalized`
+  (`expression` + `surface`) so canonical magnitude identity stays separate from
+  scale-word semantics and formatting metadata.
+- Wikipedia/HCA AAO subjects/actors: normalize leading definite articles in
+  subject identity labels (`the X` -> `X`) so graph subject lanes coalesce
+  deterministically (e.g., `the United States` -> `United States`).
+- Wikipedia/HCA AAO: add top-level `requester_coverage` diagnostics in artifact
+  output to flag request-clause events that still resolve with no requester lane
+  actor (`request_signal_events`, `requester_events`, `missing_requester_event_ids`).
 - Docs: add canonical v2 requirements register
   (`docs/wiki_timeline_requirements_v2_20260213.md`) and align requirement IDs/status
   for extraction, ontology, attribution, conflict logic, anchor graduation, and validation.
 - Docs: mark `docs/wiki_timeline_requirements_v2_20260213.md` as the active
   tracker and keep `docs/wiki_timeline_requirements_698e95ec_20260213.md` as
   provenance/history mapping.
+- Wikipedia/HCA AAO: add claim-bearing classification tags
+  (`step.claim_bearing`, `step.claim_modality`, `step.claim_id`, and event-level
+  `claim_bearing`/`claim_step_indices`) using profile-driven epistemic verbs.
+- NLP/AAO: add `src/nlp/epistemic_classifier.py` (predicate typing:
+  eventive/epistemic/normative/procedural/unknown) and switch claim-bearing
+  tagging to dependency-first classification with profile lexical fallback
+  instead of extractor-hardcoded epistemic verb defaults.
+- Tests: add deterministic classifier coverage in
+  `tests/test_epistemic_classifier.py` and update claim-bearing tests for the
+  new classifier-integrated annotation path.
+- Wikipedia/HCA AAO: add baseline attribution attachments for claim-bearing steps
+  (`event.attributions`) with deterministic direct vs reported attribution typing
+  and stable attribution IDs.
+- Wikipedia/HCA AAO: emit top-level provenance objects
+  (`source_entity`, `extraction_record`) derived from timeline snapshot metadata
+  for sourcing-layer integration.
+- Wikipedia/HCA AAO numeric claims: enrich `numeric_claims` with structured
+  normalization payload (`normalized.value/unit/scale/currency/magnitude_id`)
+  and explicit date attribution (`time_anchor` + inline `time_years`) so
+  timeline rows retain both canonical numeric identity and temporal context.
+- Wikipedia/HCA AAO requester extraction: canonicalize requester possessive/title
+  surfaces (e.g. `President Obama's`), resolve via alias map to stable actor IDs,
+  and add deterministic fallback from `request` steps when possessor extraction
+  is missing to prevent requester-lane collapse.
+- Tests: extend claim/attribution coverage with requester normalization,
+  requester alias resolution, and request-step fallback checks.
+- Tests: add claim-bearing/attribution extractor coverage in
+  `tests/test_wiki_timeline_claim_attribution.py`.
 - Docs: add robust-context thread requirements register
   (`docs/wiki_timeline_requirements_698e95ec_20260213.md`) with implemented vs
   pending traceability across extractor, UI, and ontology integration tasks.
@@ -33,8 +88,8 @@
 - Docs: extend numeric contract with step-scoped NumericRole guidance and
   minimum role taxonomy for multi-verb alignment.
 - Wikipedia/HCA AAO numeric normalization: preserve currency prefixes/symbols
-  (`$`, `US$`, `A$`, `€`, `£`) in canonical numeric keys, including scale +
-  currency composites (e.g., `$5.6trillion` -> `5.6|trillion_usd`).
+  (`$`, `US$`, `A$`, `€`, `£`) in canonical numeric keys, with scale folded into
+  scientific value form when currency is explicit (e.g., `$5.6trillion` -> `5.6e12|usd`).
 - Tests: extend numeric-lane coverage for currency-bearing mentions and keys
   (e.g., `$500,000` and `$5.6trillion`).
 - Wikipedia timeline extraction: add deterministic special-event mention anchors

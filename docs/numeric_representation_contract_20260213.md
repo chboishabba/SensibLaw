@@ -10,11 +10,24 @@ This contract separates numeric identity from numeric surface form.
 
 ## Layering
 1. Span detection (parser-first): detect candidate numeric spans from spaCy entities/tokens.
-2. Value parsing: derive normalized numeric value + unit/scale.
-3. Numeric identity key: deterministic key used for coalescing/linking.
+2. Numeric expression parsing: derive mantissa/scale semantics from language form.
+3. Numeric identity key: deterministic value+unit key used for coalescing/linking.
 4. Surface phenotype: preserve source formatting metadata for display/provenance.
 
 Truth must not collapse these layers into a single mutable string.
+
+## Identity vs Expression vs Surface
+Three layers are mandatory and distinct:
+
+1. `Magnitude` identity:
+   - canonical value + unit only
+   - no scale words, no symbols, no spacing artifacts
+2. `NumericExpression` semantics:
+   - how language expressed the quantity (`mantissa_text`, `scale_word`, derived exponent, sig-fig hints)
+   - may imply coercion to canonical value
+3. `NumericSurface` phenotype:
+   - typographic/rendering details (`$`, spacing, separators, compact/no-space forms)
+   - never affects identity
 
 ## Numeric Identity (truth)
 Identity is value-based and unit-aware.
@@ -26,15 +39,27 @@ Required fields:
 
 Current key form in AAO/wiki views:
 - `"<value_norm>|<unit>"` where unit may be empty.
-- composite units are permitted when both scale and currency are explicit:
-  - `"<value_norm>|<scale>_<currency>"` (example: `trillion_usd`)
+- when both scale and currency are explicit, scale is folded into scientific value
+  and unit remains the currency code.
+- legacy composite unit tags (`<scale>_<currency>`) are non-canonical and must
+  not be emitted by new extraction runs.
 
 Examples:
 - `21`, `021`, `21.0` -> `21|`
 - `68 percent`, `68%`, `68 per cent` -> `68|percent`
 - `1.2 billion` -> `1.2|billion` (no silent expansion to an implied exact integer)
-- `$5.6 trillion` -> `5.6|trillion_usd`
+- `$5.6 trillion` -> `5.6e12|usd`
 - `$500,000` -> `500000|usd`
+
+## NumericExpression (semantic layer)
+Per-claim expression metadata should preserve semantic expression details:
+- `mantissa_text`
+- `scale_word` (if any)
+- `exponent_from_scale` (if scale-derived)
+- `significant_figures` (deterministic heuristic)
+- `coercion_applied` (true when expression required scale/currency normalization to canonical key)
+
+`scale_word` is semantic expression metadata, not a unit.
 
 ## Surface Phenotype (provenance)
 Formatting/surface form must be preserved separately from identity.
@@ -44,6 +69,14 @@ Examples of phenotype signals:
 - symbol presence (`$`),
 - textual form (`percent` vs `%`),
 - source rendering artifacts.
+
+Recommended phenotype fields:
+- `currency_symbol_position` (`prefix`/`suffix`/`none`)
+- `compact_suffix_used` (boolean)
+- `scale_word_used` (boolean)
+- `thousands_separator_used` (boolean)
+- `spacing_pattern` (`space`/`no_space`/`unknown`)
+- `raw_surface_hash` (stable hash of raw mention)
 
 These should never change identity keys; they are metadata for rendering, audit, and style analysis.
 
@@ -58,7 +91,16 @@ These should never change identity keys; they are metadata for rendering, audit,
 
 ## Precision Rules
 - Do not silently inflate precision by converting scaled forms into expanded exact integers in truth labels.
-- Preserve normalized decimal precision from source expression (`5.6 trillion` stays scale-aware, not fake exact integer form).
+- Preserve normalized decimal precision from source expression (`5.6 trillion` stays scale-aware via scientific value form, not fake exact integer form).
+
+## Coercion Rules
+Allowed semantic coercion:
+- scale words -> exponent mapping (`trillion` -> `10^12`)
+- currency symbol/prefix -> canonical currency unit (`$` -> `usd`)
+
+Forbidden coercion:
+- expressing canonical value as expanded exact integer in truth labels when source is scaled form
+- embedding scale words in canonical unit tags (`trillion_usd`)
 
 ## Extraction Policy
 Parser-first, regex-fallback-only:
@@ -102,7 +144,9 @@ Minimum regression set must assert:
 - grouped number integrity (`21,500` does not leak `21` from same token group),
 - `%`/`percent` equivalence,
 - unit-only noise rejection (`billion` alone -> dropped),
-- canonical key usage in graph linking.
+- canonical key usage in graph linking,
+- scale+currency canonicalization (`$5.6trillion` -> `5.6e12|usd`),
+- no composite unit tags in canonical keys (`trillion_usd` forbidden).
 
 ## Non-goals (for now)
 - locale inference beyond deterministic en-US compatible normalization,
@@ -212,7 +256,7 @@ Implemented now:
 - parser-first numeric detection,
 - deterministic key (`<value>|<unit>`),
 - `%`/`percent` normalization,
-- currency-aware key normalization from prefix/symbol forms (e.g. `$5.6trillion`),
+- currency-aware key normalization from prefix/symbol forms (e.g. `$5.6trillion` -> `5.6e12|usd`),
 - UI linking by canonical numeric key in AAO views.
 
 Planned next:

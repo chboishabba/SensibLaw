@@ -145,8 +145,12 @@
       human-readable), preventing raw-string fan-out (`21` vs `21,500`, `%` variants, compact suffixes).
     - DONE (currency-aware numeric keys): wiki AAO numeric normalization now preserves currency
       symbols/prefixes (`$`, `US$`, `A$`, `€`, `£`) and emits deterministic currency-bearing
-      keys (e.g., `$5.6trillion` -> `5.6|trillion_usd`, `$500,000` -> `500000|usd`), with
+      keys (e.g., `$5.6trillion` -> `5.6e12|usd`, `$500,000` -> `500000|usd`), with
       matching AAO/AAO-all view-side key parsing/labels.
+    - DONE (numeric key contract alignment): removed legacy scale-currency unit tags
+      from canonical keys (`trillion_usd` etc.); scale+currency now normalizes to
+      scientific value + currency unit, and event numeric-object dedupe prefers
+      currency-bearing mentions over scale-only duplicates.
     - DONE (context anchor precision rendering): `wiki-timeline-aoo-all` context rows now display
       event anchor precision directly (day/month/year from the event anchor) rather than downcasting
       to the currently selected time bucket granularity.
@@ -162,7 +166,8 @@
       `R11..R23` backlog from `docs/wiki_timeline_requirements_v2_20260213.md`,
       with priority on:
       - identity/non-coercion invariants and formatting-identity separation (`R7..R9`),
-      - claim-bearing event classification + quantified conflict tri-state (`R15..R16`),
+      - quantified conflict tri-state and conflict engine (`R15`) after the
+        claim-bearing baseline (`R16`) now emitted in extractor output,
       - numeric semantic role typing expansion (`R11`),
       - granularity-safe temporal comparison and anchor graduation (`R14`, `R19`, `R20`),
       - typed edge-basis metadata + frame-scope validation hard-fail checks (`R22`),
@@ -173,6 +178,13 @@
     - DONE (numeric role typing baseline): wiki AAO now emits step-scoped `numeric_claims`
       with parser-first governing-verb alignment and deterministic role labels
       (transaction_price/personal_investment/revenue/cost/rate/count/percentage_of).
+    - DONE (numeric claim context enrichment): step/event `numeric_claims` now include
+      structured normalization (`normalized.value/unit/scale/currency/magnitude_id`)
+      plus explicit time attribution fields (`time_anchor` and inline `time_years`).
+    - DONE (numeric expression/surface split baseline): step `numeric_claims`
+      now carry parser-derived `expression` (mantissa/scale/exponent/sig-fig/coercion)
+      and `surface` (symbol/spacing/separator/hash) metadata, separated from
+      canonical magnitude identity key.
     - TODO (numeric role typing expansion): broaden taxonomy + conflict/claim integration
       beyond baseline role mapping and extend coverage for additional finance/event patterns.
     - TODO (sourcing/attribution ontology v0.1): implement sourcing/attribution
@@ -181,8 +193,48 @@
       `docs/sourcing_attribution_ontology_20260213.md`:
       - `SourceEntity`, `Attribution`, `ExtractionRecord` model objects,
       - deterministic id helpers and chain-cycle guard,
-      - attribution attachments on claim-bearing AAO lanes (without role pollution),
+      - graph/store integration for attribution attachments on claim-bearing AAO lanes (without role pollution),
       - attribution-aware metadata in quantified conflict outputs.
+    - DONE (requester lane fidelity baseline): requester extraction now
+      canonicalizes possessive/title forms (e.g. `President Obama's` -> `Barack Obama`)
+      and adds deterministic fallback from request-step subjects when possessor
+      extraction is absent.
+    - DONE (subject/article normalization baseline): actor and step-subject
+      labels now strip leading definite article (`the X` -> `X`) deterministically
+      to prevent subject-lane fragmentation (`the United States` vs `United States`).
+    - DONE (requester coverage validator baseline): extractor now emits
+      top-level `requester_coverage` counters
+      (`request_signal_events`, `requester_events`, `missing_requester_event_ids`)
+      to flag request-action events that still resolve to no requester actor.
+    - DONE (requester coverage UI diagnostics baseline): AAO-all now wires
+      `requester_coverage` into `req:none` projection checks:
+      - selecting `req:none` shows extractor-level counters (`request_signal_events`,
+        `requester_events`, `missing_requester_event_ids`) and current-window counts,
+      - `req:none` now maps to `missing_requester_event_ids` so gap rows are inspectable
+        in context instead of always returning zero rows,
+      - requester lane includes a `req:none` diagnostics node when window gaps exist.
+    - DONE (source + lens lanes baseline): AAO-all now renders non-role
+      `Source` and `Lens` lanes, wired to action nodes with `context` edges:
+      - source lane labels include source-entity/provider/parser provenance,
+      - lens lane labels include extraction-profile and event lens tags
+        (claim-bearing and SL-lane markers),
+      - context panel now shows per-row `sources` and `lenses` chips.
+    - TODO (requester coverage UI test assertions): add automated assertions for
+      `req:none` diagnostics/warning states in UI checks.
+    - TODO (source/lens lane test assertions): add automated assertions for
+      Source/Lens lane node presence and context-edge rendering states.
+    - DONE (claim-bearing + attribution baseline): wiki AAO now emits
+      profile-driven `claim_bearing` tags on steps/events and event-level
+      `attributions` (direct/reported), plus top-level `source_entity` and
+      `extraction_record` metadata for provenance.
+    - DONE (epistemic de-hardcode baseline): claim-bearing classification now
+      runs through `src/nlp/epistemic_classifier.py` with dependency-first
+      scoring (`ccomp`/`xcomp` + modal/deontic/eventive cues) and profile lexical
+      fallback, replacing extractor-hardcoded epistemic verb defaults.
+    - DONE (R24 baseline implementation): parser-agnostic action morphology mapping
+      now lives in `src/nlp/ontology_mapping.py` and extractor `action_meta`
+      fields are emitted as canonical enums (`tense/aspect/verb_form/voice/mood/modality`)
+      with deterministic `unknown` fallbacks; mapping behavior is test-covered.
   - Freeze schema versions after any final tweaks; bump versions explicitly if changed.
   - Decide next sprint direction (A compliance simulation, B cross-doc norm topology, C human interfaces).
   - TiRCorder integration (Layer 0–1 alignment):

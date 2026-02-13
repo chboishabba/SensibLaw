@@ -99,7 +99,7 @@ This is a requirements trace artifact (not a behavior contract by itself).
 - Evidence:
   - Extractor keying and mention normalization
   - AAO/AAO-all numeric key node mapping
-  - tests for grouped values and currency (`$5.6trillion -> 5.6|trillion_usd`)
+  - tests for grouped values and currency (`$5.6trillion -> 5.6e12|usd`)
 
 ### R10. Time precision display consistency
 - Requirement:
