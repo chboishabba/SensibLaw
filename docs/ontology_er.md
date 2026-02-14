@@ -48,6 +48,7 @@ erDiagram
     %% =========================
 
     LegalSystem ||--o{ LegalSource : "issues"
+    LegalSystem ||--o{ LegalSystem : "parents"
     NormSourceCategory ||--o{ LegalSource : "classifies"
     LegalSource ||--o{ Provision : "contains"
 
@@ -229,10 +230,20 @@ erDiagram
 
     LegalSystem {
         int     id
-        string  code           "AU.COMMON, NZ.TIKANGA, etc"
-        string  tradition      "common, tikanga, indigenous, civil"
-        string  community      "community or state anchor"
-        string  source_form    "statute, case, tikanga_rule"
+        string  code                  "AU.COMMON, AU.STATE.NSW, NZ.TIKANGA, etc"
+        string  name
+        string  tradition             "common, tikanga, indigenous, civil"
+        string  sovereignty_type      "sovereign, sub_sovereign, supranational, community"
+        int     parent_system_id      "nullable self-reference to sovereign parent"
+        int     country_id            "geographic scope only; not normative identity"
+        int     subdivision_id        "optional geographic subdivision"
+        date    commencement_date
+        date    valid_from
+        date    valid_to
+        int     constitutional_source_id "nullable LegalSource reference"
+        bool    recognises_common_law
+        bool    recognises_equity
+        string  description
     }
 
     NormSourceCategory {

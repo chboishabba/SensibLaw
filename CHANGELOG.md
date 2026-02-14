@@ -1,6 +1,102 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia/HCA AAO extraction profile: add deterministic semantic-backbone
+  guard/normalizer (`semantic_backbone.resource/wsd_policy/llm_enabled`) so
+  non-deterministic profile settings fail fast and extraction metadata records
+  authoritative non-generative semantic-lane configuration.
+- NLP/AAO semantic backbone: add deterministic, version-pinned synset action
+  mapping behind `semantic_backbone` (WordNet via local corpus + version pin;
+  BabelNet via profile-provided lemma->synset table), with explicit
+  `synset_action_map` and deterministic tie-break ordering.
+- NLP/AAO semantic backbone: canonical synset mapping now follows "single-action
+  or abstain" semantics (no silent choice between competing mapped actions).
+- Wikipedia/HCA AAO semantic backbone: add deterministic sha256 pins for mapping
+  tables:
+  - `semantic_version_pins.babelnet_table_sha256`
+  - `semantic_version_pins.synset_action_map_sha256`
+  extractor fails fast on mismatch and emits computed table hashes in
+  `extraction_profile`.
+- Ingest: `source_pack_manifest_pull.py` now indexes local `seed_paths` (file
+  sha256 + size + type) alongside fetched `seed_urls`, without copying local
+  binaries into the output directory.
+- NLP/AAO action extraction: add `src/nlp/event_classifier.py` and switch
+  primary action selection to spaCy token lemma+dependency classification
+  (parser-first), with regex action patterns retained as explicit fallback.
+- Wikipedia/HCA AAO script runtime: add deterministic `sys.path` bootstrap for
+  `SensibLaw/scripts/*` execution so `src.nlp.*` classifiers/mappers load
+  consistently when invoked from repo root.
+- Tests: add event-classifier coverage in
+  `tests/test_event_classifier.py` and update claim-attribution regression for
+  regex fallback warning semantics.
+- Wikipedia timeline extraction: skip infobox/template residue sentence fragments
+  (`| key = value` payload lines) during sentence pass so lead timeline rows are
+  sourced from narrative text, not template artifacts.
+- Wikipedia/HCA AAO action extraction: require pattern-match span overlap with
+  verb/AUX tokens (when parser tokens exist) before accepting regex action
+  matches, preventing noun-only nominalization leaks (e.g., `death` selecting
+  `die`) from entering action lanes.
+- Tests: add regression coverage for noun-vs-verb action matching and template
+  residue sentence guards in
+  `tests/test_wiki_timeline_claim_attribution.py` and
+  `tests/test_wiki_timeline_extract_section_anchor.py`.
+- Wikipedia timeline extraction: add deterministic inline year-range anchors
+  (`from YYYY to YYYY` -> year mention at range start) and apply lead-sentence
+  anchor preference to avoid birth-date day mentions dominating service-range
+  biography clauses.
+- Wikipedia/HCA AAO subject normalization: canonicalize root-actor partial name
+  surfaces (e.g., `Walker Bush`) back to the configured root actor when token
+  overlap/initials match, and hard-pin root surname alias resolution to root
+  actor to reduce alias drift.
+- Docs/contracts: expand inter-fact linking + duplicate guards for wiki fact
+  timeline rows in `docs/planning/wiki_timeline_coalescing_contract_20260212.md`
+  and add explicit requirements coverage in
+  `docs/wiki_timeline_requirements_v2_20260213.md` (`R25`: event-local,
+  chain-typed, non-causal fact coalescing/linking constraints).
+- Ontology/Layer-3: formalize `LegalSystem` as a normative authority boundary
+  (not a country label) in docs (`docs/ontology.md`, `docs/ontology_er.md`),
+  including sovereignty tier, parent hierarchy, constitutional linkage, and
+  common-law/equity recognition fields.
+- DB (SQLite): add `004_legal_system_authority_contract.sql` migration to extend
+  `legal_systems` with authority-boundary fields
+  (`sovereignty_type`, `parent_system_id`, `commencement_date`,
+  `constitutional_source_id`, `recognises_common_law`,
+  `recognises_equity`), seed `CONSTITUTION` source category, backfill AU
+  sub-sovereign system rows (`AU.STATE.*`), parent them to `AU.COMMON`, and
+  link constitutional `legal_sources`.
+- DB (Postgres/schema refs): add matching authority-boundary migrations
+  (`database/postgres_migrations/005_legal_system_authority_contract.sql`,
+  `schemas/migrations/005_layer1_legal_system_authority_contract.sql`).
+- Tests: extend migration coverage with authority-boundary assertions in
+  `tests/test_db_migrations_and_daos.py` (sovereignty tier, parent linkage,
+  commencement date, constitutional source linkage).
+- Wikipedia/HCA AAO numeric claims: recover dependency-scoped count units and
+  quantity targets (`nummod -> unit head`, e.g., `71 lines of stem cells` ->
+  `71|line` with `applies_to=stem cells`) and emit nearest DATE entity text as
+  `numeric_claims[].time_text` for explicit date attribution in claim lanes.
+- Tests: extend numeric-lane coverage in
+  `tests/test_wiki_timeline_numeric_lane.py` for DATE text attribution (`May
+  2004`) and count-unit/target recovery (`71 lines of stem cells`).
+- Docs/ontology: add a programmatized liability stack crosswalk in
+  `docs/ontology.md` that maps compressed System/Norm/Doctrine/Event design
+  views back to canonical L0-L6 ontology layers, plus explicit WrongType
+  orthogonal dimensions (protected interest, mental state, interference mode,
+  duty structure, remedy, defence).
+- Data/tests: add `data/ontology/wrong_type_dimensions_seed.yaml` and coverage
+  in `tests/test_wrong_type_dimensions_seed.py` to keep wrong-type dimension
+  catalogs machine-stable and aligned with `wrong_type_catalog_seed.yaml`.
+- Docs/roadmap: extend `docs/roadmaps/DB_ROADMAP.md` Milestone 3 to include
+  `InterferenceModeType`, `DutyStructureType`, and `DefenceType` plus the new
+  dimension seed catalog deliverable.
+- Wikipedia/HCA AAO numeric extraction: suppress date-fragment numerics from
+  month+day/date-like spans (including EVENT-labeled `September 11` mentions)
+  and slash-date forms (`9/11`) so temporal anchors do not leak into numeric
+  lanes.
+- Wikipedia/HCA AAO step numeric merge: enforce sentence-allowed numeric-key
+  gating when merging `numeric_claims` back into `step.numeric_objects` to
+  prevent filtered date fragments from being reintroduced.
+- itir-svelte (`wiki-timeline-aoo`): sort numeric lane/context by numeric key
+  magnitude (value/unit comparator) instead of lexical label order.
 - Docs/TODO: formalize requester coverage UI diagnostics contract under R17
   (`req:none` must surface global/window requester gap counters and missing
   requester event IDs) and split follow-up UI assertions into a dedicated TODO.
@@ -22,6 +118,15 @@
   surface-phenotype substructures under `numeric_claims[].normalized`
   (`expression` + `surface`) so canonical magnitude identity stays separate from
   scale-word semantics and formatting metadata.
+- Numeric ontology: align `Magnitude.id` formatting with the numeric
+  representation contract so scientific values remain scientific in identity
+  strings (e.g. `mag:5.6e12|usd`, not `mag:5600000000000|usd`).
+- itir-svelte (`wiki-timeline-aoo-all`): replace misleading requester placeholder
+  node `req:none` with `req:missing` (diagnostics-only) and render requester lane
+  only when requesters or missing-requester diagnostics exist.
+- itir-svelte (GraphViewport/LayeredGraph): fix SVG sizing so SSR/client renders
+  don’t collapse height, and increase default lane spacing (col gaps) to reduce
+  lane overlap in dense timeline graphs.
 - Wikipedia/HCA AAO subjects/actors: normalize leading definite articles in
   subject identity labels (`the X` -> `X`) so graph subject lanes coalesce
   deterministically (e.g., `the United States` -> `United States`).
@@ -265,3 +370,24 @@
 - Wikipedia AAO: normalize possessive evidence subjects to person actors (`X's evidence` -> `X`) and apply shared entity-surface cleanup for footnote/citation tails in subject/object lanes.
 - Wikipedia AAO: promote person/party-role dep objects (`Fr ...`, `Mr ...`, `the appellant/respondent`) into `entity_objects` when unresolved, so legal-narrative actor visibility survives without ID-only gating.
 - Wikipedia AAO: replace hardcoded `reported/cautioned` sentence-family split + `REPORTED_SUBJECT_RE` injection with profile-driven dependency communication chains (`communication_verbs` + `ccomp/xcomp` embedded steps + attribution modifiers).
+- Wikipedia AAO: suppress numeric day/year fragments inside month+digit date phrases (token-pattern date spans) so `September 11` no longer leaks `11` into `numeric_objects`.
+- Wikipedia AAO: numeric extraction now prefers spaCy span candidates (with dependency-derived units) over raw entity/token scans; fixes cases like `71 ... "lines"` -> `71 lines` in numeric lane.
+- Wikipedia AAO: requester lane now tags request targets from dependency structure for request-signal verbs with infinitival complements (e.g., `urged Congress to ...` -> requester=`Congress`).
+- Wikipedia AAO: actor surface cleanup strips a single leading `the` token (`the United States` -> `United States`) for deterministic coalescing hygiene.
+- Wikipedia AAO: preserve timeline-row `url`/`path` metadata as `citations[]` follow hints (`provider=source_document`) for source-pack ingestion datasets.
+- Docs: add dedicated wiki timeline actor/subject coalescing contract (`docs/actor_coalescing_contract.md`).
+- Docs: add wiki timeline storage contract clarifying JSON exports vs canonical DB persistence (`docs/wiki_timeline_storage_contract.md`).
+- Wikipedia AAO: persist AAO run/event payloads into a canonical SQLite store (default `--db-path` to `SensibLaw/.cache_local/wiki_timeline_aoo.sqlite`, disable via `--no-db`), with deterministic `run_id` and idempotent `(run_id,event_id)` writes.
+- UI (AAO-all): source lane labels now include per-row source titles (`source_row:*`) and follow URL hosts (`host:*`) so source-pack timelines show their underlying pages.
+- Docs: add descriptive-only judicial decision outcome distribution contract (`docs/judicial_decision_behavior_contract.md`) with individual-level disabled-by-default guardrails.
+- Core: add `src/judicial_behavior` descriptive aggregation module (deterministic, non-predictive; judge grouping requires explicit opt-in).
+- Judicial behavior (descriptive-only): require explicit slice declarations for
+  aggregations, and always emit corpus disclosure metadata (`n_total`, observed
+  time bounds) plus a mandatory statistical interpretation guard string.
+- Judicial behavior (descriptive-only): ridge-logistic MAP association and lognormal tail helpers now expose contracted aggregation APIs that enforce the same slice+disclosure invariants as counts/Beta/Gamma.
+- Docs: add descriptive-only official decision behavior contract (`docs/official_decision_behavior_contract.md`).
+- Core: add `src/official_behavior` descriptive aggregation module (deterministic, slice-declared, individual-level disabled by default) for commitment↔action alignment summaries.
+- Docs: add Iraq-slice official feature schema (`docs/official_behavior_feature_schema_us_exec_foreign_policy_iraq_v1.md`) and a cross-domain projection contract (`docs/decision_observation_projection_contract.md`).
+- Core: add projection-only `DecisionObservation` view (`src/behavior_projection`) and minimal `ActionObservation` record type (`src/official_behavior/action_model.py`) to share descriptive aggregation plumbing without replacing domain models.
+- Tests: add regression coverage to enforce individual-level stats are disabled by default.
+- Core: add deterministic Beta-Binomial posterior estimation with empirical-Bayes priors for descriptive rate estimation (theta mean + credible interval; no sampling; individual grouping remains opt-in).

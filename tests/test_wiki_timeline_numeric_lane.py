@@ -134,6 +134,55 @@ def test_extract_step_numeric_claims_attaches_time_anchor_and_years_when_availab
     assert c["normalized"]["surface"]["currency_symbol_position"] == "prefix"
 
 
+def test_extract_step_numeric_claims_emits_nearest_date_text_for_claim() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = "In May 2004, Gallup reported that 89 percent of the Republican electorate approved of Bush."
+    doc = nlp(text)
+    steps = [{"action": "report", "subjects": ["Gallup"], "objects": ["Republican electorate"]}]
+    claims_by_step = ext._extract_step_numeric_claims(
+        doc,
+        text,
+        steps,
+        event_anchor={"year": 2004, "month": 5, "precision": "month", "kind": "derived", "text": "May 2004"},
+    )
+    claims = claims_by_step.get(0) or []
+    assert claims
+    c = claims[0]
+    assert c.get("key") == "89|percent"
+    assert c.get("time_text") == "May 2004"
+    assert c.get("time_anchor", {}).get("month") == 5
+    # Actor/object coalescing strips a single leading definite article.
+    assert c.get("applies_to") == "Republican electorate"
+
+
+def test_extract_step_numeric_claims_recovers_count_unit_and_quantity_target() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = (
+        "On August 9, 2001, Bush signed an executive order lifting the ban on federal funding "
+        "for the 71 existing lines of stem cells."
+    )
+    doc = nlp(text)
+    steps = [{"action": "sign", "subjects": ["George W. Bush"], "objects": ["stem cells"]}]
+    claims_by_step = ext._extract_step_numeric_claims(
+        doc,
+        text,
+        steps,
+        event_anchor={"year": 2001, "month": 8, "day": 9, "precision": "day", "kind": "mention", "text": "August 9, 2001"},
+    )
+    claims = claims_by_step.get(0) or []
+    assert claims
+    keys = {str(c.get("key") or "") for c in claims}
+    assert "71|line" in keys
+    claim = next(c for c in claims if str(c.get("key") or "") == "71|line")
+    assert claim.get("role") == "count"
+    assert claim.get("applies_to") == "stem cells"
+    assert claim.get("value") == "71 lines"
+
+
 def test_extract_numeric_span_candidates_ignores_day_number_in_date_entity() -> None:
     nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
     if nlp is None:
@@ -158,6 +207,57 @@ def test_extract_numeric_mentions_ignores_day_number_in_date_phrase() -> None:
     keys = {ext._numeric_key(x) for x in nums}
     assert "11|" not in keys
     assert "2008|" not in keys
+
+
+def test_extract_numeric_span_candidates_ignores_day_number_in_month_event_phrase() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = (
+        "Bush had originally outlined an ambitious domestic agenda, but his priorities "
+        "were significantly altered following the September 11 attacks."
+    )
+    doc = nlp(text)
+    cands = ext._extract_numeric_span_candidates(doc)
+    keys = {str(c.get("key") or "") for c in cands}
+    assert "11|" not in keys
+
+
+def test_extract_step_numeric_claims_ignores_day_number_in_month_event_phrase() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = (
+        "Bush had originally outlined an ambitious domestic agenda, but his priorities "
+        "were significantly altered following the September 11 attacks."
+    )
+    doc = nlp(text)
+    steps = [
+        {"action": "outline", "subjects": ["George W. Bush"], "objects": ["September 11 attacks"]},
+        {"action": "alter", "subjects": ["his priorities"], "objects": ["September 11 attacks"]},
+    ]
+    claims_by_step = ext._extract_step_numeric_claims(doc, text, steps)
+    assert all(not claims for claims in claims_by_step.values())
+
+
+def test_extract_numeric_mentions_ignores_slash_date_fragments() -> None:
+    text = "A pre- and post-9/11 comparison found policy shifts."
+    nums = ext._extract_numeric_mentions(text)
+    keys = {ext._numeric_key(x) for x in nums}
+    assert "9|" not in keys
+    assert "11|" not in keys
+
+
+def test_extract_numeric_span_candidates_ignores_slash_date_fragments() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = "A pre- and post-9/11 comparison found policy shifts."
+    doc = nlp(text)
+    cands = ext._extract_numeric_span_candidates(doc)
+    keys = {str(c.get("key") or "") for c in cands}
+    assert "9|" not in keys
+    assert "11|" not in keys
 
 
 def test_dedupe_numeric_objects_prefers_currency_variant() -> None:

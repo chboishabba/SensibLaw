@@ -23,6 +23,9 @@ provenance and historical mapping.
 - Action head must be verb lemma from dependency parsing.
 - Disable noun-action fallback in legal narrative lanes.
 - If no finite verb exists, emit fragment/null instead of inventing action.
+- When parser tokens are available, regex/pattern action hits must overlap a
+  `VERB|AUX` token span before acceptance (prevents nominalization leaks such as
+  `death` -> `die`).
 **Status:** Partially implemented
 
 ### R2. Deterministic Step Emission + Step Typing
@@ -36,6 +39,38 @@ provenance and historical mapping.
   - `AUXILIARY`
 - Step type must be stable field in payload.
 **Status:** Pending
+
+### R2a. Parser-First Action Label Selection
+**Requirement**
+- When parser tokens are available, action labels must be selected from
+  lemma+dependency classification over `VERB|AUX` tokens.
+- Regex action patterns are fallback-only for parser/classifier miss paths and
+  must emit fallback warnings.
+- Ambiguous lemmas must resolve by deterministic dependency rules
+  (e.g., `commission` + `into` -> `commissioned_into`).
+**Status:** Implemented (baseline; classifier-first with guarded fallback)
+
+### R2b. Deterministic Semantic Resource Contract
+**Requirement**
+- Lexical-semantic resources (WordNet/BabelNet) are allowed only as
+  deterministic normalization backbones in the authoritative extraction path.
+- Canonical extraction/mapping must not depend on LLM generation.
+- Any WSD path used for canonical mapping must be deterministic and
+  version-pinned.
+- Synset mapping must use explicit profile-provided `synset -> canonical_action`
+  maps with deterministic tie-break ordering.
+- Canonical synset mapping must be single-action or abstain (no silent choice
+  between multiple competing mapped actions).
+- If synset mapping abstains due to ambiguity, do not fall back to regex action
+  patterns for that sentence (surface fallback would be a semantic coercion).
+- Resource version pins must be validated at runtime before semantic mapping is
+  enabled.
+- Mapping-table pins must be validated:
+  - `semantic_version_pins.babelnet_table_sha256`
+  - `semantic_version_pins.synset_action_map_sha256`
+**Status:** Partially implemented (profile semantic-backbone guard enforces
+deterministic/non-generative settings and emits normalized extraction-profile
+metadata; synset-backed canonical mapping path still pending)
 
 ### R3. Passive Role Normalization
 **Requirement**
@@ -102,7 +137,11 @@ provenance and historical mapping.
 - `%` normalization.
 - Compact suffix normalization.
 - Canonical key-based coalescing in view.
-**Status:** Implemented (scale+currency now canonicalized to scientific value + currency unit; composite scale-currency unit tags removed)
+- Suppress date-only numeric fragments in numeric lanes (month/day/year tokens and
+  slash-date fragments belong to temporal anchors, not numeric claims).
+- Prevent filtered date-like numeric keys from re-entering step numeric lanes
+  during claim-to-step merge.
+**Status:** Implemented (scale+currency now canonicalized to scientific value + currency unit; composite scale-currency unit tags removed; month/day and slash-date fragments suppressed from numeric lanes with merge guards)
 
 ### R11. Numeric Role Typing
 **Requirement**
@@ -116,7 +155,7 @@ provenance and historical mapping.
   - `count`
   - `percentage_of`
 - Prevent flattening heterogeneous monetary roles.
-**Status:** Partially implemented (baseline step-scoped role typing + alignment emitted; claim payload now includes normalized numeric parts and explicit time attribution fields; taxonomy/conflict integration pending)
+**Status:** Partially implemented (baseline step-scoped role typing + alignment emitted; dependency-based unit recovery now captures quantified heads such as `71 lines` and binds `quantity_of` targets into `applies_to`; claim payload includes normalized numeric parts plus explicit `time_anchor/time_years/time_text`; taxonomy/conflict integration pending)
 
 ### R12. Range & Ratio Structured Modeling
 **Requirement**
@@ -192,6 +231,9 @@ Projection containment != conflict.
 - Canonicalize actor/subject labels by stripping leading definite article
   (`the X` -> `X`) in extraction output so subject identity does not fragment
   across article/no-article forms.
+- Actor/subject coalescing must follow the dedicated contract
+  `SensibLaw/docs/actor_coalescing_contract.md` (deterministic, event/frame
+  boundary-safe; no fuzzy merge).
 - Evidence must not pollute role lanes.
 - Support direct vs reported distinction.
 **Status:** Partially implemented (event-level attribution attachments emitted for claim-bearing steps; requester canonicalization + step fallback landed; extractor emits requester coverage counters and AAO-all now surfaces `req:none` window/global diagnostics; full SourceEntity/Attribution ontology integration still pending)
@@ -269,6 +311,21 @@ Explicitly state:
 - Mapping behavior must be deterministic and test-covered.
 **Status:** Partially implemented (ActionEvent morphology mapping is now implemented in `src/nlp/ontology_mapping.py` with canonical enum output + tests; numeric/temporal mapping expansion pending)
 
+### R25. Inter-fact Linking and Duplicate Guards
+**Requirement**
+- Fact rows (`ev:*:f*`) must preserve step-local identity within an event.
+- `prev_fact_ids` / `next_fact_ids` must be derived from typed chain edges only
+  (`sequence`, `content_clause`, `infinitive_clause`), with non-causal semantics.
+- Do not collapse governing/complement fact pairs from the same sentence when
+  action lemmas differ.
+- Fact coalescing must be event-local and anchor-aware; never cross `event_id`
+  boundaries based on sentence text alone.
+- Fact timeline projections must remain deterministic and idempotent across
+  repeated runs.
+**Status:** Partially implemented (fact timelines emit chain-aware crosslinks
+and loader-level event-local coalescing keys; dedicated clause-chain regression
+fixtures and explicit cross-event guard tests still pending)
+
 # Open Gaps (Actionable)
 1. Implement numeric role typing expansion (R11).
 2. Materialize temporal entities (R13-R14).
@@ -279,6 +336,8 @@ Explicitly state:
 7. Implement frame-scope validator (R22).
 8. Formalize Non-Goals section (R23).
 9. Complete numeric/temporal extractor->ontology mapping coverage and tests (R24).
+10. Harden inter-fact coalescing key + add clause-chain regression tests for
+    governing/complement sentence pairs (R25).
 
 # Document Notes
 - This is a requirements register, not a schema spec.

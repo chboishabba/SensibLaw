@@ -1,0 +1,103 @@
+version: v0.1
+description: >-
+  Orthogonal dimension catalog for machine-stable WrongType classification.
+  These dimensions complement WrongType IDs and do not replace system-scoped
+  WrongType codes.
+
+protected_interest_types:
+  - code: physical_integrity
+    label: Physical integrity
+  - code: property_security
+    label: Property security
+  - code: economic_interest
+    label: Economic interest
+  - code: reputation
+    label: Reputation
+  - code: autonomy_liberty
+    label: Autonomy and liberty
+  - code: institutional_integrity
+    label: Institutional integrity
+  - code: equality_non_discrimination
+    label: Equality and non-discrimination
+  - code: consumer_fairness
+    label: Consumer fairness
+
+mental_state_types:
+  - code: intent
+    label: Intentional
+  - code: recklessness
+    label: Reckless
+  - code: negligence
+    label: Negligent
+  - code: strict
+    label: Strict liability
+  - code: knowledge
+    label: Knowledge-based
+  - code: constructive_knowledge
+    label: Constructive knowledge
+
+interference_mode_types:
+  - code: direct_contact
+    label: Direct physical contact
+  - code: direct_interference
+    label: Direct interference
+  - code: indirect_interference
+    label: Indirect interference
+  - code: omission_failure_to_act
+    label: Omission or failure to act
+  - code: false_representation
+    label: False representation
+  - code: abuse_of_process_or_power
+    label: Abuse of legal process or public power
+  - code: breach_of_loyalty_or_confidence
+    label: Breach of loyalty or confidence
+  - code: publication
+    label: Publication
+
+duty_structure_types:
+  - code: general_duty_of_care
+    label: General duty of care
+  - code: relational_duty
+    label: Relational duty
+  - code: strict_prohibition
+    label: Strict prohibition
+  - code: statutory_conditional_duty
+    label: Statutory conditional duty
+  - code: public_power_constraint
+    label: Public power constraint
+
+defence_types:
+  - code: consent
+    label: Consent
+  - code: necessity
+    label: Necessity
+  - code: self_defence
+    label: Self-defence
+  - code: statutory_authority
+    label: Statutory authority
+  - code: contributory_negligence
+    label: Contributory negligence
+  - code: honest_opinion
+    label: Honest opinion
+  - code: qualified_privilege
+    label: Qualified privilege
+  - code: illegality
+    label: Illegality
+
+remedy_types:
+  - code: damages
+    label: Damages
+  - code: aggravated_damages
+    label: Aggravated damages
+  - code: exemplary_damages
+    label: Exemplary damages
+  - code: injunction
+    label: Injunction
+  - code: account_of_profits
+    label: Account of profits
+  - code: restitution
+    label: Restitution
+  - code: declaration
+    label: Declaration
+  - code: civil_penalty
+    label: Civil penalty

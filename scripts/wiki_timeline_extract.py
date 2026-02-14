@@ -52,6 +52,10 @@ IN_Y_RE = re.compile(
     r"^\s*In\s+(\d{4})\b",
 )
 INLINE_MDY_RE = re.compile(r"\b([A-Z][a-z]+)\s+(\d{1,2}),\s+(\d{4})\b")
+INLINE_YEAR_RANGE_RE = re.compile(
+    r"\bfrom\s+((?:19|20)\d{2})\s+(?:to|through|-|–|—)\s+((?:19|20)\d{2})\b",
+    flags=re.IGNORECASE,
+)
 SEPT11_EVENT_RE = re.compile(
     r"\b(?:the\s+)?(?:attacks?\s+of\s+)?(?:September\s+11(?:,\s*2001)?(?:\s*,)?\s*(?:terrorist\s+)?attacks?|9/11)\b",
     flags=re.IGNORECASE,
@@ -287,6 +291,31 @@ def _parse_inline_anchors(line: str) -> List[DateAnchor]:
     return out
 
 
+def _parse_inline_year_range_anchors(line: str) -> List[DateAnchor]:
+    out: List[DateAnchor] = []
+    seen = set()
+    s = str(line or "")
+    for m in INLINE_YEAR_RANGE_RE.finditer(s):
+        start = int(m.group(1))
+        end = int(m.group(2))
+        if end < start:
+            continue
+        if start in seen:
+            continue
+        seen.add(start)
+        out.append(
+            DateAnchor(
+                year=start,
+                month=None,
+                day=None,
+                precision="year",
+                text=m.group(0).strip(),
+                kind="mention",
+            )
+        )
+    return out
+
+
 def _parse_special_event_anchors(line: str) -> List[DateAnchor]:
     """Extract deterministic event-date mentions when prose omits explicit year.
 
@@ -312,6 +341,44 @@ def _parse_special_event_anchors(line: str) -> List[DateAnchor]:
             )
         )
     return out
+
+
+def _apply_lead_anchor_preference(section: str, sentence: str, anchors: List[DateAnchor]) -> List[DateAnchor]:
+    """Prefer service-range anchors over birth-date mention anchors in lead bio lines."""
+    if str(section or "").strip() != "(lead)":
+        return anchors
+    s = str(sentence or "")
+    low = s.lower()
+    if "born" not in low:
+        return anchors
+    has_year_range = any(
+        a.kind == "mention"
+        and a.precision == "year"
+        and bool(INLINE_YEAR_RANGE_RE.search(str(a.text or "")))
+        for a in anchors
+    )
+    if not has_year_range:
+        return anchors
+    born_idx = low.find("born")
+    out: List[DateAnchor] = []
+    for a in anchors:
+        if a.kind != "mention" or a.precision != "day":
+            out.append(a)
+            continue
+        at = str(a.text or "").lower()
+        if not at:
+            out.append(a)
+            continue
+        idx = low.find(at)
+        if idx < 0:
+            out.append(a)
+            continue
+        # Birth-date day mentions very near "born" in lead summary lines are
+        # dropped so the timeline anchor follows the service-range claim.
+        if born_idx - 24 <= idx <= born_idx + 48:
+            continue
+        out.append(a)
+    return out if out else anchors
 
 
 def _iter_section_paragraphs(wikitext: str) -> Iterable[Tuple[str, str]]:
@@ -432,6 +499,19 @@ def _looks_like_media_caption(text: str) -> bool:
     return False
 
 
+def _looks_like_template_residue(text: str) -> bool:
+    s = _collapse_ws(str(text or ""))
+    if not s:
+        return False
+    low = s.lower()
+    if low.startswith("<!--") and "|" in s and "=" in s:
+        return True
+    # Infobox/template parameter residue tends to be pipe/equal dense.
+    if s.count("|") >= 3 and s.count("=") >= 3:
+        return True
+    return False
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Extract date-anchored timeline candidates from a wiki snapshot.")
     ap.add_argument("--snapshot", type=Path, required=True, help="Path to snapshot JSON (from wiki_pull_api.py)")
@@ -482,6 +562,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 continue
             if _looks_like_media_caption(s):
                 continue
+            if _looks_like_template_residue(s):
+                continue
             anchors: List[DateAnchor] = []
             anchor = _parse_anchor(s)
             if anchor:
@@ -501,12 +583,19 @@ def main(argv: Optional[List[str]] = None) -> int:
                     for a in anchors
                 ):
                     anchors.append(ia)
+            for yr in _parse_inline_year_range_anchors(s):
+                if not any(
+                    a.year == yr.year and a.month == yr.month and a.day == yr.day and a.precision == yr.precision
+                    for a in anchors
+                ):
+                    anchors.append(yr)
             for sa in _parse_special_event_anchors(s):
                 if not any(
                     a.year == sa.year and a.month == sa.month and a.day == sa.day and a.precision == sa.precision
                     for a in anchors
                 ):
                     anchors.append(sa)
+            anchors = _apply_lead_anchor_preference(section, s, anchors)
 
             if not anchors:
                 continue

@@ -40,10 +40,16 @@ speaker/time provenance.
 - **ClaimEvent**: join table mapping events into the claim fact pattern.
 
 ### Layer 3 — Norm Sources & Provisions
-- **LegalSystem**: jurisdiction or tradition identifiers (e.g., `AU.COMMON`, `NZ.TIKANGA`).
+- **LegalSystem**: normative authority boundaries (not just country labels), with sovereignty tier and parent-system hierarchy (e.g., `AU.COMMON` sovereign, `AU.STATE.NSW` sub-sovereign).
 - **NormSourceCategory**: authority type such as `STATUTE`, `CASE`, `TREATY`, `CUSTOM`, `RELIGIOUS_TEXT`, `COMMUNITY_RULE`.
 - **LegalSource**: specific source documents with citation metadata.
 - **Provision**: clause-level anchors inside a `LegalSource` with section/paragraph structure.
+
+LegalSystem identity must remain authority-first:
+- `country_id` / `subdivision_id` are geographic aids, not normative identity.
+- parent-child hierarchy must encode constitutional subordination (`sub-sovereign` -> parent sovereign system).
+- sovereignty tier must be explicit (`sovereign`, `sub_sovereign`, `supranational`, `community`).
+- legal-system temporal boundaries are first-class (`commencement_date`, validity fields).
 
 ### Layer 4 — Wrong Types & Duties
 - **WrongType**: actionable wrong/offence scoped to a `LegalSystem` and tagged with its primary `NormSourceCategory`.
@@ -63,6 +69,52 @@ speaker/time provenance.
 - **RemedyModality**: remedy families (`MONETARY`, `LIBERTY_RESTRICTION`, `STATUS_CHANGE`, `SYMBOLIC`, `RESTORATIVE_RITUAL`, `STRUCTURAL`).
 - **RemedyCatalog**: reusable templates for common remedies, keyed to `remedy_modality_id` and localised by legal system or cultural register.
 - **EventRemedy**: joins events (or claims) to proposed or ordered remedies and tags them with the applicable `ValueFrame`/`Perspective`.
+
+## Programmatized Liability Stack (Crosswalk)
+
+The canonical ontology remains **L0-L6** above. For liability-programming work,
+we also use a compressed crosswalk view to keep design discussions machine-stable:
+
+- **System/Source layer** -> canonical Layer 3 (`LegalSystem`, `LegalSource`, `NormSourceCategory`).
+- **Abstract norm layer** -> canonical Layers 4-6 (`WrongType`, doctrinal elements, protected interests, remedies/defences).
+- **Doctrinal construction layer** -> links between wrongs and authorities over time (`WrongTypeSourceLink`, source/version interpretation constraints).
+- **Event layer** -> canonical Layers 1-2 plus harms (`Event`, `Case/Claim`, `HarmInstance`), where facts are evaluated against wrong patterns.
+
+This crosswalk is a projection, not a replacement numbering scheme.
+
+## WrongType Taxonomy Dimensions (Machine-Stable)
+
+`WrongType` should not be modeled as textbook headings alone. Each wrong should
+be decomposed using orthogonal dimensions:
+
+- **Protected interest** (`ProtectedInterestType`): what is protected.
+- **Mental state** (`MentalState`): intent/recklessness/negligence/strict/etc.
+- **Interference mode** (planned): how the protected interest is interfered with.
+- **Duty structure** (planned): the logical duty form and breach shape.
+- **Remedy type** (`RemedyModality`/`RemedyCatalog`): response classes.
+- **Defence type** (planned): standardized defence families.
+
+This decomposition is the basis for computable liability comparisons across legal
+systems and source categories.
+
+## LegalSystem Authority Contract (Layer 3.0.1)
+
+`LegalSystem` is a bounded normative order with binding force and source hierarchy.
+It is not equivalent to a country or region string.
+
+Minimum contract fields:
+- `code`, `name`
+- `sovereignty_type` (`sovereign | sub_sovereign | supranational | community`)
+- `parent_system_id` (nullable self-reference)
+- `country_id`, `subdivision_id` (geographic scope only)
+- `commencement_date`, `valid_from`, `valid_to`
+- `constitutional_source_id` (nullable `LegalSource` reference)
+- `recognises_common_law`, `recognises_equity`
+
+Operational invariants:
+- Wrong types always scope to `legal_system_id`.
+- Sub-sovereign systems must not be interpreted as sovereign peers when resolving authorities.
+- Cross-system projections must preserve source boundaries and parent hierarchy.
 
 ## Relationships and Sources of Truth
 - The ER relationships across text, finance, provenance, and legal layers are illustrated in [`docs/ontology_er.md`](./ontology_er.md).

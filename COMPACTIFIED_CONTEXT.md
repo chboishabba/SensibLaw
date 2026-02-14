@@ -118,6 +118,34 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Subject/actor normalization now strips leading definite articles in extraction
   output (`the United States` -> `United States`) so subject-node identity does
   not fragment across article/no-article variants.
+- Context sync revalidated for online thread
+  `698eba02-3da4-839c-98c7-c9bcf062fa86`; Layer 3 `LegalSystem` is now treated
+  as a normative authority boundary (sovereignty tier + parent hierarchy), not
+  a country label.
+- Authority-boundary schema migration added for legal systems (SQLite +
+  Postgres tracks): `sovereignty_type`, `parent_system_id`,
+  `commencement_date`, `constitutional_source_id`,
+  `recognises_common_law`, `recognises_equity`, with AU sub-sovereign seed rows
+  (`AU.STATE.*`) parented to `AU.COMMON`.
+- Numeric claim extraction now enriches dependency-bound count units and targets
+  (e.g., `71 lines of stem cells` -> `71|line` with `applies_to=stem cells`)
+  and emits nearest sentence date text (`time_text`) alongside `time_anchor`.
+- AAO action selection now has a parser-first classifier path
+  (`src/nlp/event_classifier.py`) that maps spaCy `VERB|AUX` lemma/dependency
+  signals to canonical action labels; regex action patterns are fallback-only
+  and emit explicit `fallback_action_regex` warnings.
+- Script execution bootstrap now inserts the SensibLaw root into `sys.path` for
+  repo-root CLI invocations, so `src.nlp.event_classifier`,
+  `src.nlp.epistemic_classifier`, and ontology mapping modules load reliably in
+  normal extractor runs.
+- Semantic backbone clarification captured:
+  - WordNet/BabelNet are deterministic lexical-semantic resources (not LLMs),
+  - canonical extraction path must remain non-generative,
+  - any WSD in authoritative mapping must be deterministic and version-pinned.
+- AAO extractor profile now enforces semantic-backbone determinism at runtime:
+  non-deterministic profile settings (`llm_enabled=true` or unsupported
+  `wsd_policy`) fail fast, and normalized semantic-backbone metadata is emitted
+  in `extraction_profile`.
 
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`
@@ -233,6 +261,25 @@ Intersections with roadmap/todo/readme (2026-02-03):
   - AAO-all now includes dedicated non-role `Source` and `Lens` lanes,
   - those lanes are connected to actions via `context` overlay edges,
   - context rows now expose `sources` and `lenses` chips for traceability.
+- Numeric lane/date boundary progression:
+  - numeric extraction now suppresses month/day date fragments from numeric lanes
+    even when spaCy labels the phrase as EVENT (`September 11`) instead of DATE,
+  - slash-date fragments (`9/11`) are treated as temporal references and excluded
+    from numeric lanes,
+  - step numeric claim merge now respects sentence-allowed numeric keys to avoid
+    re-injecting filtered date fragments,
+  - AAO (`wiki-timeline-aoo`) numeric lane/context sorting is now magnitude-based
+    (numeric key value + unit) instead of lexical.
+- Ontology layering/taxonomy progression:
+  - `docs/ontology.md` now includes a compressed liability-stack crosswalk
+    (System/Source -> Abstract norm -> Doctrinal construction -> Event layer)
+    mapped explicitly back to canonical L0-L6 entities to avoid layer-number drift.
+  - WrongType modeling guidance now requires orthogonal dimensions beyond
+    textbook labels (protected interest, mental state, interference mode, duty
+    structure, remedy, defence).
+  - Added `data/ontology/wrong_type_dimensions_seed.yaml` and regression checks
+    in `tests/test_wrong_type_dimensions_seed.py` to keep dimension vocabularies
+    deterministic and aligned with `wrong_type_catalog_seed.yaml`.
 
 ## Sources
 Chat-sourced statements are now referenced from the compression/ITIR overlay

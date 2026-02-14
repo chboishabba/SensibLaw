@@ -41,6 +41,11 @@ Never:
 - simulate future compliance
 - produce early-warning flags about people
 
+This includes behavior scoring of professionals (e.g., “judge likelihood”),
+managers, employees, or other individuals. Descriptive institutional summaries
+may exist only as explicit, opt-in, read-only analytics and must not be treated
+as authoritative.
+
 ### 2.5 Compression that conceals meaning
 Never:
 - summarize away uncertainty

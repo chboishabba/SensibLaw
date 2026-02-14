@@ -173,6 +173,23 @@ Magnitude:
 Identity rule:
 - same iff `(value, unit)` are equal.
 
+#### Magnitude ID Normalization (No False Precision)
+`Magnitude.id` is an identity anchor. It must **not** imply precision that the
+source did not express.
+
+Contract:
+- `Magnitude.id` must use the same canonical `value_norm` string form used by
+  numeric coalescing keys (`"<value_norm>|<unit>"`).
+- `value_norm` must be deterministic and must not expand scientific values into
+  long integers in the ID (e.g. `5.6e12` must remain `5.6e12`, not
+  `5600000000000`).
+- Small-magnitude integers may remain in fixed form (`21` stays `21`).
+
+Examples (required):
+- `mag:5.6e12|usd` (not `mag:5600000000000|usd`)
+- `mag:500000|usd`
+- `mag:68|percent`
+
 ### QuantifiedClaim (epistemic statement instance)
 Represents a source claim about a magnitude in context.
 

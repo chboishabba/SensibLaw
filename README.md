@@ -100,6 +100,9 @@ SensibLaw is designed to sit tightly alongside TiRCorder (TiRC), our
    - WrongType (negligence, economic abuse, mana harm, defamation, etc.)
    - ProtectedInterest (physical integrity, financial security, mana, queer identity, ecological integrity…)
    - HarmInstance (how a particular event harmed a particular interest).
+   - Programmatized taxonomy uses orthogonal dimensions (protected interest,
+     mental state, interference mode, duty structure, remedies/defences) rather
+     than textbook headings alone; see `docs/ontology.md`.
 
 6. **Value Frames & Remedies**
    - ValueFrame (human rights, tikanga balance, gender equality, religious modesty, public order, etc.)

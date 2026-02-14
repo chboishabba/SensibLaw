@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-import re
 from typing import Any, Dict, Optional
 
 
@@ -35,10 +34,18 @@ class EpistemicClassifier:
     _MODAL_AUX = {"must", "should", "shall", "may", "might", "can", "could", "ought"}
     _DEONTIC_LEMMAS = {"require", "permit", "prohibit", "oblige", "mandate"}
     _PROCEDURAL_LEMMAS = {"file", "submit", "apply", "serve", "issue", "enter", "record", "register"}
-    _NORMATIVE_TEXT_RE = re.compile(
-        r"\b(?:under\s+section|must|should|shall|required|permitted|prohibited)\b",
-        re.IGNORECASE,
-    )
+    _NORMATIVE_CUE_LEMMAS = {
+        "must",
+        "should",
+        "shall",
+        "require",
+        "required",
+        "permit",
+        "permitted",
+        "prohibit",
+        "prohibited",
+        "section",
+    }
 
     def __init__(self, nlp: Optional[object]) -> None:
         self.nlp = nlp
@@ -94,7 +101,7 @@ class EpistemicClassifier:
 
         modal_detected = self._has_modal_aux(tok)
         deontic_lemma = lemma in self._DEONTIC_LEMMAS
-        normative_text = bool(self._NORMATIVE_TEXT_RE.search(str(getattr(doc, "text", "") or "")))
+        normative_text = self._has_normative_text_cue(doc)
         features["modal_detected"] = bool(modal_detected)
         features["deontic_lemma"] = bool(deontic_lemma)
         features["normative_text_pattern"] = bool(normative_text)
@@ -174,6 +181,18 @@ class EpistemicClassifier:
                 return True
         return False
 
+    def _has_normative_text_cue(self, doc: object) -> bool:
+        prev_lemma = ""
+        for tok in doc:
+            lemma = str(getattr(tok, "lemma_", "") or getattr(tok, "text", "") or "").strip().lower()
+            if not lemma:
+                continue
+            if lemma in self._NORMATIVE_CUE_LEMMAS:
+                return True
+            if prev_lemma == "under" and lemma == "section":
+                return True
+            prev_lemma = lemma
+        return False
+
 
 __all__ = ["ClassificationResult", "EpistemicClassifier", "PredicateType"]
-

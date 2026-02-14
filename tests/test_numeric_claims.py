@@ -53,6 +53,13 @@ def test_parse_surface_magnitude_formatting_equivalence() -> None:
     assert a.id == b.id
 
 
+def test_magnitude_id_preserves_scientific_form_for_large_values() -> None:
+    # Identity strings must not expand scientific values into long integers,
+    # preserving the "no false precision" contract for IDs.
+    assert magnitude_id(Decimal("5.6e12"), "usd") == "mag:5.6e12|usd"
+    assert magnitude_id(Decimal("500000"), "usd") == "mag:500000|usd"
+
+
 def test_significant_figures_track_precision() -> None:
     assert significant_figures_from_surface("1.2b") == 2
     assert significant_figures_from_surface("1.20b") == 3

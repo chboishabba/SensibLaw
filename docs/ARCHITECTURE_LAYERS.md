@@ -11,3 +11,17 @@ This note tracks the six-layer architecture that underpins the timeline stream v
 - **Layer 6 – Value frames**: moral/ethical lenses (e.g., autonomy, caring duties) that shape interpretation and presentation.
 
 These layers provide the shared vocabulary for the Streamline roadmap and its dependencies.
+
+## Out Of Scope: Predictive Behavior Modeling
+Descriptive aggregation over a corpus (counts/rates) may be used for institutional
+review, but **predictive or person-scoring behavior modeling is not part of the
+core stack**.
+
+If a descriptive “decision outcome distribution” analytics module is used, it
+must be:
+- read-only and explicitly labeled descriptive
+- deterministic and audit-friendly
+- individual-level disabled by default (opt-in required)
+
+See `SensibLaw/docs/judicial_decision_behavior_contract.md`.
+For elected/public officials, see `SensibLaw/docs/official_decision_behavior_contract.md`.

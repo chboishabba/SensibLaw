@@ -3,6 +3,7 @@
 
 This is intentionally a reference fetcher, not a semantic parser:
 - Fetch only explicit `seed_urls` from a source pack.
+- Index explicit `seed_paths` (local files) from a source pack.
 - Do not crawl discovered links.
 - Emit deterministic manifests + chronology-friendly graph artifacts.
 """
@@ -186,6 +187,19 @@ def _parse_html_links(content: bytes, final_url: str, max_links: int) -> Tuple[s
     return parser.title, out
 
 
+def _guess_content_type_from_path(path: Path) -> str:
+    suf = path.suffix.lower().lstrip(".")
+    if suf in {"html", "htm"}:
+        return "text/html"
+    if suf == "pdf":
+        return "application/pdf"
+    if suf == "epub":
+        return "application/epub+zip"
+    if suf == "txt":
+        return "text/plain"
+    return "application/octet-stream"
+
+
 def _iso_to_anchor(ts: str) -> Dict[str, object]:
     d = dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
     return {
@@ -264,7 +278,7 @@ def _wiki_timeline_payload(events: List[Dict[str, object]], pack_id: str) -> Dic
     }
 
 
-def _iter_seed_rows(pack: Dict[str, object]) -> Iterable[Tuple[Dict[str, object], str]]:
+def _iter_seed_items(pack: Dict[str, object]) -> Iterable[Tuple[Dict[str, object], str, str]]:
     sources = pack.get("sources") or []
     if not isinstance(sources, list):
         return []
@@ -273,10 +287,17 @@ def _iter_seed_rows(pack: Dict[str, object]) -> Iterable[Tuple[Dict[str, object]
             continue
         seed_urls = source.get("seed_urls") or []
         if not isinstance(seed_urls, list):
-            continue
+            seed_urls = []
         for url in seed_urls:
             if isinstance(url, str) and url.strip():
-                yield source, url.strip()
+                yield source, "url", url.strip()
+
+        seed_paths = source.get("seed_paths") or []
+        if not isinstance(seed_paths, list):
+            seed_paths = []
+        for p in seed_paths:
+            if isinstance(p, str) and p.strip():
+                yield source, "path", p.strip()
 
 
 def run(
@@ -302,7 +323,7 @@ def run(
     docs: List[Dict[str, object]] = []
     errors: List[Dict[str, object]] = []
 
-    for idx, (source, seed_url) in enumerate(_iter_seed_rows(pack), start=1):
+    for idx, (source, kind, seed_value) in enumerate(_iter_seed_items(pack), start=1):
         source_id = str(source.get("id") or f"source_{idx:03d}")
         source_name = str(source.get("name") or source_id)
         fetched_at = _utc_now_iso()
@@ -311,7 +332,8 @@ def run(
             "doc_id": doc_id,
             "source_id": source_id,
             "source_name": source_name,
-            "url": seed_url,
+            "url": seed_value if kind == "url" else None,
+            "seed_path": seed_value if kind == "path" else None,
             "fetched_at": fetched_at,
             "status": "error",
             "title": None,
@@ -325,55 +347,74 @@ def run(
             "raw_path": None,
         }
         try:
-            fetched = _fetch(seed_url, timeout=timeout, user_agent=user_agent, pacer=pacer)
-            content = fetched["bytes"] if isinstance(fetched["bytes"], bytes) else b""
-            final_url = str(fetched["final_url"])
-            content_type = str(fetched["content_type"] or "")
-            status_code = int(fetched["status_code"])
-            digest = _sha256_bytes(content)
-            suffix = ".html" if "html" in content_type.lower() else ".pdf" if "pdf" in content_type.lower() else ".bin"
-            raw_name = f"{idx:04d}_{_slug(source_id)}_{_slug(final_url)}{suffix}"
-            raw_path = raw_dir / raw_name
-            raw_path.write_bytes(content)
+            if kind == "url":
+                fetched = _fetch(seed_value, timeout=timeout, user_agent=user_agent, pacer=pacer)
+                content = fetched["bytes"] if isinstance(fetched["bytes"], bytes) else b""
+                final_url = str(fetched["final_url"])
+                content_type = str(fetched["content_type"] or "")
+                status_code = int(fetched["status_code"])
+                digest = _sha256_bytes(content)
+                suffix = ".html" if "html" in content_type.lower() else ".pdf" if "pdf" in content_type.lower() else ".bin"
+                raw_name = f"{idx:04d}_{_slug(source_id)}_{_slug(final_url)}{suffix}"
+                raw_path = raw_dir / raw_name
+                raw_path.write_bytes(content)
 
-            title = ""
-            outbound_links: List[Dict[str, str]] = []
-            if "html" in content_type.lower() or suffix == ".html":
-                title, outbound_links = _parse_html_links(content, final_url, max_links=max_links_per_doc)
+                title = ""
+                outbound_links: List[Dict[str, str]] = []
+                if "html" in content_type.lower() or suffix == ".html":
+                    title, outbound_links = _parse_html_links(content, final_url, max_links=max_links_per_doc)
 
-            authority_links: List[Dict[str, str]] = []
-            seen_auth = set()
-            for link in outbound_links:
-                u = str(link.get("url") or "")
-                t = str(link.get("text") or "")
-                if not _is_authority_host(u):
-                    continue
-                key = (u, t)
-                if key in seen_auth:
-                    continue
-                seen_auth.add(key)
-                authority_links.append({"url": u, "text": t})
-                if len(authority_links) >= max_authority_links_per_doc:
-                    break
+                authority_links: List[Dict[str, str]] = []
+                seen_auth = set()
+                for link in outbound_links:
+                    u = str(link.get("url") or "")
+                    t = str(link.get("text") or "")
+                    if not _is_authority_host(u):
+                        continue
+                    key = (u, t)
+                    if key in seen_auth:
+                        continue
+                    seen_auth.add(key)
+                    authority_links.append({"url": u, "text": t})
+                    if len(authority_links) >= max_authority_links_per_doc:
+                        break
 
-            row.update(
-                {
-                    "status": "ok",
-                    "title": title or None,
-                    "content_type": content_type,
-                    "status_code": status_code,
-                    "final_url": final_url,
-                    "bytes": len(content),
-                    "sha256": digest,
-                    "outbound_links": outbound_links,
-                    "authority_links": authority_links,
-                    "raw_path": str(raw_path),
-                }
-            )
+                row.update(
+                    {
+                        "status": "ok",
+                        "title": title or None,
+                        "content_type": content_type,
+                        "status_code": status_code,
+                        "final_url": final_url,
+                        "bytes": len(content),
+                        "sha256": digest,
+                        "outbound_links": outbound_links,
+                        "authority_links": authority_links,
+                        "raw_path": str(raw_path),
+                    }
+                )
+            else:
+                p = Path(seed_value)
+                content = p.read_bytes()
+                row.update(
+                    {
+                        "status": "ok",
+                        "title": p.name,
+                        "content_type": _guess_content_type_from_path(p),
+                        "status_code": 0,
+                        "final_url": str(p),
+                        "bytes": len(content),
+                        "sha256": _sha256_bytes(content),
+                        "outbound_links": [],
+                        "authority_links": [],
+                        # Do not duplicate local binaries into out_dir; record the source path.
+                        "raw_path": str(p),
+                    }
+                )
         except Exception as exc:  # pragma: no cover - runtime/network variance
             row["status"] = "error"
             row["error"] = f"{type(exc).__name__}: {exc}"
-            errors.append({"doc_id": doc_id, "url": seed_url, "error": row["error"]})
+            errors.append({"doc_id": doc_id, "url": seed_value, "error": row["error"]})
         docs.append(row)
 
     docs_sorted = sorted(docs, key=lambda r: (str(r.get("fetched_at") or ""), str(r.get("doc_id") or "")))

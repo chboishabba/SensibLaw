@@ -147,8 +147,42 @@ def normalize_decimal_text(value: Decimal) -> str:
     return out
 
 
+def normalize_decimal_id_text(value: Decimal) -> str:
+    """
+    Deterministic decimal -> string normalization for identity keys/IDs.
+
+    Contract:
+    - Use fixed form for "small" magnitudes so `21` stays `21`.
+    - Use scientific form for large/small magnitudes so `5.6e12` stays `5.6e12`
+      (and does not expand into `5600000000000`), preserving the "no false
+      precision" contract for identity strings.
+    """
+    if value.is_nan() or value.is_infinite():
+        raise ValueError("non-finite decimal is not supported")
+    if value == 0:
+        return "0"
+
+    # Decimal.adjusted(): exponent of most-significant digit (base-10 order).
+    # Threshold chosen to match wiki-timeline numeric key behavior:
+    # - 500000 stays `500000` (adjusted=5)
+    # - 5.6e12 stays `5.6e12` (adjusted=12)
+    adj = value.copy_abs().adjusted()
+    if -6 <= adj <= 6:
+        return normalize_decimal_text(value)
+
+    sci = format(value.normalize(), "E")
+    mantissa, exp = sci.split("E", 1)
+    if "." in mantissa:
+        mantissa = mantissa.rstrip("0").rstrip(".")
+    if mantissa == "-0":
+        mantissa = "0"
+    if mantissa == "":
+        mantissa = "0"
+    return f"{mantissa}e{int(exp)}"
+
+
 def magnitude_id(value: Decimal, unit: str) -> str:
-    return f"mag:{normalize_decimal_text(value)}|{normalize_unit(unit)}"
+    return f"mag:{normalize_decimal_id_text(value)}|{normalize_unit(unit)}"
 
 
 def significant_figures_from_surface(surface: str) -> int:

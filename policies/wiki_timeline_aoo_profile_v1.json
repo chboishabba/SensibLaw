@@ -1,6 +1,18 @@
 {
   "profile_id": "wiki_timeline_aoo_v1",
   "profile_version": "1.0.0",
+  "semantic_backbone": {
+    "resource": "none",
+    "wsd_policy": "none",
+    "llm_enabled": false
+  },
+  "semantic_version_pins": {
+    "wordnet": "",
+    "babelnet_table_sha256": "",
+    "synset_action_map_sha256": ""
+  },
+  "synset_action_map": {},
+  "babelnet_lemma_synsets": {},
   "requester_title_labels": {
     "president": "U.S. President"
   },
@@ -55,7 +67,8 @@
     { "label": "completed", "pattern": "\\bcomplete(?:d)?\\b" },
     { "label": "withdrew", "pattern": "\\bwithdrew\\b|\\bwithdrawn\\b|\\bwithdraw\\b" },
     { "label": "retired", "pattern": "\\bretired\\b|\\bretirement\\b" },
-    { "label": "died", "pattern": "\\bdied\\b|\\bdeath\\b" },
+    { "label": "died", "pattern": "\\bdie(?:d|s|ing)?\\b" },
+    { "label": "drew", "pattern": "\\bdrew\\b|\\bdraw(?:s|ing)?\\b" },
     { "label": "killed", "pattern": "\\bkilled\\b|\\bkill\\b" },
     { "label": "approved", "pattern": "\\bapproved\\b|\\bapprove\\b" },
     { "label": "bailout", "pattern": "\\bbailout\\b|\\bbail(?:ed)?\\s+out\\b" },

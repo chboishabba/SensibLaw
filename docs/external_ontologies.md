@@ -183,6 +183,13 @@ CREATE TABLE actor_external_refs (
 * Good for fallback matching and phrase normalisation
 * Excellent for sentiment or psychological-category enrichment
 
+#### Deterministic Mapping Policy (SL/ITIR)
+- WordNet may be used as a deterministic semantic backbone for normalization only.
+- Any authoritative mapping that uses WordNet synsets must be:
+  - version-pinned (validated at runtime),
+  - deterministic (rule-first; no generative WSD),
+  - and driven by explicit curated mappings (synset -> canonical label).
+
 ### ✔️ Umbel / Schema.org
 
 * Broad conceptual categories

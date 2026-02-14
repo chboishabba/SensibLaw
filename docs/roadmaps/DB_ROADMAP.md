@@ -64,10 +64,14 @@ This roadmap translates the current multi-layer ontology into deliverable milest
 - `WrongType` (pattern templates referencing actors, interests, mental states)
 - `WrongType_Source` (bridge between `WrongType` and `LegalSource` for provenance)
 - `MentalState` (intent, recklessness, negligence, strict)
+- `InterferenceModeType` (direct contact, indirect interference, omission/failure, representation, publication, abuse of power, etc.)
+- `DutyStructureType` (general duty, relational duty, strict prohibition, statutory conditional duty)
+- `DefenceType` (consent, necessity, privilege, statutory authority, contributory negligence, etc.)
 
 **Deliverables**
 - SQL migrations (`schemas/migrations/003_milestone3_wrong_types.sql`) establishing cardinality constraints (e.g., `WrongType` requires at least one `ProtectedInterest`) and referencing Milestone 1–2 tables (`legal_system`, `norm_source_category`, `legal_source`, `cultural_register`) for system-scoped enforcement.
 - Seed catalog of priority wrong types per `LegalSystem` with citations and protected interest mappings (`data/ontology/wrong_type_catalog_seed.yaml`).
+- Seed catalog for orthogonal wrong-type dimensions (`data/ontology/wrong_type_dimensions_seed.yaml`) so `WrongType` classification stays machine-stable across systems.
 - Authoring guidance for new WrongTypes (naming, versioning, provenance) co-located with the seed catalog.
 
 **Ownership & Sequencing**
@@ -140,4 +144,3 @@ This roadmap translates the current multi-layer ontology into deliverable milest
 - Maintain a single migration branch per milestone to reduce merge conflicts.
 - Each milestone should ship with test fixtures and minimal seed data so downstream teams can integrate immediately.
 - Update API/contract documentation as soon as new tables are exposed.
-

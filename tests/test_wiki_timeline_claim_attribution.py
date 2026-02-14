@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from scripts import wiki_timeline_aoo_extract as ext
@@ -143,3 +145,44 @@ def test_requester_coverage_summary_counts_missing_requesters() -> None:
     assert summary["request_signal_events"] == 2
     assert summary["requester_events"] == 1
     assert summary["missing_requester_event_ids"] == ["ev:2"]
+
+
+def test_canonicalize_root_actor_surface_maps_partial_middle_name_form() -> None:
+    assert (
+        ext._canonicalize_root_actor_surface("Walker Bush", "George W. Bush", "Bush")
+        == "George W. Bush"
+    )
+    assert (
+        ext._canonicalize_root_actor_surface("Laura Bush", "George W. Bush", "Bush")
+        == "Laura Bush"
+    )
+
+
+def test_extract_capitalized_surname_names_prefers_root_actor_when_applicable() -> None:
+    text = "George Walker Bush met Laura Bush in Dallas."
+    out = ext._extract_capitalized_surname_names(
+        text,
+        "Bush",
+        blocked_first_tokens={"george"},
+        root_actor="George W. Bush",
+    )
+    assert "George W. Bush" in out
+    assert "Laura Bush" in out
+
+
+def test_extract_action_ignores_noun_only_pattern_hits_when_doc_present() -> None:
+    nlp, _, _ = ext._try_load_spacy("en_core_web_sm")
+    if nlp is None:
+        pytest.skip("spaCy model unavailable")
+    text = (
+        "In May 2019, on the tenth anniversary of former South Korean president Roh Moo-hyun's death, "
+        "George Bush drew a portrait of Roh to give to his family."
+    )
+    doc = nlp(text)
+    patterns = [
+        ("died", re.compile(r"\bdeath\b", re.IGNORECASE)),
+        ("drew", re.compile(r"\bdrew\b|\bdraw(?:s|ing)?\b", re.IGNORECASE)),
+    ]
+    action, warnings = ext._extract_action(text, patterns, doc=doc)
+    assert action == "drew"
+    assert warnings == ["fallback_action_regex"]

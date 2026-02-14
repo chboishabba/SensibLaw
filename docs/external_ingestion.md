@@ -104,6 +104,12 @@ Output root:
 - `SensibLaw/demo/ingest/hca_case_s942025/graph/case_bundle.graph.json` (graph payload)
 - `SensibLaw/demo/ingest/hca_case_s942025/media/media_report.json` (recording/captions/transcript metadata)
 - `SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json` (Svelte AAO payload with tagged signal lanes)
+
+## Wiki timeline storage note (AAO)
+Wiki timeline AAO extraction emits JSON artifacts for UI/fixtures, and may also
+persist the same runs/events to a SQLite DB for query-first workflows. JSON is a
+rebuildable export; the DB is the persistent store. See:
+- `SensibLaw/docs/wiki_timeline_storage_contract.md`
 - `SensibLaw/demo/ingest/hca_case_s942025/sb_signals.json` (observer-signal export for SB ingestion)
 
 Important details:

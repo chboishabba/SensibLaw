@@ -24,6 +24,7 @@ def test_seed_priority_legal_systems(db_connection):
     expected = {
         "AU.COMMON",
         "AU.STATE.QLD",
+        "AU.STATE.NSW",
         "PK.ISLAM.HANAFI",
         "NZ.TIKANGA",
         "US.STATE",
@@ -46,11 +47,55 @@ def test_legal_systems_are_country_scoped(db_connection):
     mappings = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
 
     assert mappings["AU.COMMON"] == ("AU", None)
+    assert mappings["AU.STATE.NSW"] == ("AU", "NSW")
     assert mappings["AU.STATE.QLD"] == ("AU", "QLD")
     assert mappings["PK.ISLAM.HANAFI"] == ("PK", None)
     assert mappings["NZ.TIKANGA"] == ("NZ", None)
     assert mappings["US.STATE"] == ("US", None)
     assert mappings["EU"] == ("EU", None)
+
+
+def test_legal_system_authority_boundary_fields(db_connection):
+    cursor = db_connection.execute(
+        """
+        SELECT child.code,
+               child.sovereignty_type,
+               parent.code AS parent_code,
+               child.recognises_common_law,
+               child.recognises_equity,
+               child.commencement_date,
+               child.constitutional_source_id
+        FROM legal_systems child
+        LEFT JOIN legal_systems parent ON parent.id = child.parent_system_id
+        WHERE child.code IN ('AU.COMMON', 'AU.STATE.NSW', 'AU.STATE.QLD')
+        ORDER BY child.code
+        """
+    )
+    rows = {row[0]: row[1:] for row in cursor.fetchall()}
+
+    au_common = rows["AU.COMMON"]
+    assert au_common[0] == "sovereign"
+    assert au_common[1] is None
+    assert au_common[2] == 1
+    assert au_common[3] == 1
+    assert au_common[4] == "1901-01-01"
+    assert au_common[5] is not None
+
+    nsw = rows["AU.STATE.NSW"]
+    assert nsw[0] == "sub_sovereign"
+    assert nsw[1] == "AU.COMMON"
+    assert nsw[2] == 1
+    assert nsw[3] == 1
+    assert nsw[4] == "1901-01-01"
+    assert nsw[5] is not None
+
+    qld = rows["AU.STATE.QLD"]
+    assert qld[0] == "sub_sovereign"
+    assert qld[1] == "AU.COMMON"
+    assert qld[2] == 1
+    assert qld[3] == 1
+    assert qld[4] == "1901-01-01"
+    assert qld[5] is not None
 
 
 def test_norm_source_uniqueness(db_connection):

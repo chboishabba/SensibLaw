@@ -21,9 +21,15 @@ import datetime as dt
 import hashlib
 import json
 import re
+import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+_THIS_DIR = Path(__file__).resolve().parent
+_SENSIBLAW_ROOT = _THIS_DIR.parent
+if str(_SENSIBLAW_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 try:
     from babel.numbers import parse_decimal as _babel_parse_decimal
@@ -44,16 +50,52 @@ except Exception:  # pragma: no cover - optional dependency
     _attribution_id = None
     _extraction_record_id = None
     _source_entity_id = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.models.attribution_claims import (
+            AttributionType as _AttributionType,
+            SourceEntityType as _SourceEntityType,
+            attribution_id as _attribution_id,
+            extraction_record_id as _extraction_record_id,
+            source_entity_id as _source_entity_id,
+        )
+    except Exception:
+        pass
 
 try:
     from src.models.numeric_claims import magnitude_id as _magnitude_id
 except Exception:  # pragma: no cover - optional dependency
     _magnitude_id = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.models.numeric_claims import magnitude_id as _magnitude_id
+    except Exception:
+        pass
 
 try:
     from src.nlp.epistemic_classifier import EpistemicClassifier as _EpistemicClassifier
 except Exception:  # pragma: no cover - optional dependency
     _EpistemicClassifier = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.nlp.epistemic_classifier import EpistemicClassifier as _EpistemicClassifier
+    except Exception:
+        pass
+
+try:
+    from src.nlp.event_classifier import EventClassifier as _EventClassifier
+except Exception:  # pragma: no cover - optional dependency
+    _EventClassifier = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.nlp.event_classifier import EventClassifier as _EventClassifier
+    except Exception:
+        pass
+
+try:
+    from src.nlp.synset_mapper import DeterministicSynsetActionMapper as _SynsetActionMapper
+except Exception:  # pragma: no cover - optional dependency
+    _SynsetActionMapper = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.nlp.synset_mapper import DeterministicSynsetActionMapper as _SynsetActionMapper
+    except Exception:
+        pass
 
 try:
     from src.nlp.ontology_mapping import (
@@ -63,6 +105,13 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     _canonical_action_morphology = None
     _unknown_action_morphology = None
+    try:  # pragma: no cover - repo-root script execution fallback
+        from SensibLaw.src.nlp.ontology_mapping import (
+            canonical_action_morphology as _canonical_action_morphology,
+            unknown_action_morphology as _unknown_action_morphology,
+        )
+    except Exception:
+        pass
 
 
 PERSON_NAME_RE = re.compile(r"^[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,4}$")
@@ -176,7 +225,13 @@ def _clean_entity_surface(text: str) -> str:
         return s
     s = FOOTNOTE_TAIL_RE.sub("", s).strip()
     s = CITATION_TRAIL_RE.sub("", s).strip()
-    return re.sub(r"\s+", " ", s).strip(" ,;:.()[]{}\"'")
+    s = re.sub(r"\s+", " ", s).strip(" ,;:.()[]{}\"'")
+    # Coalescing hygiene: drop a leading definite article ("the United States" -> "United States").
+    # This is intentionally narrow (single leading token) and deterministic.
+    parts = s.split()
+    if len(parts) > 1 and str(parts[0]).lower() == "the":
+        s = " ".join(parts[1:]).strip()
+    return s
 
 
 def _looks_like_person_mention(text: str) -> bool:
@@ -273,6 +328,106 @@ def _extract_requester_from_doc(doc, alias_map: Dict[str, str]) -> Tuple[Optiona
         return candidate, resolved, has_title
 
     return None, None, False
+
+
+def _extract_requester_from_request_verbs(doc, alias_map: Dict[str, str]) -> Tuple[Optional[str], Optional[str], str]:
+    """
+    Extract the *target* of a request-like action (e.g. "urged Congress to ...").
+    Returns (surface, resolved, source) or (None, None, "").
+    """
+    if doc is None:
+        return None, None, ""
+
+    alias_lower = {str(k).strip().lower(): str(v) for k, v in (alias_map or {}).items() if str(k).strip() and str(v).strip()}
+
+    def resolve(surface: str) -> str:
+        s = _normalize_requester_surface(surface)
+        if not s:
+            return ""
+        if s in alias_map:
+            return str(alias_map[s])
+        sl = s.lower()
+        if sl in alias_lower:
+            return str(alias_lower[sl])
+        return s
+
+    # Deterministic v1 list; can be replaced by synset mapping behind the
+    # semantic-backbone profile guard.
+    request_signal_lemmas = {
+        "ask",
+        "request",
+        "urge",
+        "call",
+        "encourage",
+        "press",
+        "demand",
+        "require",
+        "order",
+        "instruct",
+        "direct",
+        "tell",
+        "invite",
+        "appeal",
+    }
+
+    candidates: List[Tuple[int, str, str, str]] = []
+    for tok in doc:
+        try:
+            if str(getattr(tok, "pos_", "") or "") not in {"VERB", "AUX"}:
+                continue
+            lemma = str(getattr(tok, "lemma_", "") or "").strip().lower()
+            if lemma not in request_signal_lemmas:
+                continue
+
+            # Prefer request-like verbs that govern an infinitival complement (to + VERB).
+            has_inf = False
+            for ch in getattr(tok, "children", []):
+                if str(getattr(ch, "dep_", "") or "") != "xcomp":
+                    continue
+                for gc in getattr(ch, "children", []):
+                    dep = str(getattr(gc, "dep_", "") or "")
+                    if dep in {"mark", "aux"} and str(getattr(gc, "lemma_", "") or "").lower() == "to":
+                        has_inf = True
+                        break
+                if has_inf:
+                    break
+            if not has_inf:
+                continue
+
+            targets = []
+            for ch in getattr(tok, "children", []):
+                dep = str(getattr(ch, "dep_", "") or "")
+                if dep in {"dobj", "obj", "iobj", "dative"}:
+                    targets.append(ch)
+            for ch in getattr(tok, "children", []):
+                if str(getattr(ch, "dep_", "") or "") != "prep":
+                    continue
+                if str(getattr(ch, "lemma_", "") or "").lower() != "to":
+                    continue
+                for gc in getattr(ch, "children", []):
+                    if str(getattr(gc, "dep_", "") or "") in {"pobj", "obj"}:
+                        targets.append(gc)
+
+            for t in targets:
+                surf = _normalize_requester_surface(_subject_surface_for_token(doc, t))
+                if not surf:
+                    continue
+                low = surf.lower()
+                # Avoid pronouns/weak placeholders.
+                if low in {"him", "her", "them", "it", "us", "me", "you", "officials"}:
+                    continue
+                res = resolve(surf)
+                if not res:
+                    continue
+                candidates.append((int(getattr(tok, "i", 10**9) or 10**9), surf, res, f"dep:req_verb:{lemma}"))
+        except Exception:
+            continue
+
+    if not candidates:
+        return None, None, ""
+    candidates.sort(key=lambda t: (int(t[0]), str(t[2]).lower(), str(t[1]).lower()))
+    _, surf, res, src = candidates[0]
+    return surf, res, src
 
 
 def _extract_passive_agents_from_doc(doc) -> List[str]:
@@ -381,7 +536,8 @@ DEFAULT_ACTION_PATTERN_SPECS: List[Tuple[str, str]] = [
     ("completed", r"\bcomplete(?:d)?\b"),
     ("withdrew", r"\bwithdrew\b|\bwithdrawn\b|\bwithdraw\b"),
     ("retired", r"\bretired\b|\bretirement\b"),
-    ("died", r"\bdied\b|\bdeath\b"),
+    ("died", r"\bdie(?:d|s|ing)?\b"),
+    ("drew", r"\bdrew\b|\bdraw(?:s|ing)?\b"),
     ("killed", r"\bkilled\b|\bkill\b"),
     ("approved", r"\bapproved\b|\bapprove\b"),
     ("bailout", r"\bbailout\b|\bbail(?:ed)?\s+out\b"),
@@ -487,20 +643,55 @@ def _candidate_titles(candidates_payload: dict) -> List[str]:
     return out
 
 
-def _extract_action(text: str, action_patterns: List[Tuple[str, re.Pattern[str]]]) -> Tuple[Optional[str], List[str]]:
+def _match_span_overlaps_verb(doc, start: int, end: int) -> bool:
+    if doc is None:
+        return True
+    try:
+        for tok in doc:
+            pos = str(getattr(tok, "pos_", "") or "")
+            if pos not in {"VERB", "AUX"}:
+                continue
+            st = int(getattr(tok, "idx", -1))
+            if st < 0:
+                continue
+            en = st + len(str(getattr(tok, "text", "") or ""))
+            if st < end and start < en:
+                return True
+    except Exception:
+        return True
+    return False
+
+
+def _extract_action(
+    text: str,
+    action_patterns: List[Tuple[str, re.Pattern[str]]],
+    doc=None,
+    event_classifier: Optional[object] = None,
+) -> Tuple[Optional[str], List[str]]:
     warnings: List[str] = []
+    if doc is not None and event_classifier is not None:
+        try:
+            match = event_classifier.classify_from_doc(doc)
+            if match is not None:
+                label = str(getattr(match, "action_label", "") or "").strip()
+                if label:
+                    return label, warnings
+        except Exception:
+            pass
     # Choose the earliest matching action in the sentence, not the first pattern in the list.
     best: Optional[Tuple[int, int, str]] = None  # (start, -match_len, label)
     for label, pat in action_patterns:
-        m = pat.search(text)
-        if not m:
-            continue
-        start = int(m.start())
-        mlen = int(m.end() - m.start())
-        cand = (start, -mlen, label)
-        if best is None or cand < best:
-            best = cand
+        for m in pat.finditer(text):
+            start = int(m.start())
+            end = int(m.end())
+            if not _match_span_overlaps_verb(doc, start, end):
+                continue
+            mlen = int(end - start)
+            cand = (start, -mlen, label)
+            if best is None or cand < best:
+                best = cand
     if best is not None:
+        warnings.append("fallback_action_regex")
         return best[2], warnings
     fb = _fallback_action(text)
     if fb:
@@ -556,6 +747,12 @@ def _normalize_agent_label(raw: str) -> str:
 
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _sha256_json(obj: object) -> str:
+    # Deterministic JSON hash for version-pin checks (stable keys + separators).
+    blob = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return _sha256_text(blob)
 
 
 def _profile_action_pattern_specs(profile_payload: dict) -> List[Tuple[str, str]]:
@@ -646,6 +843,102 @@ def _profile_epistemic_verbs(profile_payload: dict, comm_cfg: Dict[str, object])
             return list(dict.fromkeys(out))
     comm = [str(x or "").strip().lower() for x in (comm_cfg.get("communication_verbs") or []) if str(x or "").strip()]
     return list(dict.fromkeys(comm))
+
+
+_ALLOWED_SEMANTIC_RESOURCES = {"none", "wordnet", "babelnet", "wordnet+babelnet"}
+_ALLOWED_WSD_POLICIES = {"none", "rule_deterministic", "model_version_pinned"}
+
+
+def _profile_semantic_backbone_config(profile_payload: dict) -> Tuple[Dict[str, object], List[str], Optional[str]]:
+    cfg_raw = profile_payload.get("semantic_backbone")
+    cfg = cfg_raw if isinstance(cfg_raw, dict) else {}
+    warnings: List[str] = []
+
+    resource = str(cfg.get("resource") or "none").strip().lower()
+    if resource not in _ALLOWED_SEMANTIC_RESOURCES:
+        warnings.append("semantic_backbone_resource_invalid_fallback_none")
+        resource = "none"
+
+    wsd_policy = str(cfg.get("wsd_policy") or "none").strip().lower()
+    if wsd_policy not in _ALLOWED_WSD_POLICIES:
+        return (
+            {
+                "resource": resource,
+                "wsd_policy": "none",
+                "llm_enabled": False,
+                "deterministic": True,
+            },
+            warnings,
+            "semantic_backbone_wsd_policy_not_deterministic",
+        )
+
+    llm_enabled = bool(cfg.get("llm_enabled", False))
+    if llm_enabled:
+        return (
+            {
+                "resource": resource,
+                "wsd_policy": wsd_policy,
+                "llm_enabled": False,
+                "deterministic": False,
+            },
+            warnings,
+            "semantic_backbone_llm_not_allowed",
+        )
+
+    deterministic = wsd_policy in {"none", "rule_deterministic", "model_version_pinned"}
+    return (
+        {
+            "resource": resource,
+            "wsd_policy": wsd_policy,
+            "llm_enabled": False,
+            "deterministic": bool(deterministic),
+        },
+        warnings,
+        None,
+    )
+
+
+def _profile_synset_action_map(profile_payload: dict) -> Dict[str, str]:
+    rows = profile_payload.get("synset_action_map")
+    if not isinstance(rows, dict):
+        return {}
+    out: Dict[str, str] = {}
+    for k, v in rows.items():
+        sid = str(k or "").strip().lower()
+        lab = str(v or "").strip()
+        if sid and lab:
+            out[sid] = lab
+    return out
+
+
+def _profile_babelnet_lemma_synsets(profile_payload: dict) -> Dict[str, List[str]]:
+    rows = profile_payload.get("babelnet_lemma_synsets")
+    if not isinstance(rows, dict):
+        return {}
+    out: Dict[str, List[str]] = {}
+    for k, v in rows.items():
+        lemma = str(k or "").strip().lower()
+        if not lemma:
+            continue
+        if not isinstance(v, list):
+            continue
+        syns = sorted({str(x or "").strip().lower() for x in v if str(x or "").strip()})
+        if syns:
+            out[lemma] = syns
+    return out
+
+
+def _profile_semantic_version_pins(profile_payload: dict) -> Dict[str, str]:
+    pins = profile_payload.get("semantic_version_pins")
+    if not isinstance(pins, dict):
+        return {}
+    out: Dict[str, str] = {}
+    for k, v in pins.items():
+        kk = str(k or "").strip().lower()
+        vv = str(v or "").strip()
+        if kk and vv:
+            out[kk] = vv
+    return out
 
 
 def _try_load_spacy(model: str) -> Tuple[Optional[object], Optional[dict], Optional[str]]:
@@ -892,6 +1185,7 @@ ACTION_LEMMAS: Dict[str, Tuple[str, ...]] = {
     "retired": ("retire",),
     "withdrew": ("withdraw",),
     "died": ("die",),
+    "drew": ("draw",),
     "completed": ("complete",),
     "reported": ("report",),
     "cautioned": ("caution",),
@@ -1255,6 +1549,22 @@ _NUMERIC_ROLE_TRANSACTION_ACTIONS = {
 _NUMERIC_ROLE_INVEST_ACTIONS = {"invest", "fund"}
 _NUMERIC_ROLE_REVENUE_ACTIONS = {"earn", "make", "generate", "collect", "receive"}
 _NUMERIC_ROLE_COST_ACTIONS = {"cost", "spend", "pay", "allocate"}
+_NUMERIC_DEP_UNIT_HEADS = {
+    "percent",
+    "percentage",
+    "dollar",
+    "dollars",
+    "year",
+    "years",
+    "month",
+    "months",
+    "day",
+    "days",
+    "line",
+    "lines",
+    "point",
+    "points",
+}
 
 
 def _normalize_numeric_mention(raw: str) -> str:
@@ -1548,6 +1858,151 @@ def _years_in_text(text: str) -> List[int]:
     return sorted(out)
 
 
+def _contains_month_word(text: str) -> bool:
+    toks = _norm_phrase(str(text or "")).split()
+    return any(tok in MONTH_WORDS for tok in toks)
+
+
+def _collect_date_like_char_ranges(doc) -> List[Tuple[int, int]]:
+    if doc is None:
+        return []
+    out: List[Tuple[int, int]] = []
+    seen = set()
+    try:
+        for ent in getattr(doc, "ents", []):
+            st = int(getattr(ent, "start_char", -1))
+            en = int(getattr(ent, "end_char", -1))
+            if st < 0 or en <= st:
+                continue
+            label = str(getattr(ent, "label_", "") or "")
+            txt = str(getattr(ent, "text", "") or "")
+            has_digit = any(ch.isdigit() for ch in txt)
+            if label in {"DATE", "TIME"} or (has_digit and _contains_month_word(txt)):
+                key = (st, en)
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(key)
+    except Exception:
+        return []
+
+    # Token-pattern fallback: month-word + day (+ optional year). This catches
+    # "September 11 attacks" even when NER doesn't emit a DATE entity.
+    try:
+        toks = list(doc)
+        i = 0
+        while i < len(toks):
+            t0 = toks[i]
+            w0 = str(getattr(t0, "text", "") or "").strip()
+            if not w0:
+                i += 1
+                continue
+            if _norm_phrase(w0).lower() not in MONTH_WORDS:
+                i += 1
+                continue
+
+            j = i + 1
+            # Skip punctuation like commas between month and day.
+            while j < len(toks) and str(getattr(toks[j], "text", "") or "").strip() in {",", ".", "–", "-", "—"}:
+                j += 1
+            if j >= len(toks):
+                i += 1
+                continue
+            t1 = toks[j]
+            w1 = str(getattr(t1, "text", "") or "").strip()
+            if not w1 or not any(ch.isdigit() for ch in w1):
+                i += 1
+                continue
+
+            k = j + 1
+            while k < len(toks) and str(getattr(toks[k], "text", "") or "").strip() in {",", ".", "–", "-", "—"}:
+                k += 1
+            if k < len(toks):
+                w2 = str(getattr(toks[k], "text", "") or "").strip()
+                if len(w2) == 4 and w2.isdigit():
+                    end_tok = toks[k]
+                else:
+                    end_tok = toks[j]
+            else:
+                end_tok = toks[j]
+
+            st = int(getattr(t0, "idx", -1) or -1)
+            en = int(getattr(end_tok, "idx", -1) or -1)
+            if st >= 0 and en >= st:
+                en = en + len(str(getattr(end_tok, "text", "") or ""))
+                key = (st, en)
+                if key not in seen:
+                    seen.add(key)
+                    out.append(key)
+            i = j
+    except Exception:
+        pass
+    return out
+
+
+def _is_date_like_numeric_key(nk: str) -> bool:
+    unit = _numeric_unit_from_key(nk)
+    if unit not in {"", "year", "month", "day"}:
+        return False
+    value = _numeric_value_from_key(nk).lstrip("+-")
+    if not value.isdigit():
+        return False
+    return len(value) <= 2 or len(value) == 4
+
+
+def _scan_left_digits(text: str, idx_exclusive: int) -> str:
+    j = int(idx_exclusive) - 1
+    out = []
+    while j >= 0:
+        ch = text[j]
+        if not ch.isdigit():
+            break
+        out.append(ch)
+        j -= 1
+    if not out:
+        return ""
+    out.reverse()
+    return "".join(out)
+
+
+def _scan_right_digits(text: str, idx_inclusive: int) -> str:
+    j = int(idx_inclusive)
+    out = []
+    n = len(text)
+    while j < n:
+        ch = text[j]
+        if not ch.isdigit():
+            break
+        out.append(ch)
+        j += 1
+    return "".join(out)
+
+
+def _is_slash_date_fragment(text: str, start_char: int, end_char: int, nk: str) -> bool:
+    if not _is_date_like_numeric_key(nk):
+        return False
+    s = str(text or "")
+    if start_char < 0 or end_char <= start_char or end_char > len(s):
+        return False
+    left = ""
+    right = ""
+    if start_char > 0 and s[start_char - 1] == "/":
+        left = _scan_left_digits(s, start_char - 1)
+    if end_char < len(s) and s[end_char] == "/":
+        right = _scan_right_digits(s, end_char + 1)
+    other = left or right
+    if not other:
+        return False
+    value = _numeric_value_from_key(nk).lstrip("+-")
+    if not value.isdigit() or not other.isdigit():
+        return False
+    a = int(value)
+    b = int(other)
+    if a < 1 or b < 1 or a > 31 or b > 31:
+        return False
+    return a <= 12 or b <= 12
+
+
 def _nearest_years_from_doc(doc, token_i: int, limit: int = 2) -> List[int]:
     if doc is None:
         return []
@@ -1578,6 +2033,28 @@ def _nearest_years_from_doc(doc, token_i: int, limit: int = 2) -> List[int]:
         if len(out) >= max(1, int(limit)):
             break
     return out
+
+
+def _nearest_date_text_from_doc(doc, token_i: int) -> Optional[str]:
+    if doc is None:
+        return None
+    pairs: List[Tuple[int, str]] = []
+    try:
+        for ent in getattr(doc, "ents", []):
+            if str(getattr(ent, "label_", "") or "") != "DATE":
+                continue
+            txt = _clean_entity_surface(str(getattr(ent, "text", "") or ""))
+            if not txt:
+                continue
+            st = int(getattr(ent, "start", token_i))
+            en = int(getattr(ent, "end", token_i + 1)) - 1
+            dist = min(abs(int(token_i) - st), abs(int(token_i) - en))
+            pairs.append((dist, txt))
+    except Exception:
+        return None
+    if not pairs:
+        return None
+    return sorted(pairs, key=lambda t: (int(t[0]), str(t[1])))[0][1]
 
 
 def _compact_time_anchor(anchor: Optional[dict]) -> Optional[dict]:
@@ -1621,14 +2098,54 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
         return []
     out: List[dict] = []
     seen = set()
-    date_ranges: List[Tuple[int, int]] = []
-    try:
-        for ent in getattr(doc, "ents", []):
-            if str(getattr(ent, "label_", "") or "") != "DATE":
-                continue
-            date_ranges.append((int(getattr(ent, "start_char", -1)), int(getattr(ent, "end_char", -1))))
-    except Exception:
-        date_ranges = []
+    date_ranges = _collect_date_like_char_ranges(doc)
+
+    def _quantity_of_from_head(head_tok) -> Optional[str]:
+        try:
+            for child in head_tok.children:
+                dep = str(getattr(child, "dep_", "") or "")
+                lem = str(getattr(child, "lemma_", "") or getattr(child, "text", "") or "").strip().lower()
+                if dep not in {"prep", "nmod"} or lem != "of":
+                    continue
+                for pobj in child.children:
+                    pdep = str(getattr(pobj, "dep_", "") or "")
+                    if pdep not in {"pobj", "obj"}:
+                        continue
+                    surfaced = _clean_entity_surface(_subject_surface_for_token(doc, pobj))
+                    if surfaced:
+                        return surfaced
+        except Exception:
+            return None
+        return None
+
+    def _enrich_from_dep(cand: dict) -> dict:
+        root_i = int(cand.get("root_i", -1))
+        if root_i < 0 or root_i >= len(doc):
+            return cand
+        try:
+            tok = doc[root_i]
+            dep = str(getattr(tok, "dep_", "") or "")
+            if dep not in {"nummod", "npadvmod"}:
+                return cand
+            head = getattr(tok, "head", None)
+            if head is None:
+                return cand
+            head_lemma = str(getattr(head, "lemma_", "") or getattr(head, "text", "") or "").strip().lower()
+            head_text = _clean_entity_surface(str(getattr(head, "text", "") or ""))
+            # Recover omitted count units from dependency heads (e.g., "71 ... lines").
+            if not _numeric_unit_from_key(str(cand.get("key") or "")) and head_lemma in _NUMERIC_DEP_UNIT_HEADS and head_text:
+                composed = _normalize_numeric_mention(f"{str(cand.get('value') or '')} {head_text}")
+                nk2 = _numeric_key(composed)
+                if nk2:
+                    cand["value"] = composed
+                    cand["key"] = nk2
+                    cand["source"] = f"{str(cand.get('source') or '')}+dep_unit"
+            quantity_of = _quantity_of_from_head(head)
+            if quantity_of:
+                cand["quantity_of"] = quantity_of
+        except Exception:
+            return cand
+        return cand
 
     def emit(span, source: str) -> None:
         raw = str(getattr(span, "text", "") or "").strip()
@@ -1658,28 +2175,50 @@ def _extract_numeric_span_candidates(doc) -> List[dict]:
             return
         start = int(getattr(span, "start_char", -1))
         end = int(getattr(span, "end_char", -1))
+        if _is_slash_date_fragment(str(getattr(doc, "text", "") or ""), start, end, nk):
+            return
         overlaps_date = any(ds < end and start < de for ds, de in date_ranges if ds >= 0 and de > ds)
-        if overlaps_date:
-            unit = _numeric_unit_from_key(nk)
-            if unit in {"", "year", "month", "day"}:
-                return
+        if overlaps_date and _is_date_like_numeric_key(nk):
+            return
+        # Prefer a numeric modifier token (`nummod`) within the span as the
+        # dependency anchor. spaCy NER spans (e.g., PERCENT) often pick the unit
+        # head ("percent") as `.root`, but enrichment (unit/quantity-of) is
+        # driven by the numeric token.
         root = getattr(span, "root", None)
-        root_i = int(getattr(root, "i", -1)) if root is not None else -1
+        root_tok = root
+        try:
+            best_i = None
+            for t in span:
+                dep = str(getattr(t, "dep_", "") or "")
+                if dep not in {"nummod", "npadvmod"}:
+                    continue
+                if not bool(getattr(t, "like_num", False)):
+                    continue
+                ti = int(getattr(t, "i", -1))
+                if ti < 0:
+                    continue
+                if best_i is None or ti < best_i:
+                    best_i = ti
+                    root_tok = t
+        except Exception:
+            root_tok = root
+        root_i = int(getattr(root_tok, "i", -1)) if root_tok is not None else -1
+        cand = {
+            "start": start,
+            "end": end,
+            "root_i": root_i,
+            "raw": raw,
+            "value": val,
+            "key": nk,
+            "source": source,
+        }
+        cand = _enrich_from_dep(cand)
+        nk = str(cand.get("key") or "")
         key = (start, end, nk)
         if key in seen:
             return
         seen.add(key)
-        out.append(
-            {
-                "start": start,
-                "end": end,
-                "root_i": root_i,
-                "raw": raw,
-                "value": val,
-                "key": nk,
-                "source": source,
-            }
-        )
+        out.append(cand)
 
     try:
         for ent in getattr(doc, "ents", []):
@@ -1851,6 +2390,10 @@ def _extract_step_numeric_claims(
         elif role == "transaction_price":
             ents = [str(x) for x in (step.get("entity_objects") or step.get("objects") or []) if str(x).strip()]
             applies_to = ents[0] if ents else None
+        elif role in {"count", "percentage_of"}:
+            qo = _clean_entity_surface(str(cand.get("quantity_of") or ""))
+            if qo:
+                applies_to = qo
 
         claim_key = (target_idx, nk, role)
         if claim_key in seen_step_claim:
@@ -1865,12 +2408,27 @@ def _extract_step_numeric_claims(
             "normalized": _numeric_normalized_payload(nk, raw=str(cand.get("raw") or "")),
         }
         years = _nearest_years_from_doc(doc, root_i, limit=2)
+        nearest_date_text = _nearest_date_text_from_doc(doc, root_i)
         if not years:
             years = _years_in_text(context_text)
         if not years:
             years = _years_in_text(text)
         if years:
             claim["time_years"] = years
+        if nearest_date_text:
+            # spaCy DATE entities sometimes drop the year ("May" instead of
+            # "May 2004"). If we have an event anchor year and the DATE mention
+            # is month-qualified, prefer anchoring to the event-year to avoid
+            # losing attribution precision.
+            if compact_anchor and _contains_month_word(nearest_date_text) and not _years_in_text(nearest_date_text):
+                ay = compact_anchor.get("year")
+                atxt = str(compact_anchor.get("text") or "").strip()
+                if isinstance(ay, int) and ay > 0:
+                    if atxt and str(ay) in atxt and _contains_month_word(atxt):
+                        nearest_date_text = atxt
+                    else:
+                        nearest_date_text = f"{nearest_date_text} {ay}".strip()
+            claim["time_text"] = nearest_date_text
         if compact_anchor:
             claim["time_anchor"] = dict(compact_anchor)
         if applies_to:
@@ -2316,18 +2874,7 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
 
     out: List[str] = []
     seen = set()
-    date_ranges: List[Tuple[int, int]] = []
-    if doc is not None:
-        try:
-            for ent in getattr(doc, "ents", []):
-                if str(getattr(ent, "label_", "") or "") != "DATE":
-                    continue
-                st = int(getattr(ent, "start_char", -1))
-                en = int(getattr(ent, "end_char", -1))
-                if st >= 0 and en > st:
-                    date_ranges.append((st, en))
-        except Exception:
-            date_ranges = []
+    date_ranges = _collect_date_like_char_ranges(doc)
 
     def _emit(cand: str, start_char: int = -1, end_char: int = -1, window_text: str = "") -> None:
         c = _normalize_numeric_mention(cand)
@@ -2343,6 +2890,8 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
             return
         unit = _numeric_unit_from_key(k)
         value = _numeric_value_from_key(k)
+        if _is_slash_date_fragment(s, start_char, end_char, k):
+            return
         if start_char >= 0 and end_char > start_char:
             overlaps_date = any(ds < end_char and start_char < de for ds, de in date_ranges)
             if overlaps_date and unit in {"", "year", "month", "day"}:
@@ -2357,12 +2906,37 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
 
     # Preferred path: parser spans first, then token-local extraction.
     if doc is not None:
+        # Span-candidates path: preserves dependency-derived units (e.g., "71 lines")
+        # and avoids date fragments via overlap checks.
+        covered: List[Tuple[int, int]] = []
+
+        def _covered_overlap(st: int, en: int) -> bool:
+            if st < 0 or en <= st:
+                return False
+            return any(cs < en and st < ce for cs, ce in covered if cs >= 0 and ce > cs)
+
+        try:
+            for cand in _extract_numeric_span_candidates(doc):
+                st = int(cand.get("start", -1) or -1)
+                en = int(cand.get("end", -1) or -1)
+                if st >= 0 and en > st:
+                    covered.append((st, en))
+                _emit(
+                    str(cand.get("value") or cand.get("raw") or ""),
+                    start_char=st,
+                    end_char=en,
+                )
+        except Exception:
+            pass
+
         try:
             for ent in getattr(doc, "ents", []):
                 label = str(getattr(ent, "label_", "") or "")
                 if label in {"CARDINAL", "QUANTITY", "PERCENT", "MONEY"}:
                     est = int(getattr(ent, "start_char", -1))
                     een = int(getattr(ent, "end_char", -1))
+                    if _covered_overlap(est, een):
+                        continue
                     _emit(str(getattr(ent, "text", "") or ""), start_char=est, end_char=een)
         except Exception:
             pass
@@ -2475,6 +3049,9 @@ def _extract_numeric_mentions(text: str, doc=None) -> List[str]:
                 span_end_char = int(getattr(end_tok, "idx", -1) or -1)
                 if span_end_char >= 0:
                     span_end_char += len(str(getattr(end_tok, "text", "") or ""))
+                if _covered_overlap(span_start_char, span_end_char):
+                    i = j
+                    continue
                 _emit(candidate, start_char=span_start_char, end_char=span_end_char, window_text=window)
                 i = j
                 continue
@@ -2799,6 +3376,26 @@ def _subject_surface_for_token(doc, tok) -> str:
                     conj_drop.add(int(getattr(c, "i", -1)))
             toks = [t for t in toks if int(getattr(t, "i", -1)) not in conj_drop]
         toks = sorted(toks, key=lambda x: int(getattr(x, "i", 0)))
+
+        # Drop clausal modifier tails for NP surfaces (e.g., `the electorate approved ...`).
+        # We want the head NP, not attached relative/acl clauses.
+        try:
+            cut = None
+            head_i = int(getattr(tok, "i", -1))
+            for idx, t in enumerate(toks):
+                ti = int(getattr(t, "i", -1))
+                if ti == head_i:
+                    continue
+                dep = str(getattr(t, "dep_", "") or "")
+                pos = str(getattr(t, "pos_", "") or "")
+                if dep in {"acl", "relcl", "advcl"} and pos in {"VERB", "AUX"}:
+                    cut = idx
+                    break
+            if cut is not None and cut > 0:
+                toks = toks[:cut]
+        except Exception:
+            pass
+
         out = re.sub(r"\s+", " ", " ".join(str(getattr(t, "text", "") or "") for t in toks)).strip()
         # Appositive/participial tails often appear after commas; keep the head NP.
         if "," in out:
@@ -2820,6 +3417,7 @@ def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, 
         return _normalize_subject_label(root_actor)
     if low in {"that", "which", "who"}:
         return ""
+    s = _canonicalize_root_actor_surface(s, root_actor, root_surname)
 
     s_norm = _norm_phrase(_strip_leading_determiner(s))
     best = None
@@ -2838,12 +3436,49 @@ def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, 
                     best = _normalize_subject_label(resolved or cand)
                     best_len = len(cand)
     if best:
-        return best
+        return _canonicalize_root_actor_surface(best, root_actor, root_surname)
 
     # Surname fallback for standalone root-actor references.
     if root_surname and re.search(rf"\b{re.escape(root_surname)}\b", s, flags=re.IGNORECASE):
         return _normalize_subject_label(root_actor or s)
     return _normalize_subject_label(s)
+
+
+def _canonicalize_root_actor_surface(surface: str, root_actor: str, root_surname: str) -> str:
+    """Map partial root-actor name surfaces back to canonical root actor.
+
+    Example: "Walker Bush" in lead passive clauses should resolve to root actor
+    when token set is a subset of the configured root actor tokens.
+    """
+    s = _normalize_subject_label(surface)
+    root = _normalize_subject_label(root_actor)
+    if not s or not root:
+        return s
+    surname = re.sub(r"[^a-z]", "", str(root_surname or "").strip().lower())
+    if not surname:
+        return s
+    s_parts = [p for p in s.split() if p]
+    r_parts = [p for p in root.split() if p]
+    if len(s_parts) < 2 or len(r_parts) < 2:
+        return s
+    def norm_tok(x: str) -> str:
+        return re.sub(r"[^a-z]", "", str(x or "").lower())
+
+    s_tokens = {norm_tok(p) for p in s_parts if norm_tok(p)}
+    r_tokens = {norm_tok(p) for p in r_parts if norm_tok(p)}
+    if surname not in s_tokens:
+        return s
+    root_initials = {t for t in r_tokens if len(t) == 1}
+    unmatched = []
+    for tok in s_tokens:
+        if tok in r_tokens:
+            continue
+        if tok and tok[0] in root_initials:
+            continue
+        unmatched.append(tok)
+    if not unmatched:
+        return root
+    return s
 
 
 def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, root_surname: str) -> List[str]:
@@ -3210,7 +3845,12 @@ def _surname_is_part_of_name(text: str, surname: str, blocked_first_tokens: Opti
     return False
 
 
-def _extract_capitalized_surname_names(text: str, surname: str, blocked_first_tokens: Optional[set] = None) -> List[str]:
+def _extract_capitalized_surname_names(
+    text: str,
+    surname: str,
+    blocked_first_tokens: Optional[set] = None,
+    root_actor: str = "",
+) -> List[str]:
     """Extract 2-token names like 'Laura Bush' when surname appears in-sentence.
 
     Wikipedia prose sometimes leaves spouse/child names unlinked; this keeps the AAO substrate
@@ -3220,13 +3860,23 @@ def _extract_capitalized_surname_names(text: str, surname: str, blocked_first_to
         return []
     out: List[str] = []
     blocked = blocked_first_tokens or set()
-    for m in re.finditer(rf"\b([A-Z][a-z]+)\s+{re.escape(surname)}\b", text):
-        first = m.group(1).strip()
-        if first.lower() in {"president", "governor", "senator", "rep", "representative", "mr", "mrs", "ms", "dr", "chief"}:
+    title_like = {"president", "governor", "senator", "rep", "representative", "mr", "mrs", "ms", "dr", "chief"}
+    for m in re.finditer(rf"\b((?:[A-Z][a-z]+\s+)?[A-Z][a-z]+)\s+{re.escape(surname)}\b", text):
+        prefix = [p for p in str(m.group(1) or "").split() if p]
+        if not prefix:
             continue
-        if first.lower() in blocked:
+        while prefix and prefix[0].lower() in title_like:
+            prefix = prefix[1:]
+        if not prefix:
             continue
-        full = f"{first} {surname}"
+        if len(prefix) == 1 and prefix[0].lower() in blocked:
+            continue
+        if len(prefix) >= 2 and prefix[0].lower() in blocked:
+            prefix = prefix[1:]
+        if not prefix:
+            continue
+        full = " ".join([*prefix, surname])
+        full = _canonicalize_root_actor_surface(full, root_actor, surname)
         if full not in out:
             out.append(full)
     return out
@@ -3261,6 +3911,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=Path("SensibLaw/policies/wiki_timeline_aoo_profile_v1.json"),
         help="Extraction profile JSON (action patterns/title labels) (default: %(default)s)",
     )
+    ap.add_argument(
+        "--db-path",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_timeline_aoo.sqlite"),
+        help="SQLite persistence target for canonical storage (JSON remains an export) (default: %(default)s)",
+    )
+    ap.add_argument("--no-db", action="store_true", help="Disable SQLite persistence (export JSON only)")
     ap.add_argument("--spacy-model", default="en_core_web_sm", help="spaCy model for deterministic role/attachment parsing")
     ap.add_argument("--no-spacy", action="store_true", help="Disable spaCy parsing (span candidates lane will be empty)")
     args = ap.parse_args(argv)
@@ -3286,6 +3943,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     modal_container_grammar = _profile_modal_container_grammar(profile_payload)
     communication_chain_config = _profile_communication_chain_config(profile_payload)
     epistemic_verbs = _profile_epistemic_verbs(profile_payload, communication_chain_config)
+    semantic_backbone, semantic_warnings, semantic_error = _profile_semantic_backbone_config(profile_payload)
+    if semantic_error:
+        raise SystemExit(f"invalid extraction profile semantic_backbone: {semantic_error}")
     action_pattern_specs = _profile_action_pattern_specs(profile_payload)
     action_patterns = _compile_action_patterns(action_pattern_specs)
     if not action_patterns:
@@ -3301,8 +3961,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         "requester_title_labels": requester_title_labels,
         "modal_container_grammar": modal_container_grammar,
         "communication_chain": communication_chain_config,
+        "semantic_backbone": semantic_backbone,
+        "semantic_version_pins": _profile_semantic_version_pins(profile_payload),
+        "synset_action_map_count": int(len(_profile_synset_action_map(profile_payload))),
+        "synset_action_map_sha256": _sha256_json(_profile_synset_action_map(profile_payload)),
+        "babelnet_table_sha256": _sha256_json(_profile_babelnet_lemma_synsets(profile_payload)),
         "epistemic_verbs": epistemic_verbs,
         "predicate_classifier": "src.nlp.epistemic_classifier" if _EpistemicClassifier is not None else "builtin_step_signals",
+        "action_classifier": "src.nlp.event_classifier" if _EventClassifier is not None else "regex_fallback",
+        "warnings": semantic_warnings,
         "error": profile_error,
     }
 
@@ -3319,10 +3986,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         candidates_payload = _load_json(args.candidates)
         alias_map = _guess_person_titles(candidates_payload)
         candidate_titles = _candidate_titles(candidates_payload)
-    alias_keys = {k.lower() for k in alias_map.keys()}
-
     root_actor = str(args.root_actor).strip()
     root_surname = str(args.root_surname).strip()
+    if root_surname and root_actor:
+        alias_map[root_surname] = root_actor
+    alias_keys = {k.lower() for k in alias_map.keys()}
 
     nlp = None
     parser_info = None
@@ -3330,6 +3998,52 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not args.no_spacy:
         nlp, parser_info, parser_error = _try_load_spacy(str(args.spacy_model))
     classifier = _EpistemicClassifier(nlp) if (_EpistemicClassifier is not None and nlp is not None) else None
+
+    synset_mapper = None
+    if (
+        nlp is not None
+        and _SynsetActionMapper is not None
+        and str((semantic_backbone or {}).get("resource") or "none").lower() != "none"
+    ):
+        pins = _profile_semantic_version_pins(profile_payload)
+        synset_action_map = _profile_synset_action_map(profile_payload)
+        babelnet_lemma_synsets = _profile_babelnet_lemma_synsets(profile_payload)
+
+        # Enforce runtime version pins before enabling semantic mapping.
+        req_wn = str(pins.get("wordnet") or "").strip()
+        if "wordnet" in str((semantic_backbone or {}).get("resource") or "").lower() and not req_wn:
+            raise SystemExit("invalid extraction profile: semantic_version_pins.wordnet required when wordnet enabled")
+
+        req_syn_map = str(pins.get("synset_action_map_sha256") or "").strip()
+        if not req_syn_map:
+            raise SystemExit("invalid extraction profile: semantic_version_pins.synset_action_map_sha256 required when semantic mapping enabled")
+        if _sha256_json(synset_action_map) != req_syn_map:
+            raise SystemExit("synset_action_map sha256 pin mismatch")
+
+        if "babelnet" in str((semantic_backbone or {}).get("resource") or "").lower():
+            req_babel = str(pins.get("babelnet_table_sha256") or "").strip()
+            if not req_babel:
+                raise SystemExit("invalid extraction profile: semantic_version_pins.babelnet_table_sha256 required when babelnet enabled")
+            if _sha256_json(babelnet_lemma_synsets) != req_babel:
+                raise SystemExit("babelnet table sha256 pin mismatch")
+
+        synset_mapper = _SynsetActionMapper(
+            resource=str((semantic_backbone or {}).get("resource") or "none"),
+            wsd_policy=str((semantic_backbone or {}).get("wsd_policy") or "none"),
+            version_pins=pins,
+            synset_action_map=synset_action_map,
+            babelnet_lemma_synsets=babelnet_lemma_synsets,
+        )
+
+        wn_ver = str(getattr(synset_mapper, "metadata", lambda: {})().get("wordnet_version") or "").strip()
+        if req_wn and wn_ver and wn_ver != req_wn:
+            raise SystemExit(f"wordnet version pin mismatch: required={req_wn} actual={wn_ver}")
+
+    event_classifier = (
+        _EventClassifier(ACTION_LEMMAS, synset_mapper=synset_mapper)
+        if (_EventClassifier is not None and nlp is not None)
+        else None
+    )
 
     out_events: List[dict] = []
     generated_at = _utc_now_iso()
@@ -3353,7 +4067,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             except Exception:
                 doc = None
 
-        action, w_action = _extract_action(parse_text, action_patterns)
+        action, w_action = _extract_action(parse_text, action_patterns, doc=doc, event_classifier=event_classifier)
         warnings.extend(w_action)
         purpose = _extract_purpose_from_doc(doc) if doc is not None else None
         if not action and doc is not None:
@@ -3444,6 +4158,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         requester, requester_resolved, requester_has_title = _extract_requester_from_doc(doc, alias_map)
         requester_source = "dep:request"
         if not requester:
+            req2, req2_res, req2_src = _extract_requester_from_request_verbs(doc, alias_map)
+            if req2:
+                requester = req2
+                requester_resolved = req2_res
+                requester_has_title = False
+                requester_source = req2_src
+        if not requester:
             rm = REQUEST_RE.search(parse_text)
             if rm:
                 requester = _normalize_requester_surface(rm.group(1))
@@ -3485,7 +4206,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # If surname appears as part of a name, include the surface full-name as an actor.
         if root_surname and _surname_is_part_of_name(parse_text, root_surname, blocked_first_tokens=alias_keys):
-            for full in _extract_capitalized_surname_names(parse_text, root_surname, blocked_first_tokens=alias_keys):
+            for full in _extract_capitalized_surname_names(
+                parse_text,
+                root_surname,
+                blocked_first_tokens=alias_keys,
+                root_actor=root_actor,
+            ):
                 actors.append({"label": full, "resolved": full, "role": "subject", "source": "surface_name"})
 
         # Other alias-resolved person tokens in the sentence.
@@ -3716,11 +4442,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         # by scanning for the earliest occurrences of known actions.
         if not steps:
             hits: List[Tuple[int, str]] = []
-            for label, pat in action_patterns:
-                m = pat.search(parse_text)
-                if not m:
-                    continue
-                hits.append((int(m.start()), label))
+            if doc is not None and event_classifier is not None:
+                try:
+                    for m in event_classifier.collect_candidates(doc):
+                        label = str(getattr(m, "action_label", "") or "").strip()
+                        start_char = int(getattr(m, "start_char", -1))
+                        if not label:
+                            continue
+                        if start_char < 0:
+                            start_char = int(getattr(m, "token_index", 0))
+                        hits.append((start_char, label))
+                except Exception:
+                    pass
+
+            if not hits:
+                for label, pat in action_patterns:
+                    best_start: Optional[int] = None
+                    for m in pat.finditer(parse_text):
+                        st = int(m.start())
+                        en = int(m.end())
+                        if not _match_span_overlaps_verb(doc, st, en):
+                            continue
+                        if best_start is None or st < best_start:
+                            best_start = st
+                    if best_start is None:
+                        continue
+                    hits.append((best_start, label))
             hits = sorted(set(hits), key=lambda x: x[0])[:4]
             for _, lab in hits:
                 if lab == "advised":
@@ -4110,13 +4857,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             epistemic_verbs,
             classifier=classifier,
         )
-        allowed_step_numeric_keys: Optional[set] = None
-        if doc is not None:
-            allowed_step_numeric_keys = set()
-            for n in _extract_numeric_mentions(text, doc=doc):
-                nk = _numeric_key(str(n))
-                if nk:
-                    allowed_step_numeric_keys.add(nk)
+        allowed_step_numeric_keys: Optional[set] = set()
+        for n in _extract_numeric_mentions(text, doc=doc):
+            nk = _numeric_key(str(n))
+            if nk:
+                allowed_step_numeric_keys.add(nk)
 
         for s in steps:
             st_objs = [x for x in (s.get("objects") or []) if x]
@@ -4175,6 +4920,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                     nk = str(c.get("key") or "")
                     val = str(c.get("value") or "")
                     if not nk or not val:
+                        continue
+                    if allowed_step_numeric_keys is not None and nk not in allowed_step_numeric_keys:
                         continue
                     if nk in seen_num:
                         continue
@@ -4250,6 +4997,40 @@ def main(argv: Optional[List[str]] = None) -> int:
             communication_verbs=[str(x or "") for x in (communication_chain_config.get("communication_verbs") or [])],
         )
 
+        # Source-pack / per-row source hints: preserve URL/path metadata when present on the
+        # timeline row (non-authoritative; used for follow-on inspection).
+        citations: List[dict] = []
+        row_url = str(ev.get("url") or "").strip()
+        row_source_id = str(ev.get("source_id") or "").strip()
+        row_title = str(ev.get("title") or "").strip() or str(ev.get("text") or "").strip()
+        if row_url:
+            provider = "source_document"
+            mode = "url"
+            follow = [{"provider": provider, "mode": mode, "url": row_url}]
+            citations.append(
+                {
+                    "text": row_title or row_url,
+                    "kind": "source_row",
+                    "follower_order": ["source_document"],
+                    "follow": follow,
+                    "source_id": row_source_id or None,
+                }
+            )
+        else:
+            # Local pack seed paths use the url field to carry a filesystem path.
+            row_path = str(ev.get("path") or "").strip()
+            if row_path:
+                follow = [{"provider": "source_document", "mode": "path", "path": row_path}]
+                citations.append(
+                    {
+                        "text": row_title or row_path,
+                        "kind": "source_row",
+                        "follower_order": ["source_document"],
+                        "follow": follow,
+                        "source_id": row_source_id or None,
+                    }
+                )
+
         out_events.append(
             {
                 "event_id": ev.get("event_id"),
@@ -4272,6 +5053,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "claim_bearing": bool(claim_step_indices),
                 "claim_step_indices": claim_step_indices,
                 "attributions": event_attributions,
+                "citations": citations,
                 "warnings": warnings,
             }
         )
@@ -4321,6 +5103,36 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Span candidates are unresolved mentions (TextSpan-like) for view-layer surfacing/promotion; they are not entities.",
         ],
     }
+
+    # Canonical persistence: DB-first, idempotent per (run_id,event_id). JSON is an export artifact.
+    if not args.no_db:
+        persist_fn = None
+        try:
+            from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run as persist_fn
+        except Exception:  # pragma: no cover - script execution outside package layout
+            try:
+                from SensibLaw.src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run as persist_fn
+            except Exception:
+                persist_fn = None
+
+        if persist_fn is None:
+            raise SystemExit("SQLite persistence requested but src.wiki_timeline.sqlite_store is unavailable")
+
+        res = persist_fn(
+            db_path=Path(args.db_path),
+            out_payload=out,
+            timeline_path=Path(args.timeline),
+            candidates_path=Path(args.candidates) if args.candidates and Path(args.candidates).exists() else None,
+            profile_path=Path(args.profile) if args.profile and Path(args.profile).exists() else None,
+            extractor_path=Path(__file__),
+        )
+        out["run_id"] = res.run_id
+        out["persistence_inputs"] = {
+            "timeline_sha256": res.timeline_sha256,
+            "profile_sha256": res.profile_sha256,
+            "parser_signature_sha256": res.parser_signature_sha256,
+            "extractor_sha256": res.extractor_sha256,
+        }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
