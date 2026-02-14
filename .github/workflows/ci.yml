@@ -55,75 +55,75 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[test] coverage[toml] pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        - name: Test and CLI smoke
-          run: |
-            set -e
-            mkdir -p stubs/pdfminer
-            python - <<'PY'
-            from pathlib import Path
-            from textwrap import dedent
+      - name: Test and CLI smoke
+        run: |
+          set -e
+          mkdir -p stubs/pdfminer
+          python - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
 
-            ROOT = Path("stubs")
-            (ROOT / "pdfminer").mkdir(parents=True, exist_ok=True)
+          ROOT = Path("stubs")
+          (ROOT / "pdfminer").mkdir(parents=True, exist_ok=True)
 
-            (ROOT / "fastapi.py").write_text(
-                dedent(
-                    """
-                    class HTTPException(Exception):
-                        def __init__(self, status_code: int, detail: str):
-                            self.status_code = status_code
-                            self.detail = detail
+          (ROOT / "fastapi.py").write_text(
+              dedent(
+                  """
+                  class HTTPException(Exception):
+                      def __init__(self, status_code: int, detail: str):
+                          self.status_code = status_code
+                          self.detail = detail
 
-                    class APIRouter:
-                        def __init__(self):
-                            pass
+                  class APIRouter:
+                      def __init__(self):
+                          pass
 
-                        def get(self, *a, **k):
-                            def deco(fn):
-                                return fn
+                      def get(self, *a, **k):
+                          def deco(fn):
+                              return fn
 
-                            return deco
+                          return deco
 
-                        def post(self, *a, **k):
-                            def deco(fn):
-                                return fn
+                      def post(self, *a, **k):
+                          def deco(fn):
+                              return fn
 
-                            return deco
-
-
-                    def Query(*a, **k):
-                        return None
-                    """
-                ).lstrip()
-            )
-
-            (ROOT / "pydantic.py").write_text(
-                dedent(
-                    """
-                    class BaseModel:
-                        pass
+                          return deco
 
 
-                    def Field(default, **kwargs):
-                        return default
-                    """
-                ).lstrip()
-            )
+                  def Query(*a, **k):
+                      return None
+                  """
+              ).lstrip()
+          )
 
-            (ROOT / "pdfminer" / "high_level.py").write_text(
-                dedent(
-                    """
-                    def extract_text(path):
-                        return ""
-                    """
-                ).lstrip()
-            )
+          (ROOT / "pydantic.py").write_text(
+              dedent(
+                  """
+                  class BaseModel:
+                      pass
 
-            (ROOT / "pdfminer" / "__init__.py").touch()
-PY
-            export PYTHONPATH="stubs:."
-            pytest -q
-            python -m src.cli --help
+
+                  def Field(default, **kwargs):
+                      return default
+                  """
+              ).lstrip()
+          )
+
+          (ROOT / "pdfminer" / "high_level.py").write_text(
+              dedent(
+                  """
+                  def extract_text(path):
+                      return ""
+                  """
+              ).lstrip()
+          )
+
+          (ROOT / "pdfminer" / "__init__.py").touch()
+          PY
+          export PYTHONPATH="stubs:."
+          pytest -q
+          python -m src.cli --help
           python scripts/generate_sample_corpus.py
           python examples/distinguish_glj/demo.py
           python -m src.pdf_ingest --help
