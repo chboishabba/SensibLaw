@@ -19,6 +19,9 @@ Tokenizers
   - Example: `regex_simple_v1` (scope=metrics, stable=true)
   - Example: `spacy_word_v3` (scope=semantics, stable=false)
 - Stable tokenizers may appear in invariants/tests; unstable ones may not.
+- Canonical lexeme occurrences currently derive from a regex tokenizer in
+  `SensibLaw/src/text/lexeme_index.py` (Layer‑1 only). spaCy is used for
+  semantic extraction, not canonical token streams.
 
 ## Transition Goal (Regex → Deterministic Multilingual Tokenizer)
 Current lexeme occurrences are derived from a regex tokenizer (`lexeme_index.py`).
@@ -34,6 +37,13 @@ Success criterion:
 - New token stream produces identical graph hydration payloads for
   `/graphs/wiki-timeline`, `/graphs/wiki-timeline-aoo`, and
   `/graphs/wiki-timeline-aoo-all` when compared against stored checkpoints.
+
+Canonical token stream decision
+-------------------------------
+We must explicitly choose and version one of:
+- lexeme-derived canonical tokens, or
+- a dedicated tokenizer stream used as the canonical basis.
+This decision must be documented before switching away from regex.
 
 Lexeme layer (redundancy substrate)
 ----------------------------------

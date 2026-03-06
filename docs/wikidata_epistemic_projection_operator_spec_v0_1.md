@@ -113,6 +113,11 @@ Compute EII over subclass/type edges (e.g., `P279`/`P31`) and correlate
 instability with SCCs or class-order hotspots. This yields a list of
 "epistemically volatile" regions without prescribing fixes.
 
+## Cross-doc linkage (time-series transformations)
+This projection is treated as a deterministic transformation of observations,
+analogous to the `TimeSeries`/`Transformation` model used elsewhere. See:
+- `docs/planning/time_series_transformations.md`
+
 ## Assumptions (explicit, falsifiable)
 - A1 Determinism: identical bundles yield identical `Pi` output.
 - A2 Paraconsistency: contradictory support yields unresolved, not explosion.
