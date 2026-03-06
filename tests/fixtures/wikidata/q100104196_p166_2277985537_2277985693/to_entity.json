@@ -1,0 +1,480 @@
+{
+  "entities": {
+    "Q100104196": {
+      "aliases": {
+        "en": [
+          {
+            "language": "en",
+            "value": "Vittorio Amedeo Balbo Bertone di Sambuy"
+          }
+        ],
+        "fr": [
+          {
+            "language": "fr",
+            "value": "Vittorio Amadeo Balbo Bertone di Sambuy"
+          }
+        ],
+        "it": [
+          {
+            "language": "it",
+            "value": "Vittorio Amedeo Balbo Bertone di Sambuy"
+          }
+        ]
+      },
+      "claims": {
+        "P106": [
+          {
+            "id": "Q100104196$63b10ab1-4789-354f-e0f5-74401cd9740b",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q47064",
+                  "numeric-id": 47064
+                }
+              },
+              "hash": "ffb649595959649ab682c6ff98613648c854f44b",
+              "property": "P106",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          },
+          {
+            "id": "Q100104196$0834fd7b-4b32-671d-9b5a-bce8f9a943a2",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q193391",
+                  "numeric-id": 193391
+                }
+              },
+              "hash": "e7ea5ccd569016f7f6767a58519e933b8a01634e",
+              "property": "P106",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P166": [
+          {
+            "id": "Q100104196$79313bd2-46db-52d4-759b-e05d6d221387",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q20888823",
+                  "numeric-id": 20888823
+                }
+              },
+              "hash": "da6217a2cb6e8f4c6d1d36528631bc387a16d88f",
+              "property": "P166",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P585": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+1838-10-05T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "10c1df263a3c0ecd5beef9da5957b8232d0ea7e6",
+                  "property": "P585",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P585"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "02da89c11faf25f074dbf51c626e8a53c330c047",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://archive.org/details/calendariogenera1842cava/page/140/mode/1up?q=balbo"
+                      },
+                      "hash": "79a27533a4b12f65e4c5b79c5b6cbbf3716f737b",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q100104196$ab18053a-41d7-1c91-a6e9-08044eb66539",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q20867508",
+                  "numeric-id": 20867508
+                }
+              },
+              "hash": "ff5444e32f825edd987bb231c310038a6014f014",
+              "property": "P166",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P18": [
+          {
+            "id": "Q100104196$eff36a07-42b3-c03a-302c-968b5b244bf7",
+            "mainsnak": {
+              "datatype": "commonsMedia",
+              "datavalue": {
+                "type": "string",
+                "value": "Vittorio Amadeo Balbo-Bertone di Sambuy.jpg"
+              },
+              "hash": "5cb10134a14e7d71fc966a3f07ead9785d05ee62",
+              "property": "P18",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P19": [
+          {
+            "id": "Q100104196$2304337d-4732-f5bc-0a65-d31afc59bb73",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q495",
+                  "numeric-id": 495
+                }
+              },
+              "hash": "67e540c10f97d4662fe19f4418059cd38c4b3f54",
+              "property": "P19",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P20": [
+          {
+            "id": "Q100104196$80d7443d-44ce-104c-b6e4-9973f97e3ada",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q1741",
+                  "numeric-id": 1741
+                }
+              },
+              "hash": "c498c5079550a927e1cbe6d5a2bcdbc11cb6f668",
+              "property": "P20",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P21": [
+          {
+            "id": "Q100104196$edd284e4-47e7-e96c-2957-ce974705fe6d",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q6581097",
+                  "numeric-id": 6581097
+                }
+              },
+              "hash": "85ad4b1c7348f7a5aac521135040d74e91fb5939",
+              "property": "P21",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P31": [
+          {
+            "id": "Q100104196$1852ff06-4468-7b6a-5f7d-1c0e70fd814a",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q5",
+                  "numeric-id": 5
+                }
+              },
+              "hash": "ad7d38a03cdd40cdc373de0dc4e7b7fcbccb31d9",
+              "property": "P31",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P373": [
+          {
+            "id": "Q100104196$1ac3e438-16d7-4406-8a61-7945c767f6db",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "Vittorio Amedeo Balbo Bertone"
+              },
+              "hash": "864ce6b771b0120297cd9df05e5e12fc075fad5f",
+              "property": "P373",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P39": [
+          {
+            "id": "Q100104196$9a2ea47d-480e-c7f2-c3cc-b65faf232549",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q1133920",
+                  "numeric-id": 1133920
+                }
+              },
+              "hash": "98e207dac85f7716109d03479ce3a004a213aae7",
+              "property": "P39",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P40": [
+          {
+            "id": "Q100104196$9198736b-4611-58d9-29b3-61dcaa615dfe",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q2791172",
+                  "numeric-id": 2791172
+                }
+              },
+              "hash": "dcf6f4fbb7c07bac86160b1774a5645cba2029ca",
+              "property": "P40",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P410": [
+          {
+            "id": "Q100104196$7ce4e728-4c69-44d0-bb56-444fd6362d66",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q104680",
+                  "numeric-id": 104680
+                }
+              },
+              "hash": "3c39fc0cb14cd5bb4fb0b3621ed713f3f492b23a",
+              "property": "P410",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P569": [
+          {
+            "id": "Q100104196$2b6ccb93-4555-fb26-578f-ffebc60b7fb1",
+            "mainsnak": {
+              "datatype": "time",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "after": 0,
+                  "before": 0,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                  "precision": 11,
+                  "time": "+1792-09-21T00:00:00Z",
+                  "timezone": 0
+                }
+              },
+              "hash": "38e2b90188c648d8cabc16a4a1313a82223db5f8",
+              "property": "P569",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P570": [
+          {
+            "id": "Q100104196$b3973763-43e1-a7a3-f377-1817eb24a13c",
+            "mainsnak": {
+              "datatype": "time",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "after": 0,
+                  "before": 0,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                  "precision": 11,
+                  "time": "+1846-02-06T00:00:00Z",
+                  "timezone": 0
+                }
+              },
+              "hash": "c752b74567faad68451d9f7f293d7f81a4164b1d",
+              "property": "P570",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P735": [
+          {
+            "id": "Q100104196$29ABC833-494A-43DD-8F05-CA8166E2FAF7",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q3834677",
+                  "numeric-id": 3834677
+                }
+              },
+              "hash": "4a80f6c58772517643c3e88783c0b4f8d1c6b846",
+              "property": "P735",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          },
+          {
+            "id": "Q100104196$7fcfed85-4a62-85f9-2671-9e499d835dde",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q18285160",
+                  "numeric-id": 18285160
+                }
+              },
+              "hash": "175949d942f366eecf7be1da53f5e81f90da4cc9",
+              "property": "P735",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ]
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Italian nobleman and diplomat, Count of Sambuy"
+        },
+        "fr": {
+          "language": "fr",
+          "value": "général et diplomate italien"
+        },
+        "it": {
+          "language": "it",
+          "value": "nobile e diplomatico italiano, conte di Sambuy"
+        }
+      },
+      "id": "Q100104196",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Vittorio Amedeo Balbo Bertone"
+        },
+        "fr": {
+          "language": "fr",
+          "value": "Vittorio Balbo Bertone di Sambuy"
+        },
+        "it": {
+          "language": "it",
+          "value": "Vittorio Amedeo Balbo Bertone"
+        },
+        "nl": {
+          "language": "nl",
+          "value": "Vittorio Balbo Bertone di Sambuy"
+        },
+        "sq": {
+          "language": "sq",
+          "value": "Vittorio Balbo Bertone di Sambuy"
+        }
+      },
+      "lastrevid": 2277985693,
+      "modified": "2024-11-21T17:03:15Z",
+      "ns": 0,
+      "pageid": 97871469,
+      "sitelinks": {
+        "commonswiki": {
+          "badges": [],
+          "site": "commonswiki",
+          "title": "Category:Vittorio Amedeo Balbo Bertone di Sambuy",
+          "url": "https://commons.wikimedia.org/wiki/Category:Vittorio_Amedeo_Balbo_Bertone_di_Sambuy"
+        },
+        "itwiki": {
+          "badges": [],
+          "site": "itwiki",
+          "title": "Vittorio Amedeo Balbo Bertone di Sambuy",
+          "url": "https://it.wikipedia.org/wiki/Vittorio_Amedeo_Balbo_Bertone_di_Sambuy"
+        }
+      },
+      "title": "Q100104196",
+      "type": "item"
+    }
+  }
+}

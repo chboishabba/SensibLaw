@@ -58,6 +58,16 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   - `tests/fixtures/wikidata/qualifier_drift_slice_20260307.json`
   - status: synthetic review fixture remains useful as a deterministic
     regression/demo case, but is no longer the only drift example
+- Repo-pinned live drift case:
+  - `tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json`
+  - paired projection:
+    - `tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json`
+  - status: primary repo-stable live qualifier-drift example
+- Second repo-pinned live drift case:
+  - `tests/fixtures/wikidata/q100152461_p54_2456615151_2456615274/slice.json`
+  - paired projection:
+    - `tests/fixtures/wikidata/q100152461_p54_2456615151_2456615274/projection.json`
+  - status: second repo-stable live qualifier-drift example covering `P54`
 - Live finder results (2026-03-07):
   - narrow `P166` scan:
     - `candidate_count=12`
@@ -76,8 +86,8 @@ entry point for Niklas, Ege, Peter, and related reviewers.
       - severity `medium`
       - drift shape: qualifier signature change with the qualifier property set
         unchanged (`P585` only)
-      - materialized under
-        `/tmp/wikidata_qualifier_scan/q100104196_p166_2277985537_2277985693/`
+      - now promoted into repo fixtures under
+        `tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/`
     - currently reported confirmed cases in
       `/tmp/wikidata_qualifier_scan/scan_report.json`:
       - `Q100104196|P166` revisions `2277985537 -> 2277985693` (`medium`)
@@ -148,10 +158,10 @@ The report now exposes:
   semantics.
 
 ## Immediate next actions
-1. Promote one confirmed live materialized case from `/tmp/wikidata_qualifier_scan/`
-   into repo-stable fixtures under `tests/fixtures/wikidata/`.
-2. Re-run the seeded review pass with the importer-backed qualifier baseline and
-   at least one repo-pinned live drift case.
-3. Validate whether `medium` severity for signature-only drift remains the right
+1. Re-run the seeded review pass with the importer-backed qualifier baseline and
+   the repo-pinned `Q100104196|P166` and `Q100152461|P54` live drift cases.
+2. Validate whether `medium` severity for signature-only drift remains the right
    reviewer-facing choice on the confirmed live cases.
+3. Decide whether the earlier observed `Q100243106|P54` case is still worth
+   pinning, or whether the current two-case live pack is sufficient.
 4. Only after that consider expanding beyond bounded qualifier drift.

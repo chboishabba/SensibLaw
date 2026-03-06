@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "generated_by": "build_slice_from_entity_exports",
+    "properties": [
+      "P54"
+    ]
+  },
+  "windows": [
+    {
+      "id": "t1",
+      "source_files": [
+        "tests/fixtures/wikidata/q100152461_p54_2456615151_2456615274/from_entity.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P54",
+          "qualifiers": {
+            "P580": [
+              "+2019-00-00T00:00:00Z"
+            ],
+            "P582": [
+              "+2019-00-00T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [],
+          "subject": "Q100152461",
+          "value": "Q28811319"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "source_files": [
+        "tests/fixtures/wikidata/q100152461_p54_2456615151_2456615274/to_entity.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P54",
+          "qualifiers": {
+            "P580": [
+              "+2019-00-00T00:00:00Z"
+            ],
+            "P582": [
+              "+2019-00-00T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [],
+          "subject": "Q100152461",
+          "value": "Q28811319"
+        },
+        {
+          "property": "P54",
+          "qualifiers": {
+            "P580": [
+              "+2022-07-00T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [],
+          "subject": "Q100152461",
+          "value": "Q28811319"
+        }
+      ]
+    }
+  ]
+}

@@ -41,8 +41,11 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
+    sensiblaw_root = repo_root / "SensibLaw"
+    if str(sensiblaw_root) not in sys.path:
+        sys.path.insert(0, str(sensiblaw_root))
 
-    from SensibLaw.src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run  # noqa: PLC0415
+    from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run  # noqa: PLC0415
 
     source_db = Path(args.source_db).expanduser()
     dest_db = Path(args.dest_db).expanduser()

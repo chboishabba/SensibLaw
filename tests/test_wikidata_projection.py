@@ -200,3 +200,41 @@ def test_real_imported_qualifier_slice_is_stable_baseline() -> None:
         "medium": 0,
         "low": 0,
     }
+
+
+def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection() -> None:
+    fixture_root = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "q100104196_p166_2277985537_2277985693"
+    )
+    payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
+    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P166",))
+
+    assert report["qualifier_drift"] == expected["qualifier_drift"]
+    assert report["qualifier_drift"][0]["slot_id"] == "Q100104196|P166"
+    assert report["qualifier_drift"][0]["severity"] == "medium"
+    assert report["qualifier_drift"][0]["qualifier_property_set_t1"] == ["P585"]
+    assert report["qualifier_drift"][0]["qualifier_property_set_t2"] == ["P585"]
+
+
+def test_repo_pinned_second_live_qualifier_drift_case_matches_materialized_projection() -> None:
+    fixture_root = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "q100152461_p54_2456615151_2456615274"
+    )
+    payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
+    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P54",))
+
+    assert report["qualifier_drift"] == expected["qualifier_drift"]
+    assert report["qualifier_drift"][0]["slot_id"] == "Q100152461|P54"
+    assert report["qualifier_drift"][0]["severity"] == "medium"
+    assert report["qualifier_drift"][0]["qualifier_property_set_t1"] == ["P580", "P582"]
+    assert report["qualifier_drift"][0]["qualifier_property_set_t2"] == ["P580", "P582"]

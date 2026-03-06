@@ -162,3 +162,67 @@ def test_wikidata_build_slice_and_project_real_qualifier_baseline(tmp_path, caps
     assert {
         slot["slot_id"] for slot in file_payload["windows"][0]["slots"]
     } == {"Q1336181|P166", "Q28792860|P166"}
+
+
+def test_wikidata_project_cli_matches_repo_pinned_live_drift_case(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "q100104196_p166_2277985537_2277985693"
+        / "slice.json"
+    )
+    out_path = tmp_path / "repo_pinned_live_drift_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "project",
+            "--input",
+            str(in_path),
+            "--property",
+            "P166",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert file_payload["qualifier_drift"][0]["slot_id"] == "Q100104196|P166"
+    assert file_payload["qualifier_drift"][0]["severity"] == "medium"
+
+
+def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "q100152461_p54_2456615151_2456615274"
+        / "slice.json"
+    )
+    out_path = tmp_path / "repo_pinned_second_live_drift_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "project",
+            "--input",
+            str(in_path),
+            "--property",
+            "P54",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert file_payload["qualifier_drift"][0]["slot_id"] == "Q100152461|P54"
+    assert file_payload["qualifier_drift"][0]["severity"] == "medium"

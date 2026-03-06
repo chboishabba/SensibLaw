@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "generated_by": "build_slice_from_entity_exports",
+    "properties": [
+      "P166"
+    ]
+  },
+  "windows": [
+    {
+      "id": "t1",
+      "source_files": [
+        "/tmp/wikidata_qualifier_scan/q100104196_p166_2277985537_2277985693/from_entity.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1838-10-05T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://archive.org/details/calendariogenera1842cava/page/140/mode/1up?q=balbo"
+              ]
+            }
+          ],
+          "subject": "Q100104196",
+          "value": "Q20888823"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "source_files": [
+        "/tmp/wikidata_qualifier_scan/q100104196_p166_2277985537_2277985693/to_entity.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1838-10-05T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://archive.org/details/calendariogenera1842cava/page/140/mode/1up?q=balbo"
+              ]
+            }
+          ],
+          "subject": "Q100104196",
+          "value": "Q20888823"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {},
+          "rank": "normal",
+          "references": [],
+          "subject": "Q100104196",
+          "value": "Q20867508"
+        }
+      ]
+    }
+  ]
+}

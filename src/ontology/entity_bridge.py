@@ -69,6 +69,14 @@ _SEEDED_BRIDGE_PAYLOAD = {
             "aliases": ["U.S. Supreme Court", "United States Supreme Court", "US Supreme Court", "SCOTUS"],
         },
         {
+            "canonical_ref": "court:united_states_district_court",
+            "canonical_kind": "court_ref",
+            "provider": "wikidata",
+            "external_id": "Q1614849",
+            "canonical_label": "United States district court",
+            "aliases": ["U.S. district court", "US district court", "United States district court"],
+        },
+        {
             "canonical_ref": "institution:u_s_senate",
             "canonical_kind": "institution_ref",
             "provider": "wikidata",

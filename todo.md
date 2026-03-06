@@ -13,7 +13,8 @@
 - [x] Import real qualifier-bearing slices and add an importer-backed phase-2 baseline pack.
 - [x] Add a deterministic live qualifier-drift finder that ranks candidates and scans revision pairs programmatically.
 - [x] Find a true live revision-pair qualifier-change case with the live finder.
-- [ ] Promote the primary live materialized drift case (`Q100104196|P166`, `2277985537 -> 2277985693`) into repo-stable fixtures and review docs.
+- [x] Promote the primary live materialized drift case (`Q100104196|P166`, `2277985537 -> 2277985693`) into repo-stable fixtures and review docs.
+- [x] Promote a second confirmed live drift case (`Q100152461|P54`, `2456615151 -> 2456615274`) into the pinned repo pack.
 - [x] Connect the new deterministic lexer/entity bridge outputs to the existing
   external-ref/entity substrate so seeded refs (`UN`, `UNSC`, `ICC`, `ICJ`)
   are persisted as linked entities without polluting canonical lexeme identity.
@@ -31,6 +32,9 @@
   bodies/courts that are now lexically recognized but not yet QID-backed in the
   seeded bridge substrate (for example `Department of Defense` and the Sixth
   Circuit / district-court lane once the reviewed slice is pinned).
+- [ ] Fix `scripts/migrate_wiki_timeline_to_itir_db.py` import-path assumptions
+  so the eager rewrite/backfill command works directly without the current
+  one-off package-path shim.
 - [x] Normalize canonical structural atoms for DB dedupe, starting with the
   high-yield legal kinds (`case_ref`, `section_ref`, `act_ref`, `paragraph_ref`)
   and then layering in `institution_ref` / `court_ref` where useful.

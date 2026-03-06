@@ -196,7 +196,7 @@ def test_ontology_bridge_import_and_report_cli(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["ok"] is True
     assert payload["slice_name"] == "seeded_body_refs_v1"
-    assert payload["entity_count"] == 9
+    assert payload["entity_count"] == 10
 
     cli_main.main(
         [
@@ -211,6 +211,6 @@ def test_ontology_bridge_import_and_report_cli(tmp_path, capsys):
     report = json.loads(capsys.readouterr().out)
     assert report["ok"] is True
     assert report["slice_name"] == "seeded_body_refs_v1"
-    assert report["entity_count"] == 9
-    assert report["entities_by_kind"]["court_ref"] >= 3
+    assert report["entity_count"] == 10
+    assert report["entities_by_kind"]["court_ref"] >= 4
     assert report["entities_by_kind"]["institution_ref"] >= 6

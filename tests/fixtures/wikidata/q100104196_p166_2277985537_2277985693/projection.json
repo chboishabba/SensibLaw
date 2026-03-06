@@ -1,0 +1,168 @@
+{
+  "assumptions": {
+    "advisory_only": true,
+    "rank_evidence_gate_e0": 1,
+    "tokenizer_lexeme_boundary_preserved": true
+  },
+  "bounded_slice": {
+    "properties": [
+      "P166"
+    ],
+    "window_ids": [
+      "t1",
+      "t2"
+    ]
+  },
+  "qualifier_drift": [
+    {
+      "from_window": "t1",
+      "property_pid": "P166",
+      "qualifier_entropy_delta": 1.0,
+      "qualifier_entropy_t1": 0.0,
+      "qualifier_entropy_t2": 1.0,
+      "qualifier_property_set_t1": [
+        "P585"
+      ],
+      "qualifier_property_set_t2": [
+        "P585"
+      ],
+      "qualifier_signatures_t1": [
+        "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]"
+      ],
+      "qualifier_signatures_t2": [
+        "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+        "[]"
+      ],
+      "severity": "medium",
+      "slot_id": "Q100104196|P166",
+      "subject_qid": "Q100104196",
+      "to_window": "t2"
+    }
+  ],
+  "review_summary": {
+    "next_bounded_slice_recommendation": "Qualifier drift is now active; expand qualifier-bearing slices and review property-set instability before wider ontology phases.",
+    "qualifier_drift_counts": {
+      "high": 0,
+      "low": 0,
+      "medium": 1
+    },
+    "structural_focus": [
+      "mixed_order_nodes",
+      "p279_sccs",
+      "metaclass_candidates"
+    ],
+    "top_qualifier_drift_slot_ids": [
+      "Q100104196|P166"
+    ],
+    "top_unstable_slot_ids": [],
+    "unstable_slot_counts": {
+      "high": 0,
+      "low": 0,
+      "medium": 0
+    }
+  },
+  "schema_version": "wikidata_projection_v0_1",
+  "unstable_slots": [],
+  "windows": [
+    {
+      "bundle_count": 1,
+      "diagnostics": {
+        "metaclass_candidates": [],
+        "mixed_order_nodes": [],
+        "p279_sccs": []
+      },
+      "id": "t1",
+      "slot_count": 1,
+      "slots": [
+        {
+          "audit": [
+            {
+              "distinct_sources": 0,
+              "has_time_reference": false,
+              "qualifier_signature": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+              "rank": "normal",
+              "reference_block_count": 1,
+              "rule_ids": [
+                "base",
+                "quals",
+                "refs",
+                "rank"
+              ]
+            }
+          ],
+          "bundle_count": 1,
+          "property_pid": "P166",
+          "qualifier_entropy": 0.0,
+          "qualifier_property_set": [
+            "P585"
+          ],
+          "qualifier_signatures": [
+            "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]"
+          ],
+          "slot_id": "Q100104196|P166",
+          "subject_qid": "Q100104196",
+          "sum_c": 0,
+          "sum_e": 1,
+          "tau": 0
+        }
+      ]
+    },
+    {
+      "bundle_count": 2,
+      "diagnostics": {
+        "metaclass_candidates": [],
+        "mixed_order_nodes": [],
+        "p279_sccs": []
+      },
+      "id": "t2",
+      "slot_count": 1,
+      "slots": [
+        {
+          "audit": [
+            {
+              "distinct_sources": 0,
+              "has_time_reference": false,
+              "qualifier_signature": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+              "rank": "normal",
+              "reference_block_count": 1,
+              "rule_ids": [
+                "base",
+                "quals",
+                "refs",
+                "rank"
+              ]
+            },
+            {
+              "distinct_sources": 0,
+              "has_time_reference": false,
+              "qualifier_signature": "[]",
+              "rank": "normal",
+              "reference_block_count": 0,
+              "rule_ids": [
+                "base",
+                "quals",
+                "refs",
+                "rank"
+              ]
+            }
+          ],
+          "bundle_count": 2,
+          "property_pid": "P166",
+          "qualifier_entropy": 1.0,
+          "qualifier_property_set": [
+            "P585"
+          ],
+          "qualifier_signatures": [
+            "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+            "[]"
+          ],
+          "slot_id": "Q100104196|P166",
+          "subject_qid": "Q100104196",
+          "sum_c": 0,
+          "sum_e": 1,
+          "tau": 0
+        }
+      ]
+    }
+  ]
+}

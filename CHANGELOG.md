@@ -114,6 +114,13 @@
   confirmed medium-severity revision-pair drift cases, with the primary
   materialized example currently `Q100104196|P166`
   (`2277985537 -> 2277985693`) under `/tmp/wikidata_qualifier_scan/`.
+- Wikidata qualifier fixtures/tests: promote the primary live drift case
+  `Q100104196|P166` (`2277985537 -> 2277985693`) into
+  `tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/` and add
+  projector/CLI regression coverage for the repo-pinned materialized slice.
+- Wikidata qualifier fixtures/tests: add a second repo-pinned live drift case
+  `Q100152461|P54` (`2456615151 -> 2456615274`) so the phase-2 review pack now
+  covers both `P166` and `P54`.
 - Wikidata operator helper: add
   `scripts/run_wikidata_qualifier_drift_scan.py` to run the live finder,
   persist a scan report, and automatically materialize the first confirmed case
@@ -556,3 +563,9 @@
 - Tokenizer/bridge scope: add first GWB-oriented U.S. body aliases
   (`U.S. Senate`, `House of Representatives`, `CIA`, `FBI`, `Department of Defense`)
   while keeping QID resolution deterministic and slice-backed.
+- Data: add checked-in reviewed bridge slice
+  `SensibLaw/data/ontology/wikidata_bridge_bodies_gwb_v1.json` and import it
+  into the live `itir.sqlite` bridge substrate.
+- Ops: live `itir.sqlite` wiki timeline runs were repersisted through the new
+  normalized event/atom path (`14` runs) so storage reports now include
+  structural-atom stats on existing GWB timeline runs.

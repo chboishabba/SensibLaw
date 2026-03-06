@@ -47,6 +47,14 @@
       "provider": "wikidata"
     },
     {
+      "aliases": ["U.S. district court", "US district court", "United States district court"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "United States district court",
+      "canonical_ref": "court:united_states_district_court",
+      "external_id": "Q1614849",
+      "provider": "wikidata"
+    },
+    {
       "aliases": ["U.S. Senate", "US Senate", "United States Senate", "Senate of the United States"],
       "canonical_kind": "institution_ref",
       "canonical_label": "United States Senate",

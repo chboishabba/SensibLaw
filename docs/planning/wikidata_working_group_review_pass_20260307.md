@@ -66,8 +66,9 @@
   baseline slice plus the bounded synthetic drift demo; live runs now also show
   confirmed medium-severity revision-pair drift on `P166` and `P54`; the
   primary current materialized case is `Q100104196|P166`
-  (`2277985537 -> 2277985693`), so the next step is promoting that case into
-  repo-stable fixtures
+  (`2277985537 -> 2277985693`), and both that case and `Q100152461|P54`
+  (`2456615151 -> 2456615274`) are now pinned in repo fixtures as the live
+  phase-2 examples
 
 ## Next review actions
 - keep `P31` / `P279` as the next bounded slice
@@ -84,9 +85,10 @@
   - `Q1336181` / `Knight of the Order of the Dannebrog`: `currently live`,
     imported qualifier-bearing baseline (`P585`, `P7452`)
   - `Q100104196|P166`: `currently live`, primary materialized drift case from
-    current broad run (`2277985537 -> 2277985693`, `medium`)
-  - `Q100152461|P54`: `currently live`, confirmed drift in current broad report
-    (`2456615151 -> 2456615274`, `medium`)
+    current broad run and now repo-pinned
+    (`2277985537 -> 2277985693`, `medium`)
+  - `Q100152461|P54`: `currently live`, second repo-pinned drift case from the
+    current broad report (`2456615151 -> 2456615274`, `medium`)
   - `Q100243106|P54`: `currently live`, earlier observed drift case from live
     finder (`2462692998 -> 2462767606`, `medium`)
   - `referendum` / `plebiscite`: `historical thread example`
