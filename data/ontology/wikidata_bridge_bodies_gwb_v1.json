@@ -1,0 +1,82 @@
+{
+  "slice": {
+    "name": "seeded_body_refs_v1",
+    "notes": "Deterministic reviewed body/court bridge seeds for canonical runs and GWB-focused body coverage.",
+    "policy_version": "entity_bridge_v1",
+    "source_version": "seeded_local_v1"
+  },
+  "entities": [
+    {
+      "aliases": ["UN", "U.N.", "UNO", "United Nations", "United Nations Organization"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "United Nations",
+      "canonical_ref": "institution:united_nations",
+      "external_id": "Q1065",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["UN Security Council", "U.N. Security Council", "UNSC", "Security Council", "United Nations Security Council"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "United Nations Security Council",
+      "canonical_ref": "institution:united_nations_security_council",
+      "external_id": "Q37470",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["ICC", "ICCt", "International Criminal Court"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "International Criminal Court",
+      "canonical_ref": "court:international_criminal_court",
+      "external_id": "Q47488",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["ICJ", "World Court", "International Court of Justice"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "International Court of Justice",
+      "canonical_ref": "court:international_court_of_justice",
+      "external_id": "Q7801",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["U.S. Supreme Court", "United States Supreme Court", "US Supreme Court", "SCOTUS"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "Supreme Court of the United States",
+      "canonical_ref": "court:u_s_supreme_court",
+      "external_id": "Q11201",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["U.S. Senate", "US Senate", "United States Senate", "Senate of the United States"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "United States Senate",
+      "canonical_ref": "institution:u_s_senate",
+      "external_id": "Q66096",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["House of Representatives", "U.S. House of Representatives", "US House of Representatives", "United States House of Representatives"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "United States House of Representatives",
+      "canonical_ref": "institution:u_s_house_of_representatives",
+      "external_id": "Q11701",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["CIA", "Central Intelligence Agency"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "Central Intelligence Agency",
+      "canonical_ref": "institution:central_intelligence_agency",
+      "external_id": "Q37230",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["FBI", "F.B.I.", "Federal Bureau of Investigation"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "Federal Bureau of Investigation",
+      "canonical_ref": "institution:federal_bureau_of_investigation",
+      "external_id": "Q8333",
+      "provider": "wikidata"
+    }
+  ]
+}

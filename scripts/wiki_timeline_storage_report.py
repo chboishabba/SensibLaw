@@ -13,6 +13,24 @@ def _sum_length(conn: sqlite3.Connection, query: str, params: tuple[object, ...]
     return int((row[0] or 0) if row else 0)
 
 
+def _duplicate_string_bytes(conn: sqlite3.Connection, query: str) -> int:
+    total = 0
+    for row in conn.execute(query).fetchall():
+        text = str(row[0] or "")
+        count = int(row[1] or 0)
+        if text and count > 1:
+            total += (count - 1) * len(text)
+    return total
+
+
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Report normalized wiki timeline storage stats.")
     p.add_argument("--db-path", default=".cache_local/itir.sqlite")
@@ -23,11 +41,14 @@ def main() -> None:
     sb_root = Path(__file__).resolve().parents[1]
     if str(sb_root) not in sys.path:
         sys.path.insert(0, str(sb_root))
+    from src.ontology.entity_bridge import bridge_storage_summary, ensure_bridge_schema, ensure_seeded_bridge_slice  # noqa: PLC0415
     from src.wiki_timeline.sqlite_store import _ensure_schema, load_run_payload_from_normalized  # noqa: PLC0415
 
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_schema(conn)
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
         run_id = str(args.run_id)
         load_run_payload_from_normalized(conn, run_id)
         event_count = int(conn.execute("SELECT COUNT(*) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,)).fetchone()[0] or 0)
@@ -42,6 +63,63 @@ def main() -> None:
         event_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(item_json)) FROM wiki_timeline_event_lists WHERE run_id = ?", (run_id,))
         run_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(item_json)) FROM wiki_timeline_run_lists WHERE run_id = ?", (run_id,))
         normalized_total = residual_bytes + actor_bytes + link_bytes + object_bytes + step_bytes + step_subject_bytes + step_object_bytes + event_list_bytes + run_list_bytes
+        structural_occurrence_count = int(
+            conn.execute(
+                "SELECT COUNT(*) FROM wiki_timeline_event_structural_atoms WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()[0]
+            or 0
+        )
+        structural_unique_count = int(
+            conn.execute(
+                """
+                SELECT COUNT(DISTINCT a.atom_id)
+                FROM wiki_timeline_event_structural_atoms AS o
+                JOIN wiki_timeline_structural_atoms AS a ON a.atom_id = o.atom_id
+                WHERE o.run_id = ?
+                """,
+                (run_id,),
+            ).fetchone()[0]
+            or 0
+        )
+        structural_duplicate_bytes = _duplicate_string_bytes(
+            conn,
+            """
+            SELECT a.norm_text, COUNT(*)
+            FROM wiki_timeline_event_structural_atoms AS o
+            JOIN wiki_timeline_structural_atoms AS a ON a.atom_id = o.atom_id
+            WHERE o.run_id = ?
+            GROUP BY a.norm_text
+            """.replace("?", f"'{run_id}'"),
+        )
+        if _table_exists(conn, "actor_external_refs") and _table_exists(conn, "concept_external_refs"):
+            external_url_duplicate_bytes = _duplicate_string_bytes(
+                conn,
+                """
+                SELECT external_url, COUNT(*) FROM (
+                  SELECT external_url FROM actor_external_refs
+                  UNION ALL
+                  SELECT external_url FROM concept_external_refs
+                )
+                WHERE COALESCE(external_url, '') <> ''
+                GROUP BY external_url
+                """,
+            )
+            notes_duplicate_bytes = _duplicate_string_bytes(
+                conn,
+                """
+                SELECT notes, COUNT(*) FROM (
+                  SELECT notes FROM actor_external_refs
+                  UNION ALL
+                  SELECT notes FROM concept_external_refs
+                )
+                WHERE COALESCE(notes, '') <> ''
+                GROUP BY notes
+                """,
+            )
+        else:
+            external_url_duplicate_bytes = 0
+            notes_duplicate_bytes = 0
 
         payload = {
             "run_id": run_id,
@@ -60,6 +138,16 @@ def main() -> None:
                 "step_objects": step_object_bytes,
                 "event_lists": event_list_bytes,
                 "run_lists": run_list_bytes,
+            },
+            "structural_atom_stats": {
+                "occurrence_count": structural_occurrence_count,
+                "unique_count": structural_unique_count,
+                "duplicate_canonical_bytes_estimate": structural_duplicate_bytes,
+            },
+            "bridge_storage": bridge_storage_summary(conn),
+            "external_ref_duplicate_bytes_estimate": {
+                "external_url": external_url_duplicate_bytes,
+                "notes": notes_duplicate_bytes,
             },
         }
         print(json.dumps(payload, indent=2, sort_keys=True))

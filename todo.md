@@ -12,17 +12,25 @@
 - [x] Extend phase-1 diagnostics to qualifier drift after the `P31` / `P279` core report is stable.
 - [x] Import real qualifier-bearing slices and add an importer-backed phase-2 baseline pack.
 - [x] Add a deterministic live qualifier-drift finder that ranks candidates and scans revision pairs programmatically.
-- [ ] Find a true live revision-pair qualifier-change case to replace the bounded synthetic fixture as the primary qualifier-drift demo.
+- [x] Find a true live revision-pair qualifier-change case with the live finder.
+- [ ] Promote the primary live materialized drift case (`Q100104196|P166`, `2277985537 -> 2277985693`) into repo-stable fixtures and review docs.
 - [x] Connect the new deterministic lexer/entity bridge outputs to the existing
   external-ref/entity substrate so seeded refs (`UN`, `UNSC`, `ICC`, `ICJ`)
   are persisted as linked entities without polluting canonical lexeme identity.
   Curated batch emission plus CLI upsert roundtrip coverage now exist.
-- [ ] Expand the low-ambiguity bridge dictionary only where corpus yield justifies it,
-  keeping open-world Wikidata ambiguity resolution outside the lexer.
+- [ ] Expand the DB-backed deterministic bridge substrate only where corpus
+  yield justifies it, keeping open-world Wikidata ambiguity resolution outside
+  the lexer. Current v1 slice covers seeded global bodies plus the first
+  GWB-oriented U.S. court/body set (`U.S. Supreme Court`, `U.S. Senate`,
+  `House of Representatives`, `CIA`, `FBI`).
 
 ## Medium-Term Targets
 - [ ] Add jurisdiction-aware GWB action review as a test target: be able to assess George W. Bush timeline actions under pinned U.S. law and Australian law, with U.S. law first.
 - [ ] Build a U.S.-law seed set for GWB covering relevant actions, proceedings, and court/hearing material so specific events can be pinned to authoritative legal sources before broader cross-jurisdiction comparison.
+- [ ] Import a reviewed deterministic bridge slice for the remaining GWB U.S.
+  bodies/courts that are now lexically recognized but not yet QID-backed in the
+  seeded bridge substrate (for example `Department of Defense` and the Sixth
+  Circuit / district-court lane once the reviewed slice is pinned).
 - [x] Normalize canonical structural atoms for DB dedupe, starting with the
   high-yield legal kinds (`case_ref`, `section_ref`, `act_ref`, `paragraph_ref`)
   and then layering in `institution_ref` / `court_ref` where useful.

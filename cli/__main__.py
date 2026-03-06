@@ -542,6 +542,43 @@ def _handle_ontology_external_refs_upsert(args: argparse.Namespace) -> None:
         connection.close()
 
 
+def _handle_ontology_bridge_import(args: argparse.Namespace) -> None:
+    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload
+
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    connection = sqlite3.connect(args.db)
+    connection.row_factory = sqlite3.Row
+    try:
+        ensure_bridge_schema(connection)
+        result = import_bridge_payload(connection, payload, replace_slice=bool(args.replace))
+        if args.dry_run:
+            connection.rollback()
+        else:
+            connection.commit()
+        _print_json({"ok": True, "dry_run": bool(args.dry_run), "db": args.db, **result})
+    finally:
+        connection.close()
+
+
+def _handle_ontology_bridge_report(args: argparse.Namespace) -> None:
+    from src.ontology.entity_bridge import bridge_storage_summary, ensure_bridge_schema, ensure_seeded_bridge_slice
+
+    connection = sqlite3.connect(args.db)
+    connection.row_factory = sqlite3.Row
+    try:
+        ensure_bridge_schema(connection)
+        ensure_seeded_bridge_slice(connection)
+        _print_json(
+            {
+                "ok": True,
+                "db": args.db,
+                **bridge_storage_summary(connection, slice_name=args.slice_name),
+            }
+        )
+    finally:
+        connection.close()
+
+
 def _handle_wikidata_project(args: argparse.Namespace) -> None:
     from src.ontology.wikidata import project_wikidata_payload
 
@@ -1604,6 +1641,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate and report counts but do not commit changes",
     )
     ext_refs.set_defaults(func=_handle_ontology_external_refs_upsert)
+
+    bridge_import = ontology_sub.add_parser(
+        "bridge-import",
+        help="Import a deterministic Wikidata bridge slice into SQLite",
+    )
+    bridge_import.add_argument("--db", required=True, help="Path to SQLite database")
+    bridge_import.add_argument("--file", type=Path, required=True, help="Path to bridge slice JSON")
+    bridge_import.add_argument("--replace", action="store_true", help="Replace an existing slice with the same name")
+    bridge_import.add_argument("--dry-run", action="store_true", help="Validate and report without committing")
+    bridge_import.set_defaults(func=_handle_ontology_bridge_import)
+
+    bridge_report = ontology_sub.add_parser(
+        "bridge-report",
+        help="Report deterministic Wikidata bridge storage stats from SQLite",
+    )
+    bridge_report.add_argument("--db", required=True, help="Path to SQLite database")
+    bridge_report.add_argument("--slice-name", help="Optional bridge slice name; defaults to the active seeded slice")
+    bridge_report.set_defaults(func=_handle_ontology_bridge_report)
 
     wikidata = sub.add_parser("wikidata", help="Wikidata diagnostics and projection")
     wikidata_sub = wikidata.add_subparsers(dest="wikidata_command")

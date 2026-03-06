@@ -44,6 +44,12 @@ def _parse_args() -> argparse.Namespace:
         help="Maximum number of recent revisions to inspect per candidate.",
     )
     parser.add_argument(
+        "--query-timeout",
+        type=int,
+        default=90,
+        help="Per-request timeout in seconds for SPARQL/API/entity-export fetches.",
+    )
+    parser.add_argument(
         "--out-dir",
         type=Path,
         default=Path("/tmp/wikidata_qualifier_scan"),
@@ -117,6 +123,7 @@ def main() -> None:
         property_filter=properties,
         candidate_limit=args.candidate_limit,
         revision_limit=args.revision_limit,
+        timeout_seconds=args.query_timeout,
     )
     report_path = out_dir / "scan_report.json"
     _write_json(report_path, report)
@@ -132,6 +139,7 @@ def main() -> None:
         "confirmed_drift_case_count": len(report["confirmed_drift_cases"]),
         "stable_baseline_count": len(report["stable_baselines"]),
         "failure_count": len(report["failures"]),
+        "query_timeout": args.query_timeout,
         "first_confirmed_case": None,
         "materialized": materialized,
     }

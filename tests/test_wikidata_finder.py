@@ -10,7 +10,11 @@ sys.path.insert(0, str(ROOT))
 
 from cli import __main__ as cli_main
 from src.ontology import wikidata as wikidata_mod
-from src.ontology.wikidata import FINDER_SCHEMA_VERSION, find_qualifier_drift_candidates
+from src.ontology.wikidata import (
+    FINDER_SCHEMA_VERSION,
+    _sparql_candidate_query,
+    find_qualifier_drift_candidates,
+)
 
 
 class _FakeResponse:
@@ -52,27 +56,47 @@ def _entity_export(qid: str, claims: dict) -> dict:
 
 def _fake_requests_get(url, *, params=None, headers=None, timeout=None):
     if url == wikidata_mod.SPARQL_ENDPOINT:
-        return _FakeResponse(
-            {
-                "results": {
-                    "bindings": [
-                        {
-                            "item": {"value": "http://www.wikidata.org/entity/Q1"},
-                            "itemLabel": {"value": "Candidate drift"},
-                            "property_pid": {"value": "P166"},
-                            "statement": {"value": "http://www.wikidata.org/entity/statement/Q1-s1"},
-                            "qualifier_pids": {"value": "P585"},
-                        },
-                        {
-                            "item": {"value": "http://www.wikidata.org/entity/Q2"},
-                            "itemLabel": {"value": "Stable baseline"},
-                            "property_pid": {"value": "P39"},
-                            "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
-                            "qualifier_pids": {"value": "P580,P582"},
-                        },
-                    ]
+        query = params["query"]
+        if "p:P166" in query:
+            return _FakeResponse(
+                {
+                    "results": {
+                        "bindings": [
+                            {
+                                "item": {"value": "http://www.wikidata.org/entity/Q1"},
+                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q1-s1"},
+                                "qualifier_pid": {"value": "P585"},
+                            },
+                            {
+                                "item": {"value": "http://www.wikidata.org/entity/Q1"},
+                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q1-s1"},
+                                "qualifier_pid": {"value": "P7452"},
+                            },
+                        ]
+                    }
                 }
-            }
+            )
+        if "p:P39" in query:
+            return _FakeResponse(
+                {
+                    "results": {
+                        "bindings": [
+                            {
+                                "item": {"value": "http://www.wikidata.org/entity/Q2"},
+                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                "qualifier_pid": {"value": "P580"},
+                            },
+                            {
+                                "item": {"value": "http://www.wikidata.org/entity/Q2"},
+                                "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                "qualifier_pid": {"value": "P582"},
+                            },
+                        ]
+                    }
+                }
+            )
+        return _FakeResponse(
+            {"results": {"bindings": []}}
         )
     if url == wikidata_mod.MEDIAWIKI_API_ENDPOINT:
         title = params["titles"]
@@ -186,6 +210,7 @@ def test_find_qualifier_drift_candidates_detects_real_change(monkeypatch) -> Non
     )
 
     assert report["schema_version"] == FINDER_SCHEMA_VERSION
+    assert report["candidate_query_mode"] == "per_property_raw_rows_v1"
     assert report["candidate_count"] == 2
     assert report["confirmed_drift_cases"][0]["qid"] == "Q1"
     assert report["confirmed_drift_cases"][0]["qualifier_drift"][0]["severity"] == "high"
@@ -239,3 +264,58 @@ def test_find_qualifier_drift_candidates_reports_candidate_query_failure(monkeyp
     assert report["confirmed_drift_cases"] == []
     assert report["stable_baselines"] == []
     assert report["failures"][0]["stage"] == "candidate_query"
+    assert report["failures"][0]["property_pid"] == "P166"
+
+
+def test_find_qualifier_drift_candidates_allows_partial_property_success(monkeypatch) -> None:
+    def _partial_requests_get(url, *, params=None, headers=None, timeout=None):
+        if url == wikidata_mod.SPARQL_ENDPOINT:
+            query = params["query"]
+            if "p:P166" in query:
+                raise requests.exceptions.ReadTimeout("timed out")
+            if "p:P39" in query:
+                return _FakeResponse(
+                    {
+                        "results": {
+                            "bindings": [
+                                {
+                                    "item": {"value": "http://www.wikidata.org/entity/Q2"},
+                                    "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                    "qualifier_pid": {"value": "P580"},
+                                },
+                                {
+                                    "item": {"value": "http://www.wikidata.org/entity/Q2"},
+                                    "statement": {"value": "http://www.wikidata.org/entity/statement/Q2-s1"},
+                                    "qualifier_pid": {"value": "P582"},
+                                },
+                            ]
+                        }
+                    }
+                )
+        if url == wikidata_mod.MEDIAWIKI_API_ENDPOINT:
+            return _fake_requests_get(url, params=params, headers=headers, timeout=timeout)
+        if url.endswith("Q2.json?revision=110") or url.endswith("Q2.json?revision=210"):
+            return _fake_requests_get(url, params=params, headers=headers, timeout=timeout)
+        raise AssertionError(f"unexpected request: {url} params={params}")
+
+    monkeypatch.setattr(wikidata_mod.requests, "get", _partial_requests_get)
+
+    report = find_qualifier_drift_candidates(
+        property_filter=("P166", "P39"),
+        candidate_limit=5,
+        revision_limit=2,
+    )
+
+    assert report["candidate_count"] == 1
+    assert report["stable_baselines"][0]["qid"] == "Q2"
+    assert report["failures"][0]["stage"] == "candidate_query"
+    assert report["failures"][0]["property_pid"] == "P166"
+
+
+def test_sparql_candidate_query_avoids_label_service_and_aggregation() -> None:
+    query = _sparql_candidate_query("P166", row_limit=30)
+
+    assert "SERVICE wikibase:label" not in query
+    assert "GROUP_CONCAT" not in query
+    assert "GROUP BY" not in query
+    assert "p:P166" in query

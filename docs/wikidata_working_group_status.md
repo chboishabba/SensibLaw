@@ -34,11 +34,15 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   - `sensiblaw wikidata build-slice`
   - `sensiblaw wikidata project`
   - `sensiblaw wikidata find-qualifier-drift`
+- Current live finder mode:
+  - per-property raw-row WDQS candidate scan (`per_property_raw_rows_v1`)
+  - no label service or grouped qualifier aggregation in the candidate phase
 - Current pack status:
   - 2 confirmed current mixed-order neighborhoods
   - 2 confirmed current live SCC neighborhoods
   - 1 real imported qualifier-bearing baseline slice
   - 1 bounded synthetic qualifier-drift fixture
+  - live finder now produces confirmed revision-pair qualifier-drift cases
 
 ## Current phase-2 qualifier pack
 - Real imported baseline slice:
@@ -52,8 +56,36 @@ entry point for Niklas, Ege, Peter, and related reviewers.
     zero `qualifier_drift`
 - Bounded drift demo:
   - `tests/fixtures/wikidata/qualifier_drift_slice_20260307.json`
-  - status: synthetic review fixture retained because no confirmed live
-    revision-pair qualifier-change case has been pinned locally yet
+  - status: synthetic review fixture remains useful as a deterministic
+    regression/demo case, but is no longer the only drift example
+- Live finder results (2026-03-07):
+  - narrow `P166` scan:
+    - `candidate_count=12`
+    - `stable_baseline_count=10`
+    - `confirmed_drift_case_count=0`
+    - `failure_count=0`
+  - broad `P166/P39/P54/P6` scan:
+    - `candidate_query_mode=per_property_raw_rows_v1`
+    - `candidate_count=47`
+    - `confirmed_drift_case_count=2`
+    - `stable_baseline_count=23`
+    - `failure_count=0`
+    - first confirmed live materialized case:
+      - `Q100104196|P166`
+      - revisions `2277985537 -> 2277985693`
+      - severity `medium`
+      - drift shape: qualifier signature change with the qualifier property set
+        unchanged (`P585` only)
+      - materialized under
+        `/tmp/wikidata_qualifier_scan/q100104196_p166_2277985537_2277985693/`
+    - currently reported confirmed cases in
+      `/tmp/wikidata_qualifier_scan/scan_report.json`:
+      - `Q100104196|P166` revisions `2277985537 -> 2277985693` (`medium`)
+      - `Q100152461|P54` revisions `2456615151 -> 2456615274` (`medium`)
+    - earlier broad run also surfaced:
+      - `Q100243106|P54` revisions `2462692998 -> 2462767606` (`medium`)
+      - useful as a secondary observed live case, but not the current primary
+        materialized example
 
 ## Confirmed current examples
 ### Mixed-order live case
@@ -108,16 +140,18 @@ The report now exposes:
   all JSON.
 - Treat real imported zero-drift qualifier slices as valid baseline evidence,
   not failure.
-- Keep the bounded synthetic drift fixture until a true live revision-pair
-  qualifier-change case is captured reproducibly.
+- A true live revision-pair qualifier-change case has now been captured
+  reproducibly by the live finder.
+- Keep the bounded synthetic drift fixture as regression/demo coverage, not as
+  the primary evidence that live drift exists.
 - Treat canonical text/token/lexeme layers as strictly separate from Wikidata
   semantics.
 
 ## Immediate next actions
-1. Use `wikidata find-qualifier-drift` to rank qualifier-bearing candidates and
-   scan recent revisions deterministically.
-2. Promote the first confirmed live revision-pair qualifier-change case into
-   the imported phase-2 pack.
-3. Re-run the seeded review pass with the importer-backed qualifier baseline and
-   any newly confirmed live drift case.
+1. Promote one confirmed live materialized case from `/tmp/wikidata_qualifier_scan/`
+   into repo-stable fixtures under `tests/fixtures/wikidata/`.
+2. Re-run the seeded review pass with the importer-backed qualifier baseline and
+   at least one repo-pinned live drift case.
+3. Validate whether `medium` severity for signature-only drift remains the right
+   reviewer-facing choice on the confirmed live cases.
 4. Only after that consider expanding beyond bounded qualifier drift.

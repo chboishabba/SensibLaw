@@ -266,28 +266,31 @@ def _extract_qid(value: str) -> str:
     return value.rsplit("/", 1)[-1]
 
 
-def _sparql_candidate_query(property_filter: Sequence[str], *, row_limit: int) -> str:
-    unions = "\n  UNION\n".join(
-        f'{{ ?item p:{pid} ?statement . BIND("{pid}" AS ?property_pid) }}'
-        for pid in property_filter
-    )
+def _sparql_candidate_query(property_pid: str, *, row_limit: int) -> str:
     return f"""
-SELECT ?item ?itemLabel ?property_pid ?statement
-       (GROUP_CONCAT(DISTINCT ?qualifier_pid; separator=",") AS ?qualifier_pids)
+SELECT ?item ?statement ?qualifier_pid
 WHERE {{
-  {unions}
+  ?item p:{property_pid} ?statement .
   ?statement ?pq ?qv .
   FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
   BIND(STRAFTER(STR(?pq), "http://www.wikidata.org/prop/qualifier/") AS ?qualifier_pid)
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
 }}
-GROUP BY ?item ?itemLabel ?property_pid ?statement
 LIMIT {max(1, int(row_limit))}
 """.strip()
 
 
-def _http_get_json(url: str, *, params: Mapping[str, Any] | None = None) -> Any:
-    response = requests.get(url, params=params, headers=REQUEST_HEADERS, timeout=30)
+def _http_get_json(
+    url: str,
+    *,
+    params: Mapping[str, Any] | None = None,
+    timeout_seconds: int = 30,
+) -> Any:
+    response = requests.get(
+        url,
+        params=params,
+        headers=REQUEST_HEADERS,
+        timeout=max(1, int(timeout_seconds)),
+    )
     response.raise_for_status()
     return response.json()
 
@@ -296,46 +299,57 @@ def _collect_current_qualifier_candidates(
     *,
     property_filter: Sequence[str],
     candidate_limit: int,
-) -> list[dict[str, Any]]:
-    query = _sparql_candidate_query(
-        property_filter,
-        row_limit=max(candidate_limit * 4, candidate_limit),
-    )
-    payload = _http_get_json(
-        SPARQL_ENDPOINT,
-        params={"format": "json", "query": query},
-    )
-    bindings = payload.get("results", {}).get("bindings", [])
+    timeout_seconds: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     grouped: dict[tuple[str, str], dict[str, Any]] = {}
-    for row in bindings:
-        item_raw = row.get("item", {}).get("value")
-        property_pid = row.get("property_pid", {}).get("value")
-        statement_uri = row.get("statement", {}).get("value")
-        if not item_raw or not property_pid or not statement_uri:
+    failures: list[dict[str, Any]] = []
+    for property_pid in property_filter:
+        query = _sparql_candidate_query(
+            property_pid,
+            row_limit=max(candidate_limit * 3, 30),
+        )
+        try:
+            payload = _http_get_json(
+                SPARQL_ENDPOINT,
+                params={"format": "json", "query": query},
+                timeout_seconds=timeout_seconds,
+            )
+        except Exception as exc:
+            failures.append(
+                {
+                    "stage": "candidate_query",
+                    "property_pid": property_pid,
+                    "error": _stringify(exc),
+                }
+            )
             continue
-        qid = _extract_qid(item_raw)
-        label = row.get("itemLabel", {}).get("value", qid)
-        qualifier_pids = sorted(
-            {
-                value
-                for value in row.get("qualifier_pids", {}).get("value", "").split(",")
-                if value
-            }
-        )
-        candidate = grouped.setdefault(
-            (qid, property_pid),
-            {
-                "qid": qid,
-                "label": label,
-                "property_pid": property_pid,
-                "statement_ids": set(),
-                "qualifier_properties": set(),
-                "statement_qualifier_sets": [],
-            },
-        )
-        candidate["statement_ids"].add(_extract_qid(statement_uri))
-        candidate["qualifier_properties"].update(qualifier_pids)
-        candidate["statement_qualifier_sets"].append(tuple(qualifier_pids))
+        bindings = payload.get("results", {}).get("bindings", [])
+        statement_groups: dict[tuple[str, str], set[str]] = {}
+        for row in bindings:
+            item_raw = row.get("item", {}).get("value")
+            statement_uri = row.get("statement", {}).get("value")
+            qualifier_pid = row.get("qualifier_pid", {}).get("value")
+            if not item_raw or not statement_uri or not qualifier_pid:
+                continue
+            qid = _extract_qid(item_raw)
+            statement_id = _extract_qid(statement_uri)
+            candidate = grouped.setdefault(
+                (qid, property_pid),
+                {
+                    "qid": qid,
+                    "label": qid,
+                    "property_pid": property_pid,
+                    "statement_ids": set(),
+                    "qualifier_properties": set(),
+                    "statement_qualifier_sets": [],
+                },
+            )
+            candidate["statement_ids"].add(statement_id)
+            candidate["qualifier_properties"].add(qualifier_pid)
+            statement_groups.setdefault((qid, statement_id), set()).add(qualifier_pid)
+        for (qid, statement_id), qualifier_set in statement_groups.items():
+            candidate = grouped[(qid, property_pid)]
+            candidate["statement_qualifier_sets"].append(tuple(sorted(qualifier_set)))
 
     results: list[dict[str, Any]] = []
     for (qid, property_pid), candidate in sorted(grouped.items()):
@@ -357,10 +371,15 @@ def _collect_current_qualifier_candidates(
                 ),
             }
         )
-    return results
+    return results, failures
 
 
-def _fetch_recent_revisions(qid: str, *, revision_limit: int) -> list[dict[str, Any]]:
+def _fetch_recent_revisions(
+    qid: str,
+    *,
+    revision_limit: int,
+    timeout_seconds: int,
+) -> list[dict[str, Any]]:
     payload = _http_get_json(
         MEDIAWIKI_API_ENDPOINT,
         params={
@@ -371,6 +390,7 @@ def _fetch_recent_revisions(qid: str, *, revision_limit: int) -> list[dict[str, 
             "rvprop": "ids|timestamp",
             "format": "json",
         },
+        timeout_seconds=timeout_seconds,
     )
     pages = payload.get("query", {}).get("pages", {})
     if not isinstance(pages, Mapping) or not pages:
@@ -386,9 +406,9 @@ def _fetch_recent_revisions(qid: str, *, revision_limit: int) -> list[dict[str, 
     ]
 
 
-def _fetch_entity_export_revision(qid: str, revid: int) -> dict[str, Any]:
+def _fetch_entity_export_revision(qid: str, revid: int, *, timeout_seconds: int) -> dict[str, Any]:
     url = ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=revid)
-    payload = _http_get_json(url)
+    payload = _http_get_json(url, timeout_seconds=timeout_seconds)
     if not isinstance(payload, dict):
         raise ValueError(f"entity export must be an object for {qid}@{revid}")
     return payload
@@ -505,42 +525,43 @@ def find_qualifier_drift_candidates(
     property_filter: Iterable[str] | None = None,
     candidate_limit: int = 20,
     revision_limit: int = 5,
+    timeout_seconds: int = 30,
 ) -> Dict[str, Any]:
     allowed = tuple(sorted(set(property_filter or DEFAULT_FIND_QUALIFIER_PROPERTIES)))
-    try:
-        raw_candidates = _collect_current_qualifier_candidates(
-            property_filter=allowed,
-            candidate_limit=candidate_limit,
-        )
-    except Exception as exc:
+    raw_candidates, failures = _collect_current_qualifier_candidates(
+        property_filter=allowed,
+        candidate_limit=candidate_limit,
+        timeout_seconds=timeout_seconds,
+    )
+    if not raw_candidates and failures:
         return {
             "schema_version": FINDER_SCHEMA_VERSION,
+            "candidate_query_mode": "per_property_raw_rows_v1",
             "properties": list(allowed),
             "candidate_limit": int(candidate_limit),
             "revision_limit": int(revision_limit),
+            "timeout_seconds": int(timeout_seconds),
             "candidate_count": 0,
             "scanned_candidate_count": 0,
             "candidates": [],
             "confirmed_drift_cases": [],
             "stable_baselines": [],
-            "failures": [
-                {
-                    "stage": "candidate_query",
-                    "error": _stringify(exc),
-                }
-            ],
+            "failures": failures,
         }
     entity_cache: dict[tuple[str, int], dict[str, Any]] = {}
     ranked_candidates: list[dict[str, Any]] = []
     confirmed_drift_cases: list[dict[str, Any]] = []
     stable_baselines: list[dict[str, Any]] = []
-    failures: list[dict[str, Any]] = []
 
     for candidate in raw_candidates:
         qid = candidate["qid"]
         property_pid = candidate["property_pid"]
         try:
-            revisions = _fetch_recent_revisions(qid, revision_limit=revision_limit)
+            revisions = _fetch_recent_revisions(
+                qid,
+                revision_limit=revision_limit,
+                timeout_seconds=timeout_seconds,
+            )
         except Exception as exc:
             failures.append(
                 {
@@ -600,11 +621,19 @@ def find_qualifier_drift_candidates(
             try:
                 older_payload = entity_cache.setdefault(
                     (qid, older_revid),
-                    _fetch_entity_export_revision(qid, older_revid),
+                    _fetch_entity_export_revision(
+                        qid,
+                        older_revid,
+                        timeout_seconds=timeout_seconds,
+                    ),
                 )
                 newer_payload = entity_cache.setdefault(
                     (qid, newer_revid),
-                    _fetch_entity_export_revision(qid, newer_revid),
+                    _fetch_entity_export_revision(
+                        qid,
+                        newer_revid,
+                        timeout_seconds=timeout_seconds,
+                    ),
                 )
                 older_slots = _slot_reports_from_entity_export(
                     older_payload,
@@ -678,9 +707,11 @@ def find_qualifier_drift_candidates(
 
     return {
         "schema_version": FINDER_SCHEMA_VERSION,
+        "candidate_query_mode": "per_property_raw_rows_v1",
         "properties": list(allowed),
         "candidate_limit": int(candidate_limit),
         "revision_limit": int(revision_limit),
+        "timeout_seconds": int(timeout_seconds),
         "candidate_count": len(ranked_candidates),
         "scanned_candidate_count": len(confirmed_drift_cases) + len(stable_baselines),
         "candidates": ranked_candidates[: max(1, int(candidate_limit))],

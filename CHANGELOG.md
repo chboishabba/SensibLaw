@@ -107,6 +107,13 @@
   to rank current qualifier-bearing candidates, scan recent revisions
   deterministically, and emit a machine-readable report of confirmed drift
   cases, stable baselines, and fetch failures.
+- Wikidata qualifier discovery: cheapen live candidate collection by switching
+  to per-property raw-row WDQS queries (no label service, no `GROUP_CONCAT`, no
+  `GROUP BY`) and allow partial success when one property query fails.
+- Wikidata qualifier discovery: first successful broad live scan now yields
+  confirmed medium-severity revision-pair drift cases, with the primary
+  materialized example currently `Q100104196|P166`
+  (`2277985537 -> 2277985693`) under `/tmp/wikidata_qualifier_scan/`.
 - Wikidata operator helper: add
   `scripts/run_wikidata_qualifier_drift_scan.py` to run the live finder,
   persist a scan report, and automatically materialize the first confirmed case
@@ -537,3 +544,15 @@
 - Ontology bridge: add end-to-end regression coverage for
   `emit_bridge_external_refs_batch.py` feeding the existing
   `ontology external-refs-upsert` CLI path into `actor_external_refs`.
+- Ontology bridge: move bridge resolution onto a DB-backed deterministic
+  substrate in `itir.sqlite` (`wikidata_bridge_slices`, `wikidata_bridge_entities`,
+  `wikidata_bridge_aliases`, `wikidata_bridge_match_receipts`) with a seeded
+  reviewed v1 body/court slice.
+- CLI: add `ontology bridge-import` and `ontology bridge-report` for deterministic
+  bridge-slice management on the shared DB.
+- Storage reporting: extend `wiki_timeline_storage_report.py` to include
+  structural-atom duplication estimates plus duplicated external-ref URL/note
+  bytes and bridge-slice storage stats.
+- Tokenizer/bridge scope: add first GWB-oriented U.S. body aliases
+  (`U.S. Senate`, `House of Representatives`, `CIA`, `FBI`, `Department of Defense`)
+  while keeping QID resolution deterministic and slice-backed.

@@ -58,13 +58,16 @@
 
 ## Open questions
 - Slice gaps: current fixture now demonstrates multiple mixed-order examples,
-  non-zero EII, and multiple confirmed live SCC examples; the remaining phase-2
-  gap is a confirmed live revision-pair qualifier-change case
+  non-zero EII, and multiple confirmed live SCC examples; phase 2 has now
+  produced confirmed live revision-pair qualifier-change cases, so the next gap
+  is promoting one into repo-stable fixtures
 - Threshold questions (`e0`, SCC priority, report ranking): keep `e0=1` for reviewer demos; revisit after first real multi-neighborhood slice
 - Qualifier-drift follow-up: phase 2 now has a real imported qualifier-bearing
-  baseline slice plus the bounded synthetic drift demo; next step is replacing
-  the synthetic demo as the primary drift example with a confirmed live
-  revision-pair change
+  baseline slice plus the bounded synthetic drift demo; live runs now also show
+  confirmed medium-severity revision-pair drift on `P166` and `P54`; the
+  primary current materialized case is `Q100104196|P166`
+  (`2277985537 -> 2277985693`), so the next step is promoting that case into
+  repo-stable fixtures
 
 ## Next review actions
 - keep `P31` / `P279` as the next bounded slice
@@ -80,4 +83,10 @@
     qualifier-bearing baseline (`P585`)
   - `Q1336181` / `Knight of the Order of the Dannebrog`: `currently live`,
     imported qualifier-bearing baseline (`P585`, `P7452`)
+  - `Q100104196|P166`: `currently live`, primary materialized drift case from
+    current broad run (`2277985537 -> 2277985693`, `medium`)
+  - `Q100152461|P54`: `currently live`, confirmed drift in current broad report
+    (`2456615151 -> 2456615274`, `medium`)
+  - `Q100243106|P54`: `currently live`, earlier observed drift case from live
+    finder (`2462692998 -> 2462767606`, `medium`)
   - `referendum` / `plebiscite`: `historical thread example`

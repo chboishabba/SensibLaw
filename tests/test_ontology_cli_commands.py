@@ -177,3 +177,40 @@ def test_bridge_batch_emitter_roundtrips_into_external_refs_cli(tmp_path, capsys
         }
     finally:
         connection.close()
+
+
+def test_ontology_bridge_import_and_report_cli(tmp_path, capsys):
+    db_path = tmp_path / "ontology.db"
+    bridge_file = ROOT / "data" / "ontology" / "wikidata_bridge_bodies_gwb_v1.json"
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-import",
+            "--db",
+            str(db_path),
+            "--file",
+            str(bridge_file),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["slice_name"] == "seeded_body_refs_v1"
+    assert payload["entity_count"] == 9
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-report",
+            "--db",
+            str(db_path),
+            "--slice-name",
+            "seeded_body_refs_v1",
+        ]
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert report["ok"] is True
+    assert report["slice_name"] == "seeded_body_refs_v1"
+    assert report["entity_count"] == 9
+    assert report["entities_by_kind"]["court_ref"] >= 3
+    assert report["entities_by_kind"]["institution_ref"] >= 6

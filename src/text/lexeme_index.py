@@ -148,6 +148,23 @@ def _canonicalize_legal_reference(token: LexemeToken):
         return inner.strip().casefold()
 
     institution_aliases = {
+        "u.s. senate": "institution:u_s_senate",
+        "us senate": "institution:u_s_senate",
+        "united states senate": "institution:u_s_senate",
+        "senate of the united states": "institution:u_s_senate",
+        "house of representatives": "institution:u_s_house_of_representatives",
+        "u.s. house of representatives": "institution:u_s_house_of_representatives",
+        "us house of representatives": "institution:u_s_house_of_representatives",
+        "united states house of representatives": "institution:u_s_house_of_representatives",
+        "united states department of defense": "institution:united_states_department_of_defense",
+        "u.s. department of defense": "institution:united_states_department_of_defense",
+        "department of defense": "institution:united_states_department_of_defense",
+        "defense department": "institution:united_states_department_of_defense",
+        "central intelligence agency": "institution:central_intelligence_agency",
+        "cia": "institution:central_intelligence_agency",
+        "federal bureau of investigation": "institution:federal_bureau_of_investigation",
+        "fbi": "institution:federal_bureau_of_investigation",
+        "f.b.i.": "institution:federal_bureau_of_investigation",
         "un": "institution:united_nations",
         "u.n.": "institution:united_nations",
         "uno": "institution:united_nations",
