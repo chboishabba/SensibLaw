@@ -57,16 +57,17 @@
 - No generative or regex-first authoritative mapping introduced: yes
 
 ## Open questions
-- Slice gaps: current fixture demonstrates mixed-order and EII, but not a live SCC case
 - Slice gaps: current fixture now demonstrates multiple mixed-order examples,
-  non-zero EII, and multiple confirmed live SCC examples; it still needs a
-  broader imported pack before phase 2
+  non-zero EII, and multiple confirmed live SCC examples; the next gap is real
+  qualifier-bearing cases beyond the bounded phase-2 fixture
 - Threshold questions (`e0`, SCC priority, report ranking): keep `e0=1` for reviewer demos; revisit after first real multi-neighborhood slice
-- Deferred qualifier-drift follow-up: keep deferred until more real `P31` / `P279` neighborhoods are imported
+- Qualifier-drift follow-up: phase 2 is now active in bounded form; next step is
+  replacing the synthetic qualifier fixture with real imported qualifier-bearing
+  slices
 
 ## Next review actions
 - keep `P31` / `P279` as the next bounded slice
-- import more real entity-export neighborhoods before qualifier drift
+- keep the structural pack stable while adding real qualifier-bearing slices
 - use `docs/wikidata_report_contract_v0_1.md` as the current reviewer-facing report contract
 - record example status explicitly:
   - `alphabet` / `writing system`: `currently live`

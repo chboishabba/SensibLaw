@@ -153,3 +153,22 @@ def test_live_fixture_emits_mixed_order_and_nonzero_eii() -> None:
     }
     assert ("Q22652", "Q22698") in scc_member_sets
     assert ("Q188", "Q52040") in scc_member_sets
+
+
+def test_qualifier_drift_fixture_emits_property_set_change() -> None:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "qualifier_drift_slice_20260307.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P166",))
+
+    assert report["qualifier_drift"]
+    drift = report["qualifier_drift"][0]
+    assert drift["slot_id"] == "Qposthumous_case|P166"
+    assert drift["qualifier_property_set_t1"] == ["P7452"]
+    assert drift["qualifier_property_set_t2"] == ["P3831", "P585"]
+    assert drift["severity"] == "high"

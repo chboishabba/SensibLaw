@@ -89,3 +89,28 @@ def test_wikidata_build_slice_cli_groups_window_files(tmp_path, capsys) -> None:
     assert stdout["output"] == str(out_path)
     assert [window["id"] for window in file_payload["windows"]] == ["t1", "t2"]
     assert file_payload["windows"][0]["statement_bundles"][0]["subject"] == "Q9779"
+
+
+def test_wikidata_project_cli_emits_qualifier_drift(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = root / "fixtures" / "wikidata" / "qualifier_drift_slice_20260307.json"
+    out_path = tmp_path / "qualifier_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "project",
+            "--input",
+            str(in_path),
+            "--property",
+            "P166",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert file_payload["qualifier_drift"][0]["slot_id"] == "Qposthumous_case|P166"

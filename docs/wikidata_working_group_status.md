@@ -7,9 +7,10 @@ work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
 entry point for Niklas, Ege, Peter, and related reviewers.
 
 ## Current focus
-- bounded slice remains `P31` / `P279`
+- bounded slice now includes structural `P31` / `P279` review plus phase-2
+  qualifier drift on bounded qualifier-bearing properties
 - goal is deterministic diagnostics and review support, not ontology fixes
-- qualifier drift is explicitly deferred until the `P31` / `P279` pack is broader
+- qualifier drift is now active in bounded form
 
 ## Current artifacts
 - Diagnostic taxonomy:
@@ -32,6 +33,7 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 - Current pack status:
   - 2 confirmed current mixed-order neighborhoods
   - 2 confirmed current live SCC neighborhoods
+  - 1 qualifier-drift fixture for bounded phase-2 diagnostics
 
 ## Confirmed current examples
 ### Mixed-order live case
@@ -73,20 +75,24 @@ The report now exposes:
   - `high`: non-zero -> non-zero state flip
   - `medium`: zero <-> non-zero state change
   - `low`: evidence/conflict delta only
+- qualifier drift:
+  - `high`: qualifier property set change
+  - `medium`: qualifier signature change without property-set change
+  - `low`: entropy-only change
 - `review_summary` for working-group triage
 
 ## Current decisions
-- Stay on `P31` / `P279` before qualifier drift.
+- `P31` / `P279` efficacy is proven at medium gate.
+- Qualifier drift is the active next phase.
 - Use local entity-export importer to grow review slices instead of hand-editing
   all JSON.
 - Treat canonical text/token/lexeme layers as strictly separate from Wikidata
   semantics.
 
 ## Immediate next actions
-1. Import more real `P31` / `P279` neighborhoods with `wikidata build-slice`.
-2. Re-run the seeded review pass now that the pack contains multiple live
-   mixed-order and SCC neighborhoods.
-3. Validate whether the current report contract still feels adequate on the
-   broader pack.
-4. Only then decide whether the medium gate for qualifier-drift planning has
-   been met.
+1. Import qualifier-bearing real slices with `wikidata build-slice`.
+2. Re-run the seeded review pass with at least one real qualifier-drift case in
+   addition to the structural pack.
+3. Validate whether property-set vs signature-set severity is sufficient for
+   reviewers.
+4. Only after that consider expanding beyond bounded qualifier drift.

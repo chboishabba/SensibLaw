@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "captured_at": "2026-03-07",
+    "purpose": "Qualifier drift fixture for phase-2 Wikidata control-plane diagnostics."
+  },
+  "windows": [
+    {
+      "id": "qual_t1",
+      "statement_bundles": [
+        {
+          "subject": "Qposthumous_case",
+          "property": "P166",
+          "value": "Qmedal",
+          "rank": "preferred",
+          "qualifiers": {
+            "P7452": "Qposthumous_award"
+          },
+          "references": [
+            {
+              "P248": "Qsrc1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qual_t2",
+      "statement_bundles": [
+        {
+          "subject": "Qposthumous_case",
+          "property": "P166",
+          "value": "Qmedal",
+          "rank": "preferred",
+          "qualifiers": {
+            "P3831": "Qposthumous_award",
+            "P585": "1950"
+          },
+          "references": [
+            {
+              "P248": "Qsrc1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

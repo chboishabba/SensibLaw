@@ -9,7 +9,8 @@
 - [x] Define the v0.1 reviewer-facing report contract and severity/ranking rules.
 - [x] Add a local entity-export importer (`wikidata build-slice`) so review slices do not require hand-curated JSON.
 - [x] Maintain a single working-group status doc at `docs/wikidata_working_group_status.md`.
-- [ ] Extend phase-1 diagnostics to qualifier drift after the `P31` / `P279` core report is stable.
+- [x] Extend phase-1 diagnostics to qualifier drift after the `P31` / `P279` core report is stable.
+- [ ] Import real qualifier-bearing slices and replace the bounded phase-2 fixture as the primary qualifier-drift demo.
 
 ## Medium-Term Targets
 - [ ] Add jurisdiction-aware GWB action review as a test target: be able to assess George W. Bush timeline actions under pinned U.S. law and Australian law, with U.S. law first.

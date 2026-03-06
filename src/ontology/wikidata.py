@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
@@ -300,17 +301,37 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
                 "sum_e": 0,
                 "sum_c": 0,
                 "audit": [],
+                "qualifier_signatures": [],
+                "qualifier_property_sets": [],
             },
         )
+        qualifier_props = tuple(prop for prop, _ in bundle.qualifiers)
         slot["bundle_count"] += 1
         slot["taus"].append(projected["tau"])
         slot["sum_e"] += projected["evidence"]
         slot["sum_c"] += projected["conflict"]
         slot["audit"].append(projected["audit"])
+        slot["qualifier_signatures"].append(projected["audit"]["qualifier_signature"])
+        slot["qualifier_property_sets"].append(qualifier_props)
 
     result_slots: dict[str, dict[str, Any]] = {}
     for subject, prop in sorted(slots):
         slot = slots[(subject, prop)]
+        signature_counts: dict[str, int] = {}
+        for signature in slot["qualifier_signatures"]:
+            signature_counts[signature] = signature_counts.get(signature, 0) + 1
+        total_signatures = len(slot["qualifier_signatures"]) or 1
+        qualifier_entropy = 0.0
+        for count in signature_counts.values():
+            probability = count / total_signatures
+            qualifier_entropy -= probability * math.log2(probability)
+        qualifier_property_set = sorted(
+            {
+                prop_name
+                for prop_tuple in slot["qualifier_property_sets"]
+                for prop_name in prop_tuple
+            }
+        )
         taus = set(slot["taus"])
         if taus == {1}:
             tau_star = 1
@@ -329,6 +350,9 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
             "sum_c": slot["sum_c"],
             "bundle_count": slot["bundle_count"],
             "audit": slot["audit"],
+            "qualifier_signatures": sorted(signature_counts),
+            "qualifier_property_set": qualifier_property_set,
+            "qualifier_entropy": round(qualifier_entropy, 6),
         }
     return result_slots
 
@@ -464,6 +488,69 @@ def _find_metaclass_candidates(window: WindowSlice) -> list[dict[str, Any]]:
     return findings
 
 
+def _build_qualifier_drift(
+    slot_reports: Mapping[str, Mapping[str, Mapping[str, Any]]],
+    windows: Sequence[WindowSlice],
+) -> list[dict[str, Any]]:
+    if len(windows) < 2:
+        return []
+    first = windows[0].window_id
+    second = windows[1].window_id
+    all_slot_ids = sorted(set(slot_reports[first]) | set(slot_reports[second]))
+    findings: list[dict[str, Any]] = []
+    for slot_id in all_slot_ids:
+        left = slot_reports[first].get(
+            slot_id,
+            {
+                "qualifier_signatures": [],
+                "qualifier_property_set": [],
+                "qualifier_entropy": 0.0,
+            },
+        )
+        right = slot_reports[second].get(
+            slot_id,
+            {
+                "qualifier_signatures": [],
+                "qualifier_property_set": [],
+                "qualifier_entropy": 0.0,
+            },
+        )
+        signatures_changed = left["qualifier_signatures"] != right["qualifier_signatures"]
+        property_set_changed = left["qualifier_property_set"] != right["qualifier_property_set"]
+        entropy_delta = round(right["qualifier_entropy"] - left["qualifier_entropy"], 6)
+        if not signatures_changed and not property_set_changed and entropy_delta == 0.0:
+            continue
+        severity = "low"
+        if property_set_changed:
+            severity = "high"
+        elif signatures_changed:
+            severity = "medium"
+        findings.append(
+            {
+                "slot_id": slot_id,
+                "subject_qid": slot_id.split("|", 1)[0],
+                "property_pid": slot_id.split("|", 1)[1],
+                "from_window": first,
+                "to_window": second,
+                "qualifier_signatures_t1": left["qualifier_signatures"],
+                "qualifier_signatures_t2": right["qualifier_signatures"],
+                "qualifier_property_set_t1": left["qualifier_property_set"],
+                "qualifier_property_set_t2": right["qualifier_property_set"],
+                "qualifier_entropy_t1": left["qualifier_entropy"],
+                "qualifier_entropy_t2": right["qualifier_entropy"],
+                "qualifier_entropy_delta": entropy_delta,
+                "severity": severity,
+            }
+        )
+    findings.sort(
+        key=lambda item: (
+            {"high": 0, "medium": 1, "low": 2}[item["severity"]],
+            item["slot_id"],
+        )
+    )
+    return findings
+
+
 def project_wikidata_payload(
     payload: Mapping[str, Any], *, e0: int = 1, property_filter: Iterable[str] | None = None
 ) -> Dict[str, Any]:
@@ -550,9 +637,13 @@ def project_wikidata_payload(
     severity_counts = {"high": 0, "medium": 0, "low": 0}
     for item in unstable_slots:
         severity_counts[item["severity"]] += 1
+    qualifier_drift = _build_qualifier_drift(slot_reports, filtered_windows)
+    qualifier_severity_counts = {"high": 0, "medium": 0, "low": 0}
+    for item in qualifier_drift:
+        qualifier_severity_counts[item["severity"]] += 1
 
     review_summary = {
-        "next_bounded_slice_recommendation": "Continue with more real P31/P279 neighborhoods before qualifier drift.",
+        "next_bounded_slice_recommendation": "Qualifier drift is now active; expand qualifier-bearing slices and review property-set instability before wider ontology phases.",
         "unstable_slot_counts": severity_counts,
         "top_unstable_slot_ids": [item["slot_id"] for item in unstable_slots[:5]],
         "structural_focus": [
@@ -560,6 +651,8 @@ def project_wikidata_payload(
             "p279_sccs",
             "metaclass_candidates",
         ],
+        "qualifier_drift_counts": qualifier_severity_counts,
+        "top_qualifier_drift_slot_ids": [item["slot_id"] for item in qualifier_drift[:5]],
     }
 
     return {
@@ -572,6 +665,7 @@ def project_wikidata_payload(
         },
         "windows": window_reports,
         "unstable_slots": unstable_slots,
+        "qualifier_drift": qualifier_drift,
         "review_summary": review_summary,
     }
 

@@ -64,6 +64,10 @@
   mixed-order example (`Q21169592` -> `Q7187`) and an additional current live
   SCC pair (`Q52040` <-> `Q188`), then refresh the seeded review-pass notes and
   status summary to match.
+- Wikidata qualifier drift: extend `sensiblaw wikidata project` with
+  `qualifier_drift[]` reporting, qualifier property-set/signature/entropy
+  comparison across windows, and add bounded phase-2 fixture/tests for a
+  qualifier-bearing slot.
 - Docs: add `SensibLaw/todo.md` to track the remaining bounded-slice Wikidata
   implementation work and link the new taxonomy doc from `README.md`.
 - Tests: add regex transition coverage for wiki timeline extraction and AAO

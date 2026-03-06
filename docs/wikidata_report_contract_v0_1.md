@@ -13,6 +13,7 @@ working-group triage, not remediation.
 - `assumptions`
 - `windows[]`
 - `unstable_slots[]`
+- `qualifier_drift[]`
 - `review_summary`
 
 ## `unstable_slots[]`
@@ -55,9 +56,36 @@ Required fields:
 - `unstable_slot_counts`
 - `top_unstable_slot_ids`
 - `structural_focus`
+- `qualifier_drift_counts`
+- `top_qualifier_drift_slot_ids`
 
 Current default recommendation:
-- continue with more real `P31` / `P279` neighborhoods before qualifier drift
+- qualifier drift is now active; expand qualifier-bearing slices and review
+  property-set instability before wider ontology phases
+
+## `qualifier_drift[]`
+Required fields:
+- `slot_id`
+- `subject_qid`
+- `property_pid`
+- `from_window`
+- `to_window`
+- `qualifier_signatures_t1`
+- `qualifier_signatures_t2`
+- `qualifier_property_set_t1`
+- `qualifier_property_set_t2`
+- `qualifier_entropy_t1`
+- `qualifier_entropy_t2`
+- `qualifier_entropy_delta`
+- `severity`
+
+Severity rules:
+- `high`
+  - qualifier property set changes across windows
+- `medium`
+  - qualifier signatures change while the property set stays the same
+- `low`
+  - entropy changes without a property-set or signature-set change
 
 ## Window diagnostics
 Each window report currently includes:
@@ -70,7 +98,7 @@ Current reviewer priority:
 2. SCC neighborhoods
 3. metaclass-heavy regions
 
-Qualifier entropy remains phase 2.
+Qualifier entropy / qualifier drift is phase 2 and now active in the report.
 
 Current working-group entry point:
 - `docs/wikidata_working_group_status.md`
