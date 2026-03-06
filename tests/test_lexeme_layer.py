@@ -131,6 +131,18 @@ def test_deterministic_legal_occurrences_emit_articles_constitutional_refs_and_i
     assert ("instrument:u_s_dprk_agreed_framework", "instrument_ref") in pairs
 
 
+def test_deterministic_legal_occurrences_emit_seeded_institutions_and_wikidata_backed_courts():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    text = "UN inspectors briefed the United Nations Security Council while the ICC and ICJ were discussed."
+    occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+    pairs = {(occ.norm_text, occ.kind) for occ in occs}
+    assert ("institution:wd:Q1065", "institution_ref") in pairs
+    assert ("institution:wd:Q37470", "institution_ref") in pairs
+    assert ("court:wd:Q47488", "court_ref") in pairs
+    assert ("court:wd:Q7801", "court_ref") in pairs
+
+
 def test_deterministic_legal_occurrences_do_not_emit_article_ref_for_artful_or_gallery_cases():
     from src.text.lexeme_index import collect_lexeme_occurrences
 
@@ -142,3 +154,29 @@ def test_deterministic_legal_occurrences_do_not_emit_article_ref_for_artful_or_g
     for text in samples:
         occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
         assert all(occ.kind != "article_ref" for occ in occs)
+
+
+def test_deterministic_legal_occurrences_negative_ambiguity_suite():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    negative_cases = {
+        "The second act of the play was stronger.": {"act_ref"},
+        "Bush decided to act of his own accord.": {"act_ref"},
+        "Project Art 5 launched in Dallas.": {"article_ref"},
+        "They met on the basketball court.": {"court_ref"},
+        "The food court was crowded.": {"court_ref"},
+        "They reached an agreement after dinner.": {"instrument_ref"},
+        "The framework of the argument was weak.": {"instrument_ref"},
+        "UN inspectors arrived yesterday.": {"instrument_ref"},
+        "UN report was tabled yesterday.": {"instrument_ref"},
+        "Rule 34 was a classroom joke.": {"rule_ref"},
+        "Part 2 of the documentary aired later.": {"part_ref"},
+        "Division 3 won the tournament.": {"division_ref"},
+        "S 5B engine": {"section_ref"},
+        "sec 3 of the user manual": {"section_ref"},
+        "Section 4 of the report": {"section_ref"},
+        "r 7.32 firmware": {"rule_ref"},
+    }
+    for text, forbidden in negative_cases.items():
+        occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+        assert forbidden.isdisjoint({occ.kind for occ in occs}), (text, occs)

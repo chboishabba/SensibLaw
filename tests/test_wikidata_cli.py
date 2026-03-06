@@ -114,3 +114,51 @@ def test_wikidata_project_cli_emits_qualifier_drift(tmp_path, capsys) -> None:
 
     assert stdout["output"] == str(out_path)
     assert file_payload["qualifier_drift"][0]["slot_id"] == "Qposthumous_case|P166"
+
+
+def test_wikidata_build_slice_and_project_real_qualifier_baseline(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    out_slice = tmp_path / "real_qualifier_slice.json"
+    out_report = tmp_path / "real_qualifier_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "build-slice",
+            "--window-file",
+            f"t1:{root / 'fixtures' / 'wikidata' / 'entitydata_qualifier_q28792860_prev.json'}",
+            "--window-file",
+            f"t1:{root / 'fixtures' / 'wikidata' / 'entitydata_qualifier_q1336181_prev.json'}",
+            "--window-file",
+            f"t2:{root / 'fixtures' / 'wikidata' / 'entitydata_qualifier_q28792860_current.json'}",
+            "--window-file",
+            f"t2:{root / 'fixtures' / 'wikidata' / 'entitydata_qualifier_q1336181_current.json'}",
+            "--property",
+            "P166",
+            "--output",
+            str(out_slice),
+        ]
+    )
+    capsys.readouterr()
+
+    cli_main.main(
+        [
+            "wikidata",
+            "project",
+            "--input",
+            str(out_slice),
+            "--property",
+            "P166",
+            "--output",
+            str(out_report),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_report.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_report)
+    assert file_payload["qualifier_drift"] == []
+    assert {
+        slot["slot_id"] for slot in file_payload["windows"][0]["slots"]
+    } == {"Q1336181|P166", "Q28792860|P166"}

@@ -139,18 +139,49 @@ def _canonicalize_legal_reference(token: LexemeToken):
             inner = inner[1:-1]
         return inner.strip().casefold()
 
+    institution_qids = {
+        "un": "Q1065",
+        "u.n.": "Q1065",
+        "uno": "Q1065",
+        "united nations": "Q1065",
+        "united nations organization": "Q1065",
+        "security council": "Q37470",
+        "un security council": "Q37470",
+        "u.n. security council": "Q37470",
+        "unsc": "Q37470",
+        "united nations security council": "Q37470",
+    }
+    court_qids = {
+        "international criminal court": "Q47488",
+        "icc": "Q47488",
+        "icct": "Q47488",
+        "international court of justice": "Q7801",
+        "icj": "Q7801",
+        "world court": "Q7801",
+    }
+
     if token.token_type == TokenType.ACT_REFERENCE:
         return "act_ref", f"act:{compact_identifier(token.text)}"
     if token.token_type == TokenType.CASE_REFERENCE:
         return "case_ref", f"case:{compact_identifier(token.text)}"
     if token.token_type == TokenType.COURT_REFERENCE:
+        qid = court_qids.get(token.text.casefold())
+        if qid is not None:
+            return "court_ref", f"court:wd:{qid}"
         return "court_ref", f"court:{compact_identifier(token.text)}"
+    if token.token_type == TokenType.INSTITUTION_REFERENCE:
+        qid = institution_qids.get(token.text.casefold())
+        if qid is not None:
+            return "institution_ref", f"institution:wd:{qid}"
+        return "institution_ref", f"institution:{compact_identifier(token.text)}"
     if token.token_type == TokenType.ARTICLE_REFERENCE:
         return "article_ref", f"art:{compact_identifier(token.text.split(None, 1)[1])}"
     if token.token_type == TokenType.INSTRUMENT_REFERENCE:
         return "instrument_ref", f"instrument:{compact_identifier(token.text)}"
     if token.token_type == TokenType.SECTION_REFERENCE:
-        return "section_ref", f"sec:{compact_identifier(token.text[1:]).replace('_', '')}"
+        parts = token.text.split(None, 1)
+        tail = parts[1] if len(parts) > 1 else token.text
+        return "section_ref", f"sec:{compact_identifier(tail).replace('_', '')}"
     if token.token_type == TokenType.SUBSECTION_REFERENCE:
         return "subsection_ref", f"subsec:{compact_identifier(strip_parens(token.text))}"
     if token.token_type == TokenType.PARAGRAPH_REFERENCE:

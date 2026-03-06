@@ -172,3 +172,31 @@ def test_qualifier_drift_fixture_emits_property_set_change() -> None:
     assert drift["qualifier_property_set_t1"] == ["P7452"]
     assert drift["qualifier_property_set_t2"] == ["P3831", "P585"]
     assert drift["severity"] == "high"
+
+
+def test_real_imported_qualifier_slice_is_stable_baseline() -> None:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "real_qualifier_imported_slice_20260307.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P166",))
+
+    assert report["qualifier_drift"] == []
+    t1_slots = {
+        slot["slot_id"]: slot for slot in report["windows"][0]["slots"]
+    }
+    assert t1_slots["Q28792860|P166"]["qualifier_property_set"] == ["P585"]
+    assert t1_slots["Q1336181|P166"]["qualifier_property_set"] == [
+        "P2241",
+        "P585",
+        "P7452",
+    ]
+    assert report["review_summary"]["qualifier_drift_counts"] == {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+    }

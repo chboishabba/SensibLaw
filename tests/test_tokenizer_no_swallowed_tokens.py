@@ -7,6 +7,7 @@ from src.text.deterministic_legal_tokenizer import (
 ALLOWED_SPACEY_TYPES = {
     TokenType.ACT_REFERENCE,
     TokenType.CASE_REFERENCE,
+    TokenType.INSTITUTION_REFERENCE,
     TokenType.SECTION_REFERENCE,
     TokenType.SUBSECTION_REFERENCE,
     TokenType.PARAGRAPH_REFERENCE,

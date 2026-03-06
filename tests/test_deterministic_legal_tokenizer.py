@@ -72,6 +72,17 @@ def test_deterministic_legal_tokenizer_atomizes_article_and_instrument_refs() ->
     assert TokenType.INSTRUMENT_REFERENCE in token_types
 
 
+def test_deterministic_legal_tokenizer_atomizes_seeded_institutions_and_international_courts() -> None:
+    from src.text.deterministic_legal_tokenizer import tokenize_detailed
+
+    tokens = tokenize_detailed(
+        "UN inspectors briefed the United Nations Security Council while the ICC and ICJ were discussed."
+    )
+    token_types = [token.token_type for token in tokens]
+    assert TokenType.INSTITUTION_REFERENCE in token_types
+    assert TokenType.COURT_REFERENCE in token_types
+
+
 def test_deterministic_legal_tokenizer_does_not_treat_artful_or_ambiguous_art_as_article_ref() -> None:
     from src.text.deterministic_legal_tokenizer import tokenize_detailed
 
@@ -83,3 +94,29 @@ def test_deterministic_legal_tokenizer_does_not_treat_artful_or_ambiguous_art_as
     for text in samples:
         token_types = [token.token_type for token in tokenize_detailed(text)]
         assert TokenType.ARTICLE_REFERENCE not in token_types
+
+
+def test_deterministic_legal_tokenizer_negative_ambiguity_suite() -> None:
+    from src.text.deterministic_legal_tokenizer import tokenize_detailed
+
+    negative_cases = {
+        "The second act of the play was stronger.": {TokenType.ACT_REFERENCE},
+        "Bush decided to act of his own accord.": {TokenType.ACT_REFERENCE},
+        "Project Art 5 launched in Dallas.": {TokenType.ARTICLE_REFERENCE},
+        "They met on the basketball court.": {TokenType.COURT_REFERENCE},
+        "The food court was crowded.": {TokenType.COURT_REFERENCE},
+        "They reached an agreement after dinner.": {TokenType.INSTRUMENT_REFERENCE},
+        "The framework of the argument was weak.": {TokenType.INSTRUMENT_REFERENCE},
+        "UN inspectors arrived yesterday.": {TokenType.INSTRUMENT_REFERENCE},
+        "UN report was tabled yesterday.": {TokenType.INSTRUMENT_REFERENCE},
+        "Rule 34 was a classroom joke.": {TokenType.RULE_REFERENCE},
+        "Part 2 of the documentary aired later.": {TokenType.PART_REFERENCE},
+        "Division 3 won the tournament.": {TokenType.DIVISION_REFERENCE},
+        "S 5B engine": {TokenType.SECTION_REFERENCE},
+        "sec 3 of the user manual": {TokenType.SECTION_REFERENCE},
+        "Section 4 of the report": {TokenType.SECTION_REFERENCE},
+        "r 7.32 firmware": {TokenType.RULE_REFERENCE},
+    }
+    for text, forbidden in negative_cases.items():
+        token_types = set(token.token_type for token in tokenize_detailed(text))
+        assert token_types.isdisjoint(forbidden), (text, token_types)

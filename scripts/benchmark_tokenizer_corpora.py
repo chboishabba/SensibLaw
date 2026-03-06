@@ -29,6 +29,10 @@ def _gwb_reference_texts() -> list[str]:
         "Agreement",
         "Framework",
         "UN ",
+        "United Nations",
+        "Security Council",
+        "ICC",
+        "ICJ",
     )
     out: list[str] = []
     for ev in payload.get("events", []):
@@ -79,6 +83,7 @@ def _mixed_texts() -> list[str]:
         "The outcome eventually reached the U.S. Supreme Court.",
         "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 considered s 75(v) of the Constitution and Art 5 of a hypothetical instrument.",
         "The India–United States Civil Nuclear Agreement followed negotiations after the U.S.–DPRK Agreed Framework.",
+        "UN inspectors briefed the United Nations Security Council while the ICC monitored public reporting.",
     ]
 
 
@@ -192,6 +197,24 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
             "agreed framework",
             [
                 "instrument:u_s_dprk_agreed_framework",
+            ],
+        ),
+        (
+            "un inspectors",
+            [
+                "institution:wd:Q1065",
+            ],
+        ),
+        (
+            "security council",
+            [
+                "institution:wd:Q37470",
+            ],
+        ),
+        (
+            "icc",
+            [
+                "court:wd:Q47488",
             ],
         ),
     ]

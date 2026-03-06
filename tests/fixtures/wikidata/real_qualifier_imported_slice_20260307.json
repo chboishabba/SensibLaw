@@ -1,0 +1,214 @@
+{
+  "metadata": {
+    "generated_by": "build_slice_from_entity_exports",
+    "properties": [
+      "P166"
+    ]
+  },
+  "windows": [
+    {
+      "id": "t1",
+      "source_files": [
+        "tests/fixtures/wikidata/entitydata_qualifier_q1336181_prev.json",
+        "tests/fixtures/wikidata/entitydata_qualifier_q28792860_prev.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1963-01-01T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2025-01-05T00:00:00Z"
+              ],
+              "P854": [
+                "https://journalism.columbia.edu/sites/default/files/content/Prizes/past_cabot_winners_list-1930-2021.pdf"
+              ]
+            }
+          ],
+          "subject": "Q28792860",
+          "value": "Q2113"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P2241": [
+              "Q27921563"
+            ]
+          },
+          "rank": "deprecated",
+          "references": [
+            {
+              "P143": [
+                "Q1551807"
+              ],
+              "P813": [
+                "+2022-02-16T00:00:00Z"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q20872"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1881-00-00T00:00:00Z"
+            ],
+            "P7452": [
+              "Q71536040"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Q66311588"
+              ],
+              "P813": [
+                "+2022-09-28T00:00:00Z"
+              ],
+              "P8341": [
+                "Emil_Hartmann"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q18601721"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1889-00-00T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P248": [
+                "Q66311588"
+              ],
+              "P813": [
+                "+2022-09-28T00:00:00Z"
+              ],
+              "P8341": [
+                "Emil_Hartmann"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q10639464"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "source_files": [
+        "tests/fixtures/wikidata/entitydata_qualifier_q1336181_current.json",
+        "tests/fixtures/wikidata/entitydata_qualifier_q28792860_current.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1963-01-01T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2025-01-05T00:00:00Z"
+              ],
+              "P854": [
+                "https://journalism.columbia.edu/sites/default/files/content/Prizes/past_cabot_winners_list-1930-2021.pdf"
+              ]
+            }
+          ],
+          "subject": "Q28792860",
+          "value": "Q2113"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P2241": [
+              "Q27921563"
+            ]
+          },
+          "rank": "deprecated",
+          "references": [
+            {
+              "P143": [
+                "Q1551807"
+              ],
+              "P813": [
+                "+2022-02-16T00:00:00Z"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q20872"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1881-00-00T00:00:00Z"
+            ],
+            "P7452": [
+              "Q71536040"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Q66311588"
+              ],
+              "P813": [
+                "+2022-09-28T00:00:00Z"
+              ],
+              "P8341": [
+                "Emil_Hartmann"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q18601721"
+        },
+        {
+          "property": "P166",
+          "qualifiers": {
+            "P585": [
+              "+1889-00-00T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P248": [
+                "Q66311588"
+              ],
+              "P813": [
+                "+2022-09-28T00:00:00Z"
+              ],
+              "P8341": [
+                "Emil_Hartmann"
+              ]
+            }
+          ],
+          "subject": "Q1336181",
+          "value": "Q10639464"
+        }
+      ]
+    }
+  ]
+}

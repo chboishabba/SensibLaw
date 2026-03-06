@@ -34,6 +34,7 @@ def _structural_kinds() -> set[str]:
     return {
         "act_ref",
         "case_ref",
+        "institution_ref",
         "court_ref",
         "section_ref",
         "subsection_ref",

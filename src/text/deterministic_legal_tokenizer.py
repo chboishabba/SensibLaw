@@ -23,6 +23,7 @@ class TokenType(str, Enum):
     ACT_REFERENCE = "ACT_REFERENCE"
     CASE_REFERENCE = "CASE_REFERENCE"
     COURT_REFERENCE = "COURT_REFERENCE"
+    INSTITUTION_REFERENCE = "INSTITUTION_REFERENCE"
     ARTICLE_REFERENCE = "ARTICLE_REFERENCE"
     INSTRUMENT_REFERENCE = "INSTRUMENT_REFERENCE"
 
@@ -103,8 +104,119 @@ def _consume_paren_group(text: str, start: int) -> tuple[str, int, int] | None:
     return text[start : i + 1], start, i + 1
 
 
+def _consume_optional_reference_paren_groups(text: str, start: int) -> int:
+    cursor = start
+    while cursor < len(text):
+        gap = _consume_whitespace(text, cursor)
+        group = _consume_paren_group(text, gap)
+        if group is None:
+            break
+        _, _, cursor = group
+    return cursor
+
+
 def _normalize_keyword(word: str) -> str:
     return word.casefold().rstrip(".")
+
+
+def _consume_reference_head(text: str, start: int) -> tuple[str, int] | None:
+    cursor = _consume_whitespace(text, start)
+    word, _, word_end = _consume_word(text, cursor)
+    if not word:
+        return None
+    return _normalize_keyword(word), word_end
+
+
+def _has_legal_follow_context(text: str, end: int) -> bool:
+    cursor = _consume_optional_reference_paren_groups(text, end)
+    cursor = _consume_whitespace(text, cursor)
+    if cursor >= len(text):
+        return True
+    if text[cursor] in {".", ",", ";", ":", ")", "]"}:
+        return True
+
+    next_head = _consume_reference_head(text, cursor)
+    if next_head is None:
+        return False
+    head, head_end = next_head
+
+    chained_keywords = {
+        "s",
+        "sec",
+        "section",
+        "pt",
+        "part",
+        "div",
+        "division",
+        "r",
+        "rule",
+        "sch",
+        "schedule",
+        "cl",
+        "clause",
+        "art",
+        "article",
+    }
+    if head in chained_keywords:
+        return True
+
+    direct_verbs = {
+        "applies",
+        "provides",
+        "states",
+        "requires",
+        "allows",
+        "bars",
+        "permits",
+        "means",
+        "concerns",
+    }
+    if head in direct_verbs:
+        return True
+
+    if head == "of":
+        cursor = _consume_whitespace(text, head_end)
+        second_head = _consume_reference_head(text, cursor)
+        if second_head is None:
+            return False
+        second, second_end = second_head
+        if second in {"the", "this", "that", "these", "those"}:
+            cursor = _consume_whitespace(text, second_end)
+            third_head = _consume_reference_head(text, cursor)
+            if third_head is None:
+                return False
+            second = third_head[0]
+        legal_nouns = {
+            "act",
+            "constitution",
+            "code",
+            "regulation",
+            "regulations",
+            "rule",
+            "rules",
+            "schedule",
+            "schedules",
+            "clause",
+            "clauses",
+            "section",
+            "sections",
+            "article",
+            "articles",
+            "law",
+            "laws",
+            "statute",
+            "statutes",
+            "instrument",
+            "instruments",
+            "treaty",
+            "treaties",
+            "convention",
+            "framework",
+            "agreement",
+        }
+        return second in legal_nouns
+
+    return False
 
 
 def _consume_spaced_numberish(
@@ -236,6 +348,19 @@ def _consume_literal_sequence(text: str, start: int, parts: tuple[str, ...]) -> 
     return cursor
 
 
+def _consume_alias_phrase(text: str, start: int, aliases: tuple[str, ...]) -> tuple[str, int, int] | None:
+    if not _is_boundary_left(text, start):
+        return None
+    for alias in aliases:
+        end = start + len(alias)
+        if text[start:end].casefold() != alias.casefold():
+            continue
+        if end < len(text) and (text[end].isalnum() or text[end] in {"_", "-"}):
+            continue
+        return text[start:end], start, end
+    return None
+
+
 def _consume_title_sequence_until_suffix(
     text: str,
     start: int,
@@ -296,6 +421,21 @@ def _consume_court_reference(text: str, start: int) -> tuple[str, int, int] | No
     if not _is_boundary_left(text, start):
         return None
 
+    seeded = _consume_alias_phrase(
+        text,
+        start,
+        (
+            "International Criminal Court",
+            "ICC",
+            "ICCt",
+            "International Court of Justice",
+            "ICJ",
+            "World Court",
+        ),
+    )
+    if seeded is not None:
+        return seeded
+
     variants = (
         ("u.s. supreme court", ("U.S.", "Supreme", "Court")),
         ("united states supreme court", ("United", "States", "Supreme", "Court")),
@@ -319,6 +459,25 @@ def _consume_court_reference(text: str, start: int) -> tuple[str, int, int] | No
                     cursor = title_end
         return text[start:cursor], start, cursor
     return None
+
+
+def _consume_institution_reference(text: str, start: int) -> tuple[str, int, int] | None:
+    return _consume_alias_phrase(
+        text,
+        start,
+        (
+            "United Nations Security Council",
+            "UN Security Council",
+            "U.N. Security Council",
+            "UNSC",
+            "Security Council",
+            "United Nations",
+            "United Nations Organization",
+            "UN",
+            "U.N.",
+            "UNO",
+        ),
+    )
 
 
 def _consume_article_reference(text: str, start: int) -> tuple[str, int, int] | None:
@@ -395,13 +554,19 @@ def _consume_keyword_reference(
     if span is None:
         return None
     _, _, span_end = span
+    if not _has_legal_follow_context(text, span_end):
+        return None
     return text[start:span_end], start, span_end, token_type
 
 
 def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, int, TokenType]] | None:
-    if not _is_boundary_left(text, start) or text[start].lower() != "s":
+    if not _is_boundary_left(text, start):
         return None
-    i = start + 1
+    keyword, _, keyword_end = _consume_word(text, start)
+    keyword_norm = _normalize_keyword(keyword)
+    if keyword_norm not in {"s", "sec", "section"}:
+        return None
+    i = keyword_end
     if i >= len(text) or not text[i].isspace():
         return None
 
@@ -413,7 +578,7 @@ def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, in
     while section_end < len(text) and text[section_end].isalpha():
         section_end += 1
     section_main = text[i:section_end]
-    section_text = f"{text[start]} {section_main}"
+    section_text = f"{text[start:keyword_end]} {section_main}"
     section_span = (section_text, start, section_end)
     tokens: list[tuple[str, int, int, TokenType]] = [(*section_span, TokenType.SECTION_REFERENCE)]
 
@@ -433,6 +598,8 @@ def _consume_section_reference(text: str, start: int) -> list[tuple[str, int, in
             tokens.append((group_text, group_start, group_end, TokenType.PUNCT))
         i = group_end
 
+    if not _has_legal_follow_context(text, tokens[-1][2]):
+        return None
     return tokens
 
 
@@ -482,6 +649,13 @@ def _tokenize_with_no_regex(text: str) -> list[tuple[str, int, int, TokenType]]:
         if instrument_reference is not None:
             text_span, start, end = instrument_reference
             tokens.append((text_span, start, end, TokenType.INSTRUMENT_REFERENCE))
+            i = end
+            continue
+
+        institution_reference = _consume_institution_reference(text, i)
+        if institution_reference is not None:
+            text_span, start, end = institution_reference
+            tokens.append((text_span, start, end, TokenType.INSTITUTION_REFERENCE))
             i = end
             continue
 
