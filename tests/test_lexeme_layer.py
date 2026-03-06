@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 from datetime import date
 
 from src.models.document import Document, DocumentMetadata
@@ -45,3 +48,53 @@ def test_lexeme_occurrences_are_span_anchored(tmp_path):
         assert [row["token_index"] for row in occs] == [0, 1, 2, 3]
     finally:
         store.close()
+
+
+def test_add_revision_stores_tokenizer_profile(tmp_path):
+    store = VersionedStore(tmp_path / "lexeme_profile.db")
+    try:
+        metadata = DocumentMetadata(
+            jurisdiction="AU.TEST",
+            citation="LEX-002",
+            date=date(2024, 1, 2),
+        )
+        body = "Token token TOKEN."
+        doc = Document(metadata=metadata, body=body)
+        doc_id = store.generate_id()
+        store.add_revision(doc_id, doc, date(2024, 1, 2))
+
+        row = store.conn.execute(
+            "SELECT metadata FROM revisions WHERE doc_id = ? AND rev_id = 1",
+            (doc_id,),
+        ).fetchone()
+        assert row is not None
+        stored_metadata = json.loads(row["metadata"])
+
+        profile = stored_metadata["tokenizer_profile"]
+        assert profile["canonical_tokenizer_id"]
+        assert profile["canonical_tokenizer_version"]
+        assert profile["canonical_mode"] in {"legacy_regex", "spacy", "deterministic_legal"}
+        assert isinstance(profile["canonical_token_count"], int)
+        assert profile["source_hash"] == (
+            hashlib.sha256(body.encode("utf-8")).hexdigest()
+        )
+    finally:
+        store.close()
+
+
+def test_deterministic_legal_occurrences_emit_canonical_legal_atoms():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    text = "Civil Liability Act 2002 (NSW) s 5B(2)(a) Pt 4 Div 2 r 7.32 Sch 1 cl 4"
+    occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+    assert [(occ.norm_text, occ.kind) for occ in occs] == [
+        ("act:civil_liability_act_2002_nsw", "act_ref"),
+        ("sec:5b", "section_ref"),
+        ("subsec:2", "subsection_ref"),
+        ("para:a", "paragraph_ref"),
+        ("pt:4", "part_ref"),
+        ("div:2", "division_ref"),
+        ("rule:7.32", "rule_ref"),
+        ("sch:1", "schedule_ref"),
+        ("cl:4", "clause_ref"),
+    ]

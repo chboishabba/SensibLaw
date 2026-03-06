@@ -542,6 +542,54 @@ def _handle_ontology_external_refs_upsert(args: argparse.Namespace) -> None:
         connection.close()
 
 
+def _handle_wikidata_project(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import project_wikidata_payload
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = project_wikidata_payload(
+        payload,
+        e0=args.e0,
+        property_filter=args.property or ("P31", "P279"),
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json({"output": str(args.output), "schema_version": report["schema_version"]})
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_build_slice(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import build_slice_from_entity_exports
+
+    grouped: dict[str, list[dict]] = {}
+    for spec in args.window_file:
+        if ":" not in spec:
+            raise SystemExit("--window-file entries must use WINDOW_ID:PATH format")
+        window_id, path_str = spec.split(":", 1)
+        path = Path(path_str)
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise SystemExit(f"Entity export payload must be an object: {path}")
+        payload["_source_path"] = str(path)
+        grouped.setdefault(window_id, []).append(payload)
+
+    slice_payload = build_slice_from_entity_exports(
+        grouped,
+        property_filter=args.property or ("P31", "P279"),
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(slice_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json({"output": str(args.output), "window_count": len(slice_payload["windows"])})
+        return
+    _print_json(slice_payload)
+
+
 def _handle_extract_frl(args: argparse.Namespace) -> None:
     from src.ingestion.frl import fetch_acts
 
@@ -1532,6 +1580,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate and report counts but do not commit changes",
     )
     ext_refs.set_defaults(func=_handle_ontology_external_refs_upsert)
+
+    wikidata = sub.add_parser("wikidata", help="Wikidata diagnostics and projection")
+    wikidata_sub = wikidata.add_subparsers(dest="wikidata_command")
+    wikidata_project = wikidata_sub.add_parser(
+        "project",
+        help="Project a bounded Wikidata statement slice into deterministic diagnostics",
+    )
+    wikidata_project.add_argument("--input", type=Path, required=True, help="Path to slice JSON")
+    wikidata_project.add_argument("--output", type=Path, help="Optional path to write report JSON")
+    wikidata_project.add_argument(
+        "--property",
+        action="append",
+        help="Repeatable property filter; defaults to P31 and P279",
+    )
+    wikidata_project.add_argument(
+        "--e0",
+        type=int,
+        default=1,
+        help="Evidence threshold for preferred/deprecated rank gating",
+    )
+    wikidata_project.set_defaults(func=_handle_wikidata_project)
+    wikidata_build_slice = wikidata_sub.add_parser(
+        "build-slice",
+        help="Build a bounded slice from local Wikidata entity-export JSON files",
+    )
+    wikidata_build_slice.add_argument(
+        "--window-file",
+        action="append",
+        required=True,
+        help="Repeatable WINDOW_ID:PATH spec pointing at a local entity-export JSON file",
+    )
+    wikidata_build_slice.add_argument("--output", type=Path, help="Optional path to write slice JSON")
+    wikidata_build_slice.add_argument(
+        "--property",
+        action="append",
+        help="Repeatable property filter; defaults to P31 and P279",
+    )
+    wikidata_build_slice.set_defaults(func=_handle_wikidata_build_slice)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)

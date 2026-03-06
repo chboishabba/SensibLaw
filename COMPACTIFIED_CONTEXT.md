@@ -155,6 +155,10 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Archived and reviewed the \"Wikidata Ontology Issues\" thread for ontology
   diagnostics; added a doc mapping issue clusters to deterministic checks
   (`docs/wikidata_ontology_issue_review_20260306.md`).
+- Added `deterministic_legal_v1` lexer candidate behind
+  `ITIR_LEXEME_TOKENIZER_MODE=deterministic_legal` in `SensibLaw/src/text`,
+  implemented without regex and with explicit section/subsection/paragraph
+  structural spans.
 
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`

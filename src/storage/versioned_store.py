@@ -26,7 +26,7 @@ from src.models.text_span import TextSpan
 from src.models.promotion import PromotionReceipt
 from src.models.span_role_hypothesis import SpanRoleHypothesis
 from src.models.span_signal_hypothesis import SpanSignalHypothesis
-from src.text.lexeme_index import collect_lexeme_occurrences
+from src.text.lexeme_index import LexemeOccurrence, collect_lexeme_occurrences_with_profile
 
 
 class PayloadTooLargeError(ValueError):
@@ -1848,7 +1848,22 @@ class VersionedStore:
             toc_entries = self._build_toc_entries(
                 document.provisions, document.toc_entries
             )
-        metadata_json = json.dumps(document.metadata.to_dict())
+        occurrences, tokenizer_profile = collect_lexeme_occurrences_with_profile(
+            document.body
+        )
+
+        metadata_dict = document.metadata.to_dict()
+        metadata_dict["tokenizer_profile"] = {
+            "canonical_tokenizer_id": tokenizer_profile.canonical_tokenizer_id,
+            "canonical_tokenizer_version": tokenizer_profile.canonical_tokenizer_version,
+            "canonical_mode": tokenizer_profile.canonical_mode,
+            "shadow_mode": tokenizer_profile.shadow_mode,
+            "shadow_tokenizer_id": tokenizer_profile.shadow_tokenizer_id,
+            "shadow_mismatch_count": tokenizer_profile.shadow_mismatch_count,
+            "canonical_token_count": tokenizer_profile.canonical_token_count,
+            "source_hash": hashlib.sha256(document.body.encode("utf-8")).hexdigest(),
+        }
+        metadata_json = json.dumps(metadata_dict)
         retrieved_at = (
             document.metadata.retrieved_at.isoformat()
             if document.metadata.retrieved_at
@@ -1889,7 +1904,7 @@ class VersionedStore:
             self._store_provisions(
                 doc_id, rev_id, document.provisions, toc_entries, document.metadata
             )
-            self._store_lexeme_occurrences(doc_id, rev_id, document.body)
+            self._store_lexeme_occurrences(doc_id, rev_id, occurrences)
         return rev_id
 
     # ------------------------------------------------------------------
@@ -2832,8 +2847,9 @@ class VersionedStore:
                 provision_text_entries,
             )
 
-    def _store_lexeme_occurrences(self, doc_id: int, rev_id: int, body: str) -> None:
-        occurrences = collect_lexeme_occurrences(body)
+    def _store_lexeme_occurrences(
+        self, doc_id: int, rev_id: int, occurrences: list[LexemeOccurrence]
+    ) -> None:
         if not occurrences:
             return
 

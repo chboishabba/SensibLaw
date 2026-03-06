@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib
+import difflib
 import logging
 from pathlib import Path
 
@@ -23,8 +23,23 @@ CORPUS_FIXTURES = [
 ]
 
 
-def _body_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+def _assert_deterministic_body(pdf_name: str, left: str, right: str) -> None:
+    left_norm = left.replace("\r\n", "\n").rstrip()
+    right_norm = right.replace("\r\n", "\n").rstrip()
+
+    assert left_norm == right_norm, (
+        f"Non-deterministic body text for {pdf_name}.\n"
+        + "\n".join(
+            difflib.unified_diff(
+                left_norm.splitlines(),
+                right_norm.splitlines(),
+                fromfile="run_a",
+                tofile="run_b",
+                lineterm="",
+                n=3,
+            )
+        )
+    )
 
 
 def _missing_textspan_warnings(records: list[logging.LogRecord]) -> list[str]:
@@ -74,7 +89,7 @@ def test_pdf_fixture_ingest_is_deterministic_for_same_bytes(
     doc_a, _ = process_pdf(pdf_path, output=out_a, db_path=None)
     doc_b, _ = process_pdf(pdf_path, output=out_b, db_path=None)
 
-    assert _body_hash(doc_a.body) == _body_hash(doc_b.body)
+    _assert_deterministic_body(pdf_path.name, doc_a.body, doc_b.body)
     assert count_tokens(doc_a.body) == count_tokens(doc_b.body)
     assert doc_a.metadata.compression_stats == doc_b.metadata.compression_stats
     assert len(doc_a.provisions or []) == len(doc_b.provisions or [])

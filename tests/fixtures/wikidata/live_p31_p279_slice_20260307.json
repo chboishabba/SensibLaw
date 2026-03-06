@@ -1,0 +1,155 @@
+{
+  "metadata": {
+    "captured_at": "2026-03-07",
+    "purpose": "Bounded live-ish Wikidata fixture for the P31/P279 control-plane prototype.",
+    "notes": [
+      "This fixture is derived from currently live Wikidata item pages reviewed on 2026-03-07.",
+      "Q9779 (alphabet) is used as the primary mixed-order case because it currently exposes both P31 and P279 links into the writing-system hierarchy.",
+      "Q8192 (writing system) is included as local context for the hierarchy.",
+      "Q22652 (urban green space) and Q22698 (park) are included as a currently live reciprocal P279 example confirmed from the Wikidata query endpoint on 2026-03-07.",
+      "The second window is a review/demo variant with changed rank/reference state so the bounded prototype emits a non-zero EII example.",
+      "This is a manually curated slice for deterministic tests and reviewer demos, not a full dump extract."
+    ],
+    "source_urls": [
+      "https://www.wikidata.org/wiki/Q9779",
+      "https://www.wikidata.org/wiki/Q8192",
+      "https://www.wikidata.org/wiki/Q22652",
+      "https://www.wikidata.org/wiki/Q22698",
+      "https://www.wikidata.org/wiki/Wikidata:SPARQL_query_service/queries/examples/maintenance"
+    ]
+  },
+  "windows": [
+    {
+      "id": "2026-03-07-live",
+      "statement_bundles": [
+        {
+          "subject": "Q9779",
+          "property": "P31",
+          "value": "Q8192",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qmaintenance_example",
+              "P813": "2026-03-07"
+            }
+          ]
+        },
+        {
+          "subject": "Q9779",
+          "property": "P279",
+          "value": "Q8192",
+          "rank": "normal",
+          "references": [
+            {
+              "P248": "Qmaintenance_example"
+            }
+          ]
+        },
+        {
+          "subject": "Q8192",
+          "property": "P31",
+          "value": "Q58778",
+          "rank": "normal",
+          "references": []
+        },
+        {
+          "subject": "Q8192",
+          "property": "P279",
+          "value": "Q1760610",
+          "rank": "normal",
+          "references": []
+        },
+        {
+          "subject": "Q22652",
+          "property": "P279",
+          "value": "Q22698",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qwdqs_cycle_check",
+              "P813": "2026-03-07"
+            }
+          ]
+        },
+        {
+          "subject": "Q22698",
+          "property": "P279",
+          "value": "Q22652",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qwdqs_cycle_check",
+              "P813": "2026-03-07"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-03-07-review-variant",
+      "statement_bundles": [
+        {
+          "subject": "Q9779",
+          "property": "P31",
+          "value": "Q8192",
+          "rank": "deprecated",
+          "references": [
+            {
+              "P248": "Qmaintenance_example",
+              "P813": "2026-03-08"
+            }
+          ]
+        },
+        {
+          "subject": "Q9779",
+          "property": "P279",
+          "value": "Q8192",
+          "rank": "normal",
+          "references": []
+        },
+        {
+          "subject": "Q8192",
+          "property": "P31",
+          "value": "Q58778",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qwriting_system_review"
+            }
+          ]
+        },
+        {
+          "subject": "Q8192",
+          "property": "P279",
+          "value": "Q1760610",
+          "rank": "normal",
+          "references": []
+        },
+        {
+          "subject": "Q22652",
+          "property": "P279",
+          "value": "Q22698",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qwdqs_cycle_check",
+              "P813": "2026-03-08"
+            }
+          ]
+        },
+        {
+          "subject": "Q22698",
+          "property": "P279",
+          "value": "Q22652",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qwdqs_cycle_check",
+              "P813": "2026-03-08"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

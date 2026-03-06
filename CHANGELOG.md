@@ -1,12 +1,67 @@
 # Changelog
 
 ## Unreleased
+- Wiki timeline DB: canonical runtime path now targets the shared ITIR root DB
+  (`ITIR_DB_PATH`, default `./.cache_local/itir.sqlite`) instead of the
+  wiki-specific sidecar SQLite file; old `SL_WIKI_TIMELINE_*` env vars are
+  deprecated compatibility aliases.
+- Wiki timeline DB: added `scripts/migrate_wiki_timeline_to_itir_db.py` for
+  eager rewrite/import into the ITIR root DB, plus `tests/test_migrate_wiki_timeline_to_itir_db.py`.
+- Wiki timeline DB: normalize canonical event storage around typed tables for sections,
+  actions, actors, links, objects, steps, and list payloads; query paths now rebuild
+  route payloads from normalized rows instead of monolithic `event_json` blobs.
+- Wiki timeline DB: add lazy schema/backfill-on-read support in
+  `src/wiki_timeline/sqlite_store.py` so existing DB files are upgraded when queried.
+- Wiki timeline DB: add `scripts/wiki_timeline_storage_report.py` to measure legacy blob
+  bytes versus normalized storage estimates per run.
+- Lexeme: add a no-regex deterministic legal candidate tokenizer (`deterministic_legal_v1`)
+  behind `ITIR_LEXEME_TOKENIZER_MODE=deterministic_legal`, including section/reference-aware
+  spans and span-profile metadata in revision writes (`src/text/lexeme_index.py`,
+  `src/text/deterministic_legal_tokenizer.py`).
+- Tests: add `tests/test_deterministic_legal_tokenizer.py` covering deterministic behavior and
+  legal reference atomization.
 - Docs: add Wikidata statement-bundle epistemic projection operator spec with
   EII instability metric (`docs/wikidata_epistemic_projection_operator_spec_v0_1.md`).
 - Docs: link the Wikidata projection operator spec from `README.md`.
 - Docs: add Wikidata ontology issue review and diagnostics mapping
   (`docs/wikidata_ontology_issue_review_20260306.md`).
 - Docs: link the ontology issue review from `README.md`.
+- Docs: add `docs/ontology_diagnostic_taxonomy_wikidata_v0_1.md`, append the
+  diagnostic-lens appendix to
+  `docs/wikidata_epistemic_projection_operator_spec_v0_1.md`, and align
+  `docs/external_ontologies.md` with the bounded `P31` / `P279` Wikidata
+  control-plane posture and tokenizer/lexeme authority boundaries.
+- Docs: add a reviewer handoff template for the Wikidata ontology working group
+  (`docs/planning/wikidata_working_group_review_template_20260307.md`) and
+  update the transition plan's next actions to reflect the completed phase-1
+  doc work.
+- Wikidata prototype: add a bounded `P31` / `P279` projection module
+  (`src/ontology/wikidata.py`), deterministic SCC/mixed-order/metaclass
+  diagnostics, and a `sensiblaw wikidata project` CLI path with JSON report
+  output.
+- Tests: add bounded Wikidata projection and CLI coverage
+  (`tests/test_wikidata_projection.py`, `tests/test_wikidata_cli.py`).
+- Wikidata docs/fixtures: add a small live-case fixture for the current
+  `alphabet` / `writing system` example
+  (`tests/fixtures/wikidata/live_p31_p279_slice_20260307.json`) and mark the
+  `referendum` / `plebiscite` loop example as historical/thread-derived unless
+  revalidated from current live data.
+- Wikidata fixtures/tests: upgrade the live-case fixture into a true two-window
+  review slice with a non-zero `Q9779|P31` EII example and add fixture-backed
+  coverage in `tests/test_wikidata_projection.py`.
+- Wikidata review/reporting: add a filled first review-pass note
+  (`docs/planning/wikidata_working_group_review_pass_20260307.md`), define the
+  v0.1 reviewer-facing report contract (`docs/wikidata_report_contract_v0_1.md`),
+  and add severity buckets plus `review_summary` to the JSON report.
+- Wikidata importer: add `sensiblaw wikidata build-slice` for building bounded
+  `P31` / `P279` slices from local entity-export JSON files, with CLI coverage
+  and fixture entity exports.
+- Wikidata working-group pack: add a single status doc
+  (`docs/wikidata_working_group_status.md`) as the stable working-group link,
+  and expand the live review fixture with a confirmed current SCC example
+  (`Q22652` <-> `Q22698`).
+- Docs: add `SensibLaw/todo.md` to track the remaining bounded-slice Wikidata
+  implementation work and link the new taxonomy doc from `README.md`.
 - Tests: add regex transition coverage for wiki timeline extraction and AAO
   extraction (including explicit xfail cases for known regex limitations).
 - Docs: align finance schema and numeric representation with time-series
@@ -44,6 +99,26 @@
 - Wikipedia timeline extraction: skip infobox/template residue sentence fragments
   (`| key = value` payload lines) during sentence pass so lead timeline rows are
   sourced from narrative text, not template artifacts.
+- Tokenizer migration: regression suite runs in the project venv
+  (`tests/test_deterministic_legal_tokenizer.py`, `tests/test_lexeme_layer.py`,
+  `tests/test_tokenizer_migration_sl_regression.py`) with deterministic mode as
+  canonical; offline extraction refreshed `SensibLaw/.cache_local/wiki_timeline_gwb*.json`
+  so `/graphs/wiki-timeline*` payloads hash-match the checkpoint HTML (142 events each).
+- Tokenizer guardrails: add offline parity checker `SensibLaw/scripts/check_wiki_timeline_parity_offline.js`
+  and default-mode tests (`tests/test_tokenizer_default_mode.py`) to ensure canonical
+  mode stays deterministic and route payloads remain aligned with checkpoints.
+- Tokenizer swallow guard: add `tests/test_tokenizer_no_swallowed_tokens.py` to fail if
+  the deterministic lexer emits whitespace-bearing tokens outside legal structural types
+  or if word tokens over-swallow text.
+- CI parity lane: add `tests/test_wiki_timeline_parity_offline.py` to run the offline parity
+  checker under deterministic mode; fails on drift. Warn when legacy tokenizer mode is used
+  via env (`ITIR_LEXEME_TOKENIZER_MODE=legacy_regex`). Added opt-in env
+  `ITIR_ALLOW_REQUEST_REGEX` to keep requester regex fallback disabled by default.
+- Compression sanity: add `tests/test_tokenizer_compression_efficiency.py` to bound average
+  token length and token counts on plain sentences and legal references.
+- Wiki timeline DB: route loaders now use the SQLite store for all sources; added manual ingests
+  for legal/legal_follow timelines and `tests/test_wiki_timeline_db_presence.py` to fail CI when any
+  configured suffix is missing in the DB.
 - Wikipedia/HCA AAO action extraction: require pattern-match span overlap with
   verb/AUX tokens (when parser tokens exist) before accepting regex action
   matches, preventing noun-only nominalization leaks (e.g., `death` selecting

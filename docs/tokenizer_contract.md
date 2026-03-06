@@ -19,13 +19,17 @@ Tokenizers
   - Example: `regex_simple_v1` (scope=metrics, stable=true)
   - Example: `spacy_word_v3` (scope=semantics, stable=false)
 - Stable tokenizers may appear in invariants/tests; unstable ones may not.
-- Canonical lexeme occurrences currently derive from a regex tokenizer in
-  `SensibLaw/src/text/lexeme_index.py` (Layer‑1 only). spaCy is used for
-  semantic extraction, not canonical token streams.
+- Canonical lexeme occurrences derive from a deterministic no-regex tokenizer in
+  `SensibLaw/src/text/lexeme_index.py` (Layer‑1 only).
+  Candidate stream: `deterministic_legal_v1` (`itir_legal_lexer_v1`).
+- Legacy regex tokenization remains available for explicit parity and rollback
+  runs via `ITIR_LEXEME_TOKENIZER_MODE=legacy_regex`.
+- spaCy is used for semantic extraction, not canonical token streams.
 
 ## Transition Goal (Regex → Deterministic Multilingual Tokenizer)
-Current lexeme occurrences are derived from a regex tokenizer (`lexeme_index.py`).
-This is acceptable only as a temporary Layer‑1 mechanism.
+Current lexeme occurrences are derived from the deterministic canonical stream.
+Regression parity remains mandatory before any non-noise canonical configuration
+changes.
 
 End goal:
 - Replace regex tokenization with a deterministic multilingual tokenizer

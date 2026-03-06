@@ -3935,7 +3935,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument(
         "--db-path",
         type=Path,
-        default=Path("SensibLaw/.cache_local/wiki_timeline_aoo.sqlite"),
+        default=Path(".cache_local/itir.sqlite"),
         help="SQLite persistence target for canonical storage (JSON remains an export) (default: %(default)s)",
     )
     ap.add_argument("--no-db", action="store_true", help="Disable SQLite persistence (export JSON only)")
@@ -4188,13 +4188,15 @@ def main(argv: Optional[List[str]] = None) -> int:
                 requester_has_title = False
                 requester_source = req2_src
         if not requester:
-            rm = REQUEST_RE.search(parse_text)
-            if rm:
-                requester = _normalize_requester_surface(rm.group(1))
-                requester_resolved = _resolve_requester_label(requester, alias_map)
-                requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
-                requester_source = "fallback_regex:request"
-                warnings.append("fallback_requester_regex")
+            allow_regex = os.getenv("ITIR_ALLOW_REQUEST_REGEX", "").lower() in {"1", "true", "yes", "on"}
+            if allow_regex:
+                rm = REQUEST_RE.search(parse_text)
+                if rm:
+                    requester = _normalize_requester_surface(rm.group(1))
+                    requester_resolved = _resolve_requester_label(requester, alias_map)
+                    requester_has_title = bool(re.search(r"\bPresident\b", str(rm.group(0) or ""), flags=re.IGNORECASE))
+                    requester_source = "fallback_regex:request"
+                    warnings.append("fallback_requester_regex_disabled_default")
 
         tokens = _extract_actor_tokens(parse_text)
         actors: List[dict] = []

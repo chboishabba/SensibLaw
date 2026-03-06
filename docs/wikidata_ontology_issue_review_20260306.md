@@ -17,7 +17,8 @@ Source thread: ChatGPT archive, title "Wikidata Ontology Issues"
   class-order behavior and inconsistent reasoning paths.
 
 2) Subclass loops and circular modeling
-- Example: referendum vs plebiscite (mutual P279 loop).
+- Example used in the discussion thread: referendum vs plebiscite (reported
+  mutual `P279` loop).
 - Risk: destroys partial order assumptions; breaks transitive reasoning and
   undermines export validations.
 
@@ -80,3 +81,11 @@ Source thread: ChatGPT archive, title "Wikidata Ontology Issues"
 ## Notes
 This review is intended to feed deterministic diagnostics and reporting only.
 It does not prescribe normative fixes or ontology governance decisions.
+
+Live-check note (2026-03-07):
+- `alphabet` / `writing system` remains a current live class/instance boundary
+  example on Wikidata and is suitable as the primary bounded-slice demo case.
+- `referendum` / `plebiscite` should be treated as a historical
+  discussion-thread example unless reconfirmed from a current dump or item
+  graph; on 2026-03-07 the live `referendum` item exposed `plebiscite` as an
+  alias/synonym surface, not as a confirmed current `P279` loop.

@@ -12,8 +12,8 @@ def main() -> None:
     p.add_argument("--json-path", required=True, help="Path to a wiki_timeline_*_aoo.json artifact.")
     p.add_argument(
         "--db-path",
-        default="SensibLaw/.cache_local/wiki_timeline_aoo.sqlite",
-        help="Output DB path (default: SensibLaw/.cache_local/wiki_timeline_aoo.sqlite).",
+        default=".cache_local/itir.sqlite",
+        help="Output DB path (default: .cache_local/itir.sqlite).",
     )
     args = p.parse_args()
 

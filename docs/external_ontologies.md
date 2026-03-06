@@ -48,6 +48,50 @@ External entities **cannot**:
 
 They only enrich interpretation, search, and clustering.
 
+### 2.2 Two Distinct Wikidata Uses
+
+Wikidata work in SL/ITIR currently has two separate surfaces:
+
+1. **External reference curation**
+   - reviewed QID attachment to `concept_external_refs` and
+     `actor_external_refs`
+   - identity linking only
+2. **Diagnostic control-plane**
+   - read-only projection and structural review over Wikidata statement bundles
+   - stability/volatility reporting (`EII`, SCCs, mixed-order diagnostics)
+
+These surfaces must not be conflated. External-ref curation is not a reasoner,
+and diagnostic findings do not redefine internal ontology rows.
+
+### 2.3 No Metaclass Escalation During Mapping
+
+When curating external IDs, do not import Wikidata metaclass structure into the
+internal ontology as if it were canonical truth.
+
+Rules:
+- a QID link is an identity anchor, not an ontology transplant
+- external class structure may be stored as notes or review context, not as
+  authoritative legal ontology
+- `P31` / `P279` complexity in Wikidata must remain outside canonical
+  `WrongType`, `ProtectedInterestType`, `ValueFrame`, and related authority
+  layers unless separately modeled internally
+
+### 2.4 Tokenizer / Lexeme Boundary
+
+Canonical text, token, and lexeme layers remain pre-semantic and authoritative
+for provenance.
+
+This means:
+- lexemes must not carry Wikidata identity
+- tokenizer identity is not ontology identity
+- external ontology linking and diagnostics operate over curated IDs, actors,
+  concepts, and Wikidata statement bundles, not over canonical token identity
+
+See:
+- `docs/tokenizer_contract.md`
+- `docs/lexeme_layer.md`
+- `docs/extractor_ontology_mapping_contract_20260213.md`
+
 ---
 
 ## 3. Where External Ontologies Plug Into the Architecture
@@ -63,7 +107,9 @@ Lexeme ----> Concept ----> ConceptExternalRef
                      (provider='wikidata', id='Q12345')
 ```
 
-This is the safest and most powerful integration point.
+This is the safest integration point for curated identity links, provided the
+boundary is respected: lexemes remain pre-semantic, and the external reference
+attaches to the curated internal concept rather than mutating the lexeme layer.
 
 **Benefits:**
 
@@ -203,7 +249,11 @@ A safe integration pipeline:
 
 ### Step 1: Detection
 
-Lexeme or Phrase triggers hit local rules (Aho-Corasick, regex).
+Lexeme or Phrase triggers hit local rules.
+
+In authoritative paths, tokenizer/lexeme handling remains deterministic and
+pre-semantic; regex or heuristic triggers are discovery aids, not ontology
+identity.
 
 ### Step 2: Candidates from Wikidata / DBpedia
 
@@ -239,6 +289,9 @@ ConceptExternalRef:
 ### Final Output
 
 Lexemes map to Concepts; Concepts map to world knowledge.
+
+The reverse is not allowed: external ontologies must not redefine lexeme
+identity, canonical spans, or internal legal ontology authority boundaries.
 
 ---
 

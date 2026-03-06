@@ -2,7 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
+from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
 
 
 def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
@@ -24,12 +24,15 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
                 "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "explicit", "text": "September 11, 2001"},
                 "section": "2001",
                 "text": "Test event",
-                "actors": [],
+                "actors": [{"label": "A", "resolved": "A", "role": "subject", "source": "x"}],
                 "action": "happen",
-                "steps": [],
-                "objects": [],
+                "steps": [{"action": "happen", "subjects": ["A"], "objects": ["B"]}],
+                "objects": [{"title": "B", "source": "wikilink"}],
+                "links": ["B"],
+                "citations": [{"text": "cite"}],
             }
         ],
+        "fact_timeline": [{"fact_id": "f1"}],
     }
 
     db_path = tmp_path / "wiki_timeline_aoo.sqlite"
@@ -57,25 +60,38 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         conn.row_factory = sqlite3.Row
         runs = conn.execute("SELECT run_id, n_events FROM wiki_timeline_aoo_runs").fetchall()
         assert len(runs) == 1
-        assert runs[0]["run_id"] == res1.run_id
-        assert runs[0]["n_events"] == 1
-
-        events = conn.execute(
+        row = conn.execute(
             """
-            SELECT event_id, anchor_year, anchor_month, anchor_day, anchor_precision, anchor_kind, section, text
+            SELECT event_id, anchor_year, anchor_month, anchor_day, anchor_precision, anchor_kind,
+                   anchor_text, section, text, event_json, residual_json
             FROM wiki_timeline_aoo_events
             WHERE run_id = ?
             """,
             (res1.run_id,),
-        ).fetchall()
-        assert len(events) == 1
-        row = events[0]
+        ).fetchone()
+        assert row is not None
         assert row["event_id"] == "e1"
         assert row["anchor_year"] == 2001
         assert row["anchor_month"] == 9
         assert row["anchor_day"] == 11
         assert row["anchor_precision"] == "day"
         assert row["anchor_kind"] == "explicit"
+        assert row["anchor_text"] == "September 11, 2001"
         assert row["section"] == "2001"
         assert row["text"] == "Test event"
+        assert row["event_json"] == "{}"
+        assert row["residual_json"] in (None, "{}")
 
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_actors WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_links WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_objects WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_steps WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+
+        payload = load_run_payload_from_normalized(conn, res1.run_id)
+        assert payload is not None
+        assert payload["events"][0]["event_id"] == "e1"
+        assert payload["events"][0]["actors"][0]["label"] == "A"
+        assert payload["events"][0]["steps"][0]["objects"] == ["B"]
+        assert payload["fact_timeline"] == [{"fact_id": "f1"}]

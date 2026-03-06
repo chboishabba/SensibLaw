@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Q9779": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "deprecated",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q8192"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "QsrcA"
+                        }
+                      }
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-03-08T00:00:00Z"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Q8192": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q58778"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "QsrcB"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

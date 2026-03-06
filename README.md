@@ -145,13 +145,13 @@ a structured, linked, machine-readable backbone.
 | [Human Tools Integration](docs/human_tools_integration.md) | [Multi-Modal Doctrine](docs/multimodal_system_doctrine.md) | [Panopticon Refusal](docs/panopticon_refusal.md) | [User Stories](docs/user_stories.md) |
 | [Parity View](docs/parity_view.md) | [Lexeme Layer](docs/lexeme_layer.md) | [Media Ethics UI](docs/media_ethics_ui.md) |  |
 | [DBpedia Queries](docs/dbpedia_queries.md) | [External Ontology Refs](docs/ONTOLOGY_EXTERNAL_REFS.md) | [Wikidata Queries](docs/wikidata_queries.md) | [Wikidata Epistemic Projection Operator](docs/wikidata_epistemic_projection_operator_spec_v0_1.md) |
-| [Wikidata Ontology Issue Review](docs/wikidata_ontology_issue_review_20260306.md) |  |  |  |
+| [Wikidata Ontology Issue Review](docs/wikidata_ontology_issue_review_20260306.md) | [Wikidata Diagnostic Taxonomy](docs/ontology_diagnostic_taxonomy_wikidata_v0_1.md) | [Wikidata Working Group Status](docs/wikidata_working_group_status.md) | [Wikidata Report Contract](docs/wikidata_report_contract_v0_1.md) |
 | [DBpedia Integration](docs/dbpedia_integration.md) |  |  |  |
 | [SQLite Migrations](docs/sqlite_migrations.md) |  |  |  |
 | [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmaps/roadmap.md) | [DB Roadmap](docs/roadmaps/DB_ROADMAP.md) |
 | [Versioning](docs/versioning.md) | [Research Paper](PAPER.md) | [Database Design Document](DATABASE.md) | [Schema](docs/schema.md) |
 | [Todo](todo.md) | [streamline - data visualisation](docs/roadmaps/TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
-| [ITIR Integration Roadmap](docs/ITIR.md) |    | [External Ontologies](external_ontologies.md) | [Wikidata Queries](wikidata_queries.md) |
+| [ITIR Integration Roadmap](docs/ITIR.md) |    | [External Ontologies](docs/external_ontologies.md) | [Wikidata Queries](docs/wikidata_queries.md) |
 
 
 

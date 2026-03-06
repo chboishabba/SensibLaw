@@ -130,3 +130,82 @@ analogous to the `TimeSeries`/`Transformation` model used elsewhere. See:
 - No source reliability scoring.
 - No language model inference.
 - No forced resolution of contested meanings.
+
+## Appendix A: Diagnostic Lens Rules (v0.1)
+This appendix defines how the projection operator couples to structural
+diagnostics for the bounded Wikidata review slice. The first executable slice is
+`P31` / `P279`.
+
+### A1. Diagnostic stance
+- The projection stack is read-only and advisory.
+- Diagnostics must be deterministic and replayable.
+- Findings are for review surfaces and working-group triage, not ontology fixes.
+
+### A2. Structural signals coupled to EII
+For the bounded slice, correlate `EII(s,p; t1, t2)` with:
+- SCC membership in the `P279` graph
+- mixed-order neighborhoods involving `P31` and `P279`
+- metaclass-heavy `P31` targets
+
+Minimum rule set:
+- if an `(s, p)` slot changes epistemic state across windows, emit an unstable
+  slot record
+- if the corresponding subject/value lies inside a `P279` SCC of size `> 1`,
+  attach the SCC identifier and member set
+- if the same review neighborhood shows mixed `P31` / `P279` ordering for the
+  same QID, attach a mixed-order diagnostic marker
+
+### A3. Mixed-order rule
+Mixed-order findings are diagnostic markers, not type judgments.
+
+Signal:
+- the same QID appears in incompatible `P31` and `P279` path roles within the
+  bounded neighborhood
+
+Output requirements:
+- include contributing path edges
+- include the QIDs/PIDs involved
+- do not collapse the finding into a normative correction
+
+### A4. SCC coupling rule
+SCC detection is structural and independent of truth status.
+
+Signal:
+- SCC size greater than 1 in the `P279` subgraph
+
+Coupling:
+- structural SCC finding may exist without EII change
+- EII spike inside an SCC neighborhood should be surfaced as a stronger review
+  priority, not as a stronger truth claim
+
+### A5. Qualifier entropy rule
+Qualifier entropy is defined for the taxonomy now but may be deferred in the
+first executable slice.
+
+When enabled:
+- canonicalize qualifier sets before comparison
+- compute entropy per `(s, p)` slot
+- attach qualifier signatures to the audit trace
+
+### A6. Audit trace minimum
+Every unstable-slot or structural diagnostic emission must carry:
+- `diagnostic_id`
+- `subject_qid`
+- `property_pid`
+- `time_window` or dump identifiers
+- `rule_ids[]`
+- `path_edges[]` where applicable
+- `qualifier_signature` when qualifier analysis is enabled
+
+### A7. Boundary with tokenizer / lexeme work
+This diagnostic lens must not alter canonical text handling.
+
+Invariants:
+- no Wikidata IDs in lexeme identity
+- no tokenizer-specific semantics in diagnostic truth
+- no regex-first semantic disambiguation in authoritative paths
+
+See:
+- `docs/ontology_diagnostic_taxonomy_wikidata_v0_1.md`
+- `docs/tokenizer_contract.md`
+- `docs/lexeme_layer.md`

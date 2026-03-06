@@ -23,6 +23,8 @@ Wikidata diagnostics stack, without changing normative/authority boundaries.
   subclass loops, qualifier drift, metaclass misuse, negative constraints).
 - A reporting surface that complements class-order diagnostics (SCCs, loops),
   not a fix recommender.
+- Alignment with tokenizer/lexeme contracts so canonical span and pre-semantic
+  layers remain untouched by Wikidata semantics.
 
 ## Non-Goals (v0.1)
 - No source reliability scoring or ML inference.
@@ -37,6 +39,24 @@ Wikidata diagnostics stack, without changing normative/authority boundaries.
 - All outputs must be auditable and explainable via structured traces.
 - Treat projection as a transformation of observations, aligned with
   `docs/planning/time_series_transformations.md` (Niklas model).
+- Canonical text, token, and lexeme layers remain authoritative for source
+  provenance; Wikidata diagnostics are downstream read-only overlays.
+- No regex-first or generative disambiguation in authoritative mapping paths.
+
+## Bounded first slice
+Primary executable slice:
+- `P31`
+- `P279`
+
+First review outputs:
+- mixed-order (`P31` / `P279`) findings
+- `P279` SCCs
+- metaclass-heavy neighborhoods
+
+Deferred from the first executable slice:
+- qualifier entropy / qualifier drift
+- negative constraints beyond review notes
+- broader external-ref workflow automation
 
 ---
 
@@ -56,6 +76,7 @@ Deliverables:
 Exit criteria:
 - Taxonomy doc reviewed, minimal rule set agreed.
 - Spec + taxonomy cross-referenced and self-consistent.
+- Tokenizer/lexeme boundary note is explicit in `docs/external_ontologies.md`.
 
 ---
 
@@ -120,8 +141,20 @@ Exit criteria:
 - **Conflict semantics:** Is the paraconsistent aggregate sufficient for v0.1,
   or do we need a conflict score decomposition in the report?
 
+## Working-team handoff
+Initial material for Niklas / Ege / Peter should include:
+- `docs/wikidata_working_group_status.md`
+- the diagnostic taxonomy
+- the projection spec plus diagnostic appendix
+- the bounded-slice definition (`P31` / `P279`)
+- a reviewer-facing summary template listing SCCs, mixed-order nodes, and
+  metaclass-heavy regions
+- `docs/planning/wikidata_working_group_review_template_20260307.md`
+- `docs/planning/wikidata_working_group_review_pass_20260307.md`
+- `docs/wikidata_report_contract_v0_1.md`
+
 ## Immediate Next Actions
-1. Draft `docs/ontology_diagnostic_taxonomy_wikidata_v0_1.md`.
-2. Append diagnostic-lens appendix to the operator spec.
-3. Decide on a minimal Wikidata slice (two dumps or two edit windows).
-4. Stub the projection module skeleton + CLI entrypoint.
+1. Import more real `P31` / `P279` neighborhoods via `wikidata build-slice` before expanding to qualifier drift.
+2. Validate severity/ranking on a larger mixed-order sample.
+3. Reconfirm whether a live SCC example should be added to the review pack.
+4. Defer qualifier entropy until the `P31` / `P279` review pack is materially broader.

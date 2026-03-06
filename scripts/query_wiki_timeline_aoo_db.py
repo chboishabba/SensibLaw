@@ -3,74 +3,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
 
 
-def _stable_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _load_run_payload(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | None:
-    row = conn.execute(
-        """
-        SELECT run_id, generated_at, out_meta_json, parser_json, n_events, timeline_path
-        FROM wiki_timeline_aoo_runs
-        WHERE run_id=?
-        """,
-        (run_id,),
-    ).fetchone()
-    if not row:
-        return None
-
-    out_meta = json.loads(row["out_meta_json"]) if row["out_meta_json"] else {}
-    parser = json.loads(row["parser_json"]) if row["parser_json"] else {}
-
-    ev_rows = conn.execute(
-        """
-        SELECT event_id, anchor_year, anchor_month, anchor_day, event_json
-        FROM wiki_timeline_aoo_events
-        WHERE run_id=?
-        """,
-        (run_id,),
-    ).fetchall()
-
-    events: list[dict[str, Any]] = []
-    for r in ev_rows:
-        try:
-            ev = json.loads(r["event_json"])
-        except Exception:
-            continue
-        if isinstance(ev, dict):
-            events.append(ev)
-
-    # Deterministic order: anchor ymd then event_id.
-    def sort_key(ev: dict[str, Any]) -> tuple[int, int, int, str]:
-        a = ev.get("anchor") if isinstance(ev.get("anchor"), dict) else {}
-        y = int(a.get("year") or 0) if a else 0
-        m = int(a.get("month") or 99) if a else 99
-        d = int(a.get("day") or 99) if a else 99
-        eid = str(ev.get("event_id") or "")
-        # Unknown year sorts last
-        y2 = y if y > 0 else 9999
-        return (y2, m, d, eid)
-
-    events.sort(key=sort_key)
-
-    payload = dict(out_meta)
-    payload["parser"] = parser
-    payload["events"] = events
-    payload["run_id"] = str(row["run_id"])
-    payload["generated_at"] = str(out_meta.get("generated_at") or row["generated_at"] or "unknown")
-    payload["source_timeline"] = payload.get("source_timeline") or {"path": row["timeline_path"], "snapshot": None}
-    return payload
-
-
 def _pick_best_run_for_timeline_suffix(conn: sqlite3.Connection, suffix: str) -> str | None:
-    # Prefer runs whose timeline_path ends with the suffix. timeline_path is stored as a string (usually absolute).
-    # Deterministic selection: newest generated_at (ISO lexical) then n_events desc then run_id.
     rows = conn.execute(
         """
         SELECT run_id, generated_at, n_events, timeline_path
@@ -85,22 +25,35 @@ def _pick_best_run_for_timeline_suffix(conn: sqlite3.Connection, suffix: str) ->
     return str(rows[0]["run_id"])
 
 
+def _resolve_db_path() -> Path:
+    raw = (
+        os.environ.get("ITIR_DB_PATH")
+        or os.environ.get("SL_WIKI_TIMELINE_DB")
+        or os.environ.get("SL_WIKI_TIMELINE_AOO_DB")
+        or ".cache_local/itir.sqlite"
+    )
+    return Path(raw).expanduser().resolve()
+
+
 def main() -> None:
-    p = argparse.ArgumentParser(description="Query wiki timeline AAO payloads from the canonical SQLite store.")
-    p.add_argument("--db-path", required=True, help="Path to wiki_timeline_aoo.sqlite")
+    p = argparse.ArgumentParser(description="Query wiki timeline payloads from the canonical SQLite store.")
+    p.add_argument("--db-path", help="Path to canonical ITIR sqlite database.")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--run-id", help="Exact run_id to load.")
-    g.add_argument(
-        "--timeline-path-suffix",
-        help="Pick best run whose stored timeline_path ends with this suffix (e.g. wiki_timeline_gwb_public_bios_v1.json).",
-    )
-    g.add_argument("--list-runs", action="store_true", help="List available runs (run_id + timeline_path + generated_at + n_events).")
+    g.add_argument("--timeline-path-suffix", help="Pick best run whose stored timeline_path ends with this suffix.")
+    g.add_argument("--list-runs", action="store_true", help="List available runs.")
     args = p.parse_args()
 
-    db_path = Path(args.db_path).expanduser().resolve()
+    db_path = Path(args.db_path).expanduser().resolve() if args.db_path else _resolve_db_path()
     if not db_path.exists():
         sys.stdout.write("null\n")
         return
+
+    sb_root = Path(__file__).resolve().parents[1]
+    if str(sb_root) not in sys.path:
+        sys.path.insert(0, str(sb_root))
+
+    from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized  # noqa: PLC0415
 
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -129,16 +82,14 @@ def main() -> None:
         run_id = str(args.run_id) if args.run_id else None
         if not run_id and args.timeline_path_suffix:
             run_id = _pick_best_run_for_timeline_suffix(conn, str(args.timeline_path_suffix))
-
         if not run_id:
             sys.stdout.write("null\n")
             return
 
-        payload = _load_run_payload(conn, run_id)
+        payload: dict[str, Any] | None = load_run_payload_from_normalized(conn, run_id)
         sys.stdout.write(json.dumps(payload, indent=2, sort_keys=True) if payload is not None else "null")
         sys.stdout.write("\n")
 
 
 if __name__ == "__main__":
     main()
-

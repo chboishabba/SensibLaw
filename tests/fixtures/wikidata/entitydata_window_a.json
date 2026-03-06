@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Q9779": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q8192"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "QsrcA"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "P279": [
+          {
+            "rank": "normal",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q8192"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

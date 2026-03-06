@@ -585,6 +585,35 @@ def _extract_link_text(rect: Tuple[float, float, float, float], glyphs: List[Gly
     return text or None
 
 
+def _collect_layout_text_blocks(layout) -> List[tuple[float, float, str]]:
+    """Collect deterministic text blocks from a PDF layout tree."""
+
+    blocks: List[tuple[float, float, str]] = []
+
+    def _walk(node) -> None:
+        children = tuple(
+            child for child in getattr(node, "_objs", ()) if isinstance(child, LTTextContainer)
+        )
+        if isinstance(node, LTTextContainer) and not children:
+            raw_text = node.get_text()
+            if raw_text:
+                blocks.append(
+                    (
+                        float(getattr(node, "y0", 0.0)),
+                        float(getattr(node, "x0", 0.0)),
+                        str(raw_text),
+                    )
+                )
+            return
+
+        for child in children:
+            _walk(child)
+
+    _walk(layout)
+    blocks.sort(key=lambda block: (-block[0], block[1]))
+    return blocks
+
+
 def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
     """Yield text and headings from ``pdf_path`` one page at a time."""
 
@@ -594,13 +623,7 @@ def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
         for page_number, layout in enumerate(extract_pages(pdf_file), start=1):
             glyphs = _collect_glyphs_from_layout(layout)
             lines: List[str] = []
-            for element in layout:
-                get_text = getattr(element, "get_text", None)
-                if not callable(get_text):
-                    continue
-                text = get_text()
-                if not text:
-                    continue
+            for _, _, text in _collect_layout_text_blocks(layout):
                 for raw_line in text.splitlines():
                     cleaned_line = _clean_page_line(raw_line)
                     if cleaned_line:
