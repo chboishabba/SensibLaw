@@ -1,6 +1,36 @@
 # Changelog
 
 ## Unreleased
+- Lexeme/Wikidata bridge: expand the deterministic legal lexer to cover structural
+  legal atoms (`act_ref`, `section_ref`, `subsection_ref`, `paragraph_ref`,
+  `part_ref`, `division_ref`, `rule_ref`, `schedule_ref`, `clause_ref`,
+  `article_ref`, `instrument_ref`) plus seeded institution/court references,
+  while tightening ambiguity guards for prose false positives (`act`, `art`,
+  `court`, `agreement`, `framework`, `part`, `division`, `rule`, `s/sec`,
+  `r/rule` in non-legal contexts).
+- Lexeme/Wikidata bridge: add a deterministic bridge layer
+  (`src/ontology/entity_bridge.py`) so canonical lexer refs remain internal
+  (`institution:united_nations`, `court:international_criminal_court`) while
+  seeded external identity is attached downstream as Wikidata links
+  (`wikidata:Q1065`, `wikidata:Q47488`, etc.).
+- Lexeme/Wikidata bridge follow-through: normalize leading determiners in
+  canonical act/instrument refs (e.g. collapse `the ... Agreement` to the same
+  atom as the bare title), add a `structural_atoms` / `structural_atom_occurrences`
+  dictionary in `VersionedStore` for high-yield legal kinds, and add
+  `scripts/emit_bridge_external_refs_batch.py` so bridge hits can be emitted as
+  curated `ontology external-refs-upsert` payloads for the existing
+  `actor_external_refs` / `concept_external_refs` substrate.
+- Benchmarks/reports: extend `scripts/benchmark_tokenizer_corpora.py` to
+  report both structural legal-atom capture and linked-entity capture across
+  GWB, legal fixtures, mixed legal-reference text, and GWB-derived reference
+  snippets; add `scripts/report_canonical_atom_frequency.py` to quantify
+  repeated structural atoms separately from linked entities for DB-dedupe
+  planning.
+- Tests: expand deterministic tokenizer/lexeme coverage for legal structural
+  atomization, seeded institution/court linking, negative ambiguity suites, and
+  benchmark semantics (`tests/test_deterministic_legal_tokenizer.py`,
+  `tests/test_lexeme_layer.py`, `tests/test_tokenizer_benchmark_semantics.py`,
+  plus the existing swallow/compression guards).
 - Wiki timeline DB: canonical runtime path now targets the shared ITIR root DB
   (`ITIR_DB_PATH`, default `./.cache_local/itir.sqlite`) instead of the
   wiki-specific sidecar SQLite file; old `SL_WIKI_TIMELINE_*` env vars are
@@ -68,6 +98,19 @@
   `qualifier_drift[]` reporting, qualifier property-set/signature/entropy
   comparison across windows, and add bounded phase-2 fixture/tests for a
   qualifier-bearing slot.
+- Wikidata qualifier fixtures: add importer-backed real qualifier-bearing
+  entity-export fixtures and a generated two-window baseline slice
+  (`tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json`) so
+  phase-2 review now includes real current/previous revision pairs alongside
+  the bounded synthetic drift demo.
+- Wikidata qualifier discovery: add `sensiblaw wikidata find-qualifier-drift`
+  to rank current qualifier-bearing candidates, scan recent revisions
+  deterministically, and emit a machine-readable report of confirmed drift
+  cases, stable baselines, and fetch failures.
+- Wikidata operator helper: add
+  `scripts/run_wikidata_qualifier_drift_scan.py` to run the live finder,
+  persist a scan report, and automatically materialize the first confirmed case
+  into local entity-export, slice, and projection JSON artifacts.
 - Docs: add `SensibLaw/todo.md` to track the remaining bounded-slice Wikidata
   implementation work and link the new taxonomy doc from `README.md`.
 - Tests: add regex transition coverage for wiki timeline extraction and AAO

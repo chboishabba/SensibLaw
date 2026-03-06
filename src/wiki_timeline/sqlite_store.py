@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from src.text.lexeme_index import collect_lexeme_occurrences
+
 
 def _sha256_bytes(data: bytes) -> str:
     h = hashlib.sha256()
@@ -333,6 +335,32 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_timeline_structural_atoms (
+          atom_id INTEGER PRIMARY KEY,
+          norm_text TEXT NOT NULL,
+          norm_kind TEXT NOT NULL,
+          UNIQUE (norm_text, norm_kind)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_timeline_event_structural_atoms (
+          run_id TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          occ_id INTEGER NOT NULL,
+          atom_id INTEGER NOT NULL,
+          start_char INTEGER NOT NULL,
+          end_char INTEGER NOT NULL,
+          token_index INTEGER,
+          PRIMARY KEY (run_id, event_id, occ_id),
+          FOREIGN KEY (run_id, event_id) REFERENCES wiki_timeline_aoo_events(run_id, event_id),
+          FOREIGN KEY (atom_id) REFERENCES wiki_timeline_structural_atoms(atom_id)
+        )
+        """
+    )
+    conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_wiki_timeline_aoo_events_anchor_year ON wiki_timeline_aoo_events(anchor_year)"
     )
     conn.execute(
@@ -343,6 +371,15 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_wiki_timeline_aoo_events_action_id ON wiki_timeline_aoo_events(action_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_wiki_timeline_structural_atoms_kind ON wiki_timeline_structural_atoms(norm_kind)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_wiki_timeline_event_structural_atoms_atom ON wiki_timeline_event_structural_atoms(atom_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_wiki_timeline_event_structural_atoms_span ON wiki_timeline_event_structural_atoms(run_id, event_id, start_char, end_char)"
     )
 
 
@@ -357,6 +394,7 @@ def _get_or_create_id(conn: sqlite3.Connection, table: str, id_col: str, key_col
 
 
 def _clear_event_rows(conn: sqlite3.Connection, run_id: str) -> None:
+    conn.execute("DELETE FROM wiki_timeline_event_structural_atoms WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_step_subjects WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_step_objects WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_event_steps WHERE run_id = ?", (run_id,))
@@ -366,6 +404,62 @@ def _clear_event_rows(conn: sqlite3.Connection, run_id: str) -> None:
     conn.execute("DELETE FROM wiki_timeline_event_lists WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_run_lists WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
+
+
+def _persist_structural_atoms(conn: sqlite3.Connection, run_id: str, event_id: str, text: Optional[str]) -> None:
+    if not text:
+        return
+    structural_kinds = {
+        "case_ref",
+        "section_ref",
+        "subsection_ref",
+        "act_ref",
+        "paragraph_ref",
+        "article_ref",
+        "instrument_ref",
+        "institution_ref",
+        "court_ref",
+    }
+    occurrences = [
+        occ
+        for occ in collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+        if occ.kind in structural_kinds
+    ]
+    if not occurrences:
+        return
+    atom_keys = sorted({(occ.norm_text, occ.kind) for occ in occurrences})
+    conn.executemany(
+        "INSERT OR IGNORE INTO wiki_timeline_structural_atoms(norm_text, norm_kind) VALUES (?, ?)",
+        atom_keys,
+    )
+    placeholders = ",".join("(?, ?)" for _ in atom_keys)
+    flat: list[str] = []
+    for norm_text, norm_kind in atom_keys:
+        flat.extend([norm_text, norm_kind])
+    rows = conn.execute(
+        f"SELECT atom_id, norm_text, norm_kind FROM wiki_timeline_structural_atoms WHERE (norm_text, norm_kind) IN ({placeholders})",
+        flat,
+    ).fetchall()
+    atom_ids = {(row["norm_text"], row["norm_kind"]): int(row["atom_id"]) for row in rows}
+    conn.executemany(
+        """
+        INSERT INTO wiki_timeline_event_structural_atoms(
+          run_id, event_id, occ_id, atom_id, start_char, end_char, token_index
+        ) VALUES (?,?,?,?,?,?,?)
+        """,
+        [
+            (
+                run_id,
+                event_id,
+                index,
+                atom_ids[(occ.norm_text, occ.kind)],
+                occ.start_char,
+                occ.end_char,
+                index - 1,
+            )
+            for index, occ in enumerate(occurrences, start=1)
+        ],
+    )
 
 
 def _insert_list_rows(conn: sqlite3.Connection, run_id: str, event_id: str, list_name: str, items: Any) -> None:
@@ -439,6 +533,7 @@ def _persist_event(conn: sqlite3.Connection, run_id: str, ev: dict[str, Any]) ->
             _stable_json(split["residual"]) if split["residual"] else None,
         ),
     )
+    _persist_structural_atoms(conn, run_id, event_id, split["text"])
 
     for actor_order, actor in enumerate(split["actors"] if isinstance(split["actors"], list) else []):
         if not isinstance(actor, dict):

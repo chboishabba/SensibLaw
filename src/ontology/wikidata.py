@@ -5,8 +5,27 @@ import math
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
+import requests
+
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
+FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
+DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
+TEMPORAL_QUALIFIER_PROPERTIES = frozenset({"P580", "P582", "P585"})
+REVIEW_QUALIFIER_PROPERTIES = frozenset({"P7452"})
+PROPERTY_PRIORITY = {
+    "P166": 40,
+    "P39": 35,
+    "P54": 30,
+    "P6": 25,
+}
+SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
+MEDIAWIKI_API_ENDPOINT = "https://www.wikidata.org/w/api.php"
+ENTITY_EXPORT_TEMPLATE = "https://www.wikidata.org/wiki/Special:EntityData/{qid}.json?revision={revid}"
+REQUEST_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "SensibLaw-Wikidata-QualifierDrift/0.1",
+}
 
 
 @dataclass(frozen=True)
@@ -240,6 +259,434 @@ def build_slice_from_entity_exports(
             "properties": list(allowed),
         },
         "windows": windows,
+    }
+
+
+def _extract_qid(value: str) -> str:
+    return value.rsplit("/", 1)[-1]
+
+
+def _sparql_candidate_query(property_filter: Sequence[str], *, row_limit: int) -> str:
+    unions = "\n  UNION\n".join(
+        f'{{ ?item p:{pid} ?statement . BIND("{pid}" AS ?property_pid) }}'
+        for pid in property_filter
+    )
+    return f"""
+SELECT ?item ?itemLabel ?property_pid ?statement
+       (GROUP_CONCAT(DISTINCT ?qualifier_pid; separator=",") AS ?qualifier_pids)
+WHERE {{
+  {unions}
+  ?statement ?pq ?qv .
+  FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+  BIND(STRAFTER(STR(?pq), "http://www.wikidata.org/prop/qualifier/") AS ?qualifier_pid)
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+GROUP BY ?item ?itemLabel ?property_pid ?statement
+LIMIT {max(1, int(row_limit))}
+""".strip()
+
+
+def _http_get_json(url: str, *, params: Mapping[str, Any] | None = None) -> Any:
+    response = requests.get(url, params=params, headers=REQUEST_HEADERS, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+
+def _collect_current_qualifier_candidates(
+    *,
+    property_filter: Sequence[str],
+    candidate_limit: int,
+) -> list[dict[str, Any]]:
+    query = _sparql_candidate_query(
+        property_filter,
+        row_limit=max(candidate_limit * 4, candidate_limit),
+    )
+    payload = _http_get_json(
+        SPARQL_ENDPOINT,
+        params={"format": "json", "query": query},
+    )
+    bindings = payload.get("results", {}).get("bindings", [])
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in bindings:
+        item_raw = row.get("item", {}).get("value")
+        property_pid = row.get("property_pid", {}).get("value")
+        statement_uri = row.get("statement", {}).get("value")
+        if not item_raw or not property_pid or not statement_uri:
+            continue
+        qid = _extract_qid(item_raw)
+        label = row.get("itemLabel", {}).get("value", qid)
+        qualifier_pids = sorted(
+            {
+                value
+                for value in row.get("qualifier_pids", {}).get("value", "").split(",")
+                if value
+            }
+        )
+        candidate = grouped.setdefault(
+            (qid, property_pid),
+            {
+                "qid": qid,
+                "label": label,
+                "property_pid": property_pid,
+                "statement_ids": set(),
+                "qualifier_properties": set(),
+                "statement_qualifier_sets": [],
+            },
+        )
+        candidate["statement_ids"].add(_extract_qid(statement_uri))
+        candidate["qualifier_properties"].update(qualifier_pids)
+        candidate["statement_qualifier_sets"].append(tuple(qualifier_pids))
+
+    results: list[dict[str, Any]] = []
+    for (qid, property_pid), candidate in sorted(grouped.items()):
+        qualifier_properties = sorted(candidate["qualifier_properties"])
+        results.append(
+            {
+                "qid": qid,
+                "label": candidate["label"],
+                "property_pid": property_pid,
+                "statement_count": len(candidate["statement_ids"]),
+                "qualifier_property_count": len(qualifier_properties),
+                "qualifier_properties": qualifier_properties,
+                "statement_qualifier_sets": sorted(
+                    {
+                        item
+                        for item in candidate["statement_qualifier_sets"]
+                    },
+                    key=lambda item: (len(item), item),
+                ),
+            }
+        )
+    return results
+
+
+def _fetch_recent_revisions(qid: str, *, revision_limit: int) -> list[dict[str, Any]]:
+    payload = _http_get_json(
+        MEDIAWIKI_API_ENDPOINT,
+        params={
+            "action": "query",
+            "prop": "revisions",
+            "titles": qid,
+            "rvlimit": max(2, int(revision_limit)),
+            "rvprop": "ids|timestamp",
+            "format": "json",
+        },
+    )
+    pages = payload.get("query", {}).get("pages", {})
+    if not isinstance(pages, Mapping) or not pages:
+        return []
+    page = next(iter(pages.values()))
+    revisions = page.get("revisions", [])
+    if not isinstance(revisions, list):
+        return []
+    return [
+        {"revid": int(item["revid"]), "timestamp": _stringify(item["timestamp"])}
+        for item in revisions
+        if isinstance(item, Mapping) and "revid" in item and "timestamp" in item
+    ]
+
+
+def _fetch_entity_export_revision(qid: str, revid: int) -> dict[str, Any]:
+    url = ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=revid)
+    payload = _http_get_json(url)
+    if not isinstance(payload, dict):
+        raise ValueError(f"entity export must be an object for {qid}@{revid}")
+    return payload
+
+
+def _slot_reports_from_entity_export(
+    payload: Mapping[str, Any],
+    *,
+    property_filter: Sequence[str],
+    e0: int = 1,
+) -> dict[str, dict[str, Any]]:
+    slice_payload = build_slice_from_entity_exports(
+        {"scan": [dict(payload)]},
+        property_filter=property_filter,
+    )
+    windows = load_windows(slice_payload)
+    return _aggregate_window(windows[0], e0=e0)
+
+
+def _compare_slot_reports_for_qualifier_drift(
+    left_slots: Mapping[str, Mapping[str, Any]],
+    right_slots: Mapping[str, Mapping[str, Any]],
+    *,
+    from_window: str,
+    to_window: str,
+) -> list[dict[str, Any]]:
+    all_slot_ids = sorted(set(left_slots) | set(right_slots))
+    findings: list[dict[str, Any]] = []
+    for slot_id in all_slot_ids:
+        left = left_slots.get(
+            slot_id,
+            {
+                "qualifier_signatures": [],
+                "qualifier_property_set": [],
+                "qualifier_entropy": 0.0,
+            },
+        )
+        right = right_slots.get(
+            slot_id,
+            {
+                "qualifier_signatures": [],
+                "qualifier_property_set": [],
+                "qualifier_entropy": 0.0,
+            },
+        )
+        signatures_changed = left["qualifier_signatures"] != right["qualifier_signatures"]
+        property_set_changed = left["qualifier_property_set"] != right["qualifier_property_set"]
+        entropy_delta = round(right["qualifier_entropy"] - left["qualifier_entropy"], 6)
+        if not signatures_changed and not property_set_changed and entropy_delta == 0.0:
+            continue
+        severity = "low"
+        if property_set_changed:
+            severity = "high"
+        elif signatures_changed:
+            severity = "medium"
+        findings.append(
+            {
+                "slot_id": slot_id,
+                "subject_qid": slot_id.split("|", 1)[0],
+                "property_pid": slot_id.split("|", 1)[1],
+                "from_window": from_window,
+                "to_window": to_window,
+                "qualifier_signatures_t1": left["qualifier_signatures"],
+                "qualifier_signatures_t2": right["qualifier_signatures"],
+                "qualifier_property_set_t1": left["qualifier_property_set"],
+                "qualifier_property_set_t2": right["qualifier_property_set"],
+                "qualifier_entropy_t1": left["qualifier_entropy"],
+                "qualifier_entropy_t2": right["qualifier_entropy"],
+                "qualifier_entropy_delta": entropy_delta,
+                "severity": severity,
+            }
+        )
+    findings.sort(
+        key=lambda item: (
+            {"high": 0, "medium": 1, "low": 2}[item["severity"]],
+            item["slot_id"],
+        )
+    )
+    return findings
+
+
+def _score_candidate(candidate: Mapping[str, Any], revisions: Sequence[Mapping[str, Any]]) -> tuple[int, list[str]]:
+    property_pid = _stringify(candidate["property_pid"])
+    qualifier_properties = set(candidate.get("qualifier_properties", []))
+    statement_count = int(candidate.get("statement_count", 0))
+    score = PROPERTY_PRIORITY.get(property_pid, 10)
+    reasons = [f"property_priority:{PROPERTY_PRIORITY.get(property_pid, 10)}"]
+    if len(qualifier_properties) >= 2:
+        score += 15
+        reasons.append("multi_qualifier_property_bonus:15")
+    qualifier_property_points = len(qualifier_properties) * 5
+    if qualifier_property_points:
+        score += qualifier_property_points
+        reasons.append(f"qualifier_property_count_bonus:{qualifier_property_points}")
+    if qualifier_properties & TEMPORAL_QUALIFIER_PROPERTIES:
+        score += 8
+        reasons.append("temporal_qualifier_bonus:8")
+    if qualifier_properties & REVIEW_QUALIFIER_PROPERTIES:
+        score += 8
+        reasons.append("review_qualifier_bonus:8")
+    if statement_count > 1:
+        statement_bonus = min((statement_count - 1) * 3, 12)
+        score += statement_bonus
+        reasons.append(f"multi_statement_bonus:{statement_bonus}")
+    revision_bonus = min(max(len(revisions) - 1, 0), 10)
+    if revision_bonus:
+        score += revision_bonus
+        reasons.append(f"revision_pair_bonus:{revision_bonus}")
+    return score, reasons
+
+
+def find_qualifier_drift_candidates(
+    *,
+    property_filter: Iterable[str] | None = None,
+    candidate_limit: int = 20,
+    revision_limit: int = 5,
+) -> Dict[str, Any]:
+    allowed = tuple(sorted(set(property_filter or DEFAULT_FIND_QUALIFIER_PROPERTIES)))
+    try:
+        raw_candidates = _collect_current_qualifier_candidates(
+            property_filter=allowed,
+            candidate_limit=candidate_limit,
+        )
+    except Exception as exc:
+        return {
+            "schema_version": FINDER_SCHEMA_VERSION,
+            "properties": list(allowed),
+            "candidate_limit": int(candidate_limit),
+            "revision_limit": int(revision_limit),
+            "candidate_count": 0,
+            "scanned_candidate_count": 0,
+            "candidates": [],
+            "confirmed_drift_cases": [],
+            "stable_baselines": [],
+            "failures": [
+                {
+                    "stage": "candidate_query",
+                    "error": _stringify(exc),
+                }
+            ],
+        }
+    entity_cache: dict[tuple[str, int], dict[str, Any]] = {}
+    ranked_candidates: list[dict[str, Any]] = []
+    confirmed_drift_cases: list[dict[str, Any]] = []
+    stable_baselines: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+
+    for candidate in raw_candidates:
+        qid = candidate["qid"]
+        property_pid = candidate["property_pid"]
+        try:
+            revisions = _fetch_recent_revisions(qid, revision_limit=revision_limit)
+        except Exception as exc:
+            failures.append(
+                {
+                    "qid": qid,
+                    "label": candidate["label"],
+                    "property_pid": property_pid,
+                    "stage": "revision_metadata",
+                    "error": _stringify(exc),
+                }
+            )
+            continue
+
+        score, ranking_reasons = _score_candidate(candidate, revisions)
+        ranked_candidates.append(
+            {
+                **candidate,
+                "score": score,
+                "ranking_reasons": ranking_reasons,
+                "recent_revisions": revisions,
+                "recent_revision_ids": [item["revid"] for item in revisions],
+            }
+        )
+
+    ranked_candidates.sort(
+        key=lambda item: (-item["score"], item["qid"], item["property_pid"])
+    )
+
+    for candidate in ranked_candidates[: max(1, int(candidate_limit))]:
+        qid = candidate["qid"]
+        property_pid = candidate["property_pid"]
+        revisions = candidate["recent_revision_ids"]
+        revision_meta = {
+            item["revid"]: item["timestamp"]
+            for item in candidate["recent_revisions"]
+        }
+        if len(revisions) < 2:
+            stable_baselines.append(
+                {
+                    "qid": qid,
+                    "label": candidate["label"],
+                    "property_pid": property_pid,
+                    "score": candidate["score"],
+                    "recent_revision_ids": revisions,
+                    "scanned_pairs": 0,
+                    "status": "insufficient_revisions",
+                }
+            )
+            continue
+
+        found_case = None
+        had_failure = False
+        scanned_pairs = 0
+        for index in range(len(revisions) - 1):
+            newer_revid = revisions[index]
+            older_revid = revisions[index + 1]
+            scanned_pairs += 1
+            try:
+                older_payload = entity_cache.setdefault(
+                    (qid, older_revid),
+                    _fetch_entity_export_revision(qid, older_revid),
+                )
+                newer_payload = entity_cache.setdefault(
+                    (qid, newer_revid),
+                    _fetch_entity_export_revision(qid, newer_revid),
+                )
+                older_slots = _slot_reports_from_entity_export(
+                    older_payload,
+                    property_filter=(property_pid,),
+                )
+                newer_slots = _slot_reports_from_entity_export(
+                    newer_payload,
+                    property_filter=(property_pid,),
+                )
+                drift = _compare_slot_reports_for_qualifier_drift(
+                    older_slots,
+                    newer_slots,
+                    from_window=str(older_revid),
+                    to_window=str(newer_revid),
+                )
+            except Exception as exc:
+                failures.append(
+                    {
+                        "qid": qid,
+                        "label": candidate["label"],
+                        "property_pid": property_pid,
+                        "stage": "revision_compare",
+                        "from_revision": older_revid,
+                        "to_revision": newer_revid,
+                        "error": _stringify(exc),
+                    }
+                )
+                had_failure = True
+                break
+            if drift:
+                found_case = {
+                    "qid": qid,
+                    "label": candidate["label"],
+                    "property_pid": property_pid,
+                    "score": candidate["score"],
+                    "ranking_reasons": candidate["ranking_reasons"],
+                    "statement_count": candidate["statement_count"],
+                    "qualifier_properties": candidate["qualifier_properties"],
+                    "from_revision": {
+                        "revid": older_revid,
+                        "timestamp": revision_meta.get(older_revid, "unknown"),
+                    },
+                    "to_revision": {
+                        "revid": newer_revid,
+                        "timestamp": revision_meta.get(newer_revid, "unknown"),
+                    },
+                    "qualifier_drift": drift,
+                    "entity_export_urls": {
+                        "from": ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=older_revid),
+                        "to": ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=newer_revid),
+                    },
+                    "suggested_fixture_stem": f"{qid.lower()}_{property_pid.lower()}_{older_revid}_{newer_revid}",
+                }
+                break
+        if found_case:
+            confirmed_drift_cases.append(found_case)
+            continue
+        if had_failure:
+            continue
+        stable_baselines.append(
+            {
+                "qid": qid,
+                "label": candidate["label"],
+                "property_pid": property_pid,
+                "score": candidate["score"],
+                "recent_revision_ids": revisions,
+                "scanned_pairs": scanned_pairs,
+                "status": "stable",
+            }
+        )
+
+    return {
+        "schema_version": FINDER_SCHEMA_VERSION,
+        "properties": list(allowed),
+        "candidate_limit": int(candidate_limit),
+        "revision_limit": int(revision_limit),
+        "candidate_count": len(ranked_candidates),
+        "scanned_candidate_count": len(confirmed_drift_cases) + len(stable_baselines),
+        "candidates": ranked_candidates[: max(1, int(candidate_limit))],
+        "confirmed_drift_cases": confirmed_drift_cases,
+        "stable_baselines": stable_baselines,
+        "failures": failures,
     }
 
 
@@ -496,59 +943,12 @@ def _build_qualifier_drift(
         return []
     first = windows[0].window_id
     second = windows[1].window_id
-    all_slot_ids = sorted(set(slot_reports[first]) | set(slot_reports[second]))
-    findings: list[dict[str, Any]] = []
-    for slot_id in all_slot_ids:
-        left = slot_reports[first].get(
-            slot_id,
-            {
-                "qualifier_signatures": [],
-                "qualifier_property_set": [],
-                "qualifier_entropy": 0.0,
-            },
-        )
-        right = slot_reports[second].get(
-            slot_id,
-            {
-                "qualifier_signatures": [],
-                "qualifier_property_set": [],
-                "qualifier_entropy": 0.0,
-            },
-        )
-        signatures_changed = left["qualifier_signatures"] != right["qualifier_signatures"]
-        property_set_changed = left["qualifier_property_set"] != right["qualifier_property_set"]
-        entropy_delta = round(right["qualifier_entropy"] - left["qualifier_entropy"], 6)
-        if not signatures_changed and not property_set_changed and entropy_delta == 0.0:
-            continue
-        severity = "low"
-        if property_set_changed:
-            severity = "high"
-        elif signatures_changed:
-            severity = "medium"
-        findings.append(
-            {
-                "slot_id": slot_id,
-                "subject_qid": slot_id.split("|", 1)[0],
-                "property_pid": slot_id.split("|", 1)[1],
-                "from_window": first,
-                "to_window": second,
-                "qualifier_signatures_t1": left["qualifier_signatures"],
-                "qualifier_signatures_t2": right["qualifier_signatures"],
-                "qualifier_property_set_t1": left["qualifier_property_set"],
-                "qualifier_property_set_t2": right["qualifier_property_set"],
-                "qualifier_entropy_t1": left["qualifier_entropy"],
-                "qualifier_entropy_t2": right["qualifier_entropy"],
-                "qualifier_entropy_delta": entropy_delta,
-                "severity": severity,
-            }
-        )
-    findings.sort(
-        key=lambda item: (
-            {"high": 0, "medium": 1, "low": 2}[item["severity"]],
-            item["slot_id"],
-        )
+    return _compare_slot_reports_for_qualifier_drift(
+        slot_reports[first],
+        slot_reports[second],
+        from_window=first,
+        to_window=second,
     )
-    return findings
 
 
 def project_wikidata_payload(
@@ -672,7 +1072,9 @@ def project_wikidata_payload(
 
 __all__ = [
     "SCHEMA_VERSION",
+    "FINDER_SCHEMA_VERSION",
     "build_slice_from_entity_exports",
+    "find_qualifier_drift_candidates",
     "load_windows",
     "project_wikidata_payload",
 ]

@@ -50,21 +50,27 @@ def _structural_kinds() -> set[str]:
 
 
 def main() -> None:
+    from src.ontology.entity_bridge import link_lexeme_occurrences
     from src.text.lexeme_index import collect_lexeme_occurrences
 
     structural_kinds = _structural_kinds()
     report: dict[str, dict] = {}
     overall_counter: Counter[str] = Counter()
     overall_kind_counter: Counter[str] = Counter()
+    overall_link_counter: Counter[str] = Counter()
 
     for corpus_name, texts in _corpora().items():
         atom_counter: Counter[str] = Counter()
         kind_counter: Counter[str] = Counter()
+        link_counter: Counter[str] = Counter()
         for text in texts:
-            for occ in collect_lexeme_occurrences(text, canonical_mode="deterministic_legal"):
+            occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+            for occ in occs:
                 if occ.kind in structural_kinds:
                     atom_counter[occ.norm_text] += 1
                     kind_counter[occ.kind] += 1
+            for link in link_lexeme_occurrences(occs):
+                link_counter[link.curie] += 1
         dedupe_candidate_bytes = sum(len(atom) * (count - 1) for atom, count in atom_counter.items() if count > 1)
         report[corpus_name] = {
             "documents": len(texts),
@@ -73,9 +79,13 @@ def main() -> None:
             "dedupe_candidate_bytes": dedupe_candidate_bytes,
             "top_structural_atoms": atom_counter.most_common(15),
             "structural_kind_counts": dict(kind_counter.most_common()),
+            "linked_entity_occurrences": sum(link_counter.values()),
+            "unique_linked_entities": len(link_counter),
+            "top_linked_entities": link_counter.most_common(10),
         }
         overall_counter.update(atom_counter)
         overall_kind_counter.update(kind_counter)
+        overall_link_counter.update(link_counter)
 
     report["overall"] = {
         "structural_occurrences": sum(overall_counter.values()),
@@ -85,6 +95,9 @@ def main() -> None:
         ),
         "top_structural_atoms": overall_counter.most_common(25),
         "structural_kind_counts": dict(overall_kind_counter.most_common()),
+        "linked_entity_occurrences": sum(overall_link_counter.values()),
+        "unique_linked_entities": len(overall_link_counter),
+        "top_linked_entities": overall_link_counter.most_common(15),
     }
 
     print(json.dumps(report, indent=2, sort_keys=True))

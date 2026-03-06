@@ -87,6 +87,11 @@ Severity rules:
 - `low`
   - entropy changes without a property-set or signature-set change
 
+Notes:
+- `qualifier_drift[]` may legitimately be empty on real imported revision pairs.
+- Zero-drift output is still useful reviewer evidence when the slot contains
+  real qualifier-bearing statements and the importer path is under test.
+
 ## Window diagnostics
 Each window report currently includes:
 - `p279_sccs`

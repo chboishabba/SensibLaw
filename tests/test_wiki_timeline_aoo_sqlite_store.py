@@ -23,7 +23,7 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
                 "event_id": "e1",
                 "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "explicit", "text": "September 11, 2001"},
                 "section": "2001",
-                "text": "Test event",
+                "text": "Civil Liability Act 2002 (NSW) s 5B(2)(a) referenced Art 5 and the India–United States Civil Nuclear Agreement.",
                 "actors": [{"label": "A", "resolved": "A", "role": "subject", "source": "x"}],
                 "action": "happen",
                 "steps": [{"action": "happen", "subjects": ["A"], "objects": ["B"]}],
@@ -78,7 +78,7 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert row["anchor_kind"] == "explicit"
         assert row["anchor_text"] == "September 11, 2001"
         assert row["section"] == "2001"
-        assert row["text"] == "Test event"
+        assert row["text"] == "Civil Liability Act 2002 (NSW) s 5B(2)(a) referenced Art 5 and the India–United States Civil Nuclear Agreement."
         assert row["event_json"] == "{}"
         assert row["residual_json"] in (None, "{}")
 
@@ -88,6 +88,24 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_steps WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        structural_atoms = conn.execute(
+            """
+            SELECT a.norm_text, a.norm_kind
+            FROM wiki_timeline_structural_atoms AS a
+            JOIN wiki_timeline_event_structural_atoms AS o ON o.atom_id = a.atom_id
+            WHERE o.run_id = ? AND o.event_id = ?
+            ORDER BY o.occ_id
+            """,
+            (res1.run_id, "e1"),
+        ).fetchall()
+        assert [(row["norm_text"], row["norm_kind"]) for row in structural_atoms] == [
+            ("act:civil_liability_act_2002_nsw", "act_ref"),
+            ("sec:5b", "section_ref"),
+            ("subsec:2", "subsection_ref"),
+            ("para:a", "paragraph_ref"),
+            ("art:5", "article_ref"),
+            ("instrument:india_united_states_civil_nuclear_agreement", "instrument_ref"),
+        ]
 
         payload = load_run_payload_from_normalized(conn, res1.run_id)
         assert payload is not None

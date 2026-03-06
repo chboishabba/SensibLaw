@@ -162,6 +162,34 @@ class VersionedStore:
                 CREATE INDEX IF NOT EXISTS idx_lexeme_occurrences_span
                 ON lexeme_occurrences(doc_id, rev_id, start_char, end_char);
 
+                CREATE TABLE IF NOT EXISTS structural_atoms (
+                    atom_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    norm_text TEXT NOT NULL,
+                    norm_kind TEXT NOT NULL,
+                    UNIQUE (norm_text, norm_kind)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_structural_atoms_kind
+                ON structural_atoms(norm_kind);
+
+                CREATE TABLE IF NOT EXISTS structural_atom_occurrences (
+                    doc_id INTEGER NOT NULL,
+                    rev_id INTEGER NOT NULL,
+                    occ_id INTEGER NOT NULL,
+                    atom_id INTEGER NOT NULL REFERENCES structural_atoms(atom_id),
+                    start_char INTEGER NOT NULL,
+                    end_char INTEGER NOT NULL,
+                    token_index INTEGER,
+                    PRIMARY KEY (doc_id, rev_id, occ_id),
+                    FOREIGN KEY (doc_id, rev_id) REFERENCES revisions(doc_id, rev_id)
+                ) WITHOUT ROWID;
+
+                CREATE INDEX IF NOT EXISTS idx_structural_atom_occurrences_atom
+                ON structural_atom_occurrences(atom_id);
+
+                CREATE INDEX IF NOT EXISTS idx_structural_atom_occurrences_span
+                ON structural_atom_occurrences(doc_id, rev_id, start_char, end_char);
+
                 CREATE TABLE IF NOT EXISTS phrase_atoms (
                     phrase_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     lexeme_seq_hash TEXT NOT NULL UNIQUE,
@@ -2895,6 +2923,59 @@ class VersionedStore:
                 """,
                 payload,
             )
+
+            structural_kinds = {
+                "case_ref",
+                "section_ref",
+                "subsection_ref",
+                "act_ref",
+                "paragraph_ref",
+                "article_ref",
+                "instrument_ref",
+                "institution_ref",
+                "court_ref",
+            }
+            structural = [occ for occ in occurrences if occ.kind in structural_kinds]
+            if structural:
+                atom_keys = {(occ.norm_text, occ.kind) for occ in structural}
+                self.conn.executemany(
+                    "INSERT OR IGNORE INTO structural_atoms (norm_text, norm_kind) VALUES (?, ?)",
+                    list(atom_keys),
+                )
+                placeholders = ",".join("(?, ?)" for _ in atom_keys)
+                flat: list[str] = []
+                for norm_text, norm_kind in atom_keys:
+                    flat.extend([norm_text, norm_kind])
+                rows = self.conn.execute(
+                    f"SELECT atom_id, norm_text, norm_kind FROM structural_atoms WHERE (norm_text, norm_kind) IN ({placeholders})",
+                    flat,
+                ).fetchall()
+                atom_ids = {(row["norm_text"], row["norm_kind"]): row["atom_id"] for row in rows}
+                structural_payload = []
+                for index, occ in enumerate(occurrences, start=1):
+                    key = (occ.norm_text, occ.kind)
+                    atom_id = atom_ids.get(key)
+                    if atom_id is None:
+                        continue
+                    structural_payload.append(
+                        (
+                            doc_id,
+                            rev_id,
+                            index,
+                            atom_id,
+                            occ.start_char,
+                            occ.end_char,
+                            index - 1,
+                        )
+                    )
+                self.conn.executemany(
+                    """
+                    INSERT INTO structural_atom_occurrences (
+                        doc_id, rev_id, occ_id, atom_id, start_char, end_char, token_index
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    structural_payload,
+                )
 
     def _load_provisions(
         self, doc_id: int, rev_id: int

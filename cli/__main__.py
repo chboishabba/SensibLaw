@@ -590,6 +590,30 @@ def _handle_wikidata_build_slice(args: argparse.Namespace) -> None:
     _print_json(slice_payload)
 
 
+def _handle_wikidata_find_qualifier_drift(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import find_qualifier_drift_candidates
+
+    report = find_qualifier_drift_candidates(
+        property_filter=args.property,
+        candidate_limit=args.candidate_limit,
+        revision_limit=args.revision_limit,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "confirmed_drift_case_count": len(report["confirmed_drift_cases"]),
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_extract_frl(args: argparse.Namespace) -> None:
     from src.ingestion.frl import fetch_acts
 
@@ -1618,6 +1642,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repeatable property filter; defaults to P31 and P279",
     )
     wikidata_build_slice.set_defaults(func=_handle_wikidata_build_slice)
+    wikidata_find_qualifier_drift = wikidata_sub.add_parser(
+        "find-qualifier-drift",
+        help="Find real qualifier-drift candidates by scanning recent live Wikidata revisions",
+    )
+    wikidata_find_qualifier_drift.add_argument(
+        "--property",
+        action="append",
+        help="Repeatable property filter; defaults to P166, P39, P54, and P6",
+    )
+    wikidata_find_qualifier_drift.add_argument(
+        "--candidate-limit",
+        type=int,
+        default=20,
+        help="Maximum number of ranked candidates to scan",
+    )
+    wikidata_find_qualifier_drift.add_argument(
+        "--revision-limit",
+        type=int,
+        default=5,
+        help="Maximum number of recent revisions to inspect per candidate",
+    )
+    wikidata_find_qualifier_drift.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the drift-finder report JSON",
+    )
+    wikidata_find_qualifier_drift.set_defaults(func=_handle_wikidata_find_qualifier_drift)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)

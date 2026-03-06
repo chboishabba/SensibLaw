@@ -117,6 +117,17 @@ def _spacy_tokenizer() -> Callable[[str], list[str]] | None:
     return inner
 
 
+def _deterministic_linked_tokenizer() -> Callable[[str], list[str]]:
+    from src.ontology.entity_bridge import link_lexeme_occurrences
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    def inner(text: str) -> list[str]:
+        occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+        return [link.curie for link in link_lexeme_occurrences(occs)]
+
+    return inner
+
+
 def _tiktoken_tokenizer() -> Callable[[str], list[str]] | None:
     try:
         import tiktoken  # type: ignore
@@ -131,14 +142,8 @@ def _tiktoken_tokenizer() -> Callable[[str], list[str]] | None:
     return inner
 
 
-def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
-    total_chars = sum(len(t) for t in texts)
-    total_tokens = 0
-    unique_tokens: set[str] = set()
-    corpus_token_presence: Counter[str] = Counter()
-    legal_atom_hits = 0
-    legal_atom_total = 0
-    atom_expectations = [
+def _atom_expectations() -> list[tuple[str, list[str], list[str]]]:
+    return [
         (
             "s 5b(2)(a)",
             [
@@ -147,6 +152,7 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
                 "subsec:2",
                 "para:a",
             ],
+            [],
         ),
         (
             "sch 1 cl 4",
@@ -155,24 +161,28 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
                 "cl:4",
                 "rule:7.32",
             ],
+            [],
         ),
         (
             "military commissions act of 2006",
             [
                 "act:military_commissions_act_of_2006",
             ],
+            [],
         ),
         (
             "united states court of appeals for the sixth circuit",
             [
                 "court:united_states_court_of_appeals_for_the_sixth_circuit",
             ],
+            [],
         ),
         (
             "u.s. supreme court",
             [
                 "court:u_s_supreme_court",
             ],
+            [],
         ),
         (
             "s 75(v)",
@@ -180,56 +190,88 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
                 "sec:75",
                 "para:v",
             ],
+            [],
         ),
         (
             "art 5",
             [
                 "art:5",
             ],
+            [],
         ),
         (
             "civil nuclear agreement",
             [
                 "instrument:india_united_states_civil_nuclear_agreement",
             ],
+            [],
         ),
         (
             "agreed framework",
             [
                 "instrument:u_s_dprk_agreed_framework",
             ],
+            [],
         ),
         (
             "un inspectors",
             [
-                "institution:wd:Q1065",
+                "institution:united_nations",
+            ],
+            [
+                "wikidata:Q1065",
             ],
         ),
         (
             "security council",
             [
-                "institution:wd:Q37470",
+                "institution:united_nations_security_council",
+            ],
+            [
+                "wikidata:Q37470",
             ],
         ),
         (
             "icc",
             [
-                "court:wd:Q47488",
+                "court:international_criminal_court",
+            ],
+            [
+                "wikidata:Q47488",
             ],
         ),
     ]
+
+
+def _summarize(
+    texts: list[str],
+    tokenize: Callable[[str], list[str]],
+    linked_tokenize: Callable[[str], list[str]] | None = None,
+) -> dict:
+    total_chars = sum(len(t) for t in texts)
+    total_tokens = 0
+    unique_tokens: set[str] = set()
+    corpus_token_presence: Counter[str] = Counter()
+    legal_atom_hits = 0
+    legal_atom_total = 0
+    linked_entity_hits = 0
+    linked_entity_total = 0
+    atom_expectations = _atom_expectations()
 
     for text in texts:
         toks = tokenize(text)
         total_tokens += len(toks)
         token_set = set(toks)
+        linked_set = set(linked_tokenize(text)) if linked_tokenize is not None else set()
         unique_tokens.update(token_set)
         corpus_token_presence.update(token_set)
         low_text = text.lower()
-        for marker, needles in atom_expectations:
+        for marker, needles, linked_needles in atom_expectations:
             if marker in low_text:
                 legal_atom_total += len(needles)
                 legal_atom_hits += sum(1 for needle in needles if needle in token_set)
+                linked_entity_total += len(linked_needles)
+                linked_entity_hits += sum(1 for needle in linked_needles if needle in linked_set)
 
     overlap = sum(1 for _, seen in corpus_token_presence.items() if seen > 1)
     return {
@@ -242,6 +284,7 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
         "reuse_ratio": (1.0 - (len(unique_tokens) / total_tokens)) if total_tokens else 0.0,
         "cross_document_overlap_tokens": overlap,
         "legal_atom_capture_rate": (legal_atom_hits / legal_atom_total) if legal_atom_total else None,
+        "linked_entity_capture_rate": (linked_entity_hits / linked_entity_total) if linked_entity_total else None,
     }
 
 
@@ -274,10 +317,12 @@ def main() -> None:
         tokenizers["tiktoken_cl100k"] = tiktoken_tok
 
     out: dict[str, dict] = {}
+    linked_det = _deterministic_linked_tokenizer()
     for corpus_name, texts in corpora.items():
         out[corpus_name] = {}
         for tok_name, tok_fn in tokenizers.items():
-            out[corpus_name][tok_name] = _summarize(texts, tok_fn)
+            linked_fn = linked_det if tok_name == "deterministic_legal" else None
+            out[corpus_name][tok_name] = _summarize(texts, tok_fn, linked_fn)
 
     print(json.dumps(out, indent=2, sort_keys=True))
 

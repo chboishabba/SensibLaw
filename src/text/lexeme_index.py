@@ -133,51 +133,59 @@ def _canonicalize_legal_reference(token: LexemeToken):
         compact = "".join(out).strip("_")
         return compact or "unknown"
 
+    def strip_leading_determiner(value: str) -> str:
+        stripped = value.strip()
+        lowered = stripped.casefold()
+        for prefix in ("the ",):
+            if lowered.startswith(prefix):
+                return stripped[len(prefix) :].lstrip()
+        return stripped
+
     def strip_parens(value: str) -> str:
         inner = value.strip()
         if inner.startswith("(") and inner.endswith(")"):
             inner = inner[1:-1]
         return inner.strip().casefold()
 
-    institution_qids = {
-        "un": "Q1065",
-        "u.n.": "Q1065",
-        "uno": "Q1065",
-        "united nations": "Q1065",
-        "united nations organization": "Q1065",
-        "security council": "Q37470",
-        "un security council": "Q37470",
-        "u.n. security council": "Q37470",
-        "unsc": "Q37470",
-        "united nations security council": "Q37470",
+    institution_aliases = {
+        "un": "institution:united_nations",
+        "u.n.": "institution:united_nations",
+        "uno": "institution:united_nations",
+        "united nations": "institution:united_nations",
+        "united nations organization": "institution:united_nations",
+        "security council": "institution:united_nations_security_council",
+        "un security council": "institution:united_nations_security_council",
+        "u.n. security council": "institution:united_nations_security_council",
+        "unsc": "institution:united_nations_security_council",
+        "united nations security council": "institution:united_nations_security_council",
     }
-    court_qids = {
-        "international criminal court": "Q47488",
-        "icc": "Q47488",
-        "icct": "Q47488",
-        "international court of justice": "Q7801",
-        "icj": "Q7801",
-        "world court": "Q7801",
+    court_aliases = {
+        "international criminal court": "court:international_criminal_court",
+        "icc": "court:international_criminal_court",
+        "icct": "court:international_criminal_court",
+        "international court of justice": "court:international_court_of_justice",
+        "icj": "court:international_court_of_justice",
+        "world court": "court:international_court_of_justice",
     }
 
     if token.token_type == TokenType.ACT_REFERENCE:
-        return "act_ref", f"act:{compact_identifier(token.text)}"
+        return "act_ref", f"act:{compact_identifier(strip_leading_determiner(token.text))}"
     if token.token_type == TokenType.CASE_REFERENCE:
         return "case_ref", f"case:{compact_identifier(token.text)}"
     if token.token_type == TokenType.COURT_REFERENCE:
-        qid = court_qids.get(token.text.casefold())
-        if qid is not None:
-            return "court_ref", f"court:wd:{qid}"
+        canonical = court_aliases.get(token.text.casefold())
+        if canonical is not None:
+            return "court_ref", canonical
         return "court_ref", f"court:{compact_identifier(token.text)}"
     if token.token_type == TokenType.INSTITUTION_REFERENCE:
-        qid = institution_qids.get(token.text.casefold())
-        if qid is not None:
-            return "institution_ref", f"institution:wd:{qid}"
+        canonical = institution_aliases.get(token.text.casefold())
+        if canonical is not None:
+            return "institution_ref", canonical
         return "institution_ref", f"institution:{compact_identifier(token.text)}"
     if token.token_type == TokenType.ARTICLE_REFERENCE:
         return "article_ref", f"art:{compact_identifier(token.text.split(None, 1)[1])}"
     if token.token_type == TokenType.INSTRUMENT_REFERENCE:
-        return "instrument_ref", f"instrument:{compact_identifier(token.text)}"
+        return "instrument_ref", f"instrument:{compact_identifier(strip_leading_determiner(token.text))}"
     if token.token_type == TokenType.SECTION_REFERENCE:
         parts = token.text.split(None, 1)
         tail = parts[1] if len(parts) > 1 else token.text

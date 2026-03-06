@@ -58,20 +58,26 @@
 
 ## Open questions
 - Slice gaps: current fixture now demonstrates multiple mixed-order examples,
-  non-zero EII, and multiple confirmed live SCC examples; the next gap is real
-  qualifier-bearing cases beyond the bounded phase-2 fixture
+  non-zero EII, and multiple confirmed live SCC examples; the remaining phase-2
+  gap is a confirmed live revision-pair qualifier-change case
 - Threshold questions (`e0`, SCC priority, report ranking): keep `e0=1` for reviewer demos; revisit after first real multi-neighborhood slice
-- Qualifier-drift follow-up: phase 2 is now active in bounded form; next step is
-  replacing the synthetic qualifier fixture with real imported qualifier-bearing
-  slices
+- Qualifier-drift follow-up: phase 2 now has a real imported qualifier-bearing
+  baseline slice plus the bounded synthetic drift demo; next step is replacing
+  the synthetic demo as the primary drift example with a confirmed live
+  revision-pair change
 
 ## Next review actions
 - keep `P31` / `P279` as the next bounded slice
-- keep the structural pack stable while adding real qualifier-bearing slices
+- keep the structural pack stable while growing the importer-backed qualifier
+  pack
 - use `docs/wikidata_report_contract_v0_1.md` as the current reviewer-facing report contract
 - record example status explicitly:
   - `alphabet` / `writing system`: `currently live`
   - `Na(+)-translocating NADH-quinone reductase subunit A CTL0002` / `gene`: `currently live`
   - `High German` / `German`: `currently live`
   - `urban green space` / `park`: `currently live`
+  - `Q28792860` / `Maria Moors Cabot Prizes`: `currently live`, imported
+    qualifier-bearing baseline (`P585`)
+  - `Q1336181` / `Knight of the Order of the Dannebrog`: `currently live`,
+    imported qualifier-bearing baseline (`P585`, `P7452`)
   - `referendum` / `plebiscite`: `historical thread example`

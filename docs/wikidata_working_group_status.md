@@ -11,6 +11,9 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   qualifier drift on bounded qualifier-bearing properties
 - goal is deterministic diagnostics and review support, not ontology fixes
 - qualifier drift is now active in bounded form
+- current phase-2 posture is split deliberately:
+  - real imported qualifier-bearing baseline slices via entity export
+  - bounded synthetic drift fixture for explicit property-set change review
 
 ## Current artifacts
 - Diagnostic taxonomy:
@@ -30,10 +33,27 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 - Current CLI paths:
   - `sensiblaw wikidata build-slice`
   - `sensiblaw wikidata project`
+  - `sensiblaw wikidata find-qualifier-drift`
 - Current pack status:
   - 2 confirmed current mixed-order neighborhoods
   - 2 confirmed current live SCC neighborhoods
-  - 1 qualifier-drift fixture for bounded phase-2 diagnostics
+  - 1 real imported qualifier-bearing baseline slice
+  - 1 bounded synthetic qualifier-drift fixture
+
+## Current phase-2 qualifier pack
+- Real imported baseline slice:
+  - `tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json`
+  - built from:
+    - `tests/fixtures/wikidata/entitydata_qualifier_q28792860_prev.json`
+    - `tests/fixtures/wikidata/entitydata_qualifier_q28792860_current.json`
+    - `tests/fixtures/wikidata/entitydata_qualifier_q1336181_prev.json`
+    - `tests/fixtures/wikidata/entitydata_qualifier_q1336181_current.json`
+  - status: importer-backed, real qualifier-bearing revision pairs, currently
+    zero `qualifier_drift`
+- Bounded drift demo:
+  - `tests/fixtures/wikidata/qualifier_drift_slice_20260307.json`
+  - status: synthetic review fixture retained because no confirmed live
+    revision-pair qualifier-change case has been pinned locally yet
 
 ## Confirmed current examples
 ### Mixed-order live case
@@ -86,13 +106,18 @@ The report now exposes:
 - Qualifier drift is the active next phase.
 - Use local entity-export importer to grow review slices instead of hand-editing
   all JSON.
+- Treat real imported zero-drift qualifier slices as valid baseline evidence,
+  not failure.
+- Keep the bounded synthetic drift fixture until a true live revision-pair
+  qualifier-change case is captured reproducibly.
 - Treat canonical text/token/lexeme layers as strictly separate from Wikidata
   semantics.
 
 ## Immediate next actions
-1. Import qualifier-bearing real slices with `wikidata build-slice`.
-2. Re-run the seeded review pass with at least one real qualifier-drift case in
-   addition to the structural pack.
-3. Validate whether property-set vs signature-set severity is sufficient for
-   reviewers.
+1. Use `wikidata find-qualifier-drift` to rank qualifier-bearing candidates and
+   scan recent revisions deterministically.
+2. Promote the first confirmed live revision-pair qualifier-change case into
+   the imported phase-2 pack.
+3. Re-run the seeded review pass with the importer-backed qualifier baseline and
+   any newly confirmed live drift case.
 4. Only after that consider expanding beyond bounded qualifier drift.
