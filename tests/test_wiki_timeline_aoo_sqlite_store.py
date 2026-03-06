@@ -23,7 +23,11 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
                 "event_id": "e1",
                 "anchor": {"year": 2001, "month": 9, "day": 11, "precision": "day", "kind": "explicit", "text": "September 11, 2001"},
                 "section": "2001",
-                "text": "Civil Liability Act 2002 (NSW) s 5B(2)(a) referenced Art 5 and the India–United States Civil Nuclear Agreement.",
+                "text": (
+                    "Civil Liability Act 2002 (NSW) s 5B(2)(a). "
+                    "Art 5 applies under the Constitution. "
+                    "Later discussions referenced the India–United States Civil Nuclear Agreement."
+                ),
                 "actors": [{"label": "A", "resolved": "A", "role": "subject", "source": "x"}],
                 "action": "happen",
                 "steps": [{"action": "happen", "subjects": ["A"], "objects": ["B"]}],
@@ -78,7 +82,11 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert row["anchor_kind"] == "explicit"
         assert row["anchor_text"] == "September 11, 2001"
         assert row["section"] == "2001"
-        assert row["text"] == "Civil Liability Act 2002 (NSW) s 5B(2)(a) referenced Art 5 and the India–United States Civil Nuclear Agreement."
+        assert row["text"] == (
+            "Civil Liability Act 2002 (NSW) s 5B(2)(a). "
+            "Art 5 applies under the Constitution. "
+            "Later discussions referenced the India–United States Civil Nuclear Agreement."
+        )
         assert row["event_json"] == "{}"
         assert row["residual_json"] in (None, "{}")
 

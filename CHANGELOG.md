@@ -529,3 +529,11 @@
 - Core: add projection-only `DecisionObservation` view (`src/behavior_projection`) and minimal `ActionObservation` record type (`src/official_behavior/action_model.py`) to share descriptive aggregation plumbing without replacing domain models.
 - Tests: add regression coverage to enforce individual-level stats are disabled by default.
 - Core: add deterministic Beta-Binomial posterior estimation with empirical-Bayes priors for descriptive rate estimation (theta mean + credible interval; no sampling; individual grouping remains opt-in).
+- Tokenizer/Storage: normalize leading determiners for canonical `act_ref` /
+  `instrument_ref` collapse (`the ...` no longer splits equivalent atoms).
+- Storage: extend structural atom dictionary persistence to include
+  `article_ref` and `instrument_ref`, and persist the same high-yield atom
+  dictionary/occurrence rows in the root wiki-timeline SQLite store.
+- Ontology bridge: add end-to-end regression coverage for
+  `emit_bridge_external_refs_batch.py` feeding the existing
+  `ontology external-refs-upsert` CLI path into `actor_external_refs`.
