@@ -351,8 +351,6 @@ def _consume_article_reference(text: str, start: int) -> tuple[str, int, int] | 
             "bars",
             "permits",
             "means",
-            "was",
-            "is",
         }
         if _normalize_keyword(next_word) in allowed_followers:
             return text[ref_start:ref_end], ref_start, ref_end

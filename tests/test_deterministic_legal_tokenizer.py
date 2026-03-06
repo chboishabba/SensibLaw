@@ -65,7 +65,7 @@ def test_deterministic_legal_tokenizer_atomizes_article_and_instrument_refs() ->
     from src.text.deterministic_legal_tokenizer import tokenize_detailed
 
     tokens = tokenize_detailed(
-        "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 considered s 75(v) and Art 5 before the India–United States Civil Nuclear Agreement and the U.S.–DPRK Agreed Framework."
+        "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 considered s 75(v) and Art 5 of the instrument before the India–United States Civil Nuclear Agreement and the U.S.–DPRK Agreed Framework."
     )
     token_types = [token.token_type for token in tokens]
     assert TokenType.ARTICLE_REFERENCE in token_types
