@@ -135,6 +135,113 @@ def _load_json(text: Any) -> Any:
         return None
 
 
+def _encode_value_type(value: Any) -> tuple[str, str]:
+    if value is None:
+        return "null", ""
+    if isinstance(value, bool):
+        return "bool", "1" if value else "0"
+    if isinstance(value, int) and not isinstance(value, bool):
+        return "int", str(value)
+    if isinstance(value, float):
+        return "float", repr(value)
+    return "text", str(value)
+
+
+def _decode_value_type(value_type: str, value_text: str) -> Any:
+    if value_type == "null":
+        return None
+    if value_type == "bool":
+        return value_text == "1"
+    if value_type == "int":
+        return int(value_text)
+    if value_type == "float":
+        return float(value_text)
+    return value_text
+
+
+def _flatten_value_paths(value: Any, prefix: str = "$") -> list[tuple[str, str, str]]:
+    rows: list[tuple[str, str, str]] = []
+    if isinstance(value, dict):
+        for key in sorted(value):
+            rows.extend(_flatten_value_paths(value[key], f"{prefix}/{key}"))
+        return rows
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            rows.extend(_flatten_value_paths(item, f"{prefix}/{index}"))
+        return rows
+    value_type, value_text = _encode_value_type(value)
+    rows.append((prefix, value_type, value_text))
+    return rows
+
+
+def _path_segment_key(segment: str) -> int | str:
+    return int(segment) if segment.isdigit() else segment
+
+
+def _materialize_path_rows(rows: list[tuple[str, str, str]]) -> Any:
+    if not rows:
+        return None
+    root_value: Any = None
+    for path, value_type, value_text in rows:
+        if path == "$":
+            root_value = _decode_value_type(value_type, value_text)
+            continue
+        segments = [segment for segment in path.split("/") if segment and segment != "$"]
+        if root_value is None:
+            root_value = [] if segments and segments[0].isdigit() else {}
+        cursor = root_value
+        for depth, segment in enumerate(segments):
+            key = _path_segment_key(segment)
+            last = depth == len(segments) - 1
+            next_is_index = depth + 1 < len(segments) and segments[depth + 1].isdigit()
+            if isinstance(key, int):
+                assert isinstance(cursor, list)
+                while len(cursor) <= key:
+                    cursor.append(None)
+                if last:
+                    cursor[key] = _decode_value_type(value_type, value_text)
+                else:
+                    if cursor[key] is None:
+                        cursor[key] = [] if next_is_index else {}
+                    cursor = cursor[key]
+            else:
+                assert isinstance(cursor, dict)
+                if last:
+                    cursor[key] = _decode_value_type(value_type, value_text)
+                else:
+                    if key not in cursor or cursor[key] is None:
+                        cursor[key] = [] if next_is_index else {}
+                    cursor = cursor[key]
+    return root_value
+
+
+def _insert_path_rows(
+    conn: sqlite3.Connection,
+    table: str,
+    base_columns: dict[str, Any],
+    value: Any,
+) -> None:
+    rows = _flatten_value_paths(value)
+    if not rows:
+        return
+    columns = list(base_columns.keys()) + ["path", "value_type", "value_text"]
+    placeholders = ",".join("?" for _ in columns)
+    sql = f"INSERT INTO {table}({', '.join(columns)}) VALUES ({placeholders})"
+    conn.executemany(
+        sql,
+        [tuple(base_columns.values()) + (path, value_type, value_text) for path, value_type, value_text in rows],
+    )
+
+
+def _field_rows_to_value(
+    conn: sqlite3.Connection,
+    query: str,
+    params: tuple[Any, ...],
+) -> Any:
+    rows = conn.execute(query, params).fetchall()
+    return _materialize_path_rows([(str(row["path"]), str(row["value_type"]), str(row["value_text"])) for row in rows])
+
+
 @dataclass(frozen=True)
 class WikiTimelineAooPersistResult:
     run_id: str
@@ -149,6 +256,14 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str)
     cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
     if column not in cols:
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -262,6 +377,22 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS wiki_timeline_event_object_field_values (
+          run_id TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          object_lane TEXT NOT NULL,
+          object_order INTEGER NOT NULL,
+          path TEXT NOT NULL,
+          value_type TEXT NOT NULL,
+          value_text TEXT NOT NULL,
+          PRIMARY KEY (run_id, event_id, object_lane, object_order, path),
+          FOREIGN KEY (run_id, event_id, object_lane, object_order)
+            REFERENCES wiki_timeline_event_objects(run_id, event_id, object_lane, object_order)
+        )
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS wiki_timeline_event_steps (
           run_id TEXT NOT NULL,
           event_id TEXT NOT NULL,
@@ -278,6 +409,34 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
           PRIMARY KEY (run_id, event_id, step_index),
           FOREIGN KEY (run_id, event_id) REFERENCES wiki_timeline_aoo_events(run_id, event_id),
           FOREIGN KEY (action_id) REFERENCES wiki_timeline_actions(action_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_timeline_event_field_values (
+          run_id TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          path TEXT NOT NULL,
+          value_type TEXT NOT NULL,
+          value_text TEXT NOT NULL,
+          PRIMARY KEY (run_id, event_id, path),
+          FOREIGN KEY (run_id, event_id) REFERENCES wiki_timeline_aoo_events(run_id, event_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_timeline_step_field_values (
+          run_id TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          step_index INTEGER NOT NULL,
+          path TEXT NOT NULL,
+          value_type TEXT NOT NULL,
+          value_text TEXT NOT NULL,
+          PRIMARY KEY (run_id, event_id, step_index, path),
+          FOREIGN KEY (run_id, event_id, step_index)
+            REFERENCES wiki_timeline_event_steps(run_id, event_id, step_index)
         )
         """
     )
@@ -311,25 +470,29 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS wiki_timeline_event_lists (
+        CREATE TABLE IF NOT EXISTS wiki_timeline_event_list_field_values (
           run_id TEXT NOT NULL,
           event_id TEXT NOT NULL,
           list_name TEXT NOT NULL,
           item_order INTEGER NOT NULL,
-          item_json TEXT NOT NULL,
-          PRIMARY KEY (run_id, event_id, list_name, item_order),
+          path TEXT NOT NULL,
+          value_type TEXT NOT NULL,
+          value_text TEXT NOT NULL,
+          PRIMARY KEY (run_id, event_id, list_name, item_order, path),
           FOREIGN KEY (run_id, event_id) REFERENCES wiki_timeline_aoo_events(run_id, event_id)
         )
         """
     )
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS wiki_timeline_run_lists (
+        CREATE TABLE IF NOT EXISTS wiki_timeline_run_list_field_values (
           run_id TEXT NOT NULL,
           list_name TEXT NOT NULL,
           item_order INTEGER NOT NULL,
-          item_json TEXT NOT NULL,
-          PRIMARY KEY (run_id, list_name, item_order),
+          path TEXT NOT NULL,
+          value_type TEXT NOT NULL,
+          value_text TEXT NOT NULL,
+          PRIMARY KEY (run_id, list_name, item_order, path),
           FOREIGN KEY (run_id) REFERENCES wiki_timeline_aoo_runs(run_id)
         )
         """
@@ -395,14 +558,21 @@ def _get_or_create_id(conn: sqlite3.Connection, table: str, id_col: str, key_col
 
 def _clear_event_rows(conn: sqlite3.Connection, run_id: str) -> None:
     conn.execute("DELETE FROM wiki_timeline_event_structural_atoms WHERE run_id = ?", (run_id,))
+    conn.execute("DELETE FROM wiki_timeline_event_field_values WHERE run_id = ?", (run_id,))
+    conn.execute("DELETE FROM wiki_timeline_step_field_values WHERE run_id = ?", (run_id,))
+    conn.execute("DELETE FROM wiki_timeline_event_object_field_values WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_step_subjects WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_step_objects WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_event_steps WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_event_actors WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_event_links WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_event_objects WHERE run_id = ?", (run_id,))
-    conn.execute("DELETE FROM wiki_timeline_event_lists WHERE run_id = ?", (run_id,))
-    conn.execute("DELETE FROM wiki_timeline_run_lists WHERE run_id = ?", (run_id,))
+    conn.execute("DELETE FROM wiki_timeline_event_list_field_values WHERE run_id = ?", (run_id,))
+    conn.execute("DELETE FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (run_id,))
+    if _table_exists(conn, "wiki_timeline_event_lists"):
+        conn.execute("DELETE FROM wiki_timeline_event_lists WHERE run_id = ?", (run_id,))
+    if _table_exists(conn, "wiki_timeline_run_lists"):
+        conn.execute("DELETE FROM wiki_timeline_run_lists WHERE run_id = ?", (run_id,))
     conn.execute("DELETE FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
 
 
@@ -466,25 +636,31 @@ def _insert_list_rows(conn: sqlite3.Connection, run_id: str, event_id: str, list
     if not isinstance(items, list):
         return
     for item_order, item in enumerate(items):
-        conn.execute(
-            """
-            INSERT INTO wiki_timeline_event_lists(run_id, event_id, list_name, item_order, item_json)
-            VALUES (?,?,?,?,?)
-            """,
-            (run_id, event_id, list_name, item_order, _stable_json(item)),
+        _insert_path_rows(
+            conn,
+            "wiki_timeline_event_list_field_values",
+            {
+                "run_id": run_id,
+                "event_id": event_id,
+                "list_name": list_name,
+                "item_order": item_order,
+            },
+            item,
         )
-
 
 def _insert_run_list_rows(conn: sqlite3.Connection, run_id: str, list_name: str, items: Any) -> None:
     if not isinstance(items, list):
         return
     for item_order, item in enumerate(items):
-        conn.execute(
-            """
-            INSERT INTO wiki_timeline_run_lists(run_id, list_name, item_order, item_json)
-            VALUES (?,?,?,?)
-            """,
-            (run_id, list_name, item_order, _stable_json(item)),
+        _insert_path_rows(
+            conn,
+            "wiki_timeline_run_list_field_values",
+            {
+                "run_id": run_id,
+                "list_name": list_name,
+                "item_order": item_order,
+            },
+            item,
         )
 
 
@@ -524,16 +700,30 @@ def _persist_event(conn: sqlite3.Connection, run_id: str, ev: dict[str, Any]) ->
             section_id,
             action_id,
             split["action_surface"],
-            _stable_json(split["action_meta"]) if split["action_meta"] is not None else None,
+            None,
             _normalize_str(neg.get("kind")),
             _normalize_str(neg.get("scope")),
             _normalize_str(neg.get("source")),
             split["purpose"],
             _normalize_bool(split["claim_bearing"]),
-            _stable_json(split["residual"]) if split["residual"] else None,
+            None,
         ),
     )
     _persist_structural_atoms(conn, run_id, event_id, split["text"])
+    if split["action_meta"] is not None:
+        _insert_path_rows(
+            conn,
+            "wiki_timeline_event_field_values",
+            {"run_id": run_id, "event_id": event_id},
+            {"action_meta": split["action_meta"]},
+        )
+    if split["residual"]:
+        _insert_path_rows(
+            conn,
+            "wiki_timeline_event_field_values",
+            {"run_id": run_id, "event_id": event_id},
+            split["residual"],
+        )
 
     for actor_order, actor in enumerate(split["actors"] if isinstance(split["actors"], list) else []):
         if not isinstance(actor, dict):
@@ -604,9 +794,21 @@ def _persist_event(conn: sqlite3.Connection, run_id: str, ev: dict[str, Any]) ->
                     title,
                     _normalize_str(obj.get("source")),
                     "objects",
-                    _stable_json(obj.get("resolver_hints")) if obj.get("resolver_hints") is not None else None,
+                    None,
                 ),
             )
+            if obj.get("resolver_hints") is not None:
+                _insert_path_rows(
+                    conn,
+                    "wiki_timeline_event_object_field_values",
+                    {
+                        "run_id": run_id,
+                        "event_id": event_id,
+                        "object_lane": "objects",
+                        "object_order": object_order,
+                    },
+                    {"resolver_hints": obj.get("resolver_hints")},
+                )
         else:
             title = _normalize_str(obj)
             if title:
@@ -649,15 +851,29 @@ def _persist_event(conn: sqlite3.Connection, run_id: str, ev: dict[str, Any]) ->
                 step_index,
                 step_action_id,
                 _normalize_str(step.get("action_surface")),
-                _stable_json(step.get("action_meta")) if step.get("action_meta") is not None else None,
+                None,
                 _normalize_str(step_neg.get("kind")),
                 _normalize_str(step_neg.get("scope")),
                 _normalize_str(step_neg.get("source")),
                 _normalize_str(step.get("purpose")),
                 _normalize_bool(step.get("claim_bearing")),
-                _stable_json(step_copy) if step_copy else None,
+                None,
             ),
         )
+        if step.get("action_meta") is not None:
+            _insert_path_rows(
+                conn,
+                "wiki_timeline_step_field_values",
+                {"run_id": run_id, "event_id": event_id, "step_index": step_index},
+                {"action_meta": step.get("action_meta")},
+            )
+        if step_copy:
+            _insert_path_rows(
+                conn,
+                "wiki_timeline_step_field_values",
+                {"run_id": run_id, "event_id": event_id, "step_index": step_index},
+                step_copy,
+            )
         subjects = step.get("subjects") if isinstance(step.get("subjects"), list) else []
         for subject_order, label in enumerate(subjects):
             label_text = _normalize_str(label)
@@ -703,9 +919,18 @@ def persist_normalized_run(
 
 def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
     event: dict[str, Any] = {}
-    residual = _load_json(row["residual_json"])
-    if isinstance(residual, dict):
-        event.update(residual)
+    event_field_value = _field_rows_to_value(
+        conn,
+        """
+        SELECT path, value_type, value_text
+        FROM wiki_timeline_event_field_values
+        WHERE run_id = ? AND event_id = ?
+        ORDER BY path
+        """,
+        (row["run_id"], row["event_id"]),
+    )
+    if isinstance(event_field_value, dict):
+        event.update(event_field_value)
     event["event_id"] = str(row["event_id"])
     event["anchor"] = {
         "year": int(row["anchor_year"]) if row["anchor_year"] is not None else None,
@@ -720,8 +945,6 @@ def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> d
     if row["action_id"] is not None:
         action_row = conn.execute("SELECT lemma FROM wiki_timeline_actions WHERE action_id = ?", (row["action_id"],)).fetchone()
         event["action"] = action_row["lemma"] if action_row else None
-    if row["action_meta_json"] is not None:
-        event["action_meta"] = _load_json(row["action_meta_json"])
     if row["action_surface"] is not None:
         event["action_surface"] = row["action_surface"]
     if row["purpose"] is not None:
@@ -772,7 +995,7 @@ def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> d
 
     object_rows = conn.execute(
         """
-        SELECT object_lane, title, source, resolver_hints_json
+        SELECT object_lane, title, source, object_order
         FROM wiki_timeline_event_objects
         WHERE run_id = ? AND event_id = ?
         ORDER BY object_lane, object_order
@@ -785,9 +1008,18 @@ def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> d
         lane_map.setdefault(lane, [])
         if lane == "objects":
             entry: dict[str, Any] = {"title": obj["title"], "source": obj["source"]}
-            hints = _load_json(obj["resolver_hints_json"])
-            if hints is not None:
-                entry["resolver_hints"] = hints
+            object_field_value = _field_rows_to_value(
+                conn,
+                """
+                SELECT path, value_type, value_text
+                FROM wiki_timeline_event_object_field_values
+                WHERE run_id = ? AND event_id = ? AND object_lane = ? AND object_order = ?
+                ORDER BY path
+                """,
+                (row["run_id"], row["event_id"], lane, obj["object_order"]),
+            )
+            if isinstance(object_field_value, dict):
+                entry.update(object_field_value)
             lane_map[lane].append(entry)
         else:
             lane_map[lane].append(obj["title"])
@@ -807,14 +1039,21 @@ def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> d
         steps: list[dict[str, Any]] = []
         for step in step_rows:
             step_payload: dict[str, Any] = {}
-            residual_step = _load_json(step["residual_json"])
-            if isinstance(residual_step, dict):
-                step_payload.update(residual_step)
+            step_field_value = _field_rows_to_value(
+                conn,
+                """
+                SELECT path, value_type, value_text
+                FROM wiki_timeline_step_field_values
+                WHERE run_id = ? AND event_id = ? AND step_index = ?
+                ORDER BY path
+                """,
+                (row["run_id"], row["event_id"], step["step_index"]),
+            )
+            if isinstance(step_field_value, dict):
+                step_payload.update(step_field_value)
             if step["action_id"] is not None:
                 action_row = conn.execute("SELECT lemma FROM wiki_timeline_actions WHERE action_id = ?", (step["action_id"],)).fetchone()
                 step_payload["action"] = action_row["lemma"] if action_row else None
-            if step["action_meta_json"] is not None:
-                step_payload["action_meta"] = _load_json(step["action_meta_json"])
             if step["action_surface"] is not None:
                 step_payload["action_surface"] = step["action_surface"]
             if step["purpose"] is not None:
@@ -858,18 +1097,25 @@ def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> d
 
     list_rows = conn.execute(
         """
-        SELECT list_name, item_json
-        FROM wiki_timeline_event_lists
+        SELECT list_name, item_order, path, value_type, value_text
+        FROM wiki_timeline_event_list_field_values
         WHERE run_id = ? AND event_id = ?
-        ORDER BY list_name, item_order
+        ORDER BY list_name, item_order, path
         """,
         (row["run_id"], row["event_id"]),
     ).fetchall()
     if list_rows:
-        grouped: dict[str, list[Any]] = {}
+        grouped: dict[str, dict[int, list[tuple[str, str, str]]]] = {}
         for item in list_rows:
-            grouped.setdefault(str(item["list_name"]), []).append(_load_json(item["item_json"]))
-        event.update(grouped)
+            grouped.setdefault(str(item["list_name"]), {}).setdefault(
+                int(item["item_order"]), []
+            ).append((str(item["path"]), str(item["value_type"]), str(item["value_text"])))
+        event.update(
+            {
+                list_name: [_materialize_path_rows(items[index]) for index in sorted(items)]
+                for list_name, items in grouped.items()
+            }
+        )
 
     return event
 
@@ -893,11 +1139,10 @@ def backfill_normalized_run(conn: sqlite3.Connection, run_id: str) -> None:
         WHERE run_id = ?
           AND (
             event_json = '{}'
-            OR residual_json IS NOT NULL
             OR action_id IS NOT NULL
             OR section_id IS NOT NULL
             OR anchor_text IS NOT NULL
-          )
+        )
         """,
         (run_id,),
     ).fetchone()["c"]
@@ -997,18 +1242,25 @@ def load_run_payload_from_normalized(conn: sqlite3.Connection, run_id: str) -> d
 
     run_list_rows = conn.execute(
         """
-        SELECT list_name, item_json
-        FROM wiki_timeline_run_lists
+        SELECT list_name, item_order, path, value_type, value_text
+        FROM wiki_timeline_run_list_field_values
         WHERE run_id = ?
-        ORDER BY list_name, item_order
+        ORDER BY list_name, item_order, path
         """,
         (run_id,),
     ).fetchall()
     if run_list_rows:
-        grouped: dict[str, list[Any]] = {}
+        grouped: dict[str, dict[int, list[tuple[str, str, str]]]] = {}
         for item in run_list_rows:
-            grouped.setdefault(str(item["list_name"]), []).append(_load_json(item["item_json"]))
-        payload.update(grouped)
+            grouped.setdefault(str(item["list_name"]), {}).setdefault(
+                int(item["item_order"]), []
+            ).append((str(item["path"]), str(item["value_type"]), str(item["value_text"])))
+        payload.update(
+            {
+                list_name: [_materialize_path_rows(items[index]) for index in sorted(items)]
+                for list_name, items in grouped.items()
+            }
+        )
 
     return payload
 
@@ -1065,7 +1317,7 @@ def persist_wiki_timeline_aoo_run(
         _ensure_schema(conn)
         conn.execute(
             """
-            INSERT OR REPLACE INTO wiki_timeline_aoo_runs(
+            INSERT INTO wiki_timeline_aoo_runs(
               run_id, generated_at,
               timeline_path, timeline_sha256,
               candidates_path, candidates_sha256,
@@ -1074,6 +1326,19 @@ def persist_wiki_timeline_aoo_run(
               extractor_sha256,
               out_meta_json, n_events
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(run_id) DO UPDATE SET
+              generated_at=excluded.generated_at,
+              timeline_path=excluded.timeline_path,
+              timeline_sha256=excluded.timeline_sha256,
+              candidates_path=excluded.candidates_path,
+              candidates_sha256=excluded.candidates_sha256,
+              profile_path=excluded.profile_path,
+              profile_sha256=excluded.profile_sha256,
+              parser_json=excluded.parser_json,
+              parser_signature_sha256=excluded.parser_signature_sha256,
+              extractor_sha256=excluded.extractor_sha256,
+              out_meta_json=excluded.out_meta_json,
+              n_events=excluded.n_events
             """,
             (
                 run_id,

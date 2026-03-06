@@ -1,6 +1,24 @@
 # Changelog
 
 ## Unreleased
+- Docs/privacy: make the local-only policy explicit for personal
+  archive-derived test DBs. Isolated chat/Messenger experiment stores under
+  `.cache_local/` are not canonical/shared artifacts and must never be
+  promoted into checked-in repo storage.
+- Message archives: tighten the bounded Messenger/Facebook importer with
+  deterministic keep/drop reason categories, persist per-run filter counts, and
+  add `scripts/report_messenger_test_tokenizer_stats.py` so Messenger test DB
+  runs can be reported without ad hoc Python snippets.
+- Reporting/ops lane: reduce slash-heavy prose false positives in
+  `path_ref` detection and add a compact side-by-side comparison summary for
+  `report_structure_corpora.py --by-source`.
+- Docs: add `docs/planning/speaker_inference_v1_20260307.md` to define the
+  deterministic speaker-inference boundary. Sentiment may act only as a weak
+  secondary tie-breaker, never as a primary speaker assignment signal.
+- Docs: clarify the extraction/enrichment boundary so `spaCy` dependency
+  parsing is explicitly documented as deterministic local structural backup for
+  relation/role harvesting, while Wikidata remains downstream
+  identity/enrichment/diagnostic support and never canonical token identity.
 - Lexeme/Wikidata bridge: expand the deterministic legal lexer to cover structural
   legal atoms (`act_ref`, `section_ref`, `subsection_ref`, `paragraph_ref`,
   `part_ref`, `division_ref`, `rule_ref`, `schedule_ref`, `clause_ref`,
@@ -26,6 +44,28 @@
   snippets; add `scripts/report_canonical_atom_frequency.py` to quantify
   repeated structural atoms separately from linked entities for DB-dedupe
   planning.
+- Reporting/structure lane: tighten operational false positives, generalize the
+  transcript parser from app-specific WhatsApp-style lines to generic
+  bracketed/unbracketed timestamped message transcripts, collapse duplicate
+  time-only transcript atoms when a full date-time atom is present, add
+  canonical transcript timestamp normalization (`ts:YYYY_MM_DD_HH_MM`), add
+  transcript range normalization (`timestamp_range_ref` /
+  `tsrange:START__END`) for subtitle-style timing lines, split transcript files
+  into message/range units instead of coarse paragraph blocks, add a checked-in
+  Telegram-style transcript fixture, add
+  `--by-source` side-by-side corpus comparison support to
+  `scripts/report_structure_corpora.py`, and validate the transcript lane
+  against both the in-repo bracketed-message fixture and a real sample under
+  `/home/c/Documents/code/__OTHER/tirc_test_audio`.
+- Message archives: add `scripts/ingest_messenger_sample_to_itir_test_db.py`
+  for bounded Messenger/Facebook archive ingestion into an isolated test DB,
+  filtering obvious archive/system rows and emitting message-shaped units from
+  `sender`, `message`, and `time_sent` instead of treating the export as a raw
+  blob.
+- Transcript/chat parser cleanup: remove transcript unit/header regex logic
+  from `src/reporting/structure_report.py` and move deterministic message/range
+  parsing into `src/text/message_transcript.py`, keeping regex out of the
+  transcript/chat path as far as practical.
 - Tests: expand deterministic tokenizer/lexeme coverage for legal structural
   atomization, seeded institution/court linking, negative ambiguity suites, and
   benchmark semantics (`tests/test_deterministic_legal_tokenizer.py`,
@@ -569,3 +609,59 @@
 - Ops: live `itir.sqlite` wiki timeline runs were repersisted through the new
   normalized event/atom path (`14` runs) so storage reports now include
   structural-atom stats on existing GWB timeline runs.
+- Storage: remove remaining canonical wiki-timeline JSON-bearing list/tail
+  persistence in favor of typed path/value tables for event fields, step
+  fields, object resolver hints, event list items, and run list items. Legacy
+  blob columns remain only as compatibility columns and now report `0`
+  residual bytes on the refreshed GWB storage run.
+- Storage: fix `persist_wiki_timeline_aoo_run` parent-run writes to use
+  conflict updates instead of `INSERT OR REPLACE`, and clear legacy
+  `wiki_timeline_event_lists` / `wiki_timeline_run_lists` rows during
+  repersist so eager rewrite on `itir.sqlite` succeeds under foreign keys.
+- Ops: rerun the eager rewrite into `.cache_local/itir.sqlite` after the
+  zero-residual storage patch; the live canonical root DB again reports all
+  required wiki timeline suffixes present.
+- Storage reporting: refreshed live GWB storage report now shows
+  `normalized_bytes_estimate=139476`, `bytes_per_event_normalized_estimate≈982`,
+  and `residual_blob_bytes=0` for
+  `run:ecb0dbdaac1f05137c9f88e5be5f552a3d3e992967b6a078ac1410587f10f3dc`.
+- Chat ingest: add `SensibLaw/scripts/ingest_chat_sample_to_itir_test_db.py`
+  for bounded local chat-sample ingestion into an isolated test DB with hashed
+  thread IDs only; canonical `itir.sqlite` is backed up first and chat data
+  stays out of the live shared DB.
+- Docs: tighten the wiki timeline storage contract so canonical DB persistence
+  is judged by typed route/query/report semantics, not by lossless retention of
+  arbitrary legacy JSON export tails.
+- Storage: stop writing step `action_meta_json` into compatibility blob columns
+  on fresh persists; typed `wiki_timeline_step_field_values` is now the only
+  canonical path for that data.
+- Tests: add `test_wiki_timeline_storage_report.py` so fresh persists must
+  report `residual_blob_bytes = 0`, and rerun the targeted wiki timeline
+  storage/parity/migration subset successfully.
+- Metrics: record isolated chat-sample tokenizer/compression smoke results
+  (`100` messages, `465653` raw chars, `104974` tokens, `4.4359` chars/token,
+  reuse ratio `0.9317`, `52` structural tokens) alongside the existing
+  deterministic GWB/legal corpus comparison points.
+- Docs/TODO: add a concrete GWB U.S.-law linkage seed plan and clarify that
+  chat-sample structure reporting must include kind breakdowns beyond `_ref`
+  counts when evaluating prose-heavy corpora.
+- Ontology bridge: extend the reviewed GWB body/court slice with
+  `Department of Defense` (`Q11209`) and the `United States Court of Appeals
+  for the Sixth Circuit` (`Q250472`); live bridge import now reports `12`
+  entities / `49` aliases.
+- Chat ingest: harden the isolated chat test schema with explicit
+  `source_namespace`, `source_class`, `retention_policy`, and
+  `redaction_policy`, and persist structural-atom dictionary/occurrence tables
+  in `.cache_local/itir_chat_test.sqlite`.
+- Metrics: add `scripts/report_chat_test_tokenizer_stats.py` so isolated chat
+  samples now report full token-kind breakdowns, structural-kind breakdowns,
+  top structural atoms, and dedupe counts instead of only aggregate `_ref`
+  totals.
+- Data: add deterministic starter pack
+  `SensibLaw/data/ontology/gwb_us_law_linkage_seed_v1.json` for GWB U.S.-law
+  linkage work.
+- Added a second deterministic operational/discourse structure lane for chat, shell, context, and transcript-style corpora.
+- Added `report_structure_corpora.py` plus richer chat structure reporting with top atoms, usefulness scores, co-occurrence/interlink summaries, and bounded example snippets.
+- Isolated chat sample ingest now persists operational/discourse `_ref` occurrences alongside legal refs via the existing atom tables.
+- Tightened the operational/discourse lane to avoid date-like and all-caps slash false positives, and added WhatsApp-style transcript turn detection for speaker/timestamp lines.
+- Collapsed duplicate WhatsApp-style transcript timestamps to a single canonical timestamp atom per line and added side-by-side per-source corpus comparison reporting.

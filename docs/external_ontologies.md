@@ -92,6 +92,32 @@ See:
 - `docs/lexeme_layer.md`
 - `docs/extractor_ontology_mapping_contract_20260213.md`
 
+### 2.5 spaCy / Parser Boundary For Relation Inference
+
+`spaCy` and related local parser/dependency tooling may be used as a
+deterministic structural backup for relation and role harvesting, but not as a
+source of canonical ontology truth.
+
+In practice:
+- the parser layer may supply local syntax signals such as subject/object arcs,
+  clause boundaries, local attachment structure, and argument candidates
+- those signals may support downstream extraction of actors, predicates,
+  modality, and candidate relations
+- parser output must remain version-pinned and reproducible for the same local
+  model/resources
+- parser output must not redefine canonical token identity or ontology rows by
+  itself
+
+This creates a strict split:
+- `tokenizer / lexeme layer` = canonical, deterministic, provenance-bearing
+- `spaCy / parser layer` = deterministic structural evidence for extraction
+- `Wikidata / external ontology layer` = downstream identity enrichment,
+  candidate checking, and diagnostics
+
+External ontologies may help *flesh out* or *check* candidate relations and
+entity links, but they do so only after local deterministic extraction has
+produced the candidate structure.
+
 ---
 
 ## 3. Where External Ontologies Plug Into the Architecture

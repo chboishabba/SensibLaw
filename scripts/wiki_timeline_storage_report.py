@@ -53,16 +53,22 @@ def main() -> None:
         load_run_payload_from_normalized(conn, run_id)
         event_count = int(conn.execute("SELECT COUNT(*) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,)).fetchone()[0] or 0)
         legacy_blob_bytes = _sum_length(conn, "SELECT SUM(LENGTH(event_json)) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
-        residual_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(residual_json, '')) + LENGTH(COALESCE(action_meta_json, '')) + LENGTH(COALESCE(anchor_text, '')) + LENGTH(COALESCE(section, '')) + LENGTH(COALESCE(text, '')) + LENGTH(COALESCE(action_surface, '')) + LENGTH(COALESCE(purpose, ''))) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
+        event_core_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(anchor_text, '')) + LENGTH(COALESCE(section, '')) + LENGTH(COALESCE(text, '')) + LENGTH(COALESCE(action_surface, '')) + LENGTH(COALESCE(purpose, ''))) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
+        event_field_bytes = _sum_length(conn, "SELECT SUM(LENGTH(path) + LENGTH(value_type) + LENGTH(value_text)) FROM wiki_timeline_event_field_values WHERE run_id = ?", (run_id,))
         actor_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(label, '')) + LENGTH(COALESCE(resolved, '')) + LENGTH(COALESCE(role, '')) + LENGTH(COALESCE(source, ''))) FROM wiki_timeline_event_actors WHERE run_id = ?", (run_id,))
         link_bytes = _sum_length(conn, "SELECT SUM(LENGTH(title) + LENGTH(lane)) FROM wiki_timeline_event_links WHERE run_id = ?", (run_id,))
-        object_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(title, '')) + LENGTH(COALESCE(source, '')) + LENGTH(object_lane) + LENGTH(COALESCE(resolver_hints_json, ''))) FROM wiki_timeline_event_objects WHERE run_id = ?", (run_id,))
-        step_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(action_surface, '')) + LENGTH(COALESCE(action_meta_json, '')) + LENGTH(COALESCE(purpose, '')) + LENGTH(COALESCE(residual_json, ''))) FROM wiki_timeline_event_steps WHERE run_id = ?", (run_id,))
+        object_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(title, '')) + LENGTH(COALESCE(source, '')) + LENGTH(object_lane)) FROM wiki_timeline_event_objects WHERE run_id = ?", (run_id,))
+        object_field_bytes = _sum_length(conn, "SELECT SUM(LENGTH(path) + LENGTH(value_type) + LENGTH(value_text)) FROM wiki_timeline_event_object_field_values WHERE run_id = ?", (run_id,))
+        step_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(action_surface, '')) + LENGTH(COALESCE(purpose, ''))) FROM wiki_timeline_event_steps WHERE run_id = ?", (run_id,))
+        step_field_bytes = _sum_length(conn, "SELECT SUM(LENGTH(path) + LENGTH(value_type) + LENGTH(value_text)) FROM wiki_timeline_step_field_values WHERE run_id = ?", (run_id,))
         step_subject_bytes = _sum_length(conn, "SELECT SUM(LENGTH(label)) FROM wiki_timeline_step_subjects WHERE run_id = ?", (run_id,))
         step_object_bytes = _sum_length(conn, "SELECT SUM(LENGTH(title) + LENGTH(object_lane) + LENGTH(COALESCE(source, ''))) FROM wiki_timeline_step_objects WHERE run_id = ?", (run_id,))
-        event_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(item_json)) FROM wiki_timeline_event_lists WHERE run_id = ?", (run_id,))
-        run_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(item_json)) FROM wiki_timeline_run_lists WHERE run_id = ?", (run_id,))
-        normalized_total = residual_bytes + actor_bytes + link_bytes + object_bytes + step_bytes + step_subject_bytes + step_object_bytes + event_list_bytes + run_list_bytes
+        event_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(path) + LENGTH(value_type) + LENGTH(value_text)) FROM wiki_timeline_event_list_field_values WHERE run_id = ?", (run_id,))
+        run_list_bytes = _sum_length(conn, "SELECT SUM(LENGTH(list_name) + LENGTH(path) + LENGTH(value_type) + LENGTH(value_text)) FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (run_id,))
+        residual_blob_bytes = _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(residual_json, '')) + LENGTH(COALESCE(action_meta_json, ''))) FROM wiki_timeline_aoo_events WHERE run_id = ?", (run_id,))
+        residual_blob_bytes += _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(action_meta_json, '')) + LENGTH(COALESCE(residual_json, ''))) FROM wiki_timeline_event_steps WHERE run_id = ?", (run_id,))
+        residual_blob_bytes += _sum_length(conn, "SELECT SUM(LENGTH(COALESCE(resolver_hints_json, ''))) FROM wiki_timeline_event_objects WHERE run_id = ?", (run_id,))
+        normalized_total = event_core_bytes + event_field_bytes + actor_bytes + link_bytes + object_bytes + object_field_bytes + step_bytes + step_field_bytes + step_subject_bytes + step_object_bytes + event_list_bytes + run_list_bytes
         structural_occurrence_count = int(
             conn.execute(
                 "SELECT COUNT(*) FROM wiki_timeline_event_structural_atoms WHERE run_id = ?",
@@ -129,16 +135,20 @@ def main() -> None:
             "bytes_per_event_legacy": (legacy_blob_bytes / event_count) if event_count else 0.0,
             "bytes_per_event_normalized_estimate": (normalized_total / event_count) if event_count else 0.0,
             "component_bytes": {
-                "event_core_and_residual": residual_bytes,
+                "event_core": event_core_bytes,
+                "event_fields": event_field_bytes,
                 "actors": actor_bytes,
                 "links": link_bytes,
                 "objects": object_bytes,
+                "object_fields": object_field_bytes,
                 "steps": step_bytes,
+                "step_fields": step_field_bytes,
                 "step_subjects": step_subject_bytes,
                 "step_objects": step_object_bytes,
                 "event_lists": event_list_bytes,
                 "run_lists": run_list_bytes,
             },
+            "residual_blob_bytes": residual_blob_bytes,
             "structural_atom_stats": {
                 "occurrence_count": structural_occurrence_count,
                 "unique_count": structural_unique_count,

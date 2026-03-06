@@ -67,7 +67,7 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         row = conn.execute(
             """
             SELECT event_id, anchor_year, anchor_month, anchor_day, anchor_precision, anchor_kind,
-                   anchor_text, section, text, event_json, residual_json
+                   anchor_text, section, text, event_json, residual_json, action_meta_json
             FROM wiki_timeline_aoo_events
             WHERE run_id = ?
             """,
@@ -88,14 +88,18 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
             "Later discussions referenced the India–United States Civil Nuclear Agreement."
         )
         assert row["event_json"] == "{}"
-        assert row["residual_json"] in (None, "{}")
+        assert row["residual_json"] is None
+        assert row["action_meta_json"] is None
 
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_actors WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_links WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_objects WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_steps WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_lists WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_object_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_step_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
         structural_atoms = conn.execute(
             """
             SELECT a.norm_text, a.norm_kind

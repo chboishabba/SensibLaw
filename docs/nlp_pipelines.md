@@ -51,6 +51,13 @@ The spaCy pipeline underpins tokenisation, entity recognition, and rule harvesti
 * `_collect_candidates()` iterates each sentence, normalises supported dependency arcs (e.g. coercing `dobj` to `obj` and `root` verbs to `verb`), extracts span text for argument roles, and deduplicates `DependencyCandidate` entries per label. Only arcs from `_SUPPORTED_DEPS` survive, keeping the downstream rule matcher focused on subject/object/complement style relations.【F:src/rules/dependencies.py†L80-L173】
 * `get_dependencies()` orchestrates parsing, sentence iteration, and candidate aggregation, returning a `SentenceDependencies` list that buckets dependency roles by sentence text.【F:src/rules/dependencies.py†L195-L229】
 
+These dependency signals are part of the deterministic local extraction layer.
+They may be used as a parser-first backup for relation/role harvesting where
+surface matching is insufficient, but they do not carry external ontology
+identity themselves. If later enrichment uses Wikidata or related sources, that
+must happen downstream over curated actors/concepts/refs rather than by
+changing the canonical token/lexeme stream.
+
 ### 2.5 Rule matcher configuration
 
 * `src/nlp/rules.py` registers a shared `Matcher` keyed by spaCy `Vocab` objects. The pattern table covers modalities (`must`, `shall`, `may`, plus negative variants), conditional connectors (`if`, `unless`, `provided that`, etc.), references (sections, parts, Acts), and penalty phrases. Matches are greedily resolved so the longest applicable span wins.【F:src/nlp/rules.py†L1-L89】【F:src/nlp/rules.py†L99-L125】

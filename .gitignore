@@ -169,6 +169,9 @@ cython_debug/
 
 # Local caches (never commit)
 .cache_local/
+.cache_local/itir_chat_test.sqlite*
+.cache_local/itir_messenger_test.sqlite*
+.cache_local/itir.sqlite.bak-pre-chat-*
 demo/ingest/
 
 # PyPI configuration file

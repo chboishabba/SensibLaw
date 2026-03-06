@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "name": "gwb_us_law_linkage_seed_v1",
+    "generated_at": "2026-03-07T00:00:00Z",
+    "notes": "Deterministic reviewed starter pack linking selected George W. Bush actions to U.S.-law authorities, institutions, and courts."
+  },
+  "items": [
+    {
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "authority_titles": [
+        "Authorization for Use of Military Force Against Iraq Resolution of 2002"
+      ],
+      "institution_refs": [
+        "institution:u_s_senate",
+        "institution:u_s_house_of_representatives"
+      ],
+      "court_refs": [],
+      "provenance_cues": [
+        "Iraq",
+        "authorization",
+        "Congress"
+      ],
+      "linkage_kind": "congressional_authority"
+    },
+    {
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "action_summary": "Military commissions and detainee-review lane",
+      "authority_titles": [
+        "Military Commissions Act of 2006"
+      ],
+      "institution_refs": [],
+      "court_refs": [
+        "court:u_s_supreme_court"
+      ],
+      "provenance_cues": [
+        "Military Commissions Act of 2006",
+        "detainee",
+        "Supreme Court"
+      ],
+      "linkage_kind": "statute_and_litigation"
+    },
+    {
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "action_summary": "NSA surveillance and review/litigation lane",
+      "authority_titles": [
+        "Foreign Intelligence Surveillance Act"
+      ],
+      "institution_refs": [],
+      "court_refs": [
+        "court:united_states_district_court",
+        "court:united_states_court_of_appeals_for_the_sixth_circuit"
+      ],
+      "provenance_cues": [
+        "surveillance",
+        "NSA",
+        "district court",
+        "Sixth Circuit"
+      ],
+      "linkage_kind": "statute_and_litigation"
+    },
+    {
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "action_summary": "Executive defense/operations lane touching the Department of Defense",
+      "authority_titles": [],
+      "institution_refs": [
+        "institution:united_states_department_of_defense"
+      ],
+      "court_refs": [],
+      "provenance_cues": [
+        "Department of Defense",
+        "Defense Department",
+        "DoD"
+      ],
+      "linkage_kind": "institutional_anchor"
+    }
+  ]
+}

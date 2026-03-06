@@ -210,7 +210,8 @@ def test_seeded_entity_bridge_resolves_gwb_body_and_court_refs_to_wikidata():
 
     text = (
         "The U.S. Senate and House of Representatives discussed the ruling before it reached "
-        "the U.S. Supreme Court, while the CIA and FBI reviewed the matter in a U.S. district court."
+        "the U.S. Supreme Court, while the CIA, FBI, and Department of Defense reviewed the matter "
+        "in a United States district court before the United States Court of Appeals for the Sixth Circuit considered it."
     )
     occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
     linked = {(link.canonical_ref, link.curie) for link in link_lexeme_occurrences(occs)}
@@ -218,6 +219,8 @@ def test_seeded_entity_bridge_resolves_gwb_body_and_court_refs_to_wikidata():
     assert ("institution:u_s_house_of_representatives", "wikidata:Q11701") in linked
     assert ("court:u_s_supreme_court", "wikidata:Q11201") in linked
     assert ("court:united_states_district_court", "wikidata:Q1614849") in linked
+    assert ("court:united_states_court_of_appeals_for_the_sixth_circuit", "wikidata:Q250472") in linked
+    assert ("institution:united_states_department_of_defense", "wikidata:Q11209") in linked
     assert ("institution:central_intelligence_agency", "wikidata:Q37230") in linked
     assert ("institution:federal_bureau_of_investigation", "wikidata:Q8333") in linked
 

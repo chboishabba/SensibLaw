@@ -1,7 +1,7 @@
 {
   "slice": {
     "name": "seeded_body_refs_v1",
-    "notes": "Deterministic reviewed body/court bridge seeds for canonical runs and GWB-focused body coverage.",
+    "notes": "Deterministic reviewed body/court bridge seeds for canonical runs and GWB-focused body coverage, including reviewed U.S. executive/judicial additions.",
     "policy_version": "entity_bridge_v1",
     "source_version": "seeded_local_v1"
   },
@@ -47,11 +47,27 @@
       "provider": "wikidata"
     },
     {
-      "aliases": ["U.S. district court", "US district court", "United States district court"],
+      "aliases": ["U.S. district court", "US district court", "United States district court", "federal district court", "U.S. federal district court"],
       "canonical_kind": "court_ref",
       "canonical_label": "United States district court",
       "canonical_ref": "court:united_states_district_court",
       "external_id": "Q1614849",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["United States Court of Appeals for the Sixth Circuit", "U.S. Court of Appeals for the Sixth Circuit", "US Court of Appeals for the Sixth Circuit", "Sixth Circuit", "6th Circuit"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "United States Court of Appeals for the Sixth Circuit",
+      "canonical_ref": "court:united_states_court_of_appeals_for_the_sixth_circuit",
+      "external_id": "Q250472",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["United States Department of Defense", "U.S. Department of Defense", "US Department of Defense", "Department of Defense", "Defense Department", "DoD"],
+      "canonical_kind": "institution_ref",
+      "canonical_label": "United States Department of Defense",
+      "canonical_ref": "institution:united_states_department_of_defense",
+      "external_id": "Q11209",
       "provider": "wikidata"
     },
     {
