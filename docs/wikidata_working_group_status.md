@@ -29,6 +29,9 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 - Current CLI paths:
   - `sensiblaw wikidata build-slice`
   - `sensiblaw wikidata project`
+- Current pack status:
+  - 2 confirmed current mixed-order neighborhoods
+  - 2 confirmed current live SCC neighborhoods
 
 ## Confirmed current examples
 ### Mixed-order live case
@@ -37,9 +40,21 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 - status: currently live on reviewed item pages and suitable as the primary
   mixed-order example
 
+### Mixed-order live case
+- `Q21169592` (`Na(+)-translocating NADH-quinone reductase subunit A CTL0002`)
+- `Q7187` (`gene`)
+- status: confirmed on 2026-03-07 from a live Wikidata SPARQL query showing the
+  item is both `P31` and `P279` gene
+
 ### SCC live case
 - `Q22652` (`urban green space`)
 - `Q22698` (`park`)
+- status: confirmed on 2026-03-07 from a live Wikidata SPARQL query showing
+  reciprocal `P279` edges
+
+### SCC live case
+- `Q52040` (`High German`)
+- `Q188` (`German`)
 - status: confirmed on 2026-03-07 from a live Wikidata SPARQL query showing
   reciprocal `P279` edges
 
@@ -69,7 +84,9 @@ The report now exposes:
 
 ## Immediate next actions
 1. Import more real `P31` / `P279` neighborhoods with `wikidata build-slice`.
-2. Add at least one more current live SCC neighborhood and one more current live
-   mixed-order neighborhood.
-3. Re-run the seeded review pass after the broader slice is assembled.
-4. Only then open phase-2 qualifier drift work.
+2. Re-run the seeded review pass now that the pack contains multiple live
+   mixed-order and SCC neighborhoods.
+3. Validate whether the current report contract still feels adequate on the
+   broader pack.
+4. Only then decide whether the medium gate for qualifier-drift planning has
+   been met.

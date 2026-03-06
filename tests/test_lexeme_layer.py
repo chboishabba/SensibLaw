@@ -98,3 +98,47 @@ def test_deterministic_legal_occurrences_emit_canonical_legal_atoms():
         ("sch:1", "schedule_ref"),
         ("cl:4", "clause_ref"),
     ]
+
+
+def test_deterministic_legal_occurrences_emit_gwb_style_acts_and_courts():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    text = (
+        "Bush signed the Military Commissions Act of 2006. "
+        "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit "
+        "before reaching the U.S. Supreme Court."
+    )
+    occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+    pairs = [(occ.norm_text, occ.kind) for occ in occs]
+    assert ("act:military_commissions_act_of_2006", "act_ref") in pairs
+    assert ("court:united_states_court_of_appeals_for_the_sixth_circuit", "court_ref") in pairs
+    assert ("court:u_s_supreme_court", "court_ref") in pairs
+
+
+def test_deterministic_legal_occurrences_emit_articles_constitutional_refs_and_instruments():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    text = (
+        "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 considered s 75(v) of the Constitution and Art 5. "
+        "Later discussions referenced the India–United States Civil Nuclear Agreement and the U.S.–DPRK Agreed Framework."
+    )
+    occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+    pairs = [(occ.norm_text, occ.kind) for occ in occs]
+    assert ("sec:75", "section_ref") in pairs
+    assert ("para:v", "paragraph_ref") in pairs
+    assert ("art:5", "article_ref") in pairs
+    assert ("instrument:india_united_states_civil_nuclear_agreement", "instrument_ref") in pairs
+    assert ("instrument:u_s_dprk_agreed_framework", "instrument_ref") in pairs
+
+
+def test_deterministic_legal_occurrences_do_not_emit_article_ref_for_artful_or_gallery_cases():
+    from src.text.lexeme_index import collect_lexeme_occurrences
+
+    samples = [
+        "Artful prose was a strength of GWB.",
+        "The Art 5 gallery opened downtown.",
+        "The label Art 5 was printed on the canvas.",
+    ]
+    for text in samples:
+        occs = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
+        assert all(occ.kind != "article_ref" for occ in occs)

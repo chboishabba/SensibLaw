@@ -143,6 +143,12 @@ def _canonicalize_legal_reference(token: LexemeToken):
         return "act_ref", f"act:{compact_identifier(token.text)}"
     if token.token_type == TokenType.CASE_REFERENCE:
         return "case_ref", f"case:{compact_identifier(token.text)}"
+    if token.token_type == TokenType.COURT_REFERENCE:
+        return "court_ref", f"court:{compact_identifier(token.text)}"
+    if token.token_type == TokenType.ARTICLE_REFERENCE:
+        return "article_ref", f"art:{compact_identifier(token.text.split(None, 1)[1])}"
+    if token.token_type == TokenType.INSTRUMENT_REFERENCE:
+        return "instrument_ref", f"instrument:{compact_identifier(token.text)}"
     if token.token_type == TokenType.SECTION_REFERENCE:
         return "section_ref", f"sec:{compact_identifier(token.text[1:]).replace('_', '')}"
     if token.token_type == TokenType.SUBSECTION_REFERENCE:

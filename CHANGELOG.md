@@ -60,6 +60,10 @@
   (`docs/wikidata_working_group_status.md`) as the stable working-group link,
   and expand the live review fixture with a confirmed current SCC example
   (`Q22652` <-> `Q22698`).
+- Wikidata review pack: broaden the seeded live slice with an additional current
+  mixed-order example (`Q21169592` -> `Q7187`) and an additional current live
+  SCC pair (`Q52040` <-> `Q188`), then refresh the seeded review-pass notes and
+  status summary to match.
 - Docs: add `SensibLaw/todo.md` to track the remaining bounded-slice Wikidata
   implementation work and link the new taxonomy doc from `README.md`.
 - Tests: add regex transition coverage for wiki timeline extraction and AAO

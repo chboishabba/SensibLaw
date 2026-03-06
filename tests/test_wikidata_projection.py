@@ -141,8 +141,15 @@ def test_live_fixture_emits_mixed_order_and_nonzero_eii() -> None:
     assert report["windows"][0]["diagnostics"]["mixed_order_nodes"]
     assert report["windows"][0]["diagnostics"]["p279_sccs"]
     assert any(item["slot_id"] == "Q9779|P31" for item in report["unstable_slots"])
+    assert any(
+        node["qid"] == "Q21169592"
+        for node in report["windows"][0]["diagnostics"]["mixed_order_nodes"]
+    )
     unstable = next(item for item in report["unstable_slots"] if item["slot_id"] == "Q9779|P31")
     assert unstable["tau_t1"] == 1
     assert unstable["tau_t2"] == -1
-    scc_members = report["windows"][0]["diagnostics"]["p279_sccs"][0]["members"]
-    assert scc_members == ["Q22652", "Q22698"]
+    scc_member_sets = {
+        tuple(entry["members"]) for entry in report["windows"][0]["diagnostics"]["p279_sccs"]
+    }
+    assert ("Q22652", "Q22698") in scc_member_sets
+    assert ("Q188", "Q52040") in scc_member_sets

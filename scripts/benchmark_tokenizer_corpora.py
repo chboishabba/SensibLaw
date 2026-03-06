@@ -20,6 +20,24 @@ def _gwb_timeline_texts() -> list[str]:
     return [str(ev.get("text") or "").strip() for ev in payload.get("events", []) if str(ev.get("text") or "").strip()]
 
 
+def _gwb_reference_texts() -> list[str]:
+    payload = _load_json(ROOT / "SensibLaw" / ".cache_local" / "wiki_timeline_gwb.json")
+    markers = (
+        "Act",
+        "Court of Appeals",
+        "Supreme Court",
+        "Agreement",
+        "Framework",
+        "UN ",
+    )
+    out: list[str] = []
+    for ev in payload.get("events", []):
+        text = str(ev.get("text") or "").strip()
+        if text and any(marker in text for marker in markers):
+            out.append(text)
+    return out
+
+
 def _legal_fixture_texts() -> list[str]:
     files = [
         ROOT / "data" / "pdfs" / "Mabo [No 2] - [1992] HCA 23.json",
@@ -56,6 +74,11 @@ def _mixed_texts() -> list[str]:
         "Civil Liability Act 2002 (NSW) s 5B(2)(a) applies if a person ought to have foreseen the risk.",
         "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 concerns judicial review under s 75(v) of the Constitution.",
         "Sch 1 cl 4 and r 7.32 were discussed at the hearing on February 4, 2003.",
+        "Bush signed the Military Commissions Act of 2006 into law.",
+        "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit.",
+        "The outcome eventually reached the U.S. Supreme Court.",
+        "Plaintiff S157/2002 v Commonwealth [2003] HCA 2 considered s 75(v) of the Constitution and Art 5 of a hypothetical instrument.",
+        "The India–United States Civil Nuclear Agreement followed negotiations after the U.S.–DPRK Agreed Framework.",
     ]
 
 
@@ -110,17 +133,67 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
     corpus_token_presence: Counter[str] = Counter()
     legal_atom_hits = 0
     legal_atom_total = 0
-
-    atom_needles = [
-        "sec:5b",
-        "subsec:2",
-        "para:a",
-        "act:civil_liability_act_2002_nsw",
-        "pt:4",
-        "div:2",
-        "rule:7.32",
-        "sch:1",
-        "cl:4",
+    atom_expectations = [
+        (
+            "s 5b(2)(a)",
+            [
+                "act:civil_liability_act_2002_nsw",
+                "sec:5b",
+                "subsec:2",
+                "para:a",
+            ],
+        ),
+        (
+            "sch 1 cl 4",
+            [
+                "sch:1",
+                "cl:4",
+                "rule:7.32",
+            ],
+        ),
+        (
+            "military commissions act of 2006",
+            [
+                "act:military_commissions_act_of_2006",
+            ],
+        ),
+        (
+            "united states court of appeals for the sixth circuit",
+            [
+                "court:united_states_court_of_appeals_for_the_sixth_circuit",
+            ],
+        ),
+        (
+            "u.s. supreme court",
+            [
+                "court:u_s_supreme_court",
+            ],
+        ),
+        (
+            "s 75(v)",
+            [
+                "sec:75",
+                "para:v",
+            ],
+        ),
+        (
+            "art 5",
+            [
+                "art:5",
+            ],
+        ),
+        (
+            "civil nuclear agreement",
+            [
+                "instrument:india_united_states_civil_nuclear_agreement",
+            ],
+        ),
+        (
+            "agreed framework",
+            [
+                "instrument:u_s_dprk_agreed_framework",
+            ],
+        ),
     ]
 
     for text in texts:
@@ -130,9 +203,10 @@ def _summarize(texts: list[str], tokenize: Callable[[str], list[str]]) -> dict:
         unique_tokens.update(token_set)
         corpus_token_presence.update(token_set)
         low_text = text.lower()
-        if "s 5b(2)(a)" in low_text or "sch 1 cl 4" in low_text:
-            legal_atom_total += len(atom_needles)
-            legal_atom_hits += sum(1 for needle in atom_needles if needle in token_set)
+        for marker, needles in atom_expectations:
+            if marker in low_text:
+                legal_atom_total += len(needles)
+                legal_atom_hits += sum(1 for needle in needles if needle in token_set)
 
     overlap = sum(1 for _, seen in corpus_token_presence.items() if seen > 1)
     return {
@@ -159,6 +233,7 @@ def main() -> None:
         "2_legal_fixture_bodies": _legal_fixture_texts(),
         "3_legal_principles_timelines": _legal_principles_texts(),
         "4_mixed_general_and_legal_refs": _mixed_texts(),
+        "5_gwb_reference_texts": _gwb_reference_texts(),
     }
 
     tokenizers: dict[str, Callable[[str], list[str]]] = {

@@ -22,6 +22,9 @@ class TokenType(str, Enum):
     PUNCT = "PUNCT"
     ACT_REFERENCE = "ACT_REFERENCE"
     CASE_REFERENCE = "CASE_REFERENCE"
+    COURT_REFERENCE = "COURT_REFERENCE"
+    ARTICLE_REFERENCE = "ARTICLE_REFERENCE"
+    INSTRUMENT_REFERENCE = "INSTRUMENT_REFERENCE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +71,24 @@ def _consume_alpha_word(text: str, start: int) -> tuple[str, int, int]:
     while i < len(text) and text[i].isalpha():
         i += 1
     return text[start:i], start, i
+
+
+def _consume_title_unit(text: str, start: int) -> tuple[str, int, int]:
+    word, _, end = _consume_word(text, start)
+    if not word:
+        return "", start, start
+    cursor = end
+    if word.isupper():
+        while cursor < len(text) and text[cursor] == ".":
+            next_start = cursor + 1
+            next_word, _, next_end = _consume_alpha_word(text, next_start)
+            if len(next_word) != 1 or not next_word.isupper():
+                cursor += 1
+                break
+            cursor = next_end
+        if cursor < len(text) and text[cursor] == ".":
+            cursor += 1
+    return text[start:cursor], start, cursor
 
 
 def _consume_paren_group(text: str, start: int) -> tuple[str, int, int] | None:
@@ -119,6 +140,7 @@ def _consume_act_reference(text: str, start: int) -> tuple[str, int, int] | None
     cursor = i
     saw_act = False
     words_seen = 0
+    title_connectors = {"of", "and", "the", "for", "to", "on", "in"}
     while cursor < len(text):
         if text[cursor] == "(":
             group = _consume_paren_group(text, cursor)
@@ -129,6 +151,13 @@ def _consume_act_reference(text: str, start: int) -> tuple[str, int, int] | None
             word, _, word_end = _consume_word(text, cursor)
             if not word:
                 break
+            if not saw_act:
+                norm_word = _normalize_keyword(word)
+                if words_seen == 0:
+                    if not word[0].isupper():
+                        return None
+                elif not (word[0].isupper() or norm_word in title_connectors):
+                    break
             words_seen += 1
             if _normalize_keyword(word) == "act":
                 saw_act = True
@@ -137,16 +166,22 @@ def _consume_act_reference(text: str, start: int) -> tuple[str, int, int] | None
         if space_end == cursor:
             break
         cursor = space_end
-        if saw_act and cursor < len(text) and text[cursor].isdigit():
+        if saw_act and cursor < len(text) and (text[cursor].isdigit() or text[cursor].isalpha()):
             break
 
     if not saw_act or words_seen < 2:
         return None
 
-    year = _consume_spaced_numberish(text, cursor - 1 if cursor > start and text[cursor - 1].isspace() else cursor, allow_dots=False, allow_suffix_letters=False)
+    lookahead = cursor
+    if lookahead < len(text):
+        next_word, _, next_word_end = _consume_word(text, lookahead)
+        if _normalize_keyword(next_word) == "of":
+            lookahead = _consume_whitespace(text, next_word_end)
+    year = _consume_spaced_numberish(text, lookahead, allow_dots=False, allow_suffix_letters=False)
     if year is None:
-        return None
-    _, _, cursor = year
+        cursor = cursor
+    else:
+        _, _, cursor = year
 
     cursor = _consume_whitespace(text, cursor)
     if cursor < len(text) and text[cursor] == "(":
@@ -187,6 +222,157 @@ def _consume_case_reference(text: str, start: int) -> tuple[str, int, int] | Non
         return None
 
     return text[start:number_end], start, number_end
+
+
+def _consume_literal_sequence(text: str, start: int, parts: tuple[str, ...]) -> int | None:
+    cursor = start
+    for idx, part in enumerate(parts):
+        if idx > 0:
+            cursor = _consume_whitespace(text, cursor)
+        end = cursor + len(part)
+        if text[cursor:end].casefold() != part.casefold():
+            return None
+        cursor = end
+    return cursor
+
+
+def _consume_title_sequence_until_suffix(
+    text: str,
+    start: int,
+    *,
+    suffixes: tuple[str, ...],
+    connector_words: set[str] | None = None,
+) -> tuple[str, int, int] | None:
+    if not _is_boundary_left(text, start) or start >= len(text) or not text[start].isalpha():
+        return None
+    connectors = connector_words or {"of", "the", "and", "for", "to", "on", "in"}
+    cursor = start
+    words_seen = 0
+    while cursor < len(text):
+        while cursor < len(text) and text[cursor] in {"-", "–", "—", "/"}:
+            cursor += 1
+        word, _, word_end = _consume_title_unit(text, cursor)
+        if not word:
+            return None
+        norm_word = _normalize_keyword(word)
+        if words_seen == 0:
+            if not word[0].isupper():
+                return None
+        elif not (word[0].isupper() or norm_word in connectors):
+            return None
+        words_seen += 1
+        cursor = word_end
+        if norm_word in suffixes:
+            break
+        space_end = _consume_whitespace(text, cursor)
+        if space_end == cursor and (cursor >= len(text) or text[cursor] not in {"-", "–", "—", "/"}):
+            return None
+        if space_end > cursor:
+            cursor = space_end
+    else:
+        return None
+
+    if norm_word not in suffixes or words_seen < 2:
+        return None
+    return text[start:cursor], start, cursor
+
+
+def _consume_title_words(text: str, start: int) -> int:
+    cursor = start
+    consumed_any = False
+    while cursor < len(text):
+        cursor = _consume_whitespace(text, cursor)
+        word, _, word_end = _consume_word(text, cursor)
+        if not word:
+            break
+        if not word[0].isupper() and not word.isdigit():
+            break
+        consumed_any = True
+        cursor = word_end
+    return cursor if consumed_any else start
+
+
+def _consume_court_reference(text: str, start: int) -> tuple[str, int, int] | None:
+    if not _is_boundary_left(text, start):
+        return None
+
+    variants = (
+        ("u.s. supreme court", ("U.S.", "Supreme", "Court")),
+        ("united states supreme court", ("United", "States", "Supreme", "Court")),
+        ("united states district court", ("United", "States", "district", "court")),
+        ("u.s. district court", ("U.S.", "district", "court")),
+        ("united states court of appeals", ("United", "States", "Court", "of", "Appeals")),
+        ("u.s. court of appeals", ("U.S.", "Court", "of", "Appeals")),
+    )
+    for _, parts in variants:
+        end = _consume_literal_sequence(text, start, parts)
+        if end is None:
+            continue
+        cursor = end
+        phrase = " ".join(part.casefold() for part in parts)
+        if phrase.endswith("court of appeals"):
+            maybe_for = _consume_whitespace(text, cursor)
+            next_end = _consume_literal_sequence(text, maybe_for, ("for", "the"))
+            if next_end is not None:
+                title_end = _consume_title_words(text, next_end)
+                if title_end > next_end:
+                    cursor = title_end
+        return text[start:cursor], start, cursor
+    return None
+
+
+def _consume_article_reference(text: str, start: int) -> tuple[str, int, int] | None:
+    ref = _consume_keyword_reference(
+        text,
+        start,
+        keywords=("art", "article"),
+        token_type=TokenType.ARTICLE_REFERENCE,
+        allow_dots=False,
+    )
+    if ref is not None:
+        _, ref_start, ref_end, _ = ref
+        cursor = _consume_whitespace(text, ref_end)
+        if cursor >= len(text):
+            return text[ref_start:ref_end], ref_start, ref_end
+        if text[cursor] in {".", ",", ";", ":", ")", "]"}:
+            return text[ref_start:ref_end], ref_start, ref_end
+        next_word, _, next_end = _consume_word(text, cursor)
+        if not next_word:
+            return text[ref_start:ref_end], ref_start, ref_end
+        allowed_followers = {
+            "of",
+            "under",
+            "in",
+            "applies",
+            "provides",
+            "states",
+            "requires",
+            "allows",
+            "bars",
+            "permits",
+            "means",
+            "was",
+            "is",
+        }
+        if _normalize_keyword(next_word) in allowed_followers:
+            return text[ref_start:ref_end], ref_start, ref_end
+    return None
+
+
+def _consume_instrument_reference(text: str, start: int) -> tuple[str, int, int] | None:
+    instrument = _consume_title_sequence_until_suffix(
+        text,
+        start,
+        suffixes=("agreement", "framework", "convention", "resolution"),
+    )
+    if instrument is not None:
+        return instrument
+    if text[start : start + 2].casefold() == "un" and _is_boundary_left(text, start):
+        end = _consume_whitespace(text, start + 2)
+        title_end = _consume_title_words(text, end)
+        if title_end > end:
+            return text[start:title_end], start, title_end
+    return None
 
 
 def _consume_keyword_reference(
@@ -280,10 +466,31 @@ def _tokenize_with_no_regex(text: str) -> list[tuple[str, int, int, TokenType]]:
             i = keyword_reference[2]
             continue
 
+        article_reference = _consume_article_reference(text, i)
+        if article_reference is not None:
+            text_span, start, end = article_reference
+            tokens.append((text_span, start, end, TokenType.ARTICLE_REFERENCE))
+            i = end
+            continue
+
         act_reference = _consume_act_reference(text, i)
         if act_reference is not None:
             text_span, start, end = act_reference
             tokens.append((text_span, start, end, TokenType.ACT_REFERENCE))
+            i = end
+            continue
+
+        instrument_reference = _consume_instrument_reference(text, i)
+        if instrument_reference is not None:
+            text_span, start, end = instrument_reference
+            tokens.append((text_span, start, end, TokenType.INSTRUMENT_REFERENCE))
+            i = end
+            continue
+
+        court_reference = _consume_court_reference(text, i)
+        if court_reference is not None:
+            text_span, start, end = court_reference
+            tokens.append((text_span, start, end, TokenType.COURT_REFERENCE))
             i = end
             continue
 

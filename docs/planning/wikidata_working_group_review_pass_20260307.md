@@ -9,11 +9,19 @@
 
 ## Findings summary
 ### 1. SCC neighborhoods
-- SCC id: none in the current fixture
-- size: n/a
-- member QIDs: n/a
-- why this neighborhood matters: the current live demo case is mixed-order, not loop-driven
-- action: `defer`
+- SCC id: seeded live SCC 1
+- size: 2
+- member QIDs: `Q22652`, `Q22698`
+- why this neighborhood matters: current live reciprocal `P279` pair; good for
+  checking SCC surfacing without rank volatility
+- action: `needs ontology-team discussion`
+
+- SCC id: seeded live SCC 2
+- size: 2
+- member QIDs: `Q52040`, `Q188`
+- why this neighborhood matters: second independent current live reciprocal
+  `P279` pair; helps avoid overfitting the review process to a single SCC shape
+- action: `diagnostic only`
 
 ### 2. Mixed-order nodes
 - QID: `Q9779`
@@ -26,6 +34,14 @@
 - observed `P31` / `P279` conflict pattern: node appears in both subject and value roles across the bounded neighborhood
 - affected neighborhood: `writing system`
 - downstream deterministic risk: local hierarchy review becomes hard to interpret without explicit mixed-order diagnostics
+- action: `diagnostic only`
+
+- QID: `Q21169592`
+- observed `P31` / `P279` conflict pattern: same subject appears as both
+  instance-of and subclass-of `gene`
+- affected neighborhood: `gene`
+- downstream deterministic risk: demonstrates that mixed-order issues are not
+  confined to writing-system curation and will recur in broader ontology slices
 - action: `diagnostic only`
 
 ### 3. Metaclass-heavy regions
@@ -42,8 +58,9 @@
 
 ## Open questions
 - Slice gaps: current fixture demonstrates mixed-order and EII, but not a live SCC case
-- Slice gaps: current fixture now demonstrates mixed-order, non-zero EII, and a
-  confirmed live SCC example; it still needs more neighborhoods before phase 2
+- Slice gaps: current fixture now demonstrates multiple mixed-order examples,
+  non-zero EII, and multiple confirmed live SCC examples; it still needs a
+  broader imported pack before phase 2
 - Threshold questions (`e0`, SCC priority, report ranking): keep `e0=1` for reviewer demos; revisit after first real multi-neighborhood slice
 - Deferred qualifier-drift follow-up: keep deferred until more real `P31` / `P279` neighborhoods are imported
 
@@ -53,5 +70,7 @@
 - use `docs/wikidata_report_contract_v0_1.md` as the current reviewer-facing report contract
 - record example status explicitly:
   - `alphabet` / `writing system`: `currently live`
+  - `Na(+)-translocating NADH-quinone reductase subunit A CTL0002` / `gene`: `currently live`
+  - `High German` / `German`: `currently live`
   - `urban green space` / `park`: `currently live`
   - `referendum` / `plebiscite`: `historical thread example`
