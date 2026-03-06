@@ -229,3 +229,28 @@ data/pdfs/*.json
 parsed*.json
 text.file
 ui/old.sensiblaw_documents.sqlite
+
+# Generated artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+target/
+*.swp
+*.kate-swp
+.DS_Store
+
+# Chat history / local DBs
+chat*_history*.sqlite*
+chatgpt_history*.sqlite*
+codex_history*.sqlite*
+*chat_history*.sqlite*
+chatgpt_history*.sqlite*-wal
+chatgpt_history*.sqlite*-shm
+codex_history*.sqlite*-wal
+codex_history*.sqlite*-shm
+
+# Local artifacts
+artifacts_generic/*.sqlite
+generic_text_demo.sqlite

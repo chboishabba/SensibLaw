@@ -396,6 +396,8 @@
     - Extend research-health to report `chunked_documents` and `repeat_ratio_mean`.
     - Map ITIR/TIRC primitives to SL profile (lossless vs lossy) and codify interpretive → SL mention handshake.
     - Document generic vs legal logic parsers and outputs (`docs/logic_parsers.md`).
+    - Add tokenizer_id tagging or lexical-token view decoupling for TOKEN nodes without changing structure.
+    - Publish “What the DB guarantees” checklist aligning logic tree, tokenizer contract, and parser modes.
     - Document Principle Relationship Map pipeline and invariants (`docs/principle_relationship_map.md`).
     - Document structural vs interpretive logic graph layers and naming (`docs/logic_graph_layers.md`).
   - Citation-follow expansion (bounded, non-semantic):
