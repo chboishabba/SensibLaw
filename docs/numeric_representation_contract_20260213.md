@@ -102,6 +102,12 @@ Forbidden coercion:
 - expressing canonical value as expanded exact integer in truth labels when source is scaled form
 - embedding scale words in canonical unit tags (`trillion_usd`)
 
+## Currency Conversion vs Normalization
+Currency **normalization** (symbols → unit codes, scale folding) is part of
+numeric representation. Currency **conversion** (e.g., AUD → USD) is a
+time-series transformation and must be modeled explicitly:
+- `../../docs/planning/time_series_transformations.md`
+
 ## Extraction Policy
 Parser-first, regex-fallback-only:
 - Preferred: spaCy `ents` (`CARDINAL`, `QUANTITY`, `PERCENT`, `MONEY`) and token `like_num` path.

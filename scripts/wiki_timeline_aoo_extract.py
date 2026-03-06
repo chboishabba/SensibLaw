@@ -3413,6 +3413,9 @@ def _resolve_subject_surface(surface: str, actors: List[dict], root_actor: str, 
     if poss:
         return _normalize_subject_label(poss)
     low = s.lower()
+    # For first-person corpus docs (memoirs, transcripts), allow a declared root actor to absorb "I/me/my".
+    if low in {"i", "me", "my", "myself"} and root_actor:
+        return _normalize_subject_label(root_actor)
     if low in {"he", "him", "his"} and root_actor:
         return _normalize_subject_label(root_actor)
     if low in {"that", "which", "who"}:
@@ -3487,6 +3490,24 @@ def _subjects_for_action(doc, action: str, actors: List[dict], root_actor: str, 
     act = _base_action_label(action)
     if not act:
         return []
+
+    # Deterministic fallback for first-person corpus rows when the underlying NLP
+    # pipeline does not provide POS/DEP annotations (common in minimal installs).
+    if root_actor:
+        try:
+            # Prefer tokenization if doc is a spaCy Doc; otherwise fall back to raw string.
+            toks = []
+            try:
+                toks = [str(getattr(t, "text", "") or "") for t in doc]  # type: ignore[assignment]
+            except Exception:
+                toks = []
+            text_low = " ".join(toks).lower() if toks else str(getattr(doc, "text", doc) or "").lower()
+            # Only absorb nominative first-person pronouns as subjects.
+            if any(p in text_low.split() for p in ("i", "we")):
+                return [_normalize_subject_label(root_actor)]
+        except Exception:
+            pass
+
     lemmas = _action_lemmas(act)
     verbs = []
     for t in doc:
@@ -4055,6 +4076,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         text = str(ev.get("text") or "").strip()
         if not text:
             continue
+        root_actor_ev = str(ev.get("root_actor") or "").strip() or root_actor
+        root_surname_ev = str(ev.get("root_surname") or "").strip() or root_surname
         parse_text = _strip_parenthetical_citation_noise(text)
         if not parse_text:
             parse_text = text
@@ -4196,21 +4219,21 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # Root actor from standalone surname mention (avoid mapping "Laura Bush"/"Barbara Bush" etc).
         if (
-            root_surname
-            and re.search(rf"\b{re.escape(root_surname)}\b", parse_text)
-            and not _surname_is_part_of_name(parse_text, root_surname, blocked_first_tokens=alias_keys)
+            root_surname_ev
+            and re.search(rf"\b{re.escape(root_surname_ev)}\b", parse_text)
+            and not _surname_is_part_of_name(parse_text, root_surname_ev, blocked_first_tokens=alias_keys)
         ):
             actors.append(
-                {"label": root_surname, "resolved": root_actor, "role": "subject", "source": "root_surname"}
+                {"label": root_surname_ev, "resolved": root_actor_ev, "role": "subject", "source": "root_surname"}
             )
 
         # If surname appears as part of a name, include the surface full-name as an actor.
-        if root_surname and _surname_is_part_of_name(parse_text, root_surname, blocked_first_tokens=alias_keys):
+        if root_surname_ev and _surname_is_part_of_name(parse_text, root_surname_ev, blocked_first_tokens=alias_keys):
             for full in _extract_capitalized_surname_names(
                 parse_text,
-                root_surname,
+                root_surname_ev,
                 blocked_first_tokens=alias_keys,
-                root_actor=root_actor,
+                root_actor=root_actor_ev,
             ):
                 actors.append({"label": full, "resolved": full, "role": "subject", "source": "surface_name"})
 
@@ -4218,7 +4241,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         for tok in tokens:
             if requester and tok.lower() == requester.lower():
                 continue
-            if tok.lower() == root_surname.lower():
+            if root_surname_ev and tok.lower() == root_surname_ev.lower():
                 continue
             if tok in alias_map:
                 actors.append({"label": tok, "resolved": alias_map[tok], "role": "subject", "source": "alias_map"})
@@ -4274,7 +4297,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         # Dependency subject pass for the primary action; fills obvious gaps like
         # "the Pentagon reported ..." or "U.S. and British forces initiated ...".
-        dep_subjects = _subjects_for_action(doc, action or "", actors, root_actor, root_surname) if doc is not None else []
+        dep_subjects = _subjects_for_action(doc, action or "", actors, root_actor_ev, root_surname_ev) if doc is not None else []
         if dep_subjects:
             existing = {str(a.get("resolved") or "").strip().lower() for a in actors}
             for ds in dep_subjects:
@@ -4284,6 +4307,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                     continue
                 actors.append({"label": ds_norm, "resolved": ds_norm, "role": "subject", "source": "dep_subject"})
                 existing.add(k)
+        elif root_actor_ev:
+            # When spaCy isn't available (doc=None), we still want basic narrator linkage
+            # for first-person corpus artifacts (memoirs/transcripts).
+            low = str(parse_text or "").lower()
+            toks = low.split()
+            if "i" in toks or "we" in toks:
+                existing = {str(a.get("resolved") or "").strip().lower() for a in actors}
+                ra = _normalize_subject_label(root_actor_ev)
+                if ra and ra.lower() not in existing:
+                    actors.append({"label": ra, "resolved": ra, "role": "subject", "source": "surface_pronoun"})
+                    warnings.append("fallback_subject_pronoun")
 
         # Objects: prefer sentence-local wikilinks from the timeline artifact.
         objects: List[dict] = []
@@ -4413,7 +4447,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if a.get("role") == "requester":
                     continue
                 r = str(a.get("resolved") or "")
-                if r and r != root_actor and _looks_like_person_title(r):
+                if r and r != root_actor_ev and _looks_like_person_title(r):
                     thrower = r
                     break
 
@@ -4422,7 +4456,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 steps.append(
                     {
                         "action": "gave_speech",
-                        "subjects": [root_actor] if root_actor in subj_all else subj_all,
+                        "subjects": [root_actor_ev] if root_actor_ev in subj_all else subj_all,
                         "objects": loc_objs,
                         "purpose": None,
                     }
@@ -4500,8 +4534,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             comm_steps = _extract_communication_chain_steps(
                 doc,
                 actors,
-                root_actor=root_actor,
-                root_surname=root_surname,
+                root_actor=root_actor_ev,
+                root_surname=root_surname_ev,
                 comm_cfg=communication_chain_config,
             )
             if comm_steps:
@@ -4556,7 +4590,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if _base_action_label(act) == "request" and requester_resolved:
                     st["subjects"] = [requester_title_label, requester_resolved] if requester_has_title else [requester_resolved]
                     continue
-                ss = _subjects_for_action(doc, act, actors, root_actor, root_surname)
+                ss = _subjects_for_action(doc, act, actors, root_actor_ev, root_surname_ev)
                 if ss:
                     st["subjects"] = ss
                 step_objs = _objects_for_action(
@@ -4676,14 +4710,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                             resolved_tokens.add(w)
 
                 # Always treat the declared root actor/surname as resolved for span suppression.
-                if root_actor:
-                    resolved_phrases.append(root_actor)
-                    for w in re.split(r"\\s+", root_actor.strip()):
+                if root_actor_ev:
+                    resolved_phrases.append(root_actor_ev)
+                    for w in re.split(r"\\s+", root_actor_ev.strip()):
                         w = w.strip(".,;:()[]{}\"'").lower()
                         if w and w.isalpha():
                             resolved_tokens.add(w)
-                if root_surname:
-                    resolved_tokens.add(root_surname.strip().lower())
+                if root_surname_ev:
+                    resolved_tokens.add(root_surname_ev.strip().lower())
 
                 # Collect approximate resolved text spans by substring search (deterministic, best-effort).
                 resolved_spans: List[Tuple[int, int]] = []

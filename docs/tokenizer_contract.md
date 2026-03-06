@@ -20,6 +20,21 @@ Tokenizers
   - Example: `spacy_word_v3` (scope=semantics, stable=false)
 - Stable tokenizers may appear in invariants/tests; unstable ones may not.
 
+## Transition Goal (Regex → Deterministic Multilingual Tokenizer)
+Current lexeme occurrences are derived from a regex tokenizer (`lexeme_index.py`).
+This is acceptable only as a temporary Layer‑1 mechanism.
+
+End goal:
+- Replace regex tokenization with a deterministic multilingual tokenizer
+  (spaCy or other deterministic engine), preserving stable offsets.
+- Maintain byte‑identical canonical spans for existing sources until parity is
+  verified against checkpoint snapshots.
+
+Success criterion:
+- New token stream produces identical graph hydration payloads for
+  `/graphs/wiki-timeline`, `/graphs/wiki-timeline-aoo`, and
+  `/graphs/wiki-timeline-aoo-all` when compared against stored checkpoints.
+
 Lexeme layer (redundancy substrate)
 ----------------------------------
 - Lexemes collapse surface variance (case/formatting) while preserving spans.
@@ -55,6 +70,8 @@ Forbidden coupling
 - No module may assume a “global tokenizer”.
 - Logic tree construction must not import or depend on `tokenize_simple` (metrics-only).
 - Sentence boundaries must not drive token counts or logic node identities.
+- Regex is not permitted in semantic extraction layers; see
+  `SensibLaw/docs/regex_semantic_policy.md`.
 
 Enforcement hints (tests)
 -------------------------

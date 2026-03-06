@@ -144,7 +144,8 @@ a structured, linked, machine-readable backbone.
 | [Fuzzing](docs/fuzzing.md) | [Goldset Harness](docs/goldset_harness.md) | [Graph](docs/graph.md) | [Ingestion](docs/ingestion.md) |
 | [Human Tools Integration](docs/human_tools_integration.md) | [Multi-Modal Doctrine](docs/multimodal_system_doctrine.md) | [Panopticon Refusal](docs/panopticon_refusal.md) | [User Stories](docs/user_stories.md) |
 | [Parity View](docs/parity_view.md) | [Lexeme Layer](docs/lexeme_layer.md) | [Media Ethics UI](docs/media_ethics_ui.md) |  |
-| [DBpedia Queries](docs/dbpedia_queries.md) | [External Ontology Refs](docs/ONTOLOGY_EXTERNAL_REFS.md) | [Wikidata Queries](docs/wikidata_queries.md) |  |
+| [DBpedia Queries](docs/dbpedia_queries.md) | [External Ontology Refs](docs/ONTOLOGY_EXTERNAL_REFS.md) | [Wikidata Queries](docs/wikidata_queries.md) | [Wikidata Epistemic Projection Operator](docs/wikidata_epistemic_projection_operator_spec_v0_1.md) |
+| [Wikidata Ontology Issue Review](docs/wikidata_ontology_issue_review_20260306.md) |  |  |  |
 | [DBpedia Integration](docs/dbpedia_integration.md) |  |  |  |
 | [SQLite Migrations](docs/sqlite_migrations.md) |  |  |  |
 | [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmaps/roadmap.md) | [DB Roadmap](docs/roadmaps/DB_ROADMAP.md) |

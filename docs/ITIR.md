@@ -149,6 +149,10 @@ Exactly like social and calendar land in the timeline, bank data should:
   * **3D platform/contact timelines**, and
   * **Streamline financial ribbons**.
 
+Derived series (diffs, aggregates, currency conversions) should be modeled as
+explicit transformations over canonical finance observations:
+- `../../docs/planning/time_series_transformations.md`
+
 ---
 
 ## 3. Lessons from the ribbon / financial timeline docs

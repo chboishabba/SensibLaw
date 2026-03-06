@@ -147,6 +147,15 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   `wsd_policy`) fail fast, and normalized semantic-backbone metadata is emitted
   in `extraction_profile`.
 
+## Recent decisions (2026-03-06)
+- Added a deterministic Wikidata statement-bundle projection operator spec with
+  a ternary epistemic carrier, paraconsistent aggregation, and an Epistemic
+  Instability Index (EII) metric to target volatile slots/class-order hotspots
+  without prescribing fixes (`docs/wikidata_epistemic_projection_operator_spec_v0_1.md`).
+- Archived and reviewed the \"Wikidata Ontology Issues\" thread for ontology
+  diagnostics; added a doc mapping issue clusters to deterministic checks
+  (`docs/wikidata_ontology_issue_review_20260306.md`).
+
 ## Chat context sync (2026-02-07)
 - Source conversation: `ADR language vs SensibLaw`
   (`6986d38e-4b5c-839b-813a-608aa0de88d5`),

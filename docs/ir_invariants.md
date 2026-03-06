@@ -47,3 +47,8 @@ Note: compression metrics operate on canonicalized token streams. Shannon estima
 ## Operational doctrine
 
 > Text is stored once. Structure is stored many times. Meaning is attached, never duplicated. Growth slows as knowledge accumulates.
+
+## Time-Series Transformations (Alignment Note)
+Derived observations (facts → rules → conclusions) must remain traceable to
+inputs and transformation rules, mirroring the time-series transformation model
+in `../../docs/planning/time_series_transformations.md`.

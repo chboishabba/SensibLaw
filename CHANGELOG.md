@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Docs: add Wikidata statement-bundle epistemic projection operator spec with
+  EII instability metric (`docs/wikidata_epistemic_projection_operator_spec_v0_1.md`).
+- Docs: link the Wikidata projection operator spec from `README.md`.
+- Docs: add Wikidata ontology issue review and diagnostics mapping
+  (`docs/wikidata_ontology_issue_review_20260306.md`).
+- Docs: link the ontology issue review from `README.md`.
+- Tests: add regex transition coverage for wiki timeline extraction and AAO
+  extraction (including explicit xfail cases for known regex limitations).
+- Docs: align finance schema and numeric representation with time-series
+  transformation model and Niklas-style series derivation examples.
+- Docs: define tokenizer transition goal (regex → deterministic multilingual),
+  with checkpoint-parity requirement for graph hydration payloads.
 - Wikipedia/HCA AAO extraction profile: add deterministic semantic-backbone
   guard/normalizer (`semantic_backbone.resource/wsd_policy/llm_enabled`) so
   non-deterministic profile settings fail fast and extraction metadata records

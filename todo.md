@@ -12,6 +12,12 @@
 ## Epistemic modes (doctrine)
 - Define explicit statuses: hypothesis, intention, projection, narrative, evidence, commitment.
 - Ensure any UI surfaces show status and never auto-promote.
+- TODO: Implement the Wikidata statement-bundle projection operator + EII
+  diagnostics (no auto-fix; deterministic), per
+  `docs/wikidata_epistemic_projection_operator_spec_v0_1.md`.
+- TODO: Draft an ontology diagnostic taxonomy and deterministic checklist
+  derived from Wikidata ontology issue review (no governance prescriptions),
+  per `docs/wikidata_ontology_issue_review_20260306.md`.
 
 ## Judicial behavior (descriptive-only)
 - DONE: Add mandatory slice declaration + sample-size/time-bounds disclosure to the
@@ -61,6 +67,16 @@
     - replace requester/action surface regex branches with dependency/profile rules where possible
     - keep regex only in citation/date/hygiene and explicit fallback lanes with warnings
     - add guard tests for grouped numerics and unit-only noise (done), extend to requester/action de-regex invariants
+    - add regex-transition tests for AAO/timeline extraction and document known xfail cases (done)
+    - resolve xfail cases: conjoined subject/object splitting, numeric normalization expansion, role inference upgrades
+  - Tokenizer transition (regex → deterministic multilingual):
+    - select deterministic tokenizer and pin config/version
+    - run parallel token streams (old regex vs new tokenizer)
+    - compare graph hydration payloads to checkpoints:
+      - `checkpoints/page_20260304_214705/wiki-timeline.html`
+      - `checkpoints/page_20260304_214705/wiki-timeline-aoo.html`
+      - `checkpoints/page_20260304_214705/wiki-timeline-aoo-all.html`
+    - switch canonical token stream only after parity is confirmed
     - DONE (semantic-resource lane baseline):
       - profile now emits normalized `semantic_backbone` metadata and enforces
         deterministic/non-generative settings (`llm_enabled=false`,

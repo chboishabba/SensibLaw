@@ -7,6 +7,12 @@ Introduce a redundancy-collapsing lexeme layer that is anchored to canonical
 character spans and does not alter or reinterpret source text. This is a
 compression substrate, not a semantic layer.
 
+Status
+------
+Implemented baseline for deterministic lexeme normalization and span-anchored
+occurrences. This forms the current SL baseline for the broader compression
+engine work tracked in `../../docs/planning/compression_engine.md`.
+
 Scope
 -----
 - **In scope**: lexeme dictionary, lexeme occurrences, phrase atoms built from
