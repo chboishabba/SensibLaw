@@ -64,6 +64,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 data/corpus/ingest.sqlite
+# NOTE: demo/logic-tree sqlite artifacts are sometimes tracked for reproducibility.
+# If needed, remove these ignores and re-add the files explicitly.
+data/corpus/ingest_demo.sqlite
+artifacts_generic/logic_tree.sqlite
+generic_text_demo.sqlite
 ui/sensiblaw_documents.sqlite
 artifacts_generic/JavaCrust Project Idea.logic_tree.json
 
