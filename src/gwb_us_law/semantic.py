@@ -17,8 +17,182 @@ from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 
 PIPELINE_VERSION = "gwb_semantic_v1"
 
+_EVENT_ROLE_VOCAB: tuple[tuple[str, str, str], ...] = (
+    ("agent", "Agent", "core_participant"),
+    ("authority", "Authority", "governing_context"),
+    ("forum", "Forum", "governing_context"),
+    ("legal_representative", "Legal Representative", "legal_context"),
+    ("mentioned_entity", "Mentioned Entity", "general_context"),
+    ("office_context", "Office Context", "governing_context"),
+    ("patient", "Patient", "core_participant"),
+    ("speaker", "Speaker", "communicative_context"),
+    ("subject", "Subject", "core_participant"),
+    ("theme", "Theme", "core_participant"),
+)
+
+_SEMANTIC_RULE_TYPES: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "governance_action",
+        "Governance Action",
+        "Executive, legislative, or institutional actions that attach a promoted semantic relation to an event.",
+        "semantic_relation",
+    ),
+    (
+        "executive_action",
+        "Executive Action",
+        "Executive action relations anchored to a specific event.",
+        "semantic_relation",
+    ),
+    (
+        "review_relation",
+        "Review Relation",
+        "Review, appeal, and adjudicative relations that remain event-scoped.",
+        "semantic_relation",
+    ),
+    (
+        "authority_invocation",
+        "Authority Invocation",
+        "Authority and precedent invocation relations derived from explicit legal-reference cues.",
+        "semantic_relation",
+    ),
+    (
+        "actor_role",
+        "Actor Role",
+        "Participation/context assignments such as legal representation roles.",
+        "event_role",
+    ),
+    (
+        "conversational_relation",
+        "Conversational Relation",
+        "Conversational reply or turn-taking relations between event participants.",
+        "semantic_relation",
+    ),
+    (
+        "state_signal",
+        "State Signal",
+        "Explicit affect/state cues that may remain candidate-only under conservative promotion gates.",
+        "semantic_relation",
+    ),
+)
+
+_SEMANTIC_SLOT_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
+    ("subject", "actor", "Primary subject entity for the rule match."),
+    ("object", "semantic_entity", "Primary object entity for the rule match."),
+    ("verb", "lexical_trigger", "Lexical trigger or cue verb for the rule match."),
+    ("actor", "actor", "Actor participant for role assignment rules."),
+    ("party", "litigant", "Litigant/party slot used by role assignment rules."),
+    ("role_marker", "representation_marker", "Role cue surface such as appeared for / counsel for."),
+    ("forum", "court", "Forum or court context attached to a review/authority rule."),
+    ("speaker", "actor", "Speaker participant for conversational rules."),
+    ("state", "state", "Explicit affect/state concept attached to a participant."),
+)
+
+_SEMANTIC_RULE_SLOTS: tuple[tuple[str, str, str, int, int], ...] = (
+    ("governance_action", "subject", "subject", 1, 1),
+    ("governance_action", "verb", "verb", 1, 2),
+    ("governance_action", "object", "object", 1, 3),
+    ("executive_action", "subject", "subject", 1, 1),
+    ("executive_action", "verb", "verb", 1, 2),
+    ("executive_action", "object", "object", 1, 3),
+    ("review_relation", "subject", "subject", 1, 1),
+    ("review_relation", "verb", "verb", 1, 2),
+    ("review_relation", "object", "object", 1, 3),
+    ("review_relation", "forum", "forum_context", 0, 4),
+    ("authority_invocation", "subject", "subject", 1, 1),
+    ("authority_invocation", "verb", "verb", 1, 2),
+    ("authority_invocation", "object", "nearest_legal_ref", 1, 3),
+    ("authority_invocation", "forum", "forum_context", 0, 4),
+    ("actor_role", "actor", "subject", 1, 1),
+    ("actor_role", "role_marker", "verb", 1, 2),
+    ("actor_role", "party", "prep_for", 1, 3),
+    ("conversational_relation", "speaker", "speaker_context", 1, 1),
+    ("conversational_relation", "verb", "verb", 1, 2),
+    ("conversational_relation", "object", "object", 1, 3),
+    ("state_signal", "subject", "subject", 1, 1),
+    ("state_signal", "verb", "verb", 1, 2),
+    ("state_signal", "state", "object", 1, 3),
+)
+
+_SEMANTIC_PROMOTION_POLICIES: tuple[tuple[str, str, str, int, int, str], ...] = (
+    ("nominated", "governance_action", "medium", 3, 0, "subject + verb + object actor required for promotion"),
+    ("confirmed_by", "governance_action", "medium", 3, 0, "subject + verb + confirming authority required for promotion"),
+    ("signed", "executive_action", "medium", 3, 0, "subject + verb + legal reference required for promotion"),
+    ("vetoed", "executive_action", "medium", 3, 0, "subject + verb + legal reference required for promotion"),
+    ("authorized", "executive_action", "medium", 3, 0, "event-scoped executive authorization requires complete subject/object evidence"),
+    ("ruled_by", "review_relation", "medium", 2, 0, "review/forum relation requires explicit cue plus resolved court/object"),
+    ("challenged_in", "review_relation", "medium", 2, 0, "challenge relation requires explicit cue plus resolved forum/object"),
+    ("subject_of_review_by", "review_relation", "medium", 2, 0, "review relation requires explicit cue plus resolved court/object"),
+    ("funded_by", "governance_action", "medium", 2, 0, "funding relation requires explicit actor/object support"),
+    ("sanctioned", "governance_action", "medium", 2, 0, "sanction relation requires explicit actor/object support"),
+    ("appealed", "review_relation", "medium", 3, 0, "appeal promotion requires subject + verb + forum/object evidence"),
+    ("challenged", "review_relation", "medium", 3, 0, "challenge promotion requires subject + verb + object evidence"),
+    ("heard_by", "review_relation", "medium", 3, 0, "hearing promotion requires subject + verb + forum/object evidence"),
+    ("decided_by", "review_relation", "medium", 3, 0, "decision promotion requires subject + verb + forum/object evidence"),
+    ("applied", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
+    ("followed", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
+    ("distinguished", "authority_invocation", "medium", 3, 0, "authority invocation requires subject + verb + legal reference evidence"),
+    ("held_that", "authority_invocation", "medium", 3, 0, "holding relation requires subject + verb + object evidence"),
+    ("replied_to", "conversational_relation", "high", 3, 0, "conversational replies remain conservative unless speaker/object evidence is complete"),
+    ("felt_state", "state_signal", "high", 3, 0, "affect/state relations remain candidate-first unless explicit state evidence is complete"),
+)
+
 
 def ensure_gwb_semantic_schema(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS actors (
+          actor_id INTEGER PRIMARY KEY,
+          actor_kind TEXT NOT NULL,
+          canonical_key TEXT NOT NULL UNIQUE,
+          display_name TEXT NOT NULL,
+          review_status TEXT NOT NULL DEFAULT 'deterministic_v1',
+          pipeline_version TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS actor_aliases (
+          alias_id INTEGER PRIMARY KEY,
+          actor_id INTEGER NOT NULL REFERENCES actors(actor_id) ON DELETE CASCADE,
+          alias_text TEXT NOT NULL,
+          normalized_alias TEXT NOT NULL,
+          source_kind TEXT NOT NULL,
+          source_ref TEXT,
+          review_status TEXT NOT NULL DEFAULT 'deterministic_v1',
+          is_primary INTEGER NOT NULL DEFAULT 0,
+          pipeline_version TEXT NOT NULL,
+          UNIQUE(actor_id, normalized_alias, source_kind, source_ref)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS actor_merges (
+          merge_id INTEGER PRIMARY KEY,
+          source_actor_id INTEGER NOT NULL REFERENCES actors(actor_id) ON DELETE CASCADE,
+          target_actor_id INTEGER NOT NULL REFERENCES actors(actor_id) ON DELETE CASCADE,
+          merge_rule TEXT NOT NULL,
+          source_ref TEXT,
+          note TEXT,
+          pipeline_version TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS event_role_vocab (
+          role_key TEXT PRIMARY KEY,
+          display_label TEXT NOT NULL,
+          role_family TEXT NOT NULL,
+          active_v1 INTEGER NOT NULL DEFAULT 1,
+          review_status TEXT NOT NULL DEFAULT 'deterministic_v1',
+          pipeline_version TEXT NOT NULL
+        )
+        """
+    )
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS semantic_entities (
@@ -27,7 +201,8 @@ def ensure_gwb_semantic_schema(conn: sqlite3.Connection) -> None:
           canonical_key TEXT NOT NULL UNIQUE,
           canonical_label TEXT NOT NULL,
           review_status TEXT NOT NULL DEFAULT 'deterministic_v1',
-          pipeline_version TEXT NOT NULL
+          pipeline_version TEXT NOT NULL,
+          shared_actor_id INTEGER REFERENCES actors(actor_id) ON DELETE SET NULL
         )
         """
     )
@@ -186,6 +361,173 @@ def ensure_gwb_semantic_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_rule_types (
+          rule_type_key TEXT PRIMARY KEY,
+          display_label TEXT NOT NULL,
+          description TEXT NOT NULL,
+          output_kind TEXT NOT NULL,
+          active_v1 INTEGER NOT NULL DEFAULT 1,
+          pipeline_version TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_slot_definitions (
+          slot_key TEXT PRIMARY KEY,
+          slot_type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          pipeline_version TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_rule_slots (
+          rule_type_key TEXT NOT NULL REFERENCES semantic_rule_types(rule_type_key) ON DELETE CASCADE,
+          slot_key TEXT NOT NULL REFERENCES semantic_slot_definitions(slot_key) ON DELETE CASCADE,
+          selector_type TEXT NOT NULL,
+          required INTEGER NOT NULL DEFAULT 1,
+          slot_order INTEGER NOT NULL,
+          pipeline_version TEXT NOT NULL,
+          PRIMARY KEY (rule_type_key, slot_key, selector_type)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_promotion_policies (
+          predicate_key TEXT PRIMARY KEY REFERENCES semantic_predicate_vocab(predicate_key) ON DELETE CASCADE,
+          rule_type_key TEXT NOT NULL REFERENCES semantic_rule_types(rule_type_key) ON DELETE CASCADE,
+          min_confidence TEXT NOT NULL,
+          required_evidence_count INTEGER NOT NULL,
+          allow_conflict INTEGER NOT NULL DEFAULT 0,
+          policy_note TEXT,
+          pipeline_version TEXT NOT NULL
+        )
+        """
+    )
+    _ensure_semantic_entities_shared_actor_column(conn)
+    _ensure_event_role_vocab(conn)
+    _ensure_semantic_rule_metadata(conn)
+
+
+def _ensure_semantic_entities_shared_actor_column(conn: sqlite3.Connection) -> None:
+    columns = {str(row["name"]) for row in conn.execute("PRAGMA table_info(semantic_entities)").fetchall()}
+    if "shared_actor_id" not in columns:
+        conn.execute("ALTER TABLE semantic_entities ADD COLUMN shared_actor_id INTEGER REFERENCES actors(actor_id) ON DELETE SET NULL")
+
+
+def _display_label_from_role_key(role_key: str) -> str:
+    return role_key.replace("_", " ").title()
+
+
+def _ensure_event_role_vocab(conn: sqlite3.Connection) -> None:
+    for role_key, display_label, role_family in _EVENT_ROLE_VOCAB:
+        conn.execute(
+            """
+            INSERT INTO event_role_vocab(role_key, display_label, role_family, active_v1, review_status, pipeline_version)
+            VALUES (?,?,?,?,?,?)
+            ON CONFLICT(role_key) DO UPDATE SET
+              display_label=excluded.display_label,
+              role_family=excluded.role_family,
+              active_v1=excluded.active_v1,
+              review_status=excluded.review_status,
+              pipeline_version=excluded.pipeline_version
+            """,
+            (role_key, display_label, role_family, 1, "deterministic_v1", PIPELINE_VERSION),
+        )
+
+
+def _ensure_event_role_vocab_entry(conn: sqlite3.Connection, role_key: str) -> None:
+    row = conn.execute("SELECT 1 FROM event_role_vocab WHERE role_key = ?", (role_key,)).fetchone()
+    if row is not None:
+        return
+    conn.execute(
+        """
+        INSERT INTO event_role_vocab(role_key, display_label, role_family, active_v1, review_status, pipeline_version)
+        VALUES (?,?,?,?,?,?)
+        """,
+        (role_key, _display_label_from_role_key(role_key), "semantic_role", 1, "deterministic_v1", PIPELINE_VERSION),
+    )
+
+
+def _ensure_semantic_rule_metadata(conn: sqlite3.Connection) -> None:
+    for rule_type_key, display_label, description, output_kind in _SEMANTIC_RULE_TYPES:
+        conn.execute(
+            """
+            INSERT INTO semantic_rule_types(
+              rule_type_key, display_label, description, output_kind, active_v1, pipeline_version
+            ) VALUES (?,?,?,?,?,?)
+            ON CONFLICT(rule_type_key)
+            DO UPDATE SET display_label=excluded.display_label,
+                          description=excluded.description,
+                          output_kind=excluded.output_kind,
+                          active_v1=excluded.active_v1,
+                          pipeline_version=excluded.pipeline_version
+            """,
+            (rule_type_key, display_label, description, output_kind, 1, PIPELINE_VERSION),
+        )
+    for slot_key, slot_type, description in _SEMANTIC_SLOT_DEFINITIONS:
+        conn.execute(
+            """
+            INSERT INTO semantic_slot_definitions(slot_key, slot_type, description, pipeline_version)
+            VALUES (?,?,?,?)
+            ON CONFLICT(slot_key)
+            DO UPDATE SET slot_type=excluded.slot_type,
+                          description=excluded.description,
+                          pipeline_version=excluded.pipeline_version
+            """,
+            (slot_key, slot_type, description, PIPELINE_VERSION),
+        )
+    for rule_type_key, slot_key, selector_type, required, slot_order in _SEMANTIC_RULE_SLOTS:
+        conn.execute(
+            """
+            INSERT INTO semantic_rule_slots(
+              rule_type_key, slot_key, selector_type, required, slot_order, pipeline_version
+            ) VALUES (?,?,?,?,?,?)
+            ON CONFLICT(rule_type_key, slot_key, selector_type)
+            DO UPDATE SET required=excluded.required,
+                          slot_order=excluded.slot_order,
+                          pipeline_version=excluded.pipeline_version
+            """,
+            (rule_type_key, slot_key, selector_type, required, slot_order, PIPELINE_VERSION),
+        )
+
+
+def _ensure_promotion_policies(conn: sqlite3.Connection) -> None:
+    for predicate_key, rule_type_key, min_confidence, required_evidence_count, allow_conflict, policy_note in _SEMANTIC_PROMOTION_POLICIES:
+        row = conn.execute(
+            "SELECT 1 FROM semantic_predicate_vocab WHERE predicate_key = ?",
+            (predicate_key,),
+        ).fetchone()
+        if row is None:
+            continue
+        conn.execute(
+            """
+            INSERT INTO semantic_promotion_policies(
+              predicate_key, rule_type_key, min_confidence, required_evidence_count, allow_conflict, policy_note, pipeline_version
+            ) VALUES (?,?,?,?,?,?,?)
+            ON CONFLICT(predicate_key)
+            DO UPDATE SET rule_type_key=excluded.rule_type_key,
+                          min_confidence=excluded.min_confidence,
+                          required_evidence_count=excluded.required_evidence_count,
+                          allow_conflict=excluded.allow_conflict,
+                          policy_note=excluded.policy_note,
+                          pipeline_version=excluded.pipeline_version
+            """,
+            (
+                predicate_key,
+                rule_type_key,
+                min_confidence,
+                required_evidence_count,
+                allow_conflict,
+                policy_note,
+                PIPELINE_VERSION,
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -335,6 +677,59 @@ def _text_contains_phrase(text: str, phrase: str) -> bool:
     return _normalize_phrase(phrase) in _normalize_phrase(text)
 
 
+def _ensure_shared_actor(
+    conn: sqlite3.Connection,
+    *,
+    canonical_key: str,
+    display_name: str,
+    actor_kind: str,
+    pipeline_version: str,
+) -> int:
+    conn.execute(
+        """
+        INSERT INTO actors(actor_kind, canonical_key, display_name, review_status, pipeline_version)
+        VALUES (?,?,?,?,?)
+        ON CONFLICT(canonical_key)
+        DO UPDATE SET actor_kind=excluded.actor_kind,
+                      display_name=excluded.display_name,
+                      review_status=excluded.review_status,
+                      pipeline_version=excluded.pipeline_version
+        """,
+        (actor_kind, canonical_key, display_name, "deterministic_v1", pipeline_version),
+    )
+    row = conn.execute("SELECT actor_id FROM actors WHERE canonical_key = ?", (canonical_key,)).fetchone()
+    assert row is not None
+    return int(row["actor_id"])
+
+
+def _upsert_actor_alias(
+    conn: sqlite3.Connection,
+    *,
+    actor_id: int,
+    alias_text: str,
+    source_kind: str,
+    source_ref: str | None,
+    is_primary: bool,
+    pipeline_version: str,
+) -> None:
+    normalized_alias = _slug(alias_text)
+    if not normalized_alias:
+        return
+    conn.execute(
+        """
+        INSERT INTO actor_aliases(
+          actor_id, alias_text, normalized_alias, source_kind, source_ref, review_status, is_primary, pipeline_version
+        ) VALUES (?,?,?,?,?,?,?,?)
+        ON CONFLICT(actor_id, normalized_alias, source_kind, source_ref)
+        DO UPDATE SET alias_text=excluded.alias_text,
+                      review_status=excluded.review_status,
+                      is_primary=MAX(actor_aliases.is_primary, excluded.is_primary),
+                      pipeline_version=excluded.pipeline_version
+        """,
+        (actor_id, alias_text, normalized_alias, source_kind, source_ref, "deterministic_v1", 1 if is_primary else 0, pipeline_version),
+    )
+
+
 def _upsert_seed_entity(
     conn: sqlite3.Connection,
     seed: EntitySeed,
@@ -354,6 +749,17 @@ def _upsert_seed_entity(
     assert row is not None
     entity_id = int(row["entity_id"])
     if seed.entity_kind == "actor":
+        shared_actor_id = _ensure_shared_actor(
+            conn,
+            canonical_key=seed.canonical_key,
+            display_name=seed.canonical_label,
+            actor_kind=seed.actor_kind or "actor",
+            pipeline_version=pipeline_version,
+        )
+        conn.execute(
+            "UPDATE semantic_entities SET shared_actor_id = ? WHERE entity_id = ?",
+            (shared_actor_id, entity_id),
+        )
         conn.execute(
             """
             INSERT INTO semantic_entity_actors(entity_id, actor_kind, classification_tag)
@@ -362,6 +768,25 @@ def _upsert_seed_entity(
             """,
             (entity_id, seed.actor_kind, seed.classification_tag),
         )
+        _upsert_actor_alias(
+            conn,
+            actor_id=shared_actor_id,
+            alias_text=seed.canonical_label,
+            source_kind="canonical_label",
+            source_ref=seed.canonical_key,
+            is_primary=True,
+            pipeline_version=pipeline_version,
+        )
+        for alias in seed.aliases:
+            _upsert_actor_alias(
+                conn,
+                actor_id=shared_actor_id,
+                alias_text=alias,
+                source_kind="seed_alias",
+                source_ref=seed.canonical_key,
+                is_primary=alias == seed.canonical_label,
+                pipeline_version=pipeline_version,
+            )
     elif seed.entity_kind == "office":
         conn.execute(
             """
@@ -400,6 +825,7 @@ def _ensure_predicates(conn: sqlite3.Connection) -> dict[str, int]:
             """,
             (predicate_key, display_label, family, is_directed, inverse_key, rule_key),
         )
+    _ensure_promotion_policies(conn)
     rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
@@ -475,6 +901,20 @@ def _event_map(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
 def _build_seed_index(conn: sqlite3.Connection) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for seed in _ENTITY_SEEDS:
+        if seed.entity_kind == "actor":
+            rows = conn.execute(
+                """
+                SELECT aa.alias_text
+                FROM actor_aliases AS aa
+                JOIN actors AS a ON a.actor_id = aa.actor_id
+                WHERE a.canonical_key = ?
+                ORDER BY aa.is_primary DESC, aa.alias_text
+                """,
+                (seed.canonical_key,),
+            ).fetchall()
+            if rows:
+                out[seed.canonical_key] = [str(row["alias_text"]) for row in rows]
+                continue
         out[seed.canonical_key] = list(seed.aliases)
     # Add reviewed legal refs from the current GWB linkage seed.
     rows = conn.execute(
@@ -558,6 +998,7 @@ def _detect_mentions_for_event(
 ) -> dict[str, list[int]]:
     text = str(event.get("text") or "")
     found: dict[str, list[int]] = defaultdict(list)
+    seed_index = _build_seed_index(conn)
     # Explicit abstention surfaces first.
     for surface in _BUSH_ADMINISTRATION_SURFACES:
         if _text_contains_phrase(text, surface):
@@ -593,7 +1034,7 @@ def _detect_mentions_for_event(
             found["abstained"].append(cluster_id)
 
     for seed in _ENTITY_SEEDS:
-        for alias in seed.aliases:
+        for alias in seed_index.get(seed.canonical_key, list(seed.aliases)):
             if not _text_contains_phrase(text, alias):
                 continue
             if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _text_contains_phrase(text, "Bush administration"):
@@ -649,15 +1090,111 @@ def _entity_for_key(conn: sqlite3.Connection, canonical_key: str) -> int | None:
     return int(row["entity_id"]) if row else None
 
 
-def _predicate_confidence(predicate_key: str, receipts: list[tuple[str, str]]) -> str:
+def _confidence_rank(confidence_tier: str) -> int:
+    return {
+        "abstain": 0,
+        "low": 1,
+        "medium": 2,
+        "high": 3,
+    }.get(confidence_tier, 0)
+
+
+def _load_promotion_policy_for_predicate_id(conn: sqlite3.Connection, predicate_id: int) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT p.predicate_key, p.promotion_rule_key, sp.rule_type_key,
+               sp.min_confidence, sp.required_evidence_count, sp.allow_conflict
+        FROM semantic_predicate_vocab AS p
+        LEFT JOIN semantic_promotion_policies AS sp
+          ON sp.predicate_key = p.predicate_key
+        WHERE p.predicate_id = ?
+        """,
+        (predicate_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "predicate_key": str(row["predicate_key"]),
+        "promotion_rule_key": str(row["promotion_rule_key"]),
+        "rule_type_key": str(row["rule_type_key"]) if row["rule_type_key"] is not None else None,
+        "min_confidence": str(row["min_confidence"]) if row["min_confidence"] is not None else None,
+        "required_evidence_count": int(row["required_evidence_count"]) if row["required_evidence_count"] is not None else None,
+        "allow_conflict": int(row["allow_conflict"]) if row["allow_conflict"] is not None else 0,
+    }
+
+
+def _load_promotion_policy_for_predicate_key(conn: sqlite3.Connection, predicate_key: str) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT p.predicate_key, p.promotion_rule_key, sp.rule_type_key,
+               sp.min_confidence, sp.required_evidence_count, sp.allow_conflict
+        FROM semantic_predicate_vocab AS p
+        LEFT JOIN semantic_promotion_policies AS sp
+          ON sp.predicate_key = p.predicate_key
+        WHERE p.predicate_key = ?
+        """,
+        (predicate_key,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "predicate_key": str(row["predicate_key"]),
+        "promotion_rule_key": str(row["promotion_rule_key"]),
+        "rule_type_key": str(row["rule_type_key"]) if row["rule_type_key"] is not None else None,
+        "min_confidence": str(row["min_confidence"]) if row["min_confidence"] is not None else None,
+        "required_evidence_count": int(row["required_evidence_count"]) if row["required_evidence_count"] is not None else None,
+        "allow_conflict": int(row["allow_conflict"]) if row["allow_conflict"] is not None else 0,
+    }
+
+
+def _policy_adjusted_confidence(
+    conn: sqlite3.Connection,
+    *,
+    predicate_key: str,
+    receipts: list[tuple[str, str]],
+    legacy_confidence: str,
+) -> str:
+    if legacy_confidence == "abstain":
+        return "abstain"
+    policy = _load_promotion_policy_for_predicate_key(conn, predicate_key)
+    if policy is None:
+        return legacy_confidence
+    required_evidence_count = policy["required_evidence_count"]
+    if required_evidence_count is None:
+        return legacy_confidence
+    evidence_count = len({kind for kind, _ in receipts})
+    if evidence_count < max(1, required_evidence_count - 1):
+        return "abstain"
+    if evidence_count < required_evidence_count and _confidence_rank(legacy_confidence) > _confidence_rank("low"):
+        return "low"
+    return legacy_confidence
+
+
+def _promotion_status_from_policy(
+    *,
+    confidence_tier: str,
+    evidence_count: int,
+    min_confidence: str | None,
+    required_evidence_count: int | None,
+) -> str:
+    if confidence_tier == "abstain":
+        return "abstained"
+    if required_evidence_count is not None and evidence_count < required_evidence_count:
+        return "candidate"
+    if min_confidence is not None and _confidence_rank(confidence_tier) < _confidence_rank(min_confidence):
+        return "candidate"
+    return "promoted"
+
+
+def _predicate_confidence(conn: sqlite3.Connection, predicate_key: str, receipts: list[tuple[str, str]]) -> str:
     kinds = {kind for kind, _ in receipts}
     if predicate_key in {"signed", "vetoed"} and {"subject", "object_legal_ref", "verb"} <= kinds:
-        return "high"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
     if predicate_key in {"nominated", "confirmed_by"} and {"subject", "object_actor", "verb"} <= kinds:
-        return "high"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
     if {"subject", "verb"} <= kinds:
-        return "medium"
-    return "low" if {"subject", "verb"} <= kinds else "abstain"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="medium")
+    return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="abstain")
 
 
 def _insert_event_role(
@@ -670,6 +1207,7 @@ def _insert_event_role(
     cluster_id: int | None = None,
     note: str | None = None,
 ) -> None:
+    _ensure_event_role_vocab_entry(conn, role_kind)
     conn.execute(
         """
         INSERT INTO semantic_event_roles(run_id, event_id, role_kind, entity_id, cluster_id, note)
@@ -691,6 +1229,29 @@ def _insert_relation_candidate(
     receipts: list[tuple[str, str]],
     pipeline_version: str = PIPELINE_VERSION,
 ) -> int:
+    policy = _load_promotion_policy_for_predicate_id(conn, predicate_id)
+    evidence_count = len({kind for kind, _ in receipts})
+    promotion_status = (
+        _promotion_status_from_policy(
+            confidence_tier=confidence_tier,
+            evidence_count=evidence_count,
+            min_confidence=policy["min_confidence"] if policy else None,
+            required_evidence_count=policy["required_evidence_count"] if policy else None,
+        )
+        if policy
+        else ("promoted" if confidence_tier in {"high", "medium"} else ("candidate" if confidence_tier == "low" else "abstained"))
+    )
+    stored_receipts = list(receipts)
+    if policy is not None:
+        if policy["rule_type_key"]:
+            stored_receipts.append(("rule_type", str(policy["rule_type_key"])))
+        stored_receipts.append(("promotion_rule_key", str(policy["promotion_rule_key"])))
+        if policy["min_confidence"] is not None:
+            stored_receipts.append(("promotion_min_confidence", str(policy["min_confidence"])))
+        if policy["required_evidence_count"] is not None:
+            stored_receipts.append(("promotion_required_evidence_count", str(policy["required_evidence_count"])))
+    stored_receipts.append(("evidence_count", str(evidence_count)))
+    stored_receipts.append(("promotion_status", promotion_status))
     cur = conn.execute(
         """
         INSERT INTO semantic_relation_candidates(
@@ -703,13 +1264,13 @@ def _insert_relation_candidate(
             subject_entity_id,
             predicate_id,
             object_entity_id,
-            "promoted" if confidence_tier in {"high", "medium"} else ("candidate" if confidence_tier == "low" else "abstained"),
+            promotion_status,
             confidence_tier,
             pipeline_version,
         ),
     )
     candidate_id = int(cur.lastrowid)
-    for idx, (kind, value) in enumerate(receipts, start=1):
+    for idx, (kind, value) in enumerate(stored_receipts, start=1):
         conn.execute(
             """
             INSERT INTO semantic_relation_candidate_receipts(candidate_id, receipt_order, reason_kind, reason_value)
@@ -717,7 +1278,7 @@ def _insert_relation_candidate(
             """,
             (candidate_id, idx, kind, value),
         )
-    if confidence_tier in {"high", "medium"}:
+    if promotion_status == "promoted":
         rel_cur = conn.execute(
             """
             INSERT INTO semantic_relations(
@@ -727,7 +1288,7 @@ def _insert_relation_candidate(
             (candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, pipeline_version),
         )
         relation_id = int(rel_cur.lastrowid)
-        for idx, (kind, value) in enumerate(receipts, start=1):
+        for idx, (kind, value) in enumerate(stored_receipts, start=1):
             conn.execute(
                 """
                 INSERT INTO semantic_relation_receipts(relation_id, receipt_order, reason_kind, reason_value)
@@ -780,7 +1341,7 @@ def _extract_event_relations(
                 subject_entity_id=bush_id,
                 predicate_id=predicate_ids["signed"],
                 object_entity_id=legal_id,
-                confidence_tier=_predicate_confidence("signed", receipts),
+                confidence_tier=_predicate_confidence(conn, "signed", receipts),
                 receipts=receipts,
             )
 
@@ -799,7 +1360,7 @@ def _extract_event_relations(
                 subject_entity_id=bush_id,
                 predicate_id=predicate_ids["vetoed"],
                 object_entity_id=legal_id,
-                confidence_tier=_predicate_confidence("vetoed", receipts),
+                confidence_tier=_predicate_confidence(conn, "vetoed", receipts),
                 receipts=receipts,
             )
 
@@ -816,7 +1377,7 @@ def _extract_event_relations(
                 subject_entity_id=bush_id,
                 predicate_id=predicate_ids["nominated"],
                 object_entity_id=nominee_id,
-                confidence_tier=_predicate_confidence("nominated", receipts),
+                confidence_tier=_predicate_confidence(conn, "nominated", receipts),
                 receipts=receipts,
             )
 
@@ -833,7 +1394,7 @@ def _extract_event_relations(
                 subject_entity_id=nominee_id,
                 predicate_id=predicate_ids["confirmed_by"],
                 object_entity_id=senate_id,
-                confidence_tier=_predicate_confidence("confirmed_by", receipts),
+                confidence_tier=_predicate_confidence(conn, "confirmed_by", receipts),
                 receipts=receipts,
             )
 
@@ -856,7 +1417,7 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["ruled_by"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence("ruled_by", receipts),
+                        confidence_tier=_predicate_confidence(conn, "ruled_by", receipts),
                         receipts=receipts,
                     )
                 if ("challeng" in text_fold or "lawsuit" in text_fold or "sued" in text_fold) and ("court" in text_fold or "circuit" in text_fold):
@@ -869,7 +1430,7 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["challenged_in"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence("challenged_in", receipts),
+                        confidence_tier=_predicate_confidence(conn, "challenged_in", receipts),
                         receipts=receipts,
                     )
                 if ("review" in text_fold or "reaching" in text_fold or "reached" in text_fold or "considered" in text_fold) and (
@@ -884,7 +1445,7 @@ def _extract_event_relations(
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["subject_of_review_by"],
                         object_entity_id=court_id,
-                        confidence_tier=_predicate_confidence("subject_of_review_by", receipts),
+                        confidence_tier=_predicate_confidence(conn, "subject_of_review_by", receipts),
                         receipts=receipts,
                     )
 

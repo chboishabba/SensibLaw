@@ -70,6 +70,13 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
         import_au_semantic_seed_payload(conn, seed_payload)
         result = run_au_semantic_pipeline(conn)
         report = build_au_semantic_report(conn, run_id=result["run_id"])
+        applied_policy = conn.execute(
+            """
+            SELECT rule_type_key, min_confidence, required_evidence_count
+            FROM semantic_promotion_policies
+            WHERE predicate_key = 'applied'
+            """
+        ).fetchone()
 
     assert result["relation_candidate_count"] >= 2
     assert result["promoted_relation_count"] >= 1
@@ -88,3 +95,7 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
     abstained_reasons = {(row["surface_text"], row["resolution_rule"]) for row in report["unresolved_mentions"]}
     assert ("junior counsel for the appellant", "legal_representation_requires_named_representative_v1") in abstained_reasons
     assert ("appeared for the respondent", "legal_representation_requires_named_representative_v1") in abstained_reasons
+    assert applied_policy is not None
+    assert applied_policy["rule_type_key"] == "authority_invocation"
+    assert applied_policy["min_confidence"] == "medium"
+    assert applied_policy["required_evidence_count"] == 3

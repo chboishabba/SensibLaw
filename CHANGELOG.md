@@ -1,12 +1,49 @@
 # Changelog
 
 ## Unreleased
+- Semantic rule substrate: add shared DB-backed metadata for
+  `semantic_rule_types`, `semantic_slot_definitions`, `semantic_rule_slots`,
+  and `semantic_promotion_policies` around the frozen event-scoped semantic
+  spine. GWB/AU/transcript predicate vocab now seeds bounded rule-family and
+  promotion-gate policy rows. Candidate insertion now reads predicate-level
+  policy metadata to decide `promoted` vs `candidate` status, and emitted
+  candidate/promoted receipts now carry explicit rule-family and promotion
+  policy traces. Confidence derivation now also consults shared policy
+  evidence requirements as a conservative downgrade layer while remaining
+  profile-local for now, and the shared selector-interpreter question is
+  explicitly deferred.
+- Docs/TODO alignment: add
+  `docs/planning/semantic_rule_slots_and_promotion_gates_20260308.md`, record
+  the decision in `COMPACTIFIED_CONTEXT.md`, and add the follow-up TODO to move
+  current predicate heuristics toward the shared slot/rule/promotion substrate
+  incrementally rather than via another schema rewrite.
+- Shared actor identity governance: add a shared actor layer around the frozen
+  semantic spine with `actors`, `actor_aliases`, `actor_merges`, and
+  `event_role_vocab`. Actor-like semantic entities now attach via
+  `semantic_entities.shared_actor_id`, reviewed actor aliases persist
+  canonically across GWB/AU/transcript lanes, and `semantic_event_roles`
+  consume governed role keys instead of remaining entirely untracked free text.
+- Transcript/freeform semantics: tighten the generalized freeform entity
+  heuristics so obvious titlecase noise no longer becomes a source-local actor.
+  The bounded single-token gates now keep contextual person/place surfaces such
+  as `Picasso` and `Brisbane`, while dropping non-entity openings like
+  `Thanks`, `Today`, and role/system labels from the general entity lane.
+- Transcript/freeform semantics: generalize the bounded transcript semantic
+  lane into the first profile-neutral SL human-text baseline. Freeform/journal
+  text now gets broad source-local actor/entity extraction, explicit object
+  themes can persist as source-local concepts, and explicit affect cues can
+  emit candidate-only `felt_state` relations without promoting non-legal mood
+  semantics or loading legal predicates by default.
 - Transcript semantic lane: add a bounded transcript/freeform semantic v1
   adapter over existing `TextUnit` + speaker-inference inputs. The first pass
   persists source-local speaker mention resolution and `speaker` event roles in
   the shared semantic tables, abstains on timing-only and role-only non-person
   cases, and emits candidate-only `replied_to` conversational relations rather
   than forcing promotion.
+- Transcript/freeform tooling: add `SensibLaw/scripts/transcript_semantic.py`
+  as a deterministic run/report entrypoint over the existing transcript
+  semantic lane, including a bounded built-in demo corpus for downstream
+  workbench/debug consumers such as `itir-svelte`.
 - GWB U.S.-law linkage: tighten broad cue handling for `Congress`, `Iraq`,
   `veto`, and `Supreme Court` so weak broad-surface evidence can remain visible
   as low-confidence matched/candidate output when unambiguous, but no longer

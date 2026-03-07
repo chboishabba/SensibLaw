@@ -7,10 +7,14 @@ from typing import Any, Iterable
 from src.gwb_us_law.semantic import (
     EntitySeed,
     _delete_run_rows,
+    _ensure_promotion_policies,
+    _ensure_shared_actor,
     _insert_cluster_and_resolution,
     _insert_event_role,
     _insert_relation_candidate,
+    _policy_adjusted_confidence,
     _slug,
+    _upsert_actor_alias,
     _upsert_seed_entity,
     ensure_gwb_semantic_schema,
 )
@@ -21,12 +25,112 @@ from src.text.speaker_inference import SpeakerInferenceReceipt, infer_speakers
 PIPELINE_VERSION = "transcript_semantic_v1"
 
 _TRANSCRIPT_PREDICATES = (
+    ("felt_state", "felt state", "affect_state"),
     ("replied_to", "replied to", "conversational_turn"),
 )
+_AFFECT_STATE_SURFACES = ("sad", "happy", "angry", "upset", "afraid", "worried")
+_PERSON_CONTEXT_VERBS = {
+    "met",
+    "saw",
+    "told",
+    "asked",
+    "called",
+    "visited",
+    "liked",
+    "loved",
+    "hated",
+    "helped",
+    "joined",
+    "thanked",
+    "emailed",
+    "texted",
+    "hugged",
+    "missed",
+    "followed",
+}
+_PLACE_CONTEXT_PREPOSITIONS = {"in", "at", "from", "to", "near", "inside", "outside"}
+_LOWER_ENTITY_STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "but",
+    "or",
+    "because",
+    "that",
+    "this",
+    "those",
+    "these",
+    "he",
+    "she",
+    "they",
+    "we",
+    "i",
+    "it",
+    "my",
+    "your",
+    "his",
+    "her",
+    "their",
+    "our",
+    "was",
+    "were",
+    "is",
+    "are",
+    "in",
+    "on",
+    "at",
+    "with",
+    "for",
+    "of",
+    "to",
+    "from",
+    "user",
+    "assistant",
+    "system",
+    "developer",
+    "tool",
+    "q",
+    "a",
+}
+_TITLECASE_STOPWORDS = {
+    "The",
+    "A",
+    "An",
+    "And",
+    "But",
+    "Or",
+    "Because",
+    "That",
+    "This",
+    "Those",
+    "These",
+    "I",
+    "Thanks",
+    "Thank",
+    "Today",
+    "Yesterday",
+    "Tomorrow",
+    "Hello",
+    "Hi",
+    "Hey",
+    "Yes",
+    "No",
+    "Okay",
+    "Ok",
+}
 
 
 def _transcript_actor_key(source_id: str, speaker_label: str) -> str:
     return f"actor:transcript:{_slug(source_id)}:{_slug(speaker_label)}"
+
+
+def _transcript_concept_key(source_id: str, label: str) -> str:
+    return f"concept:transcript:{_slug(source_id)}:{_slug(label)}"
+
+
+def _global_state_key(label: str) -> str:
+    return f"concept:state:{_slug(label)}"
 
 
 def _display_label(receipt: SpeakerInferenceReceipt) -> str:
@@ -38,18 +142,85 @@ def _display_label(receipt: SpeakerInferenceReceipt) -> str:
     return inferred or "Unknown speaker"
 
 
-def _ensure_transcript_actor(conn: sqlite3.Connection, *, source_id: str, speaker_label: str) -> int:
-    return _upsert_seed_entity(
+def _upsert_transcript_entity(
+    conn: sqlite3.Connection,
+    *,
+    entity_kind: str,
+    canonical_key: str,
+    canonical_label: str,
+    actor_kind: str | None = None,
+    classification_tag: str | None = None,
+) -> int:
+    conn.execute(
+        """
+        INSERT INTO semantic_entities(entity_kind, canonical_key, canonical_label, review_status, pipeline_version)
+        VALUES (?,?,?,?,?)
+        ON CONFLICT(canonical_key)
+        DO UPDATE SET canonical_label=excluded.canonical_label, review_status=excluded.review_status, pipeline_version=excluded.pipeline_version
+        """,
+        (entity_kind, canonical_key, canonical_label, "deterministic_v1", PIPELINE_VERSION),
+    )
+    row = conn.execute("SELECT entity_id FROM semantic_entities WHERE canonical_key = ?", (canonical_key,)).fetchone()
+    assert row is not None
+    entity_id = int(row["entity_id"])
+    if entity_kind == "actor":
+        shared_actor_id = _ensure_shared_actor(
+            conn,
+            canonical_key=canonical_key,
+            display_name=canonical_label,
+            actor_kind=actor_kind or "person_actor",
+            pipeline_version=PIPELINE_VERSION,
+        )
+        conn.execute(
+            "UPDATE semantic_entities SET shared_actor_id = ? WHERE entity_id = ?",
+            (shared_actor_id, entity_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO semantic_entity_actors(entity_id, actor_kind, classification_tag)
+            VALUES (?,?,?)
+            ON CONFLICT(entity_id) DO UPDATE SET actor_kind=excluded.actor_kind, classification_tag=excluded.classification_tag
+            """,
+            (entity_id, actor_kind or "person_actor", classification_tag),
+        )
+        _upsert_actor_alias(
+            conn,
+            actor_id=shared_actor_id,
+            alias_text=canonical_label,
+            source_kind="semantic_entity_label",
+            source_ref=canonical_key,
+            is_primary=True,
+            pipeline_version=PIPELINE_VERSION,
+        )
+    return entity_id
+
+
+def _ensure_transcript_actor(conn: sqlite3.Connection, *, source_id: str, speaker_label: str, classification_tag: str = "speaker") -> int:
+    return _upsert_transcript_entity(
         conn,
-        EntitySeed(
-            entity_kind="actor",
-            canonical_key=_transcript_actor_key(source_id, speaker_label),
-            canonical_label=speaker_label,
-            actor_kind="person_actor",
-            classification_tag="speaker",
-            aliases=(speaker_label,),
-        ),
-        pipeline_version=PIPELINE_VERSION,
+        entity_kind="actor",
+        canonical_key=_transcript_actor_key(source_id, speaker_label),
+        canonical_label=speaker_label,
+        actor_kind="person_actor",
+        classification_tag=classification_tag,
+    )
+
+
+def _ensure_transcript_concept(conn: sqlite3.Connection, *, source_id: str, label: str) -> int:
+    return _upsert_transcript_entity(
+        conn,
+        entity_kind="concept",
+        canonical_key=_transcript_concept_key(source_id, label),
+        canonical_label=label,
+    )
+
+
+def _ensure_state_concept(conn: sqlite3.Connection, *, label: str) -> int:
+    return _upsert_transcript_entity(
+        conn,
+        entity_kind="concept",
+        canonical_key=_global_state_key(label),
+        canonical_label=label,
     )
 
 
@@ -70,6 +241,7 @@ def _ensure_transcript_predicates(conn: sqlite3.Connection) -> dict[str, int]:
             """,
             (predicate_key, display_label, family, 1, None, f"transcript_{predicate_key}_v1"),
         )
+    _ensure_promotion_policies(conn)
     rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
@@ -85,6 +257,126 @@ def _speaker_receipts(receipt: SpeakerInferenceReceipt) -> list[tuple[str, str]]
     return out
 
 
+def _surface_tokens(text: str) -> list[str]:
+    out: list[str] = []
+    current: list[str] = []
+    for ch in text:
+        if ch.isalnum() or ch in {"'", "-"}:
+            current.append(ch)
+            continue
+        if current:
+            out.append("".join(current))
+            current = []
+    if current:
+        out.append("".join(current))
+    return out
+
+
+def _is_titlecase_name_token(token: str) -> bool:
+    if not token or token in _TITLECASE_STOPWORDS:
+        return False
+    letters = [ch for ch in token if ch.isalpha()]
+    if not letters:
+        return False
+    return token[0].isupper() and any(ch.islower() for ch in letters[1:])
+
+
+def _looks_like_noise_titlecase(token: str) -> bool:
+    return token in _TITLECASE_STOPWORDS
+
+
+def _is_likely_place_context(tokens: list[str], index: int) -> bool:
+    if index <= 0:
+        return False
+    return tokens[index - 1].casefold() in _PLACE_CONTEXT_PREPOSITIONS
+
+
+def _is_likely_person_context(tokens: list[str], index: int) -> bool:
+    previous = tokens[index - 1].casefold() if index > 0 else ""
+    nxt = tokens[index + 1].casefold() if index + 1 < len(tokens) else ""
+    return previous in _PERSON_CONTEXT_VERBS or nxt in _PERSON_CONTEXT_VERBS
+
+
+def _should_keep_single_titlecase_entity(tokens: list[str], index: int) -> bool:
+    token = tokens[index]
+    if _looks_like_noise_titlecase(token):
+        return False
+    if _is_likely_place_context(tokens, index):
+        return True
+    if _is_likely_person_context(tokens, index):
+        return True
+    return False
+
+
+def _extract_general_named_entities(text: str) -> list[str]:
+    tokens = _surface_tokens(text)
+    entities: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if not _is_titlecase_name_token(token):
+            index += 1
+            continue
+        parts = [token]
+        if index + 1 < len(tokens) and _is_titlecase_name_token(tokens[index + 1]):
+            parts.append(tokens[index + 1])
+            index += 1
+        elif not _should_keep_single_titlecase_entity(tokens, index):
+            index += 1
+            continue
+        label = " ".join(parts)
+        if label not in entities:
+            entities.append(label)
+        index += 1
+    return entities
+
+
+def _extract_theme_concepts(text: str) -> list[str]:
+    tokens = _surface_tokens(text)
+    themes: list[str] = []
+    for index in range(len(tokens) - 1):
+        lowered = tokens[index].casefold()
+        nxt = tokens[index + 1].casefold()
+        if lowered in {"have", "having", "wanted", "wanting"} and nxt in {"my", "his", "her", "their", "our", "a", "an", "the"}:
+            if index + 2 < len(tokens):
+                label = tokens[index + 2].strip(".,;:!?")
+                if label and label.casefold() not in _LOWER_ENTITY_STOPWORDS and label not in themes:
+                    themes.append(label)
+        if lowered in {"because", "without"} and index + 1 < len(tokens):
+            label = tokens[index + 1].strip(".,;:!?")
+            if label and label.casefold() not in _LOWER_ENTITY_STOPWORDS and label not in themes:
+                themes.append(label)
+    return themes
+
+
+def _event_role_exists(conn: sqlite3.Connection, *, run_id: str, event_id: str, role_kind: str, entity_id: int) -> bool:
+    row = conn.execute(
+        """
+        SELECT 1
+        FROM semantic_event_roles
+        WHERE run_id = ? AND event_id = ? AND role_kind = ? AND entity_id = ?
+        LIMIT 1
+        """,
+        (run_id, event_id, role_kind, entity_id),
+    ).fetchone()
+    return row is not None
+
+
+def _insert_event_role_once(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    event_id: str,
+    role_kind: str,
+    entity_id: int,
+    cluster_id: int | None = None,
+    note: str | None = None,
+) -> None:
+    if _event_role_exists(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id):
+        return
+    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id, cluster_id=cluster_id, note=note)
+
+
 def run_transcript_semantic_pipeline(
     conn: sqlite3.Connection,
     units: Iterable[TextUnit],
@@ -98,6 +390,7 @@ def run_transcript_semantic_pipeline(
     ordered_units = list(units)
     receipts = infer_speakers(ordered_units, known_participants_by_source=known_participants_by_source)
     actor_by_unit: dict[str, int] = {}
+    general_actor_by_unit: dict[str, int] = {}
 
     for unit, receipt in zip(ordered_units, receipts):
         event_id = unit.unit_id
@@ -119,7 +412,7 @@ def run_transcript_semantic_pipeline(
                 pipeline_version=PIPELINE_VERSION,
             )
             actor_by_unit[event_id] = entity_id
-            _insert_event_role(
+            _insert_event_role_once(
                 conn,
                 run_id=run_id,
                 event_id=event_id,
@@ -148,6 +441,118 @@ def run_transcript_semantic_pipeline(
             receipts=_speaker_receipts(receipt) + [("abstain_reason", receipt.abstain_reason or "unknown")],
             pipeline_version=PIPELINE_VERSION,
         )
+
+        if receipt.abstain_reason == "timing_only":
+            continue
+
+        named_entities = _extract_general_named_entities(unit.text)
+        for index, label in enumerate(named_entities):
+            if (
+                str(receipt.inferred_speaker or "").startswith("role:")
+                and receipt.observed_label
+                and label.casefold() == receipt.observed_label.casefold()
+            ):
+                continue
+            entity_id = _ensure_transcript_actor(conn, source_id=unit.source_id, speaker_label=label, classification_tag="general_actor")
+            cluster_id, _ = _insert_cluster_and_resolution(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                mention_kind="actor",
+                canonical_key_hint=_transcript_actor_key(unit.source_id, label),
+                surface_text=label,
+                source_rule="transcript_general_entity_v1",
+                resolved_entity_id=entity_id,
+                resolution_status="resolved",
+                resolution_rule="general_named_entity_v1",
+                receipts=[("surface", label), ("entity_scope", "source_local_general"), ("position", "subject" if index == 0 else "mentioned_entity")],
+                pipeline_version=PIPELINE_VERSION,
+            )
+            if index == 0:
+                general_actor_by_unit[event_id] = entity_id
+                _insert_event_role_once(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    role_kind="subject",
+                    entity_id=entity_id,
+                    cluster_id=cluster_id,
+                    note="transcript_general_entity_v1",
+                )
+            else:
+                _insert_event_role_once(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    role_kind="mentioned_entity",
+                    entity_id=entity_id,
+                    cluster_id=cluster_id,
+                    note="transcript_general_entity_v1",
+                )
+
+        theme_labels = _extract_theme_concepts(unit.text)
+        theme_entity_ids: list[int] = []
+        for label in theme_labels:
+            entity_id = _ensure_transcript_concept(conn, source_id=unit.source_id, label=label)
+            theme_entity_ids.append(entity_id)
+            cluster_id, _ = _insert_cluster_and_resolution(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                mention_kind="concept",
+                canonical_key_hint=_transcript_concept_key(unit.source_id, label),
+                surface_text=label,
+                source_rule="transcript_theme_concept_v1",
+                resolved_entity_id=entity_id,
+                resolution_status="resolved",
+                resolution_rule="theme_concept_v1",
+                receipts=[("surface", label), ("concept_scope", "source_local_theme")],
+                pipeline_version=PIPELINE_VERSION,
+            )
+            _insert_event_role_once(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="theme",
+                entity_id=entity_id,
+                cluster_id=cluster_id,
+                note="transcript_theme_concept_v1",
+            )
+
+        subject_entity_id = actor_by_unit.get(event_id) or general_actor_by_unit.get(event_id)
+        text_fold = unit.text.casefold()
+        if subject_entity_id is not None:
+            for state_label in _AFFECT_STATE_SURFACES:
+                if state_label not in text_fold:
+                    continue
+                state_entity_id = _ensure_state_concept(conn, label=state_label)
+                _insert_relation_candidate(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    subject_entity_id=subject_entity_id,
+                    predicate_id=predicate_ids["felt_state"],
+                    object_entity_id=state_entity_id,
+                    confidence_tier=_policy_adjusted_confidence(
+                        conn,
+                        predicate_key="felt_state",
+                        receipts=[
+                            ("subject_actor", str(subject_entity_id)),
+                            ("state_surface", state_label),
+                            ("predicate", "felt_state"),
+                            *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
+                        ],
+                        legacy_confidence="low",
+                    ),
+                    receipts=[
+                        ("subject_actor", str(subject_entity_id)),
+                        ("state_surface", state_label),
+                        ("predicate", "felt_state"),
+                        *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
+                    ],
+                    pipeline_version=PIPELINE_VERSION,
+                )
+                break
 
     by_source: dict[str, list[tuple[TextUnit, SpeakerInferenceReceipt]]] = defaultdict(list)
     for unit, receipt in zip(ordered_units, receipts):
@@ -178,7 +583,12 @@ def run_transcript_semantic_pipeline(
                 subject_entity_id=current_actor,
                 predicate_id=predicate_ids["replied_to"],
                 object_entity_id=previous_actor,
-                confidence_tier="low",
+                confidence_tier=_policy_adjusted_confidence(
+                    conn,
+                    predicate_key="replied_to",
+                    receipts=receipts_payload,
+                    legacy_confidence="low",
+                ),
                 receipts=receipts_payload,
                 pipeline_version=PIPELINE_VERSION,
             )

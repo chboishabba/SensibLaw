@@ -105,6 +105,19 @@
   unified `entity`, first-class `mention_resolution`, `event_role ->
   relation_candidate -> semantic_relation`, and receipt-derived confidence
   should be exercised before adding more special cases.
+- [ ] Migrate the current bounded GWB/AU/transcript predicate heuristics toward
+  the shared slot/rule/promotion metadata substrate documented in
+  `docs/planning/semantic_rule_slots_and_promotion_gates_20260308.md`.
+  Shared rule/slot/promotion metadata now exists, promotion is policy-backed,
+  and rule-family receipts should now be present on emitted candidates; the
+  remaining work is tightening confidence derivation against shared policy
+  minima/evidence requirements and only then deciding whether selector
+  execution should move beyond profile-local code. Keep any such migration
+  incremental and without breaking the event-scoped semantic spine.
+- [ ] Revisit the shared selector-interpreter question only after the new
+  policy-backed promotion path and rule-family receipts have been pressure-
+  tested across GWB/AU/transcript corpora. Current decision is explicit defer:
+  selectors remain shared metadata, execution remains profile-local.
 - [ ] Keep `Bush administration` and similar discourse/political labels
   non-canonical by default until a reviewed concept/administration entity layer
   exists. Do not silently merge them into person or office actors.
@@ -134,10 +147,55 @@
   abstention-friendly. Current v1 persists speaker/mention/event-role artifacts
   plus candidate-only `replied_to` relations; see
   `../docs/planning/transcript_semantic_phase_v1_20260308.md`.
-- [ ] Extend the transcript/freeform semantic lane beyond the first
-  speaker/event-role proving pass: add stronger hearing/forum context capture
-  and decide whether any transcript relation family deserves medium/high
-  promotion under the frozen semantic spine.
+- [x] Extend the transcript/freeform semantic lane beyond the first
+  speaker/event-role proving pass so it becomes the profile-neutral SL
+  baseline for human text: broad source-local freeform entity extraction now
+  exists, explicit non-legal affect/state cues can emit candidate-only
+  `felt_state` relations, and legal semantics remain gated to explicit
+  AU/GWB/legal entrypoints.
+- [x] Tighten the generalized transcript/freeform entity heuristics so obvious
+  non-entity titlecase tokens stay abstained without sliding back into
+  legal-by-default behavior or shrinking broad human-text coverage. Current
+  bounded gates keep contextual single-token person/place surfaces such as
+  `Picasso` / `Brisbane`, while dropping obvious titlecase noise such as
+  `Thanks`, `Today`, and role/system labels from general entity extraction.
+- [ ] Add stronger general non-legal participant/context roles to the
+  transcript/freeform lane (beyond `speaker`, `subject`, `mentioned_entity`,
+  `theme`) and pressure-test them against journal/transcript corpora before
+  promoting any new relation family. Align this with the existing
+  actor/event-role contracts already used elsewhere in the repo rather than
+  introducing a transcript-only ad hoc role taxonomy. Archive-backed summary:
+  `../docs/planning/archive_actor_semantic_threads_20260308.md`.
+- [ ] Mine the high-signal local archive threads into first-class repo notes so
+  actor/role architecture does not stay trapped in chats. Priority threads:
+  `Actor table design` (`21f55daa80206517e38f8c0fa56ee9bb2db8a9a0`),
+  `Actor Model Feedback` (`691d79376cb653e7170ea6c200a0a1d0a34bec6b`),
+  `Milestone Slice Feedback` (`1802fc3d13a0ad01ad95cef07eeaae9c16c22bed`),
+  `Taxonomising legal wrongs` (`74f6d0e08de82556df95c6ab1edb51557fede4fa`),
+  `SENSIBLAW` (`4d535d3f33f54b1040ab38ec67f8f550a0f69dce`), plus the currently
+  untitled high-hit archive threads `dbcfb20d67213216c7aa02ed8493ae21fd39730d`
+  and `dff2e608e358fe5ed5cf1d0376a36ff8a87a6f2d`.
+- [ ] Decide which archive-derived actor-model pieces should actually re-enter
+  the active semantic schema family after the current comparison pass in
+  `../docs/planning/actor_semantic_db_design_from_archive_20260308.md`.
+  Current explicit gaps versus the broader archive design are:
+  persistent alias registry, merge audit, governed event-role vocabulary, and
+  actor detail/annotation extension tables.
+- [x] Re-introduce the first archive-backed identity-governance pieces without
+  replacing the frozen semantic spine: shared `actors`, `actor_aliases`,
+  `actor_merges`, and `event_role_vocab` now exist, and actor-like semantic
+  entities map onto the shared actor layer via `semantic_entities.shared_actor_id`.
+  This keeps alias persistence / merge audit / role governance shared across
+  AU, GWB, and transcript lanes while leaving actor detail/profile extensions
+  deferred.
+- [ ] Decide how aggressively the new shared `actor_aliases` layer should
+  participate in deterministic matching. Current recommendation is
+  conservative: keep it primarily as persisted registry/audit support plus
+  seed-backed reuse, and only widen alias-driven matching if concrete corpus
+  pressure shows lane-local matching is missing high-value recoverable actors.
+- [ ] Decide whether any transcript/freeform relation family deserves
+  medium/high promotion under the frozen semantic spine. Current `replied_to`
+  and `felt_state` relations remain candidate-only.
 - [ ] Keep chat-derived corpora isolated from canonical `itir.sqlite` until an
   explicit retention/redaction policy exists for SB/ITIR/TIRC integration.
   Current bounded test path is `.cache_local/itir_chat_test.sqlite` with hashed

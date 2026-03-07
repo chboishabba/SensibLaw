@@ -12,11 +12,13 @@ from src.gwb_us_law.semantic import (
     PIPELINE_VERSION,
     EntitySeed,
     _ensure_predicates,
+    _ensure_promotion_policies,
     _entity_for_key,
     _insert_cluster_and_resolution,
     _insert_event_role,
     _insert_relation_candidate,
     _normalize_phrase,
+    _policy_adjusted_confidence,
     _text_contains_phrase,
     _upsert_seed_entity,
     build_gwb_semantic_report,
@@ -314,6 +316,7 @@ def _ensure_au_predicates(conn) -> dict[str, int]:
             """,
             (key, label, family, 1, None, f"au_{key}_v1"),
         )
+    _ensure_promotion_policies(conn)
     rows = conn.execute("SELECT predicate_id, predicate_key FROM semantic_predicate_vocab").fetchall()
     return {str(row["predicate_key"]): int(row["predicate_id"]) for row in rows}
 
@@ -650,15 +653,15 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
     return found
 
 
-def _predicate_confidence(predicate_key: str, receipts: list[tuple[str, str]]) -> str:
+def _predicate_confidence(conn, predicate_key: str, receipts: list[tuple[str, str]]) -> str:
     kinds = {kind for kind, _ in receipts}
     if predicate_key in {"appealed", "challenged"} and {"subject", "verb", "object"} <= kinds:
-        return "high"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="high")
     if predicate_key in {"heard_by", "decided_by", "applied", "followed", "distinguished", "held_that"} and {"subject", "verb", "object"} <= kinds:
-        return "medium"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="medium")
     if {"subject", "verb"} <= kinds:
-        return "low"
-    return "abstain"
+        return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="low")
+    return _policy_adjusted_confidence(conn, predicate_key=predicate_key, receipts=receipts, legacy_confidence="abstain")
 
 
 def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[str, Any], mention_clusters: Mapping[str, list[int]], entity_ids: dict[str, int], predicate_ids: Mapping[str, int]) -> None:
@@ -688,7 +691,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                 subject_entity_id=subject_id,
                 predicate_id=predicate_ids["appealed"],
                 object_entity_id=court_id,
-                confidence_tier=_predicate_confidence("appealed", receipts),
+                confidence_tier=_predicate_confidence(conn, "appealed", receipts),
                 receipts=receipts,
             )
     if "challeng" in text_fold:
@@ -706,7 +709,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                     subject_entity_id=subject_id,
                     predicate_id=predicate_ids["challenged"],
                     object_entity_id=object_id,
-                    confidence_tier=_predicate_confidence("challenged", receipts),
+                    confidence_tier=_predicate_confidence(conn, "challenged", receipts),
                     receipts=receipts,
                 )
     subject_candidates: list[tuple[int, str]] = []
@@ -734,7 +737,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                 subject_entity_id=subject_id,
                 predicate_id=predicate_ids["heard_by"],
                 object_entity_id=court_id,
-                confidence_tier=_predicate_confidence("heard_by", receipts),
+                confidence_tier=_predicate_confidence(conn, "heard_by", receipts),
                 receipts=receipts,
             )
     if court_id is not None and ("held that" in text_fold or "held" in text_fold or "decided" in text_fold):
@@ -748,7 +751,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                 subject_entity_id=subject_id,
                 predicate_id=predicate_ids[predicate],
                 object_entity_id=court_id,
-                confidence_tier=_predicate_confidence(predicate, receipts),
+                confidence_tier=_predicate_confidence(conn, predicate, receipts),
                 receipts=receipts,
             )
             if predicate == "held_that":
@@ -778,7 +781,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids["applied"],
                         object_entity_id=target_id,
-                        confidence_tier=_predicate_confidence("applied", receipts),
+                        confidence_tier=_predicate_confidence(conn, "applied", receipts),
                         receipts=receipts,
                     )
             for predicate, cue in (("followed", "followed"), ("distinguished", "distinguished")):
@@ -797,7 +800,7 @@ def _extract_au_relations(conn, *, run_id: str, event_id: str, event: Mapping[st
                         subject_entity_id=subject_id,
                         predicate_id=predicate_ids[predicate],
                         object_entity_id=target_id,
-                        confidence_tier=_predicate_confidence(predicate, receipts),
+                        confidence_tier=_predicate_confidence(conn, predicate, receipts),
                         receipts=receipts,
                     )
 

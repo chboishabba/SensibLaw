@@ -50,6 +50,105 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   deterministic speaker inference, persisting source-local speaker mention
   resolution and `speaker` event roles in the shared semantic tables while
   keeping conversational `replied_to` output candidate-only.
+- That transcript/freeform lane is now the first profile-neutral SL semantic
+  baseline for human text: broad source-local entities are allowed in
+  freeform/journal text, explicit affect/state cues can emit candidate-only
+  `felt_state` relations, and legal predicates remain gated to explicit
+  AU/GWB/legal entrypoints rather than loading by default.
+- The generalized freeform entity heuristics are now tightened in bounded
+  form: contextual single-token person/place surfaces remain allowed, but
+  obvious titlecase noise such as `Thanks`, `Today`, and role/system labels is
+  suppressed instead of becoming source-local actors.
+- Local archive/context review shows the prior stable vocabulary is around the
+  actor identity spine and shared role/slot boundaries (`subject`, `object`,
+  `requester`, `speaker`, `event_role`), not a settled transcript-specific
+  role taxonomy. The transcript/freeform lane should align to those existing
+  contracts instead of inventing new role labels ad hoc.
+- Archive sweep anchors for actor/semantic-role recovery:
+  - `21f55daa80206517e38f8c0fa56ee9bb2db8a9a0` (`Actor table design`):
+    strongest archived actor-identity spine thread; relevant for actor table
+    boundaries, identity modeling, and early `event_role` framing.
+  - `691d79376cb653e7170ea6c200a0a1d0a34bec6b` (`Actor Model Feedback`):
+    strongest archived semantic-spine thread for
+    `mention_resolution -> event_role -> relation_candidate ->
+    semantic_relation`.
+  - `1802fc3d13a0ad01ad95cef07eeaae9c16c22bed`
+    (`Milestone Slice Feedback`): relevant later thread for frozen-shape
+    pressure testing, `subject`/`object` framing, and semantic diff posture.
+  - `74f6d0e08de82556df95c6ab1edb51557fede4fa`
+    (`Taxonomising legal wrongs`): high-signal ontology/taxonomy thread with
+    many `subject`/`object` hits and broader SL legal-role context.
+  - `4d535d3f33f54b1040ab38ec67f8f550a0f69dce` (`SENSIBLAW`): broad planning
+    thread with recurring `subject`, `speaker`, and occasional `event_role`
+    references across the larger SL/TiRCorder architecture.
+  - `f8170d36e0b2c28b2bb0366a7dc35a433e26ca00`
+    (`Feature timeline visualization`): secondary thread with repeated
+    `speaker` and `event_role` mentions relevant to timeline/stream surfaces.
+  - high-hit untitled archive threads `dbcfb20d67213216c7aa02ed8493ae21fd39730d`
+    and `dff2e608e358fe5ed5cf1d0376a36ff8a87a6f2d` also mention `SensibLaw`
+    heavily and should be mined later; titles/topics were not recoverable from
+    the current bounded DB sweep.
+- The first archive-ingestion pass is now written up in
+  `docs/planning/archive_actor_semantic_threads_20260308.md`. Current
+  extracted conclusions:
+  - actor identity must stay small and clean
+  - mention resolution is its own first-class layer
+  - `event_role` evidence must remain separate from promoted semantic
+    relations
+  - transcript/freeform planning should reuse the shared role/slot language
+    already present in the repo rather than inventing a transcript-only role
+    taxonomy
+- A second archive pass now isolates DB/table guidance in
+  `docs/planning/actor_semantic_db_design_from_archive_20260308.md`.
+  Main outcome:
+  - current semantic v1.1 schema already matches the strongest later archive
+    guidance around a unified entity spine, first-class mention resolution, and
+    `event_role -> relation_candidate -> semantic_relation`
+  - the remaining divergences are mostly narrower-or-deferred features from the
+    older broader actor model: alias registry, merge audit, governed event-role
+    vocabulary, and actor detail/annotation extension tables
+  - the two untitled high-hit archive threads were mined enough to classify
+    them as operational/noise for this topic, not missing actor DB design
+- The first archive-backed identity-governance wave is now implemented in a
+  shared actor layer rather than the `semantic_*` family:
+  - shared `actors`, `actor_aliases`, `actor_merges`, and `event_role_vocab`
+    now exist
+  - actor-like semantic entities attach via
+    `semantic_entities.shared_actor_id`
+  - GWB/AU/transcript actor seeds now persist canonical/shared aliases into
+    `actor_aliases`
+  - the semantic spine itself remains unchanged:
+    `entity -> mention_resolution -> event_role ->
+    relation_candidate -> semantic_relation`
+  - main post-implementation conclusion: the archive-backed “clean” schema was
+    not really arguing for a different semantic core; it was arguing for shared
+    identity governance around the existing core
+  - next decision pressure is how far reviewed shared aliases should influence
+    deterministic matching; current recommendation is conservative use first
+    (registry/audit + seed-backed reuse) rather than broad alias-driven
+    cross-lane matching
+- The next bounded semantic-schema refinement should add DB-backed rule/slot/
+  promotion metadata around the frozen v1.1 spine without replacing the
+  current extractor code in one pass. Event anchoring remains mandatory:
+  `event_role` stays the participation/context lane, and promoted
+  `semantic_relation` rows must continue to point at the triggering event
+  rather than becoming sentence-global facts.
+- That rule/promotion refinement is now written up in
+  `docs/planning/semantic_rule_slots_and_promotion_gates_20260308.md`.
+  Chosen scope:
+  - add first-class metadata for semantic rule types, slot definitions,
+    selector-driven rule slots, and predicate-level promotion policies
+  - seed it for the current GWB/AU/transcript predicate families
+  - promotion should read shared predicate policy rows
+  - emitted candidates/promoted relations should carry explicit rule-family
+    receipts
+  - confidence derivation should now start consulting shared policy minima and
+    evidence requirements, while remaining profile-local for this phase
+  - keep full extractor migration to a generic slot interpreter deferred
+- The transcript/freeform semantic lane is now also exposed through a dedicated
+  `SensibLaw/scripts/transcript_semantic.py` report entrypoint so
+  `itir-svelte` workbench/debug surfaces can consume a real non-legal semantic
+  producer without coupling directly to transcript helper internals.
 
 ## Recent decisions (2026-03-07)
 - Deterministic bridge seeding now refreshes the seeded slice when

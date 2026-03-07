@@ -5,7 +5,16 @@ import sqlite3
 from pathlib import Path
 
 from src.gwb_us_law.linkage import ensure_gwb_us_law_schema, import_gwb_us_law_seed_payload
-from src.gwb_us_law.semantic import build_gwb_semantic_report, ensure_gwb_semantic_schema, run_gwb_semantic_pipeline
+from src.gwb_us_law.semantic import (
+    EntitySeed,
+    _ensure_predicates,
+    _insert_event_role,
+    _policy_adjusted_confidence,
+    _upsert_seed_entity,
+    build_gwb_semantic_report,
+    ensure_gwb_semantic_schema,
+    run_gwb_semantic_pipeline,
+)
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
@@ -79,7 +88,127 @@ def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) 
     assert "the administration" in unresolved_surfaces
     assert "the President" in unresolved_surfaces
     assert "the court" in unresolved_surfaces
+    signed_row = next(row for row in report["promoted_relations"] if row["predicate_key"] == "signed")
+    signed_receipts = {(receipt["kind"], receipt["value"]) for receipt in signed_row["receipts"]}
+    assert ("rule_type", "executive_action") in signed_receipts
+    assert ("promotion_status", "promoted") in signed_receipts
 
     per_entity = {row["entity"]["canonical_key"]: row for row in report["per_entity"]}
     assert per_entity["actor:george_w_bush"]["promoted_relation_count"] >= 3
     assert report["summary"]["candidate_only_relation_count"] >= 0
+
+
+def test_gwb_semantic_schema_populates_shared_actor_aliases_and_role_vocab() -> None:
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    ensure_gwb_semantic_schema(conn)
+    _ensure_predicates(conn)
+    bush_entity_id = _upsert_seed_entity(
+        conn,
+        EntitySeed(
+            entity_kind="actor",
+            canonical_key="actor:george_w_bush",
+            canonical_label="George W. Bush",
+            actor_kind="person_actor",
+            aliases=("George W. Bush", "George Bush", "Bush"),
+        ),
+    )
+    _insert_event_role(
+        conn,
+        run_id="gwb-shared-actor-v1",
+        event_id="ev1",
+        role_kind="agent",
+        entity_id=bush_entity_id,
+        note="test",
+    )
+
+    bush_entity = conn.execute(
+        """
+        SELECT entity_id, shared_actor_id
+        FROM semantic_entities
+        WHERE canonical_key = 'actor:george_w_bush'
+        """
+    ).fetchone()
+    assert bush_entity is not None
+    assert bush_entity["shared_actor_id"] is not None
+
+    aliases = {
+        row["alias_text"]
+        for row in conn.execute(
+            """
+            SELECT aa.alias_text
+            FROM actor_aliases AS aa
+            WHERE aa.actor_id = ?
+            """,
+            (int(bush_entity["shared_actor_id"]),),
+        ).fetchall()
+    }
+    assert {"George W. Bush", "George Bush", "Bush"} <= aliases
+
+    role_vocab = {
+        row["role_key"]: row["display_label"]
+        for row in conn.execute("SELECT role_key, display_label FROM event_role_vocab").fetchall()
+    }
+    assert role_vocab["agent"] == "Agent"
+    assert role_vocab["theme"] == "Theme"
+
+    rule_types = {
+        row["rule_type_key"]: row["output_kind"]
+        for row in conn.execute("SELECT rule_type_key, output_kind FROM semantic_rule_types").fetchall()
+    }
+    assert rule_types["authority_invocation"] == "semantic_relation"
+    assert rule_types["actor_role"] == "event_role"
+
+    slots = {
+        (row["rule_type_key"], row["slot_key"], row["selector_type"], row["required"])
+        for row in conn.execute(
+            """
+            SELECT rule_type_key, slot_key, selector_type, required
+            FROM semantic_rule_slots
+            """
+        ).fetchall()
+    }
+    assert ("actor_role", "party", "prep_for", 1) in slots
+    assert ("review_relation", "forum", "forum_context", 0) in slots
+
+    policies = {
+        row["predicate_key"]: (
+            row["rule_type_key"],
+            row["min_confidence"],
+            row["required_evidence_count"],
+        )
+        for row in conn.execute(
+            """
+            SELECT predicate_key, rule_type_key, min_confidence, required_evidence_count
+            FROM semantic_promotion_policies
+            """
+        ).fetchall()
+    }
+    assert policies["signed"] == ("executive_action", "medium", 3)
+    assert policies["ruled_by"] == ("review_relation", "medium", 2)
+
+
+def test_policy_adjusted_confidence_downgrades_under_evidenced_cases() -> None:
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    ensure_gwb_semantic_schema(conn)
+    _ensure_predicates(conn)
+
+    assert (
+        _policy_adjusted_confidence(
+            conn,
+            predicate_key="signed",
+            receipts=[("subject", "actor:george_w_bush"), ("verb", "signed")],
+            legacy_confidence="high",
+        )
+        == "low"
+    )
+    assert (
+        _policy_adjusted_confidence(
+            conn,
+            predicate_key="signed",
+            receipts=[("subject", "actor:george_w_bush")],
+            legacy_confidence="medium",
+        )
+        == "abstain"
+    )
