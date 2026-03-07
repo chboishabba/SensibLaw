@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from SensibLaw.scripts.ingest_messenger_sample_to_itir_test_db import _classify_row
+from SensibLaw.scripts.ingest_messenger_sample_to_itir_test_db import _classify_row, _split_sender_message_contamination
 
 
 class _FakeRow(dict):
@@ -26,6 +26,16 @@ def test_messenger_row_classifier_filters_noise_deterministically():
     assert _classify_row(
         _FakeRow(sender="Alice", message="Here is the actual message body.", conversation="x", time_sent="2026-03-07T00:00:00Z")
     ) is None
+
+
+def test_messenger_sender_message_contamination_is_split_deterministically():
+    sender, message = _split_sender_message_contamination("FacebookWe didn’t remove the ad", "Thanks again for your report.")
+    assert sender == "Facebook"
+    assert message == "We didn’t remove the ad Thanks again for your report."
+
+    sender, message = _split_sender_message_contamination("Chboi ShabbaWe received your report", "Thank you.")
+    assert sender == "Chboi Shabba"
+    assert message == "We received your report Thank you."
 
 
 def test_messenger_report_script_outputs_filter_counts_and_structure(tmp_path: Path):

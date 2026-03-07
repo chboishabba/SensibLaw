@@ -47,7 +47,7 @@
       "provider": "wikidata"
     },
     {
-      "aliases": ["U.S. district court", "US district court", "United States district court", "federal district court", "U.S. federal district court"],
+      "aliases": ["U.S. district court", "US district court", "United States district court", "federal district court", "U.S. federal district court", "U.S. district courts", "US district courts", "United States district courts", "federal district courts", "federal trial court"],
       "canonical_kind": "court_ref",
       "canonical_label": "United States district court",
       "canonical_ref": "court:united_states_district_court",

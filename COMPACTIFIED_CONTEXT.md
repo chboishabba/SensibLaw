@@ -28,6 +28,25 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Python 3.11 target with 3.10 fallback; Ruff formatting.
 - Clause-local, text-derived extraction; no cross-clause inference.
 
+## Recent decisions (2026-03-07)
+- Deterministic bridge seeding now refreshes the seeded slice when
+  `source_sha256` changes, preventing stale local alias catalogs from masking
+  newly reviewed bridge entries.
+- Reviewed district-court alias variants are now part of the pinned bridge
+  seed (`U.S./US/United States district courts`, `federal district courts`,
+  `federal trial court`).
+- GWB semantic deterministic promotion now includes review/litigation predicates
+  (`ruled_by`, `challenged_in`, `subject_of_review_by`) while keeping cue-only
+  rows candidate-gated.
+- AU semantic legal-representative extraction now covers expanded
+  `counsel/appeared-for` surfaces plus dotted suffix handling for
+  `S.C./K.C./Q.C.` actor mentions.
+- Added bounded docs for:
+  - extraction vs enrichment boundary
+  - mereology/parthood typed diagnostics
+  - property/constraint pressure tests (including subset-vs-total and label
+    harmonization as diagnostic-only signals)
+
 ## Recent decisions (2026-02-06)
 - Canonical TextSpan model added (`revision_id`, `start_char`, `end_char`) and persisted on rule atoms/elements.
 - Promotion receipts now carry span IDs; signals block promotion on overlap.

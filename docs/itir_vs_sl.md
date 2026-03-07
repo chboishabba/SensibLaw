@@ -40,6 +40,16 @@ Differences are policy and enforcement, not architecture.
 - What ITIR/TIRC gain from SL: enforced invariants (determinism, no duplication, provenance-complete edges, non-inventive UI) and a “no-reasoning zone” to anchor audits.
 - What SL gains from ITIR/TIRC: multiple interpretive projections (argumentative/rhetorical/salience) layered as mentions over spans; hypotheses stay outside SL until reviewed.
 
+## SB / TiRC boundary clarification
+- SB is a personal state compiler, not a semantic or legal authority surface.
+- TiRC is a capture/disagreement lane, not a canonical semantic owner.
+- SB/TiRC may consume or extend SL-owned lexer/compression outputs where
+  shared canonical text handling is needed.
+- That reuse does not transfer SL semantic ownership into SB/TiRC.
+- If SB/TiRC receive legal-looking canonical IDs or fixtures, those are opaque
+  SL-origin payloads used for preservation, replay, or cross-product
+  consistency only.
+
 ## Profile model
 - Single canonical parser/tokeniser.
 - SL is the “strict profile”: deterministic, auditable, no inference; legal-specific enrichers gated by mode.
@@ -55,3 +65,8 @@ Differences are policy and enforcement, not architecture.
 - Formal mapping table: ITIR/TIRC primitives → SL primitives (lossless vs lossy).
 - Page-stability invariant test across paginated variants.
 - Large-doc ingest path (chunking + repetition metadata) exposed in both general and legal modes.
+
+## Boundary references
+- `docs/planning/extraction_enrichment_boundary_20260307.md`
+- `docs/tokenizer_contract.md`
+- `docs/external_ontologies.md`

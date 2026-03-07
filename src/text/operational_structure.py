@@ -75,6 +75,57 @@ def _emit(matches: list[StructureOccurrence], match: re.Match[str], kind: str, n
     )
 
 
+def _normalize_path_candidate(raw: str) -> str:
+    value = raw.strip("()[]{}<>,.;")
+    if value.startswith("//"):
+        value = "https:" + value
+    if "http://" in value or "https://" in value:
+        http_index = value.find("http://")
+        https_index = value.find("https://")
+        starts = [index for index in (http_index, https_index) if index >= 0]
+        if starts:
+            start = min(starts)
+            value = value[start:]
+            next_http = value.find("http", 4)
+            if next_http > 0:
+                value = value[:next_http]
+        if "/" in value:
+            prefix, last_segment = value.rsplit("/", 1)
+            seen_digit = False
+            trim_index = None
+            for index, ch in enumerate(last_segment):
+                if ch.isdigit():
+                    seen_digit = True
+                elif seen_digit and ch.isupper():
+                    trim_index = index
+                    break
+            if trim_index is not None:
+                last_segment = last_segment[:trim_index]
+                value = f"{prefix}/{last_segment}"
+    elif "http" in value:
+        http_index = value.find("http")
+        if http_index > 0:
+            value = value[http_index:]
+    for prefix in ("https://", "http://", "https:", "http:"):
+        if value.startswith(prefix):
+            value = value[len(prefix) :]
+            break
+    value = value.lstrip("/")
+    if "/" in value and "." in value.split("/", 1)[0]:
+        prefix, last_segment = value.rsplit("/", 1)
+        seen_digit = False
+        trim_index = None
+        for index, ch in enumerate(last_segment):
+            if ch.isdigit():
+                seen_digit = True
+            elif seen_digit and ch.isupper():
+                trim_index = index
+                break
+        if trim_index is not None:
+            value = f"{prefix}/{last_segment[:trim_index]}"
+    return value.rstrip("/:_-.")
+
+
 def _looks_like_path(raw: str) -> bool:
     if raw.startswith(("/", "./", "../", "~/")):
         return True
@@ -107,6 +158,8 @@ def _looks_like_path(raw: str) -> bool:
     if joined.isdigit():
         return False
     if all(segment.isdigit() for segment in segments):
+        return False
+    if raw.count("/") == 1 and segments[0].isdigit() and segments[1].isalpha() and len(segments[1]) <= 3:
         return False
     if all(segment.upper() == segment and any(ch.isalpha() for ch in segment) for segment in segments):
         return False
@@ -201,8 +254,10 @@ def collect_operational_structure_occurrences(text: str) -> list[StructureOccurr
         _emit(matches, match, "flag_ref", f"flag:{match.group(1).casefold()}")
 
     for match in _PATH_RE.finditer(text):
-        raw = match.group(1)
+        raw = _normalize_path_candidate(match.group(1))
         if raw.startswith("--"):
+            continue
+        if not raw:
             continue
         if not _looks_like_path(raw):
             continue

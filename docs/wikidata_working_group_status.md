@@ -26,6 +26,12 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   - `docs/planning/wikidata_working_group_review_template_20260307.md`
 - Latest seeded review pass:
   - `docs/planning/wikidata_working_group_review_pass_20260307.md`
+- Extraction/enrichment boundary note:
+  - `docs/planning/extraction_enrichment_boundary_20260307.md`
+- Bounded mereology/parthood note:
+  - `docs/planning/wikidata_mereology_parthood_note_20260307.md`
+- Property/constraint pressure-test note:
+  - `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`
 
 ## Current demo / review pack
 - Primary local slice:
@@ -146,6 +152,9 @@ The report now exposes:
 ## Current decisions
 - `P31` / `P279` efficacy is proven at medium gate.
 - Qualifier drift is the active next phase.
+- Property definitions and restrictions are in scope for the ontology lane when
+  they interact with class use and constraints; they are not out-of-scope just
+  because they are properties rather than classes.
 - Use local entity-export importer to grow review slices instead of hand-editing
   all JSON.
 - Treat real imported zero-drift qualifier slices as valid baseline evidence,
@@ -156,6 +165,25 @@ The report now exposes:
   the primary evidence that live drift exists.
 - Treat canonical text/token/lexeme layers as strictly separate from Wikidata
   semantics.
+- The next formalism-facing extension is not generic ontology cleanup; it is a
+  bounded mereology/parthood lane. The current highest-yield question for the
+  working group is typed/disambiguated parthood:
+  - class-class parthood
+  - instance-instance parthood
+  - instance-class parthood
+  - when inverse pairs are semantically valid vs merely redundant
+- DASHI-style epistemic/projection machinery is a candidate downstream lens for
+  this work, but it does not replace the bounded deterministic diagnostic layer.
+- Financial-flow / time-series modeling is now explicitly recognized as a
+  relevant adjacent use case for the group: timeseries, constraint interactions,
+  subset-vs-total modeling, and graphing surfaces are useful diagnostic
+  pressure tests even if they are not the first bounded executable slice.
+- Label harmonization issues like `XXX subclass` vs `type of XXX` are useful as
+  user-facing inconsistency signals, but should be treated as downstream
+  diagnostic/reporting evidence, not as the primary ontology criterion.
+- The current mereology/parthood lane should anchor on the actual property
+  family (`P527`, `P361`, related parthood-like predicates), not just on
+  abstract discussion.
 
 ## Immediate next actions
 1. Re-run the seeded review pass with the importer-backed qualifier baseline and
@@ -164,4 +192,9 @@ The report now exposes:
    reviewer-facing choice on the confirmed live cases.
 3. Decide whether the earlier observed `Q100243106|P54` case is still worth
    pinning, or whether the current two-case live pack is sufficient.
-4. Only after that consider expanding beyond bounded qualifier drift.
+4. Convert the new mereology/property notes into a bounded fixture-backed pilot
+   pack (`P361`/`P527` typing, inverse validity, subset-vs-total examples).
+5. Keep the mereology/property-pressure lane explicitly supportive of the
+   frozen semantic v1.1 model rather than using it as a reason to widen the
+   canonical schema before GWB + Australian cross-testing fails in a concrete
+   way.

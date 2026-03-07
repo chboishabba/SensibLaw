@@ -48,6 +48,23 @@ EXCLUDED_SENDER_PREFIXES = (
     "marketplace",
 )
 MIN_MEANINGFUL_CHARS = 8
+_MESSAGE_STARTERS = (
+    "We ",
+    "We'",
+    "I ",
+    "I'",
+    "Thanks",
+    "Thank ",
+    "Here ",
+    "Your ",
+    "You ",
+    "Please ",
+    "Download ",
+    "View ",
+    "Includes ",
+    "Check ",
+    "The ",
+)
 
 
 def _connect_ro(db_path: Path) -> sqlite3.Connection:
@@ -159,6 +176,27 @@ def _classify_row(row: sqlite3.Row | dict[str, object]) -> str | None:
     if _meaningful_char_count(message) < MIN_MEANINGFUL_CHARS:
         return "too_short"
     return None
+
+
+def _split_sender_message_contamination(sender: str, message: str) -> tuple[str, str]:
+    sender = sender.strip()
+    message = message.strip()
+    if not sender:
+        return sender, message
+    for index in range(1, len(sender)):
+        prev = sender[index - 1]
+        curr = sender[index]
+        if not prev.islower() or not curr.isupper():
+            continue
+        prefix = sender[:index].strip()
+        suffix = sender[index:].strip()
+        if len(prefix) < 2 or len(suffix) < 4:
+            continue
+        if not any(suffix.startswith(starter) for starter in _MESSAGE_STARTERS):
+            continue
+        merged_message = suffix if not message else f"{suffix} {message}"
+        return prefix, merged_message.strip()
+    return sender, message
 
 
 def _persist_structural_atoms(dest_conn: sqlite3.Connection, run_id: str, row_order: int, text: str) -> None:
@@ -283,6 +321,7 @@ def main() -> None:
             ts = str(row["time_sent"] or "").strip()
             sender = str(row["sender"] or "").strip()
             message = str(row["message"] or "").strip()
+            sender, message = _split_sender_message_contamination(sender, message)
             conversation = str(row["conversation"] or "").strip()
             payload_rows.append(
                 (
@@ -303,7 +342,10 @@ def main() -> None:
             payload_rows,
         )
         for index, row in enumerate(kept, start=1):
-            rendered = f"[{row['time_sent']}] {row['sender']}: {row['message']}"
+            sender = str(row["sender"] or "").strip()
+            message = str(row["message"] or "").strip()
+            sender, message = _split_sender_message_contamination(sender, message)
+            rendered = f"[{row['time_sent']}] {sender}: {message}"
             _persist_structural_atoms(dest_conn, run_id, index, rendered)
         dest_conn.commit()
     print(run_id)

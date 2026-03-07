@@ -90,3 +90,16 @@ def test_operational_structure_does_not_treat_plain_slash_prose_as_paths():
     text = "He struggles with dates/recollection/identity and conversation/answer in ordinary prose."
     pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
     assert all(kind != "path_ref" for _, kind in pairs)
+
+
+def test_operational_structure_does_not_treat_short_rate_like_strings_as_paths():
+    text = "Rent was 240/wk and the shorthand should stay plain prose."
+    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    assert all(kind != "path_ref" for _, kind in pairs)
+
+
+def test_operational_structure_normalizes_concatenated_http_urls_more_cleanly():
+    text = "https://chatgpt.com/share/6731905f-2d84-8010-bf3a-2d3cfa1764a0Includes transcript."
+    pairs = {(occ.norm_text, occ.kind) for occ in collect_operational_structure_occurrences(text)}
+    assert ("path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0", "path_ref") in pairs
+    assert all(norm != "path:chatgpt_com_share_6731905f_2d84_8010_bf3a_2d3cfa1764a0includes" for norm, _ in pairs)

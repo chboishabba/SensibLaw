@@ -29,3 +29,4 @@ def test_comparison_summary_emits_side_by_side_rows():
     assert "source comparison:" in summary
     assert "chat-run | chat_test_db" in summary
     assert "ctx-file | context_file" in summary
+    assert "top-kinds" in summary

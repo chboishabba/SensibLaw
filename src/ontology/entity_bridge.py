@@ -80,6 +80,11 @@ _SEEDED_BRIDGE_PAYLOAD = {
                 "United States district court",
                 "federal district court",
                 "U.S. federal district court",
+                "U.S. district courts",
+                "US district courts",
+                "United States district courts",
+                "federal district courts",
+                "federal trial court",
             ],
         },
         {
@@ -389,11 +394,16 @@ def import_bridge_payload(
 
 def ensure_seeded_bridge_slice(conn: sqlite3.Connection) -> None:
     existing = conn.execute(
-        "SELECT slice_id FROM wikidata_bridge_slices WHERE slice_name = ?",
+        "SELECT source_sha256 FROM wikidata_bridge_slices WHERE slice_name = ?",
         (SEEDED_SLICE_NAME,),
     ).fetchone()
+    expected_sha = _stable_sha256(_SEEDED_BRIDGE_PAYLOAD)
     if existing is None:
         import_bridge_payload(conn, _SEEDED_BRIDGE_PAYLOAD, replace_slice=False)
+        return
+    current_sha = str(existing["source_sha256"] or "").strip()
+    if current_sha != expected_sha:
+        import_bridge_payload(conn, _SEEDED_BRIDGE_PAYLOAD, replace_slice=True)
 
 
 def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None = None) -> dict[str, Any]:
@@ -615,6 +625,50 @@ def link_lexeme_occurrences(
             resolved_conn.close()
 
 
+def lookup_bridge_alias(
+    alias_text: str,
+    *,
+    conn: sqlite3.Connection | None = None,
+    db_path: str | Path | None = None,
+    slice_name: str | None = None,
+) -> list[ExternalEntityLink]:
+    normalized = _normalize_alias(alias_text)
+    if not normalized:
+        return []
+    resolved_conn, should_close = _resolve_connection(conn=conn, db_path=db_path)
+    try:
+        ensure_bridge_schema(resolved_conn)
+        ensure_seeded_bridge_slice(resolved_conn)
+        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        rows = resolved_conn.execute(
+            """
+            SELECT s.slice_name, s.policy_version, e.canonical_ref, e.canonical_kind, e.provider, e.external_id, a.alias_text
+            FROM wikidata_bridge_aliases AS a
+            JOIN wikidata_bridge_entities AS e ON e.bridge_entity_id = a.bridge_entity_id
+            JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
+            WHERE s.slice_name = ? AND a.normalized_alias = ?
+            ORDER BY e.canonical_kind, e.canonical_ref, e.provider, e.external_id
+            """,
+            (active_slice, normalized),
+        ).fetchall()
+        return [
+            ExternalEntityLink(
+                canonical_ref=str(row["canonical_ref"]),
+                canonical_kind=str(row["canonical_kind"]),
+                provider=str(row["provider"]),
+                external_id=str(row["external_id"]),
+                curie=f"{row['provider']}:{row['external_id']}",
+                slice_name=str(row["slice_name"]),
+                policy_version=str(row["policy_version"]),
+                matched_alias=str(row["alias_text"]),
+            )
+            for row in rows
+        ]
+    finally:
+        if should_close:
+            resolved_conn.close()
+
+
 def build_external_refs_batch(
     occurrences: Iterable[LexemeOccurrence],
     anchor_map: Mapping[str, Mapping[str, Any]],
@@ -676,4 +730,5 @@ __all__ = [
     "import_bridge_payload",
     "link_canonical_ref",
     "link_lexeme_occurrences",
+    "lookup_bridge_alias",
 ]

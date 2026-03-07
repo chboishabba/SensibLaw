@@ -10,6 +10,7 @@ from pathlib import Path
 def main() -> None:
     parser = argparse.ArgumentParser(description="Report deterministic legal + operational structure across chat/context/transcript/shell corpora.")
     parser.add_argument("--chat-db")
+    parser.add_argument("--messenger-db")
     parser.add_argument("--run-id")
     parser.add_argument("--context-file", action="append", default=[])
     parser.add_argument("--transcript-file", action="append", default=[])
@@ -30,11 +31,14 @@ def main() -> None:
         emit_human_summary,
         load_chat_units,
         load_file_units,
+        load_messenger_units,
     )
 
     units = []
     if args.chat_db:
         units.extend(load_chat_units(args.chat_db, args.run_id))
+    if args.messenger_db:
+        units.extend(load_messenger_units(args.messenger_db, args.run_id))
     for path in args.context_file:
         units.extend(load_file_units(path, "context_file"))
     for path in args.transcript_file:

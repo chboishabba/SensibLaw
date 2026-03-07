@@ -1,0 +1,190 @@
+{
+  "metadata": {
+    "generated_at": "2026-03-07T00:00:00Z",
+    "name": "au_semantic_linkage_seed_v1",
+    "notes": "Deterministic reviewed starter pack linking visible Australian corpus actions to courts, authorities, and case-law review lanes."
+  },
+  "items": [
+    {
+      "seed_id": "au_semantic:mabo_native_title",
+      "action_summary": "Mabo native title recognition and Crown sovereignty challenge lane",
+      "linkage_kind": "case_and_statute",
+      "authority_titles": [
+        "Mabo v Queensland (No 2)",
+        "Mabo [No 2]",
+        "Native Title (New South Wales) Act 1994"
+      ],
+      "court_refs": [
+        "court:high_court_of_australia"
+      ],
+      "institution_refs": [
+        "institution:commonwealth_of_australia"
+      ],
+      "provenance_cues": [
+        "native title",
+        "Crown",
+        "Mabo",
+        "terra nullius",
+        "sovereignty"
+      ],
+      "lane_tags": [
+        "native_title",
+        "constitutional",
+        "review"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:plaintiff_s157_judicial_review",
+      "action_summary": "Plaintiff S157 judicial review and Migration Act privative clause lane",
+      "linkage_kind": "case_and_statute",
+      "authority_titles": [
+        "Plaintiff S157/2002 v Commonwealth",
+        "Migration Act 1958 (Cth)"
+      ],
+      "court_refs": [
+        "court:high_court_of_australia"
+      ],
+      "institution_refs": [
+        "institution:commonwealth_of_australia"
+      ],
+      "provenance_cues": [
+        "privative clause",
+        "judicial review",
+        "Migration Act",
+        "Plaintiff S157",
+        "jurisdictional error"
+      ],
+      "lane_tags": [
+        "migration",
+        "judicial_review",
+        "constitutional"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:house_error_of_principle",
+      "action_summary": "House v The King appellate review and sentencing-error lane",
+      "linkage_kind": "case_review",
+      "authority_titles": [
+        "House v The King"
+      ],
+      "court_refs": [
+        "court:high_court_of_australia"
+      ],
+      "institution_refs": [],
+      "provenance_cues": [
+        "appeal",
+        "error in principle",
+        "House v The King",
+        "sentence",
+        "appellate court"
+      ],
+      "lane_tags": [
+        "criminal",
+        "appeal",
+        "sentencing"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:native_title_nsw_act_lane",
+      "action_summary": "Native Title (New South Wales) Act legislative authority lane",
+      "linkage_kind": "statute_lane",
+      "authority_titles": [
+        "Native Title (New South Wales) Act 1994"
+      ],
+      "court_refs": [],
+      "institution_refs": [
+        "institution:state_of_new_south_wales"
+      ],
+      "provenance_cues": [
+        "Native Title (NSW) Act 1994",
+        "New South Wales",
+        "Native Title Act"
+      ],
+      "lane_tags": [
+        "state_statute",
+        "native_title"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:lepore_non_delegable_duty_lane",
+      "action_summary": "Lepore non-delegable duty and delegated-fault lane",
+      "linkage_kind": "case_review",
+      "authority_titles": [
+        "New South Wales v Lepore",
+        "Lepore"
+      ],
+      "court_refs": [
+        "court:high_court_of_australia"
+      ],
+      "institution_refs": [],
+      "provenance_cues": [
+        "non-delegable duty",
+        "delegated task",
+        "Lepore",
+        "vulnerable plaintiff"
+      ],
+      "lane_tags": [
+        "duty_of_care",
+        "appeal",
+        "liability"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:introvigne_vicarious_lane",
+      "action_summary": "Introvigne and vicarious/non-delegable liability boundary lane",
+      "linkage_kind": "case_review",
+      "authority_titles": [
+        "Commonwealth v Introvigne",
+        "Nationwide News Pty Ltd v Naidu"
+      ],
+      "court_refs": [
+        "court:high_court_of_australia"
+      ],
+      "institution_refs": [
+        "institution:commonwealth_of_australia"
+      ],
+      "provenance_cues": [
+        "vicarious liability",
+        "non-delegable duties",
+        "Introvigne",
+        "Naidu"
+      ],
+      "lane_tags": [
+        "liability",
+        "adjudication",
+        "common_law"
+      ],
+      "review_status": "reviewed_v1"
+    },
+    {
+      "seed_id": "au_semantic:civil_liability_act_lane",
+      "action_summary": "Civil Liability Act statutory duty and attribution lane",
+      "linkage_kind": "statute_lane",
+      "authority_titles": [
+        "Civil Liability Act",
+        "Civil Liability Act 2002 (NSW)"
+      ],
+      "court_refs": [],
+      "institution_refs": [
+        "institution:state_of_new_south_wales"
+      ],
+      "provenance_cues": [
+        "Civil Liability Act",
+        "s 6O",
+        "attribution",
+        "legal personality"
+      ],
+      "lane_tags": [
+        "state_statute",
+        "duty_of_care",
+        "attribution"
+      ],
+      "review_status": "reviewed_v1"
+    }
+  ]
+}

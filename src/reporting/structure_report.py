@@ -165,6 +165,38 @@ def load_chat_units(db_path: str | Path, run_id: str | None = None) -> list[Text
         ]
 
 
+def load_messenger_units(db_path: str | Path, run_id: str | None = None) -> list[TextUnit]:
+    resolved = Path(db_path).expanduser().resolve()
+    with sqlite3.connect(str(resolved)) as conn:
+        conn.row_factory = sqlite3.Row
+        if run_id is None:
+            row = conn.execute(
+                "SELECT run_id FROM messenger_test_ingest_runs ORDER BY created_at DESC, rowid DESC LIMIT 1"
+            ).fetchone()
+            if row is None:
+                return []
+            run_id = str(row["run_id"])
+        rows = conn.execute(
+            """
+            SELECT row_order, ts, sender, text
+            FROM messenger_test_messages
+            WHERE run_id = ?
+            ORDER BY row_order
+            """,
+            (run_id,),
+        ).fetchall()
+        return [
+            TextUnit(
+                unit_id=f"{run_id}:{int(row['row_order'])}",
+                source_id=run_id,
+                source_type="messenger_test_db",
+                text=f"[{row['ts']}] {row['sender']}: {row['text']}",
+            )
+            for row in rows
+            if str(row["text"]).strip()
+        ]
+
+
 def load_file_units(path: str | Path, source_type: str | None = None) -> list[TextUnit]:
     resolved = Path(path).expanduser().resolve()
     text = resolved.read_text(encoding="utf-8")

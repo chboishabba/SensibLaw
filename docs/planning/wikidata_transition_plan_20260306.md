@@ -21,10 +21,15 @@ Wikidata diagnostics stack, without changing normative/authority boundaries.
 - Minimal, auditable EII computation across time windows/dumps.
 - Diagnostics mapped to observed issue clusters (class/instance confusion,
   subclass loops, qualifier drift, metaclass misuse, negative constraints).
+- Preserve a clean extension path into typed mereology/parthood diagnostics
+  without collapsing the current bounded slice into open-ended ontology repair.
 - A reporting surface that complements class-order diagnostics (SCCs, loops),
   not a fix recommender.
 - Alignment with tokenizer/lexeme contracts so canonical span and pre-semantic
   layers remain untouched by Wikidata semantics.
+- Preserve a route for property-definition / constraint-aware review where
+  property semantics are part of the ontology when their usage restrictions
+  interact with class structure.
 
 ## Non-Goals (v0.1)
 - No source reliability scoring or ML inference.
@@ -140,6 +145,22 @@ Exit criteria:
 - **Evidence gate:** What is the initial `e0` threshold for rank gating?
 - **Conflict semantics:** Is the paraconsistent aggregate sufficient for v0.1,
   or do we need a conflict score decomposition in the report?
+- **Parthood typing:** If the work expands toward mereology, what deterministic
+  representation is safe for:
+  - class-class parthood
+  - instance-instance parthood
+  - instance-class parthood
+  - inverse validity vs redundancy
+- **DASHI formalism handoff:** Which parts of the projection/stability operator
+  can cleanly support a mereology lane without turning the bounded diagnostics
+  stack into ontology prescription?
+- **Timeseries / flow modeling pressure test:** What minimal deterministic
+  representation is safe for subset-vs-total financial flows, monthly-vs-since-
+  inception values, and graphable time-series objects without overcommitting to
+  one Wikidata data-model proposal?
+- **Label harmonization vs structural diagnosis:** Which naming-pattern
+  inconsistencies (`type of XXX`, `XXX subclass`, etc.) are worth surfacing as
+  user-facing diagnostic hints without treating labels as ontology truth?
 
 ## Working-team handoff
 Initial material for Niklas / Ege / Peter should include:
@@ -157,4 +178,10 @@ Initial material for Niklas / Ege / Peter should include:
 1. Import more real `P31` / `P279` neighborhoods via `wikidata build-slice` before expanding to qualifier drift.
 2. Validate severity/ranking on a larger mixed-order sample.
 3. Reconfirm whether a live SCC example should be added to the review pack.
-4. Defer qualifier entropy until the `P31` / `P279` review pack is materially broader.
+4. Draft a mereology/parthood extension note grounded in the recent
+   "Wikidata Ontology Issues" thread and the Mereology Task Force discussion,
+   focused on typed/disambiguated parthood rather than broad ontology fixes.
+5. Add a bounded note on property-definition / timeseries-flow pressure tests so
+   Niklas-style financial-flow and graphing questions can be handled as
+   deterministic modeling diagnostics rather than ad hoc side discussions.
+6. Defer qualifier entropy until the `P31` / `P279` review pack is materially broader.

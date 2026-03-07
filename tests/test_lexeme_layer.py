@@ -225,6 +225,14 @@ def test_seeded_entity_bridge_resolves_gwb_body_and_court_refs_to_wikidata():
     assert ("institution:federal_bureau_of_investigation", "wikidata:Q8333") in linked
 
 
+def test_seeded_entity_bridge_lookup_supports_district_court_variants():
+    from src.ontology.entity_bridge import lookup_bridge_alias
+
+    links = lookup_bridge_alias("U.S. district courts")
+    refs = {(link.canonical_ref, link.curie) for link in links}
+    assert ("court:united_states_district_court", "wikidata:Q1614849") in refs
+
+
 def test_seeded_entity_bridge_emits_external_refs_batch_payload():
     from src.ontology.entity_bridge import build_external_refs_batch
     from src.text.lexeme_index import collect_lexeme_occurrences

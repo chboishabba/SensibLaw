@@ -1,78 +1,260 @@
 {
   "metadata": {
-    "name": "gwb_us_law_linkage_seed_v1",
     "generated_at": "2026-03-07T00:00:00Z",
-    "notes": "Deterministic reviewed starter pack linking selected George W. Bush actions to U.S.-law authorities, institutions, and courts."
+    "name": "gwb_us_law_linkage_seed_v1",
+    "notes": "Deterministic reviewed starter pack linking visible George W. Bush corpus actions to U.S.-law authorities, institutions, and courts."
   },
   "items": [
     {
-      "seed_id": "gwb_us_law:iraq_2002_authorization",
       "action_summary": "Iraq war authorization and related executive decision path",
       "authority_titles": [
         "Authorization for Use of Military Force Against Iraq Resolution of 2002"
       ],
+      "court_refs": [],
       "institution_refs": [
         "institution:u_s_senate",
         "institution:u_s_house_of_representatives"
       ],
-      "court_refs": [],
+      "lane_tags": [
+        "foreign_policy",
+        "iraq",
+        "congress"
+      ],
+      "linkage_kind": "congressional_authority",
       "provenance_cues": [
         "Iraq",
         "authorization",
-        "Congress"
+        "Congress",
+        "weapons of mass destruction"
       ],
-      "linkage_kind": "congressional_authority"
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:iraq_2002_authorization"
     },
     {
-      "seed_id": "gwb_us_law:military_commissions_2006",
-      "action_summary": "Military commissions and detainee-review lane",
+      "action_summary": "Clear Skies legislative and Clean Air amendment lane",
       "authority_titles": [
-        "Military Commissions Act of 2006"
+        "Clear Skies Act of 2003",
+        "Clear Skies Act",
+        "Clean Air Act"
       ],
+      "court_refs": [],
       "institution_refs": [],
+      "lane_tags": [
+        "domestic_statute",
+        "environment"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "Clear Skies",
+        "Clean Air Act",
+        "emissions trading"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:clear_skies_2003"
+    },
+    {
+      "action_summary": "Syria sanctions legislation lane",
+      "authority_titles": [
+        "Syria Accountability Act"
+      ],
+      "court_refs": [],
+      "institution_refs": [],
+      "lane_tags": [
+        "foreign_policy",
+        "sanctions",
+        "domestic_statute"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "Syria Accountability Act",
+        "sanctions on Syria"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:syria_accountability_act"
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "authority_titles": [],
       "court_refs": [
         "court:u_s_supreme_court"
       ],
-      "provenance_cues": [
-        "Military Commissions Act of 2006",
-        "detainee",
-        "Supreme Court"
+      "institution_refs": [
+        "institution:u_s_senate"
       ],
-      "linkage_kind": "statute_and_litigation"
+      "lane_tags": [
+        "court",
+        "appointments"
+      ],
+      "linkage_kind": "court_and_confirmation",
+      "provenance_cues": [
+        "U.S. Supreme Court",
+        "US Supreme Court",
+        "Supreme Court",
+        "confirmed by the Senate"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:supreme_court_appointments"
     },
     {
-      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "action_summary": "Department of Defense institutional review lane",
+      "authority_titles": [],
+      "court_refs": [],
+      "institution_refs": [
+        "institution:united_states_department_of_defense"
+      ],
+      "lane_tags": [
+        "institutional_anchor",
+        "defense"
+      ],
+      "linkage_kind": "institutional_anchor",
+      "provenance_cues": [
+        "Department of Defense",
+        "Defense Department",
+        "DoD",
+        "Texas Air National Guard"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:defense_executive_operations"
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "authority_titles": [
+        "Stem Cell Research Enhancement Act"
+      ],
+      "court_refs": [],
+      "institution_refs": [],
+      "lane_tags": [
+        "domestic_statute",
+        "health_policy",
+        "veto"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "Stem Cell Research Enhancement Act",
+        "veto"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act"
+    },
+    {
       "action_summary": "NSA surveillance and review/litigation lane",
       "authority_titles": [
         "Foreign Intelligence Surveillance Act"
       ],
-      "institution_refs": [],
       "court_refs": [
         "court:united_states_district_court",
         "court:united_states_court_of_appeals_for_the_sixth_circuit"
       ],
+      "institution_refs": [],
+      "lane_tags": [
+        "surveillance",
+        "litigation",
+        "national_security"
+      ],
+      "linkage_kind": "statute_and_litigation",
       "provenance_cues": [
         "surveillance",
         "NSA",
         "district court",
-        "Sixth Circuit"
+        "Sixth Circuit",
+        "electronic surveillance program"
       ],
-      "linkage_kind": "statute_and_litigation"
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:nsa_surveillance_review"
     },
     {
-      "seed_id": "gwb_us_law:defense_executive_operations",
-      "action_summary": "Executive defense/operations lane touching the Department of Defense",
-      "authority_titles": [],
-      "institution_refs": [
-        "institution:united_states_department_of_defense"
+      "action_summary": "Military commissions and detainee-review lane",
+      "authority_titles": [
+        "Military Commissions Act of 2006",
+        "Military Commissions Act"
+      ],
+      "court_refs": [
+        "court:u_s_supreme_court"
+      ],
+      "institution_refs": [],
+      "lane_tags": [
+        "national_security",
+        "detainee",
+        "litigation"
+      ],
+      "linkage_kind": "statute_and_litigation",
+      "provenance_cues": [
+        "Military Commissions Act of 2006",
+        "Military Commissions Act",
+        "detainee",
+        "Supreme Court"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:military_commissions_2006"
+    },
+    {
+      "action_summary": "SCHIP veto and congressional funding lane",
+      "authority_titles": [
+        "State Children's Health Insurance Program",
+        "SCHIP"
       ],
       "court_refs": [],
-      "provenance_cues": [
-        "Department of Defense",
-        "Defense Department",
-        "DoD"
+      "institution_refs": [
+        "institution:u_s_house_of_representatives",
+        "institution:u_s_senate"
       ],
-      "linkage_kind": "institutional_anchor"
+      "lane_tags": [
+        "domestic_statute",
+        "health_policy",
+        "veto"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "SCHIP",
+        "State Children's Health Insurance Program",
+        "war funding bill",
+        "Congress"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:schip_veto"
+    },
+    {
+      "action_summary": "Genetic discrimination legislation lane",
+      "authority_titles": [
+        "Genetic Information Nondiscrimination Act"
+      ],
+      "court_refs": [],
+      "institution_refs": [],
+      "lane_tags": [
+        "domestic_statute",
+        "health_policy"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "Genetic Information Nondiscrimination Act",
+        "employment discrimination",
+        "health insurance"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act"
+    },
+    {
+      "action_summary": "Congressional subpoena and immunity litigation lane",
+      "authority_titles": [],
+      "court_refs": [
+        "court:united_states_district_court"
+      ],
+      "institution_refs": [
+        "institution:u_s_house_of_representatives",
+        "institution:u_s_senate"
+      ],
+      "lane_tags": [
+        "litigation",
+        "congressional_process"
+      ],
+      "linkage_kind": "litigation_and_subpoena",
+      "provenance_cues": [
+        "congressional subpoenas",
+        "Congress filed a federal lawsuit",
+        "United States district court"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation"
     }
   ]
 }

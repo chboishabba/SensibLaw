@@ -91,6 +91,7 @@ See:
 - `docs/tokenizer_contract.md`
 - `docs/lexeme_layer.md`
 - `docs/extractor_ontology_mapping_contract_20260213.md`
+- `docs/planning/extraction_enrichment_boundary_20260307.md`
 
 ### 2.5 spaCy / Parser Boundary For Relation Inference
 
@@ -117,6 +118,14 @@ This creates a strict split:
 External ontologies may help *flesh out* or *check* candidate relations and
 entity links, but they do so only after local deterministic extraction has
 produced the candidate structure.
+
+For corpus reporting, this means a valid deterministic workflow is:
+- local parser (`spaCy`) derives top recurring actors/topics plus dependency or
+  sentence-neighborhood evidence for them
+- the reviewed bridge/Wikidata slice checks whether any of those recurring
+  terms already map to pinned external identities
+- the report surfaces both layers side by side instead of collapsing them into
+  one "truth" output
 
 ---
 

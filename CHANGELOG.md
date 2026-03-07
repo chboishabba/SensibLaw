@@ -1,6 +1,88 @@
 # Changelog
 
 ## Unreleased
+- Wikidata bridge seeding: make seeded-slice initialization payload-aware so
+  alias updates refresh deterministically (`source_sha256` mismatch triggers
+  in-place seeded slice replacement), preventing stale local DB slices from
+  hiding newly reviewed aliases.
+- Wikidata bridge/GWB/AU semantic follow-through: add reviewed district-court
+  alias variants to the pinned bridge slice, extend GWB deterministic promoted
+  relation coverage into review/litigation predicates
+  (`ruled_by`, `challenged_in`, `subject_of_review_by`), and tighten AU
+  legal-representative extraction with expanded role surfaces plus dotted
+  suffix handling for `S.C./K.C./Q.C.` style mentions.
+- Docs/TODO/status alignment: add bounded extraction-vs-enrichment, mereology,
+  and property/constraint pressure-test notes; link them from the working-group
+  status and core boundary docs; and update TODO checkpoints to reflect the
+  completed bridge/semantic/doc milestones.
+- StatiBaker boundary tests: add the three small deterministic SL -> SB
+  invariant checks at the actual overlay-ingest boundary: segmentation
+  preservation, canonical ID preservation, and no summary injection. Summary/
+  synthetic segment fields are now explicitly forbidden by the current ingest
+  contract.
+- Clarify the SB boundary explicitly: SB only consumes or extends SL-owned
+  lexer/compression outputs for shell/message/transcript-style workflows. The
+  current legal-labelled SB fixtures are opaque SL-origin canonical payloads
+  used for preservation tests only, not evidence of legal semantics moving
+  into SB.
+- Docs/boundaries: align the main SB and SL docs on the same statement that SB
+  is a personal state compiler feeding TiRC/ITIR, and that shared
+  lexer/compression reuse from SL does not transfer semantic or legal
+  authority into SB/TiRC.
+- Semantic cross-testing: add an Australian legal cross-test proving the
+  frozen v1.1 `entity -> mention_resolution -> event_role -> relation_candidate
+  -> semantic_relation` shape can express court/forum/authority/review
+  patterns without schema changes.
+- Australian semantic lane: extend the first proving pass with deterministic
+  legal-representative surfaces, explicit office surfaces
+  (`Attorney-General`, `Registrar`), broader doctrinal/review candidate
+  coverage, and `scripts/au_semantic.py import-seed` so the lane can be run
+  against live `itir.sqlite` data without ad hoc imports.
+- Docs/planning: make the Australian corpora the explicit cross-test source for
+  the frozen semantic v1.1 phase and keep the bounded Wikidata
+  mereology/property-pressure lane supportive of that pressure-testing rather
+  than a reason to widen canonical schema early.
+- Docs/planning: sync two freshly archived design threads into the current
+  semantic and reducer-boundary plans. The GWB semantic note now freezes the
+  v1.1 invariants more explicitly (unified entity spine, first-class mention
+  resolution, three-step relation promotion, courts as classified
+  institutions, discourse labels like `Bush administration` non-canonical by
+  default), and the SL -> SB reducer contract now names the three small
+  fixture-driven integration tests that should close most remaining boundary
+  risk: segmentation preservation, canonical ID preservation, and no summary
+  injection.
+- GWB semantic layer v1.1: tighten the proving lane around the frozen unified
+  entity spine. `the President` and `the court` now abstain by default instead
+  of resolving too early, low-support edges remain visible as
+  `relation_candidate` rows with `promotion_status='candidate'`, and the
+  report now splits promoted, candidate-only, and abstained relation outputs
+  explicitly.
+- GWB semantic layer: add a first DB-backed semantic spine on top of the
+  reviewed Bush U.S.-law linkage lane. New storage now includes a unified
+  entity spine, office-holding rows, mention-resolution artifacts, event-role
+  rows, predicate vocabulary, relation candidates, and promoted semantic
+  relations. Current v1 promotes conservative `nominated`, `confirmed_by`,
+  `signed`, and `vetoed` edges while keeping broader political/discourse labels
+  like `Bush administration` non-canonical by default.
+- Wikidata docs/planning: sync the archived "Wikidata Ontology Issues" thread
+  into the current working-group plan by adding a bounded next-step direction
+  for mereology/parthood typing and explicit TODOs around a DASHI-compatible
+  formalism for typed/disambiguated parthood diagnostics. No code changes in
+  this pass.
+- Wikidata docs/planning: fold additional Telegram/working-group points into
+  the bounded ontology lane: property definitions/constraints are in scope when
+  they interact with classes, financial-flow/timeseries modeling is a valid
+  pressure-test surface, label harmonization is a diagnostic clue rather than
+  ontology truth, and the mereology lane should anchor on the actual parthood
+  property family (`P527`, `P361`, etc.).
+- GWB U.S.-law linkage: expand the reviewed Bush U.S.-law seed from the
+  original starter pack into an 11-lane checked-in corpus sweep, add shared-DB
+  seed/import/match/receipt tables plus `scripts/gwb_us_law_linkage.py`, and
+  run the deterministic matcher/reporter against the live GWB timeline in
+  `itir.sqlite`. Current live result: `142` events, `15` promoted matches, `8`
+  ambiguous events, and all `11` reviewed seeds surfaced in the report. Broad
+  cue-only lanes (`Congress`, `Iraq`, `veto`, `Supreme Court`) remain the next
+  tightening target.
 - Docs/privacy: make the local-only policy explicit for personal
   archive-derived test DBs. Isolated chat/Messenger experiment stores under
   `.cache_local/` are not canonical/shared artifacts and must never be
@@ -12,6 +94,27 @@
 - Reporting/ops lane: reduce slash-heavy prose false positives in
   `path_ref` detection and add a compact side-by-side comparison summary for
   `report_structure_corpora.py --by-source`.
+- Reporting/ops lane: add Messenger test DB support to the shared
+  `report_structure_corpora.py` input surface, tighten Messenger URL/rate
+  shorthand false positives further, and start the deterministic
+  speaker-inference implementation with explicit receipts plus abstention on
+  timing-only subtitle ranges.
+- Reporting/ops lane: strip URL schemes before `path_ref` slugging so
+  canonical path atoms stay in host/path form (`path:chatgpt_com_share_...`)
+  and add `scripts/report_speaker_inference_corpora.py` for deterministic
+  speaker-inference reporting across Messenger/chat/context/transcript corpora.
+- Speaker inference: implement the first conservative carry-over rule
+  (`neighbor_consensus`) for single-gap `insufficient_evidence` units bracketed
+  by the same explicit speaker, while leaving broader multi-turn coalescence
+  and disagreement/entropy heuristics as follow-up work.
+- Reporting/relations: add `scripts/report_relation_neighborhoods.py` plus
+  `src/reporting/relation_neighborhood_report.py` so corpus reports can rank
+  top recurring terms and surface parser-local dependency/co-occurrence
+  neighborhoods alongside reviewed bridge/Wikidata matches, without changing
+  canonical lexeme identity.
+- Docs: clarify that speaker inference is staged: current receipts-first v1 is
+  implemented, conservative multi-turn coalescence is next, and
+  disagreement/entropy heuristics remain a later reviewed layer.
 - Docs: add `docs/planning/speaker_inference_v1_20260307.md` to define the
   deterministic speaker-inference boundary. Sentiment may act only as a weak
   secondary tie-breaker, never as a primary speaker assignment signal.
@@ -665,3 +768,15 @@
 - Isolated chat sample ingest now persists operational/discourse `_ref` occurrences alongside legal refs via the existing atom tables.
 - Tightened the operational/discourse lane to avoid date-like and all-caps slash false positives, and added WhatsApp-style transcript turn detection for speaker/timestamp lines.
 - Collapsed duplicate WhatsApp-style transcript timestamps to a single canonical timestamp atom per line and added side-by-side per-source corpus comparison reporting.
+## 2026-03-07
+
+- added `au_semantic` reviewed seed import/report lane mirroring the current
+  GWB linkage pattern for the Australian proving corpus
+- added `au_semantic` deterministic semantic pipeline on the frozen v1.1 shape:
+  document-local non-famous participants, abstention on weak forum labels, and
+  edge-first relation candidates/promotions
+- added focused Australian tests covering:
+  - reviewed seed import + matching
+  - document-local actor creation
+  - abstention on `the Court`
+  - promoted appeal/review relations without schema changes

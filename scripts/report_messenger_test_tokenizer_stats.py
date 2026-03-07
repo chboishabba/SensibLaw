@@ -13,7 +13,7 @@ def _load_messenger_units(db_path: Path, run_id: str | None) -> tuple[str | None
     sensiblaw_root = repo_root / "SensibLaw"
     if str(sensiblaw_root) not in sys.path:
         sys.path.insert(0, str(sensiblaw_root))
-    from src.reporting.structure_report import TextUnit  # noqa: PLC0415
+    from src.reporting.structure_report import load_messenger_units  # noqa: PLC0415
 
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -24,25 +24,7 @@ def _load_messenger_units(db_path: Path, run_id: str | None) -> tuple[str | None
             if row is None:
                 return None, []
             run_id = str(row["run_id"])
-        rows = conn.execute(
-            """
-            SELECT row_order, ts, sender, text
-            FROM messenger_test_messages
-            WHERE run_id = ?
-            ORDER BY row_order
-            """,
-            (run_id,),
-        ).fetchall()
-        return run_id, [
-            TextUnit(
-                unit_id=f"{run_id}:{int(row['row_order'])}",
-                source_id=run_id,
-                source_type="messenger_test_db",
-                text=f"[{row['ts']}] {row['sender']}: {row['text']}",
-            )
-            for row in rows
-            if str(row["text"]).strip()
-        ]
+        return run_id, load_messenger_units(db_path, run_id)
 
 
 def main() -> None:

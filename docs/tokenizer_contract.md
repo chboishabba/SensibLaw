@@ -25,6 +25,12 @@ Tokenizers
 - Legacy regex tokenization remains available for explicit parity and rollback
   runs via `ITIR_LEXEME_TOKENIZER_MODE=legacy_regex`.
 - spaCy is used for semantic extraction, not canonical token streams.
+- SB/TiRC may consume or extend these canonical lexer/compression outputs for
+  message/shell/transcript-style normalization, but they do not become
+  semantic or legal authority surfaces by doing so.
+- For the explicit extraction/enrichment split used by Wikidata integration and
+  deterministic parser evidence, see
+  `docs/planning/extraction_enrichment_boundary_20260307.md`.
 
 ## Transition Goal (Regex → Deterministic Multilingual Tokenizer)
 Current lexeme occurrences are derived from the deterministic canonical stream.

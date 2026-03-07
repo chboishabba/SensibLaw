@@ -19,34 +19,105 @@
   external-ref/entity substrate so seeded refs (`UN`, `UNSC`, `ICC`, `ICJ`)
   are persisted as linked entities without polluting canonical lexeme identity.
   Curated batch emission plus CLI upsert roundtrip coverage now exist.
-- [ ] Expand the DB-backed deterministic bridge substrate only where corpus
+- [x] Expand the DB-backed deterministic bridge substrate only where corpus
   yield justifies it, keeping open-world Wikidata ambiguity resolution outside
   the lexer. Current v1 slice covers seeded global bodies plus the first
   GWB-oriented U.S. court/body set (`U.S. Supreme Court`, `U.S. Senate`,
-  `House of Representatives`, `CIA`, `FBI`).
-- [ ] Consolidate the docs around the extraction/enrichment boundary so the
+  `House of Representatives`, `CIA`, `FBI`) and now includes reviewed
+  district-court alias variants (`U.S. district courts`, `US district courts`,
+  `United States district courts`, `federal district courts`,
+  `federal trial court`).
+- [x] Consolidate the docs around the extraction/enrichment boundary so the
   contract is explicit everywhere: local tokenizer/parser (`spaCy` dependency
   harvesting included) may provide deterministic structural evidence for
   relation inference, while Wikidata remains downstream enrichment/checking and
-  never canonical token identity.
+  never canonical token identity. See
+  `docs/planning/extraction_enrichment_boundary_20260307.md`.
+- [x] Add a bounded Wikidata mereology/parthood design note for the current
+  Niklas / Ege / Peter lane, focused on typed/disambiguated parthood
+  (`class-class`, `instance-instance`, `instance-class`, inverse validity vs
+  redundancy) rather than generic ontology repair. See
+  `docs/planning/wikidata_mereology_parthood_note_20260307.md`.
+- [x] Decide which parts of the existing DASHI-style epistemic/projection
+  formalism are safe to reuse for Wikidata mereology diagnostics without
+  collapsing the bounded control-plane work into an ontology-fix proposal.
+  Decision captured in
+  `docs/planning/wikidata_mereology_parthood_note_20260307.md`.
+- [x] Add a bounded Wikidata property/constraint pressure-test note covering:
+  financial-flow/timeseries modeling, subset-vs-total quantity representation,
+  graph/report surfaces, and practical loaded-property questions (`supports`
+  vs `P366`) as deterministic ontology diagnostics rather than ad hoc side
+  discussions. See
+  `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`.
+- [x] Add a light diagnostic note on label harmonization signals (`type of XXX`
+  vs `XXX subclass` and related variants) so user-facing naming inconsistency
+  can be reported without treating labels as ontology truth. Captured in
+  `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`.
 - [x] Expand the reviewed bridge slice with the next high-yield GWB U.S.
   additions: `Department of Defense` and the `United States Court of Appeals
   for the Sixth Circuit` are now pinned and imported into the shared bridge DB.
-- [ ] Keep the reviewed bridge slice growing only through pinned, auditable
-  entries. Immediate next reviewed additions are `United States Department of
-  Defense` and `United States Court of Appeals for the Sixth Circuit`, plus any
-  district-court alias variants that remain low-ambiguity after review.
-- [ ] Import a reviewed deterministic bridge slice for the remaining GWB U.S.
+- [x] Keep the reviewed bridge slice growing only through pinned, auditable
+  entries. The previously queued additions (`United States Department of
+  Defense`, `United States Court of Appeals for the Sixth Circuit`, and the
+  low-ambiguity district-court alias variants) are now imported.
+- [x] Import a reviewed deterministic bridge slice for the remaining GWB U.S.
   bodies/courts not yet present in the live bridge slice after the current sync
-  (district-court lane variants and any additional reviewed executive/judicial
-  bodies).
+  (district-court lane variants now imported; additional executive/judicial
+  additions remain review-gated).
 
 ## Medium-Term Targets
 - [ ] Add jurisdiction-aware GWB action review as a test target: be able to assess George W. Bush timeline actions under pinned U.S. law and Australian law, with U.S. law first.
-- [ ] Build a U.S.-law seed set for GWB covering relevant actions, proceedings, and court/hearing material so specific events can be pinned to authoritative legal sources before broader cross-jurisdiction comparison.
-- [ ] Move the initial GWB U.S.-law linkage seed from checked-in JSON into a
-  shared import/query path once the reviewed scope is stable. Current plan is
-  documented in `docs/planning/gwb_us_law_linkage_seed_20260307.md`.
+- [x] Build a reviewed U.S.-law seed set for GWB covering relevant actions,
+  proceedings, and court/hearing material so specific events can be pinned to
+  authoritative legal sources before broader cross-jurisdiction comparison.
+  Current seed is expanded beyond the original starter pack and checked in at
+  `SensibLaw/data/ontology/gwb_us_law_linkage_seed_v1.json`.
+- [x] Move the reviewed GWB U.S.-law linkage seed into a shared import/query
+  path. Shared DB tables, deterministic import/run/report tooling, and receipt
+  storage now exist; current plan/status is documented in
+  `docs/planning/gwb_us_law_linkage_seed_20260307.md`.
+- [ ] Tighten the GWB U.S.-law linkage matcher so broad cues like `Congress`,
+  `Iraq`, `veto`, and `Supreme Court` need stronger co-signals before low-score
+  matches are promoted, while keeping ambiguous candidates visible in receipts.
+- [x] Add a first deterministic GWB semantic layer on top of the reviewed
+  U.S.-law linkage lane: unified entity spine, office-holding rows,
+  mention-resolution artifacts, event roles, relation candidates, and promoted
+  edge-first semantic relations. Current status is documented in
+  `docs/planning/gwb_semantic_phase_v1_20260307.md`.
+- [x] Freeze the GWB semantic storage shape around the unified entity spine,
+  actor/office split, mention-resolution artifacts, and edge-first
+  `relation_candidate` -> `semantic_relation` progression before widening the
+  predicate set further.
+- [x] Extend the GWB semantic layer beyond the initial promoted predicates
+  (`nominated`, `confirmed_by`, `signed`, `vetoed`) into stronger review and
+  litigation relation coverage without collapsing noisy cue-only events into
+  canonical relations. Current deterministic coverage now includes
+  `ruled_by`, `challenged_in`, and `subject_of_review_by`.
+- [ ] Keep the semantic v1.1 spine frozen while pressure-testing it against GWB:
+  unified `entity`, first-class `mention_resolution`, `event_role ->
+  relation_candidate -> semantic_relation`, and receipt-derived confidence
+  should be exercised before adding more special cases.
+- [ ] Keep `Bush administration` and similar discourse/political labels
+  non-canonical by default until a reviewed concept/administration entity layer
+  exists. Do not silently merge them into person or office actors.
+- [ ] Keep title-only ambiguous mentions such as `the President` and `the
+  court` abstained until office/forum context is strong enough to resolve them
+  deterministically.
+- [x] Add the three small deterministic SL -> SB boundary integration tests
+  that likely close most current reducer-boundary risk:
+  segmentation preservation, canonical ID preservation, and no summary
+  injection.
+- [ ] Keep SB/TiRC workflow wording explicit: SB only uses/extends SL-owned
+  lexer/compression outputs and must not drift into legal-semantic authority.
+  Legal-labelled fixtures at the SB boundary should be treated as opaque
+  SL-origin canonical payloads only.
+- [x] Align SB and SL docs on the same boundary statement: SB is a personal
+  state compiler feeding TiRC/ITIR and may use/extend SL-owned
+  lexer/compression outputs without acquiring semantic authority.
+- [ ] Use the Australian corpus fixtures (`Mabo`, `House v The King`,
+  `Plaintiff S157`, `Native Title (NSW) Act 1994`) as the required semantic
+  cross-test source for the frozen v1.1 entity/role/relation shape before
+  widening it.
 - [ ] Keep chat-derived corpora isolated from canonical `itir.sqlite` until an
   explicit retention/redaction policy exists for SB/ITIR/TIRC integration.
   Current bounded test path is `.cache_local/itir_chat_test.sqlite` with hashed
@@ -71,11 +142,24 @@
   only when there is reliable extra evidence (known participant set, coalesced
   disagreement structure, or reviewed entropy/disagreement heuristics). Do not
   infer speakers from subtitle-only timing ranges alone.
+- [x] Start the deterministic speaker-inference implementation with explicit
+  receipts/abstention behavior over current transcript/message units. Current
+  v1 supports explicit message headers, role prefixes, cautious `Q:/A:` mapping
+  when known participants are supplied, and explicit abstention on timing-only
+  subtitle ranges.
+- [ ] Extend speaker inference from per-unit receipts to conservative
+  multi-turn coalescence with explicit carry-over receipts and no silent
+  speaker invention across conflicting evidence. Current implementation only
+  covers single-gap `neighbor_consensus` carry-over when the same explicit
+  speaker brackets an `insufficient_evidence` unit.
 - [x] Write the deterministic speaker-inference v1 design note before
   implementation. See `docs/planning/speaker_inference_v1_20260307.md`.
 - [ ] Decide whether Messenger/Facebook archive ingestion should graduate from
   isolated test DBs into a stable connector; current bounded importer is test
   only and still needs stronger system-row filtering policy.
+- [ ] Tighten Messenger sender extraction so platform/system text cannot bleed
+  into inferred speaker labels such as `speaker:facebookwe_didn_t_remove_the_ad`
+  or similar contaminated forms in the speaker-inference report.
 - [x] Tighten bounded Messenger/Facebook importer filtering with deterministic
   keep/drop reason categories and per-run filter stats.
 - [x] Add a deterministic Messenger test DB report command instead of relying
@@ -92,6 +176,19 @@
   the raw JSON dump. Initial compact summary is now emitted by
   `report_structure_corpora.py`; next step is polishing it into a more stable
   review artifact.
+- [x] Add Messenger test DBs as first-class inputs to the shared structure
+  comparison/report path instead of keeping them on an isolated report script
+  only.
+- [ ] Add a compact speaker-inference summary surface alongside the structure
+  reports (assigned vs abstained, confidence tiers, dominant reason codes, top
+  inferred speakers) for transcript/chat/message corpora. Initial JSON report
+  now exists in `scripts/report_speaker_inference_corpora.py`; next step is a
+  tighter review-oriented summary artifact.
+- [x] Add a deterministic top-k relation-neighborhood report for
+  chat/context/transcript corpora that combines parser-local dependency /
+  co-occurrence evidence with reviewed bridge/Wikidata matches where a pinned
+  slice exists. Implemented in
+  `scripts/report_relation_neighborhoods.py`.
 - [x] Fix `scripts/migrate_wiki_timeline_to_itir_db.py` import-path/runtime
   assumptions so the eager rewrite/backfill command works directly against the
   shared root DB.
@@ -109,3 +206,19 @@
   `VersionedStore` dictionary tables and root wiki-timeline DB atom tables now
   persist the high-yield structural kinds; `article_ref` and `instrument_ref`
   are now included as well.
+- [x] Align main SB and SL docs so the lexer/compression boundary is explicit:
+  SB is a personal state compiler feeding TiRC/ITIR and may use/extend SL
+  lexer/compression outputs without inheriting semantic/legal authority.
+- [x] Add Australian semantic seed/report lane on the frozen semantic v1.1
+  spine using:
+  - Mabo [No 2]
+  - Plaintiff S157/2002 v Commonwealth
+  - House v The King
+  - Native Title (New South Wales) Act 1994
+- [x] Extend Australian semantic actor extraction beyond the first
+  document-local participant patterns into deterministic legal-representative
+  and office lanes.
+- [x] Broaden Australian relation candidate coverage for review/litigation and
+  doctrinal reasoning while keeping promotion conservative.
+- [x] Tighten Australian legal-representative extraction beyond the first
+  `SC/KC/QC` and `counsel for ...` deterministic surfaces.
