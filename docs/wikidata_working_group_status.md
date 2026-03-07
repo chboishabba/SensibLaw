@@ -106,14 +106,18 @@ entry point for Niklas, Ege, Peter, and related reviewers.
         unchanged (`P585` only)
       - now promoted into repo fixtures under
         `tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/`
-    - currently reported confirmed cases in
-      `/tmp/wikidata_qualifier_scan/scan_report.json`:
+    - repo-pinned confirmed review cases:
       - `Q100104196|P166` revisions `2277985537 -> 2277985693` (`medium`)
       - `Q100152461|P54` revisions `2456615151 -> 2456615274` (`medium`)
     - earlier broad run also surfaced:
       - `Q100243106|P54` revisions `2462692998 -> 2462767606` (`medium`)
       - useful as a secondary observed live case, but not the current primary
         materialized example
+    - latest successful fresh live validation run (2026-03-08, outside sandbox)
+      surfaced:
+      - `Q1000498|P166` revisions `2457306419 -> 2457306429` (`medium`)
+      - treated as a fresh confirmed live candidate, not yet part of the pinned
+        review pack
 
 ## Confirmed current examples
 ### Mixed-order live case

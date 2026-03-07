@@ -33,6 +33,10 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   baseline for routine diagnostics; explicit historical rewind checks are now
   tracked as a separate review-triggered process because they are useful but add
   non-trivial context overhead.
+- The pinned qualifier-drift review pack remains `Q100104196|P166` plus
+  `Q100152461|P54` for reproducibility; a fresh 2026-03-08 live rerun also
+  confirmed `Q1000498|P166` as a new medium candidate, but that case is not yet
+  promoted into the pinned review pack.
 - Broad GWB surfaces such as `Congress`, `Iraq`, `veto`, and `Supreme Court`
   remain acceptable extraction targets; the tightening task is specifically
   about promotion into reviewed U.S.-law linkage lanes, which should require

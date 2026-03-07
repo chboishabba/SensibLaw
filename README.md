@@ -153,6 +153,26 @@ a structured, linked, machine-readable backbone.
 | [Todo](todo.md) | [streamline - data visualisation](docs/roadmaps/TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
 | [ITIR Integration Roadmap](docs/ITIR.md) |    | [External Ontologies](docs/external_ontologies.md) | [Wikidata Queries](docs/wikidata_queries.md) |
 
+## Current Wikidata workflow
+
+For the current bounded Wikidata ontology work, start with:
+
+- [Wikidata Working Group Status](docs/wikidata_working_group_status.md)
+- [Wikidata Report Contract](docs/wikidata_report_contract_v0_1.md)
+- [Wikidata Working Group Review Pass](docs/planning/wikidata_working_group_review_pass_20260307.md)
+
+Current operational CLI/script surfaces:
+
+- `python -m cli.__main__ wikidata build-slice`
+- `python -m cli.__main__ wikidata project`
+- `python -m cli.__main__ wikidata find-qualifier-drift`
+- `python scripts/run_wikidata_qualifier_drift_scan.py`
+
+The current repo-pinned live qualifier-drift review pack includes:
+
+- `Q100104196|P166` (`2277985537 -> 2277985693`)
+- `Q100152461|P54` (`2456615151 -> 2456615274`)
+
 
 
 

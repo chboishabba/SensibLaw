@@ -71,6 +71,10 @@
   validating `medium` signature-only severity on the two pinned confirmed cases
   (`Q100104196|P166`, `Q100152461|P54`), and classifying `Q100243106|P54` as
   a historical watch candidate instead of a pinned case until revalidated.
+- Wikidata docs/status sync: separate the repo-pinned qualifier review pack
+  from fresh live rerun output, keeping `Q1000498|P166` as a newly confirmed
+  live candidate while the pinned review pack remains on
+  `Q100104196|P166` and `Q100152461|P54`.
 - Docs/TODO/status alignment: add bounded extraction-vs-enrichment, mereology,
   and property/constraint pressure-test notes; link them from the working-group
   status and core boundary docs; and update TODO checkpoints to reflect the

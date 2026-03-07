@@ -62,11 +62,12 @@ Current goals:
 ## Open questions
 - Slice gaps:
 - Threshold questions (`e0`, SCC priority, report ranking):
-- Deferred qualifier-drift follow-up:
+- Qualifier-drift follow-up:
 
 ## Next review actions
 - confirm next bounded slice or keep `P31` / `P279`
 - nominate top neighborhoods for deeper review
-- decide whether qualifier entropy is ready for phase 2
+- review the pinned live qualifier-drift cases and confirm whether
+  signature-only drift should remain `medium`
 - record whether each example is `currently live`, `historical thread example`,
   or `dump-reconfirmed`
