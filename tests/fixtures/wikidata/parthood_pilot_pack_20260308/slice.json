@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "captured_at": "2026-03-08",
+    "purpose": "Bounded mereology pilot pack for P361/P527 inverse-validity and redundancy review."
+  },
+  "windows": [
+    {
+      "id": "pilot-2026-03-08",
+      "statement_bundles": [
+        {
+          "subject": "Qdummy",
+          "property": "P31",
+          "value": "QTop",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_top"
+            }
+          ]
+        },
+        {
+          "subject": "Qcity_a",
+          "property": "P31",
+          "value": "Qclass_city",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_city_a"
+            }
+          ]
+        },
+        {
+          "subject": "Qcity_b",
+          "property": "P31",
+          "value": "Qclass_city",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_city_b"
+            }
+          ]
+        },
+        {
+          "subject": "Qdistrict_total",
+          "property": "P31",
+          "value": "Qclass_city",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_district_total"
+            }
+          ]
+        },
+        {
+          "subject": "Qdistrict_subset",
+          "property": "P31",
+          "value": "Qclass_city",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_district_subset"
+            }
+          ]
+        },
+        {
+          "subject": "Qcity_a",
+          "property": "P361",
+          "value": "Qclass_city",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_part_of_city_a"
+            }
+          ]
+        },
+        {
+          "subject": "Qclass_city",
+          "property": "P361",
+          "value": "QTop",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_part_of_city_class"
+            }
+          ]
+        },
+        {
+          "subject": "Qcity_a",
+          "property": "P527",
+          "value": "Qcity_b",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_has_part_city_a"
+            }
+          ]
+        },
+        {
+          "subject": "Qcity_b",
+          "property": "P527",
+          "value": "Qcity_a",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_has_part_city_b"
+            }
+          ]
+        },
+        {
+          "subject": "Qdistrict_total",
+          "property": "P527",
+          "value": "Qdistrict_subset",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_total_subset"
+            }
+          ]
+        },
+        {
+          "subject": "Qdistrict_subset",
+          "property": "P361",
+          "value": "Qdistrict_total",
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": "Qpilot_src_subset_of_total"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

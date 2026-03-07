@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "Qalpha_instance": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qclass_type"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_seed_alpha"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qclass_root"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_seed_alpha_root"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

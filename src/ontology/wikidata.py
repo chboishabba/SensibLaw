@@ -13,6 +13,11 @@ FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
 TEMPORAL_QUALIFIER_PROPERTIES = frozenset({"P580", "P582", "P585"})
 REVIEW_QUALIFIER_PROPERTIES = frozenset({"P7452"})
+PARTHOOD_PROPERTIES = frozenset({"P361", "P527"})
+PARTHOOD_INVERSE_RELATIONS = {
+    "P361": frozenset({"P361", "P527"}),
+    "P527": frozenset({"P527", "P361"}),
+}
 PROPERTY_PRIORITY = {
     "P166": 40,
     "P39": 35,
@@ -966,6 +971,121 @@ def _find_metaclass_candidates(window: WindowSlice) -> list[dict[str, Any]]:
     return findings
 
 
+def _infer_node_type(
+    node: str, instances: set[str], classes: set[str]
+) -> str:
+    if node in instances and node in classes:
+        return "ambiguous"
+    if node in instances:
+        return "instance"
+    if node in classes:
+        return "class"
+    return "unknown"
+
+
+def _build_parthood_typing(window: WindowSlice) -> dict[str, Any]:
+    instances: set[str] = set()
+    classes: set[str] = set()
+    for bundle in window.bundles:
+        if bundle.property != "P31":
+            continue
+        instances.add(bundle.subject)
+        classes.add(_stringify(bundle.value))
+
+    parthood_edges: set[tuple[str, str, str]] = set()
+    for bundle in window.bundles:
+        if bundle.property not in PARTHOOD_PROPERTIES:
+            continue
+        subject = bundle.subject
+        value = _stringify(bundle.value)
+        parthood_edges.add((bundle.property, subject, value))
+
+    typing_rows: list[dict[str, Any]] = []
+    redundant_pairs: set[tuple[str, str, str]] = set()
+    counts: dict[str, int] = {
+        "class->class": 0,
+        "instance->class": 0,
+        "instance->instance": 0,
+        "ambiguous": 0,
+        "abstained": 0,
+        "mixed_redundant": 0,
+        "cross_property_inverse": 0,
+    }
+    for property_pid, subject, value in sorted(parthood_edges):
+        subject_type = _infer_node_type(subject, instances, classes)
+        value_type = _infer_node_type(value, instances, classes)
+        bucket = "abstained"
+        confidence = "abstain"
+        reasons: list[str] = []
+        inverse_properties: list[str] = []
+        for inverse_property in sorted(PARTHOOD_INVERSE_RELATIONS.get(property_pid, frozenset())):
+            if (inverse_property, value, subject) in parthood_edges:
+                inverse_properties.append(inverse_property)
+        inverse_present = bool(inverse_properties)
+        inverse_relation = (
+            "same_property_redundant" if property_pid in inverse_properties else "cross_property_expected" if inverse_present else "none"
+        )
+
+        if subject_type == "class" and value_type == "class":
+            bucket = "class->class"
+        elif subject_type == "instance" and value_type == "class":
+            bucket = "instance->class"
+        elif subject_type == "instance" and value_type == "instance":
+            bucket = "instance->instance"
+        elif subject_type == "ambiguous" or value_type == "ambiguous":
+            bucket = "ambiguous"
+            reasons.append("ambiguous_node_type")
+        elif subject_type == "unknown" or value_type == "unknown":
+            bucket = "abstained"
+            reasons.append("insufficient_classification_evidence")
+        else:
+            bucket = "mixed"
+            reasons.append("mixed_type_profile")
+
+        if bucket in {"class->class", "instance->class", "instance->instance"}:
+            confidence = "certain"
+            counts[bucket] += 1
+        elif bucket == "ambiguous":
+            counts["ambiguous"] += 1
+        else:
+            counts["abstained"] += 1
+
+        if inverse_relation == "cross_property_expected":
+            counts["cross_property_inverse"] += 1
+
+        if inverse_relation == "same_property_redundant" and bucket in {"class->class", "instance->instance"}:
+            pair_key = (property_pid, *sorted((subject, value)))
+            if pair_key not in redundant_pairs:
+                counts["mixed_redundant"] += 1
+                redundant_pairs.add(pair_key)
+
+        typing_rows.append(
+            {
+                "slot_id": f"{subject}|{property_pid}|{value}",
+                "subject_qid": subject,
+                "value_qid": value,
+                "property_pid": property_pid,
+                "bucket": bucket,
+                "subject_type": subject_type,
+                "value_type": value_type,
+                "classification": confidence,
+                "inverse_properties": inverse_properties,
+                "inverse_relation": inverse_relation,
+                "reasons": sorted(set(reasons)),
+                "inverse_present": inverse_present,
+                "mixed_redundancy_flag": inverse_relation == "same_property_redundant" and bucket == "instance->instance",
+            }
+        )
+
+    return {
+        "classifications": sorted(
+            typing_rows,
+            key=lambda item: (item["property_pid"], item["subject_qid"], item["value_qid"]),
+        ),
+        "counts": counts,
+    }
+
+
 def _build_qualifier_drift(
     slot_reports: Mapping[str, Mapping[str, Mapping[str, Any]]],
     windows: Sequence[WindowSlice],
@@ -1017,6 +1137,7 @@ def project_wikidata_payload(
                     ],
                     "mixed_order_nodes": mixed_order_nodes,
                     "metaclass_candidates": metaclass_candidates,
+                    "parthood_typing": _build_parthood_typing(window),
                 },
             }
         )
@@ -1081,6 +1202,7 @@ def project_wikidata_payload(
             "mixed_order_nodes",
             "p279_sccs",
             "metaclass_candidates",
+            "parthood_typing",
         ],
         "qualifier_drift_counts": qualifier_severity_counts,
         "top_qualifier_drift_slot_ids": [item["slot_id"] for item in qualifier_drift[:5]],

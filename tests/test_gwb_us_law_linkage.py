@@ -42,6 +42,18 @@ def test_gwb_us_law_seed_import_and_matching(tmp_path: Path) -> None:
                 "section": "Surveillance",
                 "text": "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing in the NSA electronic surveillance program case."
             },
+            {
+                "event_id": "ev4",
+                "anchor": {"year": 2003, "text": "2003"},
+                "section": "Foreign policy",
+                "text": "Bush discussed Iraq in a televised address."
+            },
+            {
+                "event_id": "ev5",
+                "anchor": {"year": 2007, "text": "2007"},
+                "section": "Domestic policy",
+                "text": "Bush threatened a veto if Congress did not change the bill."
+            },
         ],
     }
 
@@ -66,3 +78,12 @@ def test_gwb_us_law_seed_import_and_matching(tmp_path: Path) -> None:
     assert any(match["seed_id"] == "gwb_us_law:clear_skies_2003" and match["matched"] for match in per_event["ev1"]["matches"])
     assert any(match["seed_id"] == "gwb_us_law:stem_cell_research_enhancement_act" and match["matched"] for match in per_event["ev2"]["matches"])
     assert any(match["seed_id"] == "gwb_us_law:nsa_surveillance_review" for match in per_event["ev3"]["matches"])
+    assert any(
+        match["seed_id"] == "gwb_us_law:iraq_2002_authorization" and match["matched"] and match["confidence"] == "low"
+        for match in per_event["ev4"]["matches"]
+    )
+    assert any(row["event_id"] == "ev5" for row in report["ambiguous_events"])
+    assert any(
+        match["confidence"] == "low" and any(receipt["kind"] == "provenance_cue_broad" for receipt in match["receipts"])
+        for match in per_event["ev5"]["matches"]
+    )

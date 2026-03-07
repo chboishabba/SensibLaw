@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from functools import lru_cache
+import json
+from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from src.au_semantic.linkage import run_au_semantic_linkage
@@ -156,25 +159,44 @@ _OFFICE_SURFACES = {
     "Attorney-General": "office:attorney_general",
     "Registrar": "office:registrar",
 }
-_LEGAL_REP_ROLE_SURFACES = {
-    "counsel for the appellant": "Counsel for Appellant",
-    "counsel for the respondent": "Counsel for Respondent",
-    "counsel for the applicant": "Counsel for Applicant",
-    "counsel for the plaintiff": "Counsel for Plaintiff",
-    "counsel for the defendant": "Counsel for Defendant",
-    "senior counsel for the appellant": "Senior Counsel for Appellant",
-    "senior counsel for the respondent": "Senior Counsel for Respondent",
-    "senior counsel for the applicant": "Senior Counsel for Applicant",
-    "senior counsel for the plaintiff": "Senior Counsel for Plaintiff",
-    "senior counsel for the defendant": "Senior Counsel for Defendant",
-    "junior counsel for the appellant": "Junior Counsel for Appellant",
-    "junior counsel for the respondent": "Junior Counsel for Respondent",
-    "appeared for the appellant": "Counsel for Appellant",
-    "appeared for the respondent": "Counsel for Respondent",
-    "appeared for the applicant": "Counsel for Applicant",
-    "appeared for the plaintiff": "Counsel for Plaintiff",
-    "appeared for the defendant": "Counsel for Defendant",
-}
+_TITLE_TOKEN_NORMALIZED = tuple(prefix.strip().replace(".", "").casefold() for prefix in _TITLE_PREFIXES)
+_LEGAL_REP_SUFFIX_NORMALIZED = tuple(suffix.strip().replace(".", "").casefold() for suffix in _LEGAL_REP_SUFFIXES)
+_CLAUSE_BREAK_TOKENS = {"and", "but", "while"}
+
+
+def _au_legal_representation_catalog_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "semantic" / "au_legal_representation_cues_v1.json"
+
+
+@lru_cache(maxsize=1)
+def _load_au_legal_representation_cues() -> tuple[dict[str, str], ...]:
+    payload = json.loads(_au_legal_representation_catalog_path().read_text(encoding="utf-8"))
+    party_roles = payload.get("party_roles") if isinstance(payload.get("party_roles"), list) else []
+    cue_templates = payload.get("cue_templates") if isinstance(payload.get("cue_templates"), list) else []
+    expanded: list[dict[str, str]] = []
+    for role in party_roles:
+        if not isinstance(role, Mapping):
+            continue
+        role_key = str(role.get("key") or "").strip()
+        role_title = str(role.get("title") or "").strip()
+        if not role_key or not role_title:
+            continue
+        for cue in cue_templates:
+            if not isinstance(cue, Mapping):
+                continue
+            surface_template = str(cue.get("surface_template") or "").strip()
+            role_label_template = str(cue.get("role_label_template") or "").strip()
+            if not surface_template or not role_label_template:
+                continue
+            expanded.append(
+                {
+                    "surface": surface_template.format(party_role=role_key),
+                    "cue_template": surface_template,
+                    "party_role": role_key,
+                    "role_label": role_label_template.format(party_role_title=role_title),
+                }
+            )
+    return tuple(expanded)
 
 
 def _au_doc_actor_key(run_id: str, surface: str) -> str:
@@ -186,6 +208,92 @@ def _au_doc_actor_key(run_id: str, surface: str) -> str:
 def _is_legal_rep_suffix_surface(text: str) -> bool:
     compact = " ".join(str(text or "").replace(".", "").split())
     return any(compact.endswith(suffix.strip()) for suffix in _LEGAL_REP_SUFFIXES)
+
+
+def _normalized_surface_token(text: str) -> str:
+    return "".join(ch.casefold() for ch in str(text or "") if ch.isalnum())
+
+
+def _surface_tokens(text: str) -> list[dict[str, Any]]:
+    tokens: list[dict[str, Any]] = []
+    start: int | None = None
+    for index, ch in enumerate(text):
+        if ch.isspace():
+            if start is not None:
+                raw = text[start:index]
+                tokens.append({"raw": raw, "norm": _normalized_surface_token(raw), "start": start, "end": index})
+                start = None
+            continue
+        if start is None:
+            start = index
+    if start is not None:
+        raw = text[start:]
+        tokens.append({"raw": raw, "norm": _normalized_surface_token(raw), "start": start, "end": len(text)})
+    return [token for token in tokens if token["norm"]]
+
+
+def _join_token_surface(tokens: list[dict[str, Any]], start: int, end: int) -> str:
+    return " ".join(str(token["raw"]).strip(" ,;:()[]") for token in tokens[start:end]).strip()
+
+
+def _clause_ranges(tokens: list[dict[str, Any]]) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    start = 0
+    for index, token in enumerate(tokens):
+        raw = str(token["raw"])
+        split_here = token["norm"] in _CLAUSE_BREAK_TOKENS or any(mark in raw for mark in ";:.")
+        if not split_here:
+            continue
+        if start < index:
+            ranges.append((start, index))
+        start = index + 1
+    if start < len(tokens):
+        ranges.append((start, len(tokens)))
+    return ranges
+
+
+def _find_phrase_matches(tokens: list[dict[str, Any]], phrase: str) -> list[tuple[int, int]]:
+    phrase_parts = [_normalized_surface_token(part) for part in phrase.split() if _normalized_surface_token(part)]
+    if not phrase_parts or len(phrase_parts) > len(tokens):
+        return []
+    matches: list[tuple[int, int]] = []
+    for start in range(0, len(tokens) - len(phrase_parts) + 1):
+        if [tokens[start + offset]["norm"] for offset in range(len(phrase_parts))] == phrase_parts:
+            matches.append((start, start + len(phrase_parts)))
+    return matches
+
+
+def _is_title_token(token: str) -> bool:
+    return _normalized_surface_token(token) in _TITLE_TOKEN_NORMALIZED
+
+
+def _is_legal_rep_suffix_token(token: str) -> bool:
+    return _normalized_surface_token(token) in _LEGAL_REP_SUFFIX_NORMALIZED
+
+
+def _looks_like_named_token(token: str) -> bool:
+    for ch in str(token or "").lstrip("([{\"'"):
+        if ch.isalpha():
+            return ch.isupper()
+    return False
+
+
+def _insert_event_role_once(
+    conn,
+    *,
+    seen: set[tuple[str, str, int | None, int | None, str | None]],
+    run_id: str,
+    event_id: str,
+    role_kind: str,
+    entity_id: int | None = None,
+    cluster_id: int | None = None,
+    note: str | None = None,
+) -> None:
+    key = (event_id, role_kind, entity_id, cluster_id, note)
+    if key in seen:
+        return
+    seen.add(key)
+    _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id, cluster_id=cluster_id, note=note)
 
 
 def _ensure_au_predicates(conn) -> dict[str, int]:
@@ -247,6 +355,7 @@ def _ensure_doc_actor(
 def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Mapping[str, Any], entity_ids: dict[str, int]) -> dict[str, list[int]]:
     text = str(event.get("text") or "")
     found: dict[str, list[int]] = defaultdict(list)
+    role_insertions: set[tuple[str, str, int | None, int | None, str | None]] = set()
     for surface in _ABSTAINED_SURFACES:
         if _text_contains_phrase(text, surface):
             cluster_id, _ = _insert_cluster_and_resolution(
@@ -297,31 +406,15 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 receipts=[("office_surface", surface), ("canonical_key", office_key)],
             )
             found[office_key].append(cluster_id)
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="office_context", entity_id=office_id, note="au_office_surface_v1")
-    for surface, label in _LEGAL_REP_ROLE_SURFACES.items():
-        if _text_contains_phrase(text, surface):
-            entity_id = _ensure_doc_actor(
+            _insert_event_role_once(
                 conn,
-                run_id=run_id,
-                label=label,
-                source_rule="au_legal_representative_v1",
-                classification_tag="legal_representative",
-            )
-            cluster_id, _ = _insert_cluster_and_resolution(
-                conn,
+                seen=role_insertions,
                 run_id=run_id,
                 event_id=event_id,
-                mention_kind="actor",
-                canonical_key_hint=_au_doc_actor_key(run_id, label),
-                surface_text=surface,
-                source_rule="au_legal_representative_v1",
-                resolved_entity_id=entity_id,
-                resolution_status="resolved",
-                resolution_rule="document_local_legal_representative_v1",
-                receipts=[("representative_surface", surface), ("scope", "document_local_actor")],
+                role_kind="office_context",
+                entity_id=office_id,
+                note="au_office_surface_v1",
             )
-            found[_au_doc_actor_key(run_id, label)].append(cluster_id)
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="legal_representative", entity_id=entity_id, note="au_legal_representative_v1")
     text_lines = [part.strip(" .,;:()") for part in text.split()]
     for surface, role_kind in _ROLE_SURFACES.items():
         if _text_contains_phrase(text, f"the {surface}") or _text_contains_phrase(text, surface):
@@ -341,76 +434,129 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 receipts=[("role_pattern", surface), ("scope", "document_local_actor")],
             )
             found[f"doc_role:{surface}"].append(cluster_id)
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind=role_kind, entity_id=entity_id, note="au_case_role_v1")
-    for token_index in range(len(text_lines) - 1):
-        first = text_lines[token_index]
-        second = text_lines[token_index + 1]
-        candidate = f"{first} {second}".strip()
-        candidate_three = ""
-        if token_index + 2 < len(text_lines):
-            candidate_three = f"{first} {second} {text_lines[token_index + 2]}".strip()
-        if any(candidate.startswith(prefix) for prefix in _TITLE_PREFIXES):
-            entity_id = _ensure_doc_actor(conn, run_id=run_id, label=candidate, source_rule="au_titled_person_v1")
-            cluster_id, _ = _insert_cluster_and_resolution(
+            _insert_event_role_once(
                 conn,
+                seen=role_insertions,
                 run_id=run_id,
                 event_id=event_id,
-                mention_kind="actor",
-                canonical_key_hint=_au_doc_actor_key(run_id, candidate),
-                surface_text=candidate,
+                role_kind=role_kind,
+                entity_id=entity_id,
+                note="au_case_role_v1",
+            )
+    tokens = _surface_tokens(text)
+    representative_mentions: list[dict[str, Any]] = []
+    seen_representative_keys: set[tuple[str, int, int]] = set()
+
+    def register_representative(
+        *,
+        label: str,
+        start_index: int,
+        end_index: int,
+        source_rule: str,
+        resolution_rule: str,
+        receipts: list[tuple[str, str]],
+        classification_tag: str | None = None,
+        insert_role: bool = False,
+    ) -> dict[str, Any]:
+        canonical_key = _au_doc_actor_key(run_id, label)
+        entity_id = _ensure_doc_actor(
+            conn,
+            run_id=run_id,
+            label=label,
+            source_rule=source_rule,
+            classification_tag=classification_tag,
+        )
+        dedupe_key = (canonical_key, start_index, end_index)
+        if dedupe_key in seen_representative_keys:
+            return {
+                "entity_id": entity_id,
+                "canonical_key": canonical_key,
+                "label": label,
+                "start_index": start_index,
+                "end_index": end_index,
+            }
+        seen_representative_keys.add(dedupe_key)
+        cluster_id, _ = _insert_cluster_and_resolution(
+            conn,
+            run_id=run_id,
+            event_id=event_id,
+            mention_kind="actor",
+            canonical_key_hint=canonical_key,
+            surface_text=label,
+            source_rule=source_rule,
+            resolved_entity_id=entity_id,
+            resolution_status="resolved",
+            resolution_rule=resolution_rule,
+            receipts=receipts,
+        )
+        found[canonical_key].append(cluster_id)
+        if insert_role:
+            _insert_event_role_once(
+                conn,
+                seen=role_insertions,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="legal_representative",
+                entity_id=entity_id,
+                cluster_id=cluster_id,
+                note=source_rule,
+            )
+        mention = {
+            "entity_id": entity_id,
+            "canonical_key": canonical_key,
+            "label": label,
+            "cluster_id": cluster_id,
+            "start_index": start_index,
+            "end_index": end_index,
+        }
+        representative_mentions.append(mention)
+        return mention
+
+    for token_index in range(len(tokens) - 1):
+        first = str(tokens[token_index]["raw"]).strip(" ,;:()[]")
+        second = str(tokens[token_index + 1]["raw"]).strip(" ,;:()[]")
+        candidate = f"{first} {second}".strip()
+        candidate_three = ""
+        if token_index + 2 < len(tokens):
+            third = str(tokens[token_index + 2]["raw"]).strip(" ,;:()[]")
+            candidate_three = f"{first} {second} {third}".strip()
+        title_and_suffix = (
+            token_index + 2 < len(tokens)
+            and _is_title_token(first)
+            and _looks_like_named_token(second)
+            and _is_legal_rep_suffix_token(third)
+        )
+        if title_and_suffix:
+            register_representative(
+                label=candidate_three,
+                start_index=token_index,
+                end_index=token_index + 3,
+                source_rule="au_named_legal_representative_v1",
+                resolution_rule="document_local_named_legal_representative_v1",
+                receipts=[("title_suffix_pattern", candidate_three), ("scope", "document_local_actor")],
+                classification_tag="legal_representative",
+                insert_role=True,
+            )
+        elif _is_title_token(first) and _looks_like_named_token(second):
+            register_representative(
+                label=candidate,
+                start_index=token_index,
+                end_index=token_index + 2,
                 source_rule="au_titled_person_v1",
-                resolved_entity_id=entity_id,
-                resolution_status="resolved",
                 resolution_rule="document_local_titled_person_v1",
                 receipts=[("title_pattern", candidate), ("scope", "document_local_actor")],
             )
-            found[_au_doc_actor_key(run_id, candidate)].append(cluster_id)
-        if candidate_three and any(candidate_three.startswith(prefix) for prefix in _TITLE_PREFIXES) and _is_legal_rep_suffix_surface(candidate_three):
-            entity_id = _ensure_doc_actor(
-                conn,
-                run_id=run_id,
-                label=candidate_three,
-                source_rule="au_named_legal_representative_v1",
-                classification_tag="legal_representative",
-            )
-            cluster_id, _ = _insert_cluster_and_resolution(
-                conn,
-                run_id=run_id,
-                event_id=event_id,
-                mention_kind="actor",
-                canonical_key_hint=_au_doc_actor_key(run_id, candidate_three),
-                surface_text=candidate_three,
-                source_rule="au_named_legal_representative_v1",
-                resolved_entity_id=entity_id,
-                resolution_status="resolved",
-                resolution_rule="document_local_named_legal_representative_v1",
-                receipts=[("title_suffix_pattern", candidate_three), ("scope", "document_local_actor")],
-            )
-            found[_au_doc_actor_key(run_id, candidate_three)].append(cluster_id)
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="legal_representative", entity_id=entity_id, note="au_named_legal_representative_v1")
-        if _is_legal_rep_suffix_surface(candidate) and first[:1].isupper():
-            entity_id = _ensure_doc_actor(
-                conn,
-                run_id=run_id,
+        if _is_legal_rep_suffix_token(second) and _looks_like_named_token(first) and not (token_index > 0 and _is_title_token(str(tokens[token_index - 1]["raw"]))):
+            register_representative(
                 label=candidate,
+                start_index=token_index,
+                end_index=token_index + 2,
                 source_rule="au_suffix_legal_representative_v1",
-                classification_tag="legal_representative",
-            )
-            cluster_id, _ = _insert_cluster_and_resolution(
-                conn,
-                run_id=run_id,
-                event_id=event_id,
-                mention_kind="actor",
-                canonical_key_hint=_au_doc_actor_key(run_id, candidate),
-                surface_text=candidate,
-                source_rule="au_suffix_legal_representative_v1",
-                resolved_entity_id=entity_id,
-                resolution_status="resolved",
                 resolution_rule="document_local_suffix_legal_representative_v1",
                 receipts=[("suffix_pattern", candidate), ("scope", "document_local_actor")],
+                classification_tag="legal_representative",
+                insert_role=True,
             )
-            found[_au_doc_actor_key(run_id, candidate)].append(cluster_id)
-            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="legal_representative", entity_id=entity_id, note="au_suffix_legal_representative_v1")
         if any(candidate.endswith(suffix.strip()) for suffix in _JUDGE_SUFFIXES):
             entity_id = _ensure_doc_actor(conn, run_id=run_id, label=candidate, source_rule="au_judge_surface_v1", classification_tag="judge")
             conn.execute(
@@ -431,6 +577,76 @@ def _detect_au_mentions_for_event(conn, *, run_id: str, event_id: str, event: Ma
                 receipts=[("judge_surface", candidate), ("scope", "global_judge_v1")],
             )
             found[_au_doc_actor_key(run_id, candidate)].append(cluster_id)
+    for clause_start, clause_end in _clause_ranges(tokens):
+        clause_tokens = tokens[clause_start:clause_end]
+        clause_reps = [
+            mention
+            for mention in representative_mentions
+            if mention["start_index"] >= clause_start and mention["end_index"] <= clause_end
+        ]
+        for cue in _load_au_legal_representation_cues():
+            for start_offset, end_offset in _find_phrase_matches(clause_tokens, cue["surface"]):
+                start_index = clause_start + start_offset
+                end_index = clause_start + end_offset
+                matched_surface = _join_token_surface(tokens, start_index, end_index)
+                bound_rep = None
+                preceding = [mention for mention in clause_reps if mention["end_index"] <= start_index]
+                following = [mention for mention in clause_reps if mention["start_index"] >= end_index]
+                if preceding:
+                    bound_rep = max(preceding, key=lambda mention: int(mention["end_index"]))
+                elif following:
+                    bound_rep = min(following, key=lambda mention: int(mention["start_index"]))
+                if bound_rep is None:
+                    cluster_id, _ = _insert_cluster_and_resolution(
+                        conn,
+                        run_id=run_id,
+                        event_id=event_id,
+                        mention_kind="actor",
+                        canonical_key_hint=None,
+                        surface_text=matched_surface,
+                        source_rule="au_legal_representation_cue_v1",
+                        resolved_entity_id=None,
+                        resolution_status="abstained",
+                        resolution_rule="legal_representation_requires_named_representative_v1",
+                        receipts=[
+                            ("cue_surface", matched_surface),
+                            ("cue_template", cue["cue_template"]),
+                            ("party_role", cue["party_role"]),
+                            ("reason", "missing_named_representative_signal"),
+                        ],
+                    )
+                    found["abstained"].append(cluster_id)
+                    continue
+                cluster_id, _ = _insert_cluster_and_resolution(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    mention_kind="actor",
+                    canonical_key_hint=bound_rep["canonical_key"],
+                    surface_text=matched_surface,
+                    source_rule="au_legal_representation_cue_v1",
+                    resolved_entity_id=bound_rep["entity_id"],
+                    resolution_status="resolved",
+                    resolution_rule="clause_local_named_representative_v1",
+                    receipts=[
+                        ("cue_surface", matched_surface),
+                        ("cue_template", cue["cue_template"]),
+                        ("party_role", cue["party_role"]),
+                        ("role_label", cue["role_label"]),
+                        ("representative_surface", bound_rep["label"]),
+                    ],
+                )
+                found[bound_rep["canonical_key"]].append(cluster_id)
+                _insert_event_role_once(
+                    conn,
+                    seen=role_insertions,
+                    run_id=run_id,
+                    event_id=event_id,
+                    role_kind="legal_representative",
+                    entity_id=bound_rep["entity_id"],
+                    cluster_id=cluster_id,
+                    note=f"au_legal_representation_cue_v1:{cue['role_label']}",
+                )
     return found
 
 

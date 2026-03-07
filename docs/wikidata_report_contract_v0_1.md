@@ -97,6 +97,18 @@ Each window report currently includes:
 - `p279_sccs`
 - `mixed_order_nodes`
 - `metaclass_candidates`
+- `parthood_typing` (optional while lane is under active development)
+
+`parthood_typing` fields:
+- `counts`: `class->class`, `instance->class`, `instance->instance`, `ambiguous`,
+  `abstained`, `mixed_redundant`, `cross_property_inverse`
+- `classifications`: typed edge rows, each with:
+  - `subject_qid`
+  - `property_pid`
+  - `value_qid`
+  - `bucket`
+  - `classification`
+  - `inverse_relation`
 
 Current reviewer priority:
 1. mixed-order nodes

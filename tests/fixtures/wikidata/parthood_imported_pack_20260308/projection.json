@@ -1,0 +1,113 @@
+{
+  "parthood_typing": {
+    "classifications": [
+      {
+        "bucket": "instance->class",
+        "classification": "certain",
+        "inverse_present": false,
+        "inverse_properties": [],
+        "inverse_relation": "none",
+        "mixed_redundancy_flag": false,
+        "property_pid": "P361",
+        "reasons": [],
+        "slot_id": "Qcity_a|P361|Qclass_city",
+        "subject_qid": "Qcity_a",
+        "subject_type": "instance",
+        "value_qid": "Qclass_city",
+        "value_type": "class"
+      },
+      {
+        "bucket": "class->class",
+        "classification": "certain",
+        "inverse_present": false,
+        "inverse_properties": [],
+        "inverse_relation": "none",
+        "mixed_redundancy_flag": false,
+        "property_pid": "P361",
+        "reasons": [],
+        "slot_id": "Qclass_type|P361|Qclass_root",
+        "subject_qid": "Qclass_type",
+        "subject_type": "class",
+        "value_qid": "Qclass_root",
+        "value_type": "class"
+      },
+      {
+        "bucket": "instance->instance",
+        "classification": "certain",
+        "inverse_present": true,
+        "inverse_properties": [
+          "P527"
+        ],
+        "inverse_relation": "cross_property_expected",
+        "mixed_redundancy_flag": false,
+        "property_pid": "P361",
+        "reasons": [],
+        "slot_id": "Qdistrict_subset|P361|Qdistrict_total",
+        "subject_qid": "Qdistrict_subset",
+        "subject_type": "instance",
+        "value_qid": "Qdistrict_total",
+        "value_type": "instance"
+      },
+      {
+        "bucket": "instance->instance",
+        "classification": "certain",
+        "inverse_present": true,
+        "inverse_properties": [
+          "P527"
+        ],
+        "inverse_relation": "same_property_redundant",
+        "mixed_redundancy_flag": true,
+        "property_pid": "P527",
+        "reasons": [],
+        "slot_id": "Qcity_a|P527|Qcity_b",
+        "subject_qid": "Qcity_a",
+        "subject_type": "instance",
+        "value_qid": "Qcity_b",
+        "value_type": "instance"
+      },
+      {
+        "bucket": "instance->instance",
+        "classification": "certain",
+        "inverse_present": true,
+        "inverse_properties": [
+          "P527"
+        ],
+        "inverse_relation": "same_property_redundant",
+        "mixed_redundancy_flag": true,
+        "property_pid": "P527",
+        "reasons": [],
+        "slot_id": "Qcity_b|P527|Qcity_a",
+        "subject_qid": "Qcity_b",
+        "subject_type": "instance",
+        "value_qid": "Qcity_a",
+        "value_type": "instance"
+      },
+      {
+        "bucket": "instance->instance",
+        "classification": "certain",
+        "inverse_present": true,
+        "inverse_properties": [
+          "P361"
+        ],
+        "inverse_relation": "cross_property_expected",
+        "mixed_redundancy_flag": false,
+        "property_pid": "P527",
+        "reasons": [],
+        "slot_id": "Qdistrict_total|P527|Qdistrict_subset",
+        "subject_qid": "Qdistrict_total",
+        "subject_type": "instance",
+        "value_qid": "Qdistrict_subset",
+        "value_type": "instance"
+      }
+    ],
+    "counts": {
+      "abstained": 0,
+      "ambiguous": 0,
+      "class->class": 1,
+      "cross_property_inverse": 2,
+      "instance->class": 1,
+      "instance->instance": 4,
+      "mixed_redundant": 1
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Qdistrict_total": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qclass_city"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_seed_district_total"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "P527": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qdistrict_subset"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_src_district_total_haspart"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

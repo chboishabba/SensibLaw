@@ -1,0 +1,28 @@
+{
+  "version": "au_legal_representation_cues_v1",
+  "party_roles": [
+    {"key": "appellant", "title": "Appellant"},
+    {"key": "respondent", "title": "Respondent"},
+    {"key": "applicant", "title": "Applicant"},
+    {"key": "plaintiff", "title": "Plaintiff"},
+    {"key": "defendant", "title": "Defendant"}
+  ],
+  "cue_templates": [
+    {
+      "surface_template": "counsel for the {party_role}",
+      "role_label_template": "Counsel for {party_role_title}"
+    },
+    {
+      "surface_template": "senior counsel for the {party_role}",
+      "role_label_template": "Senior Counsel for {party_role_title}"
+    },
+    {
+      "surface_template": "junior counsel for the {party_role}",
+      "role_label_template": "Junior Counsel for {party_role_title}"
+    },
+    {
+      "surface_template": "appeared for the {party_role}",
+      "role_label_template": "Counsel for {party_role_title}"
+    }
+  ]
+}

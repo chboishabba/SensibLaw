@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Qcity_b": {
+      "claims": {
+        "P31": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qclass_city"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_seed_city_b"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "P527": [
+          {
+            "rank": "preferred",
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Qcity_a"
+                }
+              }
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P248": [
+                    {
+                      "datavalue": {
+                        "value": {
+                          "id": "Qpilot_src_city_b_haspart"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

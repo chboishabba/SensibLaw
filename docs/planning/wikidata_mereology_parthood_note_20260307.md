@@ -2,6 +2,7 @@
 
 Date: 2026-03-07
 Status: reviewed design note for Niklas/Ege/Peter lane
+Status Detail: parthood typing diagnostics now implemented in `src/ontology/wikidata.py` and exercised in `tests/test_wikidata_projection.py`.
 
 ## Scope
 Define a bounded diagnostic lane for parthood typing without turning this into
@@ -49,8 +50,16 @@ Not safe in this lane:
 - deterministic and reproducible on pinned slice inputs
 - explicit abstention when endpoint typing is insufficient
 - no label-text heuristics as ontology truth
+- data-version assumption: the active diagnostic lane operates against the latest
+  pinned importer slice for practical throughput; historical rewrites are deferred
+  until explicitly requested because they add useful context but materially raise
+  context-switching cost.
 
 ## Next concrete step
-Add a small pinned fixture pack with representative edges for each typed bucket
-and at least one inverse-pair ambiguity case, then run through the existing
-review report surface.
+DONE (2026-03-07): Added deterministic typed parthood diagnostics in projection output
+(`windows[*].diagnostics.parthood_typing`) with classification counts plus inverse-pair
+coverage, backed by an inline regression test in `tests/test_wikidata_projection.py`.
+
+DONE (2026-03-08): Added a fixture-backed parthood pilot pack
+(`tests/fixtures/wikidata/parthood_pilot_pack_20260308`) with pinned
+`projection.json` and cross-property inverse-validity coverage (`P361` ↔ `P527`).

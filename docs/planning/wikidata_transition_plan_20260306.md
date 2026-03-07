@@ -178,9 +178,9 @@ Initial material for Niklas / Ege / Peter should include:
 1. Import more real `P31` / `P279` neighborhoods via `wikidata build-slice` before expanding to qualifier drift.
 2. Validate severity/ranking on a larger mixed-order sample.
 3. Reconfirm whether a live SCC example should be added to the review pack.
-4. Draft a mereology/parthood extension note grounded in the recent
-   "Wikidata Ontology Issues" thread and the Mereology Task Force discussion,
-   focused on typed/disambiguated parthood rather than broad ontology fixes.
+4. DONE (2026-03-08): Created a bounded parthood pilot pack for `P361`/`P527`
+   (`tests/fixtures/wikidata/parthood_pilot_pack_20260308`) with pinned
+   projection diagnostics for typed buckets and inverse-validity signals.
 5. Add a bounded note on property-definition / timeseries-flow pressure tests so
    Niklas-style financial-flow and graphing questions can be handled as
    deterministic modeling diagnostics rather than ad hoc side discussions.

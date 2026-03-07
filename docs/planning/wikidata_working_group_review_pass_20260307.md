@@ -89,6 +89,7 @@
     (`2277985537 -> 2277985693`, `medium`)
   - `Q100152461|P54`: `currently live`, second repo-pinned drift case from the
     current broad report (`2456615151 -> 2456615274`, `medium`)
-  - `Q100243106|P54`: `currently live`, earlier observed drift case from live
-    finder (`2462692998 -> 2462767606`, `medium`)
+  - `Q100243106|P54`: historical-thread watch item from an earlier live finder
+    sample (`2462692998 -> 2462767606`, `medium`); not in the latest
+    reproducible confirmed set, so not kept in the pinned live pack.
   - `referendum` / `plebiscite`: `historical thread example`

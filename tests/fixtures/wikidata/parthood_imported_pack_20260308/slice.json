@@ -1,0 +1,193 @@
+{
+  "metadata": {
+    "generated_by": "build_slice_from_entity_exports",
+    "properties": [
+      "P31",
+      "P361",
+      "P527"
+    ]
+  },
+  "windows": [
+    {
+      "id": "pilot_2026_03_08",
+      "source_files": [
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qalpha_instance.json",
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qcity_a.json",
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qcity_b.json",
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qclass_type.json",
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qdistrict_subset.json",
+        "tests/fixtures/wikidata/parthood_imported_pack_20260308/entity_qdistrict_total.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_alpha"
+              ]
+            }
+          ],
+          "subject": "Qalpha_instance",
+          "value": "Qclass_type"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_alpha_root"
+              ]
+            }
+          ],
+          "subject": "Qalpha_instance",
+          "value": "Qclass_root"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_city_a"
+              ]
+            }
+          ],
+          "subject": "Qcity_a",
+          "value": "Qclass_city"
+        },
+        {
+          "property": "P361",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_city_a"
+              ]
+            }
+          ],
+          "subject": "Qcity_a",
+          "value": "Qclass_city"
+        },
+        {
+          "property": "P527",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_city_a_haspart"
+              ]
+            }
+          ],
+          "subject": "Qcity_a",
+          "value": "Qcity_b"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_city_b"
+              ]
+            }
+          ],
+          "subject": "Qcity_b",
+          "value": "Qclass_city"
+        },
+        {
+          "property": "P527",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_city_b_haspart"
+              ]
+            }
+          ],
+          "subject": "Qcity_b",
+          "value": "Qcity_a"
+        },
+        {
+          "property": "P361",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_class_type"
+              ]
+            }
+          ],
+          "subject": "Qclass_type",
+          "value": "Qclass_root"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_district_subset"
+              ]
+            }
+          ],
+          "subject": "Qdistrict_subset",
+          "value": "Qclass_city"
+        },
+        {
+          "property": "P361",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_district_subset_of_total"
+              ]
+            }
+          ],
+          "subject": "Qdistrict_subset",
+          "value": "Qdistrict_total"
+        },
+        {
+          "property": "P31",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_seed_district_total"
+              ]
+            }
+          ],
+          "subject": "Qdistrict_total",
+          "value": "Qclass_city"
+        },
+        {
+          "property": "P527",
+          "qualifiers": {},
+          "rank": "preferred",
+          "references": [
+            {
+              "P248": [
+                "Qpilot_src_district_total_haspart"
+              ]
+            }
+          ],
+          "subject": "Qdistrict_total",
+          "value": "Qdistrict_subset"
+        }
+      ]
+    }
+  ]
+}

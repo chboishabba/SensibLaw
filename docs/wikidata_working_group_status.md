@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -9,6 +9,10 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 ## Current focus
 - bounded slice now includes structural `P31` / `P279` review plus phase-2
   qualifier drift on bounded qualifier-bearing properties
+- parthood pilot pack (`P361`/`P527`) now has a pinned fixture + expected
+  projection under `tests/fixtures/wikidata/parthood_pilot_pack_20260308`
+- importer-backed parthood/mereology pack now also exists under
+  `tests/fixtures/wikidata/parthood_imported_pack_20260308`
 - goal is deterministic diagnostics and review support, not ontology fixes
 - qualifier drift is now active in bounded form
 - current phase-2 posture is split deliberately:
@@ -32,6 +36,14 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   - `docs/planning/wikidata_mereology_parthood_note_20260307.md`
 - Property/constraint pressure-test note:
   - `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`
+- Mereology pilot pack:
+  - `tests/fixtures/wikidata/parthood_pilot_pack_20260308`
+- Import-backed mereology pack:
+  - `tests/fixtures/wikidata/parthood_imported_pack_20260308`
+- Current packed artifact:
+  - `tests/fixtures/wikidata/parthood_pilot_pack_20260308/projection.json`
+- import-backed parthood/artifact:
+  - `tests/fixtures/wikidata/parthood_imported_pack_20260308/projection.json`
 
 ## Current demo / review pack
 - Primary local slice:
@@ -148,10 +160,25 @@ The report now exposes:
   - `medium`: qualifier signature change without property-set change
   - `low`: entropy-only change
 - `review_summary` for working-group triage
+- 2026-03-08 live validation note (outside sandbox): the latest full scan run
+  reproduced `Q1000498|P166` (`2457306419 -> 2457306429`) as the first
+  confirmed medium candidate from a fresh candidate run.
 
 ## Current decisions
 - `P31` / `P279` efficacy is proven at medium gate.
 - Qualifier drift is the active next phase.
+- Pinned live pack stays on `Q100104196|P166` + `Q100152461|P54` for now for
+  reproducibility, while fresh live candidates are tracked separately.
+- Current review assumption for active Wikidata diagnostics: use the newest pinned
+  slice/revision as the baseline for bounded reporting by default, rather than
+  running explicit historical backtracking on every pass; historical review is
+  still available when it materially helps to disambiguate stability versus
+  reversion.
+- Historical rewind is now a trigger-based follow-up, not a default mode:
+  - confirmed case from previous run disappears in a newer confirmed run,
+  - severity for a focus pair changes materially between runs, or
+  - property/set-specific review signals indicate potential data drift around the
+    same slots.
 - Property definitions and restrictions are in scope for the ontology lane when
   they interact with class use and constraints; they are not out-of-scope just
   because they are properties rather than classes.
@@ -188,12 +215,24 @@ The report now exposes:
 ## Immediate next actions
 1. Re-run the seeded review pass with the importer-backed qualifier baseline and
    the repo-pinned `Q100104196|P166` and `Q100152461|P54` live drift cases.
+   DONE (2026-03-08): pinned seed fixtures and report contract expectations for
+   `Q100104196|P166` and `Q100152461|P54` are still in place, with both
+   fixture projections continuing to report `medium` qualifier signature drift.
+   A fresh live scan attempt was rerun successfully with full network access
+   (outside sandbox) and returned a confirmed live candidate (`Q1000498|P166`).
 2. Validate whether `medium` severity for signature-only drift remains the right
    reviewer-facing choice on the confirmed live cases.
+   DONE (2026-03-08): keep `medium` for signature-only drift; both confirmed
+   pinned cases still align with this rule without state inversion.
 3. Decide whether the earlier observed `Q100243106|P54` case is still worth
    pinning, or whether the current two-case live pack is sufficient.
+   DONE (2026-03-08): do not pin `Q100243106|P54` for now; it is not in the
+   latest confirmed set we can currently reproduce and is retained only as
+   historical watch material.
 4. Convert the new mereology/property notes into a bounded fixture-backed pilot
    pack (`P361`/`P527` typing, inverse validity, subset-vs-total examples).
+   DONE (2026-03-08): importer-backed parthood pack now exists and is covered by
+   projection regression tests.
 5. Keep the mereology/property-pressure lane explicitly supportive of the
    frozen semantic v1.1 model rather than using it as a reason to widen the
    canonical schema before GWB + Australian cross-testing fails in a concrete

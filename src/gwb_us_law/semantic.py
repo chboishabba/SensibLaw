@@ -335,7 +335,12 @@ def _text_contains_phrase(text: str, phrase: str) -> bool:
     return _normalize_phrase(phrase) in _normalize_phrase(text)
 
 
-def _upsert_seed_entity(conn: sqlite3.Connection, seed: EntitySeed) -> int:
+def _upsert_seed_entity(
+    conn: sqlite3.Connection,
+    seed: EntitySeed,
+    *,
+    pipeline_version: str = PIPELINE_VERSION,
+) -> int:
     conn.execute(
         """
         INSERT INTO semantic_entities(entity_kind, canonical_key, canonical_label, review_status, pipeline_version)
@@ -343,7 +348,7 @@ def _upsert_seed_entity(conn: sqlite3.Connection, seed: EntitySeed) -> int:
         ON CONFLICT(canonical_key)
         DO UPDATE SET canonical_label=excluded.canonical_label, review_status=excluded.review_status, pipeline_version=excluded.pipeline_version
         """,
-        (seed.entity_kind, seed.canonical_key, seed.canonical_label, "deterministic_v1", PIPELINE_VERSION),
+        (seed.entity_kind, seed.canonical_key, seed.canonical_label, "deterministic_v1", pipeline_version),
     )
     row = conn.execute("SELECT entity_id FROM semantic_entities WHERE canonical_key = ?", (seed.canonical_key,)).fetchone()
     assert row is not None
@@ -511,6 +516,7 @@ def _insert_cluster_and_resolution(
     resolution_status: str,
     resolution_rule: str,
     receipts: Iterable[tuple[str, str]],
+    pipeline_version: str = PIPELINE_VERSION,
 ) -> tuple[int, int]:
     normalized_surface = _slug(surface_text)
     cur = conn.execute(
@@ -528,7 +534,7 @@ def _insert_cluster_and_resolution(
           cluster_id, resolved_entity_id, resolution_status, resolution_rule, pipeline_version
         ) VALUES (?,?,?,?,?)
         """,
-        (cluster_id, resolved_entity_id, resolution_status, resolution_rule, PIPELINE_VERSION),
+        (cluster_id, resolved_entity_id, resolution_status, resolution_rule, pipeline_version),
     )
     resolution_id = int(res_cur.lastrowid)
     for idx, (kind, value) in enumerate(receipts, start=1):
@@ -683,6 +689,7 @@ def _insert_relation_candidate(
     object_entity_id: int,
     confidence_tier: str,
     receipts: list[tuple[str, str]],
+    pipeline_version: str = PIPELINE_VERSION,
 ) -> int:
     cur = conn.execute(
         """
@@ -698,7 +705,7 @@ def _insert_relation_candidate(
             object_entity_id,
             "promoted" if confidence_tier in {"high", "medium"} else ("candidate" if confidence_tier == "low" else "abstained"),
             confidence_tier,
-            PIPELINE_VERSION,
+            pipeline_version,
         ),
     )
     candidate_id = int(cur.lastrowid)
@@ -717,7 +724,7 @@ def _insert_relation_candidate(
               candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, pipeline_version
             ) VALUES (?,?,?,?,?,?,?)
             """,
-            (candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, PIPELINE_VERSION),
+            (candidate_id, subject_entity_id, predicate_id, object_entity_id, event_id, confidence_tier, pipeline_version),
         )
         relation_id = int(rel_cur.lastrowid)
         for idx, (kind, value) in enumerate(receipts, start=1):

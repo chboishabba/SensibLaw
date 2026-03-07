@@ -5,9 +5,20 @@ import sqlite3
 from pathlib import Path
 
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
-from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
+from src.au_semantic.semantic import (
+    _load_au_legal_representation_cues,
+    build_au_semantic_report,
+    run_au_semantic_pipeline,
+)
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
+
+
+def test_au_legal_representation_catalog_expands_parameterized_party_roles() -> None:
+    cues = {row["surface"]: row["role_label"] for row in _load_au_legal_representation_cues()}
+    assert cues["appeared for the respondent"] == "Counsel for Respondent"
+    assert cues["senior counsel for the applicant"] == "Senior Counsel for Applicant"
+    assert cues["junior counsel for the defendant"] == "Junior Counsel for Defendant"
 
 
 def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_forum(tmp_path: Path) -> None:
@@ -43,6 +54,12 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
                 "section": "Representation",
                 "text": "Ms Tran K.C. appeared for the respondent and junior counsel for the appellant appeared later."
             },
+            {
+                "event_id": "ev5",
+                "anchor": {"year": 2005, "text": "2005"},
+                "section": "Representation",
+                "text": "The government appeared for the respondent."
+            },
         ],
     }
     persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_hca_s942025_aoo.json")
@@ -63,7 +80,11 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
     assert "office:attorney_general" in entity_keys
     assert any(key.startswith("actor:doc:") and key.endswith("mr_walker_sc") for key in entity_keys)
     assert any(key.startswith("actor:doc:") and key.endswith("ms_tran_k_c") for key in entity_keys)
+    assert not any(key.endswith("counsel_for_respondent") for key in entity_keys)
     relation_predicates = {row["predicate_key"] for row in report["promoted_relations"]}
     assert "appealed" in relation_predicates or "heard_by" in relation_predicates
     candidate_predicates = {row["predicate_key"] for row in report["candidate_only_relations"]}
     assert "decided_by" in candidate_predicates or "applied" in relation_predicates
+    abstained_reasons = {(row["surface_text"], row["resolution_rule"]) for row in report["unresolved_mentions"]}
+    assert ("junior counsel for the appellant", "legal_representation_requires_named_representative_v1") in abstained_reasons
+    assert ("appeared for the respondent", "legal_representation_requires_named_representative_v1") in abstained_reasons

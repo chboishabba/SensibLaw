@@ -202,6 +202,124 @@ def test_real_imported_qualifier_slice_is_stable_baseline() -> None:
     }
 
 
+def test_project_wikidata_payload_reports_parthood_typing() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "QInstA",
+                        "property": "P31",
+                        "value": "QClassA",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QInstB",
+                        "property": "P31",
+                        "value": "QClassA",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QClassB",
+                        "property": "P31",
+                        "value": "QTop",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QClassA",
+                        "property": "P361",
+                        "value": "QTop",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QInstA",
+                        "property": "P361",
+                        "value": "QClassA",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QInstA",
+                        "property": "P527",
+                        "value": "QInstB",
+                        "rank": "preferred",
+                    },
+                    {
+                        "subject": "QInstB",
+                        "property": "P527",
+                        "value": "QInstA",
+                        "rank": "preferred",
+                    },
+                ],
+            }
+        ]
+    }
+
+    report = project_wikidata_payload(payload, property_filter=("P31", "P361", "P527"))
+    diagnostics = report["windows"][0]["diagnostics"]["parthood_typing"]
+
+    assert diagnostics["counts"]["class->class"] == 1
+    assert diagnostics["counts"]["instance->class"] == 1
+    assert diagnostics["counts"]["instance->instance"] == 2
+    assert diagnostics["counts"]["mixed_redundant"] == 1
+
+    assert {
+        (
+            row["subject_qid"],
+            row["property_pid"],
+            row["value_qid"],
+            row["bucket"],
+            row["classification"],
+        )
+        for row in diagnostics["classifications"]
+    } == {
+        ("QClassA", "P361", "QTop", "class->class", "certain"),
+        ("QInstA", "P361", "QClassA", "instance->class", "certain"),
+        ("QInstA", "P527", "QInstB", "instance->instance", "certain"),
+        ("QInstB", "P527", "QInstA", "instance->instance", "certain"),
+    }
+
+
+def test_project_wikidata_payload_reports_pilot_pack_parthood_typing() -> None:
+    fixture_root = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "parthood_pilot_pack_20260308"
+    )
+    payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
+    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P31", "P361", "P527"))
+
+    assert report["windows"][0]["diagnostics"]["parthood_typing"] == expected["parthood_typing"]
+    assert any(
+        row["inverse_relation"] == "cross_property_expected"
+        for row in report["windows"][0]["diagnostics"]["parthood_typing"]["classifications"]
+    )
+
+
+def test_project_wikidata_payload_reports_imported_pack_parthood_typing() -> None:
+    fixture_root = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "parthood_imported_pack_20260308"
+    )
+    payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
+    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+
+    report = project_wikidata_payload(payload, property_filter=("P31", "P361", "P527"))
+
+    assert (
+        report["windows"][0]["diagnostics"]["parthood_typing"]
+        == expected["parthood_typing"]
+    )
+    assert report["windows"][0]["diagnostics"]["parthood_typing"]["counts"][
+        "cross_property_inverse"
+    ] == 2
+
+
 def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection() -> None:
     fixture_root = (
         Path(__file__).resolve().parent

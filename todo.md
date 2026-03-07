@@ -49,6 +49,10 @@
   vs `P366`) as deterministic ontology diagnostics rather than ad hoc side
   discussions. See
   `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`.
+- [x] Define a review trigger for historical rewind checks on pinned Wikidata packs
+  (e.g., confirmed-case disappearance, material severity flips, or focused
+  property regressions) to decide when historical slices should be compared
+  instead of only using the newest pinned snapshot.
 - [x] Add a light diagnostic note on label harmonization signals (`type of XXX`
   vs `XXX subclass` and related variants) so user-facing naming inconsistency
   can be reported without treating labels as ontology truth. Captured in
@@ -76,14 +80,18 @@
   path. Shared DB tables, deterministic import/run/report tooling, and receipt
   storage now exist; current plan/status is documented in
   `docs/planning/gwb_us_law_linkage_seed_20260307.md`.
-- [ ] Tighten the GWB U.S.-law linkage matcher so broad cues like `Congress`,
+- [x] Tighten the GWB U.S.-law linkage matcher so broad cues like `Congress`,
   `Iraq`, `veto`, and `Supreme Court` need stronger co-signals before low-score
   matches are promoted, while keeping ambiguous candidates visible in receipts.
+  This is a promotion-threshold task, not a ban on broad mention extraction.
+  Broad-cue-only cases may now remain visible as low-confidence matched/candidate
+  output when they win unambiguously, but they no longer inflate medium/high
+  confidence without stronger non-broad receipts.
 - [x] Add a first deterministic GWB semantic layer on top of the reviewed
   U.S.-law linkage lane: unified entity spine, office-holding rows,
   mention-resolution artifacts, event roles, relation candidates, and promoted
   edge-first semantic relations. Current status is documented in
-  `docs/planning/gwb_semantic_phase_v1_20260307.md`.
+  `../docs/planning/gwb_semantic_phase_v1_20260307.md`.
 - [x] Freeze the GWB semantic storage shape around the unified entity spine,
   actor/office split, mention-resolution artifacts, and edge-first
   `relation_candidate` -> `semantic_relation` progression before widening the
@@ -118,6 +126,18 @@
   `Plaintiff S157`, `Native Title (NSW) Act 1994`) as the required semantic
   cross-test source for the frozen v1.1 entity/role/relation shape before
   widening it.
+- [x] Start a bounded freeform/transcript semantic proving lane after the AU
+  legal fixtures to pressure-test the same frozen
+  `entity -> mention_resolution -> event_role -> relation_candidate ->
+  semantic_relation` shape against noisier text. Keep extraction broad where
+  useful, but keep promotion and speaker/actor resolution conservative and
+  abstention-friendly. Current v1 persists speaker/mention/event-role artifacts
+  plus candidate-only `replied_to` relations; see
+  `../docs/planning/transcript_semantic_phase_v1_20260308.md`.
+- [ ] Extend the transcript/freeform semantic lane beyond the first
+  speaker/event-role proving pass: add stronger hearing/forum context capture
+  and decide whether any transcript relation family deserves medium/high
+  promotion under the frozen semantic spine.
 - [ ] Keep chat-derived corpora isolated from canonical `itir.sqlite` until an
   explicit retention/redaction policy exists for SB/ITIR/TIRC integration.
   Current bounded test path is `.cache_local/itir_chat_test.sqlite` with hashed
@@ -221,4 +241,10 @@
 - [x] Broaden Australian relation candidate coverage for review/litigation and
   doctrinal reasoning while keeping promotion conservative.
 - [x] Tighten Australian legal-representative extraction beyond the first
-  `SC/KC/QC` and `counsel for ...` deterministic surfaces.
+  `SC/KC/QC` and `counsel for ...` deterministic surfaces. Current AU lane now
+  uses a versioned lexical cue catalog with clause-local named-representative
+  gating instead of creating synthetic role-label actors from cue text alone.
+- [ ] Promote the AU legal-representation cue catalog from versioned repo data
+  into a shared DB-backed lexical-rule substrate only if multiple
+  jurisdictions/extractors need the same runtime shape. Do not widen semantic
+  schema or ontology tables for cue storage.

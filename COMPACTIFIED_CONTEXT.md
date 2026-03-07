@@ -28,6 +28,29 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Python 3.11 target with 3.10 fallback; Ruff formatting.
 - Clause-local, text-derived extraction; no cross-clause inference.
 
+## Recent decisions (2026-03-08)
+- Wikidata ontology lane now uses the newest pinned slice/revision as the active
+  baseline for routine diagnostics; explicit historical rewind checks are now
+  tracked as a separate review-triggered process because they are useful but add
+  non-trivial context overhead.
+- Broad GWB surfaces such as `Congress`, `Iraq`, `veto`, and `Supreme Court`
+  remain acceptable extraction targets; the tightening task is specifically
+  about promotion into reviewed U.S.-law linkage lanes, which should require
+  stronger co-signals.
+- The next semantic pressure-test after the AU legal fixture lane should be
+  bounded freeform/transcript text, using the same frozen
+  `entity -> mention_resolution -> event_role -> relation_candidate ->
+  semantic_relation` spine with strong abstention on ambiguous speaker/actor
+  cases.
+- GWB linkage broad-cue tightening is now implemented in bounded form:
+  broad-cue-only cases can remain visible as low-confidence matched/candidate
+  output when unambiguous, but they no longer escalate medium/high confidence
+  without stronger non-broad receipts.
+- A bounded transcript semantic v1 lane now exists over `TextUnit` +
+  deterministic speaker inference, persisting source-local speaker mention
+  resolution and `speaker` event roles in the shared semantic tables while
+  keeping conversational `replied_to` output candidate-only.
+
 ## Recent decisions (2026-03-07)
 - Deterministic bridge seeding now refreshes the seeded slice when
   `source_sha256` changes, preventing stale local alias catalogs from masking
@@ -41,6 +64,10 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - AU semantic legal-representative extraction now covers expanded
   `counsel/appeared-for` surfaces plus dotted suffix handling for
   `S.C./K.C./Q.C.` actor mentions.
+- AU legal-representation cues are now externalized into a versioned lexical
+  resource; cue matches bind clause-locally onto named representative mentions
+  and abstain when no named representative signal exists, rather than creating
+  synthetic actor rows from role labels.
 - Added bounded docs for:
   - extraction vs enrichment boundary
   - mereology/parthood typed diagnostics

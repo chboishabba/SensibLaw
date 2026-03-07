@@ -296,7 +296,9 @@ def _compute_match(authorities: list[str], refs: list[tuple[str, str]], cues: li
     if strong_cue_hits:
         score += strong_cue_hits
     non_cue_signal = any(kind in {"authority_title", "institution_ref", "court_ref"} for kind, _ in receipts)
-    if broad_cue_hits and non_cue_signal and strong_cue_hits:
+    if broad_cue_hits and not non_cue_signal and not strong_cue_hits:
+        score += 1
+    elif broad_cue_hits and non_cue_signal:
         score += min(1, broad_cue_hits)
     return score, receipts
 
@@ -315,8 +317,13 @@ def _confidence_from_score(score: int, receipts: list[tuple[str, str]]) -> str:
     if score >= 3 and (
         "provenance_cue" in kinds
         or "authority_title" in kinds
+        or "provenance_cue_broad" in kinds
+        or ("institution_ref" in kinds and "provenance_cue_broad" in kinds)
+        or ("court_ref" in kinds and "provenance_cue_broad" in kinds)
         or ("institution_ref" in kinds and "court_ref" in kinds)
     ):
+        return "low"
+    if score >= 1 and "provenance_cue_broad" in kinds:
         return "low"
     return "abstain"
 

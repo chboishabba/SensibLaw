@@ -1,6 +1,22 @@
 # Changelog
 
 ## Unreleased
+- Transcript semantic lane: add a bounded transcript/freeform semantic v1
+  adapter over existing `TextUnit` + speaker-inference inputs. The first pass
+  persists source-local speaker mention resolution and `speaker` event roles in
+  the shared semantic tables, abstains on timing-only and role-only non-person
+  cases, and emits candidate-only `replied_to` conversational relations rather
+  than forcing promotion.
+- GWB U.S.-law linkage: tighten broad cue handling for `Congress`, `Iraq`,
+  `veto`, and `Supreme Court` so weak broad-surface evidence can remain visible
+  as low-confidence matched/candidate output when unambiguous, but no longer
+  inflates medium/high confidence without stronger non-broad receipts.
+- AU semantic extraction: move legal-representation cue surfaces into a
+  versioned lexical resource, expand them from parameterized party-role
+  templates, and require a clause-local named representative signal before
+  `appeared for ...` / `counsel for ...` cues resolve. Cue matches now attach
+  to real document-local representative actors instead of creating synthetic
+  role-label actors.
 - Wikidata bridge seeding: make seeded-slice initialization payload-aware so
   alias updates refresh deterministically (`source_sha256` mismatch triggers
   in-place seeded slice replacement), preventing stale local DB slices from
@@ -11,6 +27,13 @@
   (`ruled_by`, `challenged_in`, `subject_of_review_by`), and tighten AU
   legal-representative extraction with expanded role surfaces plus dotted
   suffix handling for `S.C./K.C./Q.C.` style mentions.
+- Wikidata review workflow: record a pinned-slice baseline policy for bounded
+  ontology diagnostics (latest pinned snapshot as default, historical rewind
+  review as an explicit follow-up when ambiguity/reversion risk is flagged).
+- Wikidata review workflow: complete follow-on qualifier-review actions by
+  validating `medium` signature-only severity on the two pinned confirmed cases
+  (`Q100104196|P166`, `Q100152461|P54`), and classifying `Q100243106|P54` as
+  a historical watch candidate instead of a pinned case until revalidated.
 - Docs/TODO/status alignment: add bounded extraction-vs-enrichment, mereology,
   and property/constraint pressure-test notes; link them from the working-group
   status and core boundary docs; and update TODO checkpoints to reflect the
