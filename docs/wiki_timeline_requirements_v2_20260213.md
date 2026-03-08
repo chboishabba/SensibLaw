@@ -258,6 +258,30 @@ Projection containment != conflict.
 - Recurrence threshold (N >= configurable).
 - Cross-actor reinforcement.
 - Range-boundary reinforcement.
+
+# Revision Harness
+
+### R20. Wikipedia Revision Harness (Read-Only)
+**Requirement**
+- Support previous-vs-current Wikipedia revision comparison as a bounded
+  source-artifact harness.
+- Record explicit article revision metadata (`revid`, revision timestamp, URL,
+  fetch time) for both compared sides.
+- Surface:
+  - source-text similarity
+  - extraction delta summary
+  - local graph-impact summary
+  - claim-bearing / attribution delta summary
+  - reviewer-facing issue packets
+- Treat live revision volatility as reportable signal rather than automatic
+  regression failure.
+- Keep the harness read-only:
+  - no ontology mutation
+  - no automatic Wikipedia/Wikidata edits
+  - no authority transfer from Wikipedia or Wikidata into canonical local
+    ontology rows
+**Status:** Implemented (baseline report/CLI harness; live scheduling and richer
+review-context joins deferred)
 - Maintain anchor state:
   - transient
   - candidate

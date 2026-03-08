@@ -1,6 +1,21 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia revision harness: add a bounded read-only comparison/report lane
+  for previous-vs-current Wikipedia revisions. New contract/docs define the
+  v0.1 report shape (similarity metrics, extraction delta summary, local
+  graph-impact summary, epistemic delta summary, issue packets, triage
+  dashboard), and `scripts/wiki_revision_harness.py` now compares revision
+  snapshots plus optional AAO payloads without mutating ontology rows or
+  generating edit-bot actions.
+- Narrative validation/comparison: add a bounded public-media fixture and
+  producer-owned comparison lane for FriendlyJordies-style media validation.
+  `SensibLaw/scripts/narrative_compare.py` now emits source-local validation
+  reports plus a `narrative_comparison_report` over two sources with shared
+  propositions, disputed propositions, source-only claims, attribution-link
+  differences, corroboration refs, and abstentions. The first slice is
+  fixture-first and read-only, using the checked-in
+  `SensibLaw/demo/narrative/friendlyjordies_demo.json` corpus.
 - Docs/TODO alignment: add
   `docs/planning/friendlyjordies_narrative_validation_and_competing_narratives_20260309.md`
   as the public-media narrative-validation and competing-narratives planning

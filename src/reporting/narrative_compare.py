@@ -45,6 +45,7 @@ def _clean_text(value: str) -> str:
 def _norm(value: str) -> str:
     text = _clean_text(value).casefold()
     text = re.sub(r"^(?:the|a|an)\s+", "", text)
+    text = re.sub(r"\bprocess$", "", text).strip()
     return text
 
 

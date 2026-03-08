@@ -25,6 +25,8 @@ SQLite store and should be typed/queryable first.
   - Deterministic `sort_keys=true` emission.
   - Non-authoritative; safe to delete and regenerate.
   - Not required to be the storage shape used internally by the canonical DB.
+  - Revision-comparison reports derived from wiki snapshots / AAO payloads are
+    also export artifacts. They are review surfaces, not canonical storage.
 
 ### Persistent store (SQLite)
 - Purpose: queryable storage of extracted AAO runs/events and audit metadata.

@@ -217,18 +217,20 @@
 - [ ] Pressure-test the transcript/freeform `mission_observer` lane against
   more chat/message corpora before widening cue coverage or letting SB derive
   stronger reductions from it.
-- [ ] Add a bounded public-media narrative corpus fixture for transcript/media
+- [x] Add a bounded public-media narrative corpus fixture for transcript/media
   validation, using FriendlyJordies as the first named public test case. The
-  target flow is URL/transcript ingest -> narrative/proposition extraction ->
-  reviewable support/conflict/abstention output, not a trust score.
+  first slice now exists as `SensibLaw/demo/narrative/friendlyjordies_demo.json`
+  plus the bounded `narrative_compare.py` producer and comparison workbench.
 - [ ] Add a narrative-validation review mode for transcript/media corpora:
   internal consistency checks, source-local proposition extraction, explicit
   external corroboration/support/conflict refs, and abstention when the source
   remains unresolved.
-- [ ] Add a competing-narratives comparison read model for SensibLaw so two
+- [x] Add a competing-narratives comparison read model for SensibLaw so two
   source narratives can be compared by shared facts/propositions,
   source-specific propositions, disagreement markers, predicate/flow
-  differences, and explicit receipts rather than silent merging.
+  differences, and explicit receipts rather than silent merging. Current first
+  slice is a bounded fixture-first producer/workbench pair, not the later
+  ingress-backed review mode.
 - [x] Persist the transcript/freeform `mission_observer` artifact canonically
   in normalized `itir.sqlite` mission tables before exporting/reviewing it as a
   report payload. Current storage is `mission_runs`, `mission_nodes`,
@@ -247,9 +249,11 @@
   surface.
 - [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
   `... against ...` reasoning idioms and factual scaffolding:
-  - cited holdings (`X held that ...`)
-  - attribution wrappers (`X submits that ...`)
   - cited-authority subgroup handling (`majority in Lepore`, similar)
+  - richer proposition-link families beyond current bounded
+    `attributes_to` comparison support
+  - broader attribution wrappers beyond current bounded
+    `said/argued/submitted/reported/held/showed that`
   - proposition-to-proposition links usable by competing-narratives comparison
   Keep canonical storage on `predicate_key + negation/stance + typed arguments`
   rather than operator syntax.

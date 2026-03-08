@@ -12,6 +12,18 @@ def _tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
 
 
+def token_jaccard_similarity(left: str, right: str) -> float:
+    """Return token-set Jaccard similarity for two texts."""
+    left_tokens = set(_tokenize(left))
+    right_tokens = set(_tokenize(right))
+    if not left_tokens and not right_tokens:
+        return 1.0
+    union = left_tokens | right_tokens
+    if not union:
+        return 1.0
+    return len(left_tokens & right_tokens) / len(union)
+
+
 def simhash(text: str) -> str:
     """Compute a 64-bit SimHash fingerprint of the given text.
 
@@ -36,6 +48,16 @@ def simhash(text: str) -> str:
     return f"{fingerprint:016x}"
 
 
+def simhash_hamming_distance(left_hex: str, right_hex: str) -> int:
+    """Return the Hamming distance between two hex-encoded SimHash values."""
+    try:
+        left = int(left_hex, 16)
+        right = int(right_hex, 16)
+    except Exception:
+        return 64
+    return (left ^ right).bit_count()
+
+
 def minhash(text: str, num_perm: int = 8) -> str:
     """Compute a MinHash signature for the text.
 
@@ -56,4 +78,3 @@ def minhash(text: str, num_perm: int = 8) -> str:
         assert min_val is not None
         mins.append(min_val)
     return "".join(f"{m:016x}" for m in mins)
-

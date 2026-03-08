@@ -191,6 +191,17 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   producer without coupling directly to transcript helper internals.
 
 ## Recent decisions (2026-03-09)
+- A first bounded Wikipedia revision harness now belongs in the repo as a
+  read-only reporting lane over live article revisions. The chosen v0.1 shape
+  is:
+  - compare previous vs current revision metadata explicitly
+  - measure both source-text and extraction-surface similarity
+  - summarize local graph-facing impact
+  - surface claim-bearing / attribution deltas
+  - emit reviewer-facing issue packets plus a compact triage dashboard
+- This harness is intentionally not an edit bot, not a Wikidata ontology
+  mutation path, and not a truth adjudicator. Live volatility is treated as a
+  reportable signal; authority boundaries remain unchanged.
 - The next public transcript/narrative proving case should use
   FriendlyJordies as a named public-media fixture for URL/transcript narrative
   validation. The target story is not "trust this source"; it is "ingest the

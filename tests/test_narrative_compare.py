@@ -10,7 +10,7 @@ from src.reporting.narrative_compare import (
 
 
 def _fixture_sources() -> tuple[dict, list]:
-    fixture_path = Path("demo/narrative/friendlyjordies_demo.json")
+    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_demo.json")
     return load_fixture_sources(fixture_path)
 
 
@@ -35,6 +35,7 @@ def test_friendlyjordies_fixture_comparison_surfaces_shared_and_disputed_rows() 
         row["left"]["predicate_key"] == "approve_after" and row["right"]["predicate_key"] == "begin_before"
         for row in comparison["disputed_propositions"]
     )
-    assert any("Court records" in ",".join(row["left_attributions"]) for row in comparison["link_differences"])
+    assert any("FriendlyJordies" in ",".join(row["left_attributions"]) for row in comparison["link_differences"])
+    assert any("The newspaper" in ",".join(row["right_attributions"]) for row in comparison["link_differences"])
     assert comparison["source_only_propositions"]["jordies_video"] == []
     assert comparison["source_only_propositions"]["newspaper_report"] == []
