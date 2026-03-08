@@ -217,6 +217,18 @@
 - [ ] Pressure-test the transcript/freeform `mission_observer` lane against
   more chat/message corpora before widening cue coverage or letting SB derive
   stronger reductions from it.
+- [ ] Add a bounded public-media narrative corpus fixture for transcript/media
+  validation, using FriendlyJordies as the first named public test case. The
+  target flow is URL/transcript ingest -> narrative/proposition extraction ->
+  reviewable support/conflict/abstention output, not a trust score.
+- [ ] Add a narrative-validation review mode for transcript/media corpora:
+  internal consistency checks, source-local proposition extraction, explicit
+  external corroboration/support/conflict refs, and abstention when the source
+  remains unresolved.
+- [ ] Add a competing-narratives comparison read model for SensibLaw so two
+  source narratives can be compared by shared facts/propositions,
+  source-specific propositions, disagreement markers, predicate/flow
+  differences, and explicit receipts rather than silent merging.
 - [x] Persist the transcript/freeform `mission_observer` artifact canonically
   in normalized `itir.sqlite` mission tables before exporting/reviewing it as a
   report payload. Current storage is `mission_runs`, `mission_nodes`,
@@ -233,6 +245,14 @@
 - [ ] Tighten automatic actual-to-mission mapping beyond the current reviewed +
   lexical bridge before treating mission drift as a stronger accounting
   surface.
+- [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
+  `... against ...` reasoning idioms and factual scaffolding:
+  - cited holdings (`X held that ...`)
+  - attribution wrappers (`X submits that ...`)
+  - cited-authority subgroup handling (`majority in Lepore`, similar)
+  - proposition-to-proposition links usable by competing-narratives comparison
+  Keep canonical storage on `predicate_key + negation/stance + typed arguments`
+  rather than operator syntax.
 - [ ] Mine the high-signal local archive threads into first-class repo notes so
   actor/role architecture does not stay trapped in chats. Priority threads:
   `Actor table design` (`21f55daa80206517e38f8c0fa56ee9bb2db8a9a0`),

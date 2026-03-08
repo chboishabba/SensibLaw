@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- Docs/TODO alignment: add
+  `docs/planning/friendlyjordies_narrative_validation_and_competing_narratives_20260309.md`
+  as the public-media narrative-validation and competing-narratives planning
+  note. The docs now name FriendlyJordies as the first public transcript/media
+  proving case, record the privacy boundary for private archive-derived
+  examples, and queue proposition-layer widening toward cited holdings,
+  attribution wrappers, and proposition comparison support.
 - Archive tooling: extend `scripts/chat_context_resolver.py` beyond pure
   thread resolution. The resolver now also supports stitched transcript
   analysis for term frequency, mention locations with thread-line and

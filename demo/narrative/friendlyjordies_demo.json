@@ -1,0 +1,46 @@
+{
+  "fixture_id": "friendlyjordies_demo_v1",
+  "label": "FriendlyJordies public-media narrative demo",
+  "sources": [
+    {
+      "source_id": "jordies_video",
+      "title": "FriendlyJordies clip transcript (demo)",
+      "origin_url": "https://www.youtube.com/watch?v=friendlyjordies-demo",
+      "source_type": "media_transcript",
+      "text_units": [
+        {
+          "unit_id": "jordies_video:u1",
+          "text": "FriendlyJordies said that donor meetings happened in May."
+        },
+        {
+          "unit_id": "jordies_video:u2",
+          "text": "FriendlyJordies argued that the rezoning was approved after the donor meetings."
+        },
+        {
+          "unit_id": "jordies_video:u3",
+          "text": "Court records showed that donor meetings happened in May."
+        }
+      ]
+    },
+    {
+      "source_id": "newspaper_report",
+      "title": "Newspaper report (demo)",
+      "origin_url": "https://example.com/friendlyjordies-newspaper-demo",
+      "source_type": "media_article",
+      "text_units": [
+        {
+          "unit_id": "newspaper_report:u1",
+          "text": "The newspaper reported that donor meetings happened in May."
+        },
+        {
+          "unit_id": "newspaper_report:u2",
+          "text": "The newspaper argued that the rezoning process began before the donor meetings."
+        },
+        {
+          "unit_id": "newspaper_report:u3",
+          "text": "Court records showed that donor meetings happened in May."
+        }
+      ]
+    }
+  ]
+}

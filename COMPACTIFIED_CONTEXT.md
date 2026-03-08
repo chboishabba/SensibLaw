@@ -190,6 +190,37 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   `itir-svelte` workbench/debug surfaces can consume a real non-legal semantic
   producer without coupling directly to transcript helper internals.
 
+## Recent decisions (2026-03-09)
+- The next public transcript/narrative proving case should use
+  FriendlyJordies as a named public-media fixture for URL/transcript narrative
+  validation. The target story is not "trust this source"; it is "ingest the
+  source, extract narrative/proposition structure, and show what is supported,
+  contradicted, selectively framed, or unresolved."
+- A second linked user story should be treated as first-class planning scope:
+  compare two competing narratives without collapsing them into one story.
+  SensibLaw should eventually show common facts/propositions, disagreement,
+  predicate/flow differences, and explicit receipts for both sides.
+- Privacy rule for repo-facing docs: public-figure/public-media examples may be
+  named, but private/family-style archive-derived examples should stay
+  generalized or local-only even when they inform local planning.
+- Relevant local/web archive anchors for this decision:
+  - `Climate Change Politics AU`
+    (`69ac40e0-0cfc-839b-b2a8-0de3019379a9`, source used: `web`):
+    public-media framing/corroboration design pressure; FriendlyJordies is the
+    named public test case.
+  - `Uncle's Conviction Inquiry`
+    (`6949fb78-4688-8320-9ca9-03a65efaf711`, source used: `web`):
+    disputed-record narrative design pressure; keep repo examples generalized.
+  - `Bondi shooter neo-Nazi link`
+    (`6940997c-0784-8324-94ae-2de2f0c34947`, source used: `web`):
+    correction loops, attribution, and proposition-layer comparison matter
+    more than rhetorical summarization.
+- Archive tooling note: broad FTS-style mining over `/home/c/chat_archive.sqlite`
+  is currently degraded because cross-thread analysis reports
+  `sqlite3.DatabaseError: database disk image is malformed`. Exact/local
+  lookups and direct web-thread inspection were still sufficient for this
+  planning pass.
+
 ## Recent decisions (2026-03-07)
 - Deterministic bridge seeding now refreshes the seeded slice when
   `source_sha256` changes, preventing stale local alias catalogs from masking
