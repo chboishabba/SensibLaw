@@ -104,3 +104,45 @@ def test_hca_narrative_sentence_filter_rejects_reference_heavy_lines() -> None:
         )
         is False
     )
+
+
+def test_reasoning_proposition_layer_extracts_negated_against_idiom() -> None:
+    facts = [
+        {
+            "fact_id": "ev:0349:f01",
+            "event_id": "ev:0349",
+            "action": "attend",
+            "subjects": ["the appellant", "Mr Perry"],
+            "objects": ["the Presbytery", "Fr Picken"],
+            "text": "The appellant and Mr Perry attended the Presbytery with Fr Picken.",
+        },
+        {
+            "fact_id": "ev:0349:f02",
+            "event_id": "ev:0349",
+            "action": "supply",
+            "subjects": ["Fr Picken"],
+            "objects": ["cigarettes", "alcohol"],
+            "text": "Fr Picken supplied them with cigarettes and alcohol.",
+        },
+    ]
+
+    propositions, links = ingest._build_propositions_for_event(
+        event_id="ev:0349",
+        sentence_text=(
+            "Given it was undisputed that the appellant and Mr Perry did attend the Presbytery with Fr Picken, "
+            "who did supply them with cigarettes and alcohol — and that Fr Picken did begin to teach them "
+            "religious education in 1969 — any imprecision in the precise timing of those visits cannot be seen "
+            "as telling against acceptance that the abuse occurred as the appellant alleged."
+        ),
+        timeline_facts=facts,
+    )
+
+    assert any(p.get("predicate_key") == "attend" for p in propositions)
+    reasoning = next(p for p in propositions if p.get("proposition_kind") == "reasoning")
+    assert reasoning["predicate_key"] == "negate"
+    assert reasoning["negation"]["kind"] == "not"
+    assert reasoning["source_signal"] == "idiom_against"
+    assert {"role": "subject", "value": "any imprecision in the precise timing of those visits"} in reasoning["arguments"]
+    assert any(arg.get("role") == "object" and "acceptance that the abuse occurred" in str(arg.get("value")) for arg in reasoning["arguments"])
+    assert all(link["link_kind"] == "supports" for link in links)
+    assert {link["source_proposition_id"] for link in links} == {"ev:0349:f01:p", "ev:0349:f02:p"}

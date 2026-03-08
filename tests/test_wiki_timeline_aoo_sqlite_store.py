@@ -37,6 +37,24 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
             }
         ],
         "fact_timeline": [{"fact_id": "f1"}],
+        "propositions": [
+            {
+                "proposition_id": "e1:p1",
+                "event_id": "e1",
+                "proposition_kind": "fact",
+                "predicate_key": "happen",
+                "arguments": [{"role": "subject", "value": "A"}],
+            }
+        ],
+        "proposition_links": [
+            {
+                "link_id": "e1:l1",
+                "event_id": "e1",
+                "source_proposition_id": "e1:p1",
+                "target_proposition_id": "e1:p2",
+                "link_kind": "supports",
+            }
+        ],
     }
 
     db_path = tmp_path / "wiki_timeline_aoo.sqlite"
@@ -99,7 +117,7 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_object_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_step_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_event_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
-        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM wiki_timeline_run_list_field_values WHERE run_id = ?", (res1.run_id,)).fetchone()[0] > 1
         structural_atoms = conn.execute(
             """
             SELECT a.norm_text, a.norm_kind
@@ -125,3 +143,21 @@ def test_wiki_timeline_aoo_sqlite_persist_is_idempotent(tmp_path: Path) -> None:
         assert payload["events"][0]["actors"][0]["label"] == "A"
         assert payload["events"][0]["steps"][0]["objects"] == ["B"]
         assert payload["fact_timeline"] == [{"fact_id": "f1"}]
+        assert payload["propositions"] == [
+            {
+                "proposition_id": "e1:p1",
+                "event_id": "e1",
+                "proposition_kind": "fact",
+                "predicate_key": "happen",
+                "arguments": [{"role": "subject", "value": "A"}],
+            }
+        ]
+        assert payload["proposition_links"] == [
+            {
+                "link_id": "e1:l1",
+                "event_id": "e1",
+                "source_proposition_id": "e1:p1",
+                "target_proposition_id": "e1:p2",
+                "link_kind": "supports",
+            }
+        ]

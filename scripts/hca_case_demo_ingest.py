@@ -1815,6 +1815,154 @@ def _build_timeline_facts_for_event(
     return facts
 
 
+def _clean_prop_text(value: object) -> str:
+    return _collapse_ws(str(value or ""))
+
+
+def _first_nonempty(values: Iterable[object]) -> Optional[str]:
+    for value in values:
+        text = _clean_prop_text(value)
+        if text:
+            return text
+    return None
+
+
+_REASONING_AGAINST_RE = re.compile(
+    r"(?P<subject>.+?)\s+"
+    r"(?P<neg_prefix>cannot\s+be\s+seen\s+as\s+|does\s+not\s+|do\s+not\s+|did\s+not\s+|is\s+not\s+)?"
+    r"(?P<predicate>telling\s+against|count(?:ing)?\s+against|weigh(?:ing)?\s+against|militat(?:e|es|ing)\s+against)\s+"
+    r"(?P<object>.+)",
+    flags=re.IGNORECASE,
+)
+
+
+def _extract_reasoning_against_proposition(
+    *,
+    event_id: str,
+    sentence_text: str,
+    factual_proposition_ids: List[str],
+) -> Tuple[Optional[Dict[str, object]], List[Dict[str, object]]]:
+    sentence = _clean_prop_text(sentence_text)
+    if not sentence:
+        return None, []
+    text = sentence
+    if "," in text:
+        parts = [part.strip() for part in text.split(",") if part.strip()]
+        if parts:
+            text = parts[-1]
+    match = _REASONING_AGAINST_RE.search(text)
+    if not match:
+        return None, []
+    subject_text = _clean_prop_text(match.group("subject"))
+    for marker in (" — ", " – ", "; ", ", and that ", " and that "):
+        if marker in subject_text:
+            subject_text = _clean_prop_text(subject_text.split(marker)[-1])
+    object_text = _clean_prop_text(match.group("object"))
+    if not subject_text or not object_text:
+        return None, []
+    predicate_surface = _clean_prop_text(match.group("predicate")).lower()
+    neg_prefix = _clean_prop_text(match.group("neg_prefix")).lower()
+    negation = {"kind": "not", "scope": "proposition", "source": "idiom_against"}
+    if not neg_prefix:
+        negation = None
+    proposition_id = f"{event_id}:p:reasoning_against"
+    proposition = {
+        "proposition_id": proposition_id,
+        "event_id": event_id,
+        "proposition_kind": "reasoning",
+        "predicate_key": "negate",
+        "negation": negation,
+        "anchor_text": sentence,
+        "source_signal": "idiom_against",
+        "arguments": [
+            {"role": "subject", "value": subject_text},
+            {"role": "object", "value": object_text},
+        ],
+        "receipts": [
+            {"kind": "predicate_surface", "value": predicate_surface},
+            {"kind": "source", "value": "regex:idiom_against"},
+        ],
+    }
+    links: List[Dict[str, object]] = []
+    for index, factual_id in enumerate(factual_proposition_ids, start=1):
+        links.append(
+            {
+                "link_id": f"{proposition_id}:support:{index:02d}",
+                "event_id": event_id,
+                "source_proposition_id": factual_id,
+                "target_proposition_id": proposition_id,
+                "link_kind": "supports",
+                "receipts": [{"kind": "source", "value": "event_fact_support_bundle"}],
+            }
+        )
+    return proposition, links
+
+
+def _build_propositions_for_event(
+    *,
+    event_id: str,
+    sentence_text: str,
+    timeline_facts: object,
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    fact_rows = timeline_facts if isinstance(timeline_facts, list) else []
+    propositions: List[Dict[str, object]] = []
+    links: List[Dict[str, object]] = []
+    factual_proposition_ids: List[str] = []
+
+    for fact in fact_rows:
+        if not isinstance(fact, dict):
+            continue
+        fact_id = _clean_prop_text(fact.get("fact_id"))
+        predicate = _clean_prop_text(fact.get("action"))
+        if not fact_id or not predicate:
+            continue
+        proposition_id = f"{fact_id}:p"
+        factual_proposition_ids.append(proposition_id)
+        arguments: List[Dict[str, object]] = []
+        for subject in fact.get("subjects") or []:
+            subject_text = _clean_prop_text(subject)
+            if subject_text:
+                arguments.append({"role": "subject", "value": subject_text})
+        object_values = []
+        for lane_name in ("objects", "numeric_objects", "modifier_objects"):
+            lane = fact.get(lane_name) if isinstance(fact.get(lane_name), list) else []
+            object_values.extend(lane)
+        for obj in object_values:
+            obj_text = _clean_prop_text(obj)
+            if obj_text:
+                arguments.append({"role": "object", "value": obj_text})
+        purpose = _clean_prop_text(fact.get("purpose"))
+        if purpose:
+            arguments.append({"role": "purpose", "value": purpose})
+        proposition = {
+            "proposition_id": proposition_id,
+            "event_id": event_id,
+            "proposition_kind": "fact",
+            "predicate_key": predicate,
+            "source_fact_id": fact_id,
+            "anchor_text": _first_nonempty([fact.get("text"), sentence_text]),
+            "arguments": arguments,
+            "receipts": [{"kind": "source", "value": "timeline_fact"}],
+        }
+        if isinstance(fact.get("negation"), dict) and _clean_prop_text((fact.get("negation") or {}).get("kind")):
+            proposition["negation"] = {
+                "kind": _clean_prop_text((fact.get("negation") or {}).get("kind")),
+                "scope": _clean_prop_text((fact.get("negation") or {}).get("scope")) or "proposition",
+                "source": _clean_prop_text((fact.get("negation") or {}).get("source")) or "timeline_fact",
+            }
+        propositions.append(proposition)
+
+    reasoning_proposition, reasoning_links = _extract_reasoning_against_proposition(
+        event_id=event_id,
+        sentence_text=sentence_text,
+        factual_proposition_ids=factual_proposition_ids,
+    )
+    if reasoning_proposition:
+        propositions.append(reasoning_proposition)
+        links.extend(reasoning_links)
+    return propositions, links
+
+
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -2150,6 +2298,8 @@ def _build_hca_aoo_payload(
     base_subjects = [base_actor]
     events: List[Dict[str, object]] = []
     fact_timeline: List[Dict[str, object]] = []
+    propositions: List[Dict[str, object]] = []
+    proposition_links: List[Dict[str, object]] = []
     source_snapshot = _build_hca_case_snapshot(case_url, manifest)
 
     docs = manifest.get("documents")
@@ -2440,6 +2590,13 @@ def _build_hca_aoo_payload(
                 fixed_facts.append(row)
             timeline_facts = fixed_facts
             fact_timeline.extend(timeline_facts)
+            event_propositions, event_proposition_links = _build_propositions_for_event(
+                event_id=ev_id,
+                sentence_text=base_text,
+                timeline_facts=timeline_facts,
+            )
+            propositions.extend(event_propositions)
+            proposition_links.extend(event_proposition_links)
             events.append(
                 {
                     "event_id": ev_id,
@@ -2508,6 +2665,8 @@ def _build_hca_aoo_payload(
         "root_actor": {"label": "AA v Diocese (S94/2025)", "surname": "HCA"},
         "events": events,
         "fact_timeline": fact_timeline,
+        "propositions": propositions,
+        "proposition_links": proposition_links,
         "generated_at": _utc_now_iso(),
         "source_timeline": source_timeline,
         "source_entity": source_entity,

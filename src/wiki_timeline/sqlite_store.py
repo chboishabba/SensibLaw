@@ -915,6 +915,8 @@ def persist_normalized_run(
     for ev in rows:
         _persist_event(conn, run_id, ev)
     _insert_run_list_rows(conn, run_id, "fact_timeline", out_payload.get("fact_timeline"))
+    _insert_run_list_rows(conn, run_id, "propositions", out_payload.get("propositions"))
+    _insert_run_list_rows(conn, run_id, "proposition_links", out_payload.get("proposition_links"))
 
 
 def _load_event_from_normalized(conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
