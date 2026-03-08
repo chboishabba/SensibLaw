@@ -5,7 +5,7 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
-from src.wiki_timeline.revision_pack_runner import human_summary, run
+from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, human_summary, run
 
 
 def _pack(tmp_path: Path) -> Path:
@@ -224,6 +224,47 @@ def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> N
         conn.row_factory = sqlite3.Row
         state = conn.execute("SELECT last_revid FROM wiki_revision_monitor_article_state WHERE article_id = 'article_1'").fetchone()
         assert state["last_revid"] == 1
+
+
+def test_pack_runner_rejects_incomplete_snapshot_payload(tmp_path: Path) -> None:
+    pack_path = _pack(tmp_path)
+    out_dir = tmp_path / "out"
+    state_db = tmp_path / "state.sqlite"
+
+    def incomplete_fetch(*, article, out_dir, python_cmd, repo_root):
+        payload = {
+            "wiki": "enwiki",
+            "title": article["title"],
+            "revid": None,
+            "rev_timestamp": None,
+            "fetched_at": "2026-03-09T00:01:00Z",
+            "wikitext": None,
+            "warnings": ["page_missing", "no_revisions_returned"],
+        }
+        path = out_dir / "bad.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return {"snapshot_path": path, "snapshot_payload": payload}
+
+    result = run(
+        pack_path=pack_path,
+        out_dir=out_dir,
+        state_db_path=state_db,
+        fetch_current_snapshot_fn=incomplete_fetch,
+        build_timeline_fn=lambda **_: (_ for _ in ()).throw(AssertionError("timeline should not run")),
+        build_aoo_fn=lambda **_: (_ for _ in ()).throw(AssertionError("aoo should not run")),
+        auto_review_context_fn=lambda **_: {},
+    )
+    assert result["counts"]["error"] == 1
+    assert "incomplete snapshot" in result["articles"][0]["error"]
+    with sqlite3.connect(state_db) as conn:
+        state = conn.execute("SELECT count(*) FROM wiki_revision_monitor_article_state").fetchone()
+        assert state[0] == 0
+
+
+def test_default_out_dir_for_pack_uses_pack_id(tmp_path: Path) -> None:
+    pack_path = _pack(tmp_path)
+    assert default_out_dir_for_pack(pack_path) == Path("SensibLaw/demo/ingest/wiki_revision_monitor/test_pack")
 
 
 def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:

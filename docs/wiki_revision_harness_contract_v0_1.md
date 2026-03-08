@@ -141,3 +141,11 @@ Possible future layers:
 
 Current pack-runner companion contract:
 - `docs/wiki_revision_pack_runner_contract_v0_1.md`
+
+History-aware pair-runner companion contract:
+- `docs/wiki_revision_pack_runner_contract_v0_2.md`
+
+Current integration note:
+- bounded history-window scoring and section-aware pair wrappers are added by
+  the pack runner around this inner comparison report; they do not replace the
+  v0.1 comparison payload itself

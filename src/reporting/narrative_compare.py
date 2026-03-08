@@ -45,6 +45,10 @@ _DISPUTE_PREDICATE_PAIRS = {
     ("begin_before", "approve_after"),
 }
 
+_CAUSAL_DISPUTE_PREDICATES = {"contribute_to", "delay"}
+_STATEMENT_FAMILY_PREDICATES = {"claim_text"}
+_GOVERNANCE_FAMILY_PREDICATES = {"support", "pass"}
+
 
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().strip(".!?;:")).strip()
@@ -319,6 +323,34 @@ def _predicate_object_key(proposition: dict[str, Any]) -> str:
     return f"{str(proposition.get('predicate_key') or '')}|{_norm(args.get('object') or '')}"
 
 
+def _comparison_subject_key(proposition: dict[str, Any]) -> str:
+    args = _arguments_by_role(proposition)
+    predicate = str(proposition.get("predicate_key") or "")
+    subject = _norm(args.get("subject") or "")
+    content = _norm(args.get("content") or "")
+    if predicate == "claim_text" and "woolworths" in content:
+        return "woolworths"
+    if predicate in _GOVERNANCE_FAMILY_PREDICATES and subject in {"majority government", "minority government"}:
+        return "government_formation"
+    return _norm(args.get("subject") or args.get("content") or "")
+
+
+def _comparison_outcome_family(proposition: dict[str, Any]) -> str:
+    args = _arguments_by_role(proposition)
+    predicate = str(proposition.get("predicate_key") or "")
+    obj = _norm(args.get("object") or args.get("content") or "")
+    if predicate in _CAUSAL_DISPUTE_PREDICATES:
+        if "climate policy" in obj or "policy instability" in obj or "policy momentum" in obj:
+            return "climate_policy_setback"
+    if predicate == "claim_text" and "woolworths" in obj:
+        if "direct grocery impacts" in obj or "direct cost pass-through" in obj:
+            return "woolworths_direct_price_impact"
+    if predicate in _GOVERNANCE_FAMILY_PREDICATES:
+        if "climate policy" in obj or "carbon pricing" in obj:
+            return "government_climate_policy_capacity"
+    return obj
+
+
 def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) -> list[str]:
     propositions = {str(row.get("proposition_id")): row for row in report.get("propositions", [])}
     incoming: dict[str, list[dict[str, Any]]] = {}
@@ -371,8 +403,37 @@ def _derive_comparison_links(
             right_args.get("object") or ""
         )
         distinct_subjects = _norm(left_args.get("subject") or "") != _norm(right_args.get("subject") or "")
-        if shared_object and distinct_subjects and (
+        same_outcome_family = _comparison_outcome_family(left) and _comparison_outcome_family(left) == _comparison_outcome_family(right)
+        same_subject = _comparison_subject_key(left) and _comparison_subject_key(left) == _comparison_subject_key(right)
+        same_predicate_conflicting_subjects = shared_object and distinct_subjects and (
             left_predicate == right_predicate or (left_predicate, right_predicate) in _DISPUTE_PREDICATE_PAIRS
+        )
+        same_subject_conflicting_outcome = (
+            same_subject
+            and same_outcome_family
+            and left_predicate in _CAUSAL_DISPUTE_PREDICATES
+            and right_predicate in _CAUSAL_DISPUTE_PREDICATES
+            and left_predicate != right_predicate
+        )
+        same_statement_family_conflict = (
+            same_subject
+            and same_outcome_family
+            and left_predicate in _STATEMENT_FAMILY_PREDICATES
+            and right_predicate in _STATEMENT_FAMILY_PREDICATES
+            and _proposition_signature(left) != _proposition_signature(right)
+        )
+        same_governance_family_conflict = (
+            same_subject
+            and same_outcome_family
+            and left_predicate in _GOVERNANCE_FAMILY_PREDICATES
+            and right_predicate in _GOVERNANCE_FAMILY_PREDICATES
+            and _proposition_signature(left) != _proposition_signature(right)
+        )
+        if (
+            same_predicate_conflicting_subjects
+            or same_subject_conflicting_outcome
+            or same_statement_family_conflict
+            or same_governance_family_conflict
         ):
             key = (left_id, right_id, "undermines")
             if key in seen:
@@ -385,7 +446,17 @@ def _derive_comparison_links(
                     "left_proposition_id": left_id,
                     "right_proposition_id": right_id,
                     "receipts": [
-                        _receipt("comparison_basis", "shared_outcome_conflicting_cause_or_predicate"),
+                        _receipt(
+                            "comparison_basis",
+                            "shared_subject_statement_family"
+                            if same_statement_family_conflict
+                            else "shared_subject_governance_family"
+                            if same_governance_family_conflict
+                            else
+                            "shared_subject_conflicting_outcome_family"
+                            if same_subject_conflicting_outcome
+                            else "shared_outcome_conflicting_cause_or_predicate",
+                        ),
                         _receipt("subject_object_key", str(row.get("subject_object_key") or "")),
                     ],
                 }
@@ -551,15 +622,44 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
     right_non_attr = [row for row in right_report.get("propositions", []) if str(row.get("proposition_kind")) != "attribution"]
     for left_row in left_non_attr:
         for right_row in right_non_attr:
-            if str(left_row.get("predicate_key")) != str(right_row.get("predicate_key")):
-                continue
-            if _predicate_object_key(left_row) != _predicate_object_key(right_row):
+            left_predicate = str(left_row.get("predicate_key") or "")
+            right_predicate = str(right_row.get("predicate_key") or "")
+            left_subject = _comparison_subject_key(left_row)
+            right_subject = _comparison_subject_key(right_row)
+            left_outcome_family = _comparison_outcome_family(left_row)
+            right_outcome_family = _comparison_outcome_family(right_row)
+            same_predicate_outcome = left_predicate == right_predicate and _predicate_object_key(left_row) == _predicate_object_key(right_row)
+            same_causal_family = (
+                left_predicate in _CAUSAL_DISPUTE_PREDICATES
+                and right_predicate in _CAUSAL_DISPUTE_PREDICATES
+                and left_subject
+                and left_subject == right_subject
+                and left_outcome_family
+                and left_outcome_family == right_outcome_family
+            )
+            same_statement_family = (
+                left_predicate in _STATEMENT_FAMILY_PREDICATES
+                and right_predicate in _STATEMENT_FAMILY_PREDICATES
+                and left_subject
+                and left_subject == right_subject
+                and left_outcome_family
+                and left_outcome_family == right_outcome_family
+            )
+            same_governance_family = (
+                left_predicate in _GOVERNANCE_FAMILY_PREDICATES
+                and right_predicate in _GOVERNANCE_FAMILY_PREDICATES
+                and left_subject
+                and left_subject == right_subject
+                and left_outcome_family
+                and left_outcome_family == right_outcome_family
+            )
+            if not same_predicate_outcome and not same_causal_family and not same_statement_family and not same_governance_family:
                 continue
             if _proposition_signature(left_row) == _proposition_signature(right_row):
                 continue
             pair = (
-                str(left_row.get("predicate_key")),
-                _predicate_object_key(left_row),
+                left_predicate,
+                left_outcome_family or _predicate_object_key(left_row),
                 _proposition_signature(left_row),
                 _proposition_signature(right_row),
             )
@@ -569,6 +669,8 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             disputed_propositions.append(
                 {
                     "subject_object_key": _predicate_object_key(left_row),
+                    "comparison_subject_key": left_subject,
+                    "comparison_outcome_family": left_outcome_family,
                     "left": left_row,
                     "right": right_row,
                 }

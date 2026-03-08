@@ -13,7 +13,7 @@ _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
-from src.wiki_timeline.revision_pack_runner import human_summary, run
+from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, human_summary, run
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,8 +27,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--out-dir",
         type=Path,
-        default=Path("SensibLaw/demo/ingest/wiki_revision_monitor/wiki_revision_monitor_v1"),
-        help="Output directory for export artifacts (default: %(default)s)",
+        default=None,
+        help="Output directory for export artifacts (default: derived from --pack pack_id)",
     )
     parser.add_argument(
         "--state-db",
@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload = run(
         pack_path=args.pack,
-        out_dir=args.out_dir,
+        out_dir=args.out_dir or default_out_dir_for_pack(args.pack),
         state_db_path=args.state_db,
         bridge_db_path=args.bridge_db,
     )

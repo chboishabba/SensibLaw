@@ -88,10 +88,18 @@ def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None
         for row in comparison["disputed_propositions"]
     )
     assert any(
-        row["predicate_key"] == "support" for row in comparison["source_only_propositions"]["jordies_case"]
+        row["predicate_key"] == "govern_in" for row in comparison["source_only_propositions"]["counter_analysis"]
     )
     assert any(
-        row["predicate_key"] == "govern_in" for row in comparison["source_only_propositions"]["counter_analysis"]
+        row["comparison_outcome_family"] == "government_climate_policy_capacity"
+        and row["left"]["predicate_key"] == "support"
+        and row["right"]["predicate_key"] == "pass"
+        for row in comparison["disputed_propositions"]
+    )
+    assert any(
+        row["link_kind"] == "undermines"
+        and any(receipt["value"] == "shared_subject_governance_family" for receipt in row["receipts"])
+        for row in comparison["comparison_links"]
     )
     assert any(
         row["link_kind"] == "supports"
@@ -139,17 +147,33 @@ def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() ->
     comparison = build_narrative_comparison_report(sources[0], sources[1])
     assert comparison["summary"]["shared_proposition_count"] >= 2
     assert any(
-        row["predicate_key"] == "contribute_to"
-        for row in comparison["source_only_propositions"]["jordies_thread_position"]
+        row["left"]["predicate_key"] == "contribute_to" and row["right"]["predicate_key"] == "delay"
+        for row in comparison["disputed_propositions"]
     )
     assert any(
-        row["predicate_key"] == "support" for row in comparison["source_only_propositions"]["jordies_thread_position"]
+        row["link_kind"] == "undermines"
+        and any(receipt["value"] == "shared_subject_conflicting_outcome_family" for receipt in row["receipts"])
+        for row in comparison["comparison_links"]
     )
     assert any(
-        row["predicate_key"] == "delay" for row in comparison["source_only_propositions"]["thread_balanced_analysis"]
+        row["comparison_outcome_family"] == "woolworths_direct_price_impact"
+        for row in comparison["disputed_propositions"]
     )
     assert any(
-        row["predicate_key"] == "pass" for row in comparison["source_only_propositions"]["thread_balanced_analysis"]
+        row["link_kind"] == "undermines"
+        and any(receipt["value"] == "shared_subject_statement_family" for receipt in row["receipts"])
+        for row in comparison["comparison_links"]
+    )
+    assert any(
+        row["comparison_outcome_family"] == "government_climate_policy_capacity"
+        and row["left"]["predicate_key"] == "support"
+        and row["right"]["predicate_key"] == "pass"
+        for row in comparison["disputed_propositions"]
+    )
+    assert any(
+        row["link_kind"] == "undermines"
+        and any(receipt["value"] == "shared_subject_governance_family" for receipt in row["receipts"])
+        for row in comparison["comparison_links"]
     )
 
 

@@ -1,6 +1,25 @@
 # Changelog
 
 ## Unreleased
+- Docs/TODO alignment: clarify the current wiki revision monitor doctrine.
+  The priority is not immediate `itir-svelte` integration; it is bringing the
+  revision lane up to the same functional standard as the stronger suite
+  pipelines via deterministic producer-owned outputs, queryable run/result
+  state, additive read models, and shared provenance/review posture so other
+  pipelines can reuse the lane cleanly.
+- Narrative validation/comparison: the thread-derived FriendlyJordies fixture
+  now normalizes two more comparison seams from the live discussion instead of
+  leaving them as unrelated source-only text. `friendlyjordies_thread_extract`
+  now aligns `contribute_to` vs `delay` as a shared CPRS consequence family,
+  treats the Woolworths `direct grocery impacts` vs `direct cost pass-through`
+  lines as a shared statement family, and emits explicit cross-source
+  `undermines` links for both disputes.
+- Narrative validation/comparison: the FriendlyJordies comparison lane now
+  also normalizes the government-formation argument seam. Claims like
+  `majority government supports long-term climate policy` and
+  `minority government passed carbon pricing legislation` now compare as a
+  shared `government_climate_policy_capacity` family and emit a structured
+  `undermines` link instead of surviving as source-only leftovers.
 - Narrative validation/comparison: widen the proposition layer to preserve
   nested authority wrappers in public-media fixtures. The comparison extractor
   now recursively emits chains like `assert/report -> hold -> fact`, adds a

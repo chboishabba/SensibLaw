@@ -42,6 +42,26 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   - `wiki_revision_monitor_v1` for mixed baseline + ontology-stress pages
   - `wiki_revision_contested_v1` for live high-contestation pages across
     politics, ongoing conflict, religion, and politicized science/medicine
+- The next revision-monitor step is now fixed as a bounded history-aware
+  runner:
+  - keep current-vs-last-seen state
+  - poll bounded recent revision windows
+  - score candidate deltas before full extraction
+  - materialize only the top selected pairs
+  - add section-aware targeting to pair reports and issue packets
+- Cross-project interface posture for that lane is fixed:
+  - `SensibLaw` owns source comparison and pair-report production
+  - `SL-reasoner` may consume pair reports read-only
+  - `StatiBaker` may ingest observer-class refs only
+  - `fuzzymodo` and `casey-git-clone` remain reference-only external consumers
+    at this stage
+- Current doctrine for the wiki revision pack runner:
+  - do not prioritize GUI/workbench integration yet
+  - do prioritize bringing the lane up to the same functional standard as the
+    stronger suite pipelines
+  - the important convergence points are deterministic producer-owned outputs,
+    queryable run/result state, additive read models, and shared review/
+    provenance posture so other pipelines can propagate/reuse the lane cleanly
 - Archive/context source for the contested-pack expansion:
   - title: `Highly Contested Wiki Pages`
   - online UUID: `69ada623-351c-839a-97c4-7669a12b8e04`

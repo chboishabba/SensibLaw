@@ -247,6 +247,15 @@
 - [ ] Tighten automatic actual-to-mission mapping beyond the current reviewed +
   lexical bridge before treating mission drift as a stronger accounting
   surface.
+- [ ] Bring the wiki revision monitor lane up to the same functional standard
+  as the stronger suite pipelines before prioritizing GUI integration:
+  - add query-first helpers/read models over latest runs, changed articles,
+    severities, and issue-packet summaries instead of relying on raw
+    `result_json` blobs alone
+  - keep producer-owned report surfaces explicit so other lanes can consume
+    revision artifacts without re-deriving monitor logic
+  - preserve the dedicated runner/state-DB posture; this is a standards/
+    interoperability task, not a demand to fold the lane into `itir-svelte`
 - [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
   `... against ...` reasoning idioms and factual scaffolding:
   - cited-authority subgroup handling (`majority in Lepore`, similar)

@@ -133,13 +133,22 @@ Current pack roles:
 Current contract:
 - per-article comparison remains read-only
 - last-seen state lives in a dedicated SQLite file
+- bounded revision-history polling is now part of the monitor lane
+- only top selected candidate pairs get full extraction/report work
 - curated review context from the pack is primary
 - bounded bridge/alias auto-join is secondary context only
+- current success criteria are functional/cross-pipeline first:
+  - deterministic producer-owned outputs
+  - queryable run/result state
+  - additive read models over raw report blobs
+  - later GUI/workbench use is downstream, not the immediate target
 
 See:
 - `SensibLaw/docs/wiki_revision_harness_contract_v0_1.md`
 - `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_1.md`
+- `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_2.md`
 - `SensibLaw/docs/planning/wiki_revision_contested_pack_20260309.md`
+- `SensibLaw/docs/planning/wiki_revision_history_runner_20260309.md`
 
 Important details:
 

@@ -122,3 +122,7 @@ Current curated manifests include:
 - `SensibLaw/data/source_packs/wiki_revision_contested_v1.json`
   - high-contestation pages across politics, ongoing conflict, religion, and
     politicized science/medicine
+
+## Superseded by
+The current history-aware runner contract lives in:
+- `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_2.md`
