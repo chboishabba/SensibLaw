@@ -95,3 +95,12 @@ def test_hca_case_snapshot_and_source_entity_are_non_null() -> None:
     assert source_entity["title"] == "AA v Diocese (S94/2025)"
     assert source_entity["url"] == snapshot["source_url"]
     assert source_entity["publication_date"] == snapshot["rev_timestamp"]
+
+
+def test_hca_narrative_sentence_filter_rejects_reference_heavy_lines() -> None:
+    assert (
+        ingest._is_narrative_sentence(
+            "T85.40–42 (evidence of AA) (ABFM vol 2 at 602); T115.32ff and T120.40–42 (Mr Perry) (ABFM vol 2 at 632, 637)."
+        )
+        is False
+    )

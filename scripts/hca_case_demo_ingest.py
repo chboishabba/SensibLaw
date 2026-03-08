@@ -1886,6 +1886,13 @@ def _is_narrative_sentence(text: str, nlp: Optional[object] = None) -> bool:
         return False
     if "page no" in lower or "name of matter" in lower:
         return False
+    if re.match(r"^(?:see,\s*e\.g\.|cf\.?\s)", s, flags=re.IGNORECASE):
+        return False
+    if re.match(r"^(?:T\d+[.\d–-]*|CAB\s*\d+|SC\[\d+|CA\[\d+|AS\[\d+|RS\[\d+|ABFM\b)", s):
+        return False
+    citation_marker_count = len(re.findall(r"\b(?:CAB|SC|CA|AS|RS|ABFM)\b|\bT\d+(?:\.\d+)?\b", s))
+    if citation_marker_count >= 3 and len(re.findall(r"\b(?:is|are|was|were|be|been|being|has|have|had|does|do|did)\b", lower)) <= 1:
+        return False
     if s.count("_") >= 6:
         return False
 

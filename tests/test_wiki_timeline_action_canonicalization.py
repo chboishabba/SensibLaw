@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import spacy
+
 from scripts import wiki_timeline_aoo_extract as ext
 
 
@@ -23,3 +25,9 @@ def test_text_fallback_does_not_promote_nominal_ing_phrase() -> None:
         "The September 11 terrorist attacks were a major turning point in Bush's presidency."
     )
     assert action is None
+
+
+def test_non_eventive_nominal_action_is_demoted_for_copular_legal_statement() -> None:
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp("The Diocese of Maitland-Newcastle is an unincorporated organisation.")
+    assert ext._should_demote_non_eventive_action(doc, "unincorporated") is True

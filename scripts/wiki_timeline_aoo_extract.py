@@ -1412,6 +1412,37 @@ def _canonical_action_from_doc(doc, action: str) -> Tuple[str, Optional[dict]]:
     return lemma, meta
 
 
+def _should_demote_non_eventive_action(doc, action: str) -> bool:
+    if not doc or not action:
+        return False
+    action_norm = str(action or "").strip().lower()
+    if not action_norm:
+        return False
+    root = None
+    for tok in doc:
+        if str(getattr(tok, "dep_", "") or "") == "ROOT":
+            root = tok
+            break
+    if root is None:
+        return False
+    root_lemma = str(getattr(root, "lemma_", "") or "").strip().lower()
+    if root_lemma not in {"be", "have"}:
+        return False
+    saw_eventive_match = False
+    saw_nominal_match = False
+    for tok in doc:
+        text_norm = str(getattr(tok, "text", "") or "").strip().lower()
+        lemma_norm = str(getattr(tok, "lemma_", "") or "").strip().lower()
+        if action_norm not in {text_norm, lemma_norm}:
+            continue
+        pos = str(getattr(tok, "pos_", "") or "")
+        if pos in {"VERB", "AUX"}:
+            saw_eventive_match = True
+        elif pos in {"NOUN", "ADJ", "PROPN"}:
+            saw_nominal_match = True
+    return saw_nominal_match and not saw_eventive_match
+
+
 def _norm_phrase(s: str) -> str:
     t = re.sub(r"[^A-Za-z0-9 ]+", " ", str(s or ""))
     return re.sub(r"\s+", " ", t).strip().lower()
@@ -4166,11 +4197,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         event_action_surface = str(action or "")
         event_action_meta: Optional[dict] = None
         if action:
-            canon_action, action_meta = _canonical_action_from_doc(doc, action)
-            if canon_action:
-                action = canon_action
-            if action_meta:
-                event_action_meta = action_meta
+            if _should_demote_non_eventive_action(doc, action):
+                warnings.append("demoted_non_eventive_action")
+                action = None
+                event_action_surface = ""
+            if action:
+                canon_action, action_meta = _canonical_action_from_doc(doc, action)
+                if canon_action:
+                    action = canon_action
+                if action_meta:
+                    event_action_meta = action_meta
 
         requester: Optional[str] = None
         requester_resolved: Optional[str] = None
