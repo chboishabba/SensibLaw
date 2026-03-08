@@ -30,6 +30,12 @@ _FACT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("approve_after", re.compile(r"^(?P<subject>.+?)\s+(?:was|were)\s+approved\s+after\s+(?P<object>.+)$", re.IGNORECASE)),
     ("begin_before", re.compile(r"^(?P<subject>.+?)\s+began\s+before\s+(?P<object>.+)$", re.IGNORECASE)),
     ("meet", re.compile(r"^(?P<subject>.+?)\s+met\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("block", re.compile(r"^(?P<subject>.+?)\s+blocked\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("contribute_to", re.compile(r"^(?P<subject>.+?)\s+contributed\s+to\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("use", re.compile(r"^(?P<subject>.+?)\s+uses\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("support", re.compile(r"^(?P<subject>.+?)\s+supports\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("pass", re.compile(r"^(?P<subject>.+?)\s+passed\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("govern_in", re.compile(r"^(?P<subject>.+?)\s+govern(?:s)?\s+successfully\s+in\s+(?P<object>.+)$", re.IGNORECASE)),
 )
 
 _DISPUTE_PREDICATE_PAIRS = {
@@ -226,6 +232,14 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
                 }
             )
 
+    support_links, link_index = _derive_support_links(
+        source_id=source.source_id,
+        propositions=propositions,
+        proposition_links=proposition_links,
+        starting_link_index=link_index,
+    )
+    proposition_links.extend(support_links)
+
     return {
         "source": {
             "source_id": source.source_id,
@@ -265,6 +279,11 @@ def _index_propositions(report: dict[str, Any]) -> tuple[dict[str, list[dict[str
     return by_signature, by_subject_object
 
 
+def _predicate_object_key(proposition: dict[str, Any]) -> str:
+    args = {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+    return f"{str(proposition.get('predicate_key') or '')}|{_norm(args.get('object') or '')}"
+
+
 def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) -> list[str]:
     propositions = {str(row.get("proposition_id")): row for row in report.get("propositions", [])}
     out: list[str] = []
@@ -279,6 +298,100 @@ def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) 
         args = {str(arg.get("role")): str(arg.get("value") or "") for arg in wrapper.get("arguments", [])}
         out.append(f"{wrapper.get('predicate_key')}:{args.get('speaker','')}")
     return sorted(set(out))
+
+
+def _arguments_by_role(proposition: dict[str, Any]) -> dict[str, str]:
+    return {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+
+
+def _derive_support_links(
+    *,
+    source_id: str,
+    propositions: list[dict[str, Any]],
+    proposition_links: list[dict[str, Any]],
+    starting_link_index: int,
+) -> tuple[list[dict[str, Any]], int]:
+    links: list[dict[str, Any]] = []
+    link_index = starting_link_index
+    seen: set[tuple[str, str, str]] = set()
+
+    factual = [row for row in propositions if str(row.get("proposition_kind")) == "fact"]
+    by_signature: dict[str, list[dict[str, Any]]] = {}
+    for row in factual:
+        by_signature.setdefault(_proposition_signature(row), []).append(row)
+
+    for row in factual:
+        if str(row.get("predicate_key")) != "block":
+            continue
+        block_args = _arguments_by_role(row)
+        block_subject = _norm(block_args.get("subject") or "")
+        block_object = _norm(block_args.get("object") or "")
+        for candidate in factual:
+            if str(candidate.get("predicate_key")) != "contribute_to":
+                continue
+            candidate_args = _arguments_by_role(candidate)
+            candidate_subject = _norm(candidate_args.get("subject") or "")
+            if block_subject and block_subject in candidate_subject and block_object and block_object in candidate_subject:
+                key = (str(row.get("proposition_id")), str(candidate.get("proposition_id")), "supports")
+                if key in seen:
+                    continue
+                seen.add(key)
+                link_index += 1
+                links.append(
+                    {
+                        "link_id": f"{candidate.get('event_id')}:s{link_index}",
+                        "event_id": str(candidate.get("event_id") or row.get("event_id") or ""),
+                        "source_id": source_id,
+                        "source_proposition_id": str(row.get("proposition_id") or ""),
+                        "target_proposition_id": str(candidate.get("proposition_id") or ""),
+                        "link_kind": "supports",
+                        "receipts": [
+                            _receipt("support_basis", "block_subject_embeds_causal_subject"),
+                            _receipt("support_source", str(row.get("predicate_key") or "")),
+                        ],
+                    }
+                )
+
+    attributed_by_id = {str(row.get("proposition_id")): row for row in propositions if str(row.get("proposition_kind")) == "attribution"}
+    evidence_target_ids: set[str] = set()
+    for link in proposition_links:
+        if str(link.get("link_kind")) != "attributes_to":
+            continue
+        wrapper = attributed_by_id.get(str(link.get("source_proposition_id")))
+        if not isinstance(wrapper, dict):
+            continue
+        wrapper_args = _arguments_by_role(wrapper)
+        if _norm(wrapper_args.get("speaker") or "") in {"court records", "records", "court record"}:
+            evidence_target_ids.add(str(link.get("target_proposition_id") or ""))
+
+    for signature, rows in by_signature.items():
+        evidence_rows = [row for row in rows if str(row.get("proposition_id") or "") in evidence_target_ids]
+        non_evidence_fact_rows = [row for row in rows if str(row.get("proposition_id") or "") not in evidence_target_ids]
+        if not evidence_rows or not non_evidence_fact_rows:
+            continue
+        for evidence_row in evidence_rows:
+            for target_row in non_evidence_fact_rows:
+                key = (str(evidence_row.get("proposition_id")), str(target_row.get("proposition_id")), "supports")
+                if key in seen:
+                    continue
+                seen.add(key)
+                link_index += 1
+                links.append(
+                    {
+                        "link_id": f"{target_row.get('event_id')}:s{link_index}",
+                        "event_id": str(target_row.get("event_id") or evidence_row.get("event_id") or ""),
+                        "source_id": source_id,
+                        "source_proposition_id": str(evidence_row.get("proposition_id") or ""),
+                        "target_proposition_id": str(target_row.get("proposition_id") or ""),
+                        "link_kind": "supports",
+                        "receipts": [
+                            _receipt("support_basis", "documentary_support_same_signature"),
+                            _receipt("support_source", "court_records"),
+                        ],
+                    }
+                )
+
+    return links, link_index
 
 
 def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSource) -> dict[str, Any]:
@@ -344,6 +457,33 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                         "right": right_row,
                     }
                 )
+
+    left_non_attr = [row for row in left_report.get("propositions", []) if str(row.get("proposition_kind")) != "attribution"]
+    right_non_attr = [row for row in right_report.get("propositions", []) if str(row.get("proposition_kind")) != "attribution"]
+    for left_row in left_non_attr:
+        for right_row in right_non_attr:
+            if str(left_row.get("predicate_key")) != str(right_row.get("predicate_key")):
+                continue
+            if _predicate_object_key(left_row) != _predicate_object_key(right_row):
+                continue
+            if _proposition_signature(left_row) == _proposition_signature(right_row):
+                continue
+            pair = (
+                str(left_row.get("predicate_key")),
+                _predicate_object_key(left_row),
+                _proposition_signature(left_row),
+                _proposition_signature(right_row),
+            )
+            if pair in seen_disputed:
+                continue
+            seen_disputed.add(pair)
+            disputed_propositions.append(
+                {
+                    "subject_object_key": _predicate_object_key(left_row),
+                    "left": left_row,
+                    "right": right_row,
+                }
+            )
 
     shared_signatures = {row["signature"] for row in shared_propositions}
     disputed_left_ids = {str(row["left"]["proposition_id"]) for row in disputed_propositions}

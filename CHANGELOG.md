@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Narrative validation/comparison: add a second public FriendlyJordies-derived
+  argument fixture (`friendlyjordies_chat_arguments.json`) based on the archive
+  discussion itself. The bounded comparison extractor now also recognizes
+  argument predicates such as `block`, `contribute_to`, `use`, `support`,
+  `pass`, and `govern_in`, and comparison treats same-outcome / different-cause
+  claims as disputes instead of unrelated source-only rows.
 - Wikipedia revision harness: add a bounded read-only comparison/report lane
   for previous-vs-current Wikipedia revisions. New contract/docs define the
   v0.1 report shape (similarity metrics, extraction delta summary, local

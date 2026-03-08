@@ -1,0 +1,66 @@
+{
+  "fixture_id": "friendlyjordies_chat_arguments_v1",
+  "label": "FriendlyJordies chat-derived arguments",
+  "sources": [
+    {
+      "source_id": "jordies_case",
+      "title": "FriendlyJordies-style argument",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "jordies_case:u1",
+          "text": "FriendlyJordies said that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "jordies_case:u2",
+          "text": "FriendlyJordies argued that Greens blocking the CPRS contributed to climate policy instability."
+        },
+        {
+          "unit_id": "jordies_case:u3",
+          "text": "FriendlyJordies said that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "jordies_case:u4",
+          "text": "FriendlyJordies argued that majority government supports long-term climate policy."
+        },
+        {
+          "unit_id": "jordies_case:u5",
+          "text": "Court records showed that the Greens blocked the CPRS."
+        }
+      ]
+    },
+    {
+      "source_id": "counter_analysis",
+      "title": "Counter-analysis from the same archive lane",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "counter_analysis:u1",
+          "text": "The analysis reported that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "counter_analysis:u2",
+          "text": "The analysis argued that Coalition opposition contributed to climate policy instability."
+        },
+        {
+          "unit_id": "counter_analysis:u3",
+          "text": "The analysis said that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "counter_analysis:u4",
+          "text": "The analysis argued that minority government passed carbon pricing legislation."
+        },
+        {
+          "unit_id": "counter_analysis:u5",
+          "text": "The analysis said that the Greens govern successfully in Germany."
+        },
+        {
+          "unit_id": "counter_analysis:u6",
+          "text": "Court records showed that the Greens blocked the CPRS."
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,11 @@ def _fixture_sources() -> tuple[dict, list]:
     return load_fixture_sources(fixture_path)
 
 
+def _chat_argument_sources() -> tuple[dict, list]:
+    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_chat_arguments.json")
+    return load_fixture_sources(fixture_path)
+
+
 def test_friendlyjordies_fixture_builds_validation_report() -> None:
     _, sources = _fixture_sources()
     report = build_narrative_validation_report(sources[0])
@@ -39,3 +44,48 @@ def test_friendlyjordies_fixture_comparison_surfaces_shared_and_disputed_rows() 
     assert any("The newspaper" in ",".join(row["right_attributions"]) for row in comparison["link_differences"])
     assert comparison["source_only_propositions"]["jordies_video"] == []
     assert comparison["source_only_propositions"]["newspaper_report"] == []
+
+
+def test_chat_derived_jordies_argument_fixture_extracts_multiple_argument_predicates() -> None:
+    _, sources = _chat_argument_sources()
+    report = build_narrative_validation_report(sources[0])
+    predicates = {row["predicate_key"] for row in report["propositions"]}
+    assert "block" in predicates
+    assert "contribute_to" in predicates
+    assert "use" in predicates
+    assert "support" in predicates
+    support_links = [row for row in report["proposition_links"] if row["link_kind"] == "supports"]
+    assert any(
+        any(receipt["value"] == "block_subject_embeds_causal_subject" for receipt in row["receipts"])
+        for row in support_links
+    )
+    assert any(
+        any(receipt["value"] == "documentary_support_same_signature" for receipt in row["receipts"])
+        for row in support_links
+    )
+
+
+def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None:
+    _, sources = _chat_argument_sources()
+    comparison = build_narrative_comparison_report(sources[0], sources[1])
+    assert comparison["summary"]["shared_proposition_count"] >= 2
+    assert comparison["summary"]["disputed_proposition_count"] >= 1
+    assert any(
+        row["left"]["predicate_key"] == "contribute_to"
+        and row["right"]["predicate_key"] == "contribute_to"
+        for row in comparison["disputed_propositions"]
+    )
+    assert any(
+        row["predicate_key"] == "support" for row in comparison["source_only_propositions"]["jordies_case"]
+    )
+    assert any(
+        row["predicate_key"] == "govern_in" for row in comparison["source_only_propositions"]["counter_analysis"]
+    )
+    assert any(
+        row["link_kind"] == "supports"
+        for row in comparison["reports"]["jordies_case"]["proposition_links"]
+    )
+    assert any(
+        row["link_kind"] == "supports"
+        for row in comparison["reports"]["counter_analysis"]["proposition_links"]
+    )
