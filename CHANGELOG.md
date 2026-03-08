@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- Narrative validation/comparison: widen the proposition layer to preserve
+  nested authority wrappers in public-media fixtures. The comparison extractor
+  now recursively emits chains like `assert/report -> hold -> fact`, adds a
+  public `friendlyjordies_authority_wrappers.json` proving fixture, preserves
+  full attribution stacks in comparison output, and derives bounded cross-
+  source `undermines` links for conflicting same-outcome causal claims.
+- Wikipedia revision pack runner: add the first bounded rolling-runner contract
+  and article pack for current-vs-last-seen monitoring. The design uses a
+  dedicated SQLite state store, selected article manifests under
+  `data/source_packs/`, store-first revision comparisons, and hybrid review
+  context (curated pack context first, bounded bridge/alias auto-join second).
 - Narrative validation/comparison: add a second public FriendlyJordies-derived
   argument fixture (`friendlyjordies_chat_arguments.json`) based on the archive
   discussion itself. The bounded comparison extractor now also recognizes

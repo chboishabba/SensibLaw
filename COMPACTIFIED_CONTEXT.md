@@ -202,6 +202,14 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - This harness is intentionally not an edit bot, not a Wikidata ontology
   mutation path, and not a truth adjudicator. Live volatility is treated as a
   reportable signal; authority boundaries remain unchanged.
+- The next slice is a pack-level rolling runner, not a UI-first expansion:
+  - selected article titles live in a pack manifest
+  - last-seen state lives in a dedicated SQLite file, not `itir.sqlite`
+  - current-vs-last-seen comparison is store-first rather than
+    history-fetch-first
+  - curated review context from the article pack is primary
+  - bridge/alias auto-join is allowed as bounded secondary context only
+  - the first consumer remains CLI-first, but outputs should be UI-ready
 - The next public transcript/narrative proving case should use
   FriendlyJordies as a named public-media fixture for URL/transcript narrative
   validation. The target story is not "trust this source"; it is "ingest the

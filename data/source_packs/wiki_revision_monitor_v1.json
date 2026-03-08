@@ -1,0 +1,95 @@
+{
+  "pack_id": "wiki_revision_monitor_v1",
+  "version": 1,
+  "scope": "Bounded English Wikipedia rolling revision monitor with clean baselines and ontology-stress pages.",
+  "provenance": {
+    "created_on": "2026-03-09",
+    "purpose": "Rolling revision harness for SL/ITIR ingest evaluation and review support."
+  },
+  "articles": [
+    {
+      "article_id": "baseline_emil_hartmann",
+      "wiki": "enwiki",
+      "title": "Emil Hartmann",
+      "role": "baseline",
+      "topics": ["baseline", "biography"],
+      "review_context": {
+        "curated_qids": ["Q1336181"],
+        "diagnostic_topics": ["baseline"],
+        "notes": ["Clean baseline biography with known enwiki sitelink in existing fixture material."]
+      }
+    },
+    {
+      "article_id": "stress_alphabet",
+      "wiki": "enwiki",
+      "title": "Alphabet",
+      "role": "stress",
+      "topics": ["mixed_order", "wikidata"],
+      "review_context": {
+        "curated_qids": ["Q9779", "Q8192"],
+        "diagnostic_topics": ["mixed_order"],
+        "notes": ["Primary mixed-order live case paired with Writing system in the Wikidata working-group status."]
+      }
+    },
+    {
+      "article_id": "stress_writing_system",
+      "wiki": "enwiki",
+      "title": "Writing system",
+      "role": "stress",
+      "topics": ["mixed_order", "wikidata"],
+      "review_context": {
+        "curated_qids": ["Q8192", "Q9779"],
+        "diagnostic_topics": ["mixed_order"],
+        "notes": ["Paired mixed-order page with Alphabet."]
+      }
+    },
+    {
+      "article_id": "stress_urban_green_space",
+      "wiki": "enwiki",
+      "title": "Urban green space",
+      "role": "stress",
+      "topics": ["p279_scc", "wikidata"],
+      "review_context": {
+        "curated_qids": ["Q22652", "Q22698"],
+        "diagnostic_topics": ["p279_scc"],
+        "notes": ["Primary SCC live case paired with Park in the current working-group status."]
+      }
+    },
+    {
+      "article_id": "stress_park",
+      "wiki": "enwiki",
+      "title": "Park",
+      "role": "stress",
+      "topics": ["p279_scc", "wikidata", "parthood_adjacent"],
+      "review_context": {
+        "curated_qids": ["Q22698", "Q22652"],
+        "diagnostic_topics": ["p279_scc", "parthood_adjacent"],
+        "notes": ["Paired SCC page with Urban green space; useful nearby parthood-like surfaces may appear in local extraction."]
+      }
+    },
+    {
+      "article_id": "stress_high_german",
+      "wiki": "enwiki",
+      "title": "High German languages",
+      "role": "stress",
+      "topics": ["p279_scc", "wikidata"],
+      "review_context": {
+        "curated_qids": ["Q52040", "Q188"],
+        "diagnostic_topics": ["p279_scc"],
+        "notes": ["Language-family SCC example paired with German."]
+      }
+    },
+    {
+      "article_id": "stress_german",
+      "wiki": "enwiki",
+      "title": "German language",
+      "role": "stress",
+      "topics": ["p279_scc", "wikidata"],
+      "review_context": {
+        "curated_qids": ["Q188", "Q52040"],
+        "diagnostic_topics": ["p279_scc"],
+        "notes": ["Paired SCC page with High German languages."]
+      }
+    }
+  ]
+}

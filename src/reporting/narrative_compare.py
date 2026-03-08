@@ -137,65 +137,69 @@ def _extract_fact_proposition(
     return proposition, None
 
 
-def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]:
-    propositions: list[dict[str, Any]] = []
-    proposition_links: list[dict[str, Any]] = []
-    facts: list[dict[str, Any]] = []
-    abstentions: list[dict[str, Any]] = []
-    corroboration_refs: list[dict[str, Any]] = []
-    proposition_index = 0
-    link_index = 0
-
-    for unit in source.text_units:
-        event_id = unit.unit_id
-        text = _clean_text(unit.text)
-        if not text:
-            continue
-        matched_attribution = False
+def _extract_claim_graph(
+    *,
+    source_id: str,
+    event_id: str,
+    text: str,
+    propositions: list[dict[str, Any]],
+    proposition_links: list[dict[str, Any]],
+    facts: list[dict[str, Any]],
+    corroboration_refs: list[dict[str, Any]],
+    state: dict[str, int],
+    source_signal: str,
+    max_depth: int = 3,
+) -> str:
+    cleaned = _clean_text(text)
+    if max_depth > 0:
         for link_kind, pattern in _ATTRIBUTION_PATTERNS:
-            match = pattern.match(text)
+            match = pattern.match(cleaned)
             if not match:
                 continue
-            matched_attribution = True
             speaker = _clean_text(str(match.group("speaker") or ""))
             claim = _clean_text(str(match.group("claim") or ""))
-            proposition_index += 1
-            inner_proposition, fact = _extract_fact_proposition(
-                source_id=source.source_id,
+            target_proposition_id = _extract_claim_graph(
+                source_id=source_id,
                 event_id=event_id,
-                proposition_index=proposition_index,
-                claim_text=claim,
+                text=claim,
+                propositions=propositions,
+                proposition_links=proposition_links,
+                facts=facts,
+                corroboration_refs=corroboration_refs,
+                state=state,
                 source_signal=f"attribution_{link_kind}",
+                max_depth=max_depth - 1,
             )
-            propositions.append(inner_proposition)
-            if fact is not None:
-                facts.append(fact)
-            wrapper_id = f"{event_id}:a{proposition_index}"
+            state["wrapper_index"] += 1
+            wrapper_id = f"{event_id}:a{state['wrapper_index']}"
+            wrapper_arguments = [
+                _argument("speaker", speaker),
+                _argument("target_proposition", target_proposition_id),
+            ]
+            if link_kind == "hold":
+                wrapper_arguments.append(_argument("authority", speaker))
             wrapper = {
                 "proposition_id": wrapper_id,
                 "event_id": event_id,
-                "source_id": source.source_id,
+                "source_id": source_id,
                 "proposition_kind": "attribution",
                 "predicate_key": link_kind,
-                "anchor_text": text,
-                "arguments": [
-                    _argument("speaker", speaker),
-                    _argument("target_proposition", inner_proposition["proposition_id"]),
-                ],
+                "anchor_text": cleaned,
+                "arguments": wrapper_arguments,
                 "receipts": [
                     _receipt("source_signal", f"wrapper_{link_kind}"),
-                    _receipt("surface_text", text),
+                    _receipt("surface_text", cleaned),
                 ],
             }
             propositions.append(wrapper)
-            link_index += 1
+            state["link_index"] += 1
             proposition_links.append(
                 {
-                    "link_id": f"{event_id}:l{link_index}",
+                    "link_id": f"{event_id}:l{state['link_index']}",
                     "event_id": event_id,
-                    "source_id": source.source_id,
+                    "source_id": source_id,
                     "source_proposition_id": wrapper_id,
-                    "target_proposition_id": inner_proposition["proposition_id"],
+                    "target_proposition_id": target_proposition_id,
                     "link_kind": "attributes_to",
                     "receipts": [_receipt("speaker", speaker), _receipt("wrapper_kind", link_kind)],
                 }
@@ -209,21 +213,49 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
                         "claim_text": claim,
                     }
                 )
-            break
-        if matched_attribution:
+            return wrapper_id
+
+    state["proposition_index"] += 1
+    proposition, fact = _extract_fact_proposition(
+        source_id=source_id,
+        event_id=event_id,
+        proposition_index=state["proposition_index"],
+        claim_text=cleaned,
+        source_signal=source_signal,
+    )
+    propositions.append(proposition)
+    if fact is not None:
+        facts.append(fact)
+    return str(proposition["proposition_id"])
+
+
+def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]:
+    propositions: list[dict[str, Any]] = []
+    proposition_links: list[dict[str, Any]] = []
+    facts: list[dict[str, Any]] = []
+    abstentions: list[dict[str, Any]] = []
+    corroboration_refs: list[dict[str, Any]] = []
+    state = {"proposition_index": 0, "wrapper_index": 0, "link_index": 0}
+
+    for unit in source.text_units:
+        event_id = unit.unit_id
+        text = _clean_text(unit.text)
+        if not text:
             continue
-        proposition_index += 1
-        proposition, fact = _extract_fact_proposition(
+        before_fact_count = len(facts)
+        proposition_id = _extract_claim_graph(
             source_id=source.source_id,
             event_id=event_id,
-            proposition_index=proposition_index,
-            claim_text=text,
+            text=text,
+            propositions=propositions,
+            proposition_links=proposition_links,
+            facts=facts,
+            corroboration_refs=corroboration_refs,
+            state=state,
             source_signal="direct_statement",
         )
-        propositions.append(proposition)
-        if fact is not None:
-            facts.append(fact)
-        else:
+        proposition = next((row for row in propositions if str(row.get("proposition_id")) == proposition_id), None)
+        if len(facts) == before_fact_count and isinstance(proposition, dict) and str(proposition.get("proposition_kind")) == "statement":
             abstentions.append(
                 {
                     "event_id": event_id,
@@ -236,7 +268,7 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
         source_id=source.source_id,
         propositions=propositions,
         proposition_links=proposition_links,
-        starting_link_index=link_index,
+        starting_link_index=state["link_index"],
     )
     proposition_links.extend(support_links)
 
@@ -286,22 +318,76 @@ def _predicate_object_key(proposition: dict[str, Any]) -> str:
 
 def _collect_attribution_summaries(report: dict[str, Any], proposition_id: str) -> list[str]:
     propositions = {str(row.get("proposition_id")): row for row in report.get("propositions", [])}
-    out: list[str] = []
+    incoming: dict[str, list[dict[str, Any]]] = {}
     for link in report.get("proposition_links", []):
         if str(link.get("link_kind")) != "attributes_to":
             continue
-        if str(link.get("target_proposition_id")) != proposition_id:
-            continue
-        wrapper = propositions.get(str(link.get("source_proposition_id")))
-        if not isinstance(wrapper, dict):
-            continue
-        args = {str(arg.get("role")): str(arg.get("value") or "") for arg in wrapper.get("arguments", [])}
-        out.append(f"{wrapper.get('predicate_key')}:{args.get('speaker','')}")
+        incoming.setdefault(str(link.get("target_proposition_id")), []).append(link)
+    out: list[str] = []
+    visited: set[str] = set()
+
+    def visit(target_id: str) -> None:
+        for link in incoming.get(target_id, []):
+            wrapper_id = str(link.get("source_proposition_id"))
+            if wrapper_id in visited:
+                continue
+            visited.add(wrapper_id)
+            wrapper = propositions.get(wrapper_id)
+            if not isinstance(wrapper, dict):
+                continue
+            args = {str(arg.get("role")): str(arg.get("value") or "") for arg in wrapper.get("arguments", [])}
+            out.append(f"{wrapper.get('predicate_key')}:{args.get('speaker','')}")
+            visit(wrapper_id)
+
+    visit(proposition_id)
     return sorted(set(out))
 
 
 def _arguments_by_role(proposition: dict[str, Any]) -> dict[str, str]:
     return {str(arg.get("role")): str(arg.get("value") or "") for arg in proposition.get("arguments", [])}
+
+
+def _derive_comparison_links(
+    *,
+    disputed_propositions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    comparison_links: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for index, row in enumerate(disputed_propositions, start=1):
+        left = row.get("left") or {}
+        right = row.get("right") or {}
+        left_id = str(left.get("proposition_id") or "")
+        right_id = str(right.get("proposition_id") or "")
+        if not left_id or not right_id:
+            continue
+        left_predicate = str(left.get("predicate_key") or "")
+        right_predicate = str(right.get("predicate_key") or "")
+        left_args = _arguments_by_role(left)
+        right_args = _arguments_by_role(right)
+        shared_object = _norm(left_args.get("object") or "") and _norm(left_args.get("object") or "") == _norm(
+            right_args.get("object") or ""
+        )
+        distinct_subjects = _norm(left_args.get("subject") or "") != _norm(right_args.get("subject") or "")
+        if shared_object and distinct_subjects and (
+            left_predicate == right_predicate or (left_predicate, right_predicate) in _DISPUTE_PREDICATE_PAIRS
+        ):
+            key = (left_id, right_id, "undermines")
+            if key in seen:
+                continue
+            seen.add(key)
+            comparison_links.append(
+                {
+                    "link_id": f"cmp:l{index}",
+                    "link_kind": "undermines",
+                    "left_proposition_id": left_id,
+                    "right_proposition_id": right_id,
+                    "receipts": [
+                        _receipt("comparison_basis", "shared_outcome_conflicting_cause_or_predicate"),
+                        _receipt("subject_object_key", str(row.get("subject_object_key") or "")),
+                    ],
+                }
+            )
+    return comparison_links
 
 
 def _derive_support_links(
@@ -528,6 +614,8 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
                 }
             )
 
+    comparison_links = _derive_comparison_links(disputed_propositions=disputed_propositions)
+
     abstentions = {
         left.source_id: left_report.get("abstentions", []),
         right.source_id: right_report.get("abstentions", []),
@@ -547,6 +635,7 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             "shared_fact_count": len(shared_facts),
             "disputed_fact_count": len(disputed_facts),
             "link_difference_count": len(link_differences),
+            "comparison_link_count": len(comparison_links),
         },
         "shared_propositions": shared_propositions,
         "disputed_propositions": disputed_propositions,
@@ -554,6 +643,7 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
         "shared_facts": shared_facts,
         "disputed_facts": disputed_facts,
         "link_differences": link_differences,
+        "comparison_links": comparison_links,
         "comparison_receipts": [
             {"kind": "comparison_mode", "value": "normalized_proposition_and_fact_signatures_v1"},
             {"kind": "fixture_ids", "value": f"{left.source_id},{right.source_id}"},

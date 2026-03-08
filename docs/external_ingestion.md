@@ -112,6 +112,25 @@ rebuildable export; the DB is the persistent store. See:
 - `SensibLaw/docs/wiki_timeline_storage_contract.md`
 - `SensibLaw/demo/ingest/hca_case_s942025/sb_signals.json` (observer-signal export for SB ingestion)
 
+## Wikipedia revision monitor pack
+
+The bounded rolling Wikipedia revision lane now starts from:
+
+- `SensibLaw/data/source_packs/wiki_revision_monitor_v1.json`
+
+This pack is not a crawler. It is a selected monitor list of article titles that
+the revision harness checks over time.
+
+Current contract:
+- per-article comparison remains read-only
+- last-seen state lives in a dedicated SQLite file
+- curated review context from the pack is primary
+- bounded bridge/alias auto-join is secondary context only
+
+See:
+- `SensibLaw/docs/wiki_revision_harness_contract_v0_1.md`
+- `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_1.md`
+
 Important details:
 
 - Document-table link selection is scored per label so `Judgment (Judgment Summary)` resolves to the summary PDF (not the judgment HTML page).

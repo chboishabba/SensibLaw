@@ -1,0 +1,38 @@
+{
+  "fixture_id": "friendlyjordies_authority_wrappers_v1",
+  "label": "FriendlyJordies nested authority wrappers",
+  "sources": [
+    {
+      "source_id": "jordies_authority_case",
+      "title": "FriendlyJordies nested authority argument",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "jordies_authority_case:u1",
+          "text": "FriendlyJordies argued that the majority in Lepore held that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "jordies_authority_case:u2",
+          "text": "FriendlyJordies said that the Court held that Australia uses instant-runoff voting."
+        }
+      ]
+    },
+    {
+      "source_id": "counter_authority_analysis",
+      "title": "Counter-analysis nested authority argument",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "counter_authority_analysis:u1",
+          "text": "The analysis reported that the majority in Lepore held that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "counter_authority_analysis:u2",
+          "text": "The analysis reported that the Court held that Australia uses instant-runoff voting."
+        }
+      ]
+    }
+  ]
+}

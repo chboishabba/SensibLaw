@@ -27,6 +27,8 @@ The first pass should let us:
 - direct Wikidata packet enrichment from live queries
 - automatic truth adjudication or reasoner-driven narrative collapse
 - scheduler/daemon behavior for rolling rechecks
+- full `itir-svelte` workbench consumer
 
 ## Contract link
 - `docs/wiki_revision_harness_contract_v0_1.md`
+- `docs/wiki_revision_pack_runner_contract_v0_1.md`

@@ -138,3 +138,6 @@ Possible future layers:
 - richer review-context joins to bounded Wikidata diagnostics
 - downstream handoff artifacts for SL-reasoner or LLM analysis
 - curated edit-suggestion lanes kept clearly advisory
+
+Current pack-runner companion contract:
+- `docs/wiki_revision_pack_runner_contract_v0_1.md`
