@@ -32,6 +32,7 @@ if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
 from src.graph.ingest import Graph, ingest_document  # noqa: E402
+from src.models.attribution_claims import SourceEntityType, source_entity_id  # noqa: E402
 from src.pdf_ingest import process_pdf  # noqa: E402
 
 
@@ -81,6 +82,31 @@ _DATE_ROW_START_RE = re.compile(
 
 def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _build_hca_case_snapshot(case_url: str, manifest: Dict[str, object]) -> Dict[str, object]:
+    rev_timestamp = str(manifest.get("generated_at") or "").strip() or None
+    return {
+        "title": "AA v Diocese (S94/2025)",
+        "wiki": "hca_case_s942025",
+        "revid": None,
+        "source_url": str(case_url or "").strip() or None,
+        "rev_timestamp": rev_timestamp,
+    }
+
+
+def _build_hca_source_entity(case_url: str, snapshot: Dict[str, object]) -> Dict[str, object]:
+    title = str(snapshot.get("title") or "AA v Diocese (S94/2025)").strip() or "AA v Diocese (S94/2025)"
+    url = str(snapshot.get("source_url") or case_url or "").strip()
+    version_hash = str(snapshot.get("rev_timestamp") or "").strip()
+    return {
+        "id": source_entity_id(SourceEntityType.COURT_OPINION, title, url=url, version_hash=version_hash),
+        "type": SourceEntityType.COURT_OPINION.value,
+        "title": title,
+        "url": url or None,
+        "version_hash": version_hash or None,
+        "publication_date": str(snapshot.get("rev_timestamp") or "").strip() or None,
+    }
 
 
 def _collapse_ws(text: str) -> str:
@@ -1990,6 +2016,7 @@ def _extract_narrative_aoo(
     timeline_events: List[Dict[str, object]],
     out_dir: Path,
     timeout: int,
+    snapshot: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     if not timeline_events:
         return {"ok": True, "events": [], "parser": {"kind": "wiki_timeline_aoo_extract", "skipped": "no_timeline_events"}}
@@ -1999,7 +2026,10 @@ def _extract_narrative_aoo(
     timeline_path = graph_dir / "hca_case_narrative.timeline.json"
     aoo_path = graph_dir / "hca_case_narrative.aoo.json"
     candidates_path = graph_dir / "hca_case_narrative.candidates.empty.json"
-    timeline_path.write_text(json.dumps({"events": timeline_events}, indent=2, sort_keys=True), encoding="utf-8")
+    timeline_payload: Dict[str, object] = {"events": timeline_events}
+    if isinstance(snapshot, dict) and snapshot:
+        timeline_payload["snapshot"] = snapshot
+    timeline_path.write_text(json.dumps(timeline_payload, indent=2, sort_keys=True), encoding="utf-8")
     candidates_path.write_text(json.dumps({"candidates": []}, indent=2, sort_keys=True), encoding="utf-8")
 
     cmd = [
@@ -2113,6 +2143,7 @@ def _build_hca_aoo_payload(
     base_subjects = [base_actor]
     events: List[Dict[str, object]] = []
     fact_timeline: List[Dict[str, object]] = []
+    source_snapshot = _build_hca_case_snapshot(case_url, manifest)
 
     docs = manifest.get("documents")
     rows = docs if isinstance(docs, list) else []
@@ -2264,6 +2295,7 @@ def _build_hca_aoo_payload(
         timeline_events=narr_timeline,
         out_dir=out_dir,
         timeout=timeout,
+        snapshot=source_snapshot,
     )
     narr_rows = narr_parse.get("events")
     sl_reference_cache: Dict[str, List[Dict[str, object]]] = {}
@@ -2448,10 +2480,33 @@ def _build_hca_aoo_payload(
             str(row.get("fact_id") or ""),
         )
     )
-    return {
+    source_timeline = narr_parse.get("source_timeline") if isinstance(narr_parse.get("source_timeline"), dict) else {}
+    if not source_timeline:
+        source_timeline = {
+            "path": str(out_dir / "graph" / "hca_case_narrative.timeline.json"),
+            "snapshot": source_snapshot,
+        }
+    elif not source_timeline.get("snapshot"):
+        source_timeline = dict(source_timeline)
+        source_timeline["snapshot"] = source_snapshot
+
+    source_entity = _build_hca_source_entity(case_url, source_snapshot)
+    extraction_record = narr_parse.get("extraction_record") if isinstance(narr_parse.get("extraction_record"), dict) else {}
+    extraction_record = {
+        **extraction_record,
+        "source_entity_id": source_entity["id"],
+    }
+
+    base_payload = {
         "root_actor": {"label": "AA v Diocese (S94/2025)", "surname": "HCA"},
         "events": events,
         "fact_timeline": fact_timeline,
+        "generated_at": _utc_now_iso(),
+        "source_timeline": source_timeline,
+        "source_entity": source_entity,
+        "extraction_record": extraction_record,
+        "extraction_profile": narr_parse.get("extraction_profile"),
+        "requester_coverage": narr_parse.get("requester_coverage"),
         "parser": {
             "kind": "hca_case_bundle_adapter",
             "non_authoritative": True,
@@ -2477,6 +2532,34 @@ def _build_hca_aoo_payload(
             },
         },
     }
+    rich_aoo_path = out_dir / "graph" / "wiki_timeline_hca_s942025_aoo.json"
+    if rich_aoo_path.exists():
+        try:
+            rich_payload = json.loads(rich_aoo_path.read_text(encoding="utf-8"))
+        except Exception:
+            rich_payload = None
+        if isinstance(rich_payload, dict):
+            rich_events = rich_payload.get("events")
+            if isinstance(rich_events, list) and rich_events:
+                actorful = sum(
+                    1
+                    for ev in events
+                    if isinstance(ev, dict)
+                    and isinstance(ev.get("actors"), list)
+                    and any(str((row or {}).get("resolved") or (row or {}).get("label") or "").strip() for row in ev.get("actors") or [])
+                )
+                if actorful == 0:
+                    base_payload["events"] = rich_events
+                    if isinstance(rich_payload.get("fact_timeline"), list):
+                        base_payload["fact_timeline"] = rich_payload.get("fact_timeline")
+                    parser = base_payload.get("parser")
+                    if isinstance(parser, dict):
+                        parser["overlay"] = {
+                            "kind": "hca_case_richer_aoo_events",
+                            "path": str(rich_aoo_path),
+                            "generated_at": _utc_now_iso(),
+                        }
+    return base_payload
 
 
 def main(argv: Optional[List[str]] = None) -> int:

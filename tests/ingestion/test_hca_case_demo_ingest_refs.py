@@ -80,3 +80,18 @@ def test_sb_payload_preserves_sl_references_lane() -> None:
     first = signals[0]
     assert first.get("citations")
     assert first.get("sl_references")
+
+
+def test_hca_case_snapshot_and_source_entity_are_non_null() -> None:
+    manifest = {"generated_at": "2026-03-09T01:02:03+00:00"}
+    snapshot = ingest._build_hca_case_snapshot("https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025", manifest)
+    assert snapshot["title"] == "AA v Diocese (S94/2025)"
+    assert snapshot["wiki"] == "hca_case_s942025"
+    assert snapshot["source_url"] == "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
+    assert snapshot["rev_timestamp"] == "2026-03-09T01:02:03+00:00"
+
+    source_entity = ingest._build_hca_source_entity(str(snapshot["source_url"]), snapshot)
+    assert source_entity["type"] == "court_opinion"
+    assert source_entity["title"] == "AA v Diocese (S94/2025)"
+    assert source_entity["url"] == snapshot["source_url"]
+    assert source_entity["publication_date"] == snapshot["rev_timestamp"]
