@@ -7,6 +7,7 @@ from src.reporting.narrative_compare import (
     build_narrative_validation_report,
     load_fixture_sources,
 )
+from src.reporting.source_url import parse_source_url
 
 
 def _fixture_sources() -> tuple[dict, list]:
@@ -21,6 +22,11 @@ def _chat_argument_sources() -> tuple[dict, list]:
 
 def _authority_wrapper_sources() -> tuple[dict, list]:
     fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_authority_wrappers.json")
+    return load_fixture_sources(fixture_path)
+
+
+def _thread_extract_sources() -> tuple[dict, list]:
+    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_thread_extract.json")
     return load_fixture_sources(fixture_path)
 
 
@@ -126,3 +132,37 @@ def test_nested_authority_wrappers_preserve_full_attribution_chain_in_comparison
     assert any("assert:FriendlyJordies" == value for value in block_shared["left_attributions"])
     assert any("hold:the majority in Lepore" == value for value in block_shared["right_attributions"])
     assert any("report:The analysis" == value for value in block_shared["right_attributions"])
+
+
+def test_thread_extract_fixture_stays_grounded_in_real_archive_claim_family() -> None:
+    _, sources = _thread_extract_sources()
+    comparison = build_narrative_comparison_report(sources[0], sources[1])
+    assert comparison["summary"]["shared_proposition_count"] >= 2
+    assert any(
+        row["predicate_key"] == "contribute_to"
+        for row in comparison["source_only_propositions"]["jordies_thread_position"]
+    )
+    assert any(
+        row["predicate_key"] == "support" for row in comparison["source_only_propositions"]["jordies_thread_position"]
+    )
+    assert any(
+        row["predicate_key"] == "delay" for row in comparison["source_only_propositions"]["thread_balanced_analysis"]
+    )
+    assert any(
+        row["predicate_key"] == "pass" for row in comparison["source_only_propositions"]["thread_balanced_analysis"]
+    )
+
+
+def test_parse_source_url_normalizes_chatgpt_and_youtube_urls() -> None:
+    assert parse_source_url("https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search") == {
+        "kind": "chatgpt_conversation",
+        "host": "chatgpt.com",
+        "conversation_id": "69ac40e0-0cfc-839b-b2a8-0de3019379a9",
+        "canonical_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9",
+    }
+    assert parse_source_url("https://youtu.be/abc123?t=10") == {
+        "kind": "youtube_video",
+        "host": "youtube.com",
+        "video_id": "abc123",
+        "canonical_url": "https://www.youtube.com/watch?v=abc123",
+    }

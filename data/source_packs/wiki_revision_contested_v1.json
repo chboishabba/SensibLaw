@@ -1,0 +1,130 @@
+{
+  "pack_id": "wiki_revision_contested_v1",
+  "version": 1,
+  "scope": "Bounded English Wikipedia rolling revision monitor for highly contested live article classes.",
+  "provenance": {
+    "created_on": "2026-03-09",
+    "purpose": "Rolling revision harness pack for high-volatility Wikipedia pages that stress narrative, epistemic, and reviewer-support surfaces.",
+    "source_threads": [
+      {
+        "title": "Highly Contested Wiki Pages",
+        "online_uuid": "69ada623-351c-839a-97c4-7669a12b8e04",
+        "source": "web"
+      }
+    ]
+  },
+  "articles": [
+    {
+      "article_id": "contest_donald_trump",
+      "wiki": "enwiki",
+      "title": "Donald Trump",
+      "role": "stress",
+      "topics": ["high_contestation", "politics", "biography"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "politics", "biography"],
+        "notes": [
+          "Political biography chosen for heavy revision churn and wording disputes around accusations, events, and framing.",
+          "Use as a volatility-first ingest and issue-packet test, not as a truth authority source."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_george_w_bush",
+      "wiki": "enwiki",
+      "title": "George W. Bush",
+      "role": "stress",
+      "topics": ["high_contestation", "politics", "biography"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "politics", "biography"],
+        "notes": [
+          "Political biography selected as a historically high-edit and high-reversion article.",
+          "Useful for revision deltas involving event chronology, policy wording, and attribution surfaces."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_israeli_palestinian_conflict",
+      "wiki": "enwiki",
+      "title": "Israeli\\u2013Palestinian conflict",
+      "role": "stress",
+      "topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+        "notes": [
+          "Ongoing conflict page selected for persistent wording and casualty-framing disputes.",
+          "Expected to pressure-test epistemic deltas, source attribution changes, and abstention handling."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_jerusalem",
+      "wiki": "enwiki",
+      "title": "Jerusalem",
+      "role": "stress",
+      "topics": ["high_contestation", "place", "geopolitics", "religion"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "place", "geopolitics", "religion"],
+        "notes": [
+          "Disputed place page selected for overlapping geographic, political, and religious framing changes.",
+          "Useful for place-linked issue packets and contested descriptor changes."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_jesus",
+      "wiki": "enwiki",
+      "title": "Jesus",
+      "role": "stress",
+      "topics": ["high_contestation", "religion", "biography_adjacent"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "religion", "biography_adjacent"],
+        "notes": [
+          "Religious article selected for historical-versus-theological wording disputes.",
+          "Useful for testing claim-bearing-step changes and epistemic qualification surfaces."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_muhammad",
+      "wiki": "enwiki",
+      "title": "Muhammad",
+      "role": "stress",
+      "topics": ["high_contestation", "religion", "biography_adjacent"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "religion", "biography_adjacent"],
+        "notes": [
+          "Religious article selected for recurring disputes about wording, sources, and representational sensitivity.",
+          "Useful for issue packets where attribution and epistemic posture matter more than raw text churn."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_climate_change",
+      "wiki": "enwiki",
+      "title": "Climate change",
+      "role": "stress",
+      "topics": ["high_contestation", "science", "politicized_science"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "science", "politicized_science"],
+        "notes": [
+          "Science page selected because political framing and denialist edits create meaningful semantic drift risk.",
+          "Useful for extraction deltas involving causes, impacts, and sourced claims."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_covid_19",
+      "wiki": "enwiki",
+      "title": "COVID-19",
+      "role": "stress",
+      "topics": ["high_contestation", "science", "medicine", "politicized_science"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "science", "medicine", "politicized_science"],
+        "notes": [
+          "Medicine/science page selected for rapid updates, politicized wording, and high source volatility.",
+          "Useful for stressing revision summaries, claim-bearing-step changes, and reviewer-facing packet triage."
+        ]
+      }
+    }
+  ]
+}

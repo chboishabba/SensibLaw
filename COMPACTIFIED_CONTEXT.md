@@ -37,6 +37,20 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   `Q100152461|P54` for reproducibility; a fresh 2026-03-08 live rerun also
   confirmed `Q1000498|P166` as a new medium candidate, but that case is not yet
   promoted into the pinned review pack.
+- Wikipedia revision monitoring now has two deliberately different curated
+  packs:
+  - `wiki_revision_monitor_v1` for mixed baseline + ontology-stress pages
+  - `wiki_revision_contested_v1` for live high-contestation pages across
+    politics, ongoing conflict, religion, and politicized science/medicine
+- Archive/context source for the contested-pack expansion:
+  - title: `Highly Contested Wiki Pages`
+  - online UUID: `69ada623-351c-839a-97c4-7669a12b8e04`
+  - canonical thread id: unresolved locally because `~/chat_archive.sqlite`
+    was locked during persistence
+  - source used: `web`
+  - main decision pulled: broaden revision-monitor testing with a second
+    curated volatility pack rather than folding all new pages into the
+    ontology-stress set
 - Broad GWB surfaces such as `Congress`, `Iraq`, `veto`, and `Supreme Court`
   remain acceptable extraction targets; the tightening task is specifically
   about promotion into reviewed U.S.-law linkage lanes, which should require

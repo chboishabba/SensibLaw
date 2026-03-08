@@ -12,6 +12,15 @@
   dedicated SQLite state store, selected article manifests under
   `data/source_packs/`, store-first revision comparisons, and hybrid review
   context (curated pack context first, bounded bridge/alias auto-join second).
+- Wikipedia revision monitoring: add a second curated article pack,
+  `data/source_packs/wiki_revision_contested_v1.json`, for high-contestation
+  live pages across politics, ongoing conflict, religion, and politicized
+  science/medicine. The new planning note
+  `docs/planning/wiki_revision_contested_pack_20260309.md` records the source
+  thread (`Highly Contested Wiki Pages`,
+  `69ada623-351c-839a-97c4-7669a12b8e04`, source `web`) and keeps this pack
+  explicitly complementary to the ontology-stress monitor pack instead of
+  replacing it.
 - Narrative validation/comparison: add a second public FriendlyJordies-derived
   argument fixture (`friendlyjordies_chat_arguments.json`) based on the archive
   discussion itself. The bounded comparison extractor now also recognizes

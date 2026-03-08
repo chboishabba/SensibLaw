@@ -7,6 +7,7 @@ import re
 from typing import Any, Iterable
 
 from src.reporting.structure_report import TextUnit
+from src.reporting.source_url import parse_source_url
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +33,7 @@ _FACT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("meet", re.compile(r"^(?P<subject>.+?)\s+met\s+(?P<object>.+)$", re.IGNORECASE)),
     ("block", re.compile(r"^(?P<subject>.+?)\s+blocked\s+(?P<object>.+)$", re.IGNORECASE)),
     ("contribute_to", re.compile(r"^(?P<subject>.+?)\s+contributed\s+to\s+(?P<object>.+)$", re.IGNORECASE)),
+    ("delay", re.compile(r"^(?P<subject>.+?)\s+delayed\s+(?P<object>.+)$", re.IGNORECASE)),
     ("use", re.compile(r"^(?P<subject>.+?)\s+uses\s+(?P<object>.+)$", re.IGNORECASE)),
     ("support", re.compile(r"^(?P<subject>.+?)\s+supports\s+(?P<object>.+)$", re.IGNORECASE)),
     ("pass", re.compile(r"^(?P<subject>.+?)\s+passed\s+(?P<object>.+)$", re.IGNORECASE)),
@@ -277,6 +279,7 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
             "source_id": source.source_id,
             "title": source.title,
             "origin_url": source.origin_url,
+            "origin": parse_source_url(source.origin_url),
             "source_type": source.source_type,
         },
         "summary": {

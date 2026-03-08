@@ -1,0 +1,62 @@
+{
+  "fixture_id": "friendlyjordies_thread_extract_v1",
+  "label": "FriendlyJordies thread-derived extract",
+  "sources": [
+    {
+      "source_id": "jordies_thread_position",
+      "title": "Jordies thread position",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "jordies_thread_position:u1",
+          "text": "FriendlyJordies said that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "jordies_thread_position:u2",
+          "text": "FriendlyJordies argued that blocking the CPRS contributed to climate policy instability."
+        },
+        {
+          "unit_id": "jordies_thread_position:u3",
+          "text": "FriendlyJordies said that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "jordies_thread_position:u4",
+          "text": "FriendlyJordies argued that majority government supports long-term climate policy."
+        },
+        {
+          "unit_id": "jordies_thread_position:u5",
+          "text": "FriendlyJordies said that Woolworths was cited as evidence that direct grocery impacts were very small."
+        }
+      ]
+    },
+    {
+      "source_id": "thread_balanced_analysis",
+      "title": "Balanced analysis from the same thread",
+      "origin_url": "https://chatgpt.com/c/69ac40e0-0cfc-839b-b2a8-0de3019379a9?src=history_search",
+      "source_type": "analysis_transcript",
+      "text_units": [
+        {
+          "unit_id": "thread_balanced_analysis:u1",
+          "text": "The analysis reported that the Greens blocked the CPRS."
+        },
+        {
+          "unit_id": "thread_balanced_analysis:u2",
+          "text": "The analysis argued that blocking the CPRS delayed climate policy momentum."
+        },
+        {
+          "unit_id": "thread_balanced_analysis:u3",
+          "text": "The analysis said that Australia uses instant-runoff voting."
+        },
+        {
+          "unit_id": "thread_balanced_analysis:u4",
+          "text": "The analysis argued that minority government passed carbon pricing legislation."
+        },
+        {
+          "unit_id": "thread_balanced_analysis:u5",
+          "text": "The analysis said that Woolworths was talking about direct cost pass-through."
+        }
+      ]
+    }
+  ]
+}

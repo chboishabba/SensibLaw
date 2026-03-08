@@ -117,9 +117,18 @@ rebuildable export; the DB is the persistent store. See:
 The bounded rolling Wikipedia revision lane now starts from:
 
 - `SensibLaw/data/source_packs/wiki_revision_monitor_v1.json`
+- `SensibLaw/data/source_packs/wiki_revision_contested_v1.json`
 
 This pack is not a crawler. It is a selected monitor list of article titles that
 the revision harness checks over time.
+
+Current pack roles:
+- `wiki_revision_monitor_v1`:
+  - mixed baseline + ontology-stress pack for mixed-order, SCC, and nearby
+    parthood-like review surfaces
+- `wiki_revision_contested_v1`:
+  - high-contestation volatility pack for political biographies, ongoing
+    conflicts, religion, and politicized science/medicine
 
 Current contract:
 - per-article comparison remains read-only
@@ -130,6 +139,7 @@ Current contract:
 See:
 - `SensibLaw/docs/wiki_revision_harness_contract_v0_1.md`
 - `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_1.md`
+- `SensibLaw/docs/planning/wiki_revision_contested_pack_20260309.md`
 
 Important details:
 

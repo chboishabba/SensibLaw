@@ -114,3 +114,11 @@ The runner must emit:
 
 The persisted run/result model should be usable by a later `itir-svelte`
 workbench without schema redesign.
+
+## Current curated packs
+Current curated manifests include:
+- `SensibLaw/data/source_packs/wiki_revision_monitor_v1.json`
+  - mixed baseline + ontology-stress pages
+- `SensibLaw/data/source_packs/wiki_revision_contested_v1.json`
+  - high-contestation pages across politics, ongoing conflict, religion, and
+    politicized science/medicine
