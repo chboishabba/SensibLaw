@@ -1,6 +1,57 @@
 # Changelog
 
 ## Unreleased
+- Archive tooling: extend `scripts/chat_context_resolver.py` beyond pure
+  thread resolution. The resolver now also supports stitched transcript
+  analysis for term frequency, mention locations with thread-line and
+  per-message line numbers, line/message range excerpts, simple top-term
+  extraction, and archive-wide cross-thread ranking by mention counts/density.
+- Semantic review feedback: move the semantic workbench correction seam out of
+  local JSONL and into append-only `itir.sqlite` tables
+  (`semantic_review_submissions` + `semantic_review_evidence_refs`), with a
+  small admin/query CLI so `itir-svelte` can submit/load recent corrections
+  without becoming a storage authority.
+- Transcript/freeform semantics: reports now emit a bounded
+  `mission_observer` artifact plus SB-safe observer overlays for explicit
+  mission/follow-up cues. Current v1 resolves local follow-up references
+  conservatively, carries forward grounded deadlines, and abstains on
+  unresolved referents.
+- Transcript/freeform semantics: persist the `mission_observer` artifact
+  canonically into normalized `itir.sqlite` mission tables
+  (`mission_runs`, `mission_nodes`, `mission_edges`,
+  `mission_evidence_refs`, `mission_observer_overlays`,
+  `mission_overlay_refs`) and reload reports from that DB-backed read model.
+- Mission lens: add the first ITIR-owned planning substrate on top of the
+  persisted mission observer lane with `mission_plan_nodes`,
+  `mission_plan_edges`, `mission_plan_deadlines`, and
+  `mission_plan_receipts`. The new `SensibLaw/scripts/mission_lens.py` builds a
+  fused actual-vs-should artifact against SB dashboard data and exposes bounded
+  plan-node authoring for the new mission workbench.
+- Mission lens: add DB-backed reviewed actual-to-mission linking in
+  `itir.sqlite` via `mission_actual_mappings` and
+  `mission_actual_mapping_receipts`. The mission-lens report now prefers
+  reviewed activity links over lexical fallback and emits concrete activity-row
+  mapping state for UI review.
+- Semantic reporting: transcript and GWB/AU report builders now emit a shared
+  producer-owned `text_debug` artifact with tokenization, anchor provenance,
+  relation-family metadata, and confidence-derived display opacity so the
+  `itir-svelte` workbench no longer needs to re-derive semantic anchors in TS.
+- Semantic reporting: GWB/AU/transcript reports now also emit a shared
+  `review_summary` artifact with compact predicate counts, cue-surface counts,
+  and `text_debug` coverage/exclusion totals so review surfaces can compare
+  corpora without relying on raw relation tables.
+- Semantic reporting: `text_debug` anchors now carry producer-owned char spans
+  and `sourceArtifactId` values alongside token ranges, giving the workbench a
+  real shared span contract for future graph/document linking without treating
+  spans as canonical semantic provenance.
+- Semantic reporting: transcript/freeform reports now also emit grouped source
+  document payloads plus source-level event spans, allowing the semantic
+  workbench to cross-highlight into real source text without deriving document
+  offsets in TS.
+- Semantic reporting: GWB/AU reports now also emit grouped timeline-source
+  payloads plus source-level event spans from the normalized wiki timeline
+  store, so the semantic workbench source viewer can render real legal-lane
+  source text without TS-side reconstruction.
 - Semantic rule substrate: add shared DB-backed metadata for
   `semantic_rule_types`, `semantic_slot_definitions`, `semantic_rule_slots`,
   and `semantic_promotion_policies` around the frozen event-scoped semantic
@@ -44,6 +95,18 @@
   as a deterministic run/report entrypoint over the existing transcript
   semantic lane, including a bounded built-in demo corpus for downstream
   workbench/debug consumers such as `itir-svelte`.
+- Transcript/freeform semantics: add a first bounded explicit social-relation
+  slice for named kinship/friendship statements (`sibling_of`, `parent_of`,
+  `child_of`, `spouse_of`, `friend_of`) plus explicit guardian/care surfaces
+  (`guardian_of`, `caregiver_of`). These relations remain candidate-only by
+  default, emit `social_relation` rule receipts, and may attach
+  `related_person` event-role context when both actors are explicit in the
+  same text span.
+- Transcript/freeform semantics: normalize care relation naming so the
+  canonical predicate is tense-neutral (`caregiver_of`) while observed
+  wordings such as `cared for`, `cares for`, and `looks after` stay in
+  receipts only. The transcript report entrypoint now also exposes a compact
+  `summary` mode for predicate/cue review.
 - GWB U.S.-law linkage: tighten broad cue handling for `Congress`, `Iraq`,
   `veto`, and `Supreme Court` so weak broad-surface evidence can remain visible
   as low-confidence matched/candidate output when unambiguous, but no longer

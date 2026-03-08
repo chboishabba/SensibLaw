@@ -96,6 +96,25 @@ def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) 
     per_entity = {row["entity"]["canonical_key"]: row for row in report["per_entity"]}
     assert per_entity["actor:george_w_bush"]["promoted_relation_count"] >= 3
     assert report["summary"]["candidate_only_relation_count"] >= 0
+    assert report["text_debug"]["events"]
+    assert report["source_documents"]
+    assert report["source_documents"][0]["text"]
+    assert report["review_summary"]["predicate_counts"]["promoted"]["signed"] >= 1
+    assert report["review_summary"]["text_debug"]["relation_count"] >= 1
+    signed_debug = next(
+        relation
+        for event in report["text_debug"]["events"]
+        for relation in event["relations"]
+        if relation["predicateKey"] == "signed"
+    )
+    assert signed_debug["family"] == "governance"
+    assert any(anchor["source"] in {"mention", "receipt", "label_fallback"} for anchor in signed_debug["anchors"])
+    assert all(isinstance(anchor["charStart"], int) and isinstance(anchor["charEnd"], int) for anchor in signed_debug["anchors"])
+    assert all(anchor["sourceArtifactId"] for anchor in signed_debug["anchors"])
+    signed_event = next(event for event in report["text_debug"]["events"] if any(rel["predicateKey"] == "signed" for rel in event["relations"]))
+    assert signed_event["sourceDocumentId"]
+    assert isinstance(signed_event["sourceCharStart"], int)
+    assert isinstance(signed_event["sourceCharEnd"], int)
 
 
 def test_gwb_semantic_schema_populates_shared_actor_aliases_and_role_vocab() -> None:

@@ -92,6 +92,19 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
     assert "appealed" in relation_predicates or "heard_by" in relation_predicates
     candidate_predicates = {row["predicate_key"] for row in report["candidate_only_relations"]}
     assert "decided_by" in candidate_predicates or "applied" in relation_predicates
+    assert "review_summary" in report
+    assert "text_debug" in report
+    assert report["source_documents"]
+    assert "predicate_counts" in report["review_summary"]
+    assert report["review_summary"]["text_debug"]["event_count"] >= 0
+    assert report["review_summary"]["text_debug"]["excluded_relation_count"] >= 0
+    for event in report["text_debug"]["events"]:
+        assert event["sourceDocumentId"]
+        assert isinstance(event["sourceCharStart"], int)
+        assert isinstance(event["sourceCharEnd"], int)
+        for relation in event["relations"]:
+            assert all(isinstance(anchor["charStart"], int) and isinstance(anchor["charEnd"], int) for anchor in relation["anchors"])
+            assert all(anchor["sourceArtifactId"] for anchor in relation["anchors"])
     abstained_reasons = {(row["surface_text"], row["resolution_rule"]) for row in report["unresolved_mentions"]}
     assert ("junior counsel for the appellant", "legal_representation_requires_named_representative_v1") in abstained_reasons
     assert ("appeared for the respondent", "legal_representation_requires_named_representative_v1") in abstained_reasons

@@ -166,6 +166,73 @@
   actor/event-role contracts already used elsewhere in the repo rather than
   introducing a transcript-only ad hoc role taxonomy. Archive-backed summary:
   `../docs/planning/archive_actor_semantic_threads_20260308.md`.
+- [x] Add the first bounded explicit social-relation slice to the
+  transcript/freeform lane without widening into open-world social inference.
+  Current deterministic v1 covers named explicit kinship/friendship statements
+  plus explicit guardian/care surfaces only (`sibling_of`, `parent_of`,
+  `child_of`, `spouse_of`, `friend_of`, `guardian_of`, `caregiver_of`), keeps
+  them candidate-only, and may attach `related_person` event-role context
+  where the paired actor is explicit in the same text span.
+- [x] Normalize transcript/freeform care relation naming so canonical
+  predicates stay relation-style and tense-neutral. Current choice is
+  `caregiver_of`; observed surfaces such as `cared for` / `cares for` remain
+  in receipts only.
+- [x] Add a compact transcript semantic summary artifact focused on relation
+  review. The bounded summary now reports candidate/promoted counts by
+  predicate, cue-surface counts, and an explicit note when all social/care
+  predicates remain candidate-only.
+- [x] Move semantic workbench `text_debug` payload shaping out of
+  `itir-svelte` and into Python report producers. Current report builders now
+  own tokenization, anchor provenance, relation-family metadata, and
+  confidence-derived display opacity for transcript/GWB/AU semantic workbench
+  rendering.
+- [x] Add a shared producer-owned `review_summary` artifact to GWB/AU/transcript
+  semantic reports so predicate counts, cue-surface counts, and `text_debug`
+  coverage/exclusion totals are comparable across corpora without inspecting
+  raw report JSON.
+- [x] Extend producer-owned `text_debug` anchors with `charStart`, `charEnd`,
+  and `sourceArtifactId` so the next graph/document linking step has a real
+  shared span contract instead of token-only render helpers.
+- [x] Use the producer-owned `text_debug` span contract in the semantic report
+  workbench for event-local cross-highlighting. Current v1 keeps the separate
+  source-document slot explicit about unavailable source text rather than
+  inventing a fake full-document surface.
+- [x] Extend transcript/freeform reports with grouped source-document payloads
+  and source-level event spans so the semantic workbench can cross-highlight
+  into a real source-text view without re-deriving offsets in TS.
+- [x] Emit grouped timeline-source payloads and source-level event spans for
+  GWB/AU from the normalized wiki timeline store so the semantic workbench
+  source-document viewer stops being transcript-only.
+- [x] Add an append-only semantic review-feedback seam for the workbench.
+  Current `/graphs/semantic-report` submissions now persist append-only DB
+  review rows keyed by source/run/event/relation/anchor refs instead of
+  rewriting semantic tables in place.
+- [x] Add a bounded transcript/freeform `mission_observer` artifact for SB-safe
+  mission/follow-up overlays. Current v1 is deterministic and local:
+  explicit task/follow-up cues, source-local referent backtracking, deadline
+  carry-forward when grounded, and abstention on unresolved follow-ups.
+- [x] Move semantic review submissions out of local JSONL and into append-only
+  `itir.sqlite` tables (`semantic_review_submissions` +
+  `semantic_review_evidence_refs`) so the workbench review seam is DB-first.
+- [ ] Pressure-test the transcript/freeform `mission_observer` lane against
+  more chat/message corpora before widening cue coverage or letting SB derive
+  stronger reductions from it.
+- [x] Persist the transcript/freeform `mission_observer` artifact canonically
+  in normalized `itir.sqlite` mission tables before exporting/reviewing it as a
+  report payload. Current storage is `mission_runs`, `mission_nodes`,
+  `mission_edges`, `mission_evidence_refs`, `mission_observer_overlays`, and
+  `mission_overlay_refs`.
+- [x] Add the first fused mission-lens substrate on top of the persisted
+  mission observer lane: seed ITIR-owned planning nodes/deadlines from mission
+  rows, build an actual-vs-should artifact against SB dashboard data, and
+  expose bounded planning authoring without changing SB’s core doctrine.
+- [x] Add a reviewed actual-to-mission mapping lane on top of the fused mission
+  lens so concrete SB activity rows can be linked to planning nodes in
+  `itir.sqlite` (`mission_actual_mappings`) instead of relying only on lexical
+  fallback when drift/accounting is reviewed.
+- [ ] Tighten automatic actual-to-mission mapping beyond the current reviewed +
+  lexical bridge before treating mission drift as a stronger accounting
+  surface.
 - [ ] Mine the high-signal local archive threads into first-class repo notes so
   actor/role architecture does not stay trapped in chats. Priority threads:
   `Actor table design` (`21f55daa80206517e38f8c0fa56ee9bb2db8a9a0`),
@@ -195,7 +262,10 @@
   pressure shows lane-local matching is missing high-value recoverable actors.
 - [ ] Decide whether any transcript/freeform relation family deserves
   medium/high promotion under the frozen semantic spine. Current `replied_to`
-  and `felt_state` relations remain candidate-only.
+  and `felt_state` relations remain candidate-only, and the new explicit
+  social-relation predicates (`sibling_of`, `parent_of`, `child_of`,
+  `spouse_of`, `friend_of`, `guardian_of`, `caregiver_of`) also remain
+  candidate-only.
 - [ ] Keep chat-derived corpora isolated from canonical `itir.sqlite` until an
   explicit retention/redaction policy exists for SB/ITIR/TIRC integration.
   Current bounded test path is `.cache_local/itir_chat_test.sqlite` with hashed

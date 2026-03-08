@@ -507,7 +507,7 @@ def build_gwb_us_law_linkage_report(conn: sqlite3.Connection, *, run_id: str) ->
             "matched": bool(row["matched"]),
             "score": int(row["score"] or 0),
             "anchor": event.get("anchor"),
-            "text": str(event.get("text") or "")[:280],
+            "text": str(event.get("text") or ""),
             "receipts": receipts,
         }
         seed_bucket["events"].append(entry)
@@ -516,7 +516,7 @@ def build_gwb_us_law_linkage_report(conn: sqlite3.Connection, *, run_id: str) ->
             {
                 "event_id": event_id,
                 "anchor": event.get("anchor"),
-                "text": str(event.get("text") or "")[:280],
+                "text": str(event.get("text") or ""),
                 "matches": [],
             },
         )

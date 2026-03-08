@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
+import re
 import sqlite3
 from typing import Any, Iterable
 
@@ -16,7 +18,11 @@ from src.gwb_us_law.semantic import (
     _slug,
     _upsert_actor_alias,
     _upsert_seed_entity,
+    build_semantic_review_summary,
+    build_semantic_text_debug_payload,
     ensure_gwb_semantic_schema,
+    load_mission_observer,
+    persist_mission_observer,
 )
 from src.reporting.structure_report import TextUnit
 from src.text.speaker_inference import SpeakerInferenceReceipt, infer_speakers
@@ -27,6 +33,13 @@ PIPELINE_VERSION = "transcript_semantic_v1"
 _TRANSCRIPT_PREDICATES = (
     ("felt_state", "felt state", "affect_state"),
     ("replied_to", "replied to", "conversational_turn"),
+    ("sibling_of", "sibling of", "social_relation"),
+    ("parent_of", "parent of", "social_relation"),
+    ("child_of", "child of", "social_relation"),
+    ("spouse_of", "spouse of", "social_relation"),
+    ("friend_of", "friend of", "social_relation"),
+    ("guardian_of", "guardian of", "social_relation"),
+    ("caregiver_of", "caregiver of", "social_relation"),
 )
 _AFFECT_STATE_SURFACES = ("sad", "happy", "angry", "upset", "afraid", "worried")
 _PERSON_CONTEXT_VERBS = {
@@ -119,6 +132,410 @@ _TITLECASE_STOPWORDS = {
     "Okay",
     "Ok",
 }
+
+_SOCIAL_RELATION_MARKERS: dict[str, str] = {
+    "sister": "sibling_of",
+    "brother": "sibling_of",
+    "sibling": "sibling_of",
+    "mother": "parent_of",
+    "father": "parent_of",
+    "parent": "parent_of",
+    "son": "child_of",
+    "daughter": "child_of",
+    "child": "child_of",
+    "wife": "spouse_of",
+    "husband": "spouse_of",
+    "spouse": "spouse_of",
+    "friend": "friend_of",
+    "friends": "friend_of",
+    "guardian": "guardian_of",
+    "guardians": "guardian_of",
+    "cared_for": "caregiver_of",
+    "cares_for": "caregiver_of",
+    "responsible_for": "guardian_of",
+    "looks_after": "caregiver_of",
+}
+_MISSION_GENERIC_REFERENTS = {
+    "it",
+    "this",
+    "that",
+    "the feature",
+    "new feature",
+    "the new feature",
+    "feature",
+}
+_MISSION_ACTION_PATTERNS = (
+    re.compile(
+        r"\b(?:implement|implemented|implementing|ship|shipped|shipping|finish|finished|finishing|complete|completed|completing|build|built|building)\s+(?:the\s+)?(?P<topic>[A-Za-z0-9][A-Za-z0-9 #/_-]{2,80}?(?:feature|integration|dashboard|viewer|contract|report|migration|issue|ticket|bug|workflow|seam|bridge|task|pr))(?=\s+(?:by|before)\b|[?.!,]|$)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:work on|working on|follow up on|following up on)\s+(?:the\s+)?(?P<topic>[A-Za-z0-9][A-Za-z0-9 #/_-]{2,80}?(?:feature|integration|dashboard|viewer|contract|report|migration|issue|ticket|bug|workflow|seam|bridge|task|pr))(?=\s+(?:by|before)\b|[?.!,]|$)",
+        re.IGNORECASE,
+    ),
+)
+_MISSION_FOLLOWUP_PATTERNS = (
+    re.compile(
+        r"\b(?:have|has|did)\s+you\s+(?:implemented|implement|finished|finish|completed|complete|shipped|ship|done)\s+(?:the\s+)?(?P<topic>[A-Za-z0-9][A-Za-z0-9 #/_-]{1,80}?)\??$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bfollow(?:ing)?\s+up\s+(?:on\s+)?(?P<topic>[A-Za-z0-9][A-Za-z0-9 #/_-]{1,80}?)\??$",
+        re.IGNORECASE,
+    ),
+)
+_MISSION_DEADLINE_PATTERNS = (
+    re.compile(r"\b(?:deadline\s+is|due(?:\s+on)?|by|before)\s+(?P<deadline>[A-Za-z][A-Za-z0-9 ,:/-]{1,40})", re.IGNORECASE),
+)
+_MISSION_OWNER_PATTERNS = (
+    re.compile(
+        r"\b(?P<owner>[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\s+(?:will|should|needs\s+to|must)\s+(?:implement|ship|finish|complete|build)\s+(?:the\s+)?(?P<topic>[A-Za-z0-9][A-Za-z0-9 #/_-]{2,80}?(?:feature|integration|dashboard|viewer|contract|report|migration|issue|ticket|bug|workflow|seam|bridge|task|pr))(?=[?.!,]|$)",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _source_document_title(source_id: str) -> str:
+    raw = str(source_id or "").strip()
+    if not raw:
+        return "Source document"
+    candidate = Path(raw)
+    if candidate.name:
+        return candidate.name
+    return raw
+
+
+def _build_transcript_source_documents(units: list[TextUnit]) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    documents: list[dict[str, Any]] = []
+    event_spans: dict[str, dict[str, Any]] = {}
+    by_source: dict[str, list[TextUnit]] = defaultdict(list)
+    for unit in units:
+        by_source[unit.source_id].append(unit)
+    for source_id, source_units in by_source.items():
+        parts: list[str] = []
+        cursor = 0
+        event_ids: list[str] = []
+        source_type = str(source_units[0].source_type) if source_units else ""
+        for index, unit in enumerate(source_units):
+            if index:
+                separator = "\n\n"
+                parts.append(separator)
+                cursor += len(separator)
+            start = cursor
+            text = str(unit.text)
+            parts.append(text)
+            cursor += len(text)
+            end = cursor
+            event_ids.append(unit.unit_id)
+            event_spans[unit.unit_id] = {
+                "source_document_id": source_id,
+                "source_char_start": start,
+                "source_char_end": end,
+            }
+        documents.append(
+            {
+                "sourceDocumentId": source_id,
+                "sourceType": source_type,
+                "title": _source_document_title(source_id),
+                "text": "".join(parts),
+                "eventCount": len(source_units),
+                "eventIds": event_ids,
+            }
+        )
+    documents.sort(key=lambda row: (str(row["sourceType"]), str(row["title"]), str(row["sourceDocumentId"])))
+    return documents, event_spans
+
+
+def _normalize_mission_topic(value: str) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip(" \t\r\n?.!,;:"))
+    text = re.sub(r"^(?:the|a|an)\s+", "", text, flags=re.IGNORECASE)
+    return text.casefold()
+
+
+def _mission_topic_label(value: str) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip(" \t\r\n?.!,;:"))
+    text = re.sub(r"^(?:the|a|an)\s+", "", text, flags=re.IGNORECASE)
+    return text
+
+
+def _extract_deadline_phrase(text: str) -> str | None:
+    for pattern in _MISSION_DEADLINE_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            deadline = re.sub(r"\s+", " ", str(match.group("deadline") or "").strip(" \t\r\n?.!,;:"))
+            if deadline:
+                return deadline
+    return None
+
+
+def _extract_topic_candidates(text: str) -> list[str]:
+    out: list[str] = []
+    for pattern in _MISSION_ACTION_PATTERNS:
+        for match in pattern.finditer(text):
+            topic = _mission_topic_label(str(match.group("topic") or ""))
+            if topic and topic.casefold() not in {item.casefold() for item in out}:
+                out.append(topic)
+    return out
+
+
+def _extract_followup_topics(text: str) -> list[str]:
+    trimmed = str(text or "").strip()
+    out: list[str] = []
+    for pattern in _MISSION_FOLLOWUP_PATTERNS:
+        match = pattern.search(trimmed)
+        if not match:
+            continue
+        topic = _mission_topic_label(str(match.group("topic") or ""))
+        if topic:
+            out.append(topic)
+    return out
+
+
+def _build_transcript_mission_observer(
+    *,
+    run_id: str,
+    units: list[TextUnit],
+    per_event: list[dict[str, Any]],
+) -> dict[str, Any]:
+    event_map = {row["event_id"]: row for row in per_event}
+    mission_nodes: dict[str, dict[str, Any]] = {}
+    topic_mentions_by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    followups: list[dict[str, Any]] = []
+    overlays: list[dict[str, Any]] = []
+    overlay_index = 0
+
+    def ensure_mission(topic_label: str, event_id: str, source_id: str) -> dict[str, Any]:
+        normalized = _normalize_mission_topic(topic_label)
+        mission_id = f"mission:{_slug(source_id)}:{_slug(normalized)}"
+        node = mission_nodes.get(mission_id)
+        if node is None:
+            node = {
+                "missionId": mission_id,
+                "nodeKind": "task",
+                "topicLabel": _mission_topic_label(topic_label),
+                "normalizedTopic": normalized,
+                "status": "candidate",
+                "confidence": "medium",
+                "sourceId": source_id,
+                "sourceEventIds": [],
+                "deadline": None,
+                "owners": [],
+            }
+            mission_nodes[mission_id] = node
+        if event_id not in node["sourceEventIds"]:
+            node["sourceEventIds"].append(event_id)
+        return node
+
+    def add_overlay(
+        *,
+        activity_event_id: str,
+        annotation_id: str,
+        mission_ref: dict[str, Any],
+        evidence_refs: list[dict[str, Any]],
+        status: str,
+        confidence: str,
+        note: str | None = None,
+    ) -> None:
+        overlays.append(
+            {
+                "activity_event_id": activity_event_id,
+                "annotation_id": annotation_id,
+                "sb_state_id": f"itir:mission:{run_id}",
+                "provenance": {
+                    "source": "SensibLaw",
+                    "actor": "sensiblaw",
+                    "pipeline_version": PIPELINE_VERSION,
+                    "run_id": run_id,
+                },
+                "observer_kind": "itir_mission_graph_v1",
+                "status": status,
+                "confidence": confidence,
+                "mission_refs": [mission_ref],
+                "evidence_refs": evidence_refs,
+                "note": note or "",
+            }
+        )
+
+    for unit in units:
+        event = event_map.get(unit.unit_id) or {}
+        text = str(unit.text or "").strip()
+        if not text:
+            continue
+        deadline = _extract_deadline_phrase(text)
+        speaker_role = next((row for row in event.get("event_roles", []) if row.get("role_kind") == "speaker"), None)
+        speaker_entity = speaker_role.get("entity") if isinstance(speaker_role, dict) else None
+        followup_topics = _extract_followup_topics(text)
+
+        for followup_topic in followup_topics:
+            normalized = _normalize_mission_topic(followup_topic)
+            candidates = topic_mentions_by_source.get(unit.source_id, [])
+            resolved: dict[str, Any] | None = None
+            if normalized and normalized not in _MISSION_GENERIC_REFERENTS:
+                for candidate in reversed(candidates):
+                    if normalized == candidate["normalizedTopic"] or normalized in candidate["normalizedTopic"]:
+                        resolved = candidate
+                        break
+            if resolved is None and candidates:
+                resolved = candidates[-1]
+            overlay_status = "abstained"
+            confidence = "low"
+            evidence_refs = [
+                {
+                    "event_id": unit.unit_id,
+                    "source_id": unit.source_id,
+                    "source_document_id": event.get("source_document_id"),
+                    "source_char_start": event.get("source_char_start"),
+                    "source_char_end": event.get("source_char_end"),
+                    "ref_kind": "followup_message",
+                }
+            ]
+            mission_ref: dict[str, Any]
+            if resolved is not None:
+                node = mission_nodes.get(str(resolved["missionId"]))
+                if node:
+                    if deadline and not node.get("deadline"):
+                        node["deadline"] = deadline
+                    followups.append(
+                        {
+                            "eventId": unit.unit_id,
+                            "sourceId": unit.source_id,
+                            "speaker": str(speaker_entity["canonical_label"]) if isinstance(speaker_entity, dict) else None,
+                            "followupTopic": _mission_topic_label(followup_topic),
+                            "resolvedMissionId": node["missionId"],
+                            "resolvedTopicLabel": node["topicLabel"],
+                            "targetEventId": resolved["eventId"],
+                            "status": "linked",
+                            "confidence": "medium" if normalized in _MISSION_GENERIC_REFERENTS else "high",
+                            "deadline": node.get("deadline"),
+                        }
+                    )
+                    overlay_status = "linked"
+                    confidence = "medium" if normalized in _MISSION_GENERIC_REFERENTS else "high"
+                    evidence_refs.append(
+                        {
+                            "event_id": resolved["eventId"],
+                            "source_id": unit.source_id,
+                            "ref_kind": "resolved_topic",
+                            "mission_id": node["missionId"],
+                        }
+                    )
+                    mission_ref = {
+                        "mission_id": node["missionId"],
+                        "node_kind": node["nodeKind"],
+                        "topic_label": node["topicLabel"],
+                        "ref_type": "followup_resolution",
+                    }
+                else:
+                    mission_ref = {
+                        "mission_id": f"mission:unresolved:{_slug(unit.unit_id)}",
+                        "node_kind": "task",
+                        "topic_label": _mission_topic_label(followup_topic) or "unresolved follow-up",
+                        "ref_type": "followup_unresolved",
+                    }
+            else:
+                mission_ref = {
+                    "mission_id": f"mission:unresolved:{_slug(unit.unit_id)}",
+                    "node_kind": "task",
+                    "topic_label": _mission_topic_label(followup_topic) or "unresolved follow-up",
+                    "ref_type": "followup_unresolved",
+                }
+                followups.append(
+                    {
+                        "eventId": unit.unit_id,
+                        "sourceId": unit.source_id,
+                        "speaker": str(speaker_entity["canonical_label"]) if isinstance(speaker_entity, dict) else None,
+                        "followupTopic": _mission_topic_label(followup_topic),
+                        "resolvedMissionId": None,
+                        "resolvedTopicLabel": None,
+                        "targetEventId": None,
+                        "status": "abstained",
+                        "confidence": "low",
+                        "deadline": deadline,
+                    }
+                )
+            overlay_index += 1
+            add_overlay(
+                activity_event_id=unit.unit_id,
+                annotation_id=f"obs:mission:{run_id}:{overlay_index}",
+                mission_ref=mission_ref,
+                evidence_refs=evidence_refs,
+                status=overlay_status,
+                confidence=confidence,
+                note="Mission/follow-up observer overlay derived from transcript/freeform cues.",
+            )
+
+        for topic in _extract_topic_candidates(text):
+            node = ensure_mission(topic, unit.unit_id, unit.source_id)
+            if deadline and not node.get("deadline"):
+                node["deadline"] = deadline
+            topic_mentions_by_source[unit.source_id].append(
+                {
+                    "missionId": node["missionId"],
+                    "topicLabel": node["topicLabel"],
+                    "normalizedTopic": node["normalizedTopic"],
+                    "eventId": unit.unit_id,
+                }
+            )
+            if speaker_entity:
+                owner = {
+                    "entityId": int(speaker_entity["entity_id"]),
+                    "label": str(speaker_entity["canonical_label"]),
+                }
+                if owner not in node["owners"]:
+                    node["owners"].append(owner)
+            overlay_index += 1
+            add_overlay(
+                activity_event_id=unit.unit_id,
+                annotation_id=f"obs:mission:{run_id}:{overlay_index}",
+                mission_ref={
+                    "mission_id": node["missionId"],
+                    "node_kind": node["nodeKind"],
+                    "topic_label": node["topicLabel"],
+                    "ref_type": "topic_mention",
+                },
+                evidence_refs=[
+                    {
+                        "event_id": unit.unit_id,
+                        "source_id": unit.source_id,
+                        "source_document_id": event.get("source_document_id"),
+                        "source_char_start": event.get("source_char_start"),
+                        "source_char_end": event.get("source_char_end"),
+                        "ref_kind": "topic_mention",
+                    }
+                ],
+                status="candidate",
+                confidence=node["confidence"],
+                note="Explicit mission/topic mention.",
+            )
+
+        for pattern in _MISSION_OWNER_PATTERNS:
+            match = pattern.search(text)
+            if not match:
+                continue
+            topic = _mission_topic_label(str(match.group("topic") or ""))
+            owner_label = _mission_topic_label(str(match.group("owner") or ""))
+            if not topic or not owner_label:
+                continue
+            node = ensure_mission(topic, unit.unit_id, unit.source_id)
+            owner = {"label": owner_label}
+            if owner not in node["owners"]:
+                node["owners"].append(owner)
+
+    nodes = sorted(mission_nodes.values(), key=lambda row: (str(row["sourceId"]), str(row["topicLabel"])))
+    linked_followups = sum(1 for row in followups if row["status"] == "linked")
+    return {
+        "summary": {
+            "mission_count": len(nodes),
+            "followup_count": len(followups),
+            "linked_followup_count": linked_followups,
+            "abstained_followup_count": max(0, len(followups) - linked_followups),
+            "overlay_count": len(overlays),
+        },
+        "missions": nodes,
+        "followups": followups,
+        "sb_observer_overlays": overlays,
+        "unavailableReason": None if nodes or followups else "No explicit mission/follow-up cues were derived from this transcript/freeform run.",
+    }
 
 
 def _transcript_actor_key(source_id: str, speaker_label: str) -> str:
@@ -308,18 +725,25 @@ def _should_keep_single_titlecase_entity(tokens: list[str], index: int) -> bool:
     return False
 
 
+def _normalize_entity_surface_token(token: str) -> str:
+    if token.endswith("'s") or token.endswith("’s"):
+        return token[:-2]
+    return token
+
+
 def _extract_general_named_entities(text: str) -> list[str]:
     tokens = _surface_tokens(text)
     entities: list[str] = []
     index = 0
     while index < len(tokens):
-        token = tokens[index]
+        token = _normalize_entity_surface_token(tokens[index])
         if not _is_titlecase_name_token(token):
             index += 1
             continue
         parts = [token]
-        if index + 1 < len(tokens) and _is_titlecase_name_token(tokens[index + 1]):
-            parts.append(tokens[index + 1])
+        next_token = _normalize_entity_surface_token(tokens[index + 1]) if index + 1 < len(tokens) else ""
+        if next_token and _is_titlecase_name_token(next_token):
+            parts.append(next_token)
             index += 1
         elif not _should_keep_single_titlecase_entity(tokens, index):
             index += 1
@@ -329,6 +753,61 @@ def _extract_general_named_entities(text: str) -> list[str]:
             entities.append(label)
         index += 1
     return entities
+
+
+def _social_relation_matches(text: str) -> list[tuple[str, str, str, str]]:
+    name_pat = r"[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*"
+    patterns = (
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+is\s+(?P<object>{name_pat})(?:'s|’s)\s+(?P<marker>sister|brother|sibling|mother|father|parent|son|daughter|child|wife|husband|spouse|friend|guardian)\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+is\s+the\s+(?P<marker>mother|father|parent|son|daughter|child|wife|husband|spouse|friend|guardian)\s+of\s+(?P<object>{name_pat})\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+and\s+(?P<object>{name_pat})\s+are\s+(?P<marker>friends|siblings|spouses)\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+is\s+(?P<marker>friends?)\s+with\s+(?P<object>{name_pat})\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+(?P<marker>cared\s+for|cares\s+for)\s+(?P<object>{name_pat})\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+is\s+responsible\s+for\s+(?P<object>{name_pat})\b"
+        ),
+        re.compile(
+            rf"\b(?P<subject>{name_pat})\s+looks\s+after\s+(?P<object>{name_pat})\b"
+        ),
+    )
+    matches: list[tuple[str, str, str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            subject = str(match.group("subject")).strip()
+            obj = str(match.group("object")).strip()
+            marker = str(match.groupdict().get("marker") or "").strip().casefold().replace(" ", "_")
+            if not marker:
+                matched_text = str(match.group(0)).casefold()
+                if "responsible for" in matched_text:
+                    marker = "responsible_for"
+                elif "looks after" in matched_text:
+                    marker = "looks_after"
+            if not subject or not obj or subject.casefold() == obj.casefold():
+                continue
+            predicate_key = _SOCIAL_RELATION_MARKERS.get(marker)
+            if predicate_key is None and marker == "siblings":
+                predicate_key = "sibling_of"
+            if predicate_key is None and marker == "spouses":
+                predicate_key = "spouse_of"
+            if predicate_key is None:
+                continue
+            dedupe_key = (predicate_key, subject.casefold(), obj.casefold())
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            matches.append((predicate_key, subject, obj, marker))
+    return matches
 
 
 def _extract_theme_concepts(text: str) -> list[str]:
@@ -391,6 +870,7 @@ def run_transcript_semantic_pipeline(
     receipts = infer_speakers(ordered_units, known_participants_by_source=known_participants_by_source)
     actor_by_unit: dict[str, int] = {}
     general_actor_by_unit: dict[str, int] = {}
+    general_actor_labels_by_unit: dict[str, dict[str, int]] = {}
 
     for unit, receipt in zip(ordered_units, receipts):
         event_id = unit.unit_id
@@ -446,6 +926,7 @@ def run_transcript_semantic_pipeline(
             continue
 
         named_entities = _extract_general_named_entities(unit.text)
+        actor_ids_by_label: dict[str, int] = {}
         for index, label in enumerate(named_entities):
             if (
                 str(receipt.inferred_speaker or "").startswith("role:")
@@ -468,6 +949,7 @@ def run_transcript_semantic_pipeline(
                 receipts=[("surface", label), ("entity_scope", "source_local_general"), ("position", "subject" if index == 0 else "mentioned_entity")],
                 pipeline_version=PIPELINE_VERSION,
             )
+            actor_ids_by_label[label.casefold()] = entity_id
             if index == 0:
                 general_actor_by_unit[event_id] = entity_id
                 _insert_event_role_once(
@@ -489,6 +971,8 @@ def run_transcript_semantic_pipeline(
                     cluster_id=cluster_id,
                     note="transcript_general_entity_v1",
                 )
+        if actor_ids_by_label:
+            general_actor_labels_by_unit[event_id] = actor_ids_by_label
 
         theme_labels = _extract_theme_concepts(unit.text)
         theme_entity_ids: list[int] = []
@@ -553,6 +1037,69 @@ def run_transcript_semantic_pipeline(
                     pipeline_version=PIPELINE_VERSION,
                 )
                 break
+
+        social_actor_map = general_actor_labels_by_unit.get(event_id, {})
+        for predicate_key, subject_label, object_label, marker in _social_relation_matches(unit.text):
+            subject_actor_id = social_actor_map.get(subject_label.casefold())
+            if subject_actor_id is None:
+                subject_actor_id = _ensure_transcript_actor(
+                    conn,
+                    source_id=unit.source_id,
+                    speaker_label=subject_label,
+                    classification_tag="general_actor",
+                )
+                social_actor_map[subject_label.casefold()] = subject_actor_id
+            object_actor_id = social_actor_map.get(object_label.casefold())
+            if object_actor_id is None:
+                object_actor_id = _ensure_transcript_actor(
+                    conn,
+                    source_id=unit.source_id,
+                    speaker_label=object_label,
+                    classification_tag="general_actor",
+                )
+                social_actor_map[object_label.casefold()] = object_actor_id
+            general_actor_labels_by_unit[event_id] = social_actor_map
+            if event_id not in general_actor_by_unit:
+                general_actor_by_unit[event_id] = subject_actor_id
+                _insert_event_role_once(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    role_kind="subject",
+                    entity_id=subject_actor_id,
+                    note="transcript_social_relation_v1",
+                )
+            _insert_event_role_once(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                role_kind="related_person",
+                entity_id=object_actor_id,
+                note="transcript_social_relation_v1",
+            )
+            receipts_payload = [
+                ("subject_actor", str(subject_actor_id)),
+                ("object_actor", str(object_actor_id)),
+                ("relation_surface", marker),
+                ("cue_surface", marker),
+                ("predicate", predicate_key),
+            ]
+            _insert_relation_candidate(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                subject_entity_id=subject_actor_id,
+                predicate_id=predicate_ids[predicate_key],
+                object_entity_id=object_actor_id,
+                confidence_tier=_policy_adjusted_confidence(
+                    conn,
+                    predicate_key=predicate_key,
+                    receipts=receipts_payload,
+                    legacy_confidence="low",
+                ),
+                receipts=receipts_payload,
+                pipeline_version=PIPELINE_VERSION,
+            )
 
     by_source: dict[str, list[tuple[TextUnit, SpeakerInferenceReceipt]]] = defaultdict(list)
     for unit, receipt in zip(ordered_units, receipts):
@@ -632,6 +1179,7 @@ def build_transcript_semantic_report(
 ) -> dict[str, Any]:
     ensure_gwb_semantic_schema(conn)
     ordered_units = list(units)
+    source_documents, source_event_spans = _build_transcript_source_documents(ordered_units)
     event_map = {unit.unit_id: unit for unit in ordered_units}
     entities = {
         int(row["entity_id"]): {
@@ -738,11 +1286,15 @@ def build_transcript_semantic_report(
                 per_entity[participant]["promoted_relation_count"] += 1
     per_event = []
     for unit in ordered_units:
+        source_span = source_event_spans.get(unit.unit_id, {})
         per_event.append(
             {
                 "event_id": unit.unit_id,
                 "source_id": unit.source_id,
                 "source_type": unit.source_type,
+                "source_document_id": source_span.get("source_document_id"),
+                "source_char_start": source_span.get("source_char_start"),
+                "source_char_end": source_span.get("source_char_end"),
                 "text": unit.text,
                 "mentions": per_event_mentions.get(unit.unit_id, []),
                 "event_roles": event_roles_by_event.get(unit.unit_id, []),
@@ -758,7 +1310,7 @@ def build_transcript_semantic_report(
         row["event_count"] = len(row["events"])
         row["events"] = sorted(row["events"])
         per_entity_rows.append(row)
-    return {
+    report = {
         "run_id": run_id,
         "summary": {
             "entity_count": len(entities),
@@ -776,4 +1328,53 @@ def build_transcript_semantic_report(
         "unresolved_mentions": unresolved_mentions,
         "per_entity": per_entity_rows,
         "per_event": per_event,
+        "source_documents": source_documents,
+        "text_debug": build_semantic_text_debug_payload(per_event),
     }
+    mission_observer = _build_transcript_mission_observer(run_id=run_id, units=ordered_units, per_event=per_event)
+    persist_mission_observer(
+        conn,
+        run_id=run_id,
+        source="transcript",
+        mission_observer=mission_observer,
+        pipeline_version=PIPELINE_VERSION,
+    )
+    report["mission_observer"] = load_mission_observer(conn, run_id=run_id)
+    social_predicates = {
+        "sibling_of",
+        "parent_of",
+        "child_of",
+        "spouse_of",
+        "friend_of",
+        "guardian_of",
+        "caregiver_of",
+    }
+    social_event_counts: dict[str, int] = defaultdict(int)
+    for row in candidate_only:
+        predicate_key = str(row["predicate_key"])
+        if predicate_key in social_predicates:
+            social_event_counts[str(row["event_id"])] += 1
+    report["review_summary"] = build_semantic_review_summary(
+        report,
+        focus_predicates=social_predicates,
+        focus_candidate_only_note="All explicit social/care predicates remain candidate-only in this run.",
+        extra_event_counts=social_event_counts,
+    )
+    return report
+
+
+def build_transcript_relation_summary(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    units: Iterable[TextUnit],
+) -> dict[str, Any]:
+    report = build_transcript_semantic_report(conn, run_id=run_id, units=units)
+    summary = dict(report.get("review_summary", {}))
+    summary["run_id"] = run_id
+    summary["mission_observer"] = report.get("mission_observer", {}).get("summary", {})
+    if "event_counts" in summary and "social_event_counts" not in summary:
+        summary["social_event_counts"] = summary["event_counts"]
+    if "focus_candidate_only_note" in summary and "social_candidate_only_note" not in summary:
+        summary["social_candidate_only_note"] = summary["focus_candidate_only_note"]
+    return summary

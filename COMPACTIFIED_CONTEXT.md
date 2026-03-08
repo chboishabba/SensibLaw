@@ -63,6 +63,42 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   form: contextual single-token person/place surfaces remain allowed, but
   obvious titlecase noise such as `Thanks`, `Today`, and role/system labels is
   suppressed instead of becoming source-local actors.
+- The transcript/freeform lane now also has a first bounded explicit
+  social-relation slice for named statements such as sibling/parent/spouse/
+  friend assertions plus explicit guardian/care surfaces. These remain
+  candidate-only and text-local by default; there is still no open-world,
+  institutional-custody, or first-person social inference pass.
+- Care relation naming in that lane should now stay relation-style and
+  tense-neutral: canonical predicate `caregiver_of`, observed text kept in
+  receipts (`cared_for`, `cares_for`, similar) rather than in predicate keys.
+- The transcript/freeform lane now also needs a compact relation-review
+  summary artifact so promotion decisions are based on bounded counts/cues
+  instead of full JSON report inspection alone.
+- The semantic workbench ownership boundary is now tighter: Python report
+  producers should emit `text_debug` directly, and `itir-svelte` should render
+  that artifact instead of re-deriving token anchors, relation families, or
+  opacity locally.
+- Semantic review reports should now also expose a compact `review_summary`
+  read model across GWB/AU/transcript so predicate totals, cue surfaces, and
+  excluded `text_debug` rows are comparable in one place.
+- The `text_debug` contract should now carry producer-owned char spans plus a
+  source artifact id per anchor. Token spans remain view helpers; they are no
+  longer the only shared anchor surface.
+- The token-arc workbench should now also lightly echo same-role anchors in the
+  same relation family when a token/anchor is active, using the active family
+  color with opacity scaled by relation strength.
+- The semantic report workbench should now use producer-owned `text_debug`
+  spans for event-local viewer cross-highlighting. If a corpus cannot provide a
+  real source document, the source-document panel should stay explicitly
+  unavailable rather than substituting event text.
+- Transcript/freeform reports now emit grouped source-document text plus
+  source-level event spans, allowing the semantic workbench source viewer to
+  project event-local anchor highlights into real source text without moving
+  semantic derivation back into TS.
+- GWB/AU semantic reports now also emit grouped timeline-source text plus
+  source-level event spans from the normalized wiki timeline store, so the
+  semantic workbench source viewer is no longer transcript-only and still does
+  not need TS-side source reconstruction.
 - Local archive/context review shows the prior stable vocabulary is around the
   actor identity spine and shared role/slot boundaries (`subject`, `object`,
   `requester`, `speaker`, `event_role`), not a settled transcript-specific
