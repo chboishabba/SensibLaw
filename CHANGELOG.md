@@ -1,6 +1,24 @@
 # Changelog
 
 ## Unreleased
+- Docs/TODO alignment: add the first concrete OpenRecall integration posture.
+  The suite now treats vendored `openrecall/` as an upstream local-first
+  observer/capture source that should enter ITIR through normalized
+  append-only import/read-model surfaces, feed mission-lens actual rows and
+  source-local text reuse, and remain non-authoritative on ingest.
+- Wikipedia revision monitor: upgrade the runner to a bounded history-aware
+  lane. `scripts/wiki_pull_api.py` now supports bounded revision-history
+  manifests plus exact revision fetches, and
+  `src/wiki_timeline/revision_pack_runner.py` now polls recent revision
+  windows, scores candidate deltas (`last_seen_current`, `previous_current`,
+  `largest_delta_in_window`, `most_reverted_like_in_window`), computes
+  section-delta summaries, selects only the top bounded pairs, persists
+  history/candidate rows in the dedicated SQLite state DB, and emits
+  pair-aware wrapper reports around the existing v0.1 revision harness output.
+  Cross-project interface docs now explicitly define this lane as
+  observer-only for `StatiBaker`, read-only hypothesis input for
+  `SL-reasoner`, and reference-only for `fuzzymodo` and
+  `casey-git-clone`.
 - Docs/TODO alignment: clarify the current wiki revision monitor doctrine.
   The priority is not immediate `itir-svelte` integration; it is bringing the
   revision lane up to the same functional standard as the stronger suite

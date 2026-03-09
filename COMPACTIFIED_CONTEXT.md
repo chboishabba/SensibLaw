@@ -62,6 +62,15 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   - the important convergence points are deterministic producer-owned outputs,
     queryable run/result state, additive read models, and shared review/
     provenance posture so other pipelines can propagate/reuse the lane cleanly
+- Current doctrine for OpenRecall integration:
+  - treat the vendored `openrecall/` project as an upstream local-first
+    observer/capture source
+  - import into ITIR/SensibLaw via normalized append-only capture tables/read
+    models rather than treating OpenRecall as a semantic authority
+  - reuse imported captures in existing lanes first (mission-lens actual side,
+    source-local text units for semantic/transcript extraction)
+  - do not prioritize GUI-first integration or direct SB writing before the
+    functional/import/query standard is in place
 - Archive/context source for the contested-pack expansion:
   - title: `Highly Contested Wiki Pages`
   - online UUID: `69ada623-351c-839a-97c4-7669a12b8e04`

@@ -256,6 +256,16 @@
     revision artifacts without re-deriving monitor logic
   - preserve the dedicated runner/state-DB posture; this is a standards/
     interoperability task, not a demand to fold the lane into `itir-svelte`
+- [ ] Add an OpenRecall observer integration v1 lane:
+  - import vendored `openrecall/` SQLite captures into `itir.sqlite` via a
+    bounded append-only importer and normalized capture tables/read models
+  - preserve capture provenance (`captured_at`, app/window title, OCR text,
+    source DB path, screenshot refs) and keep ingest observer-class only
+  - expose imported captures as a new mission-lens actual-side source kind and
+    as source-local text units for semantic/transcript extraction
+  - do not treat raw OCR/capture rows as canonical mission or semantic truth
+  - do not prioritize GUI-first browsing until the import/query/reuse standard
+    is in place
 - [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
   `... against ...` reasoning idioms and factual scaffolding:
   - cited-authority subgroup handling (`majority in Lepore`, similar)

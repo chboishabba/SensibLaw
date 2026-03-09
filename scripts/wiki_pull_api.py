@@ -257,8 +257,6 @@ def _fetch_revision_wikitext(
         "action": "query",
         "format": "json",
         "formatversion": 2,
-        "redirects": 1,
-        "titles": title,
         "prop": "revisions|categories|links",
         "revids": int(revid),
         "rvprop": "ids|timestamp|content|size|comment|flags",
