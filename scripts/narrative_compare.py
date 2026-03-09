@@ -33,7 +33,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--archive-dbs",
-        default="~/.chat_archive.sqlite,.chatgpt_history.sqlite3,chat-export-structurer/my_archive.sqlite",
+        default="~/chat_archive.sqlite,~/.chat_archive.sqlite,.chatgpt_history.sqlite3,chat-export-structurer/my_archive.sqlite",
         help="Comma-separated candidate archive DB paths used by --archive-backed.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)

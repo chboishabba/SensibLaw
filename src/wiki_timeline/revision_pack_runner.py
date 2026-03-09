@@ -913,6 +913,100 @@ def _score_candidate_pair(
     }
 
 
+def _severity_rank(value: Any) -> int:
+    return {"high": 3, "medium": 2, "low": 1, "none": 0}.get(str(value or "none"), 0)
+
+
+def _build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: int = 5, pair_limit: int = 8, section_limit: int = 10) -> dict[str, Any]:
+    top_articles: list[dict[str, Any]] = []
+    top_pairs: list[dict[str, Any]] = []
+    top_sections: dict[str, dict[str, Any]] = {}
+
+    for row in article_results:
+        if not isinstance(row, Mapping):
+            continue
+        top_articles.append(
+            {
+                "article_id": row.get("article_id"),
+                "title": row.get("title"),
+                "status": row.get("status"),
+                "top_severity": row.get("top_severity", "none"),
+                "selected_primary_pair_kind": row.get("selected_primary_pair_kind"),
+                "selected_primary_pair_id": row.get("selected_primary_pair_id"),
+                "selected_primary_pair_score": row.get("selected_primary_pair_score"),
+                "candidate_pairs_selected": row.get("candidate_pairs_selected", 0),
+                "report_path": row.get("report_path"),
+            }
+        )
+        for pair in row.get("pair_reports") or []:
+            if not isinstance(pair, Mapping):
+                continue
+            top_pairs.append(
+                {
+                    "article_id": row.get("article_id"),
+                    "title": row.get("title"),
+                    "pair_id": pair.get("pair_id"),
+                    "pair_kind": pair.get("pair_kind"),
+                    "pair_kinds": list(pair.get("pair_kinds") or []),
+                    "older_revid": pair.get("older_revid"),
+                    "newer_revid": pair.get("newer_revid"),
+                    "candidate_score": pair.get("candidate_score"),
+                    "top_severity": pair.get("top_severity", "none"),
+                    "pair_report_path": pair.get("pair_report_path"),
+                }
+            )
+            for section in pair.get("top_changed_sections") or []:
+                if not isinstance(section, Mapping):
+                    continue
+                name = str(section.get("section") or "").strip()
+                if not name:
+                    continue
+                touched = int(section.get("touched_bytes") or 0)
+                existing = top_sections.get(name)
+                candidate = {
+                    "section": name,
+                    "max_touched_bytes": touched,
+                    "article_id": row.get("article_id"),
+                    "title": row.get("title"),
+                    "pair_id": pair.get("pair_id"),
+                    "pair_kind": pair.get("pair_kind"),
+                    "top_severity": pair.get("top_severity", "none"),
+                    "pair_report_path": pair.get("pair_report_path"),
+                }
+                if existing is None or touched > int(existing.get("max_touched_bytes") or 0):
+                    top_sections[name] = candidate
+
+    top_articles.sort(
+        key=lambda item: (
+            -_severity_rank(item.get("top_severity")),
+            -float(item.get("selected_primary_pair_score") or 0.0),
+            -int(item.get("candidate_pairs_selected") or 0),
+            str(item.get("article_id") or ""),
+        )
+    )
+    top_pairs.sort(
+        key=lambda item: (
+            -_severity_rank(item.get("top_severity")),
+            -float(item.get("candidate_score") or 0.0),
+            str(item.get("article_id") or ""),
+            str(item.get("pair_id") or ""),
+        )
+    )
+    ranked_sections = sorted(
+        top_sections.values(),
+        key=lambda item: (
+            -int(item.get("max_touched_bytes") or 0),
+            -_severity_rank(item.get("top_severity")),
+            str(item.get("section") or ""),
+        ),
+    )
+    return {
+        "top_changed_articles": top_articles[:article_limit],
+        "top_high_severity_pairs": top_pairs[:pair_limit],
+        "top_sections_changed": ranked_sections[:section_limit],
+    }
+
+
 def _build_pair_report(
     *,
     article: Mapping[str, Any],
@@ -970,6 +1064,8 @@ def _build_pair_report(
     )
     wrapper = {
         "schema_version": PAIR_REPORT_SCHEMA_VERSION,
+        "highest_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
+        "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
         "pair": {
             "pair_id": pair["pair_id"],
             "pair_kind": pair["pair_kind"],
@@ -1169,6 +1265,7 @@ def run(
                             aggregate_counts[key] = aggregate_counts.get(key, 0) + int(value)
                     packet_counts = aggregate_counts
                     current_report_path = Path(str(selected_pairs[0]["pair_report_path"])) if selected_pairs[0].get("pair_report_path") else None
+                primary_pair = selected_pairs[0] if selected_pairs else None
 
                 result_payload = {
                     "article_id": article_id,
@@ -1186,6 +1283,10 @@ def run(
                     "candidate_pairs_considered": len(scored_candidates),
                     "candidate_pairs_selected": len(selected_pairs),
                     "selected_pair_ids": [str(pair["pair_id"]) for pair in selected_pairs],
+                    "selected_primary_pair_id": primary_pair["pair_id"] if primary_pair else None,
+                    "selected_primary_pair_kind": primary_pair["pair_kind"] if primary_pair else None,
+                    "selected_primary_pair_kinds": list(primary_pair.get("pair_kinds") or []) if primary_pair else [],
+                    "selected_primary_pair_score": primary_pair["candidate_score"] if primary_pair else None,
                     "pair_reports": [
                         {
                             "pair_id": pair["pair_id"],
@@ -1196,9 +1297,11 @@ def run(
                             "candidate_score": pair["candidate_score"],
                             "pair_report_path": pair.get("pair_report_path"),
                             "top_severity": pair.get("top_severity", "none"),
+                            "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
                         }
                         for pair in selected_pairs
                     ],
+                    "packet_counts": packet_counts,
                     "report_path": str(current_report_path) if current_report_path else None,
                 }
 
@@ -1274,6 +1377,7 @@ def run(
             "counts": summary_counts,
             "candidate_pair_counts": candidate_pair_counts,
             "highest_severity": highest_severity,
+            "pack_triage": _build_pack_triage(article_results),
             "articles": article_results,
         }
         summary_path = out_dir / "runs" / f"{_slug(run_id)}.json"
@@ -1305,10 +1409,41 @@ def human_summary(payload: Mapping[str, Any]) -> str:
         ),
         f"highest_severity={payload.get('highest_severity')}",
     ]
+    triage = payload.get("pack_triage") or {}
+    top_articles = triage.get("top_changed_articles") or []
+    top_pairs = triage.get("top_high_severity_pairs") or []
+    top_sections = triage.get("top_sections_changed") or []
+    if top_articles:
+        lines.append(
+            "top_articles="
+            + ", ".join(
+                f"{row.get('article_id')}:{row.get('top_severity')}:{row.get('selected_primary_pair_kind')}"
+                for row in top_articles[:3]
+                if isinstance(row, Mapping)
+            )
+        )
+    if top_pairs:
+        lines.append(
+            "top_pairs="
+            + ", ".join(
+                f"{row.get('article_id')}:{row.get('pair_kind')}:{row.get('top_severity')}"
+                for row in top_pairs[:3]
+                if isinstance(row, Mapping)
+            )
+        )
+    if top_sections:
+        lines.append(
+            "top_sections="
+            + ", ".join(
+                f"{row.get('section')}:{row.get('max_touched_bytes')}"
+                for row in top_sections[:3]
+                if isinstance(row, Mapping)
+            )
+        )
     for row in payload.get("articles") or []:
         if not isinstance(row, Mapping):
             continue
         lines.append(
-            f"{row.get('article_id')}: status={row.get('status')} prev={row.get('previous_revid')} curr={row.get('current_revid')} pairs={row.get('candidate_pairs_selected', 0)} report={row.get('report_path')}"
+            f"{row.get('article_id')}: status={row.get('status')} sev={row.get('top_severity', 'none')} prev={row.get('previous_revid')} curr={row.get('current_revid')} primary_pair={row.get('selected_primary_pair_kind')} pairs={row.get('candidate_pairs_selected', 0)} report={row.get('report_path')}"
         )
     return "\n".join(lines)

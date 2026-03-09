@@ -163,6 +163,18 @@ The runner must emit:
   - candidate pairs selected
   - pair reports built
   - highest severity seen
+- pack-level triage summaries:
+  - `pack_triage.top_changed_articles[]`
+  - `pack_triage.top_high_severity_pairs[]`
+  - `pack_triage.top_sections_changed[]`
+
+Minimum `pack_triage` intent:
+- `top_changed_articles[]` exposes article-level severity and primary selected
+  pair metadata without reopening pair reports
+- `top_high_severity_pairs[]` exposes the strongest pair-level deltas directly
+- `top_sections_changed[]` exposes the most-touched sections across the pack so
+  downstream consumers can triage by topic/section before loading per-pair
+  artifacts
 
 The persisted run/result model should be usable by a later `itir-svelte`
 workbench without schema redesign, but GUI consumption is not the primary

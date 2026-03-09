@@ -208,10 +208,19 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     first_report = Path(first["articles"][0]["pair_reports"][0]["pair_report_path"])
     pair_report = json.loads(first_report.read_text(encoding="utf-8"))
     assert pair_report["schema_version"] == "wiki_revision_pair_report_v0_1"
+    assert pair_report["highest_severity"] in {"high", "medium", "low", "none"}
+    assert isinstance(pair_report["packet_counts"], dict)
     assert pair_report["section_delta_summary"]["changed_section_count"] >= 1
     assert pair_report["comparison_report"]["issue_packets"][0]["review_context"]["curated"]["curated_qids"] == ["Q1"]
     assert pair_report["comparison_report"]["issue_packets"][0]["review_context"]["auto_bridge_matches"][0]["curie"] == "wikidata:Q1065"
     assert "section_context" in pair_report["comparison_report"]["issue_packets"][0]
+    assert first["articles"][0]["selected_primary_pair_kind"] is not None
+    assert first["articles"][0]["selected_primary_pair_id"] is not None
+    assert first["articles"][0]["selected_primary_pair_score"] is not None
+    assert isinstance(first["articles"][0]["packet_counts"], dict)
+    assert first["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
+    assert first["pack_triage"]["top_high_severity_pairs"][0]["article_id"] == "article_1"
+    assert first["pack_triage"]["top_sections_changed"][0]["section"] in {"History", "Legacy", "(lead)"}
 
     second = run(
         pack_path=pack_path,
@@ -340,12 +349,36 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
         "counts": {"baseline_initialized": 0, "unchanged": 0, "changed": 1, "no_candidate_delta": 0, "error": 0},
         "candidate_pair_counts": {"considered": 3, "selected": 2, "reported": 2},
         "highest_severity": "high",
+        "pack_triage": {
+            "top_changed_articles": [
+                {
+                    "article_id": "article_1",
+                    "top_severity": "high",
+                    "selected_primary_pair_kind": "largest_delta_in_window",
+                }
+            ],
+            "top_high_severity_pairs": [
+                {
+                    "article_id": "article_1",
+                    "pair_kind": "largest_delta_in_window",
+                    "top_severity": "high",
+                }
+            ],
+            "top_sections_changed": [
+                {
+                    "section": "History",
+                    "max_touched_bytes": 1200,
+                }
+            ],
+        },
         "articles": [
             {
                 "article_id": "article_1",
                 "status": "changed",
+                "top_severity": "high",
                 "previous_revid": 1,
                 "current_revid": 2,
+                "selected_primary_pair_kind": "largest_delta_in_window",
                 "candidate_pairs_selected": 2,
                 "report_path": "/tmp/pair.json",
             }
@@ -354,6 +387,10 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     text = human_summary(payload)
     assert "pack=pack run=run:1" in text
     assert "pairs: considered=3 selected=2 reported=2" in text
+    assert "top_articles=article_1:high:largest_delta_in_window" in text
+    assert "top_pairs=article_1:largest_delta_in_window:high" in text
+    assert "top_sections=History:1200" in text
+    assert "article_1: status=changed sev=high prev=1 curr=2 primary_pair=largest_delta_in_window pairs=2 report=/tmp/pair.json" in text
 
     script = Path(__file__).resolve().parents[1] / "scripts" / "wiki_revision_pack_runner.py"
     completed = subprocess.run(
