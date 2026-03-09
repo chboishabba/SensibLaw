@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from dataclasses import dataclass
@@ -8,8 +9,8 @@ from pathlib import Path
 from typing import Iterable
 
 
-TARGET_ONLINE_THREAD_ID = "69ac40e0-0cfc-839b-b2a8-0de3019379a9"
-TARGET_TITLE_HINT = "Climate Change Politics AU"
+DEFAULT_TARGET_ONLINE_THREAD_ID = "69ac40e0-0cfc-839b-b2a8-0de3019379a9"
+DEFAULT_TARGET_TITLE_HINT = "Climate Change Politics AU"
 CLAIM_HINTS = (
     "friendlyjordies",
     "greens",
@@ -45,7 +46,17 @@ class ArchiveMessage:
 
 
 def _db_candidates(repo_root: Path) -> list[Path]:
+    env_paths = [
+        value.strip()
+        for value in (
+            os.environ.get("ITIR_CHAT_ARCHIVE_DB_PATH", ""),
+            os.environ.get("CHAT_ARCHIVE_DB_PATH", ""),
+        )
+        if value.strip()
+    ]
     return [
+        *(Path(value).expanduser() for value in env_paths),
+        Path("/tmp/dashig_chat_archive_latest.sqlite"),
         Path.home() / "chat_archive.sqlite",
         Path.home() / ".chat_archive.sqlite",
         repo_root / ".chatgpt_history.sqlite3",
@@ -65,9 +76,9 @@ def _table_columns(cur: sqlite3.Cursor, table: str) -> set[str]:
     return {str(row["name"]) for row in cur.execute(f"PRAGMA table_info({table})")}
 
 
-def _rows_history_db(cur: sqlite3.Cursor) -> list[ArchiveMessage]:
-    thread_id = TARGET_ONLINE_THREAD_ID
-    title_hint = TARGET_TITLE_HINT.lower()
+def _rows_history_db(cur: sqlite3.Cursor, *, target_thread_id: str, target_title_hint: str) -> list[ArchiveMessage]:
+    thread_id = target_thread_id
+    title_hint = target_title_hint.lower()
     target = cur.execute(
         """
         SELECT c.conversation_id AS thread_id, COALESCE(NULLIF(c.title, ''), '(untitled)') AS title
@@ -105,11 +116,23 @@ def _rows_history_db(cur: sqlite3.Cursor) -> list[ArchiveMessage]:
     ]
 
 
-def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str]) -> list[ArchiveMessage]:
-    title_hint = TARGET_TITLE_HINT.lower()
+def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str], *, target_thread_id: str, target_title_hint: str) -> list[ArchiveMessage]:
+    title_hint = target_title_hint.lower()
     target = None
-    if "source_thread_id" in cols:
+    if target_thread_id:
         target = cur.execute(
+            """
+            SELECT canonical_thread_id, COALESCE(NULLIF(MAX(COALESCE(title, '')), ''), '(untitled)') AS title
+            FROM messages
+            WHERE LOWER(COALESCE(canonical_thread_id, '')) = LOWER(?)
+            GROUP BY canonical_thread_id
+            ORDER BY MAX(ts) DESC
+            LIMIT 1
+            """,
+            (target_thread_id,),
+        ).fetchone()
+    if "source_thread_id" in cols and target_thread_id:
+        target = target or cur.execute(
             """
             SELECT canonical_thread_id, COALESCE(NULLIF(MAX(COALESCE(title, '')), ''), '(untitled)') AS title
             FROM messages
@@ -118,7 +141,7 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str]) -> list[ArchiveMessage
             ORDER BY MAX(ts) DESC
             LIMIT 1
             """,
-            (TARGET_ONLINE_THREAD_ID,),
+            (target_thread_id,),
         ).fetchone()
     if target is None and "title" in cols:
         target = cur.execute(
@@ -191,7 +214,7 @@ def _rows_archive_db(cur: sqlite3.Cursor, cols: set[str]) -> list[ArchiveMessage
         tuple(
             value
             for cond, value in (
-                ("source_thread_id" in cols, TARGET_ONLINE_THREAD_ID),
+                ("source_thread_id" in cols and bool(target_thread_id), target_thread_id),
                 ("title" in cols, f"%{title_hint}%"),
             )
             if cond
@@ -555,7 +578,7 @@ def _build_authority_wrappers_payload(messages: list[ArchiveMessage]) -> dict:
     }
 
 
-def _try_build_from_db(db_path: Path, fixture_name: str) -> dict:
+def _try_build_from_db(db_path: Path, fixture_name: str, *, target_thread_id: str, target_title_hint: str) -> dict:
     if not db_path.exists():
         return {}
     con = _connect_ro(db_path)
@@ -566,9 +589,9 @@ def _try_build_from_db(db_path: Path, fixture_name: str) -> dict:
             return {}
         cols = _table_columns(cur, "messages")
         if {"conversation_id", "author", "content"}.issubset(cols) and "conversations" in tables:
-            messages = _rows_history_db(cur)
+            messages = _rows_history_db(cur, target_thread_id=target_thread_id, target_title_hint=target_title_hint)
         elif {"canonical_thread_id", "role", "text"}.issubset(cols):
-            messages = _rows_archive_db(cur, cols)
+            messages = _rows_archive_db(cur, cols, target_thread_id=target_thread_id, target_title_hint=target_title_hint)
         else:
             messages = []
         if fixture_name == "friendlyjordies_thread_extract":
@@ -588,6 +611,8 @@ def build_archive_backed_fixture(
     repo_root: Path,
     output_dir: Path | None = None,
     db_paths: list[Path] | None = None,
+    target_thread_id: str | None = None,
+    target_title_hint: str | None = None,
 ) -> Path | None:
     if fixture_name not in {
         "friendlyjordies_thread_extract",
@@ -596,8 +621,10 @@ def build_archive_backed_fixture(
     }:
         return None
     candidates = db_paths or _db_candidates(repo_root)
+    thread_id = (target_thread_id or DEFAULT_TARGET_ONLINE_THREAD_ID).strip()
+    title_hint = (target_title_hint or DEFAULT_TARGET_TITLE_HINT).strip()
     for db_path in candidates:
-        payload = _try_build_from_db(db_path, fixture_name)
+        payload = _try_build_from_db(db_path, fixture_name, target_thread_id=thread_id, target_title_hint=title_hint)
         if not payload:
             continue
         out_dir = output_dir or (repo_root / "SensibLaw" / ".cache_local" / "narrative")

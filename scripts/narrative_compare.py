@@ -36,6 +36,8 @@ def main() -> int:
         default="~/chat_archive.sqlite,~/.chat_archive.sqlite,.chatgpt_history.sqlite3,chat-export-structurer/my_archive.sqlite",
         help="Comma-separated candidate archive DB paths used by --archive-backed.",
     )
+    parser.add_argument("--thread-id", default="", help="Optional canonical or source thread id for archive-backed fixture refresh.")
+    parser.add_argument("--thread-title-hint", default="", help="Optional title hint used when locating an archive thread.")
     sub = parser.add_subparsers(dest="cmd", required=True)
     validate = sub.add_parser("validate")
     validate.add_argument("--source-id", required=True)
@@ -60,6 +62,8 @@ def main() -> int:
             fixture_name=args.fixture,
             repo_root=repo_root,
             db_paths=_parse_db_paths(args.archive_dbs, repo_root),
+            target_thread_id=args.thread_id.strip() or None,
+            target_title_hint=args.thread_title_hint.strip() or None,
         )
         if generated is not None:
             fixture_path = generated
