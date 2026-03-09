@@ -13,6 +13,12 @@
       }
     ]
   },
+  "history_defaults": {
+    "max_revisions": 20,
+    "window_days": 14,
+    "max_candidate_pairs": 3,
+    "section_focus_limit": 5
+  },
   "articles": [
     {
       "article_id": "contest_donald_trump",

@@ -15,6 +15,7 @@ ontology tables; those are separate, review-gated steps.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
 import json
 import sys
@@ -105,6 +106,12 @@ class PageSnapshot:
             "wikitext": self.wikitext,
             "warnings": self.warnings,
         }
+
+
+def _history_bounds(window_days: int) -> tuple[str | None, str]:
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    older = now - dt.timedelta(days=max(0, int(window_days)))
+    return (older.strftime("%Y-%m-%dT%H:%M:%SZ") if window_days > 0 else None, now.strftime("%Y-%m-%dT%H:%M:%SZ"))
 
 
 def _page_url(wiki: str, title: str) -> str:
@@ -230,6 +237,173 @@ def _fetch_latest_wikitext(
         wikitext=wikitext,
         warnings=warnings,
     )
+
+
+def _fetch_revision_wikitext(
+    *,
+    wiki: str,
+    title: str,
+    revid: int,
+    max_links: int,
+    max_categories: int,
+    include_wikitext: bool,
+    timeout_s: int,
+    pacer: Optional[_RequestPacer],
+) -> PageSnapshot:
+    if wiki not in WIKIS:
+        raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(WIKIS))})")
+    base = WIKIS[wiki]
+    params = {
+        "action": "query",
+        "format": "json",
+        "formatversion": 2,
+        "redirects": 1,
+        "titles": title,
+        "prop": "revisions|categories|links",
+        "revids": int(revid),
+        "rvprop": "ids|timestamp|content|size|comment|flags",
+        "rvslots": "main",
+        "cllimit": max(1, min(int(max_categories), 500)),
+        "clprop": "hidden",
+        "pllimit": max(1, min(int(max_links), 500)),
+        "plnamespace": 0,
+    }
+    url = _build_url(base, params)
+    payload = _get_json(url, timeout_s=timeout_s, pacer=pacer)
+    warnings: List[str] = []
+    pages = (payload.get("query") or {}).get("pages") or []
+    if not pages:
+        warnings.append("no_pages_returned")
+        return PageSnapshot(
+            wiki=wiki,
+            title=title,
+            pageid=None,
+            revid=None,
+            rev_timestamp=None,
+            source_url=_page_url(wiki, title),
+            api_url=url,
+            fetched_at=_utc_iso(),
+            categories=[],
+            links=[],
+            wikitext=None,
+            warnings=warnings,
+        )
+    page = pages[0] if isinstance(pages[0], dict) else {}
+    actual_title = str(page.get("title") or title)
+    pageid = page.get("pageid")
+    revs = page.get("revisions") or []
+    rev = revs[0] if isinstance(revs, list) and revs and isinstance(revs[0], dict) else {}
+    found_revid = rev.get("revid") if isinstance(rev.get("revid"), int) else None
+    rev_ts = rev.get("timestamp") if isinstance(rev.get("timestamp"), str) else None
+    wikitext = None
+    if include_wikitext:
+        slots = rev.get("slots") or {}
+        main = slots.get("main") or {}
+        content = main.get("content")
+        if isinstance(content, str):
+            wikitext = content
+    if found_revid != int(revid):
+        warnings.append("requested_revision_not_returned")
+    categories: List[str] = []
+    for cat in page.get("categories") or []:
+        if isinstance(cat, dict) and isinstance(cat.get("title"), str):
+            categories.append(cat["title"])
+    links: List[str] = []
+    for link in page.get("links") or []:
+        if isinstance(link, dict) and isinstance(link.get("title"), str):
+            links.append(link["title"])
+    return PageSnapshot(
+        wiki=wiki,
+        title=actual_title,
+        pageid=int(pageid) if isinstance(pageid, int) else None,
+        revid=found_revid,
+        rev_timestamp=rev_ts,
+        source_url=_page_url(wiki, actual_title),
+        api_url=url,
+        fetched_at=_utc_iso(),
+        categories=categories[: max(0, int(max_categories))],
+        links=links[: max(0, int(max_links))],
+        wikitext=wikitext,
+        warnings=warnings,
+    )
+
+
+def _fetch_revision_history(
+    *,
+    wiki: str,
+    title: str,
+    max_revisions: int,
+    window_days: int,
+    timeout_s: int,
+    pacer: Optional[_RequestPacer],
+) -> dict[str, Any]:
+    if wiki not in WIKIS:
+        raise SystemExit(f"unknown wiki '{wiki}' (choices: {', '.join(sorted(WIKIS))})")
+    base = WIKIS[wiki]
+    rvend, rvstart = _history_bounds(window_days)
+    params: dict[str, str | int] = {
+        "action": "query",
+        "format": "json",
+        "formatversion": 2,
+        "redirects": 1,
+        "titles": title,
+        "prop": "revisions",
+        "rvprop": "ids|timestamp|size|comment|flags|user",
+        "rvlimit": max(1, min(int(max_revisions), 500)),
+        "rvdir": "older",
+    }
+    if rvend:
+        params["rvend"] = rvend
+    if rvstart:
+        params["rvstart"] = rvstart
+    url = _build_url(base, params)
+    payload = _get_json(url, timeout_s=timeout_s, pacer=pacer)
+    warnings: List[str] = []
+    pages = (payload.get("query") or {}).get("pages") or []
+    if not pages:
+        warnings.append("no_pages_returned")
+        return {
+            "wiki": wiki,
+            "title": title,
+            "source_url": _page_url(wiki, title),
+            "api_url": url,
+            "fetched_at": _utc_iso(),
+            "max_revisions": int(max_revisions),
+            "window_days": int(window_days),
+            "rows": [],
+            "warnings": warnings,
+        }
+    page = pages[0] if isinstance(pages[0], dict) else {}
+    actual_title = str(page.get("title") or title)
+    rows = []
+    for rev in page.get("revisions") or []:
+        if not isinstance(rev, dict):
+            continue
+        rows.append(
+            {
+                "revid": rev.get("revid"),
+                "parentid": rev.get("parentid"),
+                "timestamp": rev.get("timestamp"),
+                "size": rev.get("size"),
+                "comment": rev.get("comment"),
+                "user": rev.get("user"),
+                "anon": bool(rev.get("anon")),
+                "minor": bool(rev.get("minor")),
+            }
+        )
+    if payload.get("continue"):
+        warnings.append("partial_history_continue_present")
+    return {
+        "wiki": wiki,
+        "title": actual_title,
+        "source_url": _page_url(wiki, actual_title),
+        "api_url": url,
+        "fetched_at": _utc_iso(),
+        "max_revisions": int(max_revisions),
+        "window_days": int(window_days),
+        "rows": rows,
+        "warnings": warnings,
+    }
 
 
 def _fetch_latest_pywikibot(
@@ -373,6 +547,15 @@ def _write_snapshot(out_dir: Path, snap: PageSnapshot) -> Path:
     return path
 
 
+def _write_history_manifest(out_dir: Path, wiki: str, title: str, payload: dict[str, Any]) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    title_slug = title.replace(" ", "_").replace("/", "_")
+    key = _sha256_text(f"{wiki}|{title}|history")[:12]
+    path = out_dir / f"{wiki}__{title_slug}__history__{key}.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return path
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--wiki", default="enwiki", choices=sorted(WIKIS.keys()))
@@ -392,6 +575,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p.add_argument("--max-links", type=int, default=50)
     p.add_argument("--max-categories", type=int, default=50)
+    p.add_argument("--revid", type=int, help="Fetch a specific revision id instead of the latest revision")
+    p.add_argument("--history-max-revisions", type=int, default=0, help="Write a bounded revision-history manifest")
+    p.add_argument("--history-window-days", type=int, default=0, help="Bound revision history to the most recent N days")
     p.add_argument("--no-wikitext", action="store_true", help="Skip wikitext body in snapshot JSON")
     p.add_argument("--timeout-s", type=int, default=30)
     p.add_argument(
@@ -432,6 +618,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     include_wikitext = not args.no_wikitext
     pacer = _RequestPacer(wiki_rps=max(0.01, float(args.wiki_rps)))
     out_paths: List[str] = []
+    history_paths: List[str] = []
     traverse_paths: List[str] = []
     drivers_used: List[str] = []
     python_exe = sys.executable
@@ -457,7 +644,18 @@ def main(argv: Optional[List[str]] = None) -> int:
             flush=True,
         )
 
-        if use_pywikibot:
+        if args.revid is not None:
+            snap = _fetch_revision_wikitext(
+                wiki=args.wiki,
+                title=title,
+                revid=int(args.revid),
+                max_links=int(args.max_links),
+                max_categories=int(args.max_categories),
+                include_wikitext=include_wikitext,
+                timeout_s=int(args.timeout_s),
+                pacer=pacer,
+            )
+        elif use_pywikibot:
             snap = _fetch_latest_pywikibot(
                 wiki=args.wiki,
                 title=title,
@@ -483,6 +681,23 @@ def main(argv: Optional[List[str]] = None) -> int:
             file=sys.stderr,
             flush=True,
         )
+
+        if int(args.history_max_revisions) > 0:
+            history_payload = _fetch_revision_history(
+                wiki=args.wiki,
+                title=title,
+                max_revisions=int(args.history_max_revisions),
+                window_days=int(args.history_window_days),
+                timeout_s=int(args.timeout_s),
+                pacer=pacer,
+            )
+            history_path = _write_history_manifest(Path(args.out_dir), args.wiki, str(history_payload.get("title") or title), history_payload)
+            history_paths.append(str(history_path))
+            print(
+                f"[wiki] history wrote path={history_path} rows={len(history_payload.get('rows') or [])}",
+                file=sys.stderr,
+                flush=True,
+            )
 
         if args.category_traverse and snap.categories:
             # This is discovery-only. We record a small manifest of category->members
@@ -532,6 +747,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "drivers_used": drivers_used,
                 "wiki_rps": float(args.wiki_rps),
                 "snapshots": out_paths,
+                "histories": history_paths,
                 "category_traversal": traverse_paths,
             },
             indent=2,
