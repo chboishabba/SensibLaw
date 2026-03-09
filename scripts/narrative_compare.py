@@ -12,9 +12,30 @@ def _fixture_path(name: str) -> Path:
     return repo_root / "SensibLaw" / "demo" / "narrative" / f"{name}.json"
 
 
+def _parse_db_paths(raw: str, repo_root: Path) -> list[Path]:
+    values = [chunk.strip() for chunk in (raw or "").split(",") if chunk.strip()]
+    out: list[Path] = []
+    for value in values:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = (repo_root / path).resolve()
+        out.append(path)
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build bounded narrative validation/comparison artifacts.")
     parser.add_argument("--fixture", default="friendlyjordies_demo")
+    parser.add_argument(
+        "--archive-backed",
+        action="store_true",
+        help="Attempt to rebuild supported fixtures from local chat-history archives before loading static demo JSON.",
+    )
+    parser.add_argument(
+        "--archive-dbs",
+        default="~/.chat_archive.sqlite,.chatgpt_history.sqlite3,chat-export-structurer/my_archive.sqlite",
+        help="Comma-separated candidate archive DB paths used by --archive-backed.",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     validate = sub.add_parser("validate")
     validate.add_argument("--source-id", required=True)
@@ -31,8 +52,19 @@ def main() -> int:
         build_narrative_validation_report,
         load_fixture_sources,
     )
+    from src.reporting.narrative_fixture_refresh import build_archive_backed_fixture  # noqa: PLC0415
 
-    fixture_meta, sources = load_fixture_sources(_fixture_path(args.fixture))
+    fixture_path = _fixture_path(args.fixture)
+    if args.archive_backed:
+        generated = build_archive_backed_fixture(
+            fixture_name=args.fixture,
+            repo_root=repo_root,
+            db_paths=_parse_db_paths(args.archive_dbs, repo_root),
+        )
+        if generated is not None:
+            fixture_path = generated
+
+    fixture_meta, sources = load_fixture_sources(fixture_path)
     sources_by_id = {source.source_id: source for source in sources}
 
     if args.cmd == "validate":

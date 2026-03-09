@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Tooling: add `SensibLaw/scripts/wiki_revision_runset.py` as a tiny wrapper
+  for the common Wikipedia revision-monitor command sets (`tests`, one-article
+  `smoke`, ontology-stress `monitor`, contested `contested`, and `all`).
 - Docs/TODO alignment: add the first concrete OpenRecall integration posture.
   The suite now treats vendored `openrecall/` as an upstream local-first
   observer/capture source that should enter ITIR through normalized
