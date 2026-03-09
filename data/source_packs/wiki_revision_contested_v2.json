@@ -1,0 +1,210 @@
+{
+  "pack_id": "wiki_revision_contested_v2",
+  "version": 2,
+  "scope": "Bounded English Wikipedia rolling revision monitor for highly contested live article classes with contested-region graph generation enabled.",
+  "provenance": {
+    "created_on": "2026-03-09",
+    "purpose": "Curated high-contestation history pack for bounded revision polling, contested-region graph generation, and reviewer-support triage.",
+    "source_threads": [
+      {
+        "title": "Highly Contested Wiki Pages",
+        "online_uuid": "69ada623-351c-839a-97c4-7669a12b8e04",
+        "source": "web"
+      }
+    ]
+  },
+  "graph_enabled": true,
+  "history_defaults": {
+    "max_revisions": 50,
+    "window_days": 30,
+    "max_candidate_pairs": 5,
+    "section_focus_limit": 8
+  },
+  "articles": [
+    {
+      "article_id": "contest_donald_trump",
+      "wiki": "enwiki",
+      "title": "Donald Trump",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "politics", "biography"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "politics", "biography"],
+        "contested_topics": ["lead framing", "criminal proceedings", "foreign policy", "rhetorical characterization"],
+        "notes": [
+          "Political biography chosen for heavy revision churn and wording disputes around accusations, events, and framing.",
+          "Use as a volatility-first ingest and contested-region graph test, not as a truth authority source."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_george_w_bush",
+      "wiki": "enwiki",
+      "title": "George W. Bush",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "politics", "biography"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "politics", "biography"],
+        "contested_topics": ["Iraq War", "legacy framing", "Supreme Court appointments"],
+        "notes": [
+          "Political biography selected as a historically high-edit and high-reversion article.",
+          "Useful for revision deltas involving event chronology, policy wording, and attribution surfaces."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_george_floyd",
+      "wiki": "enwiki",
+      "title": "George Floyd",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "biography", "race", "policing"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "biography", "race", "policing"],
+        "contested_topics": ["cause-of-death wording", "protest framing", "legal chronology"],
+        "notes": [
+          "High-volatility biography-adjacent article selected for disputes around cause, legal process, and protest framing."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_israeli_palestinian_conflict",
+      "wiki": "enwiki",
+      "title": "Israeli–Palestinian conflict",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+        "contested_topics": ["lead framing", "casualty wording", "historical chronology"],
+        "notes": [
+          "Ongoing conflict page selected for persistent wording and casualty-framing disputes.",
+          "Expected to pressure-test epistemic deltas, source attribution changes, and abstention handling."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_israel_hamas_war",
+      "wiki": "enwiki",
+      "title": "Israel–Hamas war",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "ongoing_conflict", "geopolitics"],
+        "contested_topics": ["lead framing", "casualty sections", "humanitarian impact"],
+        "notes": [
+          "High-volatility war article selected for rapid live churn and concentrated contested sections."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_jerusalem",
+      "wiki": "enwiki",
+      "title": "Jerusalem",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "place", "geopolitics", "religion"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "place", "geopolitics", "religion"],
+        "contested_topics": ["political status", "capital wording", "holy sites framing"],
+        "notes": [
+          "Disputed place page selected for overlapping geographic, political, and religious framing changes.",
+          "Useful for place-linked issue packets and contested descriptor changes."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_jesus",
+      "wiki": "enwiki",
+      "title": "Jesus",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "religion", "biography_adjacent"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "religion", "biography_adjacent"],
+        "contested_topics": ["historicity wording", "lead framing", "sources and theology"],
+        "notes": [
+          "Religious article selected for historical-versus-theological wording disputes.",
+          "Useful for testing claim-bearing-step changes and epistemic qualification surfaces."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_muhammad",
+      "wiki": "enwiki",
+      "title": "Muhammad",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "religion", "biography_adjacent"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "religion", "biography_adjacent"],
+        "contested_topics": ["biographical sources", "representational sensitivity", "religious wording"],
+        "notes": [
+          "Religious article selected for recurring disputes about wording, sources, and representational sensitivity."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_climate_change",
+      "wiki": "enwiki",
+      "title": "Climate change",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "science", "politicized_science"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "science", "politicized_science"],
+        "contested_topics": ["causes", "impacts", "economics and inequality"],
+        "notes": [
+          "Science page selected because political framing and denialist edits create meaningful semantic drift risk."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_covid_19",
+      "wiki": "enwiki",
+      "title": "COVID-19",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "science", "medicine", "politicized_science"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "science", "medicine", "politicized_science"],
+        "contested_topics": ["origins", "history", "coding and nomenclature"],
+        "notes": [
+          "Medicine/science page selected for rapid updates, politicized wording, and high source volatility."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_vaccination",
+      "wiki": "enwiki",
+      "title": "Vaccination",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "science", "medicine", "politicized_science"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "science", "medicine", "politicized_science"],
+        "contested_topics": ["safety framing", "misinformation sections", "public health wording"],
+        "notes": [
+          "Vaccination is included as a politicized medicine page with recurring disputes about safety framing and public-health wording."
+        ]
+      }
+    },
+    {
+      "article_id": "contest_abortion",
+      "wiki": "enwiki",
+      "title": "Abortion",
+      "role": "stress",
+      "graph_enabled": true,
+      "topics": ["high_contestation", "medicine", "politics", "religion"],
+      "review_context": {
+        "diagnostic_topics": ["high_contestation", "medicine", "politics", "religion"],
+        "contested_topics": ["ethics framing", "law and rights", "medical risk wording"],
+        "notes": [
+          "Cross-domain article selected for dense section-local contestation spanning ethics, medicine, law, and politics."
+        ]
+      }
+    }
+  ]
+}

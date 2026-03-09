@@ -28,7 +28,8 @@
 
 ### Channel E: Revision Monitor Egress
 - Output: bounded Wikipedia revision run summaries, candidate-pair scores,
-  section-delta summaries, pair reports, and issue-packet refs.
+  section-delta summaries, pair reports, contested-region graph artifacts, and
+  issue-packet refs.
 - Consumer:
   - `SL-reasoner/` as read-only hypothesis input
   - `StatiBaker/` as observer-class external signal only

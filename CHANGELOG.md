@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia revision monitor: extend the lane into a bounded contested-region
+  graph workflow. The runner now persists contested graph artifacts plus
+  SQLite read-model tables for graphs/regions/cycles/edges, run summaries now
+  emit pack-level contested graph triage, and article rows now expose
+  contested graph refs/summaries directly. A new curated
+  `data/source_packs/wiki_revision_contested_v2.json` pack enables deeper
+  history windows and graph generation for contested pages, and
+  `itir-svelte` now has a dedicated read-only page at
+  `/graphs/wiki-revision-contested` backed by
+  `SensibLaw/scripts/query_wiki_revision_monitor.py`.
 - Tooling: add `SensibLaw/scripts/wiki_revision_runset.py` as a tiny wrapper
   for the common Wikipedia revision-monitor command sets (`tests`, one-article
   `smoke`, ontology-stress `monitor`, contested `contested`, and `all`).

@@ -15,7 +15,7 @@ VENV_PYTHON = ROOT / ".venv" / "bin" / "python"
 PACK_RUNNER = ROOT / "SensibLaw" / "scripts" / "wiki_revision_pack_runner.py"
 SELF = ROOT / "SensibLaw" / "scripts" / "wiki_revision_runset.py"
 MONITOR_PACK = ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_monitor_v1.json"
-CONTESTED_PACK = ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_contested_v1.json"
+CONTESTED_PACK = ROOT / "SensibLaw" / "data" / "source_packs" / "wiki_revision_contested_v2.json"
 
 
 def _python() -> str:

@@ -1,5 +1,8 @@
 # Wikipedia Revision Pack Runner Contract v0.2
 
+Superseded in part by `docs/wiki_revision_pack_runner_contract_v0_3.md` for
+the contested-region graph lane.
+
 ## Purpose
 Define the bounded history-aware rolling runner that executes the per-article
 Wikipedia revision harness over curated article packs.

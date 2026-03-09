@@ -118,6 +118,7 @@ The bounded rolling Wikipedia revision lane now starts from:
 
 - `SensibLaw/data/source_packs/wiki_revision_monitor_v1.json`
 - `SensibLaw/data/source_packs/wiki_revision_contested_v1.json`
+- `SensibLaw/data/source_packs/wiki_revision_contested_v2.json`
 
 This pack is not a crawler. It is a selected monitor list of article titles that
 the revision harness checks over time.
@@ -129,6 +130,9 @@ Current pack roles:
 - `wiki_revision_contested_v1`:
   - high-contestation volatility pack for political biographies, ongoing
     conflicts, religion, and politicized science/medicine
+- `wiki_revision_contested_v2`:
+  - expanded high-contestation pack with deeper history windows and
+    contested-region graph generation enabled
 
 Current contract:
 - per-article comparison remains read-only
@@ -147,8 +151,10 @@ See:
 - `SensibLaw/docs/wiki_revision_harness_contract_v0_1.md`
 - `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_1.md`
 - `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_2.md`
+- `SensibLaw/docs/wiki_revision_pack_runner_contract_v0_3.md`
 - `SensibLaw/docs/planning/wiki_revision_contested_pack_20260309.md`
 - `SensibLaw/docs/planning/wiki_revision_history_runner_20260309.md`
+- `SensibLaw/docs/planning/wiki_revision_contested_region_graph_20260309.md`
 
 Important details:
 

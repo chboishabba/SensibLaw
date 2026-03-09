@@ -8,9 +8,9 @@ from pathlib import Path
 from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, human_summary, run
 
 
-def _pack(tmp_path: Path) -> Path:
+def _pack(tmp_path: Path, *, pack_id: str = "test_pack") -> Path:
     payload = {
-        "pack_id": "test_pack",
+        "pack_id": pack_id,
         "version": 1,
         "scope": "test",
         "provenance": {"created_on": "2026-03-09"},
@@ -20,18 +20,21 @@ def _pack(tmp_path: Path) -> Path:
             "max_candidate_pairs": 2,
             "section_focus_limit": 3,
         },
+        "graph_enabled": True,
         "articles": [
             {
                 "article_id": "article_1",
                 "wiki": "enwiki",
                 "title": "Example Article",
                 "role": "baseline",
+                "graph_enabled": True,
                 "topics": ["baseline"],
                 "review_context": {"curated_qids": ["Q1"], "diagnostic_topics": ["baseline"]},
             }
         ],
     }
     path = tmp_path / "pack.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
 
@@ -218,9 +221,14 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert first["articles"][0]["selected_primary_pair_id"] is not None
     assert first["articles"][0]["selected_primary_pair_score"] is not None
     assert isinstance(first["articles"][0]["packet_counts"], dict)
+    assert first["articles"][0]["contested_graph_available"] is True
+    assert first["articles"][0]["contested_graph_path"]
+    assert first["articles"][0]["contested_graph_summary"]["region_count"] >= 1
     assert first["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
     assert first["pack_triage"]["top_high_severity_pairs"][0]["article_id"] == "article_1"
     assert first["pack_triage"]["top_sections_changed"][0]["section"] in {"History", "Legacy", "(lead)"}
+    assert first["pack_triage"]["top_contested_graphs"][0]["article_id"] == "article_1"
+    assert first["pack_triage"]["top_contested_regions"][0]["article_id"] == "article_1"
 
     second = run(
         pack_path=pack_path,
@@ -256,6 +264,8 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert state["last_revid"] == 3
         pair_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_candidate_pairs WHERE article_id = 'article_1'").fetchone()
         assert pair_rows[0] >= 2
+        graph_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_contested_graphs WHERE article_id = 'article_1'").fetchone()
+        assert graph_rows[0] >= 1
 
 
 def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> None:
@@ -342,12 +352,53 @@ def test_default_out_dir_for_pack_uses_pack_id(tmp_path: Path) -> None:
     assert default_out_dir_for_pack(pack_path) == Path("SensibLaw/demo/ingest/wiki_revision_monitor/test_pack")
 
 
+def test_pack_runner_allows_same_article_ids_across_packs(tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    state_db = tmp_path / "state.sqlite"
+    current_revid = {"value": 1}
+    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+
+    first_pack = _pack(tmp_path / "p1", pack_id="pack_one")
+    second_pack = _pack(tmp_path / "p2", pack_id="pack_two")
+
+    first = run(
+        pack_path=first_pack,
+        out_dir=out_dir / "one",
+        state_db_path=state_db,
+        fetch_current_snapshot_fn=fetch_current,
+        fetch_revision_history_fn=fetch_history,
+        fetch_revision_snapshot_fn=fetch_revision,
+        build_timeline_fn=build_timeline,
+        build_aoo_fn=build_aoo,
+        auto_review_context_fn=auto_review_context,
+    )
+    second = run(
+        pack_path=second_pack,
+        out_dir=out_dir / "two",
+        state_db_path=state_db,
+        fetch_current_snapshot_fn=fetch_current,
+        fetch_revision_history_fn=fetch_history,
+        fetch_revision_snapshot_fn=fetch_revision,
+        build_timeline_fn=build_timeline,
+        build_aoo_fn=build_aoo,
+        auto_review_context_fn=auto_review_context,
+    )
+
+    assert first["ok"] is True
+    assert second["ok"] is True
+    with sqlite3.connect(state_db) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT pack_id FROM wiki_revision_monitor_articles WHERE article_id = 'article_1'").fetchone()
+        assert row["pack_id"] == "pack_two"
+
+
 def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     payload = {
         "pack_id": "pack",
         "run_id": "run:1",
         "counts": {"baseline_initialized": 0, "unchanged": 0, "changed": 1, "no_candidate_delta": 0, "error": 0},
         "candidate_pair_counts": {"considered": 3, "selected": 2, "reported": 2},
+        "contested_graph_counts": {"articles_with_graphs": 1, "graphs_built": 1, "regions_detected": 4, "cycles_detected": 2},
         "highest_severity": "high",
         "pack_triage": {
             "top_changed_articles": [
@@ -370,6 +421,24 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
                     "max_touched_bytes": 1200,
                 }
             ],
+            "top_contested_graphs": [
+                {
+                    "article_id": "article_1",
+                    "graph_heat": 888.0,
+                }
+            ],
+            "top_contested_cycles": [
+                {
+                    "article_id": "article_1",
+                    "region_title": "History",
+                }
+            ],
+            "top_contested_regions": [
+                {
+                    "article_id": "article_1",
+                    "region_title": "History",
+                }
+            ],
         },
         "articles": [
             {
@@ -387,6 +456,7 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     text = human_summary(payload)
     assert "pack=pack run=run:1" in text
     assert "pairs: considered=3 selected=2 reported=2" in text
+    assert "graphs: articles=1 built=1 regions=4 cycles=2" in text
     assert "top_articles=article_1:high:largest_delta_in_window" in text
     assert "top_pairs=article_1:largest_delta_in_window:high" in text
     assert "top_sections=History:1200" in text

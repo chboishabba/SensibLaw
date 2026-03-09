@@ -62,6 +62,16 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   - the important convergence points are deterministic producer-owned outputs,
     queryable run/result state, additive read models, and shared review/
     provenance posture so other pipelines can propagate/reuse the lane cleanly
+- The current contested-page extension is now fixed:
+  - `wiki_revision_contested_v2` is the deeper curated contested pack with
+    graphing enabled
+  - contested-region graphs are hybrid review artifacts built from selected
+    revision pairs, section deltas, extraction deltas, and epistemic deltas
+  - detected cycles mean bounded revisitation of the same contested region,
+    not contradiction proof or truth adjudication
+  - the first UI consumer is a dedicated `itir-svelte` page
+    (`/graphs/wiki-revision-contested`), backed by the dedicated revision
+    monitor SQLite store plus graph artifacts
 - Current doctrine for OpenRecall integration:
   - treat the vendored `openrecall/` project as an upstream local-first
     observer/capture source

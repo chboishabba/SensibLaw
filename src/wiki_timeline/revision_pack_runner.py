@@ -12,8 +12,9 @@ from typing import Any, Callable, Mapping
 
 from src.wiki_timeline.revision_harness import build_revision_comparison_report
 
-STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_2"
+STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_3"
 PAIR_REPORT_SCHEMA_VERSION = "wiki_revision_pair_report_v0_1"
+CONTESTED_GRAPH_SCHEMA_VERSION = "wiki_contested_region_graph_v0_1"
 _WS_RE = re.compile(r"\s+")
 _SECTION_RE = re.compile(r"^(={2,6})\s*(.*?)\s*\1\s*$", re.MULTILINE)
 _REVERT_RE = re.compile(r"\b(revert|reverted|reverting|undid|undo|rv|rollback)\b", re.IGNORECASE)
@@ -201,6 +202,67 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_graphs (
+          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+          graph_path TEXT NOT NULL,
+          graph_json TEXT NOT NULL,
+          region_count INTEGER NOT NULL DEFAULT 0,
+          cycle_count INTEGER NOT NULL DEFAULT 0,
+          selected_pair_count INTEGER NOT NULL DEFAULT 0,
+          changed_event_count INTEGER NOT NULL DEFAULT 0,
+          changed_attribution_count INTEGER NOT NULL DEFAULT 0,
+          highest_severity TEXT NOT NULL DEFAULT 'none',
+          hottest_region_json TEXT,
+          PRIMARY KEY (run_id, article_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_regions (
+          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+          region_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          touch_count INTEGER NOT NULL DEFAULT 0,
+          total_touched_bytes INTEGER NOT NULL DEFAULT 0,
+          highest_severity TEXT NOT NULL DEFAULT 'none',
+          region_json TEXT NOT NULL,
+          PRIMARY KEY (run_id, article_id, region_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_cycles (
+          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+          cycle_id TEXT NOT NULL,
+          region_id TEXT NOT NULL,
+          touch_count INTEGER NOT NULL DEFAULT 0,
+          highest_severity TEXT NOT NULL DEFAULT 'none',
+          cycle_json TEXT NOT NULL,
+          PRIMARY KEY (run_id, article_id, cycle_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_edges (
+          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+          edge_id TEXT NOT NULL,
+          edge_kind TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          target_id TEXT NOT NULL,
+          edge_json TEXT NOT NULL,
+          PRIMARY KEY (run_id, article_id, edge_id)
+        )
+        """
+    )
 
 
 def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Mapping[str, Any]) -> None:
@@ -240,6 +302,14 @@ def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Map
             INSERT INTO wiki_revision_monitor_articles(
               article_id, pack_id, wiki, title, role, topics_json, review_context_json, article_order
             ) VALUES(?,?,?,?,?,?,?,?)
+            ON CONFLICT(article_id) DO UPDATE SET
+              pack_id=excluded.pack_id,
+              wiki=excluded.wiki,
+              title=excluded.title,
+              role=excluded.role,
+              topics_json=excluded.topics_json,
+              review_context_json=excluded.review_context_json,
+              article_order=excluded.article_order
             """,
             (
                 str(article.get("article_id") or f"article_{index+1:03d}"),
@@ -430,6 +500,96 @@ def _insert_candidate_pair(
             json.dumps(pair_payload, sort_keys=True),
         ),
     )
+
+
+def _insert_contested_graph(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    article_id: str,
+    graph_path: Path,
+    graph_payload: Mapping[str, Any],
+) -> None:
+    summary = graph_payload.get("summary") if isinstance(graph_payload.get("summary"), Mapping) else {}
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO wiki_revision_monitor_contested_graphs(
+          run_id, article_id, graph_path, graph_json, region_count, cycle_count, selected_pair_count,
+          changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            run_id,
+            article_id,
+            str(graph_path),
+            json.dumps(graph_payload, sort_keys=True),
+            int(summary.get("region_count") or 0),
+            int(summary.get("cycle_count") or 0),
+            int(summary.get("selected_pair_count") or 0),
+            int(summary.get("changed_event_count") or 0),
+            int(summary.get("changed_attribution_count") or 0),
+            str(summary.get("highest_severity") or "none"),
+            json.dumps(summary.get("hottest_region") or None, sort_keys=True),
+        ),
+    )
+    for region in graph_payload.get("regions") or []:
+        if not isinstance(region, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO wiki_revision_monitor_contested_regions(
+              run_id, article_id, region_id, title, touch_count, total_touched_bytes, highest_severity, region_json
+            ) VALUES(?,?,?,?,?,?,?,?)
+            """,
+            (
+                run_id,
+                article_id,
+                str(region.get("region_id") or ""),
+                str(region.get("title") or ""),
+                int(region.get("touch_count") or 0),
+                int(region.get("total_touched_bytes") or 0),
+                str(region.get("highest_severity") or "none"),
+                json.dumps(region, sort_keys=True),
+            ),
+        )
+    for cycle in graph_payload.get("cycles") or []:
+        if not isinstance(cycle, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO wiki_revision_monitor_contested_cycles(
+              run_id, article_id, cycle_id, region_id, touch_count, highest_severity, cycle_json
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                run_id,
+                article_id,
+                str(cycle.get("cycle_id") or ""),
+                str(cycle.get("region_id") or ""),
+                int(cycle.get("touch_count") or 0),
+                str(cycle.get("highest_severity") or "none"),
+                json.dumps(cycle, sort_keys=True),
+            ),
+        )
+    for edge in graph_payload.get("edges") or []:
+        if not isinstance(edge, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO wiki_revision_monitor_contested_edges(
+              run_id, article_id, edge_id, edge_kind, source_id, target_id, edge_json
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                run_id,
+                article_id,
+                str(edge.get("edge_id") or ""),
+                str(edge.get("edge_kind") or ""),
+                str(edge.get("source_id") or ""),
+                str(edge.get("target_id") or ""),
+                json.dumps(edge, sort_keys=True),
+            ),
+        )
 
 
 def _subprocess_json(args: list[str], *, cwd: Path) -> dict[str, Any]:
@@ -701,6 +861,14 @@ def _history_config(pack: Mapping[str, Any], article: Mapping[str, Any]) -> dict
     }
 
 
+def _graph_enabled(pack: Mapping[str, Any], article: Mapping[str, Any]) -> bool:
+    if isinstance(article.get("graph_enabled"), bool):
+        return bool(article.get("graph_enabled"))
+    if isinstance(pack.get("graph_enabled"), bool):
+        return bool(pack.get("graph_enabled"))
+    return False
+
+
 def _normalize_history_rows(history_payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
     if not isinstance(history_payload, Mapping):
         return []
@@ -921,6 +1089,9 @@ def _build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: 
     top_articles: list[dict[str, Any]] = []
     top_pairs: list[dict[str, Any]] = []
     top_sections: dict[str, dict[str, Any]] = {}
+    top_graphs: list[dict[str, Any]] = []
+    top_cycles: list[dict[str, Any]] = []
+    top_regions: dict[str, dict[str, Any]] = {}
 
     for row in article_results:
         if not isinstance(row, Mapping):
@@ -938,6 +1109,53 @@ def _build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: 
                 "report_path": row.get("report_path"),
             }
         )
+        graph_summary = row.get("contested_graph_summary") if isinstance(row.get("contested_graph_summary"), Mapping) else None
+        if graph_summary:
+            top_graphs.append(
+                {
+                    "article_id": row.get("article_id"),
+                    "title": row.get("title"),
+                    "top_severity": row.get("top_severity", "none"),
+                    "contested_graph_path": row.get("contested_graph_path"),
+                    "region_count": graph_summary.get("region_count", 0),
+                    "cycle_count": graph_summary.get("cycle_count", 0),
+                    "selected_pair_count": graph_summary.get("selected_pair_count", 0),
+                    "graph_heat": graph_summary.get("graph_heat", 0.0),
+                    "hottest_region": graph_summary.get("hottest_region"),
+                }
+            )
+            for cycle in graph_summary.get("top_cycles") or []:
+                if isinstance(cycle, Mapping):
+                    top_cycles.append(
+                        {
+                            "article_id": row.get("article_id"),
+                            "title": row.get("title"),
+                            "cycle_id": cycle.get("cycle_id"),
+                            "region_id": cycle.get("region_id"),
+                            "region_title": cycle.get("region_title"),
+                            "touch_count": cycle.get("touch_count", 0),
+                            "highest_severity": cycle.get("highest_severity", "none"),
+                            "pair_kinds": list(cycle.get("pair_kinds") or []),
+                            "reason": cycle.get("reason"),
+                            "contested_graph_path": row.get("contested_graph_path"),
+                        }
+                    )
+            for region in graph_summary.get("top_regions") or []:
+                if isinstance(region, Mapping):
+                    key = str(region.get("region_id") or "")
+                    candidate = {
+                        "article_id": row.get("article_id"),
+                        "title": row.get("title"),
+                        "region_id": region.get("region_id"),
+                        "region_title": region.get("title"),
+                        "touch_count": region.get("touch_count", 0),
+                        "total_touched_bytes": region.get("total_touched_bytes", 0),
+                        "highest_severity": region.get("highest_severity", "none"),
+                        "contested_graph_path": row.get("contested_graph_path"),
+                    }
+                    existing = top_regions.get(key)
+                    if existing is None or int(candidate.get("total_touched_bytes") or 0) > int(existing.get("total_touched_bytes") or 0):
+                        top_regions[key] = candidate
         for pair in row.get("pair_reports") or []:
             if not isinstance(pair, Mapping):
                 continue
@@ -1000,11 +1218,280 @@ def _build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: 
             str(item.get("section") or ""),
         ),
     )
+    top_graphs.sort(
+        key=lambda item: (
+            -_severity_rank(item.get("top_severity")),
+            -float(item.get("graph_heat") or 0.0),
+            -int(item.get("cycle_count") or 0),
+            str(item.get("article_id") or ""),
+        )
+    )
+    top_cycles.sort(
+        key=lambda item: (
+            -_severity_rank(item.get("highest_severity")),
+            -int(item.get("touch_count") or 0),
+            str(item.get("article_id") or ""),
+            str(item.get("cycle_id") or ""),
+        )
+    )
+    ranked_regions = sorted(
+        top_regions.values(),
+        key=lambda item: (
+            -_severity_rank(item.get("highest_severity")),
+            -int(item.get("total_touched_bytes") or 0),
+            -int(item.get("touch_count") or 0),
+            str(item.get("region_title") or ""),
+        ),
+    )
     return {
         "top_changed_articles": top_articles[:article_limit],
         "top_high_severity_pairs": top_pairs[:pair_limit],
         "top_sections_changed": ranked_sections[:section_limit],
+        "top_contested_graphs": top_graphs[:article_limit],
+        "top_contested_cycles": top_cycles[:pair_limit],
+        "top_contested_regions": ranked_regions[:section_limit],
     }
+
+
+def _graph_artifact_path(*, out_dir: Path, article_id: str, run_id: str) -> Path:
+    return out_dir / "contested_graphs" / f"{_slug(article_id)}__{_slug(run_id)}.json"
+
+
+def _pair_graph_extract(pair_report_path: str | None) -> dict[str, Any]:
+    payload = _read_json(Path(str(pair_report_path))) if pair_report_path else None
+    if not isinstance(payload, Mapping):
+        return {
+            "changed_event_ids": [],
+            "changed_attribution_event_ids": [],
+            "added_claim_bearing_event_ids": [],
+            "removed_claim_bearing_event_ids": [],
+            "material_graph_change": False,
+        }
+    comparison = payload.get("comparison_report") if isinstance(payload.get("comparison_report"), Mapping) else {}
+    extraction = comparison.get("extraction_delta_summary") if isinstance(comparison.get("extraction_delta_summary"), Mapping) else {}
+    epistemic = comparison.get("epistemic_delta_summary") if isinstance(comparison.get("epistemic_delta_summary"), Mapping) else {}
+    graph = comparison.get("graph_impact_summary") if isinstance(comparison.get("graph_impact_summary"), Mapping) else {}
+    changed_events = set()
+    for key in ("changed_event_ids", "added_event_ids", "removed_event_ids"):
+        for item in extraction.get(key) or []:
+            changed_events.add(str(item))
+    return {
+        "changed_event_ids": sorted(changed_events),
+        "changed_attribution_event_ids": sorted(str(item) for item in (epistemic.get("changed_attribution_event_ids") or [])),
+        "added_claim_bearing_event_ids": sorted(str(item) for item in (epistemic.get("added_claim_bearing_event_ids") or [])),
+        "removed_claim_bearing_event_ids": sorted(str(item) for item in (epistemic.get("removed_claim_bearing_event_ids") or [])),
+        "material_graph_change": bool(graph.get("material_change")),
+    }
+
+
+def _build_contested_region_graph(
+    *,
+    article: Mapping[str, Any],
+    run_id: str,
+    selected_pairs: list[dict[str, Any]],
+    out_dir: Path,
+) -> tuple[Path, dict[str, Any]]:
+    article_id = str(article.get("article_id") or "")
+    title = str(article.get("title") or "")
+    graph_path = _graph_artifact_path(out_dir=out_dir, article_id=article_id, run_id=run_id)
+    regions: dict[str, dict[str, Any]] = {}
+    edges: list[dict[str, Any]] = []
+    cycles: list[dict[str, Any]] = []
+    pair_nodes: list[dict[str, Any]] = []
+    event_nodes: dict[str, dict[str, Any]] = {}
+    epistemic_nodes: dict[str, dict[str, Any]] = {}
+    pair_regions: dict[str, list[str]] = {}
+
+    for pair in selected_pairs:
+        pair_id = str(pair.get("pair_id") or "")
+        pair_kind = str(pair.get("pair_kind") or "")
+        pair_nodes.append(
+            {
+                "pair_id": pair_id,
+                "pair_kind": pair_kind,
+                "pair_kinds": list(pair.get("pair_kinds") or []),
+                "older_revid": pair.get("older_revid"),
+                "newer_revid": pair.get("newer_revid"),
+                "candidate_score": pair.get("candidate_score"),
+                "top_severity": pair.get("top_severity", "none"),
+                "pair_report_path": pair.get("pair_report_path"),
+            }
+        )
+        graph_extract = _pair_graph_extract(pair.get("pair_report_path"))
+        pair["graph_extract"] = graph_extract
+        region_ids: list[str] = []
+        for section in ((pair.get("section_delta_summary") or {}).get("top_changed_sections") or []):
+            if not isinstance(section, Mapping):
+                continue
+            section_title = str(section.get("section") or "").strip() or "(unknown)"
+            region_id = f"region:{_slug(section_title)}"
+            region_ids.append(region_id)
+            region = regions.setdefault(
+                region_id,
+                {
+                    "region_id": region_id,
+                    "title": section_title,
+                    "touch_count": 0,
+                    "total_touched_bytes": 0,
+                    "pair_ids": [],
+                    "pair_kinds": [],
+                    "changed_event_ids": [],
+                    "changed_attribution_event_ids": [],
+                    "highest_severity": "none",
+                    "graph_heat": 0.0,
+                },
+            )
+            region["touch_count"] = int(region.get("touch_count") or 0) + 1
+            region["total_touched_bytes"] = int(region.get("total_touched_bytes") or 0) + int(section.get("touched_bytes") or 0)
+            if pair_id not in region["pair_ids"]:
+                region["pair_ids"].append(pair_id)
+            if pair_kind and pair_kind not in region["pair_kinds"]:
+                region["pair_kinds"].append(pair_kind)
+            region["changed_event_ids"] = sorted(set(region.get("changed_event_ids") or []).union(graph_extract["changed_event_ids"]))
+            region["changed_attribution_event_ids"] = sorted(
+                set(region.get("changed_attribution_event_ids") or []).union(graph_extract["changed_attribution_event_ids"])
+            )
+            if _severity_rank(pair.get("top_severity")) > _severity_rank(region.get("highest_severity")):
+                region["highest_severity"] = str(pair.get("top_severity") or "none")
+            edges.append(
+                {
+                    "edge_id": f"edge:touches_region:{pair_id}:{region_id}",
+                    "edge_kind": "touches_region",
+                    "source_id": pair_id,
+                    "target_id": region_id,
+                    "weight": int(section.get("touched_bytes") or 0),
+                }
+            )
+            if _severity_rank(pair.get("top_severity")) > 0:
+                edges.append(
+                    {
+                        "edge_id": f"edge:escalates_region:{pair_id}:{region_id}",
+                        "edge_kind": "escalates_region",
+                        "source_id": pair_id,
+                        "target_id": region_id,
+                        "severity": str(pair.get("top_severity") or "none"),
+                    }
+                )
+            for event_id in graph_extract["changed_event_ids"]:
+                event_nodes.setdefault(event_id, {"event_id": event_id})
+                edges.append(
+                    {
+                        "edge_id": f"edge:changes_event:{pair_id}:{event_id}",
+                        "edge_kind": "changes_event",
+                        "source_id": pair_id,
+                        "target_id": event_id,
+                    }
+                )
+                edges.append(
+                    {
+                        "edge_id": f"edge:co_occurs_in_region:{event_id}:{region_id}",
+                        "edge_kind": "co_occurs_in_region",
+                        "source_id": event_id,
+                        "target_id": region_id,
+                    }
+                )
+            for event_id in graph_extract["changed_attribution_event_ids"]:
+                epi_id = f"epi:{event_id}"
+                epistemic_nodes.setdefault(epi_id, {"epistemic_id": epi_id, "event_id": event_id})
+                edges.append(
+                    {
+                        "edge_id": f"edge:changes_attribution:{pair_id}:{epi_id}",
+                        "edge_kind": "changes_attribution",
+                        "source_id": pair_id,
+                        "target_id": epi_id,
+                    }
+                )
+        pair_regions[pair_id] = region_ids
+
+    pair_nodes.sort(key=lambda item: (int(item.get("newer_revid") or 0), int(item.get("older_revid") or 0), str(item.get("pair_id") or "")))
+    for index in range(1, len(pair_nodes)):
+        older = pair_nodes[index - 1]
+        newer = pair_nodes[index]
+        edges.append(
+            {
+                "edge_id": f"edge:revises_after:{older['pair_id']}:{newer['pair_id']}",
+                "edge_kind": "revises_after",
+                "source_id": older["pair_id"],
+                "target_id": newer["pair_id"],
+            }
+        )
+
+    for region in regions.values():
+        region["graph_heat"] = round(
+            float(region["total_touched_bytes"]) + (250.0 * _severity_rank(region["highest_severity"])) + (125.0 * len(region["changed_attribution_event_ids"])),
+            3,
+        )
+        if int(region["touch_count"] or 0) >= 3 or (int(region["touch_count"] or 0) >= 2 and len(region["pair_kinds"]) >= 2):
+            cycle_id = f"cycle:{region['region_id']}"
+            reason = "multi_pair_kind_return" if len(region["pair_kinds"]) >= 2 else "repeat_region_touch"
+            cycles.append(
+                {
+                    "cycle_id": cycle_id,
+                    "region_id": region["region_id"],
+                    "region_title": region["title"],
+                    "pair_ids": list(region["pair_ids"]),
+                    "pair_kinds": list(region["pair_kinds"]),
+                    "touch_count": region["touch_count"],
+                    "total_touched_bytes": region["total_touched_bytes"],
+                    "highest_severity": region["highest_severity"],
+                    "reason": reason,
+                }
+            )
+            for pair_id in region["pair_ids"]:
+                edges.append(
+                    {
+                        "edge_id": f"edge:returns_to_region:{pair_id}:{region['region_id']}",
+                        "edge_kind": "returns_to_region",
+                        "source_id": pair_id,
+                        "target_id": region["region_id"],
+                        "reason": reason,
+                    }
+                )
+
+    ranked_regions = sorted(
+        regions.values(),
+        key=lambda item: (-float(item.get("graph_heat") or 0.0), -int(item.get("touch_count") or 0), str(item.get("title") or "")),
+    )
+    hottest_region = ranked_regions[0] if ranked_regions else None
+    highest_severity = "none"
+    for candidate in ("high", "medium", "low"):
+        if any(region.get("highest_severity") == candidate for region in ranked_regions) or any(cycle.get("highest_severity") == candidate for cycle in cycles):
+            highest_severity = candidate
+            break
+    graph_heat = round(sum(float(region.get("graph_heat") or 0.0) for region in ranked_regions), 3)
+    summary = {
+        "region_count": len(ranked_regions),
+        "selected_pair_count": len(pair_nodes),
+        "changed_event_count": len(event_nodes),
+        "changed_attribution_count": len(epistemic_nodes),
+        "cycle_count": len(cycles),
+        "highest_severity": highest_severity,
+        "partial": False,
+        "graph_heat": graph_heat,
+        "hottest_region": hottest_region,
+        "top_regions": ranked_regions[:5],
+        "top_cycles": sorted(cycles, key=lambda item: (-_severity_rank(item.get("highest_severity")), -int(item.get("touch_count") or 0), str(item.get("region_title") or "")))[:5],
+    }
+    payload = {
+        "schema_version": CONTESTED_GRAPH_SCHEMA_VERSION,
+        "article": {
+            "article_id": article_id,
+            "title": title,
+            "wiki": str(article.get("wiki") or "enwiki"),
+        },
+        "run": {"run_id": run_id},
+        "regions": ranked_regions,
+        "selected_pairs": pair_nodes,
+        "events": sorted(event_nodes.values(), key=lambda item: str(item.get("event_id") or "")),
+        "epistemic_surfaces": sorted(epistemic_nodes.values(), key=lambda item: str(item.get("epistemic_id") or "")),
+        "edges": edges,
+        "cycles": cycles,
+        "summary": summary,
+    }
+    _write_json(graph_path, payload)
+    latest_path = out_dir / "contested_graphs" / f"{_slug(article_id)}__latest.json"
+    _write_json(latest_path, payload)
+    return graph_path, payload
 
 
 def _build_pair_report(
@@ -1132,6 +1619,7 @@ def run(
     article_results: list[dict[str, Any]] = []
     summary_counts: dict[str, int] = {"baseline_initialized": 0, "unchanged": 0, "changed": 0, "error": 0, "no_candidate_delta": 0}
     candidate_pair_counts = {"considered": 0, "selected": 0, "reported": 0}
+    contested_graph_counts = {"articles_with_graphs": 0, "graphs_built": 0, "cycles_detected": 0, "regions_detected": 0}
 
     with sqlite3.connect(str(state_db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -1150,6 +1638,8 @@ def run(
             current_timeline_path: Path | None = None
             current_aoo_path: Path | None = None
             current_report_path: Path | None = None
+            contested_graph_path: Path | None = None
+            contested_graph_summary: dict[str, Any] | None = None
 
             try:
                 fetched = fetch_current_snapshot_fn(article=article, out_dir=out_dir / "snapshots", python_cmd=py, repo_root=repo_root)
@@ -1266,6 +1756,25 @@ def run(
                     packet_counts = aggregate_counts
                     current_report_path = Path(str(selected_pairs[0]["pair_report_path"])) if selected_pairs[0].get("pair_report_path") else None
                 primary_pair = selected_pairs[0] if selected_pairs else None
+                if _graph_enabled(pack, article) and selected_pairs:
+                    contested_graph_path, contested_graph_payload = _build_contested_region_graph(
+                        article=article,
+                        run_id=run_id,
+                        selected_pairs=selected_pairs,
+                        out_dir=out_dir,
+                    )
+                    contested_graph_summary = dict((contested_graph_payload.get("summary") or {}))
+                    _insert_contested_graph(
+                        conn,
+                        run_id=run_id,
+                        article_id=article_id,
+                        graph_path=contested_graph_path,
+                        graph_payload=contested_graph_payload,
+                    )
+                    contested_graph_counts["articles_with_graphs"] += 1
+                    contested_graph_counts["graphs_built"] += 1
+                    contested_graph_counts["cycles_detected"] += int(contested_graph_summary.get("cycle_count") or 0)
+                    contested_graph_counts["regions_detected"] += int(contested_graph_summary.get("region_count") or 0)
 
                 result_payload = {
                     "article_id": article_id,
@@ -1302,6 +1811,9 @@ def run(
                         for pair in selected_pairs
                     ],
                     "packet_counts": packet_counts,
+                    "contested_graph_available": contested_graph_summary is not None,
+                    "contested_graph_path": str(contested_graph_path) if contested_graph_path else None,
+                    "contested_graph_summary": contested_graph_summary,
                     "report_path": str(current_report_path) if current_report_path else None,
                 }
 
@@ -1343,6 +1855,9 @@ def run(
                     "previous_revid": previous_revid,
                     "current_revid": None,
                     "error": f"{type(exc).__name__}: {exc}",
+                    "contested_graph_available": False,
+                    "contested_graph_path": None,
+                    "contested_graph_summary": None,
                     "report_path": None,
                 }
                 _insert_article_result(
@@ -1376,6 +1891,7 @@ def run(
             "out_dir": str(out_dir),
             "counts": summary_counts,
             "candidate_pair_counts": candidate_pair_counts,
+            "contested_graph_counts": contested_graph_counts,
             "highest_severity": highest_severity,
             "pack_triage": _build_pack_triage(article_results),
             "articles": article_results,
@@ -1391,6 +1907,7 @@ def run(
 def human_summary(payload: Mapping[str, Any]) -> str:
     counts = payload.get("counts") or {}
     pair_counts = payload.get("candidate_pair_counts") or {}
+    graph_counts = payload.get("contested_graph_counts") or {}
     lines = [
         f"pack={payload.get('pack_id')} run={payload.get('run_id')}",
         (
@@ -1406,6 +1923,13 @@ def human_summary(payload: Mapping[str, Any]) -> str:
             f"considered={pair_counts.get('considered', 0)} "
             f"selected={pair_counts.get('selected', 0)} "
             f"reported={pair_counts.get('reported', 0)}"
+        ),
+        (
+            "graphs: "
+            f"articles={graph_counts.get('articles_with_graphs', 0)} "
+            f"built={graph_counts.get('graphs_built', 0)} "
+            f"regions={graph_counts.get('regions_detected', 0)} "
+            f"cycles={graph_counts.get('cycles_detected', 0)}"
         ),
         f"highest_severity={payload.get('highest_severity')}",
     ]
