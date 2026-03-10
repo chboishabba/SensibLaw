@@ -165,6 +165,36 @@ Important details:
 - Some recordings expose only HLS/DASH manifests (no progressive MP4 URL). The ingest writes manifest files under `media/video/` so playback/downloader tooling can consume them later.
 - `Notice of appeal` may remain `missing_url` when the case documents table does not provide a public hyperlink.
 
+## OpenRecall observer import
+
+Vendored `openrecall/` is now integrated as an upstream observer/capture lane,
+not as a semantic authority.
+
+Use the bounded importer:
+
+```bash
+.venv/bin/python SensibLaw/scripts/import_openrecall.py \
+  --source-db /path/to/recall.db \
+  --storage-path /path/to/openrecall/storage \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
+Current import behavior:
+- normalizes OpenRecall `entries` rows into ITIR-owned capture tables in
+  `itir.sqlite`
+- preserves capture provenance (`captured_at`, app/window title, OCR text,
+  source DB path, screenshot refs)
+- exposes imported captures as:
+  - observer-class actual activity for `mission_lens.py`
+  - source-local text units via `load_openrecall_units(...)` for downstream
+    transcript/freeform semantic reuse
+
+Current non-goals:
+- GUI-first OpenRecall browsing
+- direct SB ingest of raw OpenRecall rows
+- canonical mission/semantic promotion from OCR alone
+
 ### Parsing contract for HCA AAO payloads (current interim path)
 
 `hca_case_demo_ingest.py` currently emits two distinct event lanes into

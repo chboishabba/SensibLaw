@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- OpenRecall integration: add the first bounded observer import lane. New
+  `scripts/import_openrecall.py` imports vendored OpenRecall `entries` rows
+  into normalized `itir.sqlite` capture tables/read models, preserves capture
+  provenance, exposes `load_openrecall_units(...)` for source-local semantic
+  reuse, and feeds mission-lens actual-side reports as `openrecall_capture`
+  activity rows without promoting raw OCR into canonical mission/semantic
+  truth.
 - Wikipedia revision monitor: extend the lane into a bounded contested-region
   graph workflow. The runner now persists contested graph artifacts plus
   SQLite read-model tables for graphs/regions/cycles/edges, run summaries now

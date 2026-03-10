@@ -256,16 +256,23 @@
     revision artifacts without re-deriving monitor logic
   - preserve the dedicated runner/state-DB posture; this is a standards/
     interoperability task, not a demand to fold the lane into `itir-svelte`
-- [ ] Add an OpenRecall observer integration v1 lane:
-  - import vendored `openrecall/` SQLite captures into `itir.sqlite` via a
+- [x] Add an OpenRecall observer integration v1 lane:
+  - vendored `openrecall/` SQLite captures now import into `itir.sqlite` via a
     bounded append-only importer and normalized capture tables/read models
-  - preserve capture provenance (`captured_at`, app/window title, OCR text,
-    source DB path, screenshot refs) and keep ingest observer-class only
-  - expose imported captures as a new mission-lens actual-side source kind and
-    as source-local text units for semantic/transcript extraction
-  - do not treat raw OCR/capture rows as canonical mission or semantic truth
-  - do not prioritize GUI-first browsing until the import/query/reuse standard
-    is in place
+  - capture provenance (`captured_at`, app/window title, OCR text, source DB
+    path, screenshot refs) is preserved and ingest remains observer-class only
+  - imported captures now appear as a mission-lens actual-side source kind and
+    as source-local text units for semantic/transcript reuse
+  - raw OCR/capture rows remain non-authoritative on ingest
+- [ ] Follow up on OpenRecall v1:
+  - stabilize or bypass the inconsistent vendored live-capture path before
+    relying on OpenRecall as a routine upstream source
+  - add query-first helpers over imported captures (latest imports, capture
+    counts by app/title/date, screenshot coverage)
+  - decide whether capture-derived observer overlays should ever cross into SB,
+    and only through ITIR-normalized payloads
+  - defer GUI-first OpenRecall browsing until the importer/read-model seam is
+    proven stable
 - [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
   `... against ...` reasoning idioms and factual scaffolding:
   - cited-authority subgroup handling (`majority in Lepore`, similar)

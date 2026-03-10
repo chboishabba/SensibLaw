@@ -46,7 +46,7 @@ def _mapping_action_id(run_id: str, activity_ref_id: str, suffix: str) -> str:
     return f"map:{_slug(run_id)}:{_slug(activity_ref_id)}:{suffix}:{time.time_ns()}"
 
 
-def _timeline_activity_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def _timeline_activity_rows(payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     timeline = payload.get("timeline") if isinstance(payload.get("timeline"), list) else []
     rows: list[dict[str, Any]] = []
     for idx, row in enumerate(timeline):
@@ -64,19 +64,37 @@ def _timeline_activity_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "meta": meta,
         }
         rows.append(item)
+    if extra_rows:
+        for idx, row in enumerate(extra_rows, start=len(rows)):
+            meta = row.get("meta") if isinstance(row.get("meta"), dict) else {}
+            item = {
+                "activityRefId": _activity_ref_id(row),
+                "timelineIndex": idx,
+                "ts": str(row.get("ts") or ""),
+                "hour": row.get("hour"),
+                "kind": str(row.get("kind") or "unknown"),
+                "detail": str(row.get("detail") or ""),
+                "sourcePath": str(row.get("source_path") or ""),
+                "meta": meta,
+            }
+            rows.append(item)
     return rows
 
 
-def _dashboard_totals(payload: dict[str, Any]) -> dict[str, float]:
+def _dashboard_totals(payload: dict[str, Any], extra_rows: list[dict[str, Any]] | None = None) -> dict[str, float]:
     freq = payload.get("frequency_by_hour") if isinstance(payload.get("frequency_by_hour"), dict) else {}
     totals: dict[str, float] = {}
     for lane, bins in freq.items():
         if isinstance(bins, list):
             totals[str(lane)] = float(sum(int(v) for v in bins if isinstance(v, (int, float))))
+    timeline = _timeline_activity_rows(payload, extra_rows=extra_rows)
     if not totals:
-        timeline = _timeline_activity_rows(payload)
         by_kind = Counter(str(row.get("kind") or "unknown") for row in timeline if isinstance(row, dict))
         totals = {kind: float(count) for kind, count in by_kind.items()}
+    else:
+        extra_counts = Counter(str(row.get("kind") or "unknown") for row in (extra_rows or []) if isinstance(row, dict))
+        for kind, count in extra_counts.items():
+            totals[str(kind)] = float(totals.get(str(kind), 0.0) + float(count))
     return totals
 
 
@@ -178,9 +196,11 @@ def _match_actuals_to_plan(
     plan: dict[str, Any],
     reviewed_mappings: list[dict[str, Any]],
     reviewed_current: list[dict[str, Any]],
+    *,
+    extra_rows: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, float]], list[dict[str, Any]], dict[str, int]]:
-    timeline = _timeline_activity_rows(payload)
-    left_weights = _dashboard_totals(payload)
+    timeline = _timeline_activity_rows(payload, extra_rows=extra_rows)
+    left_weights = _dashboard_totals(payload, extra_rows=extra_rows)
     node_matches: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     reviewed_by_activity: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for mapping in reviewed_mappings:
@@ -428,11 +448,13 @@ def build_mission_lens_report(
         load_mission_observer,
         load_mission_plan,
     )
+    from src.reporting.openrecall_import import ensure_openrecall_capture_schema, load_openrecall_activity_rows  # noqa: PLC0415
     from sb.dashboard_store_sqlite import DashboardKey, load_best_daily_payload_for_date, load_dashboard_payload  # noqa: PLC0415
 
     with sqlite3.connect(str(itir_db_path)) as itir_conn:
         itir_conn.row_factory = sqlite3.Row
         ensure_gwb_semantic_schema(itir_conn)
+        ensure_openrecall_capture_schema(itir_conn)
         active_run_id = run_id or _latest_run_id(itir_conn)
         if not active_run_id:
             return {
@@ -449,6 +471,7 @@ def build_mission_lens_report(
         plan = load_mission_plan(itir_conn, run_id=active_run_id)
         reviewed_mappings = load_mission_actual_mappings(itir_conn, run_id=active_run_id)
         reviewed_current = load_mission_actual_mapping_current(itir_conn, run_id=active_run_id)
+        openrecall_rows = load_openrecall_activity_rows(itir_conn, date=date, limit=200)
 
     dashboard = load_best_daily_payload_for_date(db_path=sb_db_path, date=date)
     if dashboard is None:
@@ -456,7 +479,7 @@ def build_mission_lens_report(
     payload = dashboard[0] if dashboard is not None else {}
     scope = dashboard[1] if dashboard is not None else None
     left, actual_edges, node_matches, activity_rows, mapping_summary = _match_actuals_to_plan(
-        payload or {}, plan, reviewed_mappings, reviewed_current
+        payload or {}, plan, reviewed_mappings, reviewed_current, extra_rows=openrecall_rows
     )
     right = [
         {
@@ -514,6 +537,7 @@ def build_mission_lens_report(
         "actual_mapping_summary": mapping_summary,
         "effective_actual_mappings": reviewed_current,
         "reviewed_actual_mappings": reviewed_mappings,
+        "openrecall_activity_rows": openrecall_rows[:80],
         "summary": {
             "planning_node_count": len(plan.get("nodes", [])),
             "planning_edge_count": len(plan.get("edges", [])),
@@ -521,6 +545,7 @@ def build_mission_lens_report(
             "deadline_count": len(deadline_summary),
             "mission_count": int((mission_observer.get("summary") or {}).get("mission_count", 0)),
             "reviewed_actual_mapping_count": len(reviewed_current),
+            "openrecall_activity_count": len(openrecall_rows),
         },
     }
 

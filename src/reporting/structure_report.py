@@ -197,6 +197,23 @@ def load_messenger_units(db_path: str | Path, run_id: str | None = None) -> list
         ]
 
 
+def load_openrecall_units(
+    db_path: str | Path,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    limit: int | None = None,
+) -> list[TextUnit]:
+    from src.reporting.openrecall_import import load_openrecall_units as _load_openrecall_units  # noqa: PLC0415
+
+    return _load_openrecall_units(
+        db_path,
+        import_run_id=import_run_id,
+        date=date,
+        limit=limit,
+    )
+
+
 def load_file_units(path: str | Path, source_type: str | None = None) -> list[TextUnit]:
     resolved = Path(path).expanduser().resolve()
     text = resolved.read_text(encoding="utf-8")

@@ -81,6 +81,11 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
     source-local text units for semantic/transcript extraction)
   - do not prioritize GUI-first integration or direct SB writing before the
     functional/import/query standard is in place
+  - first bounded implementation slice now exists:
+    - `scripts/import_openrecall.py`
+    - normalized `itir.sqlite` capture tables/read models
+    - mission-lens `openrecall_capture` actual rows
+    - `load_openrecall_units(...)` for source-local semantic reuse
 - Archive/context source for the contested-pack expansion:
   - title: `Highly Contested Wiki Pages`
   - online UUID: `69ada623-351c-839a-97c4-7669a12b8e04`
