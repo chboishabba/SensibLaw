@@ -21,6 +21,18 @@ class OpenRecallImportSummary:
     latest_source_timestamp: int | None
 
 
+def _coverage_payload(with_screenshot: int, total: int) -> dict[str, Any]:
+    without = max(int(total) - int(with_screenshot), 0)
+    pct = 0.0
+    if total > 0:
+        pct = round((float(with_screenshot) / float(total)) * 100.0, 2)
+    return {
+        "withScreenshot": int(with_screenshot),
+        "withoutScreenshot": without,
+        "coveragePercent": pct,
+    }
+
+
 def ensure_openrecall_capture_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -351,6 +363,227 @@ def load_openrecall_activity_rows(
                     "windowTitle": str(row["window_title"] or ""),
                     "sourceKind": "openrecall_capture",
                 },
+            }
+        )
+    return out
+
+
+def load_openrecall_import_runs(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    ensure_openrecall_capture_schema(conn)
+    rows = conn.execute(
+        """
+        SELECT
+          r.import_run_id,
+          r.source_db_path,
+          r.storage_path,
+          r.imported_at,
+          r.source_entry_count,
+          r.imported_capture_count,
+          r.latest_source_timestamp,
+          MIN(s.captured_at) AS first_captured_at,
+          MAX(s.captured_at) AS last_captured_at,
+          SUM(CASE WHEN s.screenshot_path IS NOT NULL AND TRIM(s.screenshot_path) <> '' THEN 1 ELSE 0 END) AS screenshot_count
+        FROM openrecall_import_runs r
+        LEFT JOIN openrecall_capture_sources s ON s.import_run_id = r.import_run_id
+        GROUP BY r.import_run_id
+        ORDER BY r.imported_at DESC, r.import_run_id DESC
+        LIMIT ?
+        """,
+        (int(limit),),
+    ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        imported = int(row["imported_capture_count"] or 0)
+        screenshot_count = int(row["screenshot_count"] or 0)
+        out.append(
+            {
+                "importRunId": str(row["import_run_id"]),
+                "sourceDbPath": str(row["source_db_path"] or ""),
+                "storagePath": str(row["storage_path"] or ""),
+                "importedAt": str(row["imported_at"] or ""),
+                "sourceEntryCount": int(row["source_entry_count"] or 0),
+                "importedCaptureCount": imported,
+                "latestSourceTimestamp": row["latest_source_timestamp"],
+                "firstCapturedAt": row["first_captured_at"],
+                "lastCapturedAt": row["last_captured_at"],
+                "screenshotCoverage": _coverage_payload(screenshot_count, imported),
+            }
+        )
+    return out
+
+
+def build_openrecall_capture_summary(
+    conn: sqlite3.Connection,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    app_name: str | None = None,
+) -> dict[str, Any]:
+    ensure_openrecall_capture_schema(conn)
+    where: list[str] = []
+    params: list[Any] = []
+    if import_run_id is not None:
+        where.append("import_run_id = ?")
+        params.append(import_run_id)
+    if date is not None:
+        where.append("captured_date = ?")
+        params.append(date)
+    if app_name is not None:
+        where.append("LOWER(app_name) = LOWER(?)")
+        params.append(app_name)
+    where_sql = ""
+    if where:
+        where_sql = " WHERE " + " AND ".join(where)
+    totals = conn.execute(
+        f"""
+        SELECT
+          COUNT(*) AS capture_count,
+          MIN(captured_at) AS first_captured_at,
+          MAX(captured_at) AS last_captured_at,
+          SUM(CASE WHEN screenshot_path IS NOT NULL AND TRIM(screenshot_path) <> '' THEN 1 ELSE 0 END) AS screenshot_count
+        FROM openrecall_capture_sources
+        {where_sql}
+        """,
+        tuple(params),
+    ).fetchone()
+    total = int((totals["capture_count"] if totals is not None else 0) or 0)
+    screenshot_count = int((totals["screenshot_count"] if totals is not None else 0) or 0)
+    app_rows = conn.execute(
+        f"""
+        SELECT app_name, COUNT(*) AS capture_count
+        FROM openrecall_capture_sources
+        {where_sql}
+        GROUP BY app_name
+        ORDER BY capture_count DESC, app_name ASC
+        LIMIT 10
+        """,
+        tuple(params),
+    ).fetchall()
+    title_rows = conn.execute(
+        f"""
+        SELECT window_title, COUNT(*) AS capture_count
+        FROM openrecall_capture_sources
+        {where_sql}
+        GROUP BY window_title
+        ORDER BY capture_count DESC, window_title ASC
+        LIMIT 10
+        """,
+        tuple(params),
+    ).fetchall()
+    date_rows = conn.execute(
+        f"""
+        SELECT captured_date, COUNT(*) AS capture_count
+        FROM openrecall_capture_sources
+        {where_sql}
+        GROUP BY captured_date
+        ORDER BY captured_date DESC
+        LIMIT 14
+        """,
+        tuple(params),
+    ).fetchall()
+    return {
+        "filters": {
+            "importRunId": import_run_id,
+            "date": date,
+            "appName": app_name,
+        },
+        "captureCount": total,
+        "firstCapturedAt": totals["first_captured_at"] if totals is not None else None,
+        "lastCapturedAt": totals["last_captured_at"] if totals is not None else None,
+        "screenshotCoverage": _coverage_payload(screenshot_count, total),
+        "countsByApp": [
+            {
+                "appName": str(row["app_name"] or ""),
+                "captureCount": int(row["capture_count"] or 0),
+            }
+            for row in app_rows
+        ],
+        "countsByTitle": [
+            {
+                "windowTitle": str(row["window_title"] or ""),
+                "captureCount": int(row["capture_count"] or 0),
+            }
+            for row in title_rows
+        ],
+        "countsByDate": [
+            {
+                "capturedDate": str(row["captured_date"] or ""),
+                "captureCount": int(row["capture_count"] or 0),
+            }
+            for row in date_rows
+        ],
+    }
+
+
+def query_openrecall_captures(
+    conn: sqlite3.Connection,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    app_name: str | None = None,
+    text_query: str | None = None,
+    limit: int = 25,
+) -> list[dict[str, Any]]:
+    ensure_openrecall_capture_schema(conn)
+    where: list[str] = []
+    params: list[Any] = []
+    if import_run_id is not None:
+        where.append("s.import_run_id = ?")
+        params.append(import_run_id)
+    if date is not None:
+        where.append("s.captured_date = ?")
+        params.append(date)
+    if app_name is not None:
+        where.append("LOWER(s.app_name) = LOWER(?)")
+        params.append(app_name)
+    if text_query is not None and text_query.strip():
+        needle = f"%{text_query.strip().casefold()}%"
+        where.append(
+            "(LOWER(s.ocr_text) LIKE ? OR LOWER(s.window_title) LIKE ? OR LOWER(s.app_name) LIKE ?)"
+        )
+        params.extend([needle, needle, needle])
+    sql = """
+        SELECT
+          s.capture_id,
+          s.import_run_id,
+          s.captured_at,
+          s.captured_date,
+          s.app_name,
+          s.window_title,
+          s.ocr_text,
+          s.screenshot_path,
+          s.source_db_path,
+          s.embedding_present
+        FROM openrecall_capture_sources s
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY s.source_timestamp DESC LIMIT ?"
+    params.append(int(limit))
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        app = str(row["app_name"] or "").strip()
+        title = str(row["window_title"] or "").strip()
+        ocr = str(row["ocr_text"] or "").strip()
+        preview_parts = [part for part in [title, ocr] if part]
+        out.append(
+            {
+                "captureId": str(row["capture_id"]),
+                "importRunId": str(row["import_run_id"]),
+                "capturedAt": str(row["captured_at"] or ""),
+                "capturedDate": str(row["captured_date"] or ""),
+                "appName": app,
+                "windowTitle": title,
+                "ocrPreview": " — ".join(preview_parts[:2])[:240],
+                "hasScreenshot": bool(str(row["screenshot_path"] or "").strip()),
+                "screenshotPath": str(row["screenshot_path"] or ""),
+                "sourceDbPath": str(row["source_db_path"] or ""),
+                "embeddingPresent": bool(int(row["embedding_present"] or 0)),
             }
         )
     return out

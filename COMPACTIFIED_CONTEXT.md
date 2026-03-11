@@ -86,6 +86,18 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
     - normalized `itir.sqlite` capture tables/read models
     - mission-lens `openrecall_capture` actual rows
     - `load_openrecall_units(...)` for source-local semantic reuse
+  - next functional slice is query/read-model parity:
+    - now implemented through:
+      - `src.reporting.openrecall_import`
+        - `load_openrecall_import_runs(...)`
+        - `build_openrecall_capture_summary(...)`
+        - `query_openrecall_captures(...)`
+      - `scripts/query_openrecall_import.py`
+    - provides:
+      - latest import-run summaries
+      - capture counts by app/title/date
+      - screenshot coverage summaries
+      - recent capture-row queries through a neutral helper + CLI seam
 - Archive/context source for the contested-pack expansion:
   - title: `Highly Contested Wiki Pages`
   - online UUID: `69ada623-351c-839a-97c4-7669a12b8e04`

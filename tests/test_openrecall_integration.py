@@ -1,21 +1,30 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 import sqlite3
+import subprocess
+import sys
 
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
-from src.reporting.openrecall_import import ensure_openrecall_capture_schema, import_openrecall_db, load_openrecall_units
+from src.reporting.openrecall_import import (
+    build_openrecall_capture_summary,
+    ensure_openrecall_capture_schema,
+    import_openrecall_db,
+    load_openrecall_import_runs,
+    load_openrecall_units,
+    query_openrecall_captures,
+)
 from src.reporting.structure_report import TextUnit
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
 
 
-def _seed_openrecall_db(tmp_path: Path, *, timestamp: int) -> tuple[Path, Path]:
+def _seed_openrecall_db(tmp_path: Path, *, rows: list[dict[str, object]]) -> tuple[Path, Path]:
     storage_dir = tmp_path / "openrecall"
     storage_dir.mkdir(parents=True, exist_ok=True)
     screenshot_dir = storage_dir / "screenshots"
     screenshot_dir.mkdir(parents=True, exist_ok=True)
-    (screenshot_dir / f"{timestamp}.webp").write_bytes(b"fake-image")
     source_db = storage_dir / "recall.db"
     with sqlite3.connect(source_db) as conn:
         conn.execute(
@@ -30,26 +39,42 @@ def _seed_openrecall_db(tmp_path: Path, *, timestamp: int) -> tuple[Path, Path]:
             )
             """
         )
-        conn.execute(
-            """
-            INSERT INTO entries(app, title, text, timestamp, embedding)
-            VALUES (?,?,?,?,?)
-            """,
-            (
-                "Firefox",
-                "Notification routing feature PR",
-                "Please implement the notification routing feature before Friday close of business.",
-                timestamp,
-                b"embed",
-            ),
-        )
+        for row in rows:
+            timestamp = int(row["timestamp"])
+            if row.get("with_screenshot", True):
+                (screenshot_dir / f"{timestamp}.webp").write_bytes(b"fake-image")
+            conn.execute(
+                """
+                INSERT INTO entries(app, title, text, timestamp, embedding)
+                VALUES (?,?,?,?,?)
+                """,
+                (
+                    str(row.get("app", "")),
+                    str(row.get("title", "")),
+                    str(row.get("text", "")),
+                    timestamp,
+                    row.get("embedding", b"embed"),
+                ),
+            )
         conn.commit()
     return source_db, storage_dir
 
 
 def test_openrecall_import_normalizes_capture_rows_and_units(tmp_path: Path) -> None:
     source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
-    source_db, storage_dir = _seed_openrecall_db(tmp_path, timestamp=source_ts)
+    source_db, storage_dir = _seed_openrecall_db(
+        tmp_path,
+        rows=[
+            {
+                "timestamp": source_ts,
+                "app": "Firefox",
+                "title": "Notification routing feature PR",
+                "text": "Please implement the notification routing feature before Friday close of business.",
+                "embedding": b"embed",
+                "with_screenshot": True,
+            }
+        ],
+    )
     itir_db = tmp_path / "itir.sqlite"
     with sqlite3.connect(itir_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -91,7 +116,19 @@ def test_mission_lens_report_includes_openrecall_actual_rows(tmp_path: Path) -> 
     from sb.dashboard_store_sqlite import DashboardKey, upsert_dashboard_payload
 
     source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
-    source_db, storage_dir = _seed_openrecall_db(tmp_path, timestamp=source_ts)
+    source_db, storage_dir = _seed_openrecall_db(
+        tmp_path,
+        rows=[
+            {
+                "timestamp": source_ts,
+                "app": "Firefox",
+                "title": "Notification routing feature PR",
+                "text": "Please implement the notification routing feature before Friday close of business.",
+                "embedding": b"embed",
+                "with_screenshot": True,
+            }
+        ],
+    )
     itir_db = tmp_path / "itir.sqlite"
     sb_db = tmp_path / "dashboard.sqlite"
 
@@ -142,7 +179,19 @@ def test_mission_lens_report_includes_openrecall_actual_rows(tmp_path: Path) -> 
 
 def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(tmp_path: Path) -> None:
     source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
-    source_db, storage_dir = _seed_openrecall_db(tmp_path, timestamp=source_ts)
+    source_db, storage_dir = _seed_openrecall_db(
+        tmp_path,
+        rows=[
+            {
+                "timestamp": source_ts,
+                "app": "Firefox",
+                "title": "Notification routing feature PR",
+                "text": "Please implement the notification routing feature before Friday close of business.",
+                "embedding": b"embed",
+                "with_screenshot": True,
+            }
+        ],
+    )
     itir_db = tmp_path / "itir.sqlite"
     with sqlite3.connect(itir_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -166,3 +215,120 @@ def test_imported_openrecall_units_can_feed_transcript_semantic_pipeline(tmp_pat
     mission_summary = report.get("mission_observer", {}).get("summary", {})
     assert int(mission_summary.get("mission_count", 0)) >= 1
     assert any("notification routing feature" in unit.text.casefold() for unit in units)
+
+
+def test_openrecall_query_helpers_expose_runs_summary_and_filtered_captures(tmp_path: Path) -> None:
+    first_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
+    second_ts = int(datetime(2026, 3, 9, 15, 5, tzinfo=timezone.utc).timestamp())
+    source_db, storage_dir = _seed_openrecall_db(
+        tmp_path,
+        rows=[
+            {
+                "timestamp": first_ts,
+                "app": "Firefox",
+                "title": "Notification routing feature PR",
+                "text": "Please implement the notification routing feature before Friday close of business.",
+                "embedding": b"embed",
+                "with_screenshot": True,
+            },
+            {
+                "timestamp": second_ts,
+                "app": "Slack",
+                "title": "Josh DM",
+                "text": "Hey have you implemented the new feature yet?",
+                "embedding": None,
+                "with_screenshot": False,
+            },
+        ],
+    )
+    itir_db = tmp_path / "itir.sqlite"
+    with sqlite3.connect(itir_db) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_openrecall_capture_schema(conn)
+        import_openrecall_db(
+            conn,
+            source_db_path=source_db,
+            storage_path=storage_dir,
+            import_run_id="openrecall-query-v1",
+        )
+        conn.commit()
+        runs = load_openrecall_import_runs(conn, limit=5)
+        assert len(runs) == 1
+        assert runs[0]["importRunId"] == "openrecall-query-v1"
+        assert runs[0]["screenshotCoverage"]["withScreenshot"] == 1
+        summary = build_openrecall_capture_summary(conn)
+        assert summary["captureCount"] == 2
+        assert summary["screenshotCoverage"]["withScreenshot"] == 1
+        assert summary["countsByApp"][0]["appName"] in {"Firefox", "Slack"}
+        march_ninth = build_openrecall_capture_summary(conn, date="2026-03-10")
+        assert march_ninth["captureCount"] == 1
+        captures = query_openrecall_captures(conn, text_query="new feature", limit=5)
+        assert len(captures) == 1
+        assert captures[0]["appName"] == "Slack"
+        assert captures[0]["hasScreenshot"] is False
+
+
+def test_query_openrecall_import_cli_returns_json_read_models(tmp_path: Path) -> None:
+    source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
+    source_db, storage_dir = _seed_openrecall_db(
+        tmp_path,
+        rows=[
+            {
+                "timestamp": source_ts,
+                "app": "Firefox",
+                "title": "Notification routing feature PR",
+                "text": "Please implement the notification routing feature before Friday close of business.",
+                "embedding": b"embed",
+                "with_screenshot": True,
+            }
+        ],
+    )
+    itir_db = tmp_path / "itir.sqlite"
+    with sqlite3.connect(itir_db) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_openrecall_capture_schema(conn)
+        import_openrecall_db(
+            conn,
+            source_db_path=source_db,
+            storage_path=storage_dir,
+            import_run_id="openrecall-cli-v1",
+        )
+        conn.commit()
+    base_cmd = [
+        sys.executable,
+        "SensibLaw/scripts/query_openrecall_import.py",
+        "--itir-db-path",
+        str(itir_db),
+    ]
+    runs_payload = json.loads(
+        subprocess.run(
+            [*base_cmd, "runs", "--limit", "2"],
+            cwd=Path(__file__).resolve().parents[2],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    assert runs_payload["ok"] is True
+    assert runs_payload["runs"][0]["importRunId"] == "openrecall-cli-v1"
+    summary_payload = json.loads(
+        subprocess.run(
+            [*base_cmd, "summary", "--import-run-id", "openrecall-cli-v1"],
+            cwd=Path(__file__).resolve().parents[2],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    assert summary_payload["summary"]["captureCount"] == 1
+    captures_payload = json.loads(
+        subprocess.run(
+            [*base_cmd, "captures", "--text-query", "notification routing", "--limit", "5"],
+            cwd=Path(__file__).resolve().parents[2],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    assert len(captures_payload["captures"]) == 1
+    assert captures_payload["captures"][0]["appName"] == "Firefox"

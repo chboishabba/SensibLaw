@@ -267,8 +267,6 @@
 - [ ] Follow up on OpenRecall v1:
   - stabilize or bypass the inconsistent vendored live-capture path before
     relying on OpenRecall as a routine upstream source
-  - add query-first helpers over imported captures (latest imports, capture
-    counts by app/title/date, screenshot coverage)
   - decide whether capture-derived observer overlays should ever cross into SB,
     and only through ITIR-normalized payloads
   - defer GUI-first OpenRecall browsing until the importer/read-model seam is

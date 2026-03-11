@@ -195,6 +195,29 @@ Current non-goals:
 - direct SB ingest of raw OpenRecall rows
 - canonical mission/semantic promotion from OCR alone
 
+The next functional step is a query-first helper/CLI seam over imported
+captures so downstream lanes can ask for:
+- latest import runs
+- capture counts by app/title/date
+- screenshot coverage
+- recent capture rows with bounded filters
+
+Use the query CLI:
+
+```bash
+.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  runs
+
+.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  summary --date 2026-03-08
+
+.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  captures --app-name Firefox --text-query feature --limit 20
+```
+
 ### Parsing contract for HCA AAO payloads (current interim path)
 
 `hca_case_demo_ingest.py` currently emits two distinct event lanes into

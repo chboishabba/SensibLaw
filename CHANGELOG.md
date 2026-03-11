@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Engine/profile followthrough (v1): added a concrete profile admissibility and
+  lint baseline in `src/text/profile_admissibility.py` plus cross-profile
+  safety tests in `tests/test_profile_admissibility.py`. The new slice enforces
+  profile-local allowlists (`sl_profile`, `sb_profile`, `infra_profile`),
+  preserves canonical `tokens[]`, rejects unanchored/out-of-bounds spans, and
+  filters forbidden groups/axes/overlays without mutating tokenization.
+- Tokenizer migration verification refresh: reran the deterministic migration
+  regression lane in the project venv (`.venv`) over
+  `tests/test_deterministic_legal_tokenizer.py`,
+  `tests/test_lexeme_layer.py`, and
+  `tests/test_tokenizer_migration_sl_regression.py` with all tests passing
+  in one bounded run. This is a verification/synchronization update; canonical
+  tokenizer behavior remains `deterministic_legal`.
 - OpenRecall integration: add the first bounded observer import lane. New
   `scripts/import_openrecall.py` imports vendored OpenRecall `entries` rows
   into normalized `itir.sqlite` capture tables/read models, preserves capture
@@ -8,6 +21,12 @@
   reuse, and feeds mission-lens actual-side reports as `openrecall_capture`
   activity rows without promoting raw OCR into canonical mission/semantic
   truth.
+- OpenRecall integration: add the first neutral query/read-model interface
+  over imported captures. `src/reporting/openrecall_import.py` now exposes
+  latest-run, summary, and recent-capture query helpers, and
+  `scripts/query_openrecall_import.py` provides a bounded JSON CLI for
+  `runs`, `summary`, and `captures` without introducing GUI-first coupling or
+  bypassing the observer-first ingest boundary.
 - Wikipedia revision monitor: extend the lane into a bounded contested-region
   graph workflow. The runner now persists contested graph artifacts plus
   SQLite read-model tables for graphs/regions/cycles/edges, run summaries now
