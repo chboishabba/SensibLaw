@@ -52,6 +52,23 @@ entry point for Niklas, Ege, Peter, and related reviewers.
   - `sensiblaw wikidata build-slice`
   - `sensiblaw wikidata project`
   - `sensiblaw wikidata find-qualifier-drift`
+- Current test-suite interface (flag this as the primary local debug surface for
+  the sprint):
+  - `tests/test_wikidata_cli.py`
+    - CLI contract coverage for `build-slice`, `project`, and
+      `find-qualifier-drift`-adjacent fixture flows
+  - `tests/test_wikidata_projection.py`
+    - projection/report semantics, SCC/mixed-order/parthood diagnostics, and
+      bounded qualifier-drift expectations
+  - `tests/test_wikidata_finder.py`
+    - live/repo-pinned qualifier-drift candidate finder contract
+  - `tests/test_ontology_cli_commands.py`
+    - bridge import/report and external-ref batch/upsert round trips
+  - `tests/test_lexeme_layer.py`
+    - deterministic bridge resolution + emitted external-ref batch coverage
+  - current sprint note:
+    - use these tests as the first debug/function check before expanding the
+      working-group pack or touching downstream UI surfaces
 - Current live finder mode:
   - per-property raw-row WDQS candidate scan (`per_property_raw_rows_v1`)
   - no label service or grouped qualifier aggregation in the candidate phase

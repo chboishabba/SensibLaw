@@ -84,6 +84,54 @@ Curate lookups into a single JSON payload that separates concept and actor inser
 }
 ```
 
+## Deterministic bridge slices
+
+For reviewed multi-provider prepopulation work, prefer a deterministic bridge
+slice imported with:
+
+```bash
+python -m cli ontology bridge-import --db path/to/sensiblaw.db --file bridge_slice.json
+python -m cli ontology bridge-report --db path/to/sensiblaw.db --slice-name your_slice_name
+```
+
+Bridge slices use:
+
+```json
+{
+  "slice": {
+    "name": "prepopulation_core_refs_v1",
+    "source_version": "reviewed_prepopulation_core_v1",
+    "policy_version": "entity_bridge_v1",
+    "notes": "optional notes"
+  },
+  "entities": [
+    {
+      "canonical_ref": "jurisdiction:commonwealth_of_australia",
+      "canonical_kind": "jurisdiction_ref",
+      "provider": "wikidata",
+      "external_id": "Q408",
+      "canonical_label": "Australia",
+      "aliases": ["Australia", "Commonwealth of Australia"]
+    }
+  ]
+}
+```
+
+Recommended `canonical_kind` values for the current high-signal bridge slice:
+
+- `jurisdiction_ref`
+- `court_ref`
+- `institution_ref`
+- `organization_ref`
+- `legislation_ref`
+- `case_ref`
+- `person_ref`
+- `temporal_relation_ref`
+
+`bridge-report` now exposes counts by provider/kind plus duplicate-alias and
+duplicate-external-id reuse signals so reviewed prepopulation slices can be
+audited before they feed `external-refs-upsert`.
+
 For DBpedia, the same structure applies; just use `provider: "dbpedia"` and a full
 URI `external_id`:
 

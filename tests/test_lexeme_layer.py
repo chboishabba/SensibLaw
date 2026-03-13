@@ -250,6 +250,90 @@ def test_seeded_entity_bridge_emits_external_refs_batch_payload():
     )
     assert {row["external_id"] for row in batch["actor_external_refs"]} == {"Q1065", "Q37470", "Q47488", "Q7801"}
     assert not batch["concept_external_refs"]
+    assert batch["meta"]["coverage"]["resolved_bridge_refs"] == 4
+    assert batch["meta"]["coverage"]["skipped_no_bridge_match"] == 0
+    assert batch["meta"]["coverage"]["skipped_no_anchor"] == 0
+
+
+def test_prepopulation_bridge_resolves_au_branch_refs_via_text_alias_scan():
+    import json
+    import sqlite3
+    from pathlib import Path
+
+    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+
+    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    text = (
+        "In Mabo v Queensland (No 2), Eddie Mabo and the High Court of Australia "
+        "reframed native title in the Commonwealth of Australia under the Native Title Act 1993."
+    )
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        import_bridge_payload(conn, payload)
+        linked = {
+            (link.canonical_ref, link.curie)
+            for link in link_text_via_bridge_aliases(
+                text,
+                {
+                    "case:mabo_v_queensland_no_2": {"concept_code": "AU_CASE_MABO"},
+                    "court:high_court_of_australia": {"actor_id": 1},
+                    "jurisdiction:commonwealth_of_australia": {"concept_code": "AU_JURIS_COMMONWEALTH"},
+                    "legislation:native_title_act_1993": {"concept_code": "AU_ACT_NATIVE_TITLE"},
+                    "person:eddie_mabo": {"actor_id": 2},
+                },
+                conn=conn,
+                slice_name="prepopulation_core_refs_v1",
+            )
+        }
+    assert ("case:mabo_v_queensland_no_2", "wikidata:Q6729646") in linked
+    assert ("person:eddie_mabo", "wikidata:Q5331630") in linked
+    assert ("court:high_court_of_australia", "wikidata:Q16903290") in linked
+    assert ("jurisdiction:commonwealth_of_australia", "wikidata:Q408") in linked
+    assert ("jurisdiction:commonwealth_of_australia", "dbpedia:http://dbpedia.org/resource/Australia") in linked
+    assert ("legislation:native_title_act_1993", "wikidata:Q6987230") in linked
+
+
+def test_prepopulation_bridge_resolves_nsw_branch_refs_with_mixed_providers():
+    import json
+    import sqlite3
+    from pathlib import Path
+
+    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+
+    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    text = (
+        "House v The King and New South Wales v Lepore were discussed in New South Wales "
+        "while the High Court of Australia considered the Civil Liability Act 2002 (NSW)."
+    )
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        import_bridge_payload(conn, payload)
+        linked = {
+            (link.canonical_ref, link.curie)
+            for link in link_text_via_bridge_aliases(
+                text,
+                {
+                    "court:high_court_of_australia": {"actor_id": 1},
+                    "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                    "case:house_v_the_king": {"concept_code": "AU_CASE_HOUSE"},
+                    "case:new_south_wales_v_lepore": {"concept_code": "AU_CASE_LEPORE"},
+                    "legislation:civil_liability_act_2002_nsw": {"concept_code": "AU_ACT_CLA_NSW"},
+                },
+                conn=conn,
+                slice_name="prepopulation_core_refs_v1",
+            )
+        }
+    assert ("case:house_v_the_king", "austlii:https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html") in linked
+    assert (
+        "case:new_south_wales_v_lepore",
+        "hcourt_au:https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
+    ) in linked
+    assert ("legislation:civil_liability_act_2002_nsw", "nsw_legislation:https://legislation.nsw.gov.au/view/html/inforce/current/act-2002-022") in linked
+    assert ("jurisdiction:state_of_new_south_wales", "wikidata:Q3224") in linked
 
 
 def test_deterministic_legal_occurrences_do_not_emit_article_ref_for_artful_or_gallery_cases():

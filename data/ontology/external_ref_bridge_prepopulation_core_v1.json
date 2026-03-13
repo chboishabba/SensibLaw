@@ -1,0 +1,133 @@
+{
+  "slice": {
+    "name": "prepopulation_core_refs_v1",
+    "notes": "Deterministic high-signal bridge slice for jurisdictions, courts, legislation, cases, actors, and temporal relations.",
+    "policy_version": "entity_bridge_v1",
+    "source_version": "reviewed_prepopulation_core_v1"
+  },
+  "entities": [
+    {
+      "aliases": ["Australia", "Commonwealth of Australia"],
+      "canonical_kind": "jurisdiction_ref",
+      "canonical_label": "Australia",
+      "canonical_ref": "jurisdiction:commonwealth_of_australia",
+      "external_id": "Q408",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["High Court of Australia", "HCA"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "High Court of Australia",
+      "canonical_ref": "court:high_court_of_australia",
+      "external_id": "Q16903290",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["Australian Government", "Commonwealth of Australia"],
+      "canonical_kind": "organization_ref",
+      "canonical_label": "Australian Government",
+      "canonical_ref": "organization:australian_government",
+      "external_id": "Q24229398",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["Native Title Act 1993", "Native Title Act"],
+      "canonical_kind": "legislation_ref",
+      "canonical_label": "Native Title Act 1993",
+      "canonical_ref": "legislation:native_title_act_1993",
+      "external_id": "Q6987230",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["Mabo v Queensland (No 2)", "Mabo"],
+      "canonical_kind": "case_ref",
+      "canonical_label": "Mabo v Queensland (No 2)",
+      "canonical_ref": "case:mabo_v_queensland_no_2",
+      "external_id": "Q6729646",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["Eddie Mabo", "Edward Koiki Mabo"],
+      "canonical_kind": "person_ref",
+      "canonical_label": "Eddie Mabo",
+      "canonical_ref": "person:eddie_mabo",
+      "external_id": "Q5331630",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["valid from", "start time"],
+      "canonical_kind": "temporal_relation_ref",
+      "canonical_label": "start time",
+      "canonical_ref": "temporal_relation:valid_from",
+      "external_id": "P580",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["Australia", "Commonwealth of Australia"],
+      "canonical_kind": "jurisdiction_ref",
+      "canonical_label": "Australia",
+      "canonical_ref": "jurisdiction:commonwealth_of_australia",
+      "external_id": "http://dbpedia.org/resource/Australia",
+      "provider": "dbpedia"
+    },
+    {
+      "aliases": ["New South Wales", "State of New South Wales", "NSW"],
+      "canonical_kind": "jurisdiction_ref",
+      "canonical_label": "New South Wales",
+      "canonical_ref": "jurisdiction:state_of_new_south_wales",
+      "external_id": "Q3224",
+      "provider": "wikidata"
+    },
+    {
+      "aliases": ["New South Wales", "State of New South Wales", "NSW"],
+      "canonical_kind": "jurisdiction_ref",
+      "canonical_label": "New South Wales",
+      "canonical_ref": "jurisdiction:state_of_new_south_wales",
+      "external_id": "http://dbpedia.org/resource/New_South_Wales",
+      "provider": "dbpedia"
+    },
+    {
+      "aliases": ["High Court of Australia", "HCA"],
+      "canonical_kind": "court_ref",
+      "canonical_label": "High Court of Australia",
+      "canonical_ref": "court:high_court_of_australia",
+      "external_id": "http://dbpedia.org/resource/High_Court_of_Australia",
+      "provider": "dbpedia"
+    },
+    {
+      "aliases": ["Commonwealth of Australia"],
+      "canonical_kind": "organization_ref",
+      "canonical_label": "Commonwealth of Australia",
+      "canonical_ref": "organization:commonwealth_of_australia",
+      "external_id": "http://dbpedia.org/resource/Australia",
+      "provider": "dbpedia"
+    },
+    {
+      "aliases": ["Civil Liability Act 2002 (NSW)", "Civil Liability Act 2002", "Civil Liability Act"],
+      "canonical_kind": "legislation_ref",
+      "canonical_label": "Civil Liability Act 2002 (NSW)",
+      "canonical_ref": "legislation:civil_liability_act_2002_nsw",
+      "external_id": "https://legislation.nsw.gov.au/view/html/inforce/current/act-2002-022",
+      "external_url": "https://legislation.nsw.gov.au/view/html/inforce/current/act-2002-022",
+      "provider": "nsw_legislation"
+    },
+    {
+      "aliases": ["House v The King", "House v King"],
+      "canonical_kind": "case_ref",
+      "canonical_label": "House v The King",
+      "canonical_ref": "case:house_v_the_king",
+      "external_id": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+      "external_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+      "provider": "austlii"
+    },
+    {
+      "aliases": ["New South Wales v Lepore", "Lepore"],
+      "canonical_kind": "case_ref",
+      "canonical_label": "New South Wales v Lepore",
+      "canonical_ref": "case:new_south_wales_v_lepore",
+      "external_id": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
+      "external_url": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
+      "provider": "hcourt_au"
+    }
+  ]
+}

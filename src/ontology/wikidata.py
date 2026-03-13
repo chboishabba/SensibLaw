@@ -11,6 +11,11 @@ import requests
 SCHEMA_VERSION = "wikidata_projection_v0_1"
 FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
+DEFAULT_PROPERTY_FILTER = ("P279", "P31")
+PROPERTY_PROFILES = {
+    "default": DEFAULT_PROPERTY_FILTER,
+    "prepopulation_core": ("P279", "P31", "P361", "P527"),
+}
 TEMPORAL_QUALIFIER_PROPERTIES = frozenset({"P580", "P582", "P585"})
 REVIEW_QUALIFIER_PROPERTIES = frozenset({"P7452"})
 PARTHOOD_PROPERTIES = frozenset({"P361", "P527"})
@@ -31,6 +36,19 @@ REQUEST_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "SensibLaw-Wikidata-QualifierDrift/0.1",
 }
+
+
+def resolve_property_filter(
+    *,
+    profile: str | None = None,
+    property_filter: Iterable[str] | None = None,
+) -> tuple[str, ...]:
+    selected_profile = (profile or "default").strip() or "default"
+    if selected_profile not in PROPERTY_PROFILES:
+        raise ValueError(f"unknown property profile: {selected_profile}")
+    if property_filter:
+        return tuple(sorted(set(property_filter)))
+    return tuple(PROPERTY_PROFILES[selected_profile])
 
 
 @dataclass(frozen=True)
@@ -206,9 +224,10 @@ def load_windows(payload: Mapping[str, Any]) -> tuple[WindowSlice, ...]:
 def build_slice_from_entity_exports(
     window_sources: Mapping[str, Sequence[Mapping[str, Any]]],
     *,
+    profile: str | None = None,
     property_filter: Iterable[str] | None = None,
 ) -> Dict[str, Any]:
-    allowed = tuple(sorted(set(property_filter or ("P31", "P279"))))
+    allowed = resolve_property_filter(profile=profile, property_filter=property_filter)
     windows: list[dict[str, Any]] = []
     for window_id, sources in window_sources.items():
         bundles: list[dict[str, Any]] = []
@@ -1103,10 +1122,11 @@ def _build_qualifier_drift(
 
 
 def project_wikidata_payload(
-    payload: Mapping[str, Any], *, e0: int = 1, property_filter: Iterable[str] | None = None
+    payload: Mapping[str, Any], *, e0: int = 1, profile: str | None = None, property_filter: Iterable[str] | None = None
 ) -> Dict[str, Any]:
     windows = load_windows(payload)
-    allowed = tuple(sorted(set(property_filter or ("P31", "P279"))))
+    selected_profile = (profile or "default").strip() or "default"
+    allowed = resolve_property_filter(profile=selected_profile, property_filter=property_filter)
     filtered_windows = tuple(
         WindowSlice(
             window_id=window.window_id,
@@ -1210,7 +1230,11 @@ def project_wikidata_payload(
 
     return {
         "schema_version": SCHEMA_VERSION,
-        "bounded_slice": {"properties": list(allowed), "window_ids": [window.window_id for window in filtered_windows]},
+        "bounded_slice": {
+            "profile": selected_profile,
+            "properties": list(allowed),
+            "window_ids": [window.window_id for window in filtered_windows],
+        },
         "assumptions": {
             "rank_evidence_gate_e0": e0,
             "advisory_only": True,
@@ -1226,8 +1250,11 @@ def project_wikidata_payload(
 __all__ = [
     "SCHEMA_VERSION",
     "FINDER_SCHEMA_VERSION",
+    "DEFAULT_PROPERTY_FILTER",
+    "PROPERTY_PROFILES",
     "build_slice_from_entity_exports",
     "find_qualifier_drift_candidates",
     "load_windows",
     "project_wikidata_payload",
+    "resolve_property_filter",
 ]

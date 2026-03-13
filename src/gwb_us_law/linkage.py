@@ -20,6 +20,10 @@ _BROAD_PROVENANCE_CUES = {
 }
 
 
+def _is_reference_receipt(kind: str) -> bool:
+    return kind.endswith("_ref")
+
+
 def _resolve_db_path(db_path: str | Path | None = None) -> Path:
     if db_path is not None:
         return Path(db_path).expanduser().resolve()
@@ -184,7 +188,15 @@ def import_gwb_us_law_seed_payload(conn: sqlite3.Connection, payload: Mapping[st
                     "INSERT INTO gwb_us_law_linkage_seed_authorities(seed_id, authority_order, authority_title) VALUES (?,?,?)",
                     (seed_id, idx, authority_title),
                 )
-        for ref_kind, field_name in (("institution_ref", "institution_refs"), ("court_ref", "court_refs")):
+        ref_fields = sorted(
+            (
+                (str(field_name[:-1]), field_name)
+                for field_name, value in item.items()
+                if isinstance(field_name, str) and field_name.endswith("_refs") and isinstance(value, list)
+            ),
+            key=lambda item: item[1],
+        )
+        for ref_kind, field_name in ref_fields:
             for idx, ref in enumerate(item.get(field_name) if isinstance(item.get(field_name), list) else [], start=1):
                 canonical_ref = str(ref).strip()
                 if canonical_ref:
@@ -295,7 +307,7 @@ def _compute_match(authorities: list[str], refs: list[tuple[str, str]], cues: li
                 receipts.append(("provenance_cue", cue))
     if strong_cue_hits:
         score += strong_cue_hits
-    non_cue_signal = any(kind in {"authority_title", "institution_ref", "court_ref"} for kind, _ in receipts)
+    non_cue_signal = any(kind == "authority_title" or _is_reference_receipt(kind) for kind, _ in receipts)
     if broad_cue_hits and not non_cue_signal and not strong_cue_hits:
         score += 1
     elif broad_cue_hits and non_cue_signal:
@@ -309,18 +321,16 @@ def _confidence_from_score(score: int, receipts: list[tuple[str, str]]) -> str:
         return "high"
     if score >= 4 and (
         "authority_title" in kinds
-        or ("institution_ref" in kinds and "provenance_cue" in kinds)
-        or ("court_ref" in kinds and "provenance_cue" in kinds)
-        or ("institution_ref" in kinds and "court_ref" in kinds)
+        or ("provenance_cue" in kinds and any(_is_reference_receipt(kind) for kind in kinds))
+        or sum(1 for kind in kinds if _is_reference_receipt(kind)) >= 2
     ):
         return "medium"
     if score >= 3 and (
         "provenance_cue" in kinds
         or "authority_title" in kinds
         or "provenance_cue_broad" in kinds
-        or ("institution_ref" in kinds and "provenance_cue_broad" in kinds)
-        or ("court_ref" in kinds and "provenance_cue_broad" in kinds)
-        or ("institution_ref" in kinds and "court_ref" in kinds)
+        or ("provenance_cue_broad" in kinds and any(_is_reference_receipt(kind) for kind in kinds))
+        or sum(1 for kind in kinds if _is_reference_receipt(kind)) >= 2
     ):
         return "low"
     if score >= 1 and "provenance_cue_broad" in kinds:

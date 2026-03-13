@@ -1,6 +1,56 @@
 # Changelog
 
 ## Unreleased
+- Branch-set ontology population hardening:
+  - Kept the canonical deterministic lexer pre-semantic and moved AU/NSW
+    branch-set identity resolution into a downstream reviewed bridge alias-scan
+    path keyed by explicit anchor maps, preserving the documented extraction /
+    enrichment boundary.
+  - Added bridge fallback from `act_ref` occurrences to reviewed
+    `legislation_ref` bridge rows so richer prepopulation slices remain
+    authoritative without breaking deterministic batch emission.
+  - Added end-to-end AU native-title, NSW liability/statute, and GWB
+    institutions/courts branch tests covering bridge import, reviewed alias
+    matching, explicit anchoring, and dry-run external-ref upsert coverage.
+  - Extended the reviewed prepopulation slice with the NSW branch set
+    (`New South Wales`, `Civil Liability Act 2002 (NSW)`, `House v The King`,
+    `New South Wales v Lepore`) using mixed reviewed providers where Wikidata
+    was not the best available authority surface.
+  - Added downstream relation/export checks for AU and NSW branch refs and
+    restored graph-model compatibility aliases used by the external-ref triple
+    tests.
+- Environment/test entrypoint hardening:
+  - Standardized `SensibLaw` operator and test docs on the superproject venv
+    at `../.venv`.
+  - Added `scripts/run_tests.sh` as the canonical pytest entrypoint.
+  - Made the test harness fail fast with a targeted interpreter error when
+    `pdfminer.six` is unavailable under the active Python.
+- Wikidata / ontology bridge hardening:
+  - Expanded deterministic bridge/report support to handle multi-provider
+    reviewed slices cleanly across Wikidata and DBpedia, including richer
+    `bridge-report` stats by provider/kind plus duplicate alias / duplicate
+    external-id reuse diagnostics.
+  - Updated bridge batch emission so a single canonical ref can emit both
+    actor- and concept-anchored external refs and preserve provider-specific
+    URLs for both Wikidata and DBpedia.
+  - Added a bounded `prepopulation_core` Wikidata diagnostics profile over
+    `P31`, `P279`, `P361`, and `P527` for CLI/data-contract-only review packs.
+  - Flagged the existing Wikidata ontology test-suite interface in the working
+    group/report docs as a first-line debug/function surface for the sprint.
+- Assumption-stress controls hardening:
+  - Added fail-closed control registry and waiver receipt scaffolding for
+    `A1..A10` (`docs/planning/assumption_controls_registry.json`,
+    `docs/planning/waivers/assumption_controls_waiver_20260311.md`) with CI
+    guard tests in `tests/test_assumption_controls_fail_closed.py`.
+  - Added initial `A1/Q1` executable axis-policy fixtures via
+    `src/sensiblaw/ribbon/axis_policy.py` and
+    `tests/test_ribbon_axis_policy.py` (collision detection + deterministic
+    2D fallback semantics).
+  - Added `A3` claim-link provenance quality gates in
+    `src/reporting/narrative_compare.py`: public causal links
+    (`supports`/`undermines`) now require `link_type`, `confidence`, and
+    `counter_hypothesis_ref`; comparison/validation payload builds now fail
+    closed when those fields or matching receipts are missing.
 - Engine/profile followthrough (v1): added a concrete profile admissibility and
   lint baseline in `src/text/profile_admissibility.py` plus cross-profile
   safety tests in `tests/test_profile_admissibility.py`. The new slice enforces
@@ -27,6 +77,24 @@
   `scripts/query_openrecall_import.py` provides a bounded JSON CLI for
   `runs`, `summary`, and `captures` without introducing GUI-first coupling or
   bypassing the observer-first ingest boundary.
+- NotebookLM metadata/review parity: added the first neutral NotebookLM
+  observer read-model in `src/reporting/notebooklm_observer.py` plus bounded
+  JSON CLI `scripts/query_notebooklm_observer.py`. The new slice summarizes
+  NotebookLM date/notebook/source/artifact coverage from
+  `runs/<date>/logs/notes/*.jsonl`, exposes recent-event queries, and projects
+  source summaries/snippets into `TextUnit`s for downstream structure/semantic
+  reuse without pretending `notes_meta` is a true activity ledger.
+- NotebookLM interaction capture: added the first separate interaction lane
+  over NotebookLM conversation history and notes. New
+  `StatiBaker/scripts/capture_notebooklm_activity.py` and
+  `StatiBaker/adapters/notebooklm_activity.py` emit additive
+  `conversation_observed` / `note_observed` rows under
+  `signal: notebooklm_activity`, while
+  `src/reporting/notebooklm_activity.py` and
+  `scripts/query_notebooklm_activity.py` provide query/read-model helpers and
+  preview `TextUnit` projection from normalized outputs in
+  `runs/<date>/outputs/notebooklm/`. The lane remains explicitly outside
+  dashboard/session accounting.
 - Wikipedia revision monitor: extend the lane into a bounded contested-region
   graph workflow. The runner now persists contested graph artifacts plus
   SQLite read-model tables for graphs/regions/cycles/edges, run summaries now

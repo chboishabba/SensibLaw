@@ -6,18 +6,18 @@ that command-line entry points are wired correctly.
 Install the test extras before running the suite:
 
 ```bash
-pip install -e .[test]
+../.venv/bin/pip install -e .[test]
 ```
 
 The following commands are executed:
 
 ```bash
-pytest -q
-pytest -q -m redflag
-python -m src.cli --help
-python scripts/generate_sample_corpus.py
-python examples/distinguish_glj/demo.py
-python -m src.pdf_ingest --help
+./scripts/run_tests.sh -q
+./scripts/run_tests.sh -q -m redflag
+../.venv/bin/python -m src.cli --help
+../.venv/bin/python scripts/generate_sample_corpus.py
+../.venv/bin/python examples/distinguish_glj/demo.py
+../.venv/bin/python -m src.pdf_ingest --help
 ```
 
 These smoke checks confirm that the main `sensiblaw` interface, sample corpus

@@ -25,11 +25,9 @@ def main(argv: list[str] | None = None) -> int:
     text = args.text if args.text is not None else args.text_file.read_text(encoding="utf-8")
     anchor_map = json.loads(args.anchor_map.read_text(encoding="utf-8"))
 
-    from src.ontology.entity_bridge import build_external_refs_batch
-    from src.text.lexeme_index import collect_lexeme_occurrences
+    from src.ontology.entity_bridge import build_external_refs_batch_from_text
 
-    occurrences = collect_lexeme_occurrences(text, canonical_mode="deterministic_legal")
-    payload = build_external_refs_batch(occurrences, anchor_map)
+    payload = build_external_refs_batch_from_text(text, anchor_map)
     rendered = json.dumps(payload, indent=2, sort_keys=True)
     if args.output:
         args.output.write_text(rendered + "\n", encoding="utf-8")

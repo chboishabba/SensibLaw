@@ -5,28 +5,31 @@ from pathlib import Path
 from src.reporting.narrative_compare import (
     build_narrative_comparison_report,
     build_narrative_validation_report,
+    ensure_claim_link_provenance_for_public_artifact,
     load_fixture_sources,
 )
 from src.reporting.source_url import parse_source_url
 
+_SENSIBLAW_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _fixture_sources() -> tuple[dict, list]:
-    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_demo.json")
+    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_demo.json"
     return load_fixture_sources(fixture_path)
 
 
 def _chat_argument_sources() -> tuple[dict, list]:
-    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_chat_arguments.json")
+    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_chat_arguments.json"
     return load_fixture_sources(fixture_path)
 
 
 def _authority_wrapper_sources() -> tuple[dict, list]:
-    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_authority_wrappers.json")
+    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_authority_wrappers.json"
     return load_fixture_sources(fixture_path)
 
 
 def _thread_extract_sources() -> tuple[dict, list]:
-    fixture_path = Path("SensibLaw/demo/narrative/friendlyjordies_thread_extract.json")
+    fixture_path = _SENSIBLAW_ROOT / "demo/narrative/friendlyjordies_thread_extract.json"
     return load_fixture_sources(fixture_path)
 
 
@@ -74,6 +77,12 @@ def test_chat_derived_jordies_argument_fixture_extracts_multiple_argument_predic
         any(receipt["value"] == "documentary_support_same_signature" for receipt in row["receipts"])
         for row in support_links
     )
+    for row in support_links:
+        assert row["link_type"] == "causal_support"
+        assert row["confidence"] in {"high", "medium", "low", "abstain"}
+        assert row["counter_hypothesis_ref"].startswith("counter_hypothesis:")
+        receipt_kinds = {receipt["kind"] for receipt in row["receipts"]}
+        assert {"link_type", "confidence", "counter_hypothesis_ref"} <= receipt_kinds
 
 
 def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None:
@@ -114,6 +123,14 @@ def test_chat_derived_jordies_argument_fixture_surfaces_causal_dispute() -> None
         and any(receipt["value"] == "shared_outcome_conflicting_cause_or_predicate" for receipt in row["receipts"])
         for row in comparison["comparison_links"]
     )
+    for row in comparison["comparison_links"]:
+        if row["link_kind"] != "undermines":
+            continue
+        assert row["link_type"] == "causal_dispute"
+        assert row["confidence"] in {"high", "medium", "low", "abstain"}
+        assert row["counter_hypothesis_ref"].startswith("counter_hypothesis:")
+        receipt_kinds = {receipt["kind"] for receipt in row["receipts"]}
+        assert {"link_type", "confidence", "counter_hypothesis_ref"} <= receipt_kinds
 
 
 def test_nested_authority_wrappers_emit_separate_hold_and_assert_nodes() -> None:
@@ -190,3 +207,15 @@ def test_parse_source_url_normalizes_chatgpt_and_youtube_urls() -> None:
         "video_id": "abc123",
         "canonical_url": "https://www.youtube.com/watch?v=abc123",
     }
+
+
+def test_public_artifact_validation_fails_closed_for_missing_causal_provenance() -> None:
+    _, sources = _chat_argument_sources()
+    report = build_narrative_validation_report(sources[0])
+    support_link = next(row for row in report["proposition_links"] if row["link_kind"] == "supports")
+    support_link.pop("counter_hypothesis_ref", None)
+    try:
+        ensure_claim_link_provenance_for_public_artifact(report)
+        raise AssertionError("expected missing counter_hypothesis_ref to fail closed")
+    except ValueError as exc:
+        assert "counter_hypothesis_ref" in str(exc)

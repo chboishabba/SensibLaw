@@ -54,7 +54,7 @@ Rules for this pack:
 Run the bounded puller:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/source_pack_manifest_pull.py \
+../.venv/bin/python SensibLaw/scripts/source_pack_manifest_pull.py \
   --pack SensibLaw/data/source_packs/legal_principles_au_v1.json \
   --timeout 20
 ```
@@ -69,7 +69,7 @@ Default outputs (gitignored) under:
 Bounded authority follow pass from the first manifest:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/source_pack_authority_follow.py \
+../.venv/bin/python SensibLaw/scripts/source_pack_authority_follow.py \
   --manifest SensibLaw/demo/ingest/legal_principles_au_v1/manifest.json \
   --max-depth 2 \
   --max-new-docs 40 \
@@ -88,13 +88,13 @@ Follow outputs (gitignored) under:
 Use `SensibLaw/scripts/hca_case_demo_ingest.py` to pull a single High Court case page, download linked artifacts, ingest PDFs, and emit graph + media sidecars into a gitignored demo folder:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/hca_case_demo_ingest.py --timeout 60 --no-video-download
+../.venv/bin/python SensibLaw/scripts/hca_case_demo_ingest.py --timeout 60 --no-video-download
 ```
 
 If `dot` is not on PATH in your current shell, pass it explicitly:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/hca_case_demo_ingest.py --timeout 60 --dot-bin /path/to/dot
+../.venv/bin/python SensibLaw/scripts/hca_case_demo_ingest.py --timeout 60 --dot-bin /path/to/dot
 ```
 
 Output root:
@@ -173,7 +173,7 @@ not as a semantic authority.
 Use the bounded importer:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/import_openrecall.py \
+../.venv/bin/python SensibLaw/scripts/import_openrecall.py \
   --source-db /path/to/recall.db \
   --storage-path /path/to/openrecall/storage \
   --itir-db-path .cache_local/itir.sqlite \
@@ -205,15 +205,15 @@ captures so downstream lanes can ask for:
 Use the query CLI:
 
 ```bash
-.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
   --itir-db-path .cache_local/itir.sqlite \
   runs
 
-.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
   --itir-db-path .cache_local/itir.sqlite \
   summary --date 2026-03-08
 
-.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
   --itir-db-path .cache_local/itir.sqlite \
   captures --app-name Firefox --text-query feature --limit 20
 ```

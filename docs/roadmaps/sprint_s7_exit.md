@@ -16,7 +16,7 @@ Status: **Closed.** No further semantic or structural changes allowed without a 
 - Implicit activation, temporal inference, or precedence logic.
 
 ## Red-flag checklist (must stay green)
-- `pytest -q -m redflag`
+- `./scripts/run_tests.sh -q -m redflag`
   - Forbidden phrases emit no edges.
   - Activation never fires without explicit trigger + fact.
   - No compliance language in payloads.

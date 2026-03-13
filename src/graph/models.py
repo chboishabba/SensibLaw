@@ -160,9 +160,17 @@ class GraphEdge:
 class LegalGraph:
     """In-memory manager for a simple legal graph."""
 
-    def __init__(self) -> None:
-        self.nodes: Dict[str, GraphNode] = {}
+    def __init__(
+        self,
+        nodes: Optional[Dict[str, GraphNode]] = None,
+        edges: Optional[List[GraphEdge]] = None,
+    ) -> None:
+        self.nodes: Dict[str, GraphNode] = dict(nodes or {})
         self.edges: List[GraphEdge] = []
+        for edge in edges or []:
+            if edge.source not in self.nodes or edge.target not in self.nodes:
+                raise ValueError("Both source and target nodes must exist in the graph")
+            self.edges.append(edge)
 
     def add_node(self, node: GraphNode) -> None:
         """Add or replace a node in the graph."""
@@ -206,6 +214,7 @@ __all__ = [
     "NodeType",
     "EdgeType",
     "GraphNode",
+    "Node",
     "ExtrinsicNode",
     "JudgeOpinionNode",
     "PrincipleNode",
@@ -215,5 +224,10 @@ __all__ = [
     "OrderNode",
     "CaseNode",
     "GraphEdge",
+    "Edge",
     "LegalGraph",
 ]
+
+
+Node = GraphNode
+Edge = GraphEdge

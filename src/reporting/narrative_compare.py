@@ -48,6 +48,8 @@ _DISPUTE_PREDICATE_PAIRS = {
 _CAUSAL_DISPUTE_PREDICATES = {"contribute_to", "delay"}
 _STATEMENT_FAMILY_PREDICATES = {"claim_text"}
 _GOVERNANCE_FAMILY_PREDICATES = {"support", "pass"}
+_CAUSAL_LINK_KINDS = {"supports", "undermines"}
+_ALLOWED_LINK_CONFIDENCE = {"high", "medium", "low", "abstain"}
 
 
 def _clean_text(value: str) -> str:
@@ -278,7 +280,7 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
     )
     proposition_links.extend(support_links)
 
-    return {
+    payload = {
         "source": {
             "source_id": source.source_id,
             "title": source.title,
@@ -300,6 +302,8 @@ def build_narrative_validation_report(source: NarrativeSource) -> dict[str, Any]
         "abstentions": abstentions,
         "corroboration_refs": corroboration_refs,
     }
+    ensure_claim_link_provenance_for_public_artifact(payload)
+    return payload
 
 
 def _index_propositions(report: dict[str, Any]) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
@@ -429,6 +433,23 @@ def _derive_comparison_links(
             and right_predicate in _GOVERNANCE_FAMILY_PREDICATES
             and _proposition_signature(left) != _proposition_signature(right)
         )
+        comparison_basis = (
+            "shared_subject_statement_family"
+            if same_statement_family_conflict
+            else "shared_subject_governance_family"
+            if same_governance_family_conflict
+            else "shared_subject_conflicting_outcome_family"
+            if same_subject_conflicting_outcome
+            else "shared_outcome_conflicting_cause_or_predicate"
+        )
+        confidence = (
+            "high"
+            if same_subject_conflicting_outcome
+            else "medium"
+            if same_statement_family_conflict or same_governance_family_conflict
+            else "low"
+        )
+        counter_hypothesis_ref = f"counter_hypothesis:{left_predicate}_vs_{right_predicate}:{comparison_basis}"
         if (
             same_predicate_conflicting_subjects
             or same_subject_conflicting_outcome
@@ -443,21 +464,17 @@ def _derive_comparison_links(
                 {
                     "link_id": f"cmp:l{index}",
                     "link_kind": "undermines",
+                    "link_type": "causal_dispute",
+                    "confidence": confidence,
+                    "counter_hypothesis_ref": counter_hypothesis_ref,
                     "left_proposition_id": left_id,
                     "right_proposition_id": right_id,
                     "receipts": [
-                        _receipt(
-                            "comparison_basis",
-                            "shared_subject_statement_family"
-                            if same_statement_family_conflict
-                            else "shared_subject_governance_family"
-                            if same_governance_family_conflict
-                            else
-                            "shared_subject_conflicting_outcome_family"
-                            if same_subject_conflicting_outcome
-                            else "shared_outcome_conflicting_cause_or_predicate",
-                        ),
+                        _receipt("comparison_basis", comparison_basis),
                         _receipt("subject_object_key", str(row.get("subject_object_key") or "")),
+                        _receipt("link_type", "causal_dispute"),
+                        _receipt("confidence", confidence),
+                        _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
                     ],
                 }
             )
@@ -497,6 +514,10 @@ def _derive_support_links(
                     continue
                 seen.add(key)
                 link_index += 1
+                counter_hypothesis_ref = (
+                    f"counter_hypothesis:{_norm(candidate_args.get('subject') or '')}:"
+                    "non_block_causal_explanation"
+                )
                 links.append(
                     {
                         "link_id": f"{candidate.get('event_id')}:s{link_index}",
@@ -505,9 +526,15 @@ def _derive_support_links(
                         "source_proposition_id": str(row.get("proposition_id") or ""),
                         "target_proposition_id": str(candidate.get("proposition_id") or ""),
                         "link_kind": "supports",
+                        "link_type": "causal_support",
+                        "confidence": "medium",
+                        "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
                             _receipt("support_basis", "block_subject_embeds_causal_subject"),
                             _receipt("support_source", str(row.get("predicate_key") or "")),
+                            _receipt("link_type", "causal_support"),
+                            _receipt("confidence", "medium"),
+                            _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
                         ],
                     }
                 )
@@ -536,6 +563,10 @@ def _derive_support_links(
                     continue
                 seen.add(key)
                 link_index += 1
+                counter_hypothesis_ref = (
+                    f"counter_hypothesis:{_proposition_signature(target_row)}:"
+                    "non_documentary_supporting_interpretation"
+                )
                 links.append(
                     {
                         "link_id": f"{target_row.get('event_id')}:s{link_index}",
@@ -544,9 +575,15 @@ def _derive_support_links(
                         "source_proposition_id": str(evidence_row.get("proposition_id") or ""),
                         "target_proposition_id": str(target_row.get("proposition_id") or ""),
                         "link_kind": "supports",
+                        "link_type": "causal_support",
+                        "confidence": "high",
+                        "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
                             _receipt("support_basis", "documentary_support_same_signature"),
                             _receipt("support_source", "court_records"),
+                            _receipt("link_type", "causal_support"),
+                            _receipt("confidence", "high"),
+                            _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
                         ],
                     }
                 )
@@ -726,7 +763,7 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
         right.source_id: right_report.get("abstentions", []),
     }
 
-    return {
+    payload = {
         "fixture_id": f"{left.source_id}__vs__{right.source_id}",
         "sources": [left_report["source"], right_report["source"]],
         "reports": {
@@ -759,6 +796,55 @@ def build_narrative_comparison_report(left: NarrativeSource, right: NarrativeSou
             right.source_id: right_report.get("corroboration_refs", []),
         },
     }
+    ensure_claim_link_provenance_for_public_artifact(payload)
+    return payload
+
+
+def _iter_causal_links(payload: dict[str, Any]) -> Iterable[tuple[dict[str, Any], str]]:
+    for idx, link in enumerate(payload.get("proposition_links", []), start=1):
+        if not isinstance(link, dict):
+            continue
+        if str(link.get("link_kind") or "") in _CAUSAL_LINK_KINDS:
+            yield link, f"proposition_links[{idx}]"
+    for idx, link in enumerate(payload.get("comparison_links", []), start=1):
+        if not isinstance(link, dict):
+            continue
+        if str(link.get("link_kind") or "") in _CAUSAL_LINK_KINDS:
+            yield link, f"comparison_links[{idx}]"
+    reports = payload.get("reports")
+    if isinstance(reports, dict):
+        for report_key, report in reports.items():
+            if not isinstance(report, dict):
+                continue
+            for idx, link in enumerate(report.get("proposition_links", []), start=1):
+                if not isinstance(link, dict):
+                    continue
+                if str(link.get("link_kind") or "") in _CAUSAL_LINK_KINDS:
+                    yield link, f"reports.{report_key}.proposition_links[{idx}]"
+
+
+def ensure_claim_link_provenance_for_public_artifact(payload: dict[str, Any]) -> None:
+    required_receipt_kinds = {"link_type", "confidence", "counter_hypothesis_ref"}
+    for link, location in _iter_causal_links(payload):
+        link_kind = str(link.get("link_kind") or "")
+        link_type = str(link.get("link_type") or "").strip()
+        confidence = str(link.get("confidence") or "").strip()
+        counter_hypothesis_ref = str(link.get("counter_hypothesis_ref") or "").strip()
+        if not link_type:
+            raise ValueError(f"{location} missing link_type for causal link_kind={link_kind}")
+        if confidence not in _ALLOWED_LINK_CONFIDENCE:
+            raise ValueError(
+                f"{location} has invalid confidence={confidence!r} for causal link_kind={link_kind}"
+            )
+        if not counter_hypothesis_ref:
+            raise ValueError(f"{location} missing counter_hypothesis_ref for causal link_kind={link_kind}")
+
+        receipts = link.get("receipts") or []
+        receipt_kinds = {str(receipt.get("kind") or "") for receipt in receipts if isinstance(receipt, dict)}
+        missing_receipt_kinds = required_receipt_kinds - receipt_kinds
+        if missing_receipt_kinds:
+            missing = ", ".join(sorted(missing_receipt_kinds))
+            raise ValueError(f"{location} missing provenance receipt kinds: {missing}")
 
 
 def load_narrative_fixture(path: str | Path) -> dict[str, Any]:

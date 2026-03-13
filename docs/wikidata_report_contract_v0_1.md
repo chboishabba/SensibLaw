@@ -119,3 +119,19 @@ Qualifier entropy / qualifier drift is phase 2 and now active in the report.
 
 Current working-group entry point:
 - `docs/wikidata_working_group_status.md`
+
+## Test-suite interface note
+The existing local test suite is part of the effective interface for this
+report contract and should be treated as a first-line debug surface during the
+current sprint.
+
+Primary test entry points:
+- `tests/test_wikidata_cli.py`
+- `tests/test_wikidata_projection.py`
+- `tests/test_wikidata_finder.py`
+- `tests/test_ontology_cli_commands.py`
+
+Interpretation:
+- if the JSON/report shape changes, update these tests in the same slice
+- if a new bounded profile or bridge/report field is added, add an explicit
+  fixture-backed assertion rather than relying on ad hoc manual review

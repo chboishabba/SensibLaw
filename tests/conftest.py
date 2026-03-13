@@ -7,14 +7,25 @@ from pathlib import Path
 
 import pytest
 
-from src.pdf_ingest import process_pdf
-from src.models.provision import RuleReference
-
 # Ensure src/ is importable during collection (before fixtures run).
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+
+EXPECTED_VENV_PYTHON = PROJECT_ROOT.parent / ".venv" / "bin" / "python"
+
+try:
+    import pdfminer  # noqa: F401
+except ModuleNotFoundError as exc:
+    raise RuntimeError(
+        "SensibLaw tests must run with the superproject venv at "
+        f"{EXPECTED_VENV_PYTHON}. Current interpreter: {sys.executable}. "
+        "Use scripts/run_tests.sh or ../.venv/bin/python -m pytest ..."
+    ) from exc
+
+from src.pdf_ingest import process_pdf
+from src.models.provision import RuleReference
 
 
 @pytest.fixture(autouse=True)

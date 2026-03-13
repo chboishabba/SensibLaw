@@ -214,6 +214,46 @@ def load_openrecall_units(
     )
 
 
+def load_notebooklm_units(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    limit: int | None = None,
+) -> list[TextUnit]:
+    from src.reporting.notebooklm_observer import load_notebooklm_units as _load_notebooklm_units  # noqa: PLC0415
+
+    return _load_notebooklm_units(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        limit=limit,
+    )
+
+
+def load_notebooklm_interaction_units(
+    runs_root: str | Path,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    notebook_id_hash: str | None = None,
+    limit: int | None = None,
+) -> list[TextUnit]:
+    from src.reporting.notebooklm_activity import (  # noqa: PLC0415
+        load_notebooklm_activity_units as _load_notebooklm_activity_units,
+    )
+
+    return _load_notebooklm_activity_units(
+        runs_root,
+        start_date=start_date,
+        end_date=end_date,
+        notebook_id_hash=notebook_id_hash,
+        limit=limit or 50,
+    )
+
+
 def load_file_units(path: str | Path, source_type: str | None = None) -> list[TextUnit]:
     resolved = Path(path).expanduser().resolve()
     text = resolved.read_text(encoding="utf-8")

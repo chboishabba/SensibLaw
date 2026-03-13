@@ -495,8 +495,6 @@ def _consume_institution_reference(text: str, start: int) -> tuple[str, int, int
             "UNO",
         ),
     )
-
-
 def _consume_article_reference(text: str, start: int) -> tuple[str, int, int] | None:
     ref = _consume_keyword_reference(
         text,

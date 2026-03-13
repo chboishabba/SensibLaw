@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-pytest -q -m redflag "$@"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_tests.sh" -q -m redflag "$@"

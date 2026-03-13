@@ -42,11 +42,11 @@ SensibLaw treats legal corpora as a global ontology for **law and lived experien
 ## Development quickstart
 
 ```bash
-pip install -e .[dev,test]
+../.venv/bin/pip install -e .[dev,test]
 ruff format
 ruff check --fix
 mypy .
-pytest --maxfail=1 -q
+./scripts/run_tests.sh --maxfail=1 -q
 ```
 
 Useful entry points:
@@ -481,16 +481,17 @@ implementation alongside the pipeline assets.
 
 ## Installation
 
-Install the runtime dependencies for a quick setup:
+Install the runtime dependencies for a quick setup from the `SensibLaw/`
+directory using the superproject venv:
 
 ```bash
-pip install -r requirements.txt
+../.venv/bin/pip install -r requirements.txt
 ```
 
 Install the project along with the development and test dependencies:
 
 ```bash
-pip install -e .[dev,test]
+../.venv/bin/pip install -e .[dev,test]
 ```
 
 ## Testing
@@ -500,8 +501,8 @@ Install the test extras and run the suite. The extras include
 project's property-based tests:
 
 ```bash
-pip install -e .[test]
-pytest
+../.venv/bin/pip install -e .[test]
+./scripts/run_tests.sh
 ```
 
 ## Streamlit console
@@ -511,7 +512,7 @@ interactive web interface. The runtime dependency is bundled with the project, s
 installing the package in editable mode is sufficient:
 
 ```bash
-pip install -e .
+../.venv/bin/pip install -e .
 ```
 
 Launch the console from the repository root:
@@ -584,26 +585,24 @@ pre-commit run --all-files
 Install the package in editable mode along with development dependencies to develop locally:
 
 ```bash
-pip install -e .[dev,test]
+../.venv/bin/pip install -e .[dev,test]
 pre-commit install
 pre-commit run --all-files
 ```
 
 ## Development
 
-Create and activate a virtual environment, then install the development
-dependencies:
+Use the superproject virtual environment at `ITIR-suite/.venv`, then install the
+development dependencies there:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev,test]
+../.venv/bin/pip install -e .[dev,test]
 ```
 
 Run the test suite and pre-commit hooks:
 
 ```bash
-pytest
+./scripts/run_tests.sh
 pre-commit run --all-files
 ```
 
@@ -750,13 +749,13 @@ Sample output:
 Install development dependencies:
 
 ```bash
-pip install -e .[dev,test]
+../.venv/bin/pip install -e .[dev,test]
 ```
 
 Run tests:
 
 ```bash
-pytest
+./scripts/run_tests.sh
 ```
 
 Run lint and type checks:

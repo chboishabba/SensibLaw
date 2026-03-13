@@ -163,6 +163,7 @@ class ExternalEntityLink:
     canonical_kind: str
     provider: str
     external_id: str
+    external_url: str | None
     curie: str
     slice_name: str
     policy_version: str
@@ -181,6 +182,29 @@ def _normalize_alias(text: str) -> str:
 
 def _stable_sha256(payload: object) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _default_external_url(provider: str, external_id: str) -> str | None:
+    provider_norm = provider.strip().casefold()
+    external_norm = external_id.strip()
+    if not provider_norm or not external_norm:
+        return None
+    if provider_norm == "wikidata":
+        if external_norm.startswith("http://") or external_norm.startswith("https://"):
+            return external_norm
+        return f"https://www.wikidata.org/wiki/{external_norm}"
+    if provider_norm == "dbpedia":
+        if external_norm.startswith("http://") or external_norm.startswith("https://"):
+            return external_norm
+        return f"http://dbpedia.org/resource/{external_norm}"
+    return None
+
+
+def _bridge_lookup_candidates(norm_text: str, kind: str) -> list[tuple[str, str]]:
+    candidates = [(norm_text, kind)]
+    if kind == "act_ref" and norm_text.startswith("act:"):
+        candidates.append((f"legislation:{norm_text.split(':', 1)[1]}", "legislation_ref"))
+    return candidates
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
@@ -326,7 +350,7 @@ def import_bridge_payload(
         if not canonical_ref or not canonical_kind or not provider or not external_id:
             continue
         label = str(entity.get("canonical_label") or "").strip() or None
-        external_url = str(entity.get("external_url") or f"https://www.wikidata.org/wiki/{external_id}" if provider == "wikidata" else "").strip() or None
+        external_url = str(entity.get("external_url") or _default_external_url(provider, external_id) or "").strip() or None
         ambiguity_policy = str(entity.get("ambiguity_policy") or "exact_only").strip()
         cur = conn.execute(
             """
@@ -419,7 +443,7 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
     slice_id = int(slice_row["slice_id"])
     entity_rows = conn.execute(
         """
-        SELECT canonical_kind, canonical_ref, external_id, COALESCE(external_url, '') AS external_url
+        SELECT provider, canonical_kind, canonical_ref, external_id, COALESCE(external_url, '') AS external_url
         FROM wikidata_bridge_entities
         WHERE slice_id = ?
         """,
@@ -427,7 +451,7 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
     ).fetchall()
     alias_rows = conn.execute(
         """
-        SELECT a.alias_text
+        SELECT a.alias_text, a.normalized_alias, e.canonical_ref
         FROM wikidata_bridge_aliases AS a
         JOIN wikidata_bridge_entities AS e ON e.bridge_entity_id = a.bridge_entity_id
         WHERE e.slice_id = ?
@@ -452,15 +476,66 @@ def bridge_storage_summary(conn: sqlite3.Connection, *, slice_name: str | None =
                 notes_counts[notes] = notes_counts.get(notes, 0) + 1
     duplicate_url_bytes = sum((count - 1) * len(url) for url, count in url_counts.items() if count > 1)
     duplicate_notes_bytes = sum((count - 1) * len(notes) for notes, count in notes_counts.items() if count > 1)
+    entities_by_provider = {
+        provider: sum(1 for row in entity_rows if str(row["provider"]) == provider)
+        for provider in sorted({str(row["provider"]) for row in entity_rows})
+    }
+    missing_external_url_count = sum(1 for row in entity_rows if not str(row["external_url"] or "").strip())
+    alias_counts: dict[str, set[str]] = {}
+    for row in alias_rows:
+        normalized_alias = str(row["normalized_alias"] or "").strip()
+        canonical_ref = str(row["canonical_ref"] or "").strip()
+        if not normalized_alias or not canonical_ref:
+            continue
+        alias_counts.setdefault(normalized_alias, set()).add(canonical_ref)
+    duplicate_alias_count = sum(1 for refs in alias_counts.values() if len(refs) > 1)
+    duplicate_external_id_reuse: list[dict[str, Any]] = []
+    for row in conn.execute(
+        """
+        SELECT provider, external_id, COUNT(DISTINCT canonical_ref) AS canonical_ref_count
+        FROM wikidata_bridge_entities
+        WHERE slice_id = ?
+        GROUP BY provider, external_id
+        HAVING COUNT(DISTINCT canonical_ref) > 1
+        ORDER BY provider, external_id
+        """,
+        (slice_id,),
+    ).fetchall():
+        provider = str(row["provider"])
+        external_id = str(row["external_id"])
+        canonical_refs = [
+            str(item["canonical_ref"])
+            for item in conn.execute(
+                """
+                SELECT canonical_ref
+                FROM wikidata_bridge_entities
+                WHERE slice_id = ? AND provider = ? AND external_id = ?
+                ORDER BY canonical_ref
+                """,
+                (slice_id, provider, external_id),
+            ).fetchall()
+        ]
+        duplicate_external_id_reuse.append(
+            {
+                "provider": provider,
+                "external_id": external_id,
+                "canonical_ref_count": int(row["canonical_ref_count"]),
+                "canonical_refs": canonical_refs,
+            }
+        )
     return {
         "slice_name": str(slice_row["slice_name"]),
         "policy_version": str(slice_row["policy_version"]),
         "entity_count": len(entity_rows),
         "alias_count": len(alias_rows),
+        "entities_by_provider": entities_by_provider,
         "entities_by_kind": {
             kind: sum(1 for row in entity_rows if row["canonical_kind"] == kind)
             for kind in sorted({str(row["canonical_kind"]) for row in entity_rows})
         },
+        "missing_external_url_count": missing_external_url_count,
+        "duplicate_alias_count": duplicate_alias_count,
+        "duplicate_external_id_reuse": duplicate_external_id_reuse,
         "bridge_string_bytes": {
             "canonical_ref_bytes": sum(len(str(row["canonical_ref"])) for row in entity_rows),
             "alias_bytes": sum(len(str(row["alias_text"])) for row in alias_rows),
@@ -532,16 +607,21 @@ def link_canonical_ref(
         ensure_bridge_schema(resolved_conn)
         ensure_seeded_bridge_slice(resolved_conn)
         active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
-        row = resolved_conn.execute(
-            """
-            SELECT s.slice_id, s.slice_name, s.policy_version, e.provider, e.external_id
-            FROM wikidata_bridge_entities AS e
-            JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
-            WHERE s.slice_name = ? AND e.canonical_ref = ? AND e.canonical_kind = ?
-            LIMIT 1
-            """,
-            (active_slice, norm_text, kind),
-        ).fetchone()
+        row = None
+        for candidate_ref, candidate_kind in _bridge_lookup_candidates(norm_text, kind):
+            row = resolved_conn.execute(
+                """
+                SELECT s.slice_id, s.slice_name, s.policy_version, e.provider, e.external_id, e.external_url, e.canonical_ref, e.canonical_kind
+                FROM wikidata_bridge_entities AS e
+                JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
+                WHERE s.slice_name = ? AND e.canonical_ref = ? AND e.canonical_kind = ?
+                ORDER BY e.provider, e.external_id
+                LIMIT 1
+                """,
+                (active_slice, candidate_ref, candidate_kind),
+            ).fetchone()
+            if row is not None:
+                break
         if row is None:
             if record_receipt:
                 slice_row = resolved_conn.execute(
@@ -563,10 +643,11 @@ def link_canonical_ref(
                     resolved_conn.commit()
             return None
         link = ExternalEntityLink(
-            canonical_ref=norm_text,
-            canonical_kind=kind,
+            canonical_ref=str(row["canonical_ref"]),
+            canonical_kind=str(row["canonical_kind"]),
             provider=str(row["provider"]),
             external_id=str(row["external_id"]),
+            external_url=str(row["external_url"] or "").strip() or None,
             curie=f"{row['provider']}:{row['external_id']}",
             slice_name=str(row["slice_name"]),
             policy_version=str(row["policy_version"]),
@@ -590,6 +671,34 @@ def link_canonical_ref(
             resolved_conn.close()
 
 
+def _lookup_canonical_ref_rows(
+    conn: sqlite3.Connection,
+    *,
+    active_slice: str,
+    canonical_ref: str,
+    canonical_kind: str,
+) -> list[sqlite3.Row]:
+    rows: list[sqlite3.Row] = []
+    seen: set[tuple[str, str]] = set()
+    for candidate_ref, candidate_kind in _bridge_lookup_candidates(canonical_ref, canonical_kind):
+        for row in conn.execute(
+            """
+            SELECT s.slice_id, s.slice_name, s.policy_version, e.provider, e.external_id, e.external_url, e.canonical_ref, e.canonical_kind
+            FROM wikidata_bridge_entities AS e
+            JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
+            WHERE s.slice_name = ? AND e.canonical_ref = ? AND e.canonical_kind = ?
+            ORDER BY e.provider, e.external_id
+            """,
+            (active_slice, candidate_ref, candidate_kind),
+        ).fetchall():
+            key = (str(row["provider"]), str(row["external_id"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(row)
+    return rows
+
+
 def link_lexeme_occurrences(
     occurrences: Iterable[LexemeOccurrence],
     *,
@@ -602,21 +711,68 @@ def link_lexeme_occurrences(
     seen: set[tuple[str, str, str]] = set()
     resolved_conn, should_close = _resolve_connection(conn=conn, db_path=db_path)
     try:
+        ensure_bridge_schema(resolved_conn)
+        ensure_seeded_bridge_slice(resolved_conn)
+        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        seen_occurrences: set[tuple[str, str]] = set()
         for occ in occurrences:
-            linked = link_canonical_ref(
-                occ.norm_text,
-                occ.kind,
-                conn=resolved_conn,
-                slice_name=slice_name,
-                record_receipt=record_receipts,
+            occurrence_key = (occ.norm_text, occ.kind)
+            if occurrence_key in seen_occurrences:
+                continue
+            seen_occurrences.add(occurrence_key)
+            rows = _lookup_canonical_ref_rows(
+                resolved_conn,
+                active_slice=active_slice,
+                canonical_ref=occ.norm_text,
+                canonical_kind=occ.kind,
             )
-            if linked is None:
+            if not rows:
+                if record_receipts:
+                    slice_row = resolved_conn.execute(
+                        "SELECT slice_id, policy_version FROM wikidata_bridge_slices WHERE slice_name = ?",
+                        (active_slice,),
+                    ).fetchone()
+                    if slice_row is not None:
+                        _record_match_receipt(
+                            resolved_conn,
+                            slice_id=int(slice_row["slice_id"]),
+                            canonical_ref=occ.norm_text,
+                            canonical_kind=occ.kind,
+                            matched_alias=None,
+                            provider=None,
+                            external_id=None,
+                            resolution_status="abstain",
+                            policy_version=str(slice_row["policy_version"]),
+                        )
                 continue
-            key = (linked.canonical_ref, linked.provider, linked.external_id)
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append(linked)
+            for row in rows:
+                linked = ExternalEntityLink(
+                    canonical_ref=str(row["canonical_ref"]),
+                    canonical_kind=str(row["canonical_kind"]),
+                    provider=str(row["provider"]),
+                    external_id=str(row["external_id"]),
+                    external_url=str(row["external_url"] or "").strip() or None,
+                    curie=f"{row['provider']}:{row['external_id']}",
+                    slice_name=str(row["slice_name"]),
+                    policy_version=str(row["policy_version"]),
+                )
+                key = (linked.canonical_ref, linked.provider, linked.external_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(linked)
+                if record_receipts:
+                    _record_match_receipt(
+                        resolved_conn,
+                        slice_id=int(row["slice_id"]),
+                        canonical_ref=linked.canonical_ref,
+                        canonical_kind=linked.canonical_kind,
+                        matched_alias=None,
+                        provider=linked.provider,
+                        external_id=linked.external_id,
+                        resolution_status="resolved",
+                        policy_version=linked.policy_version,
+                    )
         if record_receipts:
             resolved_conn.commit()
         return out
@@ -657,6 +813,7 @@ def lookup_bridge_alias(
                 canonical_kind=str(row["canonical_kind"]),
                 provider=str(row["provider"]),
                 external_id=str(row["external_id"]),
+                external_url=None,
                 curie=f"{row['provider']}:{row['external_id']}",
                 slice_name=str(row["slice_name"]),
                 policy_version=str(row["policy_version"]),
@@ -667,6 +824,161 @@ def lookup_bridge_alias(
     finally:
         if should_close:
             resolved_conn.close()
+
+
+def _text_contains_normalized_alias(text: str, normalized_alias: str) -> bool:
+    normalized_text = f" {_normalize_alias(text)} "
+    return bool(normalized_alias) and f" {normalized_alias} " in normalized_text
+
+
+def _bridge_refs_present(
+    anchor_map: Mapping[str, Mapping[str, Any]],
+    *,
+    conn: sqlite3.Connection | None = None,
+    db_path: str | Path | None = None,
+    slice_name: str | None = None,
+) -> set[str]:
+    resolved_conn, should_close = _resolve_connection(conn=conn, db_path=db_path)
+    try:
+        ensure_bridge_schema(resolved_conn)
+        ensure_seeded_bridge_slice(resolved_conn)
+        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        canonical_refs = sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()})
+        if not canonical_refs:
+            return set()
+        placeholders = ",".join("?" for _ in canonical_refs)
+        rows = resolved_conn.execute(
+            f"""
+            SELECT DISTINCT canonical_ref
+            FROM wikidata_bridge_entities AS e
+            JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
+            WHERE s.slice_name = ? AND canonical_ref IN ({placeholders})
+            """,
+            (active_slice, *canonical_refs),
+        ).fetchall()
+        return {str(row["canonical_ref"]) for row in rows}
+    finally:
+        if should_close:
+            resolved_conn.close()
+
+
+def link_text_via_bridge_aliases(
+    text: str,
+    anchor_map: Mapping[str, Mapping[str, Any]],
+    *,
+    conn: sqlite3.Connection | None = None,
+    db_path: str | Path | None = None,
+    slice_name: str | None = None,
+) -> list[ExternalEntityLink]:
+    resolved_conn, should_close = _resolve_connection(conn=conn, db_path=db_path)
+    try:
+        ensure_bridge_schema(resolved_conn)
+        ensure_seeded_bridge_slice(resolved_conn)
+        active_slice = slice_name or os.getenv("ITIR_WIKIDATA_BRIDGE_SLICE") or SEEDED_SLICE_NAME
+        canonical_refs = sorted({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()})
+        if not canonical_refs:
+            return []
+        placeholders = ",".join("?" for _ in canonical_refs)
+        rows = resolved_conn.execute(
+            f"""
+            SELECT s.slice_name, s.policy_version, e.canonical_ref, e.canonical_kind,
+                   e.provider, e.external_id, e.external_url, a.alias_text, a.normalized_alias
+            FROM wikidata_bridge_aliases AS a
+            JOIN wikidata_bridge_entities AS e ON e.bridge_entity_id = a.bridge_entity_id
+            JOIN wikidata_bridge_slices AS s ON s.slice_id = e.slice_id
+            WHERE s.slice_name = ? AND e.canonical_ref IN ({placeholders})
+            ORDER BY LENGTH(a.normalized_alias) DESC, e.canonical_ref, e.provider, e.external_id
+            """,
+            (active_slice, *canonical_refs),
+        ).fetchall()
+        seen: set[tuple[str, str, str]] = set()
+        out: list[ExternalEntityLink] = []
+        for row in rows:
+            normalized_alias = str(row["normalized_alias"] or "").strip()
+            if not _text_contains_normalized_alias(text, normalized_alias):
+                continue
+            key = (str(row["canonical_ref"]), str(row["provider"]), str(row["external_id"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(
+                ExternalEntityLink(
+                    canonical_ref=str(row["canonical_ref"]),
+                    canonical_kind=str(row["canonical_kind"]),
+                    provider=str(row["provider"]),
+                    external_id=str(row["external_id"]),
+                    external_url=str(row["external_url"] or "").strip() or None,
+                    curie=f"{row['provider']}:{row['external_id']}",
+                    slice_name=str(row["slice_name"]),
+                    policy_version=str(row["policy_version"]),
+                    matched_alias=str(row["alias_text"] or "").strip() or None,
+                )
+            )
+        return out
+    finally:
+        if should_close:
+            resolved_conn.close()
+
+
+def build_external_refs_batch_from_text(
+    text: str,
+    anchor_map: Mapping[str, Mapping[str, Any]],
+    *,
+    conn: sqlite3.Connection | None = None,
+    db_path: str | Path | None = None,
+    slice_name: str | None = None,
+) -> dict[str, Any]:
+    actor_external_refs: list[dict[str, Any]] = []
+    concept_external_refs: list[dict[str, Any]] = []
+    links = link_text_via_bridge_aliases(
+        text,
+        anchor_map,
+        conn=conn,
+        db_path=db_path,
+        slice_name=slice_name,
+    )
+    resolved_bridge_refs = {link.canonical_ref for link in links}
+    bridge_backed_refs = _bridge_refs_present(anchor_map, conn=conn, db_path=db_path, slice_name=slice_name)
+    skipped_no_anchor = 0
+    for linked in links:
+        anchor = anchor_map.get(linked.canonical_ref)
+        if not anchor:
+            skipped_no_anchor += 1
+            continue
+        base = {
+            "provider": linked.provider,
+            "external_id": linked.external_id,
+            "external_url": linked.external_url or _default_external_url(linked.provider, linked.external_id),
+            "notes": (
+                f"bridge canonical_ref={linked.canonical_ref} canonical_kind={linked.canonical_kind} "
+                f"slice={linked.slice_name} policy={linked.policy_version}"
+            ),
+        }
+        if "actor_id" in anchor:
+            row = dict(base)
+            row["actor_id"] = int(anchor["actor_id"])
+            actor_external_refs.append(row)
+        if "concept_code" in anchor:
+            row = dict(base)
+            row["concept_code"] = str(anchor["concept_code"])
+            concept_external_refs.append(row)
+    return {
+        "meta": {
+            "source": "entity_bridge_alias_scan",
+            "slice_name": (links[0].slice_name if links else (slice_name or SEEDED_SLICE_NAME)),
+            "bridge_refs": [link.canonical_ref for link in links],
+            "coverage": {
+                "total_candidate_refs": len({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}),
+                "resolved_bridge_refs": len(resolved_bridge_refs),
+                "skipped_no_bridge_match": len({str(ref).strip() for ref in anchor_map.keys() if str(ref).strip()}) - len(bridge_backed_refs),
+                "skipped_no_anchor": skipped_no_anchor,
+                "emitted_actor_rows": len(actor_external_refs),
+                "emitted_concept_rows": len(concept_external_refs),
+            },
+        },
+        "concept_external_refs": concept_external_refs,
+        "actor_external_refs": actor_external_refs,
+    }
 
 
 def build_external_refs_batch(
@@ -680,21 +992,35 @@ def build_external_refs_batch(
 ) -> dict[str, Any]:
     actor_external_refs: list[dict[str, Any]] = []
     concept_external_refs: list[dict[str, Any]] = []
+    occurrence_list = list(occurrences)
+    unique_occurrences = {
+        (occ.norm_text, occ.kind)
+        for occ in occurrence_list
+        if occ.kind.endswith("_ref")
+    }
     links = link_lexeme_occurrences(
-        occurrences,
+        [occ for occ in occurrence_list if occ.kind.endswith("_ref")],
         conn=conn,
         db_path=db_path,
         slice_name=slice_name,
         record_receipts=record_receipts,
     )
+    resolved_bridge_refs = {link.canonical_ref for link in links}
+    resolved_occurrence_keys = {
+        (norm_text, kind)
+        for norm_text, kind in unique_occurrences
+        if any(candidate_ref in resolved_bridge_refs for candidate_ref, _ in _bridge_lookup_candidates(norm_text, kind))
+    }
+    skipped_no_anchor = 0
     for linked in links:
         anchor = anchor_map.get(linked.canonical_ref)
         if not anchor:
+            skipped_no_anchor += 1
             continue
         base = {
             "provider": linked.provider,
             "external_id": linked.external_id,
-            "external_url": f"https://www.wikidata.org/wiki/{linked.external_id}" if linked.provider == "wikidata" else None,
+            "external_url": linked.external_url or _default_external_url(linked.provider, linked.external_id),
             "notes": (
                 f"bridge canonical_ref={linked.canonical_ref} canonical_kind={linked.canonical_kind} "
                 f"slice={linked.slice_name} policy={linked.policy_version}"
@@ -704,15 +1030,24 @@ def build_external_refs_batch(
             row = dict(base)
             row["actor_id"] = int(anchor["actor_id"])
             actor_external_refs.append(row)
-        elif "concept_code" in anchor:
+        if "concept_code" in anchor:
             row = dict(base)
             row["concept_code"] = str(anchor["concept_code"])
             concept_external_refs.append(row)
+    unmatched_bridge_count = len(unique_occurrences) - len(resolved_occurrence_keys)
     return {
         "meta": {
             "source": "entity_bridge",
             "slice_name": (links[0].slice_name if links else (slice_name or SEEDED_SLICE_NAME)),
             "bridge_refs": [link.canonical_ref for link in links],
+            "coverage": {
+                "total_unique_occurrences": len(unique_occurrences),
+                "resolved_bridge_refs": len(resolved_bridge_refs),
+                "skipped_no_bridge_match": unmatched_bridge_count,
+                "skipped_no_anchor": skipped_no_anchor,
+                "emitted_actor_rows": len(actor_external_refs),
+                "emitted_concept_rows": len(concept_external_refs),
+            },
         },
         "concept_external_refs": concept_external_refs,
         "actor_external_refs": actor_external_refs,
@@ -725,10 +1060,12 @@ __all__ = [
     "SEEDED_SLICE_NAME",
     "bridge_storage_summary",
     "build_external_refs_batch",
+    "build_external_refs_batch_from_text",
     "ensure_bridge_schema",
     "ensure_seeded_bridge_slice",
     "import_bridge_payload",
     "link_canonical_ref",
     "link_lexeme_occurrences",
+    "link_text_via_bridge_aliases",
     "lookup_bridge_alias",
 ]

@@ -39,5 +39,5 @@ Purpose: freeze the descriptive-only boundary for SensibLaw. These rules are **h
 
 Run the red-flag subset alone:
 ```bash
-pytest -q -m redflag
+./scripts/run_tests.sh -q -m redflag
 ```

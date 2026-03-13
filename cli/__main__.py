@@ -535,6 +535,7 @@ def _handle_ontology_external_refs_upsert(args: argparse.Namespace) -> None:
                 "ok": True,
                 "dry_run": bool(args.dry_run),
                 "db": args.db,
+                "input_meta": payload.get("meta") if isinstance(payload.get("meta"), dict) else None,
                 **results,
             }
         )
@@ -586,7 +587,8 @@ def _handle_wikidata_project(args: argparse.Namespace) -> None:
     report = project_wikidata_payload(
         payload,
         e0=args.e0,
-        property_filter=args.property or ("P31", "P279"),
+        profile=args.profile,
+        property_filter=args.property,
     )
     if args.output:
         Path(args.output).write_text(
@@ -615,14 +617,22 @@ def _handle_wikidata_build_slice(args: argparse.Namespace) -> None:
 
     slice_payload = build_slice_from_entity_exports(
         grouped,
-        property_filter=args.property or ("P31", "P279"),
+        profile=args.profile,
+        property_filter=args.property,
     )
     if args.output:
         Path(args.output).write_text(
             json.dumps(slice_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-        _print_json({"output": str(args.output), "window_count": len(slice_payload["windows"])})
+        _print_json(
+            {
+                "output": str(args.output),
+                "window_count": len(slice_payload["windows"]),
+                "profile": args.profile or "default",
+                "properties": [item for item in sorted({bundle["property"] for window in slice_payload["windows"] for bundle in window["statement_bundles"]})],
+            }
+        )
         return
     _print_json(slice_payload)
 
@@ -1674,6 +1684,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repeatable property filter; defaults to P31 and P279",
     )
     wikidata_project.add_argument(
+        "--profile",
+        choices=("default", "prepopulation_core"),
+        default="default",
+        help="Optional bounded property profile; ignored when --property is supplied",
+    )
+    wikidata_project.add_argument(
         "--e0",
         type=int,
         default=1,
@@ -1695,6 +1711,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--property",
         action="append",
         help="Repeatable property filter; defaults to P31 and P279",
+    )
+    wikidata_build_slice.add_argument(
+        "--profile",
+        choices=("default", "prepopulation_core"),
+        default="default",
+        help="Optional bounded property profile; ignored when --property is supplied",
     )
     wikidata_build_slice.set_defaults(func=_handle_wikidata_build_slice)
     wikidata_find_qualifier_drift = wikidata_sub.add_parser(

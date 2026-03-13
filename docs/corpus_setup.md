@@ -26,14 +26,14 @@ with open("data/corpus/example_act.json", "w") as f:
 
 3. Store the resulting JSON file under `data/corpus/` using a descriptive name.
 4. Ensure minimal LPO/CCO tags and cultural flags are included for cultural context.
-5. Run `pytest` to verify integrity.
+5. Run `./scripts/run_tests.sh` to verify integrity.
 
 ### Sample generation script
 
 A helper script is provided to create example Act and judgment files. Run:
 
 ```bash
-python scripts/generate_sample_corpus.py
+../.venv/bin/python scripts/generate_sample_corpus.py
 ```
 
 This writes `sample_act.json` and `sample_judgment.json` into `data/corpus/`,

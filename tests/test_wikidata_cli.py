@@ -226,3 +226,45 @@ def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(tmp_pat
     assert stdout["output"] == str(out_path)
     assert file_payload["qualifier_drift"][0]["slot_id"] == "Q100152461|P54"
     assert file_payload["qualifier_drift"][0]["severity"] == "medium"
+
+
+def test_wikidata_project_cli_accepts_prepopulation_core_profile(tmp_path, capsys) -> None:
+    in_path = tmp_path / "prepopulation_core_slice.json"
+    out_path = tmp_path / "prepopulation_core_report.json"
+    in_path.write_text(
+        json.dumps(
+            {
+                "windows": [
+                    {
+                        "id": "t1",
+                        "statement_bundles": [
+                            {"subject": "Q1", "property": "P31", "value": "QClass", "rank": "preferred"},
+                            {"subject": "Q1", "property": "P361", "value": "QWhole", "rank": "preferred"},
+                            {"subject": "QWhole", "property": "P527", "value": "Q1", "rank": "preferred"},
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cli_main.main(
+        [
+            "wikidata",
+            "project",
+            "--input",
+            str(in_path),
+            "--profile",
+            "prepopulation_core",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert file_payload["bounded_slice"]["profile"] == "prepopulation_core"
+    assert file_payload["bounded_slice"]["properties"] == ["P279", "P31", "P361", "P527"]
+    assert file_payload["windows"][0]["diagnostics"]["parthood_typing"]["classifications"]

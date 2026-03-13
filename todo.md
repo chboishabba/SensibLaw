@@ -271,6 +271,29 @@
     and only through ITIR-normalized payloads
   - defer GUI-first OpenRecall browsing until the importer/read-model seam is
     proven stable
+- [x] Add the first NotebookLM metadata/review parity slice as a neutral
+  producer/query/read-model seam instead of treating `notes_meta` as a fake
+  activity ledger. Current v1 now exposes NotebookLM observer date/notebook/
+  source/artifact summaries plus recent-event queries and source-summary
+  `TextUnit` projection for downstream structure/semantic reuse.
+- [ ] Keep NotebookLM metadata-first until a separate interaction-grade capture
+  contract exists. Do not upgrade `notes_meta` snapshots into waterfall/
+  timeline activity parity or stronger mission actual-side accounting without
+  explicit NotebookLM ask/chat/note/artifact/session events.
+- [x] Implement the first additive NotebookLM interaction lane without claiming
+  activity/session parity:
+  - raw capture families: `conversation_observed`, `note_observed`
+  - separate normalized signal: `notebooklm_activity`
+  - bounded query/read-model helpers and JSON CLI
+  - source-local preview `TextUnit` projection
+  - keep outputs under `runs/<date>/outputs/notebooklm/`; do not fold them
+    into `logs/notes` or dashboard waterfall/timeline accounting yet
+- [ ] Decide how much richer NotebookLM interaction capture should get before
+  any dashboard or mission-lens activity/session integration:
+  - whether conversation-history observations are sufficient, or whether the
+    later lane must capture true ask/request/result and note-edit events
+  - whether the interaction lane should stay review/query-only until stronger
+    timestamps and dedupe semantics exist
 - [ ] Widen the bounded proposition-layer v1 beyond current HCA-first
   `... against ...` reasoning idioms and factual scaffolding:
   - cited-authority subgroup handling (`majority in Lepore`, similar)
