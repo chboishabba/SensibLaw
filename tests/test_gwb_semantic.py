@@ -15,6 +15,7 @@ from src.gwb_us_law.semantic import (
     ensure_gwb_semantic_schema,
     run_gwb_semantic_pipeline,
 )
+from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
@@ -115,6 +116,57 @@ def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) 
     assert signed_event["sourceDocumentId"]
     assert isinstance(signed_event["sourceCharStart"], int)
     assert isinstance(signed_event["sourceCharEnd"], int)
+
+
+def test_gwb_semantic_pipeline_stays_stable_with_au_linkage_imported(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    gwb_seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "gwb_us_law_linkage_seed_v1.json"
+    au_seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    gwb_payload = json.loads(gwb_seed_path.read_text(encoding="utf-8"))
+    au_payload = json.loads(au_seed_path.read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-07T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_gwb.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 2005, "text": "September 29, 2005"},
+                "section": "Confirmations",
+                "text": "John Roberts was confirmed by the Senate on September 29, 2005."
+            },
+            {
+                "event_id": "ev2",
+                "anchor": {"year": 2006, "text": "October 17, 2006"},
+                "section": "Legislation",
+                "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law."
+            },
+            {
+                "event_id": "ev3",
+                "anchor": {"year": 2008, "text": "July 31, 2008"},
+                "section": "Litigation",
+                "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."
+            },
+        ],
+    }
+    persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_gwb.json")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
+        ensure_au_semantic_schema(conn)
+        ensure_gwb_us_law_schema(conn)
+        ensure_gwb_semantic_schema(conn)
+        import_au_semantic_seed_payload(conn, au_payload)
+        import_gwb_us_law_seed_payload(conn, gwb_payload)
+        result = run_gwb_semantic_pipeline(conn)
+        report = build_gwb_semantic_report(conn, run_id=result["run_id"])
+
+    promoted = {(row["predicate_key"], row["subject"]["canonical_key"], row["object"]["canonical_key"]) for row in report["promoted_relations"]}
+    assert ("confirmed_by", "actor:john_roberts", "actor:u_s_senate") in promoted
+    assert ("signed", "actor:george_w_bush", "legal_ref:military_commissions_act_of_2006") in promoted
+    assert ("ruled_by", "legal_ref:military_commissions_act_of_2006", "actor:united_states_district_court") in promoted
+    assert not any(row["entity"]["canonical_key"].startswith("actor:high_court_of_australia") for row in report["per_entity"])
 
 
 def test_gwb_semantic_schema_populates_shared_actor_aliases_and_role_vocab() -> None:

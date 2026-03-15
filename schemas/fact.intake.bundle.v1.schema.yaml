@@ -1,0 +1,119 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: fact.intake.bundle.v1
+type: object
+required: [run, sources, excerpts, statements, observations, fact_candidates, contestations, reviews]
+properties:
+  run:
+    type: object
+    required: [run_id, contract_version, source_label, mary_projection_version]
+    properties:
+      run_id: {type: string}
+      contract_version: {type: string}
+      source_label: {type: string}
+      mary_projection_version: {type: string}
+      notes: {type: [string, "null"]}
+  sources:
+    type: array
+    items:
+      type: object
+      required: [source_id, source_order, source_type, source_label, provenance]
+      properties:
+        source_id: {type: string}
+        source_order: {type: integer}
+        source_type: {type: string}
+        source_label: {type: string}
+        source_ref: {type: [string, "null"]}
+        content_sha256: {type: [string, "null"]}
+        provenance: {type: object}
+  excerpts:
+    type: array
+    items:
+      type: object
+      required: [excerpt_id, source_id, excerpt_order, excerpt_text, provenance]
+      properties:
+        excerpt_id: {type: string}
+        source_id: {type: string}
+        excerpt_order: {type: integer}
+        excerpt_text: {type: string}
+        char_start: {type: [integer, "null"]}
+        char_end: {type: [integer, "null"]}
+        anchor_label: {type: [string, "null"]}
+        provenance: {type: object}
+  statements:
+    type: array
+    items:
+      type: object
+      required: [statement_id, excerpt_id, statement_order, statement_text, statement_status, provenance]
+      properties:
+        statement_id: {type: string}
+        excerpt_id: {type: string}
+        statement_order: {type: integer}
+        statement_text: {type: string}
+        speaker_label: {type: [string, "null"]}
+        statement_role: {type: [string, "null"]}
+        statement_status: {type: string}
+        chronology_hint: {type: [string, "null"]}
+        provenance: {type: object}
+  observations:
+    type: array
+    items:
+      type: object
+      required: [observation_id, statement_id, predicate_key, predicate_family, object_text, observation_status, provenance]
+      properties:
+        observation_id: {type: string}
+        statement_id: {type: string}
+        excerpt_id: {type: [string, "null"]}
+        source_id: {type: [string, "null"]}
+        observation_order: {type: [integer, "null"]}
+        predicate_key: {type: string}
+        predicate_family: {type: string}
+        object_text: {type: string}
+        object_type: {type: [string, "null"]}
+        object_ref: {type: [string, "null"]}
+        subject_text: {type: [string, "null"]}
+        observation_status: {type: string}
+        provenance: {type: object}
+  fact_candidates:
+    type: array
+    items:
+      type: object
+      required: [fact_id, fact_text, fact_type, candidate_status, statement_ids, provenance]
+      properties:
+        fact_id: {type: string}
+        canonical_label: {type: [string, "null"]}
+        fact_text: {type: string}
+        fact_type: {type: string}
+        candidate_status: {type: string}
+        chronology_sort_key: {type: [string, "null"]}
+        chronology_label: {type: [string, "null"]}
+        primary_statement_id: {type: [string, "null"]}
+        statement_ids:
+          type: array
+          items: {type: string}
+        provenance: {type: object}
+  contestations:
+    type: array
+    items:
+      type: object
+      required: [contestation_id, fact_id, contestation_status, reason_text, provenance]
+      properties:
+        contestation_id: {type: string}
+        fact_id: {type: string}
+        statement_id: {type: [string, "null"]}
+        contestation_status: {type: string}
+        reason_text: {type: string}
+        author: {type: [string, "null"]}
+        provenance: {type: object}
+  reviews:
+    type: array
+    items:
+      type: object
+      required: [review_id, fact_id, review_status, reviewer, provenance]
+      properties:
+        review_id: {type: string}
+        fact_id: {type: string}
+        review_status: {type: string}
+        reviewer: {type: string}
+        note: {type: [string, "null"]}
+        provenance: {type: object}
+additionalProperties: false

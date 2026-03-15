@@ -20,6 +20,22 @@ _BROAD_AU_REF_TAILS = {
     "high court",
 }
 
+_AU_REF_NORMALIZATION: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {
+    (
+        "institution_ref",
+        "institution:commonwealth_of_australia",
+    ): (
+        ("jurisdiction_ref", "jurisdiction:commonwealth_of_australia"),
+        ("organization_ref", "organization:commonwealth_of_australia"),
+    ),
+    (
+        "institution_ref",
+        "institution:state_of_new_south_wales",
+    ): (
+        ("jurisdiction_ref", "jurisdiction:state_of_new_south_wales"),
+    ),
+}
+
 
 def _resolve_db_path(db_path: str | Path | None = None) -> Path:
     if db_path is not None:
@@ -188,13 +204,16 @@ def import_au_semantic_seed_payload(conn: sqlite3.Connection, payload: Mapping[s
                     (seed_id, idx, authority_title),
                 )
         for ref_kind, field_name in (("institution_ref", "institution_refs"), ("court_ref", "court_refs")):
-            for idx, ref in enumerate(item.get(field_name) if isinstance(item.get(field_name), list) else [], start=1):
+            ref_order = 0
+            for ref in item.get(field_name) if isinstance(item.get(field_name), list) else []:
                 canonical_ref = str(ref).strip()
                 if canonical_ref:
-                    conn.execute(
-                        "INSERT INTO au_semantic_linkage_seed_refs(seed_id, ref_order, ref_kind, canonical_ref) VALUES (?,?,?,?)",
-                        (seed_id, idx, ref_kind, canonical_ref),
-                    )
+                    for normalized_kind, normalized_ref in _normalized_seed_refs(ref_kind, canonical_ref):
+                        ref_order += 1
+                        conn.execute(
+                            "INSERT INTO au_semantic_linkage_seed_refs(seed_id, ref_order, ref_kind, canonical_ref) VALUES (?,?,?,?)",
+                            (seed_id, ref_order, normalized_kind, normalized_ref),
+                        )
         for idx, cue in enumerate(item.get("provenance_cues") if isinstance(item.get("provenance_cues"), list) else [], start=1):
             cue_text = str(cue).strip()
             if cue_text:
@@ -218,6 +237,10 @@ def _normalize_text(text: str) -> str:
                 out.append(" ")
             previous_sep = True
     return " ".join("".join(out).split())
+
+
+def _normalized_seed_refs(ref_kind: str, canonical_ref: str) -> tuple[tuple[str, str], ...]:
+    return _AU_REF_NORMALIZATION.get((ref_kind, canonical_ref), ((ref_kind, canonical_ref),))
 
 
 def _contains(text_norm: str, phrase: str) -> bool:
@@ -360,6 +383,21 @@ def run_au_semantic_linkage(
 
 def build_au_semantic_linkage_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
     ensure_au_semantic_schema(conn)
+    seed_ref_rows = conn.execute(
+        """
+        SELECT seed_id, ref_kind, canonical_ref
+        FROM au_semantic_linkage_seed_refs
+        ORDER BY seed_id, ref_kind, ref_order
+        """
+    ).fetchall()
+    seed_refs: dict[str, list[dict[str, str]]] = {}
+    for row in seed_ref_rows:
+        seed_refs.setdefault(str(row["seed_id"]), []).append(
+            {
+                "ref_kind": str(row["ref_kind"]),
+                "canonical_ref": str(row["canonical_ref"]),
+            }
+        )
     per_seed_rows = conn.execute(
         """
         SELECT s.seed_id, s.action_summary, s.linkage_kind, s.lane_tags_json,
@@ -379,6 +417,7 @@ def build_au_semantic_linkage_report(conn: sqlite3.Connection, *, run_id: str) -
             "action_summary": str(row["action_summary"]),
             "linkage_kind": str(row["linkage_kind"]),
             "lane_tags": json.loads(str(row["lane_tags_json"] or "[]")),
+            "seed_refs": seed_refs.get(str(row["seed_id"]), []),
             "candidate_count": int(row["candidate_count"] or 0),
             "matched_count": int(row["matched_count"] or 0),
         }

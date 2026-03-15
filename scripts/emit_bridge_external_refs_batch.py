@@ -18,6 +18,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--text-file", type=Path, help="Path to text file")
     ap.add_argument("--anchor-map", type=Path, required=True, help="JSON map of canonical_ref -> {actor_id|concept_code}")
     ap.add_argument("--output", type=Path, help="Optional path to write batch JSON")
+    ap.add_argument(
+        "--record-receipts",
+        action="store_true",
+        help="Persist reviewed bridge match receipts in SQLite for the active slice",
+    )
     args = ap.parse_args(argv)
 
     if not args.text and not args.text_file:
@@ -27,7 +32,11 @@ def main(argv: list[str] | None = None) -> int:
 
     from src.ontology.entity_bridge import build_external_refs_batch_from_text
 
-    payload = build_external_refs_batch_from_text(text, anchor_map)
+    payload = build_external_refs_batch_from_text(
+        text,
+        anchor_map,
+        record_receipts=bool(args.record_receipts),
+    )
     rendered = json.dumps(payload, indent=2, sort_keys=True)
     if args.output:
         args.output.write_text(rendered + "\n", encoding="utf-8")

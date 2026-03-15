@@ -15,7 +15,7 @@
       "provider": "wikidata"
     },
     {
-      "aliases": ["High Court of Australia", "HCA"],
+      "aliases": ["High Court of Australia", "High Court", "HCA"],
       "canonical_kind": "court_ref",
       "canonical_label": "High Court of Australia",
       "canonical_ref": "court:high_court_of_australia",
@@ -87,12 +87,62 @@
       "provider": "dbpedia"
     },
     {
-      "aliases": ["High Court of Australia", "HCA"],
+      "aliases": ["High Court of Australia", "High Court", "HCA"],
       "canonical_kind": "court_ref",
       "canonical_label": "High Court of Australia",
       "canonical_ref": "court:high_court_of_australia",
       "external_id": "http://dbpedia.org/resource/High_Court_of_Australia",
       "provider": "dbpedia"
+    },
+    {
+      "aliases": [
+        "Plaintiff S157/2002 v Commonwealth of Australia",
+        "Plaintiff S157/2002 v Commonwealth",
+        "Plaintiff S157"
+      ],
+      "canonical_kind": "case_ref",
+      "canonical_label": "Plaintiff S157/2002 v Commonwealth of Australia",
+      "canonical_ref": "case:plaintiff_s157_2002_v_commonwealth_of_australia",
+      "external_id": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-1998-current/plaintiff-s1572002-v-commonwealth-australia",
+      "external_url": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-1998-current/plaintiff-s1572002-v-commonwealth-australia",
+      "provider": "hcourt_au"
+    },
+    {
+      "aliases": [
+        "Commonwealth v Introvigne",
+        "Introvigne"
+      ],
+      "canonical_kind": "case_ref",
+      "canonical_label": "Commonwealth v Introvigne",
+      "canonical_ref": "case:commonwealth_v_introvigne",
+      "external_id": "https://www.austlii.edu.au/au/cases/cth/HCA/1982/40.html",
+      "external_url": "https://www.austlii.edu.au/au/cases/cth/HCA/1982/40.html",
+      "provider": "austlii"
+    },
+    {
+      "aliases": [
+        "Nationwide News Pty Ltd v Naidu",
+        "Naidu"
+      ],
+      "canonical_kind": "case_ref",
+      "canonical_label": "Nationwide News Pty Ltd v Naidu",
+      "canonical_ref": "case:nationwide_news_pty_ltd_v_naidu",
+      "external_id": "https://nswlr.com.au/view/71-NSWLR-471",
+      "external_url": "https://nswlr.com.au/view/71-NSWLR-471",
+      "provider": "nswlr"
+    },
+    {
+      "aliases": [
+        "Migration Act 1958",
+        "Migration Act 1958 (Cth)",
+        "Migration Act"
+      ],
+      "canonical_kind": "legislation_ref",
+      "canonical_label": "Migration Act 1958",
+      "canonical_ref": "legislation:migration_act_1958_cth",
+      "external_id": "https://www.legislation.gov.au/Latest/C2025C00506",
+      "external_url": "https://www.legislation.gov.au/Latest/C2025C00506",
+      "provider": "legislation_gov_au"
     },
     {
       "aliases": ["Commonwealth of Australia"],
@@ -128,6 +178,18 @@
       "external_id": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
       "external_url": "https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-2000-current/new-south-wales-v-lepore",
       "provider": "hcourt_au"
+    },
+    {
+      "aliases": [
+        "Native Title (New South Wales) Act 1994",
+        "Native Title (NSW) Act 1994"
+      ],
+      "canonical_kind": "legislation_ref",
+      "canonical_label": "Native Title (New South Wales) Act 1994",
+      "canonical_ref": "legislation:native_title_new_south_wales_act_1994",
+      "external_id": "https://legislation.nsw.gov.au/view/html/inforce/current/act-1994-045",
+      "external_url": "https://legislation.nsw.gov.au/view/html/inforce/current/act-1994-045",
+      "provider": "nsw_legislation"
     }
   ]
 }

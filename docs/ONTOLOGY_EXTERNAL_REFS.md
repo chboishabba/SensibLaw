@@ -132,6 +132,33 @@ Recommended `canonical_kind` values for the current high-signal bridge slice:
 duplicate-external-id reuse signals so reviewed prepopulation slices can be
 audited before they feed `external-refs-upsert`.
 
+For text-driven branch-set population, use the batch emitter with an explicit
+anchor map. The emitted `meta.match_receipts[]` payload records reviewed alias
+matches and abstentions (`abstain_no_alias`, `abstain_no_bridge`) without
+changing canonical token identity:
+
+```bash
+./scripts/run_tests.sh --noconftest tests/test_ontology_cli_commands.py
+../.venv/bin/python scripts/emit_bridge_external_refs_batch.py \
+  --text-file path/to/branch_text.txt \
+  --anchor-map path/to/branch_anchor_map.json \
+  --output /tmp/branch_batch.json \
+  --record-receipts
+
+python -m cli ontology bridge-receipts-report --db path/to/sensiblaw.db --slice-name prepopulation_core_refs_v1
+```
+
+This keeps branch-set population/debug work in the reviewed bridge layer:
+- canonical lexer remains structural/pre-semantic
+- reviewed bridge aliases provide downstream identity-link evidence
+- receipt reports show which refs resolved, abstained because no alias matched,
+  or abstained because no reviewed bridge row exists
+- AU seed/linkage import may normalize legacy seed-time government
+  `institution_ref` values into bridge-compatible downstream
+  `jurisdiction_ref` / `organization_ref` rows; this normalization belongs in
+  the downstream linkage layer, not in the canonical tokenizer or source seed
+  text
+
 For DBpedia, the same structure applies; just use `provider: "dbpedia"` and a full
 URI `external_id`:
 

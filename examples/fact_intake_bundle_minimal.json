@@ -1,0 +1,111 @@
+{
+  "run": {
+    "run_id": "factrun:demo",
+    "contract_version": "fact.intake.bundle.v1",
+    "source_label": "mary_parity_demo",
+    "mary_projection_version": "mary.fact_workflow.v1",
+    "notes": "Minimal fact intake bundle example"
+  },
+  "sources": [
+    {
+      "source_id": "src:demo",
+      "source_order": 1,
+      "source_type": "text_file",
+      "source_label": "demo_source",
+      "source_ref": "demo_source#1",
+      "content_sha256": "abc123",
+      "provenance": {
+        "source_path": "demo.txt"
+      }
+    }
+  ],
+  "excerpts": [
+    {
+      "excerpt_id": "excerpt:demo",
+      "source_id": "src:demo",
+      "excerpt_order": 1,
+      "excerpt_text": "Mary recorded a statement about the treatment timeline.",
+      "char_start": 0,
+      "char_end": 55,
+      "anchor_label": "demo_source#1",
+      "provenance": {
+        "unit_id": "demo_source#1"
+      }
+    }
+  ],
+  "statements": [
+    {
+      "statement_id": "statement:demo",
+      "excerpt_id": "excerpt:demo",
+      "statement_order": 1,
+      "statement_text": "Mary recorded a statement about the treatment timeline.",
+      "speaker_label": "Mary",
+      "statement_role": "captured_statement",
+      "statement_status": "captured",
+      "chronology_hint": "2024-01-02",
+      "provenance": {
+        "sender": "example"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "obs:demo",
+      "statement_id": "statement:demo",
+      "excerpt_id": "excerpt:demo",
+      "source_id": "src:demo",
+      "observation_order": 1,
+      "predicate_key": "claimed",
+      "predicate_family": "legal_procedural",
+      "object_text": "treatment timeline",
+      "object_type": "matter",
+      "object_ref": null,
+      "subject_text": "Mary",
+      "observation_status": "captured",
+      "provenance": {
+        "sender": "example"
+      }
+    }
+  ],
+  "fact_candidates": [
+    {
+      "fact_id": "fact:demo",
+      "canonical_label": "Treatment timeline statement",
+      "fact_text": "Mary recorded a statement about the treatment timeline.",
+      "fact_type": "statement_capture",
+      "candidate_status": "captured",
+      "chronology_sort_key": "2024-01-02",
+      "chronology_label": "2024-01-02",
+      "primary_statement_id": "statement:demo",
+      "statement_ids": ["statement:demo"],
+      "provenance": {
+        "sender": "example"
+      }
+    }
+  ],
+  "contestations": [
+    {
+      "contestation_id": "contest:demo",
+      "fact_id": "fact:demo",
+      "statement_id": "statement:demo",
+      "contestation_status": "disputed",
+      "reason_text": "Opposing account says the date is uncertain.",
+      "author": "reviewer@example",
+      "provenance": {
+        "source": "manual_review"
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "review_id": "review:demo",
+      "fact_id": "fact:demo",
+      "review_status": "needs_followup",
+      "reviewer": "reviewer@example",
+      "note": "Verify date against primary clinical note.",
+      "provenance": {
+        "source": "manual_review"
+      }
+    }
+  ]
+}

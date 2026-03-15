@@ -336,6 +336,118 @@ def test_prepopulation_bridge_resolves_nsw_branch_refs_with_mixed_providers():
     assert ("jurisdiction:state_of_new_south_wales", "wikidata:Q3224") in linked
 
 
+def test_prepopulation_bridge_resolves_judicial_review_branch_refs_via_text_alias_scan():
+    import json
+    import sqlite3
+    from pathlib import Path
+
+    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+
+    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    text = (
+        "In Plaintiff S157/2002 v Commonwealth of Australia, the High Court held that the Migration Act 1958 "
+        "privative clause could not block judicial review. Later, the Native Title (New South Wales) Act 1994 "
+        "was challenged in New South Wales."
+    )
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        import_bridge_payload(conn, payload)
+        linked = {
+            (link.canonical_ref, link.curie)
+            for link in link_text_via_bridge_aliases(
+                text,
+                {
+                    "case:plaintiff_s157_2002_v_commonwealth_of_australia": {"concept_code": "AU_CASE_S157"},
+                    "court:high_court_of_australia": {"actor_id": 1},
+                    "legislation:migration_act_1958_cth": {"concept_code": "AU_ACT_MIGRATION"},
+                    "legislation:native_title_new_south_wales_act_1994": {"concept_code": "AU_ACT_NATIVE_TITLE_NSW"},
+                    "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+                },
+                conn=conn,
+                slice_name="prepopulation_core_refs_v1",
+            )
+        }
+    assert (
+        "case:plaintiff_s157_2002_v_commonwealth_of_australia",
+        "hcourt_au:https://www.hcourt.gov.au/cases-and-judgments/judgments/judgments-1998-current/plaintiff-s1572002-v-commonwealth-australia",
+    ) in linked
+    assert ("legislation:migration_act_1958_cth", "legislation_gov_au:https://www.legislation.gov.au/Latest/C2025C00506") in linked
+    assert (
+        "legislation:native_title_new_south_wales_act_1994",
+        "nsw_legislation:https://legislation.nsw.gov.au/view/html/inforce/current/act-1994-045",
+    ) in linked
+    assert ("jurisdiction:state_of_new_south_wales", "wikidata:Q3224") in linked
+    assert ("court:high_court_of_australia", "wikidata:Q16903290") in linked
+
+
+def test_prepopulation_bridge_resolves_liability_branch_refs_via_text_alias_scan():
+    import json
+    import sqlite3
+    from pathlib import Path
+
+    from src.ontology.entity_bridge import ensure_bridge_schema, import_bridge_payload, link_text_via_bridge_aliases
+
+    bridge_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    text = (
+        "In Commonwealth v Introvigne and Nationwide News Pty Ltd v Naidu, the High Court of Australia "
+        "considered vicarious liability and non-delegable duties."
+    )
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        import_bridge_payload(conn, payload)
+        linked = {
+            (link.canonical_ref, link.curie)
+            for link in link_text_via_bridge_aliases(
+                text,
+                {
+                    "case:commonwealth_v_introvigne": {"concept_code": "AU_CASE_INTROVIGNE"},
+                    "case:nationwide_news_pty_ltd_v_naidu": {"concept_code": "AU_CASE_NAIDU"},
+                    "court:high_court_of_australia": {"actor_id": 1},
+                },
+                conn=conn,
+                slice_name="prepopulation_core_refs_v1",
+            )
+        }
+    assert ("case:commonwealth_v_introvigne", "austlii:https://www.austlii.edu.au/au/cases/cth/HCA/1982/40.html") in linked
+    assert ("case:nationwide_news_pty_ltd_v_naidu", "nswlr:https://nswlr.com.au/view/71-NSWLR-471") in linked
+    assert ("court:high_court_of_australia", "wikidata:Q16903290") in linked
+
+
+def test_text_alias_match_receipts_expose_resolved_and_abstaining_refs():
+    import sqlite3
+
+    from src.ontology.entity_bridge import build_text_alias_match_receipts, ensure_bridge_schema, ensure_seeded_bridge_slice
+
+    text = "The U.S. Senate consulted the U.S. Supreme Court."
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
+        receipts = build_text_alias_match_receipts(
+            text,
+            {
+                "institution:u_s_senate": {"actor_id": 1},
+                "court:u_s_supreme_court": {"actor_id": 2},
+                "institution:central_intelligence_agency": {"actor_id": 3},
+                "institution:nonexistent_review_target": {"actor_id": 4},
+            },
+            conn=conn,
+        )
+    statuses = {(row["canonical_ref"], row["resolution_status"]) for row in receipts}
+    assert ("institution:u_s_senate", "resolved") in statuses
+    assert ("court:u_s_supreme_court", "resolved") in statuses
+    assert ("institution:central_intelligence_agency", "abstain_no_alias") in statuses
+    assert ("institution:nonexistent_review_target", "abstain_no_bridge") in statuses
+    senate_rows = [row for row in receipts if row["canonical_ref"] == "institution:u_s_senate"]
+    assert senate_rows[0]["predicate"] == "reviewed_alias_match"
+    assert senate_rows[0]["anchor_targets"] == {"actor_id": 1}
+    assert senate_rows[0]["matched_alias"] == "U.S. Senate"
+
+
 def test_deterministic_legal_occurrences_do_not_emit_article_ref_for_artful_or_gallery_cases():
     from src.text.lexeme_index import collect_lexeme_occurrences
 

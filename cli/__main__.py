@@ -580,6 +580,29 @@ def _handle_ontology_bridge_report(args: argparse.Namespace) -> None:
         connection.close()
 
 
+def _handle_ontology_bridge_receipts_report(args: argparse.Namespace) -> None:
+    from src.ontology.entity_bridge import bridge_match_receipt_summary, ensure_bridge_schema, ensure_seeded_bridge_slice
+
+    connection = sqlite3.connect(args.db)
+    connection.row_factory = sqlite3.Row
+    try:
+        ensure_bridge_schema(connection)
+        ensure_seeded_bridge_slice(connection)
+        _print_json(
+            {
+                "ok": True,
+                "db": args.db,
+                **bridge_match_receipt_summary(
+                    connection,
+                    slice_name=args.slice_name,
+                    limit=args.limit,
+                ),
+            }
+        )
+    finally:
+        connection.close()
+
+
 def _handle_wikidata_project(args: argparse.Namespace) -> None:
     from src.ontology.wikidata import project_wikidata_payload
 
@@ -1669,6 +1692,15 @@ def build_parser() -> argparse.ArgumentParser:
     bridge_report.add_argument("--db", required=True, help="Path to SQLite database")
     bridge_report.add_argument("--slice-name", help="Optional bridge slice name; defaults to the active seeded slice")
     bridge_report.set_defaults(func=_handle_ontology_bridge_report)
+
+    bridge_receipts_report = ontology_sub.add_parser(
+        "bridge-receipts-report",
+        help="Report reviewed bridge match receipts recorded for a slice",
+    )
+    bridge_receipts_report.add_argument("--db", required=True, help="Path to SQLite database")
+    bridge_receipts_report.add_argument("--slice-name", help="Optional bridge slice name; defaults to the active seeded slice")
+    bridge_receipts_report.add_argument("--limit", type=int, default=100, help="Maximum number of receipts to emit")
+    bridge_receipts_report.set_defaults(func=_handle_ontology_bridge_receipts_report)
 
     wikidata = sub.add_parser("wikidata", help="Wikidata diagnostics and projection")
     wikidata_sub = wikidata.add_subparsers(dest="wikidata_command")

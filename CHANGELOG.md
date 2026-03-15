@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Mary-parity fact-intake scaffold:
+  - Added a first SQLite read-model migration for canonical
+    `source -> excerpt -> statement -> fact candidate -> contestation/review`
+    storage in `fact_intake_*` tables.
+  - Added the SL-native `src/fact_intake` package surface, deterministic
+    `TextUnit` sender helper, canonical persistence/report functions, and a
+    Mary-compatible `mary.fact_workflow.v1` projection facade over the same
+    read models.
+  - Added a checked-in contract doc, schema, minimal example bundle, and
+    focused tests covering schema validation, deterministic payload building,
+    provenance drill-down, chronology ordering, contestation/review visibility,
+    and replace-on-repersist behavior for a run.
 - Branch-set ontology population hardening:
   - Kept the canonical deterministic lexer pre-semantic and moved AU/NSW
     branch-set identity resolution into a downstream reviewed bridge alias-scan
@@ -9,9 +21,37 @@
   - Added bridge fallback from `act_ref` occurrences to reviewed
     `legislation_ref` bridge rows so richer prepopulation slices remain
     authoritative without breaking deterministic batch emission.
+  - Added evidence-carrying `match_receipts[]` metadata for text-driven bridge
+    batches, optional receipt persistence from the batch emitter, and a
+    read-only `ontology bridge-receipts-report` CLI for branch-set debugging.
   - Added end-to-end AU native-title, NSW liability/statute, and GWB
     institutions/courts branch tests covering bridge import, reviewed alias
     matching, explicit anchoring, and dry-run external-ref upsert coverage.
+  - Extended the reviewed prepopulation slice with the AU judicial-review /
+    NSW native-title branch (`Plaintiff S157/2002 v Commonwealth of Australia`,
+    `Migration Act 1958`, `Native Title (New South Wales) Act 1994`) and
+    aligned the reviewed court aliases so `High Court` resolves through the
+    bridge rather than through canonical token identity.
+  - Extended the same reviewed slice into the AU liability lane with
+    `Commonwealth v Introvigne` and `Nationwide News Pty Ltd v Naidu`, plus
+    receipt-backed batch tests for vicarious-liability / non-delegable-duty
+    branch text.
+  - Normalized legacy AU seed-time government `institution_ref` values into
+    bridge-compatible downstream `jurisdiction_ref` / `organization_ref`
+    rows during AU linkage import, so Commonwealth/NSW branches align with the
+    reviewed bridge slice without reintroducing semantic identity into the
+    canonical tokenizer.
+  - Re-proved the AU state/statute lanes under that normalized importer
+    (`Native Title (New South Wales) Act 1994`, `Civil Liability Act 2002
+    (NSW)`) and added a mixed AU+GWB shared-DB regression so AU linkage
+    normalization does not perturb the existing GWB semantic pipeline.
+  - Extended the AU linkage report to expose normalized stored `seed_refs`
+    directly, and added a seeded-slice isolation regression proving GWB
+    bridge receipts stay bound to `seeded_body_refs_v1` even when the AU
+    prepopulation slice is also present in the same database.
+  - Added report-level visibility for AU normalized downstream refs and
+    strengthened mixed-slice isolation checks so seeded GWB bridge/export
+    runs remain explicitly pinned even in multi-slice databases.
   - Extended the reviewed prepopulation slice with the NSW branch set
     (`New South Wales`, `Civil Liability Act 2002 (NSW)`, `House v The King`,
     `New South Wales v Lepore`) using mixed reviewed providers where Wikidata

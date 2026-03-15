@@ -246,16 +246,18 @@ def test_ontology_bridge_report_includes_provider_and_duplicate_stats(tmp_path, 
     report = json.loads(capsys.readouterr().out)
     assert report["ok"] is True
     assert report["entities_by_provider"] == {
-        "austlii": 1,
+        "austlii": 2,
         "dbpedia": 4,
-        "hcourt_au": 1,
-        "nsw_legislation": 1,
+        "hcourt_au": 2,
+        "legislation_gov_au": 1,
+        "nsw_legislation": 2,
+        "nswlr": 1,
         "wikidata": 8,
     }
     assert report["entities_by_kind"]["jurisdiction_ref"] == 4
     assert report["entities_by_kind"]["organization_ref"] == 2
-    assert report["entities_by_kind"]["case_ref"] == 3
-    assert report["entities_by_kind"]["legislation_ref"] == 2
+    assert report["entities_by_kind"]["case_ref"] == 6
+    assert report["entities_by_kind"]["legislation_ref"] == 4
     assert report["duplicate_alias_count"] >= 1
     assert report["missing_external_url_count"] == 0
     assert report["duplicate_external_id_reuse"][0]["provider"] == "dbpedia"
@@ -472,6 +474,7 @@ def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path
             "United States House of Representatives",
             "United States Department of Defense",
             "Supreme Court of the United States",
+            "Central Intelligence Agency",
         ]:
             cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", label))
             actor_ids[label] = int(cur.lastrowid)
@@ -482,6 +485,124 @@ def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path
     batch_path = tmp_path / "gwb_branch_batch.json"
     script_path = ROOT / "scripts" / "emit_bridge_external_refs_batch.py"
     anchor_map_path = tmp_path / "gwb_branch_anchors.json"
+    anchor_map_path.write_text(
+        json.dumps(
+            {
+                "institution:u_s_house_of_representatives": {"actor_id": actor_ids["United States House of Representatives"]},
+                "institution:u_s_senate": {"actor_id": actor_ids["United States Senate"]},
+                "institution:united_states_department_of_defense": {"actor_id": actor_ids["United States Department of Defense"]},
+                "court:u_s_supreme_court": {"actor_id": actor_ids["Supreme Court of the United States"]},
+                "institution:central_intelligence_agency": {"actor_id": actor_ids["Central Intelligence Agency"]},
+                "institution:nonexistent_review_target": {"actor_id": actor_ids["Central Intelligence Agency"]},
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--text",
+            (
+                "The U.S. Senate and House of Representatives consulted the Department of Defense "
+                "before the U.S. Supreme Court considered the matter."
+            ),
+            "--anchor-map",
+            str(anchor_map_path),
+            "--output",
+            str(batch_path),
+            "--record-receipts",
+        ],
+        check=True,
+        cwd=str(ROOT),
+        env={**os.environ, "ITIR_DB_PATH": str(db_path)},
+    )
+
+    batch_payload = json.loads(batch_path.read_text(encoding="utf-8"))
+    assert batch_payload["meta"]["coverage"]["resolved_bridge_refs"] == 4
+    assert batch_payload["meta"]["coverage"]["skipped_no_bridge_match"] == 1
+    assert batch_payload["meta"]["coverage"]["skipped_no_anchor"] == 0
+    statuses = {
+        (row["canonical_ref"], row["resolution_status"])
+        for row in batch_payload["meta"]["match_receipts"]
+    }
+    assert ("institution:u_s_senate", "resolved") in statuses
+    assert ("institution:central_intelligence_agency", "abstain_no_alias") in statuses
+    assert ("institution:nonexistent_review_target", "abstain_no_bridge") in statuses
+
+    cli_main.main(
+        [
+            "ontology",
+            "external-refs-upsert",
+            "--db",
+            str(db_path),
+            "--file",
+            str(batch_path),
+            "--dry-run",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["dry_run"] is True
+    assert payload["input_meta"]["coverage"]["resolved_bridge_refs"] == 4
+    assert payload["input_meta"]["coverage"]["skipped_no_bridge_match"] == 1
+    assert payload["input_meta"]["coverage"]["skipped_no_anchor"] == 0
+    assert payload["actor_external_refs"] == 4
+    assert payload["concept_external_refs"] == 0
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-receipts-report",
+            "--db",
+            str(db_path),
+        ]
+    )
+    receipt_payload = json.loads(capsys.readouterr().out)
+    assert receipt_payload["ok"] is True
+    assert receipt_payload["counts_by_status"]["resolved"] >= 4
+    assert receipt_payload["counts_by_status"]["abstain_no_alias"] >= 1
+    assert receipt_payload["counts_by_status"]["abstain_no_bridge"] >= 1
+
+
+def test_gwb_bridge_receipts_remain_seeded_when_au_prepopulation_slice_is_also_imported(tmp_path, capsys):
+    db_path = tmp_path / "ontology.db"
+    prepopulation_bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+
+    connection = sqlite3.connect(db_path)
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+        actor_ids = {}
+        for label in [
+            "United States Senate",
+            "United States House of Representatives",
+            "United States Department of Defense",
+            "Supreme Court of the United States",
+        ]:
+            cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", label))
+            actor_ids[label] = int(cur.lastrowid)
+        connection.commit()
+    finally:
+        connection.close()
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-import",
+            "--db",
+            str(db_path),
+            "--file",
+            str(prepopulation_bridge_file),
+        ]
+    )
+    capsys.readouterr()
+
+    batch_path = tmp_path / "gwb_seeded_isolation_batch.json"
+    script_path = ROOT / "scripts" / "emit_bridge_external_refs_batch.py"
+    anchor_map_path = tmp_path / "gwb_seeded_isolation_anchors.json"
     anchor_map_path.write_text(
         json.dumps(
             {
@@ -508,31 +629,44 @@ def test_bridge_batch_emitter_resolves_gwb_branch_refs_via_seeded_slice(tmp_path
             str(anchor_map_path),
             "--output",
             str(batch_path),
+            "--record-receipts",
         ],
         check=True,
         cwd=str(ROOT),
-        env={**os.environ, "ITIR_DB_PATH": str(db_path)},
+        env={
+            **os.environ,
+            "ITIR_DB_PATH": str(db_path),
+            "ITIR_WIKIDATA_BRIDGE_SLICE": "seeded_body_refs_v1",
+        },
+    )
+
+    batch_payload = json.loads(batch_path.read_text(encoding="utf-8"))
+    assert batch_payload["meta"]["slice_name"] == "seeded_body_refs_v1"
+    assert all(
+        row["canonical_ref"].startswith(("institution:u_s_", "institution:united_states_", "court:u_s_"))
+        for row in batch_payload["meta"]["match_receipts"]
+        if row["resolution_status"] == "resolved"
     )
 
     cli_main.main(
         [
             "ontology",
-            "external-refs-upsert",
+            "bridge-receipts-report",
             "--db",
             str(db_path),
-            "--file",
-            str(batch_path),
-            "--dry-run",
+            "--slice-name",
+            "seeded_body_refs_v1",
         ]
     )
-    payload = json.loads(capsys.readouterr().out)
-    assert payload["ok"] is True
-    assert payload["dry_run"] is True
-    assert payload["input_meta"]["coverage"]["resolved_bridge_refs"] == 4
-    assert payload["input_meta"]["coverage"]["skipped_no_bridge_match"] == 0
-    assert payload["input_meta"]["coverage"]["skipped_no_anchor"] == 0
-    assert payload["actor_external_refs"] == 4
-    assert payload["concept_external_refs"] == 0
+    receipt_payload = json.loads(capsys.readouterr().out)
+    assert receipt_payload["ok"] is True
+    assert receipt_payload["slice_name"] == "seeded_body_refs_v1"
+    assert receipt_payload["counts_by_status"]["resolved"] >= 4
+    assert all(
+        row["canonical_ref"].startswith(("institution:u_s_", "institution:united_states_", "court:u_s_"))
+        for row in receipt_payload["receipts"]
+        if row["resolution_status"] == "resolved"
+    )
 
 
 def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(tmp_path, capsys):
@@ -640,3 +774,225 @@ def test_bridge_batch_emitter_resolves_nsw_branch_refs_from_reviewed_slice(tmp_p
     assert upsert_payload["input_meta"]["coverage"]["resolved_bridge_refs"] == 5
     assert upsert_payload["actor_external_refs"] == 2
     assert upsert_payload["concept_external_refs"] == 5
+
+
+def test_bridge_batch_emitter_resolves_judicial_review_branch_refs_from_reviewed_slice(tmp_path, capsys):
+    db_path = tmp_path / "ontology.db"
+    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+
+    connection = sqlite3.connect(db_path)
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        hca_actor_id = int(cur.lastrowid)
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_CASE_S157", "Plaintiff S157/2002 v Commonwealth of Australia", "case", "test"),
+        )
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_ACT_MIGRATION", "Migration Act 1958", "legislation", "test"),
+        )
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_ACT_NATIVE_TITLE_NSW", "Native Title (New South Wales) Act 1994", "legislation", "test"),
+        )
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_JURIS_NSW", "New South Wales", "jurisdiction", "test"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-import",
+            "--db",
+            str(db_path),
+            "--file",
+            str(bridge_file),
+        ]
+    )
+    capsys.readouterr()
+
+    batch_path = tmp_path / "judicial_review_branch_batch.json"
+    script_path = ROOT / "scripts" / "emit_bridge_external_refs_batch.py"
+    anchor_map_path = tmp_path / "judicial_review_branch_anchors.json"
+    anchor_map_path.write_text(
+        json.dumps(
+            {
+                "case:plaintiff_s157_2002_v_commonwealth_of_australia": {"concept_code": "AU_CASE_S157"},
+                "court:high_court_of_australia": {"actor_id": hca_actor_id},
+                "legislation:migration_act_1958_cth": {"concept_code": "AU_ACT_MIGRATION"},
+                "legislation:native_title_new_south_wales_act_1994": {"concept_code": "AU_ACT_NATIVE_TITLE_NSW"},
+                "jurisdiction:state_of_new_south_wales": {"concept_code": "AU_JURIS_NSW"},
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--text",
+            (
+                "In Plaintiff S157/2002 v Commonwealth of Australia, the High Court held that the Migration Act 1958 "
+                "privative clause could not block judicial review. Later, the Native Title (New South Wales) Act 1994 "
+                "was challenged in New South Wales."
+            ),
+            "--anchor-map",
+            str(anchor_map_path),
+            "--output",
+            str(batch_path),
+            "--record-receipts",
+        ],
+        check=True,
+        cwd=str(ROOT),
+        env={
+            **os.environ,
+            "ITIR_DB_PATH": str(db_path),
+            "ITIR_WIKIDATA_BRIDGE_SLICE": "prepopulation_core_refs_v1",
+        },
+    )
+
+    batch_payload = json.loads(batch_path.read_text(encoding="utf-8"))
+    assert batch_payload["meta"]["coverage"]["resolved_bridge_refs"] == 5
+    assert batch_payload["meta"]["coverage"]["skipped_no_bridge_match"] == 0
+    assert batch_payload["meta"]["coverage"]["skipped_no_anchor"] == 0
+    assert batch_payload["meta"]["coverage"]["emitted_actor_rows"] == 2
+    assert batch_payload["meta"]["coverage"]["emitted_concept_rows"] == 5
+    statuses = {
+        (row["canonical_ref"], row["resolution_status"])
+        for row in batch_payload["meta"]["match_receipts"]
+    }
+    assert ("case:plaintiff_s157_2002_v_commonwealth_of_australia", "resolved") in statuses
+    assert ("legislation:migration_act_1958_cth", "resolved") in statuses
+    assert ("legislation:native_title_new_south_wales_act_1994", "resolved") in statuses
+
+    cli_main.main(
+        [
+            "ontology",
+            "external-refs-upsert",
+            "--db",
+            str(db_path),
+            "--file",
+            str(batch_path),
+            "--dry-run",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["dry_run"] is True
+    assert payload["input_meta"]["coverage"]["resolved_bridge_refs"] == 5
+    assert payload["actor_external_refs"] == 2
+    assert payload["concept_external_refs"] == 5
+
+
+def test_bridge_batch_emitter_resolves_liability_branch_refs_from_reviewed_slice(tmp_path, capsys):
+    db_path = tmp_path / "ontology.db"
+    bridge_file = ROOT / "data" / "ontology" / "external_ref_bridge_prepopulation_core_v1.json"
+
+    connection = sqlite3.connect(db_path)
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "High Court of Australia"))
+        hca_actor_id = int(cur.lastrowid)
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_CASE_INTROVIGNE", "Commonwealth v Introvigne", "case", "test"),
+        )
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("AU_CASE_NAIDU", "Nationwide News Pty Ltd v Naidu", "case", "test"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    cli_main.main(
+        [
+            "ontology",
+            "bridge-import",
+            "--db",
+            str(db_path),
+            "--file",
+            str(bridge_file),
+        ]
+    )
+    capsys.readouterr()
+
+    batch_path = tmp_path / "liability_branch_batch.json"
+    script_path = ROOT / "scripts" / "emit_bridge_external_refs_batch.py"
+    anchor_map_path = tmp_path / "liability_branch_anchors.json"
+    anchor_map_path.write_text(
+        json.dumps(
+            {
+                "case:commonwealth_v_introvigne": {"concept_code": "AU_CASE_INTROVIGNE"},
+                "case:nationwide_news_pty_ltd_v_naidu": {"concept_code": "AU_CASE_NAIDU"},
+                "court:high_court_of_australia": {"actor_id": hca_actor_id},
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--text",
+            (
+                "In Commonwealth v Introvigne and Nationwide News Pty Ltd v Naidu, the High Court of Australia "
+                "considered vicarious liability and non-delegable duties."
+            ),
+            "--anchor-map",
+            str(anchor_map_path),
+            "--output",
+            str(batch_path),
+            "--record-receipts",
+        ],
+        check=True,
+        cwd=str(ROOT),
+        env={
+            **os.environ,
+            "ITIR_DB_PATH": str(db_path),
+            "ITIR_WIKIDATA_BRIDGE_SLICE": "prepopulation_core_refs_v1",
+        },
+    )
+
+    batch_payload = json.loads(batch_path.read_text(encoding="utf-8"))
+    assert batch_payload["meta"]["coverage"]["resolved_bridge_refs"] == 3
+    assert batch_payload["meta"]["coverage"]["skipped_no_bridge_match"] == 0
+    assert batch_payload["meta"]["coverage"]["skipped_no_anchor"] == 0
+    assert batch_payload["meta"]["coverage"]["emitted_actor_rows"] == 2
+    assert batch_payload["meta"]["coverage"]["emitted_concept_rows"] == 2
+    statuses = {
+        (row["canonical_ref"], row["resolution_status"])
+        for row in batch_payload["meta"]["match_receipts"]
+    }
+    assert ("case:commonwealth_v_introvigne", "resolved") in statuses
+    assert ("case:nationwide_news_pty_ltd_v_naidu", "resolved") in statuses
+
+    cli_main.main(
+        [
+            "ontology",
+            "external-refs-upsert",
+            "--db",
+            str(db_path),
+            "--file",
+            str(batch_path),
+            "--dry-run",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["dry_run"] is True
+    assert payload["input_meta"]["coverage"]["resolved_bridge_refs"] == 3
+    assert payload["actor_external_refs"] == 2
+    assert payload["concept_external_refs"] == 2
