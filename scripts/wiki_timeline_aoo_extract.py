@@ -2649,6 +2649,32 @@ def _normalize_actor_rows(actors: List[dict]) -> List[dict]:
     return out
 
 
+def _fallback_actor_from_doc(doc) -> Tuple[Optional[str], Optional[str]]:
+    """Return a conservative actor fallback from a spaCy doc."""
+    try:
+        for tok in doc:
+            dep = str(getattr(tok, "dep_", "") or "").lower()
+            if dep in {"nsubj", "nsubjpass"} and str(getattr(tok, "text", "")).strip():
+                return str(tok.text).strip(), "doc_subject"
+    except Exception:
+        pass
+    try:
+        for chunk in getattr(doc, "noun_chunks", []):
+            txt = _clean_entity_surface(str(getattr(chunk, "text", "") or ""))
+            if txt:
+                return txt, "lead_np"
+    except Exception:
+        pass
+    return None, None
+
+
+def _fallback_actor_from_text(text: str) -> Optional[str]:
+    m = re.search(r"\b([A-Z][A-Za-z.'-]+)\b", str(text or ""))
+    if not m:
+        return None
+    return _clean_entity_surface(m.group(1))
+
+
 def _build_extraction_record(source_entity_id: str, parser_info: Optional[dict], generated_at: str) -> dict:
     parser_version = "wiki_timeline_aoo_extract@unknown"
     if isinstance(parser_info, dict):
@@ -4344,7 +4370,15 @@ def main(argv: Optional[List[str]] = None) -> int:
                 k = str(ds_norm or "").strip().lower()
                 if not k or k in existing:
                     continue
-                actors.append({"label": ds_norm, "resolved": ds_norm, "role": "subject", "source": "dep_subject"})
+                actors.append(
+                    {
+                        "label": ds_norm,
+                        "resolved": ds_norm,
+                        "role": "subject",
+                        "source": "dep_subject",
+                        "provenance": {"actor_fallback": "dep_subject"},
+                    }
+                )
                 existing.add(k)
         elif root_actor_ev:
             # When spaCy isn't available (doc=None), we still want basic narrator linkage
@@ -4357,6 +4391,26 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if ra and ra.lower() not in existing:
                     actors.append({"label": ra, "resolved": ra, "role": "subject", "source": "surface_pronoun"})
                     warnings.append("fallback_subject_pronoun")
+        if not actors and action:
+            fallback_actor = None
+            fallback_source = None
+            if doc is not None:
+                fallback_actor, fallback_source = _fallback_actor_from_doc(doc)
+            if not fallback_actor:
+                fallback_actor = _fallback_actor_from_text(parse_text)
+                fallback_source = fallback_source or "surface_cap"
+            if fallback_actor:
+                fa_norm = _normalize_subject_label(fallback_actor)
+                if fa_norm:
+                    actors.append(
+                        {
+                            "label": fa_norm,
+                            "resolved": fa_norm,
+                            "role": "subject",
+                            "source": "actor_fallback",
+                            "provenance": {"actor_fallback": str(fallback_source or "fallback")},
+                        }
+                    )
 
         # Objects: prefer sentence-local wikilinks from the timeline artifact.
         objects: List[dict] = []

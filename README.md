@@ -22,7 +22,11 @@ SensibLaw treats legal corpora as a global ontology for **law and lived experien
 - **Ingestion**
   - PDF ingest pipeline (text extraction, TOC/section parsing, anchors, JSON outputs): `src/pdf_ingest.py`, `src/section_parser.py`
   - External source fetchers/parsers (AustLII + Jade + rate limiting): `src/sources/`
-  - Story import (facts/timelines into structured payloads): `src/story_importer.py`
+- Story import (facts/timelines into structured payloads): `src/story_importer.py`
+- Broad general-text timeline stress surfaces:
+  - `scripts/wiki_random_page_samples.py`
+  - `scripts/report_wiki_random_lexer_coverage.py`
+  - `scripts/report_wiki_random_timeline_readiness.py`
 - **Rule extraction + deterministic IR**
   - Rule/exceptions/modality extraction: `src/rules/`
   - Clause/logic tree IR builder: `src/logic_tree.py`

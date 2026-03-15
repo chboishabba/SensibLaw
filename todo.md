@@ -77,6 +77,11 @@
 - [ ] Add cross-product adapter consumers one path at a time:
   first a real SB ingest/read-model path, then a TiRC transcript/capture path,
   then any ITIR-facing UI/report producers that need canonical refs.
+- [ ] Bridge the new random-page general-text timeline readiness harness into
+  the canonical fact-intake observation/event seam. The current harness should
+  prove `snapshot -> timeline candidates -> AAO events`; the next step is a
+  deterministic sender from that output into Mary-parity observation/event
+  storage rather than stopping at readiness scoring.
 - [ ] Keep the adapter thin and SL-owned:
   no competing canonical identity store, no semantic authority transfer, and
   no local fallback path silently promoted to canonical.

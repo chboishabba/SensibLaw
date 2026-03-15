@@ -74,6 +74,20 @@
     transcript fixtures for professional handoff and contradiction-preserving
     false-coherence review, keeping the same gate surface while giving the
     newer ITIR stories a stronger canonical fixture base.
+  - Added a read-only Wikipedia random-page lexer coverage harness split into
+    two tools:
+    - `scripts/wiki_random_page_samples.py` for live revision-locked random-page
+      acquisition into replayable manifests
+    - `scripts/report_wiki_random_lexer_coverage.py` for offline scoring over
+      stored manifests using both raw tokenizer diagnostics and the supported
+      shared-reducer surface
+  - Added focused tests plus a short contract note for the new random-page
+    harness, keeping live acquisition out of test/CI paths.
+  - Split the random-page Wikipedia quality story into two explicit stages:
+    reducer/tokenizer coverage remains the stage-1 structural diagnostic, while
+    a new general-text timeline readiness harness scores the deterministic
+    `wiki_timeline_extract -> wiki_timeline_aoo_extract` path as the Mary-like
+    chronology/event surface for broad text.
   - Added generic fact-review run query/report helpers plus
     `scripts/query_fact_review.py`, so existing persisted runs can be listed
     and inspected via run summaries, review queues, contested-item summaries,

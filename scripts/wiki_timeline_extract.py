@@ -56,6 +56,8 @@ INLINE_YEAR_RANGE_RE = re.compile(
     r"\bfrom\s+((?:19|20)\d{2})\s+(?:to|through|-|–|—)\s+((?:19|20)\d{2})\b",
     flags=re.IGNORECASE,
 )
+INLINE_BARE_YEAR_RE = re.compile(r"\b((?:19|20)\d{2})\b")
+INLINE_DECADE_RE = re.compile(r"\b(?:(early|mid|late)\s+)?((?:19|20)\d)0s\b", flags=re.IGNORECASE)
 SEPT11_EVENT_RE = re.compile(
     r"\b(?:the\s+)?(?:attacks?\s+of\s+)?(?:September\s+11(?:,\s*2001)?(?:\s*,)?\s*(?:terrorist\s+)?attacks?|9/11)\b",
     flags=re.IGNORECASE,
@@ -260,6 +262,12 @@ def _parse_section_anchor(section: str) -> Optional[DateAnchor]:
                 kind="weak",
             )
 
+    # Weak year-only section hints (e.g., "1999" section heading).
+    m = INLINE_BARE_YEAR_RE.search(s)
+    if m:
+        year = int(m.group(1))
+        return DateAnchor(year=year, month=None, day=None, precision="year", text=s, kind="weak")
+
     return None
 
 
@@ -313,6 +321,64 @@ def _parse_inline_year_range_anchors(line: str) -> List[DateAnchor]:
                 kind="mention",
             )
         )
+    return out
+
+
+def _parse_inline_weak_years(line: str) -> List[DateAnchor]:
+    """Conservative bare-year / decade anchors inside a sentence."""
+
+    def _inside_short_parens(idx: int) -> bool:
+        """Reject years living in short parenthetical metadata like (born 1955)."""
+        left = str(line or "").rfind("(", 0, idx)
+        if left < 0:
+            return False
+        right = str(line or "").find(")", idx)
+        if right < 0 or right - left > 18:
+            return False
+        inner = str(line[left:right]).lower()
+        return any(token in inner for token in ("born", "died", "b.", "d.")) or bool(re.search(r"(19|20)\\d{2}[^)]*(19|20)\\d{2}", inner))
+
+    out: List[DateAnchor] = []
+    seen = set()
+    s = str(line or "")
+
+    for m in INLINE_DECADE_RE.finditer(s):
+        decade = int(m.group(2)) * 10
+        if decade in seen or _inside_short_parens(m.start()):
+            continue
+        seen.add(decade)
+        out.append(
+            DateAnchor(
+                year=decade,
+                month=None,
+                day=None,
+                precision="year",
+                text=m.group(0).strip(),
+                kind="weak",
+            )
+        )
+        break  # cap to one weak anchor per sentence
+
+    if out:
+        return out
+
+    for m in INLINE_BARE_YEAR_RE.finditer(s):
+        year = int(m.group(1))
+        if year in seen or _inside_short_parens(m.start()):
+            continue
+        seen.add(year)
+        out.append(
+            DateAnchor(
+                year=year,
+                month=None,
+                day=None,
+                precision="year",
+                text=m.group(0).strip(),
+                kind="weak",
+            )
+        )
+        break  # cap to one weak anchor per sentence
+
     return out
 
 
@@ -589,6 +655,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                     for a in anchors
                 ):
                     anchors.append(yr)
+            if not anchors:
+                for weak in _parse_inline_weak_years(s):
+                    anchors.append(weak)
+                    break
             for sa in _parse_special_event_anchors(s):
                 if not any(
                     a.year == sa.year and a.month == sa.month and a.day == sa.day and a.precision == sa.precision
