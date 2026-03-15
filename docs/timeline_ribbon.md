@@ -3,6 +3,10 @@
 The ribbon is a continuous spine that accounts for 100% of a conserved quantity
 under the active lens. It is an accounting surface, not a narrative device.
 
+Derived finance, conversation, obligation, evidentiary, procedural, or other
+time-series streams may feed the active lens, but they are substrate inputs to
+Ribbon rather than a separate user-facing product surface.
+
 ## Core invariant
 
 Segment width represents allocation of a conserved quantity under the active

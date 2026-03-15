@@ -599,6 +599,48 @@ Intersections with roadmap/todo/readme (2026-02-03):
     in `tests/test_wrong_type_dimensions_seed.py` to keep dimension vocabularies
     deterministic and aligned with `wrong_type_catalog_seed.yaml`.
 
+## Context update (2026-03-15)
+- Source conversation: `Aptos cryptocurrency overview`
+  - online UUID: `691ac8a3-4a30-8320-bd5f-f66efc3145e7`
+  - canonical thread ID: `dff5b29b89818300e7e352c0247c4cef3823bcfd`
+  - source used: `db` after direct UUID pull + ingest into `~/chat_archive.sqlite`
+- Main Glasslane / Mirror decision pulled from the thread:
+  - position SensibLaw/TiRC as the missing `human risk layer` for Mirror rather
+    than as a competing crypto research assistant
+  - Mirror's current strength is narrative intelligence for crypto research,
+    compliance framing, and board-safe summaries
+  - Mirror's gap is structured treatment of harms, obligations, money flows,
+    behavioral patterns, and provenance over time
+  - the joint pitch is: Mirror explains the crypto system; SensibLaw explains
+    how crypto events affect actual people, obligations, and regulator/auditor
+    workflows
+- Concrete product / feature concepts extracted from that thread:
+  - `Crypto Consumer Harm Observatory (CCHO)`: distress/sentiment shifts,
+    money-flow changes, harm-class triggers, obligation violations, and
+    regulator-safe summaries around protocol/exchange/stablecoin events
+  - `Risk & Behavioural Pattern Analytics` for exchanges/wallets: fraud,
+    manipulation, economic abuse, predatory lending, and unusual
+    relationship-level financial harm patterns
+  - `High-Trust Explainability Layer` for boards/regulators: provenance-backed
+    explanations of what happened, who was affected, what obligations arose,
+    and where risk/harm is concentrating
+  - API / integration posture: Glass/Mirror-like buyers will want stream
+    endpoints, ingest connectors, cohort/product/time-window scores, and
+    stable export surfaces rather than a UI-only tool
+- Reusable cross-vertical packaging concept from the same thread:
+  - Ribbon should remain the named surface; the common substrate is the
+    Ribbon stream layer for timeline-aligned conserved / derived signals
+  - thread examples included finance net/dependency, chat
+    concern/control/empathy, and legal pressure / active obligations, but
+    Ribbon itself remains a more general conserved-allocation timeline surface
+  - change-point detection over those streams was framed as the core mechanism
+    for surfacing pattern shifts without collapsing into unsupported verdicts
+- SensibLaw-facing implication:
+  - keep packaging the platform as an explainable evidence + obligations engine
+    with vertical overlays, not as a monolithic "AI assistant"
+  - for crypto/regtech partnerships, emphasize provenance, guardrails, and
+    pattern detection over generic market commentary
+
 ## Sources
 Chat-sourced statements are now referenced from the compression/ITIR overlay
 discussion (see `698218f7-9ca4-83a1-969d-0ffc3d6264e4:1-80`).

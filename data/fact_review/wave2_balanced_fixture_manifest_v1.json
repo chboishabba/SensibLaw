@@ -1,0 +1,50 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave2_balanced",
+  "fixtures": [
+    {
+      "fixture_id": "real_transcript_intake_v1",
+      "fixture_kind": "real",
+      "fixture_family": "balanced_operator",
+      "risk_class": "mixed_fragments",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_transcript_intake_v1",
+      "source_label": "wave2:real_transcript_intake_v1",
+      "target_story_ids": ["ITIR-US-11", "ITIR-US-12"],
+      "stressors": ["mixed_fragments", "later_annotation", "chronology_reopen"]
+    },
+    {
+      "fixture_id": "real_au_procedural_v1",
+      "fixture_kind": "real",
+      "fixture_family": "balanced_operator",
+      "risk_class": "cross_domain_reopen",
+      "workflow_kind": "au_semantic",
+      "builder_key": "real_au_procedural_v1",
+      "source_label": "wave2:real_au_procedural_v1",
+      "target_story_ids": ["ITIR-US-12"],
+      "stressors": ["cross_workflow_reopen", "contested_summary", "chronology_query"]
+    },
+    {
+      "fixture_id": "synthetic_personal_fragments_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "balanced_operator",
+      "risk_class": "personal_reconstruction",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_personal_fragments_v1",
+      "source_label": "wave2:synthetic_personal_fragments_v1",
+      "target_story_ids": ["ITIR-US-11"],
+      "stressors": ["fragmented_memory", "approximate_dates", "abstained_fragments"]
+    },
+    {
+      "fixture_id": "synthetic_investigative_reopen_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "balanced_operator",
+      "risk_class": "investigative_reopen",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_investigative_reopen_v1",
+      "source_label": "wave2:synthetic_investigative_reopen_v1",
+      "target_story_ids": ["ITIR-US-11", "ITIR-US-12"],
+      "stressors": ["stored_run_reopen", "chronology_compare", "provenance_first_query"]
+    }
+  ]
+}

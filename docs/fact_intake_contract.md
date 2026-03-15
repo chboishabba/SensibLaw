@@ -9,7 +9,7 @@ terms**, with an explicit Mary-compatible projection layered over it.
 
 Provide a deterministic sender/receiver chain for:
 
-`source -> excerpt -> statement -> observation -> fact candidate -> contestation/review`
+`source -> excerpt -> statement -> observation -> event candidate / fact candidate -> contestation/review`
 
 The canonical receiver is SQLite read models. Human-facing workflow views are
 projections over those read models.
@@ -35,14 +35,23 @@ projections over those read models.
    - uses a small stable predicate set with typed objects
    - must remain provenance-linked to statements/excerpts/sources
    - may abstain when no supported predicate/object extraction is available
+   - may use language/jurisdiction-specific dictionaries and mappings, but must
+     emit normalized observation predicates for downstream assembly
 
 5. **Fact sender**
    - derives `FactCandidate` rows from observations and/or statements/excerpts
    - must retain provenance links back to observations/statements/excerpts/sources
 
-6. **Contestation/review sender**
+6. **Event assembler**
+   - deterministically derives `EventCandidate` rows from stored observations
+   - must be reconstructable from observation evidence
+   - must not replace observations as the canonical source of truth
+   - should remain conservative and merge only on stable explicit signatures
+   - must consume normalized predicates rather than raw language-specific text
+
+7. **Contestation/review sender**
    - records disagreement and review state explicitly
-   - must not rewrite canonical source/excerpt/statement/observation text
+   - must not rewrite canonical source/excerpt/statement/observation/event text
 
 ## Receiver boundaries
 
@@ -52,6 +61,9 @@ projections over those read models.
    - `fact_excerpts`
    - `fact_statements`
    - `fact_observations`
+   - `event_candidates`
+   - `event_attributes`
+   - `event_evidence`
    - `fact_candidates`
    - `fact_candidate_statements`
    - `fact_contestations`
@@ -67,6 +79,12 @@ projections over those read models.
 
 3. **Review/debug receiver**
    - deterministic report/bundle outputs over the same read models
+   - bounded operator views:
+     - `intake_triage`
+     - `chronology_prep`
+     - `procedural_posture`
+     - `contested_items`
+   - bounded read-only workbench payload over the same persisted run
 
 ## Core records
 
@@ -74,6 +92,7 @@ projections over those read models.
 - `ExcerptRecord`
 - `StatementRecord`
 - `ObservationRecord`
+- `EventCandidate`
 - `FactCandidate`
 - `ContestationRecord`
 - `FactReviewRecord`
@@ -87,9 +106,43 @@ projections over those read models.
 - no tokenizer changes are permitted for this slice
 - external refs remain linked enrichments, not identity rewrites
 - observation predicates should be stable and few; objects can be richer
+- event candidates are derived, not canonical source-of-truth objects
+- structural identity must stay separate from run metadata
+- abstention must be explicit rather than inferred from missing rows
 - existing `CaseObservation` / `ActionObservation` / `AlignmentObservation` /
   `DecisionObservation` shapes are separate projection/aggregation surfaces,
   not replacements for the text-grounded intake observation layer
+
+## Identity / run distinction
+
+- structural IDs are content-derived and deterministic
+- run IDs capture execution context only
+- provenance and timestamps must not rewrite structural identity
+
+## Explicit status semantics
+
+The first fact substrate should preserve explicit status values rather than
+using absence as meaning.
+
+Expected status families include:
+
+- statements:
+  - `captured`
+  - `abstained`
+- observations:
+  - `captured`
+  - `uncertain`
+  - `abstained`
+- facts:
+  - `candidate`
+  - `reviewed`
+  - `uncertain`
+  - `abstained`
+  - `no_fact`
+- events:
+  - `candidate`
+  - `reviewed`
+  - `abstained`
 
 ## Initial observation predicate catalog
 
@@ -143,6 +196,58 @@ See also:
 - `persist_fact_intake_payload(...)`
   - persists the canonical read-model family
 - `build_fact_intake_report(...)`
-  - deterministic drill-down report including observation visibility
+  - deterministic drill-down report including observation and event visibility
 - `build_mary_fact_workflow_projection(...)`
   - Mary-compatible workflow facade over the same read models
+- `build_fact_review_run_summary(...)`
+  - canonical review queue / contested / chronology triage summary
+- `build_fact_review_operator_views(...)`
+  - bounded operator-facing slices for intake, chronology, procedure, and contested review
+- `build_fact_review_workbench_payload(...)`
+  - read-only workbench contract over a persisted fact-review run
+
+## Acceptance harness stance
+
+- parity should be judged against explicit user stories, not only schema shape
+- wave-1 legal parity should be gated by a canonical fixture manifest and a
+  deterministic batch runner over persisted transcript/AU fact-review runs
+- acceptance may use a mixed evidence base:
+  - curated real runs where available
+  - synthetic seeded runs where a role/story gap still needs deterministic coverage
+- acceptance reports should classify each story as:
+  - `pass`
+  - `partial`
+  - `fail`
+- the harness is descriptive only; it does not mutate the underlying substrate
+- acceptance reports should carry failed-check IDs and bounded gap tags so the
+  next patch loop is backlog-driven rather than ad hoc
+
+## Current legal-operator review stance
+
+- review surfaces should distinguish:
+  - party assertion
+  - procedural outcome
+  - later annotation / note
+- chronology should distinguish:
+  - dated events
+  - approximate/relative chronology
+  - undated events
+  - facts with no assembled event
+- workbench/operator views may add grouping and filtering over these signals,
+  but they must remain projections over the persisted run rather than a second
+  backend
+
+## Event-candidate assembly stance
+
+- use a deterministic assembler over observations
+- create event candidates from bounded trigger predicates plus actor/context
+  anchors
+- keep harm and legal/procedural rows as event attributes where appropriate
+- keep contestation observation-first even when multiple observations attach to
+  one event
+- keep language/jurisdiction variation in normalization packs and concept
+  mappings rather than the assembler logic
+
+See also:
+- `SensibLaw/docs/planning/event_candidate_assembler_20260315.md`
+- `SensibLaw/docs/planning/event_assembly_portability_20260315.md`

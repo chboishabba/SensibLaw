@@ -28,6 +28,11 @@ Tokenizers
 - SB/TiRC may consume or extend these canonical lexer/compression outputs for
   message/shell/transcript-style normalization, but they do not become
   semantic or legal authority surfaces by doing so.
+- Supported cross-product adapter surface:
+  `sensiblaw.interfaces.shared_reducer`.
+  Cross-product integrations should import the adapter rather than importing
+  `src.text.lexeme_index` or `src.text.deterministic_legal_tokenizer`
+  directly.
 - For the explicit extraction/enrichment split used by Wikidata integration and
   deterministic parser evidence, see
   `docs/planning/extraction_enrichment_boundary_20260307.md`.

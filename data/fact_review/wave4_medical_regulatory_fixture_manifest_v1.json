@@ -1,0 +1,39 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave4_medical_regulatory",
+  "fixtures": [
+    {
+      "fixture_id": "synthetic_medical_negligence_review_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "medical_regulatory",
+      "risk_class": "medical_negligence",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_medical_negligence_review_v1",
+      "source_label": "wave4:synthetic_medical_negligence_review_v1",
+      "target_story_ids": ["SL-US-29"],
+      "stressors": ["patient_account", "clinical_record", "expert_interpretation", "treatment_warning_harm"]
+    },
+    {
+      "fixture_id": "synthetic_professional_discipline_record_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "medical_regulatory",
+      "risk_class": "discipline_record",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_professional_discipline_record_v1",
+      "source_label": "wave4:synthetic_professional_discipline_record_v1",
+      "target_story_ids": ["SL-US-30"],
+      "stressors": ["complaint_stage", "investigation_stage", "finding_stage", "sanction_stage"]
+    },
+    {
+      "fixture_id": "synthetic_regulatory_public_drift_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "medical_regulatory",
+      "risk_class": "public_vs_regulatory_drift",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_regulatory_public_drift_v1",
+      "source_label": "wave4:synthetic_regulatory_public_drift_v1",
+      "target_story_ids": ["SL-US-30"],
+      "stressors": ["public_summary", "regulatory_record", "tribunal_record", "overstatement_risk"]
+    }
+  ]
+}

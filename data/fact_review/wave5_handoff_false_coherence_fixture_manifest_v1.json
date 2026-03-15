@@ -1,0 +1,61 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave5_handoff_false_coherence",
+  "fixtures": [
+    {
+      "fixture_id": "real_transcript_professional_handoff_v1",
+      "fixture_kind": "real",
+      "fixture_family": "handoff_false_coherence",
+      "risk_class": "professional_handoff_real",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_transcript_professional_handoff_v1",
+      "source_label": "wave5:real_transcript_professional_handoff_v1",
+      "target_story_ids": ["ITIR-US-15"],
+      "stressors": ["user_authored", "documentary_record", "professional_note", "uncertainty_preserved"]
+    },
+    {
+      "fixture_id": "real_transcript_false_coherence_v1",
+      "fixture_kind": "real",
+      "fixture_family": "handoff_false_coherence",
+      "risk_class": "false_coherence_real",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_transcript_false_coherence_v1",
+      "source_label": "wave5:real_transcript_false_coherence_v1",
+      "target_story_ids": ["ITIR-US-16"],
+      "stressors": ["fragmentary_account", "contradiction_cluster", "not_enough_evidence", "documentary_record"]
+    },
+    {
+      "fixture_id": "synthetic_personal_professional_handoff_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "handoff_false_coherence",
+      "risk_class": "personal_professional_handoff",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_personal_professional_handoff_v1",
+      "source_label": "wave5:synthetic_personal_professional_handoff_v1",
+      "target_story_ids": ["ITIR-US-15"],
+      "stressors": ["user_authored", "documentary_record", "professional_note", "uncertainty_preserved"]
+    },
+    {
+      "fixture_id": "synthetic_multi_professional_reopen_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "handoff_false_coherence",
+      "risk_class": "multi_professional_reopen",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_multi_professional_reopen_v1",
+      "source_label": "wave5:synthetic_multi_professional_reopen_v1",
+      "target_story_ids": ["ITIR-US-15"],
+      "stressors": ["user_authored", "professional_interpretation", "documentary_record", "reopen_context"]
+    },
+    {
+      "fixture_id": "synthetic_false_coherence_pressure_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "handoff_false_coherence",
+      "risk_class": "false_coherence_pressure",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_false_coherence_pressure_v1",
+      "source_label": "wave5:synthetic_false_coherence_pressure_v1",
+      "target_story_ids": ["ITIR-US-16"],
+      "stressors": ["fragmentary_account", "contradiction_cluster", "not_enough_evidence", "abstained_note"]
+    }
+  ]
+}

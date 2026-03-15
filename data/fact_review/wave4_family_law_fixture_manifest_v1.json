@@ -1,0 +1,50 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave4_family_law",
+  "fixtures": [
+    {
+      "fixture_id": "synthetic_family_client_circumstances_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "family_law",
+      "risk_class": "client_circumstances",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_family_client_circumstances_v1",
+      "source_label": "wave4:synthetic_family_client_circumstances_v1",
+      "target_story_ids": ["SL-US-25"],
+      "stressors": ["client_account", "other_side_account", "child_sensitive_context", "contested_circumstances"]
+    },
+    {
+      "fixture_id": "synthetic_family_both_sides_review_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "family_law",
+      "risk_class": "both_sides_review",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_family_both_sides_review_v1",
+      "source_label": "wave4:synthetic_family_both_sides_review_v1",
+      "target_story_ids": ["SL-US-26"],
+      "stressors": ["side_a_material", "side_b_material", "procedural_outcome", "child_sensitive_context"]
+    },
+    {
+      "fixture_id": "synthetic_child_sensitive_context_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "family_law",
+      "risk_class": "child_sensitive_context",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_child_sensitive_context_v1",
+      "source_label": "wave4:synthetic_child_sensitive_context_v1",
+      "target_story_ids": ["SL-US-27"],
+      "stressors": ["child_sensitive_context", "relative_timing", "later_annotation", "uncertain_date"]
+    },
+    {
+      "fixture_id": "synthetic_cross_side_handoff_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "family_law",
+      "risk_class": "cross_side_handoff",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_cross_side_handoff_v1",
+      "source_label": "wave4:synthetic_cross_side_handoff_v1",
+      "target_story_ids": ["SL-US-28"],
+      "stressors": ["cross_side_handoff", "client_account", "other_side_account", "legal_record"]
+    }
+  ]
+}

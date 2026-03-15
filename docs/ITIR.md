@@ -147,7 +147,11 @@ Exactly like social and calendar land in the timeline, bank data should:
 * then feed both:
 
   * **3D platform/contact timelines**, and
-  * **Streamline financial ribbons**.
+  * **Ribbon timeline surfaces**.
+
+The stream computations behind finance, social, legal, and other conserved or
+derived views are substrate logic for Ribbon, not a separate operator-facing
+product.
 
 Derived series (diffs, aggregates, currency conversions) should be modeled as
 explicit transformations over canonical finance observations:

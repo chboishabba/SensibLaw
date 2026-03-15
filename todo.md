@@ -70,6 +70,16 @@
   additions remain review-gated).
 
 ## Medium-Term Targets
+- [ ] Adopt `sensiblaw.interfaces.shared_reducer` as the explicit supported
+  cross-product reducer surface and move SB/TiRC/ITIR consumers onto it
+  instead of relying on internal `src.text.*` imports or opaque fixture-only
+  boundary assumptions.
+- [ ] Add cross-product adapter consumers one path at a time:
+  first a real SB ingest/read-model path, then a TiRC transcript/capture path,
+  then any ITIR-facing UI/report producers that need canonical refs.
+- [ ] Keep the adapter thin and SL-owned:
+  no competing canonical identity store, no semantic authority transfer, and
+  no local fallback path silently promoted to canonical.
 - [ ] Add jurisdiction-aware GWB action review as a test target: be able to assess George W. Bush timeline actions under pinned U.S. law and Australian law, with U.S. law first.
 - [x] Build a reviewed U.S.-law seed set for GWB covering relevant actions,
   proceedings, and court/hearing material so specific events can be pinned to

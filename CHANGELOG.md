@@ -13,6 +13,127 @@
     focused tests covering schema validation, deterministic payload building,
     provenance drill-down, chronology ordering, contestation/review visibility,
     and replace-on-repersist behavior for a run.
+  - Added the first deterministic `ObservationRecord -> EventCandidate`
+    assembler with canonical `event_candidates`, `event_attributes`, and
+    `event_evidence` tables, conservative signature-based event merging, and
+    report/projection visibility for derived event rows while keeping
+    observations canonical.
+  - Tightened the fact/event substrate contract with explicit status vocab,
+    abstention-preserving behavior, and validation guards so unsupported
+    statement/observation/fact statuses fail closed while abstained
+    observations remain stored but do not silently drive event assembly.
+  - Added a transcript-first Mary-parity adapter from `transcript_semantic`
+    into the fact-intake substrate plus a dedicated
+    `fact.review.bundle.v1` operator payload, schema/example contract, and
+    focused end-to-end tests covering transcript observation mapping,
+    derived communication events, chronology/review-bundle projection, and
+    semantic provenance carried through to derived event rows.
+  - Added `scripts/transcript_fact_review.py` as a thin operator entrypoint
+    for transcript-backed fact review runs and bundle emission, with focused
+    script tests covering both summary and full-bundle output over file-based
+    transcript fixtures.
+  - Added the matching AU-semantic parity lane with
+    `src/fact_intake/au_review_bundle.py`,
+    `scripts/au_fact_review.py`, and focused tests proving that AU semantic
+    reports can be projected into the same `fact.review.bundle.v1` contract
+    with legal-domain observations, derived events, chronology, and operator
+    bundle output.
+  - Tightened the Wave 1 legal parity gate for transcript/non-AU runs by
+    preserving explicit observation-level `signal_classes`, carrying explicit
+    source provenance signal classes through the workbench for every fact,
+    broadening legal/procedural visibility from structured observation/source
+    metadata instead of string heuristics, and splitting workbench display into
+    observation signals vs source provenance. The canonical `wave1_legal`
+    five-fixture acceptance batch now passes `SL-US-09` through `SL-US-14`
+    cleanly.
+  - Extended the acceptance harness to support per-wave fixture manifests and
+    added a canonical `wave2_balanced` gate with balanced real/synthetic
+    fixtures for `ITIR-US-11` and `ITIR-US-12`, including dedicated personal
+    fragments and investigative reopen fixtures. The batch runner now supports
+    `wave2_balanced`, and the canonical Wave 2 set passes cleanly.
+  - Added Wave 3 trauma/advocacy hardening and the parallel contested
+    wiki/Wikidata/public-figure acceptance track. The acceptance harness now
+    includes explicit `ITIR-US-13/14` hardening checks plus first-class
+    `SL-US-15` through `SL-US-24` public-knowledge story gates, new trauma and
+    public-knowledge fixture manifests/builders, and additive operator views
+    for trauma handoff, public claim review, wiki fidelity, and claim
+    alignment. The canonical `wave3_trauma_advocacy` and
+    `wave3_public_knowledge` fixture sets both pass cleanly.
+  - Extended the same acceptance-first parity pattern into bounded Wave 4
+    family-law / cross-side and medical / professional-discipline fixture
+    families. The harness now includes `SL-US-25` through `SL-US-30`,
+    dedicated Wave 4 manifests/builders, and runner/test support for
+    `wave4_family_law` and `wave4_medical_regulatory`.
+  - Added a bounded Wave 5 ITIR acceptance lane for personal-to-professional
+    provenance handoff and anti-false-coherence / anti-AI-psychosis pressure.
+    The harness now includes `ITIR-US-15` and `ITIR-US-16`, a dedicated Wave 5
+    manifest/builders, runner/test support for
+    `wave5_handoff_false_coherence`, and additive read-only workbench views for
+    professional handoff and false-coherence review.
+  - Broadened Wave 5 beyond synthetic-only coverage by adding repo-curated real
+    transcript fixtures for professional handoff and contradiction-preserving
+    false-coherence review, keeping the same gate surface while giving the
+    newer ITIR stories a stronger canonical fixture base.
+  - Added generic fact-review run query/report helpers plus
+    `scripts/query_fact_review.py`, so existing persisted runs can be listed
+    and inspected via run summaries, review queues, contested-item summaries,
+    chronology-focused reporting, or the full stored fact-intake report.
+  - Tightened transcript/AU review bundles with richer review queues and
+    explicit `contested_summary` / `chronology_summary` sections so operator
+    triage is clearer without changing the canonical substrate.
+  - Added persisted `fact_workflow_links` mapping so transcript/AU semantic
+    runs can be reopened deterministically as fact-review runs without
+    rerunning the source workflow, and extended `scripts/query_fact_review.py`
+    with workflow-based resolution/reporting alongside direct fact-run lookup.
+  - Tightened canonical review triage in `build_fact_review_run_summary(...)`
+    with bounded reason codes/labels, chronology buckets, workflow-link
+    visibility, contested chronology impact summaries, and additive workflow
+    metadata on listed runs.
+  - Expanded the observation-layer legal/procedural visibility contract to
+    carry AU semantic predicates such as `appealed`, `challenged`,
+    `heard_by`, `decided_by`, `applied`, `followed`, `distinguished`, and
+    `held_that` directly into fact-review observations while keeping event
+    assembly rules unchanged.
+  - Added latest-workflow resolution and implicit latest-by-workflow reopen
+    behavior to `scripts/query_fact_review.py`, plus clearer workflow/reopen
+    metadata in the transcript/AU fact-review operator scripts so operators can
+    reopen persisted runs without copying IDs manually.
+  - Tightened review-queue usability with primary contested reason text,
+    latest review note/status, chronology-impact flags, legal/procedural
+    observation flags, stable actionable ordering, and additive summary counts
+    for follow-up, chronology impact, and legal/procedural-heavy queue items.
+  - Added grouped chronology triage output (`dated_events`,
+    `undated_events`, `facts_with_no_event`, `contested_chronology_items`)
+    to the canonical fact-review summary and the transcript/AU review-bundle
+    payloads, keeping the underlying event/fact chronology intact while making
+    barrister/judge/CLC-style review faster.
+  - Added role-meaningful review-queue issue codes
+    (`missing_date`, `missing_actor`, `contradictory_chronology`,
+    `statement_only_fact`, `procedural_significance`, `source_conflict`),
+    bounded operator views (`intake_triage`, `chronology_prep`,
+    `procedural_posture`, `contested_items`), and a read-only
+    `fact.review.workbench.v1` payload over persisted runs.
+  - Added story-driven acceptance reporting
+    (`fact.review.acceptance.v1`) over persisted fact-review runs plus
+    source-label-centric run listing in `scripts/query_fact_review.py`.
+  - Added the first thin `itir-svelte` fact-review workbench at
+    `/graphs/fact-review`, consuming the same persisted workbench/acceptance
+    contract rather than introducing a second backend.
+  - Added a canonical Wave 1 legal acceptance fixture manifest
+    (`data/fact_review/wave1_legal_fixture_manifest_v1.json`) plus
+    `scripts/run_fact_review_acceptance_wave.py`, so transcript/AU-backed and
+    synthetic Mary-parity fixtures can be rebuilt and checked as one batch
+    acceptance gate instead of one run at a time.
+  - Tightened acceptance reports with failed-check IDs, blocking explanations,
+    and bounded gap tags, and added a batch acceptance rollup contract so
+    legal-story pass/partial/fail results can drive the next backlog slice.
+  - Tightened legal-operator review summaries and workbench payloads with
+    grouped intake issue filters, source-type/signal classification,
+    approximate chronology grouping, and clearer distinction between party
+    assertion, procedural outcome, and later annotation.
+  - Widened the AU fact-review adapter with additive legal/procedural surface
+    cues for `claimed`, `denied`, `ordered`, and `ruled`, keeping them as
+    observation/report signals rather than new event triggers.
 - Branch-set ontology population hardening:
   - Kept the canonical deterministic lexer pre-semantic and moved AU/NSW
     branch-set identity resolution into a downstream reviewed bridge alias-scan

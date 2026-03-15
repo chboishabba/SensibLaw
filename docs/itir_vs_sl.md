@@ -45,6 +45,8 @@ Differences are policy and enforcement, not architecture.
 - TiRC is a capture/disagreement lane, not a canonical semantic owner.
 - SB/TiRC may consume or extend SL-owned lexer/compression outputs where
   shared canonical text handling is needed.
+- Supported import path for that reuse:
+  `sensiblaw.interfaces.shared_reducer`.
 - That reuse does not transfer SL semantic ownership into SB/TiRC.
 - If SB/TiRC receive legal-looking canonical IDs or fixtures, those are opaque
   SL-origin payloads used for preservation, replay, or cross-product

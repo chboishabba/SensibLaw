@@ -1,0 +1,261 @@
+{
+  "version": "fact.review.bundle.v1",
+  "run": {
+    "fact_run_id": "factrun:demo",
+    "semantic_run_id": "transcript-semantic-demo",
+    "source_label": "transcript_semantic:demo",
+    "created_at": "2026-03-15T00:00:00Z"
+  },
+  "summary": {
+    "observation_count": 2,
+    "event_count": 1,
+    "fact_count": 1,
+    "contested_fact_count": 0,
+    "reviewed_fact_count": 0,
+    "source_document_count": 1
+  },
+  "source_documents": [
+    {
+      "sourceDocumentId": "hearing-1",
+      "sourceType": "transcript_file",
+      "title": "hearing-1.txt",
+      "text": "Q: Where were you?\n\nA: At home.",
+      "eventCount": 2,
+      "eventIds": ["u1", "u2"]
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "src:demo",
+      "source_order": 1,
+      "source_type": "transcript_file",
+      "source_label": "hearing-1.txt",
+      "source_ref": "hearing-1",
+      "content_sha256": null,
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_document_id": "hearing-1"
+      }
+    }
+  ],
+  "excerpts": [
+    {
+      "excerpt_id": "excerpt:demo",
+      "source_id": "src:demo",
+      "excerpt_order": 1,
+      "excerpt_text": "A: At home.",
+      "char_start": 17,
+      "char_end": 28,
+      "anchor_label": "u2",
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_event_id": "u2"
+      }
+    }
+  ],
+  "statements": [
+    {
+      "statement_id": "statement:demo",
+      "excerpt_id": "excerpt:demo",
+      "statement_order": 1,
+      "statement_text": "A: At home.",
+      "speaker_label": null,
+      "statement_role": "transcript_statement",
+      "statement_status": "captured",
+      "chronology_hint": null,
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_event_id": "u2"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "obs:actor",
+      "statement_id": "statement:demo",
+      "excerpt_id": "excerpt:demo",
+      "source_id": "src:demo",
+      "observation_order": 1,
+      "predicate_key": "actor",
+      "predicate_family": "actor_identification",
+      "object_text": "Witness",
+      "object_type": "person",
+      "object_ref": "actor:transcript:hearing_1:witness",
+      "subject_text": null,
+      "observation_status": "captured",
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_event_id": "u2",
+        "role_kind": "speaker"
+      }
+    },
+    {
+      "observation_id": "obs:communicated",
+      "statement_id": "statement:demo",
+      "excerpt_id": "excerpt:demo",
+      "source_id": "src:demo",
+      "observation_order": 2,
+      "predicate_key": "communicated",
+      "predicate_family": "actions_events",
+      "object_text": "communication",
+      "object_type": "semantic_entity",
+      "object_ref": null,
+      "subject_text": "Counsel",
+      "observation_status": "uncertain",
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_event_id": "u2",
+        "relation_candidate_id": "rel:demo",
+        "source_predicate_key": "replied_to",
+        "promotion_status": "candidate"
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event:demo",
+      "event_type": "communication",
+      "primary_actor": "Witness",
+      "secondary_actor": null,
+      "object_text": null,
+      "location_text": null,
+      "instrument_text": null,
+      "time_start": null,
+      "time_end": null,
+      "confidence": 0.8,
+      "status": "candidate",
+      "assembler_version": "fact_event_assembler_v1",
+      "evidence": [
+        {"observation_id": "obs:actor", "role": "primary_actor", "confidence": 0.8},
+        {"observation_id": "obs:communicated", "role": "event_type", "confidence": 0.8}
+      ],
+      "attributes": [],
+      "statement_ids": ["statement:demo"],
+      "source_ids": ["src:demo"],
+      "source_event_ids": ["u2"]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "fact:demo",
+      "canonical_label": "A: At home.",
+      "fact_text": "A: At home.",
+      "fact_type": "transcript_statement_capture",
+      "candidate_status": "candidate",
+      "chronology_sort_key": null,
+      "chronology_label": "u2",
+      "primary_statement_id": "statement:demo",
+      "provenance": {
+        "semantic_run_id": "transcript-semantic-demo",
+        "source_event_id": "u2"
+      },
+      "statement_ids": ["statement:demo"],
+      "excerpt_ids": ["excerpt:demo"],
+      "source_ids": ["src:demo"],
+      "event_ids": ["event:demo"],
+      "statement_texts": ["A: At home."],
+      "observations": [],
+      "contestations": [],
+      "reviews": []
+    }
+  ],
+  "chronology": [
+    {
+      "order": 1,
+      "event_id": "event:demo",
+      "source_event_ids": ["u2"],
+      "event_type": "communication",
+      "primary_actor": "Witness",
+      "object_text": null,
+      "time_start": null,
+      "status": "candidate"
+    }
+  ],
+  "chronology_groups": {
+    "dated_events": [],
+    "undated_events": [
+      {
+        "event_id": "event:demo",
+        "event_type": "communication",
+        "primary_actor": "Witness",
+        "object_text": null,
+        "time_start": null,
+        "status": "candidate",
+        "source_event_ids": ["u2"]
+      }
+    ],
+    "facts_with_no_event": [],
+    "contested_chronology_items": []
+  },
+  "review_queue": [
+    {
+      "fact_id": "fact:demo",
+      "label": "A: At home.",
+      "needs_review": true,
+      "contestation_count": 0,
+      "candidate_status": "candidate",
+      "review_statuses": [],
+      "chronology_label": "u2",
+      "reason_codes": ["unreviewed", "event_undated", "chronology_undated", "missing_date"],
+      "reason_labels": ["Unreviewed", "Assembled event is undated", "Chronology is undated", "Missing date"],
+      "chronology_bucket": "undated",
+      "event_ids": ["event:demo"],
+      "observation_families": ["actions_events", "actor_identification"],
+      "legal_procedural_predicates": [],
+      "has_legal_procedural_observations": false,
+      "legal_procedural_observation_count": 0,
+      "primary_contested_reason_text": null,
+      "latest_review_status": null,
+      "latest_review_note": null,
+      "chronology_impacted": false,
+      "source_ids": ["src:demo"],
+      "statement_ids": ["statement:demo"]
+    }
+  ],
+  "operator_views": {
+    "intake_triage": {
+      "title": "Intake triage",
+      "summary": {
+        "review_queue_count": 1,
+        "needs_followup_count": 0,
+        "missing_date_review_queue_count": 1,
+        "missing_actor_review_queue_count": 0,
+        "statement_only_review_queue_count": 0
+      },
+      "items": [
+        {
+          "fact_id": "fact:demo"
+        }
+      ]
+    }
+  },
+  "contested_summary": {
+    "count": 0,
+    "items": []
+  },
+  "chronology_summary": {
+    "event_count": 1,
+    "dated_event_count": 0,
+    "undated_event_count": 1,
+    "fact_count": 1,
+    "dated_fact_count": 0,
+    "undated_fact_count": 1,
+    "bundle_event_count": 1,
+    "bundle_dated_event_count": 0
+  },
+  "abstentions": {
+    "statement_ids": [],
+    "observation_ids": [],
+    "fact_ids": [],
+    "counts": {
+      "statement_abstentions": 0,
+      "observation_abstentions": 0,
+      "fact_abstentions": 0
+    }
+  },
+  "semantic_context": {
+    "summary": {},
+    "review_summary": {},
+    "text_debug": {}
+  }
+}

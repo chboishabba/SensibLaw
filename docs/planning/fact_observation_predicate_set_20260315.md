@@ -167,3 +167,14 @@ It should not yet claim:
 - doctrinal reasoning
 - Bayesian integration
 - event-candidate assembly beyond deterministic scaffolding
+
+## Follow-on seam
+
+The immediate next layer after this predicate catalog is the deterministic
+event-candidate assembler:
+
+- `SensibLaw/docs/planning/event_candidate_assembler_20260315.md`
+
+The intended near-term seam is:
+
+`statement -> observation -> event candidate -> fact/timeline review`

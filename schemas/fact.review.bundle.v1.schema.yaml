@@ -1,0 +1,300 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: fact.review.bundle.v1
+type: object
+required:
+  - version
+  - run
+  - summary
+  - source_documents
+  - sources
+  - excerpts
+  - statements
+  - observations
+  - events
+  - facts
+  - chronology
+  - chronology_groups
+  - review_queue
+  - operator_views
+  - abstentions
+  - semantic_context
+properties:
+  version:
+    type: string
+  run:
+    type: object
+    required: [fact_run_id, semantic_run_id, source_label, created_at]
+    properties:
+      fact_run_id: {type: string}
+      semantic_run_id: {type: string}
+      source_label: {type: string}
+      created_at: {type: string}
+      workflow_link:
+        type: [object, "null"]
+  summary:
+    type: object
+  source_documents:
+    type: array
+    items:
+      type: object
+      required: [sourceDocumentId]
+      properties:
+        sourceDocumentId: {type: string}
+  sources:
+    type: array
+    items:
+      type: object
+      required: [source_id, source_order, source_type, source_label, provenance]
+      properties:
+        source_id: {type: string}
+        source_order: {type: integer}
+        source_type: {type: string}
+        source_label: {type: string}
+        source_ref: {type: [string, "null"]}
+        content_sha256: {type: [string, "null"]}
+        provenance: {type: object}
+  excerpts:
+    type: array
+    items:
+      type: object
+      required: [excerpt_id, source_id, excerpt_order, excerpt_text, provenance]
+      properties:
+        excerpt_id: {type: string}
+        source_id: {type: string}
+        excerpt_order: {type: integer}
+        excerpt_text: {type: string}
+        char_start: {type: [integer, "null"]}
+        char_end: {type: [integer, "null"]}
+        anchor_label: {type: [string, "null"]}
+        provenance: {type: object}
+  statements:
+    type: array
+    items:
+      type: object
+      required: [statement_id, excerpt_id, statement_order, statement_text, statement_status, provenance]
+      properties:
+        statement_id: {type: string}
+        excerpt_id: {type: string}
+        statement_order: {type: integer}
+        statement_text: {type: string}
+        speaker_label: {type: [string, "null"]}
+        statement_role: {type: [string, "null"]}
+        statement_status: {type: string}
+        chronology_hint: {type: [string, "null"]}
+        provenance: {type: object}
+  observations:
+    type: array
+    items:
+      type: object
+      required: [observation_id, statement_id, predicate_key, predicate_family, object_text, observation_status, provenance]
+      properties:
+        observation_id: {type: string}
+        statement_id: {type: string}
+        excerpt_id: {type: [string, "null"]}
+        source_id: {type: [string, "null"]}
+        observation_order: {type: integer}
+        predicate_key: {type: string}
+        predicate_family: {type: string}
+        object_text: {type: string}
+        object_type: {type: [string, "null"]}
+        object_ref: {type: [string, "null"]}
+        subject_text: {type: [string, "null"]}
+        observation_status: {type: string}
+        provenance: {type: object}
+  events:
+    type: array
+    items:
+      type: object
+      required: [event_id, event_type, confidence, status, evidence, attributes]
+      properties:
+        event_id: {type: string}
+        event_type: {type: string}
+        primary_actor: {type: [string, "null"]}
+        secondary_actor: {type: [string, "null"]}
+        object_text: {type: [string, "null"]}
+        location_text: {type: [string, "null"]}
+        instrument_text: {type: [string, "null"]}
+        time_start: {type: [string, "null"]}
+        time_end: {type: [string, "null"]}
+        confidence: {type: number}
+        status: {type: string}
+        assembler_version: {type: string}
+        evidence:
+          type: array
+          items:
+            type: object
+            required: [observation_id, role, confidence]
+            properties:
+              observation_id: {type: string}
+              role: {type: string}
+              confidence: {type: number}
+        attributes:
+          type: array
+          items:
+            type: object
+            required: [attribute_type, attribute_value, confidence]
+            properties:
+              attribute_type: {type: string}
+              attribute_value: {type: string}
+              source_observation_id: {type: [string, "null"]}
+              confidence: {type: number}
+        statement_ids:
+          type: array
+          items: {type: string}
+        source_ids:
+          type: array
+          items: {type: string}
+        source_event_ids:
+          type: array
+          items: {type: string}
+  facts:
+    type: array
+    items:
+      type: object
+      required: [fact_id, fact_text, fact_type, candidate_status, statement_ids, observations, contestations, reviews]
+      properties:
+        fact_id: {type: string}
+        canonical_label: {type: [string, "null"]}
+        fact_text: {type: string}
+        fact_type: {type: string}
+        candidate_status: {type: string}
+        chronology_sort_key: {type: [string, "null"]}
+        chronology_label: {type: [string, "null"]}
+        primary_statement_id: {type: [string, "null"]}
+        provenance: {type: object}
+        statement_ids:
+          type: array
+          items: {type: string}
+        excerpt_ids:
+          type: array
+          items: {type: string}
+        source_ids:
+          type: array
+          items: {type: string}
+        event_ids:
+          type: array
+          items: {type: string}
+        statement_texts:
+          type: array
+          items: {type: string}
+        observations:
+          type: array
+          items: {type: object}
+        contestations:
+          type: array
+          items: {type: object}
+        reviews:
+          type: array
+          items: {type: object}
+  chronology:
+    type: array
+    items:
+      type: object
+      required: [order, event_id, event_type, status]
+      properties:
+        order: {type: integer}
+        event_id: {type: string}
+        source_event_ids:
+          type: array
+          items: {type: string}
+        event_type: {type: string}
+        primary_actor: {type: [string, "null"]}
+        object_text: {type: [string, "null"]}
+        time_start: {type: [string, "null"]}
+        status: {type: string}
+  chronology_groups:
+    type: object
+  review_queue:
+    type: array
+    items:
+      type: object
+      required: [fact_id, label, needs_review, contestation_count]
+      properties:
+        fact_id: {type: string}
+        label: {type: string}
+        needs_review: {type: boolean}
+        contestation_count: {type: integer}
+        candidate_status: {type: string}
+        review_statuses:
+          type: array
+          items: {type: string}
+        chronology_label: {type: [string, "null"]}
+        reason_codes:
+          type: array
+          items: {type: string}
+        reason_labels:
+          type: array
+          items: {type: string}
+        chronology_bucket: {type: string}
+        event_ids:
+          type: array
+          items: {type: string}
+        observation_families:
+          type: array
+          items: {type: string}
+        legal_procedural_predicates:
+          type: array
+          items: {type: string}
+        has_legal_procedural_observations: {type: boolean}
+        legal_procedural_observation_count: {type: integer}
+        primary_contested_reason_text: {type: [string, "null"]}
+        latest_review_status: {type: [string, "null"]}
+        latest_review_note: {type: [string, "null"]}
+        chronology_impacted: {type: boolean}
+        source_ids:
+          type: array
+          items: {type: string}
+        statement_ids:
+          type: array
+          items: {type: string}
+  operator_views:
+    type: object
+  contested_summary:
+    type: object
+    properties:
+      count: {type: integer}
+      needs_followup_count: {type: integer}
+      reviewed_count: {type: integer}
+      chronology_impacted_count: {type: integer}
+      items:
+        type: array
+        items: {type: object}
+      needs_followup_items:
+        type: array
+        items: {type: object}
+      reviewed_items:
+        type: array
+        items: {type: object}
+      chronology_impacted_items:
+        type: array
+        items: {type: object}
+  chronology_summary:
+    type: object
+  abstentions:
+    type: object
+    required: [statement_ids, observation_ids, fact_ids, counts]
+    properties:
+      statement_ids:
+        type: array
+        items: {type: string}
+      observation_ids:
+        type: array
+        items: {type: string}
+      fact_ids:
+        type: array
+        items: {type: string}
+      counts:
+        type: object
+        required: [statement_abstentions, observation_abstentions, fact_abstentions]
+        properties:
+          statement_abstentions: {type: integer}
+          observation_abstentions: {type: integer}
+          fact_abstentions: {type: integer}
+  semantic_context:
+    type: object
+    required: [summary, review_summary, text_debug]
+    properties:
+      summary: {type: object}
+      review_summary: {type: object}
+      text_debug: {type: object}
+additionalProperties: false

@@ -1,0 +1,61 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave1_legal",
+  "fixtures": [
+    {
+      "fixture_id": "real_transcript_intake_v1",
+      "fixture_kind": "real",
+      "fixture_family": "legal_operator",
+      "risk_class": "intake_triage",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_transcript_intake_v1",
+      "source_label": "wave1:real_transcript_intake_v1",
+      "target_story_ids": ["SL-US-09", "SL-US-11"],
+      "stressors": ["missing_date", "missing_actor", "later_annotation", "followup_queue"]
+    },
+    {
+      "fixture_id": "real_au_procedural_v1",
+      "fixture_kind": "real",
+      "fixture_family": "legal_operator",
+      "risk_class": "procedural_reconstruction",
+      "workflow_kind": "au_semantic",
+      "builder_key": "real_au_procedural_v1",
+      "source_label": "wave1:real_au_procedural_v1",
+      "target_story_ids": ["SL-US-12", "SL-US-13", "SL-US-14"],
+      "stressors": ["claimed", "denied", "ordered", "ruled", "procedural_posture"]
+    },
+    {
+      "fixture_id": "synthetic_sparse_dates_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "legal_operator",
+      "risk_class": "chronology_sparse_dates",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_sparse_dates_v1",
+      "source_label": "wave1:synthetic_sparse_dates_v1",
+      "target_story_ids": ["SL-US-09", "SL-US-13"],
+      "stressors": ["approximate_dates", "relative_ordering", "no_event_fact"]
+    },
+    {
+      "fixture_id": "synthetic_assertion_outcome_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "legal_operator",
+      "risk_class": "assertion_outcome_distinction",
+      "workflow_kind": "au_semantic",
+      "builder_key": "synthetic_assertion_outcome_v1",
+      "source_label": "wave1:synthetic_assertion_outcome_v1",
+      "target_story_ids": ["SL-US-12", "SL-US-14"],
+      "stressors": ["party_assertion", "procedural_outcome", "later_annotation"]
+    },
+    {
+      "fixture_id": "synthetic_conflict_cluster_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "legal_operator",
+      "risk_class": "contested_chronology",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_conflict_cluster_v1",
+      "source_label": "wave1:synthetic_conflict_cluster_v1",
+      "target_story_ids": ["SL-US-09", "SL-US-13"],
+      "stressors": ["chronology_conflict", "source_conflict", "contested_items"]
+    }
+  ]
+}

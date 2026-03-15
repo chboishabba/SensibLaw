@@ -1,0 +1,72 @@
+{
+  "version": "fact.review.acceptance.fixtures.v1",
+  "wave": "wave3_public_knowledge",
+  "fixtures": [
+    {
+      "fixture_id": "real_gwb_contested_public_figure_v1",
+      "fixture_kind": "real",
+      "fixture_family": "public_knowledge",
+      "risk_class": "contested_public_figure",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_gwb_contested_public_figure_v1",
+      "source_label": "wave3:real_gwb_contested_public_figure_v1",
+      "target_story_ids": ["SL-US-15", "SL-US-18"],
+      "stressors": ["public_summary", "procedural_record", "overstatement_risk"]
+    },
+    {
+      "fixture_id": "synthetic_trump_public_figure_legality_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "public_knowledge",
+      "risk_class": "legality_posture",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_trump_public_figure_legality_v1",
+      "source_label": "wave3:synthetic_trump_public_figure_legality_v1",
+      "target_story_ids": ["SL-US-18", "SL-US-20"],
+      "stressors": ["public_summary", "legal_record", "procedural_outcome", "weak_vs_strong_source"]
+    },
+    {
+      "fixture_id": "synthetic_wikipedia_defamation_review_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "public_knowledge",
+      "risk_class": "moderation_posture",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_wikipedia_defamation_review_v1",
+      "source_label": "wave3:synthetic_wikipedia_defamation_review_v1",
+      "target_story_ids": ["SL-US-15", "SL-US-21"],
+      "stressors": ["defamation_risk", "unsupported_assertion", "editorial_caution"]
+    },
+    {
+      "fixture_id": "synthetic_wikidata_claim_worker_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "public_knowledge",
+      "risk_class": "claim_alignment",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_wikidata_claim_worker_v1",
+      "source_label": "wave3:synthetic_wikidata_claim_worker_v1",
+      "target_story_ids": ["SL-US-16", "SL-US-17"],
+      "stressors": ["wikidata_claim", "identity_claim", "office_holder", "institutional_boundary"]
+    },
+    {
+      "fixture_id": "synthetic_wiki_legal_fidelity_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "public_knowledge",
+      "risk_class": "legal_fidelity",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_wiki_legal_fidelity_v1",
+      "source_label": "wave3:synthetic_wiki_legal_fidelity_v1",
+      "target_story_ids": ["SL-US-19"],
+      "stressors": ["trial_vs_appeal", "article_compression", "legal_stage_fidelity"]
+    },
+    {
+      "fixture_id": "synthetic_lawyer_maintainer_conflict_v1",
+      "fixture_kind": "synthetic",
+      "fixture_family": "public_knowledge",
+      "risk_class": "adversarial_conflict",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "synthetic_lawyer_maintainer_conflict_v1",
+      "source_label": "wave3:synthetic_lawyer_maintainer_conflict_v1",
+      "target_story_ids": ["SL-US-20", "SL-US-21", "SL-US-22", "SL-US-23", "SL-US-24"],
+      "stressors": ["advocate_framing", "maintainer_caution", "source_shopping", "overstatement", "minimization"]
+    }
+  ]
+}
