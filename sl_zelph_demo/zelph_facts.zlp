@@ -1,0 +1,27 @@
+% Zelph Facts (bridged structurally from SensibLaw's fact graph)
+
+(actor Alice)
+(actor Bob)
+
+(event slip_event)
+(event mop_event)
+(event injury_event)
+
+(condition wet_floor)
+
+(occurs slip_event)
+(participant slip_event Alice)
+(location slip_event supermarket)
+(caused_by slip_event wet_floor)
+
+(performed mop_event Bob)
+(time mop_event t_minus_10)
+
+(condition_at wet_floor supermarket t0)
+
+(not (warning_sign_present supermarket t0))
+
+(knows Bob wet_floor t0)
+
+(injury injury_event Alice broken_wrist)
+(caused_by injury_event slip_event)

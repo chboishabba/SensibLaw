@@ -1,0 +1,32 @@
+% Zelph Facts with explicit Wikidata enrichment (bridged from SL)
+
+(actor Alice)
+(actor Bob)
+(entity woolworths)
+
+(event slip_event)
+(event mop_event)
+(event injury_event)
+
+(condition wet_floor)
+
+% Extracted facts
+(occurs slip_event)
+(participant slip_event Alice)
+(location slip_event woolworths)
+(caused_by slip_event wet_floor)
+
+(performed mop_event Bob)
+(time mop_event t_minus_10)
+
+(condition_at wet_floor woolworths t0)
+
+(not (warning_sign_present woolworths t0))
+
+(knows Bob wet_floor t0)
+
+(injury injury_event Alice broken_wrist)
+(caused_by injury_event slip_event)
+
+% Wikidata Enrichment
+(wikidata_property woolworths instance_of supermarket)

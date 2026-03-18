@@ -1,0 +1,29 @@
+% Zelph Rules (Wikidata context integration)
+
+% Rule 1 — Hazard without mitigation
+hazard_unmitigated(Location) :-
+  condition_at(wet_floor, Location, T),
+  not(warning_sign_present(Location, T)).
+
+% Rule 2 — Commercial premises derived from Wikidata graph
+% If an entity is mapped to a supermarket in Wikidata, it's categorized as a commercial premises
+commercial_premises(Location) :-
+  wikidata_property(Location, instance_of, supermarket).
+
+% Rule 3 — Knowledge + hazard in a commercial premises ⇒ duty trigger
+duty_of_care(Agent, Location) :-
+  commercial_premises(Location),
+  knows(Agent, wet_floor, T),
+  condition_at(wet_floor, Location, T).
+
+% Rule 4 — Breach
+breach(Agent) :-
+  duty_of_care(Agent, Location),
+  hazard_unmitigated(Location).
+
+% Rule 5 — Causation
+caused_injury(Agent, Victim) :-
+  breach(Agent),
+  caused_by(slip_event, wet_floor),
+  participant(slip_event, Victim),
+  injury(_, Victim, _).

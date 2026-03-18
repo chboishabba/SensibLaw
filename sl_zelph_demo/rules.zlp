@@ -1,0 +1,23 @@
+% Zelph Rules
+
+% Rule 1 — Hazard without mitigation
+hazard_unmitigated(Location) :-
+  condition_at(wet_floor, Location, T),
+  not(warning_sign_present(Location, T)).
+
+% Rule 2 — Knowledge + hazard ⇒ duty trigger
+duty_of_care(Bob, Location) :-
+  knows(Bob, wet_floor, T),
+  condition_at(wet_floor, Location, T).
+
+% Rule 3 — Breach
+breach(Bob) :-
+  duty_of_care(Bob, Location),
+  hazard_unmitigated(Location).
+
+% Rule 4 — Causation
+caused_injury(Bob, Alice) :-
+  breach(Bob),
+  caused_by(slip_event, wet_floor),
+  participant(slip_event, Alice),
+  injury(_, Alice, _).
