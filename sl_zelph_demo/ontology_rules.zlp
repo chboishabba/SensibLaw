@@ -1,0 +1,31 @@
+# Zelph rules in correct subject-predicate-object / comma-condition syntax
+# Rules use: (cond1, cond2) => consequence
+
+# --- Rule 1: Constitutional High Court Lanes ---
+# Any lane that has both "court authority" -> HCA AND "has tag" -> constitutional
+# derives a new fact: lane "is" "constitutional high court matter"
+(L "court authority" court_high_court_of_australia, L "has tag" constitutional) => (L "is" "constitutional high court matter")
+
+# --- Rule 2: International courts ---
+# Any actor whose wikidata id is Q7801 (ICJ) or Q47488 (ICC) is an international court
+(A "wikidata id" Q7801) => (A "is" "international court")
+(A "wikidata id" Q47488) => (A "is" "international court")
+
+# --- Rule 3: US Federal Institutions ---
+# Classify US government bodies by known Wikidata Q-IDs
+(A "wikidata id" Q11201) => (A "is" "US federal institution")
+(A "wikidata id" Q11209) => (A "is" "US federal institution")
+(A "wikidata id" Q66096) => (A "is" "US federal institution")
+(A "wikidata id" Q11701) => (A "is" "US federal institution")
+(A "wikidata id" Q37230) => (A "is" "US federal institution")
+(A "wikidata id" Q8333)  => (A "is" "US federal institution")
+
+# --- Rule 4: Wrong types protecting bodily integrity have civil remedy potential ---
+(W "protects interest" bodily_integrity, W "wrong type in" S) => (W "may trigger" "civil remedy")
+
+# --- Query lines (single uppercase variables = queries) ---
+# These will be evaluated and print results:
+L "is" "constitutional high court matter"
+A "is" "international court"
+A "is" "US federal institution"
+W "may trigger" "civil remedy"

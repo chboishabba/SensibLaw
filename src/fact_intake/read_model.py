@@ -39,6 +39,7 @@ OBSERVATION_PREDICATE_FAMILIES: tuple[tuple[str, tuple[str, ...]], ...] = (
             "held_that",
         ),
     ),
+    ("wiki_events", ("is_reversion", "is_archival", "is_administrative")),
 )
 
 OBSERVATION_PREDICATE_TO_FAMILY: dict[str, str] = {

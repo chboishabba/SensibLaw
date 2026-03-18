@@ -1,0 +1,20 @@
+# Improved Zelph Rules for Wiki Lexical Graph
+
+# --- 1. Recursive List Membership (Structural) ---
+# In Zelph, (H cons T) is a node that represents the fact H cons T.
+# We can match it directly in a rule.
+(H cons T) => (H "member of" (H cons T))
+(H cons T, X "member of" T) => (X "member of" (H cons T))
+
+# --- 2. Keyword Search over Membership ---
+(R "has comment" C, L "member of" C, L "has text" "archive") => (R "is" "archive management edit")
+(R "has comment" C, L "member of" C, L "has text" "reverted") => (R "is" "reversion edit")
+(R "has comment" C, L "member of" C, L "has text" "Reverted") => (R "is" "reversion edit")
+
+# --- 3. Role Inferences ---
+(R "by user" U, R "is" "reversion edit") => (U "is" "wiki sentinel")
+
+# --- Queries ---
+R "is" "reversion edit"
+R "is" "archive management edit"
+U "is" "wiki sentinel"

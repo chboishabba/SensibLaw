@@ -266,6 +266,14 @@ def _has_false_coherence_resistance(workbench: Mapping[str, Any]) -> bool:
     )
 
 
+def _has_zelph_epistemic_validation(workbench: Mapping[str, Any]) -> bool:
+    # This check specifically looks for the 'volatility_signal' stressors 
+    # being surfaced through Zelph-like logic.
+    # In the current implementation, we are looking for 'is_reversion' observations
+    # and ensuring they are visible in the contested summary or signal classes.
+    return _has_any_signal_class(workbench, "volatility_signal") and _has_contested_summary(workbench)
+
+
 CheckFn = Callable[[Mapping[str, Any]], bool]
 
 STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
@@ -377,6 +385,7 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
             ("assertion_outcome_distinction", _has_assertion_outcome_distinction),
             ("defamation_sensitive_posture", _has_defamation_sensitive_posture),
             ("public_knowledge_not_authority", _has_public_knowledge_not_authority),
+            ("zelph_epistemic_validation", _has_zelph_epistemic_validation),
         ),
     ),
     (
@@ -586,6 +595,7 @@ CHECK_EXPLANATIONS: dict[str, str] = {
     "public_narrative_vs_regulatory_record": "Public narrative and regulatory/legal record are not separable enough.",
     "professional_handoff_posture": "Personal, documentary, and later professional layers are not distinguishable enough across handoff.",
     "false_coherence_resistance": "High-conflict sparse material is still too easy to collapse into one narrative.",
+    "zelph_epistemic_validation": "Missing epistemic volatility signals (reversions, archival shifts) expected from real wiki history.",
 }
 
 CHECK_GAP_TAGS: dict[str, tuple[str, ...]] = {

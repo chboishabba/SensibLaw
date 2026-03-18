@@ -14,6 +14,28 @@
       "stressors": ["public_summary", "procedural_record", "overstatement_risk"]
     },
     {
+      "fixture_id": "real_wiki_covid19_contested_v1",
+      "fixture_kind": "real",
+      "fixture_family": "public_knowledge",
+      "risk_class": "contested_public_figure",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_wiki_covid19_contested_v1",
+      "source_label": "wave3:real_wiki_covid19_contested_v1",
+      "target_story_ids": ["SL-US-15", "SL-US-21"],
+      "stressors": ["public_summary", "revision_history", "volatility_signal"]
+    },
+    {
+      "fixture_id": "real_wiki_trump_contested_v1",
+      "fixture_kind": "real",
+      "fixture_family": "public_knowledge",
+      "risk_class": "contested_public_figure",
+      "workflow_kind": "transcript_semantic",
+      "builder_key": "real_wiki_trump_contested_v1",
+      "source_label": "wave3:real_wiki_trump_contested_v1",
+      "target_story_ids": ["SL-US-15", "SL-US-21"],
+      "stressors": ["public_summary", "revision_history", "volatility_signal"]
+    },
+    {
       "fixture_id": "synthetic_trump_public_figure_legality_v1",
       "fixture_kind": "synthetic",
       "fixture_family": "public_knowledge",

@@ -76,6 +76,7 @@ def load_fact_review_acceptance_fixture_manifest(path: Path | None = None, *, wa
 
 def _connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     ensure_gwb_semantic_schema(conn)
     ensure_au_semantic_schema(conn)
@@ -1033,6 +1034,68 @@ def _build_synthetic_wiki_legal_fidelity_v1(db_path: Path, fixture: Mapping[str,
     return {**dict(fixture), **persisted, "semantic_run_id": "synthetic_wiki_legal_fidelity_v1"}
 
 
+def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], wiki: str, title: str, history_filename: str) -> dict[str, Any]:
+    history_path = Path(__file__).resolve().parents[2] / "demo" / "ingest" / "wiki_revision_monitor" / "wiki_revision_contested_v1" / "history" / history_filename
+    with history_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    
+    rows = data.get("rows", [])[:5]  # Limit to 5 for now
+    units = []
+    for row in rows:
+        unit_id = f"wiki-{row['revid']}"
+        comment = row.get("comment") or "[no comment]"
+        units.append(TextUnit(unit_id, "wiki_article", "wiki_article", f"Revision by {row['user']}: {comment}"))
+        
+    payload = build_fact_intake_payload_from_text_units(
+        units,
+        source_label=str(fixture.get("source_label") or fixture.get("fixture_id")),
+        notes=f"Wave 3 real wiki history fixture for {title}",
+    )
+    for i, row in enumerate(rows):
+        payload["fact_candidates"][i]["canonical_label"] = f"Revision {row['revid']}"
+        payload["fact_candidates"][i]["candidate_status"] = "candidate"
+        
+    _set_source_signal_classes(
+        payload,
+        {
+            "wiki_article": ["public_summary", "wiki_article", "revision_history"],
+        },
+    )
+    
+    # Add an observation for one of the revisions if it's a reversion or removal
+    for i, row in enumerate(rows):
+        comment = (row.get("comment") or "").lower()
+        if any(kw in comment for kw in ["revert", "reverting", "remove", "removed"]):
+             _append_observation(
+                payload, 
+                fixture_key=f"{fixture['fixture_id']}_revert_{row['revid']}", 
+                statement_index=i, 
+                predicate_key="is_reversion", 
+                object_text="True", 
+                object_type="boolean",
+                provenance={"source": "acceptance_fixture", "fixture_key": fixture["fixture_id"], "signal_classes": ["volatility_signal"]}
+            )
+             _append_contestation(
+                payload, 
+                fixture_key=f"{fixture['fixture_id']}_contest_{row['revid']}", 
+                fact_index=i, 
+                statement_index=i, 
+                reason_text=f"Revision by {row['user']} is a reversion/removal, indicating high epistemic volatility.",
+                status="disputed",
+                contestation_scope="moderation"
+            )
+
+    with _connect(db_path) as conn:
+        persisted = _persist_and_link(conn, workflow_kind="transcript_semantic", workflow_run_id=fixture["fixture_id"], payload=payload)
+    return {**dict(fixture), **persisted, "semantic_run_id": fixture["fixture_id"]}
+
+def _build_real_wiki_covid19_contested_v1(db_path: Path, fixture: Mapping[str, Any]) -> dict[str, Any]:
+    return _build_real_wiki_history_fixture(db_path, fixture, "enwiki", "COVID-19", "enwiki__COVID-19__history__d6247063a39d.json")
+
+def _build_real_wiki_trump_contested_v1(db_path: Path, fixture: Mapping[str, Any]) -> dict[str, Any]:
+    return _build_real_wiki_history_fixture(db_path, fixture, "enwiki", "Donald Trump", "enwiki__Donald_Trump__history__72d04f084782.json")
+
+
 def _build_synthetic_lawyer_maintainer_conflict_v1(db_path: Path, fixture: Mapping[str, Any]) -> dict[str, Any]:
     units = [
         TextUnit("lm-1", "advocate_brief", "advocate_brief", "Advocate brief leans heavily on a Wikipedia-style summary."),
@@ -1485,6 +1548,8 @@ _BUILDERS: dict[str, Callable[[Path, Mapping[str, Any]], dict[str, Any]]] = {
     "synthetic_personal_professional_handoff_v1": _build_synthetic_personal_professional_handoff_v1,
     "synthetic_multi_professional_reopen_v1": _build_synthetic_multi_professional_reopen_v1,
     "synthetic_false_coherence_pressure_v1": _build_synthetic_false_coherence_pressure_v1,
+    "real_wiki_covid19_contested_v1": _build_real_wiki_covid19_contested_v1,
+    "real_wiki_trump_contested_v1": _build_real_wiki_trump_contested_v1,
 }
 
 

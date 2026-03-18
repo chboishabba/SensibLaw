@@ -1,0 +1,112 @@
+# SensibLaw x Zelph - Ontology Bridge Demo
+# Run: zelph ontology_demo.zph
+# All facts and rules in one script. Queries at the end produce real deduced answers.
+
+# --- Wikidata Bridge Bodies (from data/ontology/wikidata_bridge_bodies_gwb_v1.json) ---
+
+institution_united_nations "canonical label" "United Nations"
+institution_united_nations "wikidata id" Q1065
+institution_united_nations "kind" institution
+
+institution_united_nations_security_council "canonical label" "United Nations Security Council"
+institution_united_nations_security_council "wikidata id" Q37470
+institution_united_nations_security_council "kind" institution
+
+court_international_criminal_court "canonical label" "International Criminal Court"
+court_international_criminal_court "wikidata id" Q47488
+court_international_criminal_court "kind" court
+
+court_international_court_of_justice "canonical label" "International Court of Justice"
+court_international_court_of_justice "wikidata id" Q7801
+court_international_court_of_justice "kind" court
+
+court_u_s_supreme_court "canonical label" "Supreme Court of the United States"
+court_u_s_supreme_court "wikidata id" Q11201
+court_u_s_supreme_court "kind" court
+
+institution_united_states_department_of_defense "canonical label" "United States Department of Defense"
+institution_united_states_department_of_defense "wikidata id" Q11209
+institution_united_states_department_of_defense "kind" institution
+
+institution_u_s_senate "canonical label" "United States Senate"
+institution_u_s_senate "wikidata id" Q66096
+institution_u_s_senate "kind" institution
+
+institution_u_s_house_of_representatives "canonical label" "United States House of Representatives"
+institution_u_s_house_of_representatives "wikidata id" Q11701
+institution_u_s_house_of_representatives "kind" institution
+
+institution_central_intelligence_agency "canonical label" "Central Intelligence Agency"
+institution_central_intelligence_agency "wikidata id" Q37230
+institution_central_intelligence_agency "kind" institution
+
+institution_federal_bureau_of_investigation "canonical label" "Federal Bureau of Investigation"
+institution_federal_bureau_of_investigation "wikidata id" Q8333
+institution_federal_bureau_of_investigation "kind" institution
+
+# --- AU Semantic Linkage (from data/ontology/au_semantic_linkage_seed_v1.json) ---
+
+au_semantic_mabo_native_title "court authority" court_high_court_of_australia
+au_semantic_mabo_native_title "has tag" constitutional
+au_semantic_mabo_native_title "has tag" native_title
+
+au_semantic_plaintiff_s157_judicial_review "court authority" court_high_court_of_australia
+au_semantic_plaintiff_s157_judicial_review "has tag" constitutional
+au_semantic_plaintiff_s157_judicial_review "has tag" migration
+
+au_semantic_house_error_of_principle "court authority" court_high_court_of_australia
+au_semantic_house_error_of_principle "has tag" criminal
+au_semantic_house_error_of_principle "has tag" appeal
+
+au_semantic_civil_liability_act_lane "has tag" duty_of_care
+au_semantic_civil_liability_act_lane "has tag" attribution
+
+# --- Wrong Type Catalog (from data/ontology/wrong_type_catalog_seed.yaml) ---
+
+assault_common "wrong type in" AU_COMMON
+assault_common "protects interest" bodily_integrity
+assault_common "wrong source" "Crimes Act 1900 (NSW) s 59"
+
+larceny_statute "wrong type in" AU_COMMON
+larceny_statute "protects interest" property_security
+larceny_statute "wrong source" "Crimes Act 1900 (NSW) ss 117-118"
+
+mana_diminution "wrong type in" NZ_TIKANGA
+mana_diminution "protects interest" mana_preservation
+mana_diminution "wrong source" "Wai 2500 Te Rohe Potae Inquiry"
+
+gdpr_unlawful_processing "wrong type in" EU
+gdpr_unlawful_processing "protects interest" data_privacy
+gdpr_unlawful_processing "wrong source" "GDPR Articles 6-7"
+
+equality_direct_discrimination "wrong type in" EU
+equality_direct_discrimination "protects interest" equality_non_discrimination
+equality_direct_discrimination "wrong source" "Directive 2000/43/EC art 2"
+
+# --- Rules ---
+
+# Rule 1: Lanes touching both HCA and constitutional tag -> inferred as "constitutional high court matter"
+(L "court authority" court_high_court_of_australia, L "has tag" constitutional) => (L "is" "constitutional high court matter")
+
+# Rule 2: International courts by Wikidata Q-ID
+(A "wikidata id" Q7801)  => (A "is" "international court")
+(A "wikidata id" Q47488) => (A "is" "international court")
+
+# Rule 3: US Federal institutions by Wikidata Q-ID
+(A "wikidata id" Q11201) => (A "is" "US federal institution")
+(A "wikidata id" Q11209) => (A "is" "US federal institution")
+(A "wikidata id" Q66096) => (A "is" "US federal institution")
+(A "wikidata id" Q11701) => (A "is" "US federal institution")
+(A "wikidata id" Q37230) => (A "is" "US federal institution")
+(A "wikidata id" Q8333)  => (A "is" "US federal institution")
+
+# Rule 4: Wrong types protecting bodily integrity trigger civil remedy potential
+(W "protects interest" bodily_integrity, W "wrong type in" S) => (W "may trigger" "civil remedy")
+
+# --- Queries (variables = uppercase single letters, or _Prefixed) ---
+# These run immediately after the facts+rules are loaded
+
+L "is" "constitutional high court matter"
+A "is" "international court"
+A "is" "US federal institution"
+W "may trigger" "civil remedy"

@@ -1,0 +1,89 @@
+# Zelph facts compiled from SensibLaw ontology data/ontology/
+# Run: zelph ontology_facts.zlp
+
+# --- Wikidata Bridge Bodies ---
+# Format: subject predicate object
+institution_united_nations "canonical label" "United Nations"
+institution_united_nations "wikidata id" Q1065
+
+institution_united_nations_security_council "canonical label" "United Nations Security Council"
+institution_united_nations_security_council "wikidata id" Q37470
+
+court_international_criminal_court "canonical label" "International Criminal Court"
+court_international_criminal_court "wikidata id" Q47488
+court_international_criminal_court "kind" court
+
+court_international_court_of_justice "canonical label" "International Court of Justice"
+court_international_court_of_justice "wikidata id" Q7801
+court_international_court_of_justice "kind" court
+
+court_u_s_supreme_court "canonical label" "Supreme Court of the United States"
+court_u_s_supreme_court "wikidata id" Q11201
+court_u_s_supreme_court "kind" court
+
+institution_united_states_department_of_defense "canonical label" "United States Department of Defense"
+institution_united_states_department_of_defense "wikidata id" Q11209
+institution_united_states_department_of_defense "kind" institution
+
+institution_u_s_senate "canonical label" "United States Senate"
+institution_u_s_senate "wikidata id" Q66096
+institution_u_s_senate "kind" institution
+
+institution_u_s_house_of_representatives "canonical label" "United States House of Representatives"
+institution_u_s_house_of_representatives "wikidata id" Q11701
+institution_u_s_house_of_representatives "kind" institution
+
+institution_central_intelligence_agency "canonical label" "Central Intelligence Agency"
+institution_central_intelligence_agency "wikidata id" Q37230
+institution_central_intelligence_agency "kind" institution
+
+institution_federal_bureau_of_investigation "canonical label" "Federal Bureau of Investigation"
+institution_federal_bureau_of_investigation "wikidata id" Q8333
+institution_federal_bureau_of_investigation "kind" institution
+
+# --- AU Semantic Linkage: Action Lanes ---
+au_semantic_mabo_native_title "action lane" "Mabo [No 2] native title recognition"
+au_semantic_mabo_native_title "lane kind" "case_and_statute"
+au_semantic_mabo_native_title "court authority" court_high_court_of_australia
+au_semantic_mabo_native_title "has tag" constitutional
+au_semantic_mabo_native_title "has tag" native_title
+au_semantic_mabo_native_title "has tag" review
+
+au_semantic_plaintiff_s157_judicial_review "action lane" "Plaintiff S157 judicial review"
+au_semantic_plaintiff_s157_judicial_review "lane kind" "case_and_statute"
+au_semantic_plaintiff_s157_judicial_review "court authority" court_high_court_of_australia
+au_semantic_plaintiff_s157_judicial_review "has tag" constitutional
+au_semantic_plaintiff_s157_judicial_review "has tag" migration
+au_semantic_plaintiff_s157_judicial_review "has tag" judicial_review
+
+au_semantic_house_error_of_principle "action lane" "House v The King - sentencing error"
+au_semantic_house_error_of_principle "lane kind" "case_review"
+au_semantic_house_error_of_principle "court authority" court_high_court_of_australia
+au_semantic_house_error_of_principle "has tag" criminal
+au_semantic_house_error_of_principle "has tag" appeal
+
+au_semantic_civil_liability_act_lane "action lane" "Civil Liability Act 2002 (NSW)"
+au_semantic_civil_liability_act_lane "lane kind" "statute_lane"
+au_semantic_civil_liability_act_lane "has tag" duty_of_care
+au_semantic_civil_liability_act_lane "has tag" attribution
+
+# --- Wrong Type Catalog ---
+assault_common "wrong type in" AU_COMMON
+assault_common "protects interest" bodily_integrity
+assault_common "wrong source" "Crimes Act 1900 (NSW) s 59"
+
+larceny_statute "wrong type in" AU_COMMON
+larceny_statute "protects interest" property_security
+larceny_statute "wrong source" "Crimes Act 1900 (NSW) ss 117-118"
+
+mana_diminution "wrong type in" NZ_TIKANGA
+mana_diminution "protects interest" mana_preservation
+mana_diminution "wrong source" "Wai 2500 Te Rohe Potae Inquiry"
+
+gdpr_unlawful_processing "wrong type in" EU
+gdpr_unlawful_processing "protects interest" data_privacy
+gdpr_unlawful_processing "wrong source" "GDPR Articles 6-7"
+
+equality_direct_discrimination "wrong type in" EU
+equality_direct_discrimination "protects interest" equality_non_discrimination
+equality_direct_discrimination "wrong source" "Directive 2000/43/EC art 2"
