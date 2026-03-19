@@ -1,0 +1,60 @@
+{
+  "corpus_id": "au_legal",
+  "description": "AU/legal benchmark corpus for appeal-stage semantics, claim/outcome distinction, and authority boundaries.",
+  "entries": [
+    {
+      "id": "au-short-appeal",
+      "source_type": "legal_record",
+      "text": "The appellant appealed.",
+      "length_bucket": "short",
+      "expected_classes": ["appeal_stage_signal"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-short-outcome",
+      "source_type": "legal_record",
+      "text": "The court held that the order should stand.",
+      "length_bucket": "short",
+      "expected_classes": ["procedural_outcome"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-medium-distinction",
+      "source_type": "legal_record",
+      "text": "The applicant alleged procedural unfairness, the respondent denied the allegation, and the court later ruled that the matter proceed.",
+      "length_bucket": "medium",
+      "expected_classes": ["party_assertion", "procedural_outcome"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-medium-authority",
+      "source_type": "legal_record",
+      "text": "Public commentary framed the dispute broadly, but the appeal reasons held that only the procedural record established the outcome.",
+      "length_bucket": "medium",
+      "expected_classes": ["appeal_stage_signal", "procedural_outcome", "public_knowledge_not_authority"],
+      "expected_policies": ["do_not_promote_to_primary"],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["public_summary", "legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-long-history",
+      "source_type": "legal_record",
+      "text": "On appeal the appellant challenged the earlier procedural finding, the respondent denied any unfairness, and the court held that the trial order remain in place while clarifying that summary reporting could contextualize the dispute but not replace the primary record.",
+      "length_bucket": "long",
+      "expected_classes": ["appeal_stage_signal", "party_assertion", "procedural_outcome", "public_knowledge_not_authority"],
+      "expected_policies": ["do_not_promote_to_primary"],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["public_summary", "legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-adversarial-noise",
+      "source_type": "legal_record",
+      "text": "appeal appeal alleged denied ruled ordered [1992] [2003] s 75(v) citation citation",
+      "length_bucket": "medium",
+      "expected_classes": ["appeal_stage_signal", "party_assertion", "procedural_outcome"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    }
+  ]
+}

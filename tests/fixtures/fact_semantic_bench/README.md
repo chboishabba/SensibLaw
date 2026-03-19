@@ -1,0 +1,59 @@
+# Fact Semantic Benchmark Corpora
+
+These corpora are the canonical bounded benchmark inputs for the normalized
+`fact_intake` semantic layer.
+
+Each corpus file is JSON with:
+
+- `corpus_id`
+- `description`
+- `entries`
+
+Each entry must include:
+
+- `id`
+- `source_type`
+- `text`
+- `length_bucket`
+- `expected_classes`
+- `expected_policies`
+- optional `expected_relations`
+- optional `provenance`
+
+Design rules:
+
+- keep entries revision-locked and deterministic
+- include short / medium / long text
+- include at least one adversarial-noise entry
+- preserve source type and provenance needed for lexical pack selection
+
+Primary corpus families:
+
+- `wiki_revision_seed.json`
+- `chat_archive_seed.json`
+- `transcript_handoff_seed.json`
+- `au_legal_seed.json`
+
+Runner examples:
+
+```bash
+../.venv/bin/python scripts/benchmark_fact_semantics.py \
+  --corpus-file tests/fixtures/fact_semantic_bench/wiki_revision_seed.json \
+  --count 100
+
+../.venv/bin/python scripts/benchmark_fact_semantics.py \
+  --corpus-file tests/fixtures/fact_semantic_bench/chat_archive_seed.json \
+  --count 1000
+
+../.venv/bin/python scripts/run_fact_semantic_benchmark_matrix.py \
+  --manifest tests/fixtures/fact_semantic_bench/corpus_manifest.json \
+  --output-dir .cache_local/fact_semantic_bench \
+  --max-tier 1000
+```
+
+Suggested tier schedule:
+
+- wiki_revision: `100`, `1000`, `10000`
+- chat_archive: `100`, `1000`, `10000`
+- transcript_handoff: `100`, `1000`, `5000`
+- au_legal: `100`, `1000`, `5000`

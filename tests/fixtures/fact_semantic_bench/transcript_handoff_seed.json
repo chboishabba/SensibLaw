@@ -1,0 +1,51 @@
+{
+  "corpus_id": "transcript_handoff",
+  "description": "Transcript/professional handoff benchmark corpus for source-boundary preservation and role-sensitive chronology.",
+  "entries": [
+    {
+      "id": "transcript-short-handoff",
+      "source_type": "professional_note",
+      "text": "Support worker handoff: maybe escalate later.",
+      "length_bucket": "short",
+      "expected_classes": ["handoff_context_signal", "uncertainty_preserved", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    },
+    {
+      "id": "transcript-short-professional",
+      "source_type": "professional_note",
+      "text": "Professional note: follow up next week.",
+      "length_bucket": "short",
+      "expected_classes": ["professional_handoff_signal", "sequence_signal"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    },
+    {
+      "id": "transcript-medium-annotation",
+      "source_type": "annotation_note",
+      "text": "Later annotation says the client account was fragmentary and the professional note should not replace the original account.",
+      "length_bucket": "medium",
+      "expected_classes": [],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff", "source_signal_classes": ["later_annotation", "client_account"]}
+    },
+    {
+      "id": "transcript-long-mixed",
+      "source_type": "professional_note",
+      "text": "Professional note after support handoff: the witness was unsure of the order of events, a later annotation changed the wording, and the next reviewer should preserve the patient account instead of collapsing it into the professional interpretation.",
+      "length_bucket": "long",
+      "expected_classes": ["handoff_context_signal", "professional_handoff_signal", "uncertainty_preserved", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary", "bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff", "source_signal_classes": ["patient_account", "later_annotation", "professional_note"]}
+    },
+    {
+      "id": "transcript-adversarial-noise",
+      "source_type": "support_worker_note",
+      "text": "handoff handoff maybe ??? later later note note support support",
+      "length_bucket": "medium",
+      "expected_classes": ["handoff_context_signal", "uncertainty_preserved", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    }
+  ]
+}

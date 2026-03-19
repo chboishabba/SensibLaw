@@ -1,0 +1,87 @@
+{
+  "corpus_id": "wiki_revision",
+  "description": "Revision-comment benchmark corpus for volatility, admin posture, sourcing intervention, and defamation caution.",
+  "entries": [
+    {
+      "id": "wiki-short-revert",
+      "source_type": "wiki_article",
+      "text": "Revision by BD2412: Reverted unsourced claim.",
+      "length_bucket": "short",
+      "expected_classes": ["volatility_signal"],
+      "expected_policies": [],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    },
+    {
+      "id": "wiki-short-remove",
+      "source_type": "wiki_article",
+      "text": "Revision by Admin42: Removed defamatory wording pending reliable sourcing.",
+      "length_bucket": "short",
+      "expected_classes": ["volatility_signal"],
+      "expected_policies": [],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    },
+    {
+      "id": "wiki-medium-admin",
+      "source_type": "wiki_article",
+      "text": "Revision by Admin42: Protected page after repeated reverts and restored sourced procedural wording from the court filing summary.",
+      "length_bucket": "medium",
+      "expected_classes": ["volatility_signal", "public_knowledge_not_authority"],
+      "expected_policies": ["manual_resolution_required", "do_not_promote_to_primary"],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article", "legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "wiki-medium-archive",
+      "source_type": "wiki_article",
+      "text": "Revision by Archivist7: Archived talk-page dispute after editors reverted unsourced allegations and requested primary-record attribution.",
+      "length_bucket": "medium",
+      "expected_classes": ["volatility_signal"],
+      "expected_policies": ["manual_resolution_required"],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    },
+    {
+      "id": "wiki-long-sourcing",
+      "source_type": "wiki_article",
+      "text": "Revision by BD2412: Reverted disputed biography text, removed sensational phrasing, and restored sourced language from the procedural record so the article contextualizes the public controversy without treating summary reporting as the authoritative legal outcome.",
+      "length_bucket": "long",
+      "expected_classes": ["volatility_signal", "public_knowledge_not_authority", "authority_transfer_risk"],
+      "expected_policies": ["do_not_promote_to_primary", "manual_resolution_required"],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article", "procedural_record", "strong_legal_source"]}
+    },
+    {
+      "id": "wiki-adversarial-noise",
+      "source_type": "wiki_article",
+      "text": "Revision by NoiseBot: reverted reverted reverted citation citation [1] [2] [3] unsourced maybe maybe maybe.",
+      "length_bucket": "medium",
+      "expected_classes": ["volatility_signal"],
+      "expected_policies": [],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    },
+    {
+      "id": "wiki-medium-vandalism",
+      "source_type": "wiki_article",
+      "text": "Revision by Antigravity: Removed blatant vandalism and restored the previous neutral summary of the legislative debate.",
+      "length_bucket": "medium",
+      "expected_classes": ["volatility_signal", "public_knowledge_not_authority"],
+      "expected_policies": ["manual_resolution_required"],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    },
+    {
+      "id": "wiki-long-neutrality",
+      "source_type": "wiki_article",
+      "text": "Revision by BD2412: Neutralized the section on the pending litigation to reflect the latest court dismissal, restored the procedural summary, and noted the transition to the appellate stage as documented in the case registry.",
+      "length_bucket": "long",
+      "expected_classes": ["volatility_signal", "public_knowledge_not_authority", "procedural_record"],
+      "expected_policies": ["do_not_promote_to_primary", "manual_resolution_required"],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article", "procedural_record", "strong_legal_source"]}
+    },
+    {
+      "id": "wiki-adversarial-repetitive",
+      "source_type": "wiki_article",
+      "text": "Revision by Bot: revert revert revert revert revert revert revert revert revert revert revert revert revert revert revert check.",
+      "length_bucket": "medium",
+      "expected_classes": ["volatility_signal"],
+      "expected_policies": [],
+      "provenance": {"source_signal_classes": ["public_summary", "wiki_article"]}
+    }
+  ]
+}

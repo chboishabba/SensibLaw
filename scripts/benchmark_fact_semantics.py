@@ -56,17 +56,55 @@ def _seed_units(mode: str, count: int) -> tuple[list[TextUnit], dict[str, object
     return units, provenance
 
 
+def _load_corpus_entries(path: Path) -> list[dict[str, object]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    entries = payload.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"Corpus file has no entries: {path}")
+    return [row for row in entries if isinstance(row, dict)]
+
+
+def _seed_units_from_corpus(path: Path, count: int) -> tuple[list[TextUnit], list[dict[str, object]]]:
+    entries = _load_corpus_entries(path)
+    repeated: list[dict[str, object]] = []
+    for index in range(count):
+        repeated.append(entries[index % len(entries)])
+    units = [
+        TextUnit(
+            unit_id=f"{path.stem}:unit:{index}",
+            source_id=f"{path.stem}:source:{index}",
+            source_type=str(row.get("source_type") or "context_file"),
+            text=str(row.get("text") or ""),
+        )
+        for index, row in enumerate(repeated)
+    ]
+    return units, repeated
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Benchmark fact-intake semantic materialization across bounded source modes.")
-    parser.add_argument("--mode", choices=sorted(_MODE_SAMPLES.keys()), required=True)
+    parser.add_argument("--mode", choices=sorted(_MODE_SAMPLES.keys()), default=None)
+    parser.add_argument("--corpus-file", type=Path, default=None, help="Optional benchmark corpus JSON file under tests/fixtures/fact_semantic_bench.")
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--db-path", type=Path, default=None, help="Optional SQLite database path. Defaults to a temp file.")
     args = parser.parse_args(argv)
+    if args.mode is None and args.corpus_file is None:
+        parser.error("one of --mode or --corpus-file is required")
+    if args.mode is not None and args.corpus_file is not None:
+        parser.error("use either --mode or --corpus-file, not both")
 
-    units, provenance = _seed_units(args.mode, max(int(args.count), 1))
-    payload = build_fact_intake_payload_from_text_units(units, source_label=f"benchmark:{args.mode}:{args.count}")
-    for source in payload["sources"]:
-        source["provenance"] = dict(provenance)
+    corpus_entries: list[dict[str, object]] = []
+    if args.corpus_file is not None:
+        units, corpus_entries = _seed_units_from_corpus(args.corpus_file, max(int(args.count), 1))
+        payload = build_fact_intake_payload_from_text_units(units, source_label=f"benchmark:{args.corpus_file.stem}:{args.count}")
+        for source, entry in zip(payload["sources"], corpus_entries):
+            source["source_type"] = str(entry.get("source_type") or source["source_type"])
+            source["provenance"] = dict(entry.get("provenance") or {})
+    else:
+        units, provenance = _seed_units(args.mode, max(int(args.count), 1))
+        payload = build_fact_intake_payload_from_text_units(units, source_label=f"benchmark:{args.mode}:{args.count}")
+        for source in payload["sources"]:
+            source["provenance"] = dict(provenance)
 
     temp_ctx = None
     db_path = args.db_path
@@ -94,9 +132,11 @@ def main(argv: list[str] | None = None) -> int:
 
     payload_out = {
         "mode": args.mode,
+        "corpus_file": str(args.corpus_file) if args.corpus_file is not None else None,
         "count": int(args.count),
         "db_path": str(db_path),
         "elapsed_ms": elapsed_ms,
+        "elapsed_ms_per_doc": round(elapsed_ms / max(int(args.count), 1), 6),
         "persist_summary": persist_summary,
         "zelph": {
             "active_packs": workbench.get("zelph", {}).get("active_packs", []),
@@ -113,6 +153,13 @@ def main(argv: list[str] | None = None) -> int:
             "policy_count": int(refresh["policy_count"]) if refresh is not None else 0,
         },
     }
+    if corpus_entries:
+        payload_out["corpus_summary"] = {
+            "source_types": sorted({str(row.get("source_type") or "") for row in corpus_entries}),
+            "expected_class_count": sum(len(list(row.get("expected_classes") or [])) for row in corpus_entries),
+            "expected_policy_count": sum(len(list(row.get("expected_policies") or [])) for row in corpus_entries),
+            "long_entry_count": sum(1 for row in corpus_entries if str(row.get("length_bucket") or "") == "long"),
+        }
     print(json.dumps(payload_out, indent=2, sort_keys=True))
 
     if temp_ctx is not None:

@@ -1,0 +1,78 @@
+{
+  "corpus_id": "chat_archive",
+  "description": "Chat/archive benchmark corpus for uncertainty, self-correction, sequencing, handoff, and bounded-context policy.",
+  "entries": [
+    {
+      "id": "chat-short-correction",
+      "source_type": "openrecall_capture",
+      "text": "Actually, correction: verify this later.",
+      "length_bucket": "short",
+      "expected_classes": ["self_correction_signal", "execution_handoff_signal", "sequence_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "chat-short-uncertain",
+      "source_type": "openrecall_capture",
+      "text": "I am not sure; maybe handoff tomorrow.",
+      "length_bucket": "short",
+      "expected_classes": ["uncertainty_preserved", "execution_handoff_signal"],
+      "expected_policies": ["preserve_source_boundary", "bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "chat-medium-agent-log",
+      "source_type": "openrecall_capture",
+      "text": "[agent] Executed draft summary, then updated the note after the user corrected the date and asked for a follow-up review.",
+      "length_bucket": "medium",
+      "expected_classes": ["self_correction_signal", "sequence_signal", "execution_handoff_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive", "source_signal_classes": ["agent_action_log", "system_summary"]}
+    },
+    {
+      "id": "chat-long-handoff",
+      "source_type": "openrecall_capture",
+      "text": "Support handoff: the first draft may be wrong, the user later corrected the chronology, and the next operator should verify the cited record before promoting any summary into the case brief.",
+      "length_bucket": "long",
+      "expected_classes": ["uncertainty_preserved", "self_correction_signal", "execution_handoff_signal", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary", "bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive", "source_signal_classes": ["agent_summary"]}
+    },
+    {
+      "id": "chat-adversarial-ocr",
+      "source_type": "openrecall_capture",
+      "text": "ACTUALLY v3rify l8r maybe maybe maybe TODO TODO ??? hand0ff",
+      "length_bucket": "medium",
+      "expected_classes": ["uncertainty_preserved"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "chat-medium-interjection",
+      "source_type": "openrecall_capture",
+      "text": "[user] Wait, what did you mean? [agent] I was suggesting a review; maybe I misspoke, let's revert that assumption until tomorrow.",
+      "length_bucket": "medium",
+      "expected_classes": ["uncertainty_preserved", "self_correction_signal", "execution_handoff_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "chat-long-correction-chain",
+      "source_type": "openrecall_capture",
+      "text": "The first logs indicated a 404 error, but checking again, the user meant the redirect failed. Correction: the redirect is active, but the target page is missing. Please hand off this detail to the NOC team for a follow-up verification of the server status.",
+      "length_bucket": "long",
+      "expected_classes": ["uncertainty_preserved", "self_correction_signal", "execution_handoff_signal", "sequence_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "chat-adversarial-fragment",
+      "source_type": "openrecall_capture",
+      "text": "??? ??? !!! [error] handoff failed? retry. retry. maybe fixed. actually broken? correction: unknown.",
+      "length_bucket": "medium",
+      "expected_classes": ["uncertainty_preserved", "self_correction_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    }
+  ]
+}

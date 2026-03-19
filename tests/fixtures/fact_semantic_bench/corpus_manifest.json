@@ -1,0 +1,25 @@
+{
+  "version": "fact.semantic.bench.v1",
+  "corpora": [
+    {
+      "corpus_id": "wiki_revision",
+      "path": "tests/fixtures/fact_semantic_bench/wiki_revision_seed.json",
+      "tiers": [100, 1000, 10000]
+    },
+    {
+      "corpus_id": "chat_archive",
+      "path": "tests/fixtures/fact_semantic_bench/chat_archive_seed.json",
+      "tiers": [100, 1000, 10000]
+    },
+    {
+      "corpus_id": "transcript_handoff",
+      "path": "tests/fixtures/fact_semantic_bench/transcript_handoff_seed.json",
+      "tiers": [100, 1000, 5000]
+    },
+    {
+      "corpus_id": "au_legal",
+      "path": "tests/fixtures/fact_semantic_bench/au_legal_seed.json",
+      "tiers": [100, 1000, 5000]
+    }
+  ]
+}
