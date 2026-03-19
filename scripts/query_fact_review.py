@@ -95,6 +95,11 @@ def main(argv: list[str] | None = None) -> int:
     acceptance_p.add_argument("--wave", default="all", choices=["wave1_legal", "wave2_balanced", "wave3_trauma_advocacy", "all"])
     acceptance_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
 
+    demo_p = sub.add_parser("demo-bundle", help="Show a captured Mary demo bundle over a resolved persisted run")
+    _add_run_selector_args(demo_p)
+    demo_p.add_argument("--wave", default="wave1_legal", choices=["wave1_legal", "wave2_balanced", "wave3_trauma_advocacy", "all"])
+    demo_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
+
     report_p = sub.add_parser("report", help="Show the full persisted fact-intake report")
     _add_run_selector_args(report_p)
 
@@ -276,6 +281,55 @@ def main(argv: list[str] | None = None) -> int:
                     workbench,
                     wave=args.wave,
                     fixture_kind=args.fixture_kind,
+                ),
+            }
+        elif args.command == "demo-bundle":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            workbench = build_fact_review_workbench_payload(conn, run_id=resolved_run_id)
+            resolved_workflow_kind = (
+                getattr(args, "workflow_kind", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_kind")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_kind")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_kind")
+            )
+            resolved_workflow_run_id = (
+                getattr(args, "workflow_run_id", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_run_id")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_run_id")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_run_id")
+            )
+            resolved_source_label = (
+                getattr(args, "source_label", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("source_label")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("source_label")
+                or workbench.get("run", {}).get("source_label")
+            )
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "selector": {
+                    "run_id": resolved_run_id,
+                    "workflow_kind": resolved_workflow_kind,
+                    "workflow_run_id": resolved_workflow_run_id,
+                    "source_label": resolved_source_label,
+                    "wave": args.wave,
+                    "fixture_kind": args.fixture_kind,
+                },
+                "workbench": workbench,
+                "acceptance": build_fact_review_acceptance_report(
+                    workbench,
+                    wave=args.wave,
+                    fixture_kind=args.fixture_kind,
+                ),
+                "sources": list_fact_review_sources(
+                    conn,
+                    workflow_kind=resolved_workflow_kind,
                 ),
             }
         else:

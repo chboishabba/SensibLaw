@@ -259,3 +259,36 @@ def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(tmp_path
     sources_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert sources_payload["sources"][0]["latest_workflow_link"]["fact_run_id"] == run_id
+
+
+def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "demo-bundle",
+            "--workflow-kind",
+            "transcript_semantic",
+            "--workflow-run-id",
+            "semantic:query-demo",
+            "--wave",
+            "wave1_legal",
+            "--fixture-kind",
+            "real",
+        ]
+    )
+    bundle_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert bundle_payload["selector"]["run_id"] == run_id
+    assert bundle_payload["selector"]["workflow_kind"] == "transcript_semantic"
+    assert bundle_payload["selector"]["workflow_run_id"] == "semantic:query-demo"
+    assert bundle_payload["selector"]["wave"] == "wave1_legal"
+    assert bundle_payload["selector"]["fixture_kind"] == "real"
+    assert bundle_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
+    assert "missing_actor" in bundle_payload["workbench"]["issue_filters"]["available_filters"]
+    assert "chronology_groups" in bundle_payload["workbench"]
+    assert bundle_payload["acceptance"]["wave"] == "wave1_legal"
+    assert bundle_payload["sources"][0]["latest_workflow_link"]["workflow_run_id"] == "semantic:query-demo"
