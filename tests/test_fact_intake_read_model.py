@@ -11,6 +11,7 @@ import yaml
 from src.fact_intake import (
     EVENT_ASSEMBLER_VERSION,
     FACT_INTAKE_CONTRACT_VERSION,
+    FACT_REVIEW_ZELPH_RULESET_VERSION,
     MARY_FACT_WORKFLOW_VERSION,
     OBSERVATION_PREDICATE_TO_FAMILY,
     build_fact_review_acceptance_report,
@@ -339,6 +340,11 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert operator_views["procedural_posture"]["items"][0]["fact_id"] == payload["fact_candidates"][1]["fact_id"]
     assert workbench["inspector_defaults"]["selected_fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert workbench["operator_views"]["contested_items"]["summary"]["count"] == 1
+    assert workbench["zelph_ruleset_version"] == FACT_REVIEW_ZELPH_RULESET_VERSION
+    assert workbench["zelph"]["version"] == "fact_intake.zelph_bridge.v1"
+    assert workbench["zelph"]["rule_status"] in {"engine_ok", "engine_unavailable", "engine_error"}
+    assert workbench["facts"][0]["inferred_signal_classes"] == []
+    assert workbench["review_queue"][0]["inferred_signal_classes"] == []
     assert acceptance["fixture_kind"] == "synthetic"
     assert acceptance["summary"]["story_count"] >= 1
     assert list_fact_review_sources(conn, workflow_kind="transcript_semantic")[0]["latest_workflow_link"]["fact_run_id"] == payload["run"]["run_id"]
@@ -442,6 +448,42 @@ def test_persist_fact_intake_payload_replaces_existing_run_rows() -> None:
     }
     assert report["facts"][0]["reviews"][0]["review_status"] == "accepted"
     assert report["events"][0]["event_type"] == "reported"
+
+
+def test_workbench_payload_applies_canonical_zelph_enrichment() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="unit:wiki",
+            source_id="wiki-source",
+            source_type="wiki_article",
+            text="Revision by BD2412: Reverted unsourced change.",
+        ),
+        TextUnit(
+            unit_id="unit:legal",
+            source_id="legal-source",
+            source_type="legal_record",
+            text="Formal order confirms the governing legal position.",
+        ),
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_demo")
+    payload["sources"][0]["provenance"] = {"source_signal_classes": ["wiki_article", "revision_history"]}
+    payload["sources"][1]["provenance"] = {"source_signal_classes": ["legal_record", "strong_legal_source"]}
+    payload["fact_candidates"][0]["canonical_label"] = "Wiki revision"
+    payload["fact_candidates"][1]["canonical_label"] = "Legal position"
+    persist_fact_intake_payload(conn, payload)
+
+    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
+    wiki_fact = next(row for row in workbench["facts"] if row["fact_id"] == payload["fact_candidates"][0]["fact_id"])
+    legal_fact = next(row for row in workbench["facts"] if row["fact_id"] == payload["fact_candidates"][1]["fact_id"])
+
+    assert "public_summary" in wiki_fact["source_signal_classes"]
+    assert "volatility_signal" in wiki_fact["signal_classes"]
+    assert "volatility_signal" in wiki_fact["inferred_signal_classes"]
+    assert "public_summary" in wiki_fact["inferred_source_signal_classes"]
+    assert "public_knowledge_not_authority" not in wiki_fact["signal_classes"]
+    assert legal_fact["inferred_signal_classes"] == []
+    assert workbench["zelph"]["inferred_fact_count"] == 1
 
 
 def test_persist_fact_intake_payload_rejects_unsupported_status_values() -> None:

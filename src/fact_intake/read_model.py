@@ -8,6 +8,7 @@ from typing import Any, Iterable, Mapping
 
 from src.reporting.structure_report import TextUnit
 from src.sensiblaw.db.dao import ensure_database
+from src.zelph_bridge import enrich_workbench_with_zelph, load_zelph_rules
 
 FACT_INTAKE_CONTRACT_VERSION = "fact.intake.bundle.v1"
 MARY_FACT_WORKFLOW_VERSION = "mary.fact_workflow.v1"
@@ -115,6 +116,7 @@ FACT_REVIEW_OPERATOR_VIEW_KINDS = (
 )
 
 FACT_REVIEW_WORKBENCH_VERSION = "fact.review.workbench.v1"
+FACT_REVIEW_ZELPH_RULESET_VERSION = "fact.review.workbench.zelph.v1"
 _ASSERTION_PREDICATES = {"claimed", "denied", "admitted", "alleged"}
 _PROCEDURAL_OUTCOME_PREDICATES = {"ordered", "ruled", "decided_by", "held_that"}
 _PROCEDURAL_CONTEXT_PREDICATES = {"appealed", "challenged", "heard_by", "applied", "followed", "distinguished"}
@@ -1995,7 +1997,20 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     }
 
 
-def build_fact_review_workbench_payload(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def _fact_review_zelph_rules() -> str:
+    base_dir = Path(__file__).resolve().parent
+    return load_zelph_rules(
+        base_dir / "zelph_invariants.zlp",
+        base_dir / "zelph_workbench_rules.zlp",
+    )
+
+
+def build_fact_review_workbench_payload(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    include_zelph: bool = True,
+) -> dict[str, Any]:
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = build_fact_review_run_summary(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
@@ -2016,8 +2031,9 @@ def build_fact_review_workbench_payload(conn: sqlite3.Connection, *, run_id: str
             }
         )
     default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
-    return {
+    workbench = {
         "version": FACT_REVIEW_WORKBENCH_VERSION,
+        "zelph_ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
         "run": report["run"],
         "summary": summary["summary"],
         "review_queue": summary["review_queue"],
@@ -2037,3 +2053,6 @@ def build_fact_review_workbench_payload(conn: sqlite3.Connection, *, run_id: str
             "default_view": "intake_triage",
         },
     }
+    if not include_zelph:
+        return workbench
+    return enrich_workbench_with_zelph(workbench, rules=_fact_review_zelph_rules())

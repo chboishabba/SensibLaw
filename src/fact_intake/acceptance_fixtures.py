@@ -884,7 +884,12 @@ def _build_synthetic_support_worker_handoff_v1(db_path: Path, fixture: Mapping[s
 
 def _build_real_gwb_contested_public_figure_v1(db_path: Path, fixture: Mapping[str, Any]) -> dict[str, Any]:
     units = [
-        TextUnit("gwb-1", "wiki_page", "wiki_article", "Public summary says the program was unlawful."),
+        TextUnit(
+            "gwb-1",
+            "wiki_page",
+            "wiki_article",
+            "Revision by GWBModerator: Reverted unqualified unlawful framing until judgment scope is checked.",
+        ),
         TextUnit("gwb-2", "hearing_record", "transcript_file", "At hearing, counsel disputed that the public summary captured the legal posture."),
         TextUnit("gwb-3", "judgment_extract", "judgment_extract", "The judgment describes procedural findings and limits the scope of the ruling."),
     ]
@@ -899,7 +904,7 @@ def _build_real_gwb_contested_public_figure_v1(db_path: Path, fixture: Mapping[s
     _set_source_signal_classes(
         payload,
         {
-            "wiki_article": ["public_summary", "wiki_article", "weak_public_source"],
+            "wiki_article": ["public_summary", "wiki_article", "weak_public_source", "revision_history"],
             "transcript_file": ["procedural_record", "strong_legal_source"],
             "judgment_extract": ["legal_record", "strong_legal_source", "procedural_record"],
         },
@@ -945,7 +950,12 @@ def _build_synthetic_trump_public_figure_legality_v1(db_path: Path, fixture: Map
 
 def _build_synthetic_wikipedia_defamation_review_v1(db_path: Path, fixture: Mapping[str, Any]) -> dict[str, Any]:
     units = [
-        TextUnit("wd-1", "article_text", "wiki_article", "The article states the accusation as though it were settled fact."),
+        TextUnit(
+            "wd-1",
+            "article_text",
+            "wiki_article",
+            "Revision by ExampleEditor: Reverted unqualified accusation wording pending attribution.",
+        ),
         TextUnit("wd-2", "reporting", "reporting_note", "Reporting attributes the accusation to named sources."),
         TextUnit("wd-3", "record", "judgment_extract", "The legal record remains narrower and partly procedural."),
         TextUnit("wd-4", "editor", "editor_note", "Editor note: wording may create defamation risk if left unqualified."),
@@ -961,7 +971,7 @@ def _build_synthetic_wikipedia_defamation_review_v1(db_path: Path, fixture: Mapp
     _set_source_signal_classes(
         payload,
         {
-            "wiki_article": ["public_summary", "wiki_article", "weak_public_source"],
+            "wiki_article": ["public_summary", "wiki_article", "weak_public_source", "revision_history"],
             "reporting_note": ["reporting_source", "public_summary"],
             "judgment_extract": ["legal_record", "strong_legal_source", "procedural_record"],
             "editor_note": ["editorial_note", "later_annotation"],
@@ -1039,8 +1049,10 @@ def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], 
     with history_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     
-    rows = data.get("rows", [])[:5]  # Limit to 5 for now
-    units = []
+    rows = data.get("rows", [])[:10]  # Limit to 10 to find a reversion
+    units = [
+        TextUnit("legal-auth-1", "legal_record", "legal_record", f"Formal regulation reference for {title} content standards.")
+    ]
     for row in rows:
         unit_id = f"wiki-{row['revid']}"
         comment = row.get("comment") or "[no comment]"
@@ -1051,7 +1063,20 @@ def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], 
         source_label=str(fixture.get("source_label") or fixture.get("fixture_id")),
         notes=f"Wave 3 real wiki history fixture for {title}",
     )
-    for i, row in enumerate(rows):
+    payload["fact_candidates"][0]["canonical_label"] = "Legal Standard"
+    payload["fact_candidates"][0]["candidate_status"] = "candidate"
+    _append_observation(
+        payload, 
+        fixture_key=f"{fixture['fixture_id']}_legal_signal", 
+        statement_index=0, 
+        predicate_key="ruled", 
+        object_text="True", 
+        object_type="boolean",
+        provenance={"source": "acceptance_fixture", "fixture_key": fixture["fixture_id"], "signal_classes": ["procedural_outcome"]}
+    )
+    _set_source_signal_classes(payload, {"legal_record": ["legal_record", "strong_legal_source"]})
+    
+    for i, row in enumerate(rows, start=1):
         payload["fact_candidates"][i]["canonical_label"] = f"Revision {row['revid']}"
         payload["fact_candidates"][i]["candidate_status"] = "candidate"
         
@@ -1063,9 +1088,9 @@ def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], 
     )
     
     # Add an observation for one of the revisions if it's a reversion or removal
-    for i, row in enumerate(rows):
+    for i, row in enumerate(rows, start=1):
         comment = (row.get("comment") or "").lower()
-        if any(kw in comment for kw in ["revert", "reverting", "remove", "removed"]):
+        if any(kw in comment for kw in ["revert", "reverting", "remove", "removed", "undid", "undo", " rv "]) or comment.endswith(" rv"):
              _append_observation(
                 payload, 
                 fixture_key=f"{fixture['fixture_id']}_revert_{row['revid']}", 

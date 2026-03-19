@@ -1,0 +1,74 @@
+# Zelph rules for fact_intake workbench enrichment.
+
+(H cons T) => (H "member of" (H cons T)).
+(H cons T, X "member of" T) => (X "member of" (H cons T)).
+
+X "source_signal_class" "public_summary" :-
+    X "source_type" "wiki_article".
+
+X "source_signal_class" "wiki_article" :-
+    X "source_type" "wiki_article".
+
+X "source_signal_class" "wikidata_claim" :-
+    X "source_type" "wikidata_claim_sheet".
+
+X "signal_class" "volatility_signal" :-
+    X "has_observation_predicate" "is_reversion".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "reverted".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "undo".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "undid".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "remove".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "removed".
+
+X "signal_class" "party_assertion" :-
+    X "has_observation_predicate" "claimed".
+
+X "signal_class" "party_assertion" :-
+    X "has_observation_predicate" "denied".
+
+X "signal_class" "party_assertion" :-
+    X "has_observation_predicate" "admitted".
+
+X "signal_class" "party_assertion" :-
+    X "has_observation_predicate" "alleged".
+
+X "signal_class" "procedural_outcome" :-
+    X "has_observation_predicate" "ruled".
+
+X "signal_class" "procedural_outcome" :-
+    X "has_observation_predicate" "ordered".
+
+X "signal_class" "procedural_outcome" :-
+    X "has_observation_predicate" "decided_by".
+
+X "signal_class" "procedural_outcome" :-
+    X "has_observation_predicate" "held_that".
+
+X "signal_class" "authority_transfer_risk" :-
+    X "source_signal_class" "public_summary",
+    not(X "source_signal_class" "legal_record"),
+    not(X "source_signal_class" "procedural_record"),
+    not(X "source_signal_class" "strong_legal_source").
+
+X "signal_class" "public_knowledge_not_authority" :-
+    X "source_signal_class" "public_summary",
+    X "source_signal_class" "legal_record".
+
+X "signal_class" "wiki_wikidata_claim_alignment" :-
+    X "source_signal_class" "wikidata_claim",
+    X "source_signal_class" "wiki_article".

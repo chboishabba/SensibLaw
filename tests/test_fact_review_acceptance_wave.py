@@ -230,3 +230,49 @@ def test_wave1_acceptance_runner_reports_story_outcomes_and_gap_rollups(tmp_path
     assert all(story["status"] in {"pass", "partial", "fail"} for story in story_rows)
     assert all("failed_check_ids" in story for story in story_rows)
     assert all("gap_tags" in story for story in story_rows)
+
+
+def test_wave3_public_knowledge_full_wave_is_green(tmp_path, capsys) -> None:
+    db_path = tmp_path / "wave3.sqlite"
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "--wave",
+            "wave3_public_knowledge",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["wave"] == "wave3_public_knowledge"
+    story_rows = [story for fixture in payload["fixtures"] for story in fixture["stories"]]
+    assert story_rows
+    assert all(story["status"] == "pass" for story in story_rows)
+
+
+def test_all_acceptance_waves_remain_green(tmp_path, capsys) -> None:
+    waves = [
+        "wave1_legal",
+        "wave2_balanced",
+        "wave3_public_knowledge",
+        "wave4_family_law",
+        "wave4_medical_regulatory",
+        "wave5_handoff_false_coherence",
+    ]
+    for wave in waves:
+        db_path = tmp_path / f"{wave}.sqlite"
+        exit_code = main(
+            [
+                "--db-path",
+                str(db_path),
+                "--wave",
+                wave,
+            ]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert exit_code == 0
+        fixture_rows = payload["fixtures"]
+        assert fixture_rows
+        for fixture in fixture_rows:
+            assert fixture["summary"]["fail_count"] == 0
+            assert fixture["summary"]["partial_count"] == 0
