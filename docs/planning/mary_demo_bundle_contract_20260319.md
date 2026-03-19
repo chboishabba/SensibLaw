@@ -16,10 +16,17 @@ Preferred baseline today:
 - `workflow_kind`: `transcript_semantic`
 - `workflow_run_id`: `transcript_acceptance_real_intake_v1`
 
-Next widening target:
+AU/legal widening baseline:
 
 - `source_label`: `wave1:real_au_procedural_v1`
 - `workflow_kind`: `au_semantic`
+- `workflow_run_id`: `run:5ab560b645ee10d0badd59fe6ef0a9442bf5d41bc57e7ff950688ae5961ef12d`
+
+Current Mary completion stance:
+
+- transcript `demo-bundle` remains the primary operator/demo baseline
+- AU `demo-bundle` is the locked widening baseline for `SL-US-12` to `SL-US-14`
+- future widening should follow the same `demo-bundle` seam rather than inventing new capture paths
 
 The bundle must include:
 - `selector`
