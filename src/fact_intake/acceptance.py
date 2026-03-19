@@ -38,6 +38,22 @@ def _has_workflow_link(workbench: Mapping[str, Any]) -> bool:
     return isinstance(run, Mapping) and isinstance(run.get("workflow_link"), Mapping)
 
 
+def _has_reopen_navigation(workbench: Mapping[str, Any]) -> bool:
+    navigation = workbench.get("reopen_navigation")
+    if not isinstance(navigation, Mapping):
+        return False
+    current = navigation.get("current")
+    recent_sources = navigation.get("recent_sources")
+    query = navigation.get("query")
+    return (
+        isinstance(current, Mapping)
+        and bool(current.get("workflow_kind"))
+        and isinstance(query, Mapping)
+        and isinstance(recent_sources, list)
+        and len(recent_sources) > 0
+    )
+
+
 def _has_legal_procedural_signal(workbench: Mapping[str, Any]) -> bool:
     queue = workbench.get("review_queue")
     if not isinstance(queue, list):
@@ -87,9 +103,29 @@ def _has_approximate_chronology(workbench: Mapping[str, Any]) -> bool:
 
 
 def _has_queue_grouping(workbench: Mapping[str, Any]) -> bool:
-    views = workbench.get("operator_views")
-    triage = views.get("intake_triage") if isinstance(views, Mapping) else None
-    return isinstance(triage, Mapping) and isinstance(triage.get("groups"), Mapping)
+    issue_filters = workbench.get("issue_filters")
+    if not isinstance(issue_filters, Mapping):
+        return False
+    filter_rows = issue_filters.get("filters")
+    if not isinstance(filter_rows, list):
+        return False
+    seen = {str(row.get("filter_key")) for row in filter_rows if isinstance(row, Mapping)}
+    return {"missing_date", "missing_actor", "contradictory_chronology", "procedural_significance"} <= seen
+
+
+def _has_inspector_classification(workbench: Mapping[str, Any]) -> bool:
+    classification = workbench.get("inspector_classification")
+    if not isinstance(classification, Mapping):
+        return False
+    facts = classification.get("facts")
+    if not isinstance(facts, Mapping) or not facts:
+        return False
+    return any(
+        isinstance(row, Mapping)
+        and isinstance(row.get("status_keys"), Mapping)
+        and {"party_assertion", "procedural_outcome", "later_annotation"} <= set(row.get("status_keys", {}).keys())
+        for row in facts.values()
+    )
 
 
 def _fact_rows(workbench: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -286,6 +322,7 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
             ("chronology_split", _has_chronology_split),
             ("roleful_queue_reasons", _has_roleful_queue_reasons),
             ("queue_grouping", _has_queue_grouping),
+            ("inspector_classification", _has_inspector_classification),
         ),
     ),
     (
@@ -295,6 +332,7 @@ STORY_CHECKS: tuple[tuple[str, str, tuple[tuple[str, CheckFn], ...]], ...] = (
             ("provenance_drilldown", _has_provenance_links),
             ("contested_summary", _has_contested_summary),
             ("workflow_link", _has_workflow_link),
+            ("reopen_navigation", _has_reopen_navigation),
         ),
     ),
     (
@@ -568,8 +606,10 @@ CHECK_EXPLANATIONS: dict[str, str] = {
     "queue_grouping": "Review queue lacks grouped/filterable issue categories.",
     "contested_summary": "Contested items are not summarized separately from the main review flow.",
     "workflow_link": "Stored run cannot be reopened cleanly from workflow metadata.",
+    "reopen_navigation": "Source-centric reopen navigation is not explicit enough in the persisted workbench.",
     "legal_procedural_signal": "Legal/procedural observations are not visible enough in the review surface.",
     "assertion_outcome_distinction": "Party assertion, later annotation, and procedural outcome are still blurred together.",
+    "inspector_classification": "Inspector does not explicitly distinguish assertion, procedural outcome, and later annotation.",
     "read_only_posture": "Review surface does not clearly maintain read-only, non-reasoning posture.",
     "sparse_chronology": "Sparse chronology handling is too weak for contradictory or partial material.",
     "approximate_chronology": "Approximate or relative dates are not surfaced distinctly enough.",
@@ -603,9 +643,11 @@ CHECK_GAP_TAGS: dict[str, tuple[str, ...]] = {
     "queue_grouping": ("workbench_filter_missing", "review_queue_generic"),
     "legal_procedural_signal": ("procedural_signal_thin",),
     "assertion_outcome_distinction": ("assertion_outcome_blur",),
+    "inspector_classification": ("assertion_outcome_blur",),
     "approximate_chronology": ("chronology_sparse_dates",),
     "sparse_chronology": ("chronology_sparse_dates", "anti_false_coherence_risk"),
     "workflow_link": ("reopen_navigation_gap",),
+    "reopen_navigation": ("reopen_navigation_gap",),
     "abstention_visibility": ("anti_false_coherence_risk", "uncertainty_visibility_gap"),
     "source_class_distinction": ("handoff_context_gap",),
     "support_handoff_posture": ("handoff_context_gap",),

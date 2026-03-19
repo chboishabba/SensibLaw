@@ -159,9 +159,14 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     workbench_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert workbench_payload["workbench"]["operator_views"]["chronology_prep"]["groups"]["dated_events"]
-    assert "groups" in workbench_payload["workbench"]["operator_views"]["intake_triage"]
+    assert "contradictory_chronology" in workbench_payload["workbench"]["operator_views"]["intake_triage"]["groups"]
+    assert workbench_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
+    assert "missing_actor" in workbench_payload["workbench"]["issue_filters"]["available_filters"]
+    first_fact_id = workbench_payload["workbench"]["facts"][0]["fact_id"]
+    assert workbench_payload["workbench"]["inspector_classification"]["facts"][first_fact_id]["status_keys"]
     assert "approximate_events" in workbench_payload["workbench"]["chronology_groups"]
     assert "signal_classes" in workbench_payload["workbench"]["facts"][0]
+    assert "inspector_classification" in workbench_payload["workbench"]["facts"][0]
 
     exit_code = main(["--db-path", str(db_path), "acceptance", "--run-id", run_id, "--fixture-kind", "synthetic"])
     acceptance_payload = json.loads(capsys.readouterr().out)

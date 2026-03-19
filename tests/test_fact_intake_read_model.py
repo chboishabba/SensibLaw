@@ -361,17 +361,31 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert review_summary["chronology_groups"]["facts_with_no_event"] == []
     assert review_summary["chronology_groups"]["contested_chronology_items"]
     assert operator_views["intake_triage"]["items"][0]["fact_id"] == payload["fact_candidates"][0]["fact_id"]
+    assert operator_views["intake_triage"]["groups"]["contradictory_chronology"][0]["fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert operator_views["procedural_posture"]["items"][0]["fact_id"] == payload["fact_candidates"][1]["fact_id"]
     assert workbench["inspector_defaults"]["selected_fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert workbench["operator_views"]["contested_items"]["summary"]["count"] == 1
+    assert workbench["reopen_navigation"]["current"]["workflow_kind"] == "transcript_semantic"
+    assert workbench["reopen_navigation"]["query"]["workflow_run_id"] == "semantic:test:1"
+    assert workbench["reopen_navigation"]["recent_sources"][0]["workflow_kind"] == "transcript_semantic"
+    assert workbench["reopen_navigation"]["recent_sources"][0]["fact_run_id"] == payload["run"]["run_id"]
+    assert workbench["issue_filters"]["available_filters"] == ["all", "missing_actor", "contradictory_chronology", "procedural_significance"]
+    assert workbench["inspector_classification"]["facts"][payload["fact_candidates"][0]["fact_id"]]["display_labels"] == ["unclassified"]
+    assert workbench["inspector_classification"]["facts"][payload["fact_candidates"][1]["fact_id"]]["status_keys"]["party_assertion"] is True
     assert workbench["zelph_ruleset_version"] == FACT_REVIEW_ZELPH_RULESET_VERSION
     assert workbench["zelph"]["version"] == "fact_intake.zelph_bridge.v1"
     assert workbench["zelph"]["rule_status"] in {"engine_ok", "engine_unavailable", "engine_error"}
     assert workbench["facts"][0]["policy_outcomes"] == ["review_required"]
+    assert workbench["facts"][0]["inspector_classification"]["dominant_label"] == "unclassified"
+    assert workbench["facts"][1]["inspector_classification"]["dominant_label"] == "party_assertion"
     assert workbench["facts"][0]["inferred_signal_classes"] == []
     assert workbench["review_queue"][0]["inferred_signal_classes"] == []
     assert acceptance["fixture_kind"] == "synthetic"
     assert acceptance["summary"]["story_count"] >= 1
+    acceptance_by_id = {row["story_id"]: row for row in acceptance["stories"]}
+    assert {"SL-US-09", "SL-US-10"} <= set(acceptance_by_id)
+    assert "inspector_classification" not in acceptance_by_id["SL-US-09"]["failed_check_ids"]
+    assert "reopen_navigation" not in acceptance_by_id["SL-US-10"]["failed_check_ids"]
     assert list_fact_review_sources(conn, workflow_kind="transcript_semantic")[0]["latest_workflow_link"]["fact_run_id"] == payload["run"]["run_id"]
     assert resolve_fact_run_link(conn, workflow_kind="transcript_semantic", workflow_run_id="semantic:test:1")["fact_run_id"] == payload["run"]["run_id"]
     assert resolve_fact_run_id(conn, workflow_kind="transcript_semantic", workflow_run_id="semantic:test:1") == payload["run"]["run_id"]

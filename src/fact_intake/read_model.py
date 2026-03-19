@@ -2542,6 +2542,12 @@ def _build_fact_review_workbench_payload_legacy(
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = _build_fact_review_run_summary_legacy(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
+    workflow_link = report["run"].get("workflow_link") if isinstance(report["run"].get("workflow_link"), Mapping) else {}
+    recent_sources = list_fact_review_sources(
+        conn,
+        workflow_kind=_normalize_opt_text(workflow_link.get("workflow_kind")),
+        limit=20,
+    )
     summary_by_fact_id = {row["fact_id"]: row for row in summary["facts"]}
     facts = []
     for fact in report["facts"]:
@@ -2557,6 +2563,7 @@ def _build_fact_review_workbench_payload_legacy(
                 "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
                 "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
                 "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
+                "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
             }
         )
     default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
@@ -2571,12 +2578,19 @@ def _build_fact_review_workbench_payload_legacy(
         "chronology": summary["chronology"],
         "chronology_groups": summary["chronology_groups"],
         "operator_views": operator_views,
+        "reopen_navigation": _build_reopen_navigation(report["run"], recent_sources),
+        "issue_filters": _build_issue_filters(summary, operator_views),
         "sources": report["sources"],
         "excerpts": report["excerpts"],
         "statements": report["statements"],
         "observations": report["observations"],
         "events": report["events"],
         "facts": facts,
+        "inspector_classification": {
+            "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
+            "selected_fact_id": default_fact_id,
+            "facts": {row["fact_id"]: row["inspector_classification"] for row in facts},
+        },
         "inspector_defaults": {
             "selected_fact_id": default_fact_id,
             "default_view": "intake_triage",
@@ -2874,6 +2888,12 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     review_queue = list(summary["review_queue"])
     chronology_groups = dict(summary["chronology_groups"])
     contested_summary = dict(summary["contested_summary"])
+    intake_groups = {
+        "missing_date": [row for row in review_queue if "missing_date" in row["reason_codes"]],
+        "missing_actor": [row for row in review_queue if "missing_actor" in row["reason_codes"]],
+        "contradictory_chronology": [row for row in review_queue if "contradictory_chronology" in row["reason_codes"]],
+        "procedural_significance": [row for row in review_queue if "procedural_significance" in row["reason_codes"]],
+    }
     return {
         "intake_triage": {
             "title": "Intake triage",
@@ -2885,10 +2905,8 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 "statement_only_review_queue_count": summary["summary"]["statement_only_review_queue_count"],
             },
             "groups": {
-                "missing_date": [row for row in review_queue if "missing_date" in row["reason_codes"]],
-                "missing_actor": [row for row in review_queue if "missing_actor" in row["reason_codes"]],
-                "chronology_conflict": [row for row in review_queue if "contradictory_chronology" in row["reason_codes"]],
-                "procedural_significance": [row for row in review_queue if "procedural_significance" in row["reason_codes"]],
+                **intake_groups,
+                "chronology_conflict": list(intake_groups["contradictory_chronology"]),
             },
             "items": review_queue,
         },
@@ -3015,6 +3033,83 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     }
 
 
+def _inspector_classification_for_fact_row(fact_row: Mapping[str, Any]) -> dict[str, Any]:
+    signal_classes = [str(value) for value in fact_row.get("signal_classes", []) if str(value).strip()]
+    source_signal_classes = [str(value) for value in fact_row.get("source_signal_classes", []) if str(value).strip()]
+    status_keys = {
+        "party_assertion": "party_assertion" in signal_classes,
+        "procedural_outcome": "procedural_outcome" in signal_classes,
+        "later_annotation": "later_annotation" in source_signal_classes,
+    }
+    dominant_label = next((key for key in ("procedural_outcome", "party_assertion", "later_annotation") if status_keys[key]), "unclassified")
+    return {
+        "status_keys": status_keys,
+        "dominant_label": dominant_label,
+        "display_labels": [
+            label.replace("_", " ")
+            for label, enabled in status_keys.items()
+            if enabled
+        ] or ["unclassified"],
+    }
+
+
+def _build_issue_filters(summary: Mapping[str, Any], operator_views: Mapping[str, Any]) -> dict[str, Any]:
+    intake_triage = operator_views.get("intake_triage") if isinstance(operator_views, Mapping) else None
+    triage_groups = intake_triage.get("groups") if isinstance(intake_triage, Mapping) else {}
+    filters: list[dict[str, Any]] = []
+    for key in ("missing_date", "missing_actor", "contradictory_chronology", "procedural_significance"):
+        items = triage_groups.get(key, []) if isinstance(triage_groups, Mapping) else []
+        filters.append(
+            {
+                "filter_key": key,
+                "label": REVIEW_REASON_LABELS.get(key, key.replace("_", " ").title()),
+                "count": len(items) if isinstance(items, list) else 0,
+                "fact_ids": [row["fact_id"] for row in items if isinstance(row, Mapping) and row.get("fact_id")],
+            }
+        )
+    return {
+        "default_filter": "all",
+        "available_filters": ["all", *[row["filter_key"] for row in filters if row["count"] > 0]],
+        "filters": filters,
+        "summary": {
+            "missing_date_review_queue_count": summary["summary"]["missing_date_review_queue_count"],
+            "missing_actor_review_queue_count": summary["summary"]["missing_actor_review_queue_count"],
+            "contradictory_chronology_review_queue_count": summary["summary"]["contradictory_chronology_review_queue_count"],
+            "procedural_significance_review_queue_count": summary["summary"]["legal_procedural_review_queue_count"],
+        },
+    }
+
+
+def _build_reopen_navigation(run: Mapping[str, Any], sources: list[Mapping[str, Any]]) -> dict[str, Any]:
+    workflow_link = run.get("workflow_link") if isinstance(run.get("workflow_link"), Mapping) else {}
+    workflow_kind = _normalize_opt_text(workflow_link.get("workflow_kind"))
+    workflow_run_id = _normalize_opt_text(workflow_link.get("workflow_run_id"))
+    source_label = _normalize_opt_text(run.get("source_label"))
+    return {
+        "current": {
+            "run_id": run.get("run_id"),
+            "source_label": source_label,
+            "workflow_kind": workflow_kind,
+            "workflow_run_id": workflow_run_id,
+        },
+        "query": {
+            "workflow_kind": workflow_kind,
+            "workflow_run_id": workflow_run_id,
+            "source_label": source_label,
+        },
+        "recent_sources": [
+            {
+                "source_label": row.get("source_label"),
+                "workflow_kind": ((row.get("latest_workflow_link") or {}).get("workflow_kind") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
+                "workflow_run_id": ((row.get("latest_workflow_link") or {}).get("workflow_run_id") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
+                "fact_run_id": ((row.get("latest_workflow_link") or {}).get("fact_run_id") if isinstance(row.get("latest_workflow_link"), Mapping) else None),
+                "run_count": row.get("run_count"),
+            }
+            for row in sources
+        ],
+    }
+
+
 def _fact_review_zelph_rules() -> str:
     base_dir = Path(__file__).resolve().parent
     return load_zelph_rules(
@@ -3034,6 +3129,12 @@ def build_fact_review_workbench_payload(
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = build_fact_review_run_summary(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
+    workflow_link = report["run"].get("workflow_link") if isinstance(report["run"].get("workflow_link"), Mapping) else {}
+    recent_sources = list_fact_review_sources(
+        conn,
+        workflow_kind=_normalize_opt_text(workflow_link.get("workflow_kind")),
+        limit=20,
+    )
     summary_by_fact_id = {row["fact_id"]: row for row in summary["facts"]}
     facts = []
     for fact in report["facts"]:
@@ -3050,6 +3151,7 @@ def build_fact_review_workbench_payload(
                 "policy_outcomes": list(queue_row.get("policy_outcomes", [])) if queue_row else [],
                 "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
                 "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
+                "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
             }
         )
     default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
@@ -3064,12 +3166,19 @@ def build_fact_review_workbench_payload(
         "chronology": summary["chronology"],
         "chronology_groups": summary["chronology_groups"],
         "operator_views": operator_views,
+        "reopen_navigation": _build_reopen_navigation(report["run"], recent_sources),
+        "issue_filters": _build_issue_filters(summary, operator_views),
         "sources": report["sources"],
         "excerpts": report["excerpts"],
         "statements": report["statements"],
         "observations": report["observations"],
         "events": report["events"],
         "facts": facts,
+        "inspector_classification": {
+            "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
+            "selected_fact_id": default_fact_id,
+            "facts": {row["fact_id"]: row["inspector_classification"] for row in facts},
+        },
         "inspector_defaults": {
             "selected_fact_id": default_fact_id,
             "default_view": "intake_triage",
