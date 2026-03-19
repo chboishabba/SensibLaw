@@ -10,6 +10,17 @@ Expose one stable persisted-run bundle for Mary-parity operator validation.
 
 Use `scripts/query_fact_review.py demo-bundle`.
 
+Preferred baseline today:
+
+- `source_label`: `wave1:real_transcript_intake_v1`
+- `workflow_kind`: `transcript_semantic`
+- `workflow_run_id`: `transcript_acceptance_real_intake_v1`
+
+Next widening target:
+
+- `source_label`: `wave1:real_au_procedural_v1`
+- `workflow_kind`: `au_semantic`
+
 The bundle must include:
 - `selector`
 - `workbench`
