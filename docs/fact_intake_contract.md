@@ -68,6 +68,15 @@ projections over those read models.
    - `fact_candidate_statements`
    - `fact_contestations`
    - `fact_reviews`
+   - semantic sidecar tables:
+     - `semantic_class_vocab`
+     - `semantic_relation_vocab`
+     - `semantic_rule_vocab`
+     - `policy_vocab`
+     - `entity_class_assertions`
+     - `entity_relations`
+     - `policy_outcomes`
+     - `semantic_refresh_runs`
 
 2. **Mary-compatible receiver: workflow projection**
    - `mary.fact_workflow.v1`
@@ -109,9 +118,30 @@ projections over those read models.
 - event candidates are derived, not canonical source-of-truth objects
 - structural identity must stay separate from run metadata
 - abstention must be explicit rather than inferred from missing rows
+- ontology-bearing semantics should not live long-term in `provenance_json`
+- compatibility arrays like `signal_classes` / `source_signal_classes` are projection outputs, not canonical storage
 - existing `CaseObservation` / `ActionObservation` / `AlignmentObservation` /
   `DecisionObservation` shapes are separate projection/aggregation surfaces,
   not replacements for the text-grounded intake observation layer
+
+## Semantic normalization layer
+
+The semantic layer is additive beside the raw fact-intake tables.
+
+1. Observed base data
+   - stays in the core read-model tables above
+2. Controlled classifications
+   - persisted as normalized rows in `entity_class_assertions`
+3. Inference results
+   - also persisted in `entity_class_assertions`, distinguished by origin/rule
+4. Operational consequences
+   - persisted in `policy_outcomes`
+
+Cross-entity semantics such as authority-boundary relations belong in
+`entity_relations`, not flattened tags.
+
+The lexical Zelph graph remains derived/materialized rather than normalized
+into OLTP token tables.
 
 ## Identity / run distinction
 

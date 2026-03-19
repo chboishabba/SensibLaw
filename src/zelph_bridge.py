@@ -7,12 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from src.fact_intake.wiki_lexical import (
-    build_revision_comment_zelph_facts,
-    classify_revision_comment,
-    parse_revision_statement,
-    revision_node_id,
-)
+from src.fact_intake.lexical_packs import build_fact_lexical_projection
 
 
 ZELPH_BRIDGE_VERSION = "fact_intake.zelph_bridge.v1"
@@ -121,20 +116,10 @@ def workbench_to_zelph_facts(workbench: Mapping[str, Any]) -> str:
             facts.append(f'{_quote_zelph_text(node)} "signal_class" {_quote_zelph_text(value)}.')
         for predicate in fact.get("legal_procedural_predicates", []):
             facts.append(f'{_quote_zelph_text(node)} "legal_procedural_predicate" {_quote_zelph_text(predicate)}.')
-        for index, statement_text in enumerate(fact.get("statement_texts", []), start=1):
-            parsed = parse_revision_statement(str(statement_text))
-            if not parsed:
-                continue
-            revision_id = f"{fact_id}_{index}"
-            facts.append(
-                f'{_quote_zelph_text(node)} "has revision comment" {_quote_zelph_text(revision_node_id(revision_id))}.'
-            )
-            lexical_facts = build_revision_comment_zelph_facts(
-                revision_id=revision_id,
-                author=parsed["author"],
-                comment_text=parsed["comment"],
-            )
-            facts.extend(lexical_facts)
+        projection = build_fact_lexical_projection(fact)
+        for pack_name in projection.pack_names:
+            facts.append(f'{_quote_zelph_text(node)} "lexical pack" {_quote_zelph_text(pack_name)}.')
+        facts.extend(projection.facts)
 
     for observation in workbench.get("observations", []):
         if not isinstance(observation, Mapping):
@@ -172,12 +157,9 @@ def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
         source_signal_classes = set(str(value) for value in fact.get("source_signal_classes", []) if str(value).strip())
         signal_classes = set(str(value) for value in fact.get("signal_classes", []) if str(value).strip())
         observation_predicates = {str(row.get("predicate_key")) for row in fact.get("observations", []) if isinstance(row, Mapping)}
-        revision_tags: set[str] = set()
-        for statement_text in fact.get("statement_texts", []):
-            parsed = parse_revision_statement(str(statement_text))
-            if not parsed:
-                continue
-            revision_tags.update(classify_revision_comment(parsed["comment"]))
+        projection = build_fact_lexical_projection(fact)
+        lexical_signal_classes = set(projection.signal_classes)
+        lexical_source_signal_classes = set(projection.source_signal_classes)
 
         if "wiki_article" in source_types:
             inferred.append({"subject": node, "predicate": "source_signal_class", "object": "public_summary"})
@@ -188,13 +170,11 @@ def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "party_assertion"})
         if observation_predicates & _PROCEDURAL_OUTCOME_PREDICATES:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "procedural_outcome"})
-        if "reversion_edit" in revision_tags:
-            inferred.append({"subject": node, "predicate": "signal_class", "object": "reversion_edit"})
-        if "archive_management_edit" in revision_tags:
-            inferred.append({"subject": node, "predicate": "signal_class", "object": "archive_management_edit"})
-        if "administrative_edit" in revision_tags:
-            inferred.append({"subject": node, "predicate": "signal_class", "object": "administrative_edit"})
-        if "is_reversion" in observation_predicates or "volatility_signal" in signal_classes or "volatility_signal" in revision_tags:
+        for value in lexical_source_signal_classes:
+            inferred.append({"subject": node, "predicate": "source_signal_class", "object": value})
+        for value in lexical_signal_classes:
+            inferred.append({"subject": node, "predicate": "signal_class", "object": value})
+        if "is_reversion" in observation_predicates or "volatility_signal" in signal_classes or "volatility_signal" in lexical_signal_classes:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "volatility_signal"})
         if {"public_summary", "wiki_article"} & source_signal_classes and not {"legal_record", "procedural_record", "strong_legal_source"} & source_signal_classes:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "authority_transfer_risk"})
@@ -275,12 +255,21 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
                         }
 
     serialized_fact_lines = workbench_to_zelph_facts(workbench)
+    active_packs = sorted(
+        {
+            pack_name
+            for fact in workbench.get("facts", [])
+            if isinstance(fact, Mapping)
+            for pack_name in build_fact_lexical_projection(fact).pack_names
+        }
+    )
     enriched["zelph"] = {
         "version": ZELPH_BRIDGE_VERSION,
         "rule_status": "portable_ok" if inferred_by_fact_id else "portable_noop",
         "facts_serialized_count": len(serialized_fact_lines.splitlines()) if serialized_fact_lines else 0,
         "inferred_fact_count": len(inferred_by_fact_id),
         "inferred_by_fact_id": inferred_by_fact_id,
+        "active_packs": active_packs,
         "triples": triples,
     }
     return enriched

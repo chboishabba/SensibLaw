@@ -72,3 +72,139 @@ X "signal_class" "public_knowledge_not_authority" :-
 X "signal_class" "wiki_wikidata_claim_alignment" :-
     X "source_signal_class" "wikidata_claim",
     X "source_signal_class" "wiki_article".
+
+X "signal_class" "uncertainty_preserved" :-
+    X "has lexical surface" S,
+    S "has lexeme" "maybe".
+
+X "signal_class" "uncertainty_preserved" :-
+    X "has lexical surface" S,
+    S "has lexeme" "might".
+
+X "signal_class" "uncertainty_preserved" :-
+    X "has lexical surface" S,
+    S "has lexeme" "unclear".
+
+X "signal_class" "uncertainty_preserved" :-
+    X "has lexical surface" S,
+    S "has lexeme" "unsure".
+
+X "signal_class" "uncertainty_preserved" :-
+    X "has lexical surface" S,
+    S "has lexeme" "possibly".
+
+X "signal_class" "sequence_signal" :-
+    X "has lexical surface" S,
+    S "has lexeme" "before".
+
+X "signal_class" "sequence_signal" :-
+    X "has lexical surface" S,
+    S "has lexeme" "after".
+
+X "signal_class" "sequence_signal" :-
+    X "has lexical surface" S,
+    S "has lexeme" "then".
+
+X "signal_class" "sequence_signal" :-
+    X "has lexical surface" S,
+    S "has lexeme" "later".
+
+X "signal_class" "execution_handoff_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "handoff".
+
+X "signal_class" "execution_handoff_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "execute".
+
+X "signal_class" "execution_handoff_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "verify".
+
+X "signal_class" "self_correction_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "actually".
+
+X "signal_class" "self_correction_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "correction".
+
+X "signal_class" "self_correction_signal" :-
+    X "lexical pack" "chat_archive",
+    X "has lexical surface" S,
+    S "has lexeme" "updated".
+
+X "signal_class" "handoff_context_signal" :-
+    X "lexical pack" "transcript_handoff",
+    X "has lexical surface" S,
+    S "has lexeme" "handoff".
+
+X "signal_class" "handoff_context_signal" :-
+    X "lexical pack" "transcript_handoff",
+    X "has lexical surface" S,
+    S "has lexeme" "support".
+
+X "signal_class" "handoff_context_signal" :-
+    X "lexical pack" "transcript_handoff",
+    X "has lexical surface" S,
+    S "has lexeme" "escalated".
+
+X "signal_class" "professional_handoff_signal" :-
+    X "lexical pack" "transcript_handoff",
+    X "has lexical surface" S,
+    S "has lexeme" "professional".
+
+X "signal_class" "professional_handoff_signal" :-
+    X "lexical pack" "transcript_handoff",
+    X "has lexical surface" S,
+    S "has lexeme" "clinician".
+
+X "signal_class" "appeal_stage_signal" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "appeal".
+
+X "signal_class" "appeal_stage_signal" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "appealed".
+
+X "signal_class" "appeal_stage_signal" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "appellant".
+
+X "signal_class" "procedural_outcome" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "held".
+
+X "signal_class" "procedural_outcome" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "ruled".
+
+X "signal_class" "procedural_outcome" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "ordered".
+
+X "signal_class" "party_assertion" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "alleged".
+
+X "signal_class" "party_assertion" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "claimed".
+
+X "signal_class" "party_assertion" :-
+    X "lexical pack" "au_legal",
+    X "has lexical surface" S,
+    S "has lexeme" "denied".

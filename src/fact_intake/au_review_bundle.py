@@ -19,6 +19,12 @@ _ROLE_TO_PREDICATE = {
     "forum": ("organization", "actor_role", "Forum"),
 }
 
+_LEXICAL_MODE_BY_SOURCE_TYPE = {
+    "judgment_extract": "au_legal",
+    "timeline_payload": "au_legal",
+    "legal_record": "au_legal",
+}
+
 
 def _stable_json(payload: object) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
@@ -33,6 +39,10 @@ def _normalize_opt_text(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _lexical_mode(source_type: str) -> str | None:
+    return _LEXICAL_MODE_BY_SOURCE_TYPE.get(str(source_type or "").strip())
 
 
 def _observation_status_from_relation(row: Mapping[str, Any]) -> str:
@@ -102,6 +112,7 @@ def build_fact_intake_payload_from_au_semantic_report(
                 "provenance": {
                     "semantic_run_id": semantic_run_id,
                     "source_document_id": source_document_id,
+                    **({"lexical_projection_mode": _lexical_mode(str(document.get("sourceType") or "timeline_payload"))} if _lexical_mode(str(document.get("sourceType") or "timeline_payload")) else {}),
                 },
             }
         )
@@ -134,6 +145,7 @@ def build_fact_intake_payload_from_au_semantic_report(
                     "provenance": {
                         "semantic_run_id": semantic_run_id,
                         "source_document_id": source_document_id or None,
+                        **({"lexical_projection_mode": _lexical_mode(str(event.get("source_type") or "timeline_payload"))} if _lexical_mode(str(event.get("source_type") or "timeline_payload")) else {}),
                     },
                 }
             )

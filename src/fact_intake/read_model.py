@@ -83,6 +83,9 @@ _FACT_INTAKE_MIGRATION_FILES = (
     "006_fact_observation_records.sql",
     "007_event_candidate_assembler.sql",
     "008_fact_workflow_links.sql",
+    "009_fact_semantic_layer.sql",
+    "010_fact_semantic_materialization.sql",
+    "011_fact_semantic_refresh_progress.sql",
 )
 
 REVIEW_REASON_LABELS: dict[str, str] = {
@@ -116,10 +119,65 @@ FACT_REVIEW_OPERATOR_VIEW_KINDS = (
 )
 
 FACT_REVIEW_WORKBENCH_VERSION = "fact.review.workbench.v1"
-FACT_REVIEW_ZELPH_RULESET_VERSION = "fact.review.workbench.zelph.v1"
+FACT_REVIEW_ZELPH_RULESET_VERSION = "fact.review.workbench.zelph.v2"
+FACT_SEMANTIC_LAYER_VERSION = "fact.semantic.layer.v1"
 _ASSERTION_PREDICATES = {"claimed", "denied", "admitted", "alleged"}
 _PROCEDURAL_OUTCOME_PREDICATES = {"ordered", "ruled", "decided_by", "held_that"}
 _PROCEDURAL_CONTEXT_PREDICATES = {"appealed", "challenged", "heard_by", "applied", "followed", "distinguished"}
+
+_SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
+    ("public_summary", "source_authority", "source", "Public summary source."),
+    ("wiki_article", "source_authority", "source", "Wiki article source."),
+    ("wikidata_claim", "source_authority", "source", "Wikidata claim source."),
+    ("legal_record", "source_authority", "source", "Legal record source."),
+    ("procedural_record", "source_authority", "source", "Procedural record source."),
+    ("strong_legal_source", "source_authority", "source", "Strong legal source."),
+    ("reporting_source", "source_authority", "source", "Reporting-style summary source."),
+    ("ocr_capture", "source_authority", "source", "OCR capture source."),
+    ("later_annotation", "source_authority", "source", "Later annotation source."),
+    ("professional_note", "role_boundary", "source", "Professional note source."),
+    ("professional_interpretation", "role_boundary", "source", "Professional interpretation source."),
+    ("support_worker_note", "role_boundary", "source", "Support-worker note source."),
+    ("third_party_record", "source_authority", "source", "Third-party record source."),
+    ("documentary_record", "source_authority", "source", "Documentary record source."),
+    ("user_authored", "role_boundary", "source", "User-authored source."),
+    ("client_account", "role_boundary", "source", "Client account source."),
+    ("patient_account", "role_boundary", "source", "Patient account source."),
+    ("party_assertion", "claim_status", "observation", "Party-level assertion."),
+    ("procedural_outcome", "claim_status", "observation", "Procedural outcome."),
+    ("procedural_context", "claim_status", "observation", "Procedural context."),
+    ("uncertainty_preserved", "epistemic", "fact", "Uncertainty must be preserved."),
+    ("sequence_signal", "epistemic", "fact", "Sequence-bearing signal."),
+    ("execution_handoff_signal", "workflow", "fact", "Execution or handoff signal."),
+    ("self_correction_signal", "epistemic", "fact", "Self-correction signal."),
+    ("handoff_context_signal", "workflow", "fact", "Handoff context signal."),
+    ("professional_handoff_signal", "workflow", "fact", "Professional handoff signal."),
+    ("appeal_stage_signal", "claim_status", "fact", "Appeal-stage signal."),
+    ("volatility_signal", "epistemic", "fact", "Volatility or contested-edit signal."),
+    ("authority_transfer_risk", "epistemic", "fact", "Authority transfer risk."),
+    ("public_knowledge_not_authority", "epistemic", "fact", "Public knowledge is not authority."),
+    ("wiki_wikidata_claim_alignment", "epistemic", "fact", "Wiki/Wikidata alignment signal."),
+)
+
+_SEMANTIC_RELATION_SPECS: tuple[tuple[str, str, str, str], ...] = (
+    ("contextualizes", "source", "source", "Source contextualizes another source."),
+    ("cannot_upgrade_authority_of", "source", "source", "Source cannot upgrade authority of another source."),
+)
+
+_SEMANTIC_RULE_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("legacy_source_metadata", "manual", "Source/adapter metadata projection."),
+    ("legacy_observation_metadata", "manual", "Observation metadata projection."),
+    ("native_signal_projection", "native_rule", "Native review-signal projection."),
+    ("zelph_signal_projection", "zelph", "Zelph workbench inference projection."),
+    ("policy_projection", "native_rule", "Policy outcome projection."),
+)
+
+_POLICY_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("review_required", "fact", "Fact requires review."),
+    ("do_not_promote_to_primary", "fact", "Fact must not be promoted to a primary-authority claim."),
+    ("preserve_source_boundary", "fact", "Source boundary must be preserved."),
+    ("manual_resolution_required", "fact", "Manual resolution is required."),
+)
 
 
 def _stable_json(payload: object) -> str:
@@ -151,6 +209,14 @@ def _normalize_json(value: Any) -> str:
     if value is None:
         return "{}"
     return _stable_json(value)
+
+
+def _stable_id(prefix: str, payload: object) -> str:
+    return f"{prefix}:{_sha256_payload(payload)[:16]}"
+
+
+def _coalesce_rule_key(assertion_origin: str, rule_key: str | None) -> str:
+    return _normalize_opt_text(rule_key) or assertion_origin
 
 
 def _normalize_observation_predicate_key(value: Any) -> str:
@@ -210,6 +276,22 @@ def _source_signal_classes(sources: Iterable[Mapping[str, Any]]) -> list[str]:
             out.extend(str(value) for value in raw if str(value).strip())
             continue
         single = _normalize_opt_text(provenance.get("source_signal_class"))
+        if single:
+            out.append(single)
+    return list(dict.fromkeys(out))
+
+
+def _source_projection_modes(sources: Iterable[Mapping[str, Any]]) -> list[str]:
+    out: list[str] = []
+    for source in sources:
+        provenance = source.get("provenance")
+        if not isinstance(provenance, Mapping):
+            continue
+        raw = provenance.get("lexical_projection_modes")
+        if isinstance(raw, list):
+            out.extend(str(value) for value in raw if str(value).strip())
+            continue
+        single = _normalize_opt_text(provenance.get("lexical_projection_mode"))
         if single:
             out.append(single)
     return list(dict.fromkeys(out))
@@ -309,13 +391,84 @@ def _ensure_fact_intake_tables(conn: sqlite3.Connection) -> None:
         "event_attributes",
         "event_evidence",
         "fact_workflow_links",
+        "semantic_class_vocab",
+        "semantic_relation_vocab",
+        "semantic_rule_vocab",
+        "policy_vocab",
+        "entity_class_assertions",
+        "entity_relations",
+        "policy_outcomes",
+        "semantic_refresh_runs",
     }
     if required <= existing:
+        _ensure_semantic_refresh_progress_columns(conn)
+        _seed_fact_semantic_vocab(conn)
         return
     migrations_dir = Path(__file__).resolve().parents[2] / "database" / "migrations"
     for filename in _FACT_INTAKE_MIGRATION_FILES:
         conn.executescript((migrations_dir / filename).read_text(encoding="utf-8"))
+    _ensure_semantic_refresh_progress_columns(conn)
+    _seed_fact_semantic_vocab(conn)
     conn.commit()
+
+
+def _ensure_semantic_refresh_progress_columns(conn: sqlite3.Connection) -> None:
+    columns = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(semantic_refresh_runs)").fetchall()
+        if row and row[1]
+    }
+    if not columns:
+        return
+    wanted = {
+        "started_at": "TEXT",
+        "updated_at": "TEXT",
+        "current_stage": "TEXT",
+        "status_message": "TEXT",
+    }
+    for column, column_type in wanted.items():
+        if column in columns:
+            continue
+        conn.execute(f"ALTER TABLE semantic_refresh_runs ADD COLUMN {column} {column_type}")
+
+
+def _seed_fact_semantic_vocab(conn: sqlite3.Connection) -> None:
+    for class_key, dimension, applies_to, description in _SEMANTIC_CLASS_SPECS:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO semantic_class_vocab(
+              class_key, dimension, applies_to, class_status, description, introduced_in_version
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (class_key, dimension, applies_to, "active", description, FACT_SEMANTIC_LAYER_VERSION),
+        )
+    for relation_key, subject_kind, object_kind, description in _SEMANTIC_RELATION_SPECS:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO semantic_relation_vocab(
+              relation_key, subject_kind, object_kind, relation_status, description, introduced_in_version
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (relation_key, subject_kind, object_kind, "active", description, FACT_SEMANTIC_LAYER_VERSION),
+        )
+    for rule_key, engine_kind, description in _SEMANTIC_RULE_SPECS:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO semantic_rule_vocab(
+              rule_key, engine_kind, ruleset_version, description
+            ) VALUES (?,?,?,?)
+            """,
+            (rule_key, engine_kind, FACT_REVIEW_ZELPH_RULESET_VERSION, description),
+        )
+    for policy_key, applies_to, description in _POLICY_SPECS:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO policy_vocab(
+              policy_key, applies_to, policy_status, description
+            ) VALUES (?,?,?,?)
+            """,
+            (policy_key, applies_to, "active", description),
+        )
 
 
 def _assemble_event_candidates(conn: sqlite3.Connection, *, run_id: str) -> dict[str, int]:
@@ -857,6 +1010,7 @@ def persist_fact_intake_payload(conn: sqlite3.Connection, payload: Mapping[str, 
         review_count += 1
     event_summary = _assemble_event_candidates(conn, run_id=run_id)
     conn.commit()
+    semantic_summary = persist_fact_semantic_materialization(conn, run_id=run_id, include_zelph=True, refresh_kind="dual_write")
     return {
         "run_id": run_id,
         "source_count": source_count,
@@ -867,6 +1021,9 @@ def persist_fact_intake_payload(conn: sqlite3.Connection, payload: Mapping[str, 
         "contestation_count": contestation_count,
         "review_count": review_count,
         **event_summary,
+        "semantic_assertion_count": semantic_summary["assertion_count"],
+        "semantic_relation_count": semantic_summary["relation_count"],
+        "semantic_policy_count": semantic_summary["policy_count"],
     }
 
 
@@ -1401,6 +1558,286 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
     }
 
 
+def _has_semantic_materialization(conn: sqlite3.Connection, *, run_id: str) -> bool:
+    row = conn.execute(
+        """
+        SELECT 1
+        FROM semantic_refresh_runs
+        WHERE run_id = ? AND refresh_status = 'ok'
+        LIMIT 1
+        """,
+        (run_id,),
+    ).fetchone()
+    return row is not None
+
+
+def _load_entity_class_map(conn: sqlite3.Connection, *, run_id: str, target_kind: str) -> dict[str, list[str]]:
+    rows = conn.execute(
+        """
+        SELECT target_id, class_key
+        FROM entity_class_assertions
+        WHERE run_id = ? AND target_kind = ? AND assertion_status = 'active'
+        ORDER BY target_id, class_key
+        """,
+        (run_id, target_kind),
+    ).fetchall()
+    out: dict[str, list[str]] = {}
+    for row in rows:
+        out.setdefault(str(row["target_id"]), [])
+        value = str(row["class_key"])
+        if value not in out[str(row["target_id"])]:
+            out[str(row["target_id"])].append(value)
+    return out
+
+
+def _load_policy_map(conn: sqlite3.Connection, *, run_id: str, target_kind: str) -> dict[str, list[str]]:
+    rows = conn.execute(
+        """
+        SELECT target_id, policy_key
+        FROM policy_outcomes
+        WHERE run_id = ? AND target_kind = ? AND outcome_status = 'active'
+        ORDER BY target_id, policy_key
+        """,
+        (run_id, target_kind),
+    ).fetchall()
+    out: dict[str, list[str]] = {}
+    for row in rows:
+        out.setdefault(str(row["target_id"]), [])
+        value = str(row["policy_key"])
+        if value not in out[str(row["target_id"])]:
+            out[str(row["target_id"])].append(value)
+    return out
+
+
+def _record_class_assertion(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_kind: str,
+    target_id: str,
+    class_key: str,
+    assertion_origin: str,
+    rule_key: str | None = None,
+    confidence: float | None = None,
+    provenance: Mapping[str, Any] | None = None,
+) -> str:
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO semantic_class_vocab(
+          class_key, dimension, applies_to, class_status, description, introduced_in_version
+        ) VALUES (?,?,?,?,?,?)
+        """,
+        (
+            class_key,
+            "other",
+            target_kind,
+            "active",
+            f"Auto-seeded semantic class for {target_kind}.",
+            FACT_SEMANTIC_LAYER_VERSION,
+        ),
+    )
+    assertion_id = _stable_id(
+        "classassert",
+        {
+            "run_id": run_id,
+            "target_kind": target_kind,
+            "target_id": target_id,
+            "class_key": class_key,
+            "assertion_origin": assertion_origin,
+            "rule_key": _coalesce_rule_key(assertion_origin, rule_key),
+        },
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO entity_class_assertions(
+          assertion_id, run_id, target_kind, target_id, class_key, assertion_origin,
+          assertion_status, rule_key, confidence, provenance_json
+        ) VALUES (?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            assertion_id,
+            run_id,
+            target_kind,
+            target_id,
+            class_key,
+            assertion_origin,
+            "active",
+            _normalize_opt_text(rule_key),
+            confidence,
+            _normalize_json(provenance),
+        ),
+    )
+    return assertion_id
+
+
+def _record_relation(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    subject_kind: str,
+    subject_id: str,
+    relation_key: str,
+    object_kind: str,
+    object_id: str,
+    assertion_origin: str,
+    rule_key: str | None = None,
+    confidence: float | None = None,
+    provenance: Mapping[str, Any] | None = None,
+) -> str:
+    relation_id = _stable_id(
+        "relation",
+        {
+            "run_id": run_id,
+            "subject_kind": subject_kind,
+            "subject_id": subject_id,
+            "relation_key": relation_key,
+            "object_kind": object_kind,
+            "object_id": object_id,
+            "assertion_origin": assertion_origin,
+            "rule_key": _coalesce_rule_key(assertion_origin, rule_key),
+        },
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO entity_relations(
+          relation_id, run_id, subject_kind, subject_id, relation_key, object_kind, object_id,
+          assertion_origin, relation_status, rule_key, confidence, provenance_json
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            relation_id,
+            run_id,
+            subject_kind,
+            subject_id,
+            relation_key,
+            object_kind,
+            object_id,
+            assertion_origin,
+            "active",
+            _normalize_opt_text(rule_key),
+            confidence,
+            _normalize_json(provenance),
+        ),
+    )
+    return relation_id
+
+
+def _record_policy_outcome(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    target_kind: str,
+    target_id: str,
+    policy_key: str,
+    rule_key: str | None = None,
+    trigger_assertion_id: str | None = None,
+    trigger_relation_id: str | None = None,
+    provenance: Mapping[str, Any] | None = None,
+) -> str:
+    outcome_id = _stable_id(
+        "policy",
+        {
+            "run_id": run_id,
+            "target_kind": target_kind,
+            "target_id": target_id,
+            "policy_key": policy_key,
+            "rule_key": _coalesce_rule_key("policy_projection", rule_key),
+        },
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO policy_outcomes(
+          outcome_id, run_id, target_kind, target_id, policy_key, outcome_status,
+          trigger_assertion_id, trigger_relation_id, rule_key, provenance_json, reviewer, note
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            outcome_id,
+            run_id,
+            target_kind,
+            target_id,
+            policy_key,
+            "active",
+            _normalize_opt_text(trigger_assertion_id),
+            _normalize_opt_text(trigger_relation_id),
+            _normalize_opt_text(rule_key),
+            _normalize_json(provenance),
+            None,
+            None,
+        ),
+    )
+    return outcome_id
+
+
+def _upsert_semantic_refresh_run(
+    conn: sqlite3.Connection,
+    *,
+    refresh_id: str,
+    run_id: str,
+    refresh_kind: str,
+    refresh_status: str,
+    current_stage: str,
+    status_message: str,
+    facts_serialized_count: int = 0,
+    assertion_count: int = 0,
+    relation_count: int = 0,
+    policy_count: int = 0,
+) -> None:
+    existing = conn.execute(
+        "SELECT refresh_id FROM semantic_refresh_runs WHERE refresh_id = ?",
+        (refresh_id,),
+    ).fetchone()
+    if existing is None:
+        conn.execute(
+            """
+            INSERT INTO semantic_refresh_runs(
+              refresh_id, run_id, bridge_version, ruleset_version, refresh_kind, refresh_status,
+              facts_serialized_count, assertion_count, relation_count, policy_count,
+              started_at, updated_at, current_stage, status_message
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,?,?)
+            """,
+            (
+                refresh_id,
+                run_id,
+                "fact_intake.zelph_bridge.v1",
+                FACT_REVIEW_ZELPH_RULESET_VERSION,
+                refresh_kind,
+                refresh_status,
+                facts_serialized_count,
+                assertion_count,
+                relation_count,
+                policy_count,
+                current_stage,
+                status_message,
+            ),
+        )
+        return
+    conn.execute(
+        """
+        UPDATE semantic_refresh_runs
+        SET refresh_status = ?,
+            facts_serialized_count = ?,
+            assertion_count = ?,
+            relation_count = ?,
+            policy_count = ?,
+            updated_at = CURRENT_TIMESTAMP,
+            current_stage = ?,
+            status_message = ?
+        WHERE refresh_id = ?
+        """,
+        (
+            refresh_status,
+            facts_serialized_count,
+            assertion_count,
+            relation_count,
+            policy_count,
+            current_stage,
+            status_message,
+            refresh_id,
+        ),
+    )
+
+
 def build_mary_fact_workflow_projection(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
     report = build_fact_intake_report(conn, run_id=run_id)
     chronology: list[dict[str, Any]] = []
@@ -1618,7 +2055,7 @@ def list_fact_review_sources(
     return out
 
 
-def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
     report = build_fact_intake_report(conn, run_id=run_id)
     projection = build_mary_fact_workflow_projection(conn, run_id=run_id)
     events_by_id = {str(event["event_id"]): event for event in report["events"]}
@@ -1676,6 +2113,7 @@ def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> d
         )
         source_rows = [sources_by_id[source_id] for source_id in fact["source_ids"] if source_id in sources_by_id]
         source_signal_classes = _source_signal_classes(source_rows)
+        source_projection_modes = _source_projection_modes(source_rows)
         has_legal_procedural_observations = _has_legal_procedural_visibility(
             legal_procedural_predicates,
             signal_classes,
@@ -1729,6 +2167,7 @@ def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> d
             "legal_procedural_observation_count": len(legal_procedural_predicates),
             "source_types": source_types,
             "source_signal_classes": source_signal_classes,
+            "source_projection_modes": source_projection_modes,
             "statement_roles": statement_roles,
             "primary_contested_reason_text": primary_contested_reason_text,
             "latest_review_status": latest_review.get("review_status") if latest_review else None,
@@ -1848,6 +2287,342 @@ def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> d
             "facts": chronology_facts,
         },
         "chronology_groups": chronology_groups,
+    }
+
+
+def build_fact_review_run_summary(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    if not _has_semantic_materialization(conn, run_id=run_id):
+        return _build_fact_review_run_summary_legacy(conn, run_id=run_id)
+    report = build_fact_intake_report(conn, run_id=run_id)
+    legacy = _build_fact_review_run_summary_legacy(conn, run_id=run_id)
+    fact_class_map = _load_entity_class_map(conn, run_id=run_id, target_kind="fact")
+    source_class_map = _load_entity_class_map(conn, run_id=run_id, target_kind="source")
+    policy_map = _load_policy_map(conn, run_id=run_id, target_kind="fact")
+    sources_by_id = {str(source["source_id"]): source for source in report["sources"]}
+    updated_facts: list[dict[str, Any]] = []
+    updated_by_fact_id: dict[str, dict[str, Any]] = {}
+    for row in legacy["facts"]:
+        source_signal_classes: list[str] = []
+        for source_id in row.get("source_ids", []):
+            for value in source_class_map.get(str(source_id), []):
+                if value not in source_signal_classes:
+                    source_signal_classes.append(value)
+        signal_classes = list(fact_class_map.get(str(row["fact_id"]), []))
+        new_row = {
+            **row,
+            "signal_classes": signal_classes,
+            "source_signal_classes": source_signal_classes,
+            "policy_outcomes": list(policy_map.get(str(row["fact_id"]), [])),
+        }
+        updated_facts.append(new_row)
+        updated_by_fact_id[str(row["fact_id"])] = new_row
+    updated_review_queue = [
+        updated_by_fact_id[str(row["fact_id"])]
+        for row in legacy["review_queue"]
+        if str(row["fact_id"]) in updated_by_fact_id
+    ]
+    updated_summary = dict(legacy["summary"])
+    updated_summary["policy_review_required_count"] = sum(
+        1 for row in updated_facts if "review_required" in set(row.get("policy_outcomes", []))
+    )
+    return {
+        **legacy,
+        "summary": updated_summary,
+        "facts": updated_facts,
+        "review_queue": updated_review_queue,
+    }
+
+
+def _build_fact_review_workbench_payload_legacy(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    include_zelph: bool = True,
+) -> dict[str, Any]:
+    report = build_fact_intake_report(conn, run_id=run_id)
+    summary = _build_fact_review_run_summary_legacy(conn, run_id=run_id)
+    operator_views = build_fact_review_operator_views(conn, run_id=run_id)
+    summary_by_fact_id = {row["fact_id"]: row for row in summary["facts"]}
+    facts = []
+    for fact in report["facts"]:
+        queue_row = summary_by_fact_id.get(fact["fact_id"])
+        facts.append(
+            {
+                **fact,
+                "signal_classes": list(queue_row.get("signal_classes", [])) if queue_row else [],
+                "source_signal_classes": list(queue_row.get("source_signal_classes", [])) if queue_row else [],
+                "lexical_projection_mode": (list(queue_row.get("source_projection_modes", []))[0] if queue_row and queue_row.get("source_projection_modes") else None),
+                "source_types": list(queue_row.get("source_types", [])) if queue_row else [],
+                "statement_roles": list(queue_row.get("statement_roles", [])) if queue_row else [],
+                "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
+                "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
+                "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
+            }
+        )
+    default_fact_id = summary["review_queue"][0]["fact_id"] if summary["review_queue"] else (report["facts"][0]["fact_id"] if report["facts"] else None)
+    workbench = {
+        "version": FACT_REVIEW_WORKBENCH_VERSION,
+        "zelph_ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
+        "run": report["run"],
+        "summary": summary["summary"],
+        "review_queue": summary["review_queue"],
+        "contested_summary": summary["contested_summary"],
+        "chronology_summary": summary["chronology_summary"],
+        "chronology": summary["chronology"],
+        "chronology_groups": summary["chronology_groups"],
+        "operator_views": operator_views,
+        "sources": report["sources"],
+        "excerpts": report["excerpts"],
+        "statements": report["statements"],
+        "observations": report["observations"],
+        "events": report["events"],
+        "facts": facts,
+        "inspector_defaults": {
+            "selected_fact_id": default_fact_id,
+            "default_view": "intake_triage",
+        },
+    }
+    if not include_zelph:
+        return workbench
+    return enrich_workbench_with_zelph(workbench, rules=_fact_review_zelph_rules())
+
+
+def persist_fact_semantic_materialization(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    include_zelph: bool = True,
+    refresh_kind: str = "dual_write",
+    progress_callback: Any | None = None,
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    refresh_id = _stable_id(
+        "semrefresh",
+        {
+            "run_id": run_id,
+            "ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
+            "refresh_kind": refresh_kind,
+            "include_zelph": include_zelph,
+        },
+    )
+
+    def emit(stage: str, message: str, *, status: str = "running", facts_serialized_count: int = 0, assertion_count: int = 0, relation_count: int = 0, policy_count: int = 0) -> None:
+        _upsert_semantic_refresh_run(
+            conn,
+            refresh_id=refresh_id,
+            run_id=run_id,
+            refresh_kind=refresh_kind,
+            refresh_status=status,
+            current_stage=stage,
+            status_message=message,
+            facts_serialized_count=facts_serialized_count,
+            assertion_count=assertion_count,
+            relation_count=relation_count,
+            policy_count=policy_count,
+        )
+        conn.commit()
+        if callable(progress_callback):
+            progress_callback(
+                {
+                    "run_id": run_id,
+                    "refresh_id": refresh_id,
+                    "status": status,
+                    "stage": stage,
+                    "message": message,
+                    "facts_serialized_count": facts_serialized_count,
+                    "assertion_count": assertion_count,
+                    "relation_count": relation_count,
+                    "policy_count": policy_count,
+                }
+            )
+
+    assertion_count = 0
+    relation_count = 0
+    policy_count = 0
+    workbench_facts_serialized_count = 0
+    emit("load_report", "Loading persisted fact-intake report.", status="pending")
+    try:
+        report = build_fact_intake_report(conn, run_id=run_id)
+        emit("build_workbench", "Building legacy workbench for semantic projection.")
+        workbench = _build_fact_review_workbench_payload_legacy(conn, run_id=run_id, include_zelph=include_zelph)
+        workbench_facts_serialized_count = int(workbench.get("zelph", {}).get("facts_serialized_count", 0))
+        emit("clear_previous", "Clearing previous semantic materialization rows.", facts_serialized_count=workbench_facts_serialized_count)
+        conn.execute("DELETE FROM policy_outcomes WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM entity_relations WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM entity_class_assertions WHERE run_id = ?", (run_id,))
+
+        emit("materialize_sources", f"Writing source semantic assertions for {len(report['sources'])} sources.", facts_serialized_count=workbench_facts_serialized_count)
+        source_signal_by_id = {
+            str(source["source_id"]): list(source.get("provenance", {}).get("source_signal_classes", []))
+            if isinstance(source.get("provenance"), Mapping) and isinstance(source.get("provenance", {}).get("source_signal_classes"), list)
+            else ([str(source.get("provenance", {}).get("source_signal_class"))] if isinstance(source.get("provenance"), Mapping) and _normalize_opt_text(source.get("provenance", {}).get("source_signal_class")) else [])
+            for source in report["sources"]
+        }
+        for source in report["sources"]:
+            source_id = str(source["source_id"])
+            for class_key in source_signal_by_id.get(source_id, []):
+                _record_class_assertion(
+                    conn,
+                    run_id=run_id,
+                    target_kind="source",
+                    target_id=source_id,
+                    class_key=class_key,
+                    assertion_origin="ingest",
+                    rule_key="legacy_source_metadata",
+                    provenance={"source_id": source_id},
+                )
+                assertion_count += 1
+
+        emit("materialize_observations", f"Writing observation semantic assertions for {len(report['observations'])} observations.", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count)
+        for observation in report["observations"]:
+            observation_id = str(observation["observation_id"])
+            predicate_classes = _observation_signal_classes([str(observation["predicate_key"])])
+            explicit_classes = _explicit_signal_classes([observation])
+            for class_key in list(dict.fromkeys(predicate_classes + explicit_classes)):
+                _record_class_assertion(
+                    conn,
+                    run_id=run_id,
+                    target_kind="observation",
+                    target_id=observation_id,
+                    class_key=class_key,
+                    assertion_origin="ingest" if class_key in explicit_classes else "native_rule",
+                    rule_key="legacy_observation_metadata" if class_key in explicit_classes else "native_signal_projection",
+                    provenance={"observation_id": observation_id},
+                )
+                assertion_count += 1
+
+        emit("materialize_facts", f"Writing fact assertions/policies for {len(report['facts'])} facts.", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count)
+        fact_rows_by_id = {str(row["fact_id"]): row for row in workbench["facts"]}
+        for fact in report["facts"]:
+            fact_id = str(fact["fact_id"])
+            fact_row = fact_rows_by_id.get(fact_id, {})
+            for class_key in fact_row.get("signal_classes", []):
+                origin = "zelph" if class_key in set(fact_row.get("inferred_signal_classes", [])) else "native_rule"
+                rule_key = "zelph_signal_projection" if origin == "zelph" else "native_signal_projection"
+                _record_class_assertion(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    class_key=str(class_key),
+                    assertion_origin=origin,
+                    rule_key=rule_key,
+                    provenance={"fact_id": fact_id},
+                )
+                assertion_count += 1
+            for policy_key in (
+                ["review_required"] if any(row["fact_id"] == fact_id for row in workbench["review_queue"]) else []
+            ):
+                _record_policy_outcome(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    policy_key=policy_key,
+                    rule_key="policy_projection",
+                    provenance={"fact_id": fact_id, "reason": "review_queue"},
+                )
+                policy_count += 1
+            fact_signal_set = set(fact_row.get("signal_classes", []))
+            if {"authority_transfer_risk", "public_knowledge_not_authority"} & fact_signal_set:
+                _record_policy_outcome(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    policy_key="do_not_promote_to_primary",
+                    rule_key="policy_projection",
+                    provenance={"fact_id": fact_id, "signals": sorted({"authority_transfer_risk", "public_knowledge_not_authority"} & fact_signal_set)},
+                )
+                policy_count += 1
+            if {"uncertainty_preserved", "self_correction_signal"} & fact_signal_set:
+                _record_policy_outcome(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    policy_key="preserve_source_boundary",
+                    rule_key="policy_projection",
+                    provenance={"fact_id": fact_id},
+                )
+                policy_count += 1
+            if {"volatility_signal", "authority_transfer_risk"} & fact_signal_set:
+                _record_policy_outcome(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    policy_key="manual_resolution_required",
+                    rule_key="policy_projection",
+                    provenance={"fact_id": fact_id},
+                )
+                policy_count += 1
+
+            source_ids = list(fact.get("source_ids", []))
+            public_source_ids = [
+                source_id
+                for source_id in source_ids
+                if {"public_summary", "wiki_article", "reporting_source"} & set(source_signal_by_id.get(str(source_id), []))
+            ]
+            record_source_ids = [
+                source_id
+                for source_id in source_ids
+                if {"legal_record", "procedural_record", "strong_legal_source"} & set(source_signal_by_id.get(str(source_id), []))
+            ]
+            for public_source_id in public_source_ids:
+                for record_source_id in record_source_ids:
+                    _record_relation(
+                        conn,
+                        run_id=run_id,
+                        subject_kind="source",
+                        subject_id=str(public_source_id),
+                        relation_key="contextualizes",
+                        object_kind="source",
+                        object_id=str(record_source_id),
+                        assertion_origin="native_rule",
+                        rule_key="native_signal_projection",
+                        provenance={"fact_id": fact_id},
+                    )
+                    relation_count += 1
+                    _record_relation(
+                        conn,
+                        run_id=run_id,
+                        subject_kind="source",
+                        subject_id=str(public_source_id),
+                        relation_key="cannot_upgrade_authority_of",
+                        object_kind="source",
+                        object_id=str(record_source_id),
+                        assertion_origin="zelph" if "public_knowledge_not_authority" in fact_signal_set else "native_rule",
+                        rule_key="zelph_signal_projection" if "public_knowledge_not_authority" in fact_signal_set else "native_signal_projection",
+                        provenance={"fact_id": fact_id},
+                    )
+                    relation_count += 1
+
+        emit("finalize", "Semantic materialization complete.", status="ok", facts_serialized_count=workbench_facts_serialized_count, assertion_count=assertion_count, relation_count=relation_count, policy_count=policy_count)
+    except Exception as exc:
+        emit(
+            "error",
+            f"Semantic materialization failed: {exc}",
+            status="error",
+            facts_serialized_count=workbench_facts_serialized_count,
+            assertion_count=assertion_count,
+            relation_count=relation_count,
+            policy_count=policy_count,
+        )
+        raise
+
+    return {
+        "refresh_id": refresh_id,
+        "run_id": run_id,
+        "assertion_count": assertion_count,
+        "relation_count": relation_count,
+        "policy_count": policy_count,
+        "refresh_kind": refresh_kind,
+        "refresh_status": "ok",
     }
 
 
@@ -2011,6 +2786,8 @@ def build_fact_review_workbench_payload(
     run_id: str,
     include_zelph: bool = True,
 ) -> dict[str, Any]:
+    if not _has_semantic_materialization(conn, run_id=run_id):
+        return _build_fact_review_workbench_payload_legacy(conn, run_id=run_id, include_zelph=include_zelph)
     report = build_fact_intake_report(conn, run_id=run_id)
     summary = build_fact_review_run_summary(conn, run_id=run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=run_id)
@@ -2023,9 +2800,11 @@ def build_fact_review_workbench_payload(
                 **fact,
                 "signal_classes": list(queue_row.get("signal_classes", [])) if queue_row else [],
                 "source_signal_classes": list(queue_row.get("source_signal_classes", [])) if queue_row else [],
+                "lexical_projection_mode": (list(queue_row.get("source_projection_modes", []))[0] if queue_row and queue_row.get("source_projection_modes") else None),
                 "source_types": list(queue_row.get("source_types", [])) if queue_row else [],
                 "statement_roles": list(queue_row.get("statement_roles", [])) if queue_row else [],
                 "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
+                "policy_outcomes": list(queue_row.get("policy_outcomes", [])) if queue_row else [],
                 "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
                 "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
             }

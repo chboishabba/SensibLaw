@@ -32,6 +32,18 @@ _RELATION_EVENT_TYPE = {
     "replied_to": "communication",
 }
 
+_LEXICAL_MODE_BY_SOURCE_TYPE = {
+    "chat_archive_sample": "chat_archive",
+    "facebook_messages_archive_sample": "chat_archive",
+    "openrecall_capture": "chat_archive",
+    "transcript_file": "transcript_handoff",
+    "interview_note": "transcript_handoff",
+    "support_worker_note": "transcript_handoff",
+    "annotation_note": "transcript_handoff",
+    "professional_note": "transcript_handoff",
+    "professional_interpretation": "transcript_handoff",
+}
+
 
 def _stable_json(payload: object) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
@@ -46,6 +58,10 @@ def _normalize_opt_text(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _lexical_mode(source_type: str) -> str | None:
+    return _LEXICAL_MODE_BY_SOURCE_TYPE.get(str(source_type or "").strip())
 
 
 def _observation_status_from_relation(row: Mapping[str, Any]) -> str:
@@ -104,6 +120,7 @@ def build_fact_intake_payload_from_transcript_report(
                 "provenance": {
                     "semantic_run_id": semantic_run_id,
                     "source_document_id": source_document_id,
+                    **({"lexical_projection_mode": _lexical_mode(str(document.get("sourceType") or "transcript_file"))} if _lexical_mode(str(document.get("sourceType") or "transcript_file")) else {}),
                     **(
                         {
                             "source_signal_classes": list(document.get("source_signal_classes", []))
@@ -141,6 +158,7 @@ def build_fact_intake_payload_from_transcript_report(
                     "provenance": {
                         "semantic_run_id": semantic_run_id,
                         "source_document_id": source_document_id,
+                        **({"lexical_projection_mode": _lexical_mode(str(event.get("source_type") or "transcript_file"))} if _lexical_mode(str(event.get("source_type") or "transcript_file")) else {}),
                     },
                 }
             )

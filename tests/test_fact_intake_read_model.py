@@ -11,9 +11,12 @@ import yaml
 from src.fact_intake import (
     EVENT_ASSEMBLER_VERSION,
     FACT_INTAKE_CONTRACT_VERSION,
+    FACT_SEMANTIC_LAYER_VERSION,
     FACT_REVIEW_ZELPH_RULESET_VERSION,
     MARY_FACT_WORKFLOW_VERSION,
     OBSERVATION_PREDICATE_TO_FAMILY,
+    build_fact_intake_payload_from_au_semantic_report,
+    build_fact_intake_payload_from_transcript_report,
     build_fact_review_acceptance_report,
     build_fact_review_operator_views,
     build_fact_intake_payload_from_text_units,
@@ -22,12 +25,14 @@ from src.fact_intake import (
     build_fact_review_workbench_payload,
     build_mary_fact_workflow_projection,
     persist_fact_intake_payload,
+    persist_fact_semantic_materialization,
     find_latest_fact_workflow_link,
     list_fact_review_sources,
     record_fact_workflow_link,
     resolve_fact_run_id,
     resolve_fact_run_link,
 )
+from scripts.backfill_fact_semantics import main as backfill_fact_semantics_main
 from src.reporting.structure_report import TextUnit
 
 
@@ -210,19 +215,37 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
     acceptance = build_fact_review_acceptance_report(workbench, fixture_kind="synthetic")
 
-    assert persist_summary == {
-        "run_id": payload["run"]["run_id"],
-        "source_count": 1,
-        "excerpt_count": 2,
-        "statement_count": 2,
-        "observation_count": 5,
-        "fact_count": 2,
-        "contestation_count": 1,
-        "review_count": 1,
-        "event_count": 1,
-        "event_attribute_count": 1,
-        "event_evidence_count": 5,
-    }
+    assert persist_summary["run_id"] == payload["run"]["run_id"]
+    assert persist_summary["source_count"] == 1
+    assert persist_summary["excerpt_count"] == 2
+    assert persist_summary["statement_count"] == 2
+    assert persist_summary["observation_count"] == 5
+    assert persist_summary["fact_count"] == 2
+    assert persist_summary["contestation_count"] == 1
+    assert persist_summary["review_count"] == 1
+    assert persist_summary["event_count"] == 1
+    assert persist_summary["event_attribute_count"] == 1
+    assert persist_summary["event_evidence_count"] == 5
+    assert persist_summary["semantic_assertion_count"] >= 2
+    assert persist_summary["semantic_relation_count"] >= 0
+    assert persist_summary["semantic_policy_count"] >= 1
+    assert conn.execute("SELECT COUNT(*) FROM semantic_class_vocab").fetchone()[0] >= 10
+    assert conn.execute("SELECT COUNT(*) FROM semantic_rule_vocab").fetchone()[0] >= 4
+    assert conn.execute("SELECT COUNT(*) FROM semantic_refresh_runs WHERE run_id = ?", (payload["run"]["run_id"],)).fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM entity_class_assertions WHERE run_id = ?", (payload["run"]["run_id"],)).fetchone()[0] == persist_summary["semantic_assertion_count"]
+    refresh_row = conn.execute(
+        """
+        SELECT refresh_status, current_stage, status_message, started_at, updated_at
+        FROM semantic_refresh_runs
+        WHERE run_id = ?
+        """,
+        (payload["run"]["run_id"],),
+    ).fetchone()
+    assert refresh_row["refresh_status"] == "ok"
+    assert refresh_row["current_stage"] == "finalize"
+    assert "complete" in str(refresh_row["status_message"]).casefold()
+    assert refresh_row["started_at"] is not None
+    assert refresh_row["updated_at"] is not None
     assert report["summary"]["observation_count"] == 5
     assert report["summary"]["event_count"] == 1
     assert report["summary"]["fact_count"] == 2
@@ -300,6 +323,7 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
         },
     ]
     assert review_summary["summary"]["review_queue_count"] == 2
+    assert review_summary["summary"]["policy_review_required_count"] >= 1
     assert review_summary["summary"]["needs_followup_count"] == 1
     assert review_summary["summary"]["chronology_impacted_review_queue_count"] == 2
     assert review_summary["summary"]["legal_procedural_review_queue_count"] == 1
@@ -343,6 +367,7 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert workbench["zelph_ruleset_version"] == FACT_REVIEW_ZELPH_RULESET_VERSION
     assert workbench["zelph"]["version"] == "fact_intake.zelph_bridge.v1"
     assert workbench["zelph"]["rule_status"] in {"engine_ok", "engine_unavailable", "engine_error"}
+    assert workbench["facts"][0]["policy_outcomes"] == ["review_required"]
     assert workbench["facts"][0]["inferred_signal_classes"] == []
     assert workbench["review_queue"][0]["inferred_signal_classes"] == []
     assert acceptance["fixture_kind"] == "synthetic"
@@ -576,3 +601,188 @@ def test_abstained_observation_is_preserved_but_not_used_for_event_assembly() ->
     assert summary["event_count"] == 0
     assert report["summary"]["event_count"] == 0
     assert {row["observation_status"] for row in report["observations"]} == {"captured", "abstained"}
+
+
+def test_chat_archive_projection_mode_enriches_openrecall_like_text() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="openrecall:1",
+            source_id="capture:1",
+            source_type="openrecall_capture",
+            text="Actually, correction: please verify this later; I am not sure the task is ready for handoff.",
+        )
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="openrecall_demo")
+    payload["sources"][0]["source_type"] = "openrecall_capture"
+    payload["sources"][0].setdefault("provenance", {})["lexical_projection_mode"] = "chat_archive"
+
+    persist_fact_intake_payload(conn, payload)
+    summary = build_fact_review_run_summary(conn, run_id=payload["run"]["run_id"])
+    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
+
+    assert summary["facts"][0]["source_projection_modes"] == ["chat_archive"]
+    assert "chat_archive" in workbench["zelph"]["active_packs"]
+    fact = workbench["facts"][0]
+    assert {"self_correction_signal", "execution_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["signal_classes"])
+    assert {"self_correction_signal", "execution_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["inferred_signal_classes"])
+
+
+def test_transcript_handoff_projection_mode_preserves_handoff_and_uncertainty() -> None:
+    conn = sqlite3.connect(":memory:")
+    semantic_report = {
+        "run_id": "transcript-lexical-v1",
+        "source_documents": [
+            {
+                "sourceDocumentId": "doc:1",
+                "sourceType": "professional_note",
+                "title": "Professional note",
+                "text": "Support worker handoff: maybe escalate this later. Professional note says follow up next week.",
+            }
+        ],
+        "per_event": [
+            {
+                "event_id": "event:1",
+                "source_document_id": "doc:1",
+                "source_type": "professional_note",
+                "text": "Support worker handoff: maybe escalate this later. Professional note says follow up next week.",
+                "event_roles": [],
+                "relation_candidates": [],
+            }
+        ],
+    }
+    payload = build_fact_intake_payload_from_transcript_report(semantic_report)
+
+    persist_fact_intake_payload(conn, payload)
+    summary = build_fact_review_run_summary(conn, run_id=payload["run"]["run_id"])
+    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
+
+    assert summary["facts"][0]["source_projection_modes"] == ["transcript_handoff"]
+    assert "transcript_handoff" in workbench["zelph"]["active_packs"]
+    fact = workbench["facts"][0]
+    assert {"handoff_context_signal", "professional_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["signal_classes"])
+    assert {"handoff_context_signal", "professional_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["inferred_signal_classes"])
+
+
+def test_au_legal_projection_mode_marks_appeal_and_stage_sensitive_language() -> None:
+    conn = sqlite3.connect(":memory:")
+    semantic_report = {
+        "run_id": "au-lexical-v1",
+        "source_documents": [
+            {
+                "sourceDocumentId": "doc:au:1",
+                "sourceType": "legal_record",
+                "title": "Appeal reasons",
+                "text": "The appellant appealed. The court held that the order should stand, although the respondent denied the allegation.",
+                "eventIds": ["event:au:1"],
+            }
+        ],
+        "per_event": [],
+        "relation_candidates": [],
+    }
+    source_events = [
+        {
+            "event_id": "event:au:1",
+            "source_document_id": "doc:au:1",
+            "source_type": "legal_record",
+            "anchor": {"text": "2003"},
+            "section": "Appeal",
+            "text": "The appellant appealed. The court held that the order should stand, although the respondent denied the allegation.",
+            "event_roles": [],
+        }
+    ]
+    payload = build_fact_intake_payload_from_au_semantic_report(semantic_report, timeline_events=source_events)
+
+    persist_fact_intake_payload(conn, payload)
+    summary = build_fact_review_run_summary(conn, run_id=payload["run"]["run_id"])
+    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
+
+    assert summary["facts"][0]["source_projection_modes"] == ["au_legal"]
+    assert "au_legal" in workbench["zelph"]["active_packs"]
+    fact = workbench["facts"][0]
+    assert {"appeal_stage_signal", "procedural_outcome", "party_assertion"} <= set(fact["signal_classes"])
+    assert {"appeal_stage_signal", "procedural_outcome", "party_assertion"} <= set(fact["inferred_signal_classes"])
+
+
+def test_semantic_materialization_projects_source_relations_and_policies() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="unit:wiki",
+            source_id="wiki-src",
+            source_type="wiki_article",
+            text="Revision by Editor: Reverted unsourced change after later legal filing.",
+        ),
+        TextUnit(
+            unit_id="unit:record",
+            source_id="court-src",
+            source_type="legal_record",
+            text="Court held the filing should proceed.",
+        ),
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="semantic_relation_demo")
+    payload["fact_candidates"][0]["statement_ids"] = [row["statement_id"] for row in payload["statements"]]
+    payload["sources"][0]["provenance"] = {"source_signal_classes": ["public_summary", "wiki_article"]}
+    payload["sources"][1]["provenance"] = {"source_signal_classes": ["legal_record", "strong_legal_source"]}
+
+    persist_fact_intake_payload(conn, payload)
+    run_id = payload["run"]["run_id"]
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM entity_relations WHERE run_id = ? AND relation_key = 'cannot_upgrade_authority_of'",
+        (run_id,),
+    ).fetchone()[0] >= 1
+    assert conn.execute(
+        "SELECT COUNT(*) FROM policy_outcomes WHERE run_id = ? AND policy_key = 'do_not_promote_to_primary'",
+        (run_id,),
+    ).fetchone()[0] >= 1
+    assert conn.execute(
+        "SELECT introduced_in_version FROM semantic_class_vocab WHERE class_key = 'public_summary'"
+    ).fetchone()[0] == FACT_SEMANTIC_LAYER_VERSION
+
+
+def test_backfill_fact_semantics_script_rebuilds_semantic_rows() -> None:
+    db_path = Path("/tmp/fact-semantic-backfill.sqlite")
+    if db_path.exists():
+        db_path.unlink()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        units = [
+            TextUnit(
+                unit_id="unit:1",
+                source_id="source-a",
+                source_type="openrecall_capture",
+                text="Actually maybe verify this later.",
+            )
+        ]
+        payload = build_fact_intake_payload_from_text_units(units, source_label="backfill_demo")
+        payload["sources"][0]["provenance"] = {"lexical_projection_mode": "chat_archive"}
+        persist_fact_intake_payload(conn, payload)
+        run_id = payload["run"]["run_id"]
+        conn.execute("DELETE FROM semantic_refresh_runs WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM policy_outcomes WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM entity_relations WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM entity_class_assertions WHERE run_id = ?", (run_id,))
+        conn.commit()
+        conn.close()
+        exit_code = backfill_fact_semantics_main(["--db-path", str(db_path), "--run-id", run_id])
+        assert exit_code == 0
+        verify_conn = sqlite3.connect(str(db_path))
+        try:
+            refresh_row = verify_conn.execute(
+                "SELECT refresh_status, current_stage FROM semantic_refresh_runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            assert refresh_row is not None
+            assert refresh_row[0] == "ok"
+            assert refresh_row[1] == "finalize"
+            assert verify_conn.execute("SELECT COUNT(*) FROM entity_class_assertions WHERE run_id = ?", (run_id,)).fetchone()[0] >= 1
+        finally:
+            verify_conn.close()
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        if db_path.exists():
+            db_path.unlink()
