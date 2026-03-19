@@ -13,14 +13,17 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from src.fact_intake import (
+    build_fact_agent_feedback_payload,
     build_fact_review_acceptance_report,
     build_fact_review_operator_views,
     build_fact_intake_report,
     build_fact_review_run_summary,
+    build_fact_semantic_status_report,
     build_fact_review_workbench_payload,
     find_latest_fact_workflow_link,
     list_fact_intake_runs,
     list_fact_review_sources,
+    list_semantic_refresh_runs,
     resolve_fact_run_id,
     resolve_fact_run_link,
 )
@@ -65,6 +68,16 @@ def main(argv: list[str] | None = None) -> int:
 
     chronology_p = sub.add_parser("chronology", help="Show chronology-focused event/fact reporting for a persisted run")
     _add_run_selector_args(chronology_p)
+
+    semantic_p = sub.add_parser("semantic-status", help="Show semantic materialization status and counts for a persisted run")
+    _add_run_selector_args(semantic_p)
+
+    refreshes_p = sub.add_parser("semantic-refreshes", help="List recent semantic refresh receipts")
+    _add_run_selector_args(refreshes_p)
+    refreshes_p.add_argument("--limit", type=int, default=20)
+
+    feedback_p = sub.add_parser("feedback", help="Show downstream agent-facing policy/constraint payload for a persisted run")
+    _add_run_selector_args(feedback_p)
 
     view_p = sub.add_parser("view", help="Show one bounded operator view for a persisted run")
     _add_run_selector_args(view_p)
@@ -178,6 +191,45 @@ def main(argv: list[str] | None = None) -> int:
                 "chronology_summary": summary["chronology_summary"],
                 "chronology": summary["chronology"],
                 "chronology_groups": summary["chronology_groups"],
+            }
+        elif args.command == "semantic-status":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "semantic_status": build_fact_semantic_status_report(conn, run_id=resolved_run_id),
+            }
+        elif args.command == "semantic-refreshes":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            ) if any(getattr(args, name, None) for name in ("run_id", "workflow_kind", "workflow_run_id", "source_label")) else None
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "refreshes": list_semantic_refresh_runs(conn, run_id=resolved_run_id, limit=args.limit),
+            }
+        elif args.command == "feedback":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "feedback": build_fact_agent_feedback_payload(conn, run_id=resolved_run_id),
             }
         elif args.command == "view":
             resolved_run_id = resolve_fact_run_id(

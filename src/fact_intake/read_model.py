@@ -135,6 +135,9 @@ _SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("reporting_source", "source_authority", "source", "Reporting-style summary source."),
     ("ocr_capture", "source_authority", "source", "OCR capture source."),
     ("later_annotation", "source_authority", "source", "Later annotation source."),
+    ("agent_summary", "role_boundary", "source", "Agent-generated summary source."),
+    ("system_summary", "role_boundary", "source", "System-generated summary source."),
+    ("agent_action_log", "role_boundary", "source", "Agent execution/activity log source."),
     ("professional_note", "role_boundary", "source", "Professional note source."),
     ("professional_interpretation", "role_boundary", "source", "Professional interpretation source."),
     ("support_worker_note", "role_boundary", "source", "Support-worker note source."),
@@ -162,6 +165,8 @@ _SEMANTIC_CLASS_SPECS: tuple[tuple[str, str, str, str], ...] = (
 _SEMANTIC_RELATION_SPECS: tuple[tuple[str, str, str, str], ...] = (
     ("contextualizes", "source", "source", "Source contextualizes another source."),
     ("cannot_upgrade_authority_of", "source", "source", "Source cannot upgrade authority of another source."),
+    ("corroborates", "fact", "fact", "Fact corroborates another fact."),
+    ("contradicts", "fact", "fact", "Fact contradicts another fact."),
 )
 
 _SEMANTIC_RULE_SPECS: tuple[tuple[str, str, str], ...] = (
@@ -177,6 +182,7 @@ _POLICY_SPECS: tuple[tuple[str, str, str], ...] = (
     ("do_not_promote_to_primary", "fact", "Fact must not be promoted to a primary-authority claim."),
     ("preserve_source_boundary", "fact", "Source boundary must be preserved."),
     ("manual_resolution_required", "fact", "Manual resolution is required."),
+    ("bounded_context_required", "fact", "Downstream agents must receive bounded context only."),
 )
 
 
@@ -268,16 +274,7 @@ def _event_confidence_for_roles(roles: set[str]) -> float:
 def _source_signal_classes(sources: Iterable[Mapping[str, Any]]) -> list[str]:
     out: list[str] = []
     for source in sources:
-        provenance = source.get("provenance")
-        if not isinstance(provenance, Mapping):
-            continue
-        raw = provenance.get("source_signal_classes")
-        if isinstance(raw, list):
-            out.extend(str(value) for value in raw if str(value).strip())
-            continue
-        single = _normalize_opt_text(provenance.get("source_signal_class"))
-        if single:
-            out.append(single)
+        out.extend(_derived_source_classes(source))
     return list(dict.fromkeys(out))
 
 
@@ -292,6 +289,40 @@ def _source_projection_modes(sources: Iterable[Mapping[str, Any]]) -> list[str]:
             out.extend(str(value) for value in raw if str(value).strip())
             continue
         single = _normalize_opt_text(provenance.get("lexical_projection_mode"))
+        if single:
+            out.append(single)
+    return list(dict.fromkeys(out))
+
+
+def _derived_source_classes(source: Mapping[str, Any]) -> list[str]:
+    out: list[str] = []
+    source_type = str(source.get("source_type") or "").strip()
+    provenance = source.get("provenance") if isinstance(source.get("provenance"), Mapping) else {}
+    if source_type == "wiki_article":
+        out.extend(["public_summary", "wiki_article"])
+    if source_type == "wikidata_claim_sheet":
+        out.append("wikidata_claim")
+    if source_type == "legal_record":
+        out.append("legal_record")
+    if source_type == "timeline_payload":
+        out.append("procedural_record")
+    if source_type == "openrecall_capture":
+        out.extend(["ocr_capture", "agent_action_log"])
+    if source_type == "annotation_note":
+        out.append("later_annotation")
+    if source_type == "professional_note":
+        out.append("professional_note")
+    if source_type == "professional_interpretation":
+        out.extend(["professional_interpretation", "agent_summary"])
+    if source_type == "support_worker_note":
+        out.append("support_worker_note")
+    if source_type in {"chat_archive_sample", "facebook_messages_archive_sample"}:
+        out.append("documentary_record")
+    raw = provenance.get("source_signal_classes")
+    if isinstance(raw, list):
+        out.extend(str(value) for value in raw if str(value).strip())
+    else:
+        single = _normalize_opt_text(provenance.get("source_signal_class"))
         if single:
             out.append(single)
     return list(dict.fromkeys(out))
@@ -1609,6 +1640,173 @@ def _load_policy_map(conn: sqlite3.Connection, *, run_id: str, target_kind: str)
     return out
 
 
+def list_semantic_refresh_runs(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    where = "WHERE run_id = ?" if run_id else ""
+    params: tuple[Any, ...] = ((run_id, max(int(limit), 1)) if run_id else (max(int(limit), 1),))
+    rows = conn.execute(
+        f"""
+        SELECT refresh_id, run_id, bridge_version, ruleset_version, refresh_kind, refresh_status,
+               facts_serialized_count, assertion_count, relation_count, policy_count,
+               started_at, updated_at, current_stage, status_message, created_at
+        FROM semantic_refresh_runs
+        {where}
+        ORDER BY COALESCE(updated_at, created_at) DESC, refresh_id DESC
+        LIMIT ?
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "refresh_id": str(row["refresh_id"]),
+            "run_id": str(row["run_id"]),
+            "bridge_version": str(row["bridge_version"]),
+            "ruleset_version": str(row["ruleset_version"]),
+            "refresh_kind": str(row["refresh_kind"]),
+            "refresh_status": str(row["refresh_status"]),
+            "facts_serialized_count": int(row["facts_serialized_count"]),
+            "assertion_count": int(row["assertion_count"]),
+            "relation_count": int(row["relation_count"]),
+            "policy_count": int(row["policy_count"]),
+            "started_at": _normalize_opt_text(row["started_at"]),
+            "updated_at": _normalize_opt_text(row["updated_at"]),
+            "current_stage": _normalize_opt_text(row["current_stage"]),
+            "status_message": _normalize_opt_text(row["status_message"]),
+            "created_at": str(row["created_at"]),
+        }
+        for row in rows
+    ]
+
+
+def build_fact_semantic_status_report(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    report = build_fact_intake_report(conn, run_id=run_id)
+    refreshes = list_semantic_refresh_runs(conn, run_id=run_id, limit=20)
+    assertion_rows = conn.execute(
+        """
+        SELECT target_kind, assertion_origin, COUNT(*) AS row_count
+        FROM entity_class_assertions
+        WHERE run_id = ? AND assertion_status = 'active'
+        GROUP BY target_kind, assertion_origin
+        ORDER BY target_kind, assertion_origin
+        """,
+        (run_id,),
+    ).fetchall()
+    relation_rows = conn.execute(
+        """
+        SELECT relation_key, assertion_origin, COUNT(*) AS row_count
+        FROM entity_relations
+        WHERE run_id = ? AND relation_status = 'active'
+        GROUP BY relation_key, assertion_origin
+        ORDER BY relation_key, assertion_origin
+        """,
+        (run_id,),
+    ).fetchall()
+    policy_rows = conn.execute(
+        """
+        SELECT policy_key, outcome_status, COUNT(*) AS row_count
+        FROM policy_outcomes
+        WHERE run_id = ?
+        GROUP BY policy_key, outcome_status
+        ORDER BY policy_key, outcome_status
+        """,
+        (run_id,),
+    ).fetchall()
+    return {
+        "run": report["run"],
+        "materialized": _has_semantic_materialization(conn, run_id=run_id),
+        "latest_refresh": refreshes[0] if refreshes else None,
+        "refresh_history": refreshes,
+        "assertions": [
+            {
+                "target_kind": str(row["target_kind"]),
+                "assertion_origin": str(row["assertion_origin"]),
+                "row_count": int(row["row_count"]),
+            }
+            for row in assertion_rows
+        ],
+        "relations": [
+            {
+                "relation_key": str(row["relation_key"]),
+                "assertion_origin": str(row["assertion_origin"]),
+                "row_count": int(row["row_count"]),
+            }
+            for row in relation_rows
+        ],
+        "policies": [
+            {
+                "policy_key": str(row["policy_key"]),
+                "outcome_status": str(row["outcome_status"]),
+                "row_count": int(row["row_count"]),
+            }
+            for row in policy_rows
+        ],
+    }
+
+
+def _policy_message(policy_key: str) -> str:
+    return {
+        "review_required": "Human review required before relying on this fact.",
+        "do_not_promote_to_primary": "Do not elevate this fact to primary-authority status.",
+        "preserve_source_boundary": "Preserve the original source boundary in any summary or handoff.",
+        "manual_resolution_required": "Manual resolution is required before downstream automation.",
+        "bounded_context_required": "Only bounded, source-linked context may be shown to downstream agents.",
+    }.get(policy_key, f"Policy active: {policy_key}")
+
+
+def build_fact_agent_feedback_payload(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    workbench = build_fact_review_workbench_payload(conn, run_id=run_id)
+    items: list[dict[str, Any]] = []
+    active_policy_count = 0
+    for fact in workbench.get("facts", []):
+        if not isinstance(fact, Mapping):
+            continue
+        policies = [str(value) for value in fact.get("policy_outcomes", []) if str(value).strip()]
+        if not policies:
+            continue
+        active_policy_count += len(policies)
+        items.append(
+            {
+                "fact_id": str(fact.get("fact_id")),
+                "label": str(fact.get("canonical_label") or fact.get("fact_text") or "")[:120],
+                "policy_outcomes": policies,
+                "messages": [_policy_message(policy_key) for policy_key in policies],
+                "signal_classes": list(fact.get("signal_classes", [])),
+                "source_signal_classes": list(fact.get("source_signal_classes", [])),
+                "source_ids": list(fact.get("source_ids", [])),
+                "statement_ids": list(fact.get("statement_ids", [])),
+            }
+        )
+    return {
+        "run": workbench["run"],
+        "summary": {
+            "fact_count": len(workbench.get("facts", [])),
+            "constrained_fact_count": len(items),
+            "active_policy_count": active_policy_count,
+        },
+        "global_messages": list(
+            dict.fromkeys(
+                message
+                for item in items
+                for message in item["messages"]
+            )
+        ),
+        "items": items,
+    }
+
+
 def _record_class_assertion(
     conn: sqlite3.Connection,
     *,
@@ -2456,12 +2654,7 @@ def persist_fact_semantic_materialization(
         conn.execute("DELETE FROM entity_class_assertions WHERE run_id = ?", (run_id,))
 
         emit("materialize_sources", f"Writing source semantic assertions for {len(report['sources'])} sources.", facts_serialized_count=workbench_facts_serialized_count)
-        source_signal_by_id = {
-            str(source["source_id"]): list(source.get("provenance", {}).get("source_signal_classes", []))
-            if isinstance(source.get("provenance"), Mapping) and isinstance(source.get("provenance", {}).get("source_signal_classes"), list)
-            else ([str(source.get("provenance", {}).get("source_signal_class"))] if isinstance(source.get("provenance"), Mapping) and _normalize_opt_text(source.get("provenance", {}).get("source_signal_class")) else [])
-            for source in report["sources"]
-        }
+        source_signal_by_id = {str(source["source_id"]): _derived_source_classes(source) for source in report["sources"]}
         for source in report["sources"]:
             source_id = str(source["source_id"])
             for class_key in source_signal_by_id.get(source_id, []):
@@ -2550,6 +2743,21 @@ def persist_fact_semantic_materialization(
                     provenance={"fact_id": fact_id},
                 )
                 policy_count += 1
+            if {"ocr_capture", "agent_summary", "system_summary", "later_annotation"} & {
+                signal
+                for source_id in fact.get("source_ids", [])
+                for signal in source_signal_by_id.get(str(source_id), [])
+            }:
+                _record_policy_outcome(
+                    conn,
+                    run_id=run_id,
+                    target_kind="fact",
+                    target_id=fact_id,
+                    policy_key="bounded_context_required",
+                    rule_key="policy_projection",
+                    provenance={"fact_id": fact_id},
+                )
+                policy_count += 1
             if {"volatility_signal", "authority_transfer_risk"} & fact_signal_set:
                 _record_policy_outcome(
                     conn,
@@ -2599,6 +2807,41 @@ def persist_fact_semantic_materialization(
                         assertion_origin="zelph" if "public_knowledge_not_authority" in fact_signal_set else "native_rule",
                         rule_key="zelph_signal_projection" if "public_knowledge_not_authority" in fact_signal_set else "native_signal_projection",
                         provenance={"fact_id": fact_id},
+                    )
+                    relation_count += 1
+
+        for idx, fact in enumerate(report["facts"]):
+            fact_id = str(fact["fact_id"])
+            fact_signal_set = set(fact_rows_by_id.get(fact_id, {}).get("signal_classes", []))
+            for other in report["facts"][idx + 1 :]:
+                other_id = str(other["fact_id"])
+                other_signal_set = set(fact_rows_by_id.get(other_id, {}).get("signal_classes", []))
+                if fact.get("contestations") and other.get("contestations"):
+                    _record_relation(
+                        conn,
+                        run_id=run_id,
+                        subject_kind="fact",
+                        subject_id=fact_id,
+                        relation_key="contradicts",
+                        object_kind="fact",
+                        object_id=other_id,
+                        assertion_origin="native_rule",
+                        rule_key="native_signal_projection",
+                        provenance={"reason": "mutual_contestation"},
+                    )
+                    relation_count += 1
+                if fact_signal_set & {"procedural_outcome", "public_knowledge_not_authority"} and other_signal_set & {"party_assertion", "uncertainty_preserved"}:
+                    _record_relation(
+                        conn,
+                        run_id=run_id,
+                        subject_kind="fact",
+                        subject_id=fact_id,
+                        relation_key="corroborates",
+                        object_kind="fact",
+                        object_id=other_id,
+                        assertion_origin="native_rule",
+                        rule_key="native_signal_projection",
+                        provenance={"reason": "complementary_semantics"},
                     )
                     relation_count += 1
 

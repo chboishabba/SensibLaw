@@ -170,6 +170,24 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert acceptance_payload["acceptance"]["fixture_kind"] == "synthetic"
     assert "failed_check_ids" in acceptance_payload["acceptance"]["stories"][0]
 
+    exit_code = main(["--db-path", str(db_path), "semantic-status", "--run-id", run_id])
+    semantic_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert semantic_payload["semantic_status"]["materialized"] is True
+    assert semantic_payload["semantic_status"]["latest_refresh"]["refresh_status"] == "ok"
+
+    exit_code = main(["--db-path", str(db_path), "semantic-refreshes", "--run-id", run_id, "--limit", "5"])
+    refresh_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert refresh_payload["refreshes"][0]["run_id"] == run_id
+    assert refresh_payload["refreshes"][0]["current_stage"] == "finalize"
+
+    exit_code = main(["--db-path", str(db_path), "feedback", "--run-id", run_id])
+    feedback_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert feedback_payload["feedback"]["summary"]["constrained_fact_count"] >= 1
+    assert any("review" in msg.casefold() for msg in feedback_payload["feedback"]["global_messages"])
+
 
 def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(tmp_path, capsys) -> None:
     db_path = tmp_path / "itir.sqlite"
