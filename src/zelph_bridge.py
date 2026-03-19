@@ -65,7 +65,9 @@ def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
         query_file = tmpdir_path / "query.zph"
 
         facts_file.write_text(facts, encoding="utf-8")
+        Path("/tmp/zelph_debug_facts.zlp").write_text(facts, encoding="utf-8")
         rules_file.write_text(rules, encoding="utf-8")
+        Path("/tmp/zelph_debug_rules.zlp").write_text(rules, encoding="utf-8")
         query_file.write_text(f'include "{rules_file}"\ninclude "{facts_file}"\n', encoding="utf-8")
 
         try:

@@ -1,0 +1,48 @@
+{
+  "corpus_file": "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/fact_semantic_bench/wiki_revision_seed.json",
+  "corpus_summary": {
+    "expected_class_count": 332,
+    "expected_policy_count": 176,
+    "long_entry_count": 44,
+    "source_types": [
+      "wiki_article"
+    ]
+  },
+  "count": 200,
+  "db_path": "/tmp/fact-semantic-bench-oe0xoaw2/bench.sqlite",
+  "elapsed_ms": 1701.17,
+  "elapsed_ms_per_doc": 8.50585,
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 200,
+    "fact_count": 200,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:23b95438fd217f319de6eef4dd94933d4a4b5b1d689b4990f34526e735966ca6",
+    "semantic_assertion_count": 1088,
+    "semantic_policy_count": 556,
+    "semantic_relation_count": 132,
+    "source_count": 200,
+    "statement_count": 200
+  },
+  "refresh": {
+    "assertion_count": 1088,
+    "current_stage": "finalize",
+    "facts_serialized_count": 4867,
+    "policy_count": 556,
+    "refresh_status": "ok",
+    "relation_count": 132
+  },
+  "zelph": {
+    "active_packs": [
+      "wiki_revision"
+    ],
+    "facts_serialized_count": 5423,
+    "inferred_fact_count": 200,
+    "rule_status": "engine_ok"
+  }
+}

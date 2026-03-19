@@ -19,7 +19,13 @@ X "signal_class" "volatility_signal" :-
     X "has revision comment" R,
     R "has comment lexeme" "reverted".
 
+(X "signal_class" "reversion_edit") => (X "is_reversion" "True").
+
 X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "undo".
+
+X "is_reversion" "True" :-
     X "has revision comment" R,
     R "has comment lexeme" "undo".
 
@@ -27,13 +33,73 @@ X "signal_class" "volatility_signal" :-
     X "has revision comment" R,
     R "has comment lexeme" "undid".
 
+X "is_reversion" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "undid".
+
 X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "remove".
+
+X "is_reversion" "True" :-
     X "has revision comment" R,
     R "has comment lexeme" "remove".
 
 X "signal_class" "volatility_signal" :-
     X "has revision comment" R,
     R "has comment lexeme" "removed".
+
+X "is_reversion" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "removed".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "vandalism".
+
+X "is_reversion" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "vandalism".
+
+X "has_context_reason" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "because".
+
+X "has_context_reason" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "due".
+
+X "has_context_reason" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "per".
+
+X "has_context_reason" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "citation".
+
+X "has_context_reason" "True" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "source".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "dispute".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "disputed".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "contested".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "unverified".
+
+X "signal_class" "volatility_signal" :-
+    X "has revision comment" R,
+    R "has comment lexeme" "unsourced".
 
 X "signal_class" "party_assertion" :-
     X "has_observation_predicate" "claimed".

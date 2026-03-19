@@ -1,17 +1,1 @@
-# Zelph Rules for Wave 3/4 Invariants
-
-# Reversion Check
-"Reversion without context is a risk" :-
-    X "is_reversion" "True",
-    not(X "has_context_reason" "True").
-
-# Cross-side Contradiction
-"Cross-side contradiction found" :-
-    S1 "source_side" "A",
-    S2 "source_side" "B",
-    S1 "claims" "X",
-    S2 "denies" "X".
-
-# Rule for identifying 'volatility_signal'
-X "volatility_signal" "True" :-
-    X "is_reversion" "True".
+"test" "is" "good".

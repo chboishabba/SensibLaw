@@ -1,0 +1,50 @@
+{
+  "corpus_file": "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/fact_semantic_bench/transcript_handoff_seed.json",
+  "corpus_summary": {
+    "expected_class_count": 2400,
+    "expected_policy_count": 1000,
+    "long_entry_count": 200,
+    "source_types": [
+      "annotation_note",
+      "professional_note",
+      "support_worker_note"
+    ]
+  },
+  "count": 1000,
+  "db_path": "/tmp/fact-semantic-bench-ooy1m81c/bench.sqlite",
+  "elapsed_ms": 8927.042,
+  "elapsed_ms_per_doc": 8.927042,
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 1000,
+    "fact_count": 1000,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:150f59f5cddc0ef1bf66bfd0c3dc6afa74283d0e7e6e56b2a1ff184a259d2708",
+    "semantic_assertion_count": 4800,
+    "semantic_policy_count": 2000,
+    "semantic_relation_count": 0,
+    "source_count": 1000,
+    "statement_count": 1000
+  },
+  "refresh": {
+    "assertion_count": 4800,
+    "current_stage": "finalize",
+    "facts_serialized_count": 21600,
+    "policy_count": 2000,
+    "refresh_status": "ok",
+    "relation_count": 0
+  },
+  "zelph": {
+    "active_packs": [
+      "transcript_handoff"
+    ],
+    "facts_serialized_count": 24800,
+    "inferred_fact_count": 1000,
+    "rule_status": "engine_ok"
+  }
+}

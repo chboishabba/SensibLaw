@@ -1,0 +1,48 @@
+{
+  "corpus_file": "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/fact_semantic_bench/chat_archive_seed.json",
+  "corpus_summary": {
+    "expected_class_count": 2750,
+    "expected_policy_count": 1250,
+    "long_entry_count": 250,
+    "source_types": [
+      "openrecall_capture"
+    ]
+  },
+  "count": 1000,
+  "db_path": "/tmp/fact-semantic-bench-n_hr1ujc/bench.sqlite",
+  "elapsed_ms": 10724.549,
+  "elapsed_ms_per_doc": 10.724549,
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 1000,
+    "fact_count": 1000,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:eb7699fc268badedca6bfe0f9f538218473541cc7983bd58c6f9c2836cc3e24e",
+    "semantic_assertion_count": 4750,
+    "semantic_policy_count": 3000,
+    "semantic_relation_count": 0,
+    "source_count": 1000,
+    "statement_count": 1000
+  },
+  "refresh": {
+    "assertion_count": 4750,
+    "current_stage": "finalize",
+    "facts_serialized_count": 28000,
+    "policy_count": 3000,
+    "refresh_status": "ok",
+    "relation_count": 0
+  },
+  "zelph": {
+    "active_packs": [
+      "chat_archive"
+    ],
+    "facts_serialized_count": 30500,
+    "inferred_fact_count": 1000,
+    "rule_status": "engine_ok"
+  }
+}

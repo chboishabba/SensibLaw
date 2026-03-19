@@ -1,0 +1,48 @@
+{
+  "corpus_file": "/home/c/Documents/code/ITIR-suite/SensibLaw/tests/fixtures/fact_semantic_bench/au_legal_seed.json",
+  "corpus_summary": {
+    "expected_class_count": 2331,
+    "expected_policy_count": 333,
+    "long_entry_count": 166,
+    "source_types": [
+      "legal_record"
+    ]
+  },
+  "count": 1000,
+  "db_path": "/tmp/fact-semantic-bench-7bixjlnq/bench.sqlite",
+  "elapsed_ms": 26967.627,
+  "elapsed_ms_per_doc": 26.967627,
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 1000,
+    "fact_count": 1000,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:bd80b3cad190d6927eca04e3967b6bb5d945f9e64ec0eb56463621041444e948",
+    "semantic_assertion_count": 4664,
+    "semantic_policy_count": 1333,
+    "semantic_relation_count": 210083,
+    "source_count": 1000,
+    "statement_count": 1000
+  },
+  "refresh": {
+    "assertion_count": 4664,
+    "current_stage": "finalize",
+    "facts_serialized_count": 24150,
+    "policy_count": 1333,
+    "refresh_status": "ok",
+    "relation_count": 210083
+  },
+  "zelph": {
+    "active_packs": [
+      "au_legal"
+    ],
+    "facts_serialized_count": 26481,
+    "inferred_fact_count": 1000,
+    "rule_status": "engine_ok"
+  }
+}

@@ -22,9 +22,15 @@ _REVERSION_KEYWORDS = {
     "remove",
     "removed",
     "removing",
+    "vandalism",
+    "dispute",
+    "disputed",
+    "contested",
+    "unverified",
+    "unsourced",
 }
 _ARCHIVE_KEYWORDS = {"archive", "archived", "archiving"}
-_ADMIN_KEYWORDS = {"protect", "protected", "protection", "block", "blocked"}
+_ADMIN_KEYWORDS = {"protect", "protected", "protection", "block", "blocked", "warn", "warning"}
 
 
 def _quote_zelph_text(value: Any) -> str:
