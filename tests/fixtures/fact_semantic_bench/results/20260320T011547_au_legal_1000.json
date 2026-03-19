@@ -1,0 +1,52 @@
+{
+  "corpus_file": "tests/fixtures/fact_semantic_bench/au_legal_seed.json",
+  "corpus_id": "au_legal",
+  "corpus_summary": {
+    "expected_class_count": 2250,
+    "expected_policy_count": 375,
+    "long_entry_count": 125,
+    "source_types": [
+      "legal_record",
+      "public_summary"
+    ]
+  },
+  "count": 1000,
+  "db_path": "/tmp/bench-au_legal-1000-93ufq1pi/bench.sqlite",
+  "elapsed_ms": 23684.924,
+  "elapsed_ms_per_doc": 23.684924,
+  "exit_code": 0,
+  "manifest_path": "tests/fixtures/fact_semantic_bench/corpus_manifest.json",
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 1000,
+    "fact_count": 1000,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:c106843d7520c996bfc6cdf938324905fde95c394361085e911d521f74311214",
+    "semantic_assertion_count": 4750,
+    "semantic_policy_count": 1375,
+    "semantic_relation_count": 238453,
+    "source_count": 1000,
+    "statement_count": 1000
+  },
+  "refresh": {
+    "assertion_count": 4750,
+    "current_stage": "finalize",
+    "facts_serialized_count": 24625,
+    "policy_count": 1375,
+    "refresh_status": "ok",
+    "relation_count": 238453
+  },
+  "zelph": {
+    "active_packs": [
+      "au_legal"
+    ],
+    "facts_serialized_count": 27125,
+    "inferred_fact_count": 1000,
+    "rule_status": "engine_ok"
+  }
+}

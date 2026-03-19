@@ -1,0 +1,51 @@
+{
+  "corpus_file": "tests/fixtures/fact_semantic_bench/wiki_revision_seed.json",
+  "corpus_id": "wiki_revision",
+  "corpus_summary": {
+    "expected_class_count": 172,
+    "expected_policy_count": 99,
+    "long_entry_count": 18,
+    "source_types": [
+      "wiki_article"
+    ]
+  },
+  "count": 100,
+  "db_path": "/tmp/bench-wiki_revision-100-s7c9bouc/bench.sqlite",
+  "elapsed_ms": 1014.328,
+  "elapsed_ms_per_doc": 10.14328,
+  "exit_code": 0,
+  "manifest_path": "tests/fixtures/fact_semantic_bench/corpus_manifest.json",
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 100,
+    "fact_count": 100,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:90bf97944fe4aa40102a6f52f83f11153d57b92d86b799e3e92c2a9288e028c3",
+    "semantic_assertion_count": 518,
+    "semantic_policy_count": 282,
+    "semantic_relation_count": 54,
+    "source_count": 100,
+    "statement_count": 100
+  },
+  "refresh": {
+    "assertion_count": 518,
+    "current_stage": "finalize",
+    "facts_serialized_count": 2634,
+    "policy_count": 282,
+    "refresh_status": "ok",
+    "relation_count": 54
+  },
+  "zelph": {
+    "active_packs": [
+      "wiki_revision"
+    ],
+    "facts_serialized_count": 2898,
+    "inferred_fact_count": 100,
+    "rule_status": "engine_ok"
+  }
+}

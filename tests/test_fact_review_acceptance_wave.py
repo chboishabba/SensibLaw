@@ -4,6 +4,7 @@ import json
 
 from scripts.run_fact_review_acceptance_wave import main
 from src.fact_intake import load_fact_review_acceptance_fixture_manifest
+from src.fact_intake.acceptance_fixtures import _DEFAULT_MANIFEST_BY_WAVE
 
 
 def test_wave1_acceptance_fixture_manifest_lists_canonical_real_and_synthetic_fixtures() -> None:
@@ -276,3 +277,39 @@ def test_all_acceptance_waves_remain_green(tmp_path, capsys) -> None:
         for fixture in fixture_rows:
             assert fixture["summary"]["fail_count"] == 0
             assert fixture["summary"]["partial_count"] == 0
+
+
+def test_ui_baseline_real_fixtures_present_and_green(tmp_path, capsys) -> None:
+    """
+    Every real fixture that fronts the UI baseline should stay in the wave batch and remain fully green.
+    """
+    for wave in _DEFAULT_MANIFEST_BY_WAVE:
+        manifest = load_fact_review_acceptance_fixture_manifest(wave=wave)
+        real_fixture_ids = {
+            fixture["fixture_id"] for fixture in manifest["fixtures"] if fixture.get("fixture_kind") == "real"
+        }
+        if not real_fixture_ids:
+            continue
+
+        capsys.readouterr()  # clear stdout before running the wave
+        db_path = tmp_path / f"{wave}.sqlite"
+        exit_code = main(
+            [
+                "--db-path",
+                str(db_path),
+                "--wave",
+                wave,
+            ]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert exit_code == 0
+
+        real_fixtures = {row["fixture_id"]: row for row in payload["fixtures"] if row.get("fixture_kind") == "real"}
+        assert real_fixture_ids <= real_fixtures.keys()
+
+        for fixture_id in real_fixture_ids:
+            fixture = real_fixtures[fixture_id]
+            summary = fixture["summary"]
+            assert summary["fail_count"] == 0
+            assert summary["partial_count"] == 0
+            assert all(story["status"] == "pass" for story in fixture["stories"])

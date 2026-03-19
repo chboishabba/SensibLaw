@@ -46,6 +46,24 @@
       "expected_classes": ["handoff_context_signal", "uncertainty_preserved", "sequence_signal"],
       "expected_policies": ["preserve_source_boundary"],
       "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    },
+    {
+      "id": "transcript-adversarial-redaction",
+      "source_type": "annotation_note",
+      "text": "<<<redacted>>> [later note] disregard earlier timeline; patient audio dropped words; keep the original quote separate.",
+      "length_bucket": "medium",
+      "expected_classes": ["handoff_context_signal", "uncertainty_preserved"],
+      "expected_policies": ["preserve_source_boundary", "bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff", "source_signal_classes": ["later_annotation", "patient_account"]}
+    },
+    {
+      "id": "transcript-adversarial-runon",
+      "source_type": "professional_note",
+      "text": "handoff said resolved but annotation says maybe not and the clinician overrode with ??? TODO ??? check, then wrote followup immediately without timestamps",
+      "length_bucket": "long",
+      "expected_classes": ["handoff_context_signal", "professional_handoff_signal", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff"}
     }
   ]
 }

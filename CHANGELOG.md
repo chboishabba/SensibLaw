@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Fact semantic benchmark hardening:
+  - Added prompt-injection/link-spam/code-switch/redaction adversarial entries across wiki, chat, transcript, and AU legal corpora.
+  - Added corpus shape/adversarial smoke test (`tests/test_fact_semantic_bench_corpora.py`).
+  - Re-ran matrix benchmarks at tiers 100 and 1000 for all corpora; refresh status remains OK.
 - Mary-parity fact-intake scaffold:
   - Added a first SQLite read-model migration for canonical
     `source -> excerpt -> statement -> fact candidate -> contestation/review`

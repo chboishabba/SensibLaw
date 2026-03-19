@@ -10,6 +10,7 @@ from src.fact_intake import (
     persist_fact_intake_payload,
     record_fact_workflow_link,
 )
+from src.fact_intake.acceptance import STORY_WAVES
 from src.reporting.structure_report import TextUnit
 
 
@@ -318,3 +319,57 @@ def test_query_fact_review_script_accepts_later_acceptance_waves_for_demo_bundle
     assert bundle_payload["selector"]["run_id"] == run_id
     assert bundle_payload["selector"]["wave"] == "wave5_handoff_false_coherence"
     assert bundle_payload["acceptance"]["wave"] == "wave5_handoff_false_coherence"
+
+
+def test_query_fact_review_script_acceptance_supports_wave4_fixture_kind(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "acceptance",
+            "--run-id",
+            run_id,
+            "--wave",
+            "wave4_medical_regulatory",
+            "--fixture-kind",
+            "real",
+        ]
+    )
+    acceptance_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert acceptance_payload["acceptance"]["wave"] == "wave4_medical_regulatory"
+    assert acceptance_payload["acceptance"]["fixture_kind"] == "real"
+    assert acceptance_payload["acceptance"]["summary"]["story_count"] == len(STORY_WAVES["wave4_medical_regulatory"])
+
+
+def test_query_fact_review_script_demo_bundle_resolves_selector_variants_for_later_wave(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "demo-bundle",
+            "--workflow-kind",
+            "transcript_semantic",
+            "--source-label",
+            "query_fact_review_demo",
+            "--wave",
+            "wave4_medical_regulatory",
+            "--fixture-kind",
+            "synthetic",
+        ]
+    )
+    bundle_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert bundle_payload["selector"]["run_id"] == run_id
+    assert bundle_payload["selector"]["workflow_kind"] == "transcript_semantic"
+    assert bundle_payload["selector"]["workflow_run_id"] == "semantic:query-demo"
+    assert bundle_payload["selector"]["source_label"] == "query_fact_review_demo"
+    assert bundle_payload["selector"]["wave"] == "wave4_medical_regulatory"
+    assert bundle_payload["acceptance"]["wave"] == "wave4_medical_regulatory"
+    assert bundle_payload["acceptance"]["summary"]["story_count"] == len(STORY_WAVES["wave4_medical_regulatory"])

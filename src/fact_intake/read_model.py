@@ -2914,6 +2914,7 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
             "title": "Chronology prep",
             "summary": dict(summary["chronology_summary"]),
             "groups": chronology_groups,
+            "items": list(summary.get("chronology", [])),
         },
         "procedural_posture": {
             "title": "Procedural posture",
@@ -2921,6 +2922,7 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 "legal_procedural_review_queue_count": summary["summary"]["legal_procedural_review_queue_count"],
                 "contested_item_count": summary["summary"]["contested_item_count"],
             },
+            "groups": {},
             "items": [row for row in review_queue if row["has_legal_procedural_observations"]],
         },
         "contested_items": {
@@ -2930,6 +2932,7 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
                 "needs_followup_count": contested_summary["needs_followup_count"],
                 "chronology_impacted_count": contested_summary["chronology_impacted_count"],
             },
+            "groups": {},
             "items": list(contested_summary["items"]),
         },
         "trauma_handoff": {

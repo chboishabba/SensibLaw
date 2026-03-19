@@ -1,0 +1,53 @@
+{
+  "corpus_file": "tests/fixtures/fact_semantic_bench/transcript_handoff_seed.json",
+  "corpus_id": "transcript_handoff",
+  "corpus_summary": {
+    "expected_class_count": 2428,
+    "expected_policy_count": 1143,
+    "long_entry_count": 285,
+    "source_types": [
+      "annotation_note",
+      "professional_note",
+      "support_worker_note"
+    ]
+  },
+  "count": 1000,
+  "db_path": "/tmp/bench-transcript_handoff-1000-osj2ll67/bench.sqlite",
+  "elapsed_ms": 10366.678,
+  "elapsed_ms_per_doc": 10.366678,
+  "exit_code": 0,
+  "manifest_path": "tests/fixtures/fact_semantic_bench/corpus_manifest.json",
+  "mode": null,
+  "persist_summary": {
+    "contestation_count": 0,
+    "event_attribute_count": 0,
+    "event_count": 0,
+    "event_evidence_count": 0,
+    "excerpt_count": 1000,
+    "fact_count": 1000,
+    "observation_count": 0,
+    "review_count": 0,
+    "run_id": "factrun:5cbda63eaf141dcb025663e624629e472277b2595847f8b93b1e78b15179b9b9",
+    "semantic_assertion_count": 4714,
+    "semantic_policy_count": 2000,
+    "semantic_relation_count": 0,
+    "source_count": 1000,
+    "statement_count": 1000
+  },
+  "refresh": {
+    "assertion_count": 4714,
+    "current_stage": "finalize",
+    "facts_serialized_count": 23851,
+    "policy_count": 2000,
+    "refresh_status": "ok",
+    "relation_count": 0
+  },
+  "zelph": {
+    "active_packs": [
+      "transcript_handoff"
+    ],
+    "facts_serialized_count": 26993,
+    "inferred_fact_count": 1000,
+    "rule_status": "engine_ok"
+  }
+}

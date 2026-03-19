@@ -25,6 +25,7 @@ Design rules:
 - keep entries revision-locked and deterministic
 - include short / medium / long text
 - include at least one adversarial-noise entry
+- include prompt-injection / override phrasing (e.g., “ignore previous”)
 - preserve source type and provenance needed for lexical pack selection
 
 Primary corpus families:
@@ -57,3 +58,18 @@ Suggested tier schedule:
 - chat_archive: `100`, `1000`, `10000`
 - transcript_handoff: `100`, `1000`, `5000`
 - au_legal: `100`, `1000`, `5000`
+
+Recent adversarial coverage additions (2026-03-20):
+- wiki_revision: link-spam + HTML-comment “ignore previous” injections
+- chat_archive: “system override / ignore doubts” and code-switch handoff noise
+- transcript_handoff: redaction/run-on overrides that blur timeline ownership
+- au_legal: misleading press-release authority transfer and docket noise
+
+Latest benchmark runs (2026-03-20):
+- Tiers 100 and 1000 for all corpora completed with `refresh_status=ok`; reports under `tests/fixtures/fact_semantic_bench/results/`.
+- Drift vs 2026-03-19:
+  - wiki_revision: assertions -8% (100) / -5% (1000); relations -18% / -18%; policies flat; facts +7% / +3%.
+  - chat_archive: assertions -14% / -5%; policies -3% / -3%; facts +15% / -2%.
+  - transcript_handoff: assertions -2% / -2%; policies flat; facts +10% / +10%.
+  - au_legal: assertions +2% / +2%; relations +3% (100) / +13% (1000); policies +3% / +3%; facts +2% / +2%.
+- Runtimes: ~10–24s for 1k tiers; no execution failures.

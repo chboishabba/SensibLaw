@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
+import time
 
 import jsonschema
 import pytest
@@ -21,9 +22,11 @@ from src.fact_intake import (
     build_fact_review_operator_views,
     build_fact_intake_payload_from_text_units,
     build_fact_intake_report,
+    build_fact_agent_feedback_payload,
     build_fact_review_run_summary,
     build_fact_review_workbench_payload,
     build_mary_fact_workflow_projection,
+    list_semantic_refresh_runs,
     persist_fact_intake_payload,
     persist_fact_semantic_materialization,
     find_latest_fact_workflow_link,
@@ -32,6 +35,7 @@ from src.fact_intake import (
     resolve_fact_run_id,
     resolve_fact_run_link,
 )
+from src.fact_intake.read_model import _upsert_semantic_refresh_run
 from scripts.backfill_fact_semantics import main as backfill_fact_semantics_main
 from src.reporting.structure_report import TextUnit
 
@@ -390,6 +394,36 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert resolve_fact_run_link(conn, workflow_kind="transcript_semantic", workflow_run_id="semantic:test:1")["fact_run_id"] == payload["run"]["run_id"]
     assert resolve_fact_run_id(conn, workflow_kind="transcript_semantic", workflow_run_id="semantic:test:1") == payload["run"]["run_id"]
     assert find_latest_fact_workflow_link(conn, workflow_kind="transcript_semantic")["fact_run_id"] == payload["run"]["run_id"]
+
+
+def test_bounded_operator_views_expose_contract_keys() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="unit:bound:1",
+            source_id="source-bounded",
+            source_type="context_file",
+            text="Support worker handoff may need follow-up next week.",
+        ),
+        TextUnit(
+            unit_id="unit:bound:2",
+            source_id="source-bounded",
+            source_type="context_file",
+            text="Court order was appealed and may be contradicted.",
+        ),
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="bounded_views_demo")
+    persist_fact_intake_payload(conn, payload)
+
+    operator_views = build_fact_review_operator_views(conn, run_id=payload["run"]["run_id"])
+    bounded_kinds = ("intake_triage", "chronology_prep", "procedural_posture", "contested_items")
+
+    for kind in bounded_kinds:
+        assert kind in operator_views
+        view = operator_views[kind]
+        assert isinstance(view.get("summary"), dict)
+        assert isinstance(view.get("groups"), dict)
+        assert isinstance(view.get("items"), list)
 
 
 def test_persist_fact_intake_payload_replaces_existing_run_rows() -> None:
@@ -800,3 +834,113 @@ def test_backfill_fact_semantics_script_rebuilds_semantic_rows() -> None:
             pass
         if db_path.exists():
             db_path.unlink()
+
+
+def test_semantic_refresh_runs_capture_status_transitions_and_timestamps() -> None:
+    conn = sqlite3.connect(":memory:")
+    payload = build_fact_intake_payload_from_text_units(
+        [
+            TextUnit(
+                unit_id="unit:refresh",
+                source_id="source-refresh",
+                source_type="context_file",
+                text="Baseline text for refresh tracking.",
+            )
+        ],
+        source_label="refresh_demo",
+    )
+    persist_fact_intake_payload(conn, payload)
+    refreshes = list_semantic_refresh_runs(conn, run_id=payload["run"]["run_id"], limit=5)
+    assert refreshes
+    refresh = refreshes[0]
+    assert refresh["refresh_status"] == "ok"
+    assert refresh["current_stage"] == "finalize"
+    assert refresh["started_at"] is not None
+    assert refresh["updated_at"] is not None
+
+    old_started = refresh["started_at"]
+    old_updated = refresh["updated_at"]
+    time.sleep(1)
+    _upsert_semantic_refresh_run(
+        conn,
+        refresh_id=refresh["refresh_id"],
+        run_id=payload["run"]["run_id"],
+        refresh_kind="dual_write",
+        refresh_status="running",
+        current_stage="rerun",
+        status_message="Reprocessing after initial run.",
+        facts_serialized_count=refresh["facts_serialized_count"] + 1,
+    )
+    conn.commit()
+    refresh_mid = list_semantic_refresh_runs(conn, run_id=payload["run"]["run_id"], limit=1)[0]
+    assert refresh_mid["refresh_status"] == "running"
+    assert refresh_mid["current_stage"] == "rerun"
+    assert refresh_mid["started_at"] == old_started
+    assert refresh_mid["updated_at"] != old_updated
+
+    time.sleep(1)
+    _upsert_semantic_refresh_run(
+        conn,
+        refresh_id=refresh["refresh_id"],
+        run_id=payload["run"]["run_id"],
+        refresh_kind="dual_write",
+        refresh_status="ok",
+        current_stage="finalize",
+        status_message="Complete after rerun",
+        facts_serialized_count=refresh_mid["facts_serialized_count"],
+    )
+    conn.commit()
+    refresh_final = list_semantic_refresh_runs(conn, run_id=payload["run"]["run_id"], limit=1)[0]
+    assert refresh_final["refresh_status"] == "ok"
+    assert refresh_final["current_stage"] == "finalize"
+    assert refresh_final["started_at"] == old_started
+    assert refresh_final["updated_at"] != refresh_mid["updated_at"]
+    assert "complete" in refresh_final["status_message"].casefold()
+
+
+def test_agent_feedback_payload_includes_policy_messages_and_counts() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="unit:wiki",
+            source_id="wiki-src",
+            source_type="wiki_article",
+            text="Revision by Editor: Reverted unsourced change after later legal filing.",
+        ),
+        TextUnit(
+            unit_id="unit:orc",
+            source_id="orc-src",
+            source_type="openrecall_capture",
+            text="Actually, correction: maybe check later; uncertain handoff.",
+        ),
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="agent_feedback_demo")
+    payload["fact_candidates"][0]["canonical_label"] = "Wiki fact"
+    payload["fact_candidates"][1]["canonical_label"] = "Openrecall fact"
+    payload["contestations"] = [
+        {
+            "contestation_id": "contest:wiki",
+            "fact_id": payload["fact_candidates"][0]["fact_id"],
+            "statement_id": payload["statements"][0]["statement_id"],
+            "contestation_status": "disputed",
+            "reason_text": "Needs review",
+            "author": "tester",
+            "provenance": {"source": "test"},
+        }
+    ]
+    payload["sources"][1].setdefault("provenance", {})["lexical_projection_mode"] = "chat_archive"
+
+    persist_fact_intake_payload(conn, payload)
+    feedback = build_fact_agent_feedback_payload(conn, run_id=payload["run"]["run_id"])
+
+    items_by_label = {item["label"]: item for item in feedback["items"]}
+    wiki_policies = set(items_by_label["Wiki fact"]["policy_outcomes"])
+    orc_policies = set(items_by_label["Openrecall fact"]["policy_outcomes"])
+
+    assert {"do_not_promote_to_primary", "manual_resolution_required", "review_required"} <= wiki_policies
+    assert {"bounded_context_required", "preserve_source_boundary", "review_required"} <= orc_policies
+    assert feedback["summary"]["fact_count"] == 2
+    assert feedback["summary"]["constrained_fact_count"] == 2
+    assert feedback["summary"]["active_policy_count"] >= 5
+    assert "Human review required before relying on this fact." in feedback["global_messages"]
+    assert "Preserve the original source boundary in any summary or handoff." in feedback["global_messages"]

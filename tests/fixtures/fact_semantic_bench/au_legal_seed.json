@@ -55,6 +55,24 @@
       "expected_classes": ["appeal_stage_signal", "party_assertion", "procedural_outcome"],
       "expected_policies": [],
       "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-adversarial-press-release",
+      "source_type": "public_summary",
+      "text": "Press release claimed the appeal overturned the order, but the reasons actually kept the orders in place pending further hearing.",
+      "length_bucket": "medium",
+      "expected_classes": ["appeal_stage_signal", "public_knowledge_not_authority"],
+      "expected_policies": ["do_not_promote_to_primary"],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["public_summary", "legal_record"]}
+    },
+    {
+      "id": "au-adversarial-docket-noise",
+      "source_type": "legal_record",
+      "text": "[2005] [2006] appeal appeal leave denied?? granted?? repeated line items and stray footnote markers **",
+      "length_bucket": "short",
+      "expected_classes": ["appeal_stage_signal", "procedural_outcome"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
     }
   ]
 }
