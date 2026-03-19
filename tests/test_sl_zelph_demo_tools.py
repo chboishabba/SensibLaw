@@ -31,8 +31,18 @@ def test_compile_db_smoke(tmp_path):
     assert "Successfully exported" in result.stdout
     assert output_zlp.exists()
     content = output_zlp.read_text()
-    assert "db_atom_0" in content
-    assert "modality.must" in content
+    
+    # Verify Zelph atom format
+    assert 'db_atom_0 "from document" doc_d1' in content
+    assert 'db_atom_0 "has modality" "modality.must"' in content
+    
+    # Verify hardcoded rules exist
+    assert "=> (P \"has obligation\" A)" in content
+    assert "=> (P \"has permission\" A)" in content
+    
+    # Verify queries exist
+    assert 'P "has obligation" A' in content
+    assert 'P "has permission" A' in content
 
 def test_wikidata_extract_smoke(tmp_path):
     input_txt = tmp_path / "input.txt"
@@ -52,8 +62,22 @@ def test_wikidata_extract_smoke(tmp_path):
     output_json = tmp_path / "wikidata_sl_output.json"
     assert output_json.exists()
     data = json.loads(output_json.read_text())
+    assert "facts" in data
     assert "wikidata_enrichment" in data
     assert data["wikidata_enrichment"][0]["entity"] == "woolworths"
+
+def test_wikidata_extract_missing_file(tmp_path):
+    script_path = DEMO_DIR / "wikidata_extract.py"
+    missing_file = tmp_path / "nonexistent.txt"
+    
+    result = subprocess.run(
+        [PYTHON_EXE, str(script_path), str(missing_file)],
+        capture_output=True,
+        text=True
+    )
+    
+    assert result.returncode != 0
+    assert "File not found" in result.stdout
 
 def test_compile_ontology_smoke(tmp_path):
     # Use existing data from SensibLaw/data/ontology

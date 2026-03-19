@@ -145,6 +145,11 @@
     grouped intake issue filters, source-type/signal classification,
     approximate chronology grouping, and clearer distinction between party
     assertion, procedural outcome, and later annotation.
+  - Tightened the persisted Mary-parity workbench contract further with
+    explicit `reopen_navigation`, canonical `issue_filters`, and
+    per-fact/workbench `inspector_classification` fields so downstream
+    consumers no longer need to infer those operator surfaces from incidental
+    payload shape.
   - Widened the AU fact-review adapter with additive legal/procedural surface
     cues for `claimed`, `denied`, `ordered`, and `ruled`, keeping them as
     observation/report signals rather than new event triggers.
