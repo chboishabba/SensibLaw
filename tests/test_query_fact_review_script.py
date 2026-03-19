@@ -292,3 +292,29 @@ def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp
     assert "chronology_groups" in bundle_payload["workbench"]
     assert bundle_payload["acceptance"]["wave"] == "wave1_legal"
     assert bundle_payload["sources"][0]["latest_workflow_link"]["workflow_run_id"] == "semantic:query-demo"
+
+
+def test_query_fact_review_script_accepts_later_acceptance_waves_for_demo_bundle(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "demo-bundle",
+            "--workflow-kind",
+            "transcript_semantic",
+            "--workflow-run-id",
+            "semantic:query-demo",
+            "--wave",
+            "wave5_handoff_false_coherence",
+            "--fixture-kind",
+            "real",
+        ]
+    )
+    bundle_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert bundle_payload["selector"]["run_id"] == run_id
+    assert bundle_payload["selector"]["wave"] == "wave5_handoff_false_coherence"
+    assert bundle_payload["acceptance"]["wave"] == "wave5_handoff_false_coherence"

@@ -26,6 +26,10 @@ Current Mary completion stance:
 
 - transcript `demo-bundle` remains the primary operator/demo baseline
 - AU `demo-bundle` is the locked widening baseline for `SL-US-12` to `SL-US-14`
+- trauma/support `demo-bundle` is available through
+  `wave3_trauma_advocacy` / `real_transcript_fragmented_support_v1`
+- professional handoff and false-coherence `demo-bundle` baselines are
+  available through `wave5_handoff_false_coherence`
 - future widening should follow the same `demo-bundle` seam rather than inventing new capture paths
 
 The bundle must include:

@@ -28,6 +28,17 @@ from src.fact_intake import (
     resolve_fact_run_link,
 )
 
+_ACCEPTANCE_WAVE_CHOICES = [
+    "wave1_legal",
+    "wave2_balanced",
+    "wave3_trauma_advocacy",
+    "wave3_public_knowledge",
+    "wave4_family_law",
+    "wave4_medical_regulatory",
+    "wave5_handoff_false_coherence",
+    "all",
+]
+
 
 def _add_run_selector_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-id", default=argparse.SUPPRESS, help="Fact-review run_id to inspect")
@@ -92,12 +103,12 @@ def main(argv: list[str] | None = None) -> int:
 
     acceptance_p = sub.add_parser("acceptance", help="Show story-driven acceptance results for a persisted run")
     _add_run_selector_args(acceptance_p)
-    acceptance_p.add_argument("--wave", default="all", choices=["wave1_legal", "wave2_balanced", "wave3_trauma_advocacy", "all"])
+    acceptance_p.add_argument("--wave", default="all", choices=_ACCEPTANCE_WAVE_CHOICES)
     acceptance_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
 
     demo_p = sub.add_parser("demo-bundle", help="Show a captured Mary demo bundle over a resolved persisted run")
     _add_run_selector_args(demo_p)
-    demo_p.add_argument("--wave", default="wave1_legal", choices=["wave1_legal", "wave2_balanced", "wave3_trauma_advocacy", "all"])
+    demo_p.add_argument("--wave", default="wave1_legal", choices=_ACCEPTANCE_WAVE_CHOICES)
     demo_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
 
     report_p = sub.add_parser("report", help="Show the full persisted fact-intake report")
