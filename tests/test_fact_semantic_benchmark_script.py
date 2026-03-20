@@ -28,4 +28,20 @@ def test_benchmark_fact_semantics_script_supports_corpus_file(tmp_path, capsys) 
     assert payload["count"] == 6
     assert payload["corpus_summary"]["long_entry_count"] >= 1
     assert "wiki_article" in payload["corpus_summary"]["source_types"]
+    assert payload["entry_diagnostics"]
+    assert payload["expectation_summary"]["entry_count"] == 6
+    assert payload["expectation_summary"]["class_expectation_recall"] >= 0.0
     assert payload["refresh"]["refresh_status"] == "ok"
+
+
+def test_benchmark_fact_semantics_script_groups_repeated_entries(tmp_path, capsys) -> None:
+    db_path = tmp_path / "bench-repeated.sqlite"
+    corpus_path = "tests/fixtures/fact_semantic_bench/chat_archive_seed.json"
+    exit_code = main(["--corpus-file", corpus_path, "--count", "20", "--db-path", str(db_path)])
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    diagnostics = payload["entry_diagnostics"]
+    assert len(diagnostics) == 10
+    assert any(row["entry_id"] == "chat-adversarial-prompt-injection" for row in diagnostics)
+    assert all(row["occurrence_count"] == 2 for row in diagnostics)
+    assert payload["expectation_summary"]["entry_count"] == 10
