@@ -7,13 +7,13 @@ import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from src.fact_intake.lexical_packs import build_fact_lexical_projection
+
 
 
 ZELPH_BRIDGE_VERSION = "fact_intake.zelph_bridge.v1"
-_TRIPLE_RE = re.compile(r'"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"')
 _ASSERTION_PREDICATES = {"claimed", "denied", "admitted", "alleged"}
 _PROCEDURAL_OUTCOME_PREDICATES = {"ordered", "ruled", "decided_by", "held_that"}
+_DERIVATION_RE = re.compile(r"^\(\s*(.*?)\s*\)\s*⇐")
 
 
 def _escape_zelph_text(value: Any) -> str:
@@ -42,46 +42,80 @@ def load_zelph_rules(*rule_paths: Path) -> str:
 
 def parse_zelph_inference(output: str) -> list[dict[str, str]]:
     triples: list[dict[str, str]] = []
-    for line in output.splitlines():
-        match = _TRIPLE_RE.search(line.strip())
-        if not match:
+    
+    def _parse_column_triple(payload: str) -> dict[str, str] | None:
+        parts = [part for part in re.split(r"\s{2,}", payload.strip()) if part.strip()]
+        if len(parts) != 3:
+            return None
+        return {
+            "subject": parts[0].strip(),
+            "predicate": parts[1].strip(),
+            "object": parts[2].strip(),
+        }
+
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line:
             continue
-        subject, predicate, obj = match.groups()
-        triples.append(
-            {
-                "subject": bytes(subject, "utf-8").decode("unicode_escape"),
-                "predicate": bytes(predicate, "utf-8").decode("unicode_escape"),
-                "object": bytes(obj, "utf-8").decode("unicode_escape"),
-            }
-        )
+        
+        # Check for derivation format: ( sub pred obj ) <= ...
+        derivation_match = _DERIVATION_RE.match(line)
+        if derivation_match:
+            triple = _parse_column_triple(derivation_match.group(1))
+            if triple:
+                triples.append(triple)
+            continue
+            
+        # Strip "Answer: " prefix if present (some versions of zelph output this)
+        if line.startswith("Answer:"):
+            line = line.removeprefix("Answer:").strip()
+            
+        # Ignore rules and internal structures
+        if "=>" in line or line.startswith("{"):
+            continue
+            
+        triple = _parse_column_triple(line)
+        if triple:
+            triples.append(triple)
+        elif line.count(" ") == 2:
+            # Fallback for exactly 2 spaces (simple s p o)
+            parts = line.split()
+            if len(parts) == 3:
+                triples.append({"subject": parts[0], "predicate": parts[1], "object": parts[2]})
+            
     return triples
 
 
 def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
-        facts_file = tmpdir_path / "facts.zlp"
-        rules_file = tmpdir_path / "rules.zlp"
-        query_file = tmpdir_path / "query.zph"
-
-        facts_file.write_text(facts, encoding="utf-8")
-        Path("/tmp/zelph_debug_facts.zlp").write_text(facts, encoding="utf-8")
-        rules_file.write_text(rules, encoding="utf-8")
-        Path("/tmp/zelph_debug_rules.zlp").write_text(rules, encoding="utf-8")
-        query_file.write_text(f'include "{rules_file}"\ninclude "{facts_file}"\n', encoding="utf-8")
+        bundle_path = tmpdir_path / "bundle.zlp"
+        bundle_text = facts + "\n\n" + rules
+        bundle_path.write_text(bundle_text, encoding="utf-8")
+        
+        # Debugging: write bundle to /tmp as well
+        Path("/tmp/zelph_debug_bundle.zlp").write_text(bundle_text, encoding="utf-8")
 
         try:
             result = subprocess.run(
-                ["zelph", str(query_file)],
+                ["zelph", str(bundle_path)],
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=30,  # Safety timeout for recursive rules
             )
         except FileNotFoundError:
             return {
                 "status": "engine_unavailable",
                 "stdout": "",
                 "stderr": "zelph command not found",
+                "triples": [],
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "engine_timeout",
+                "stdout": "",
+                "stderr": "Zelph engine timed out (recursive rule limit?)",
                 "triples": [],
             }
         except subprocess.CalledProcessError as exc:
@@ -92,6 +126,10 @@ def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
                 "triples": [],
             }
 
+        # Debugging: print raw output to stderr if needed
+        # print(f"DEBUG: ZELPH STDOUT:\n{result.stdout}", file=sys.stderr)
+        # print(f"DEBUG: ZELPH STDERR:\n{result.stderr}", file=sys.stderr)
+
         return {
             "status": "ok",
             "stdout": result.stdout,
@@ -101,6 +139,7 @@ def run_zelph_inference(facts: str, rules: str) -> dict[str, Any]:
 
 
 def workbench_to_zelph_facts(workbench: Mapping[str, Any]) -> str:
+    from src.fact_intake.lexical_packs import build_fact_lexical_projection
     facts: list[str] = []
     fact_lookup = {
         str(fact.get("fact_id")): fact
@@ -109,18 +148,18 @@ def workbench_to_zelph_facts(workbench: Mapping[str, Any]) -> str:
     }
     for fact_id, fact in fact_lookup.items():
         node = _fact_node_id(fact_id)
-        facts.append(f'{_quote_zelph_text(node)} "fact_id" {_quote_zelph_text(fact_id)}.')
+        facts.append(f'{node} "fact_id" {_quote_zelph_text(fact_id)}')
         for source_type in fact.get("source_types", []):
-            facts.append(f'{_quote_zelph_text(node)} "source_type" {_quote_zelph_text(source_type)}.')
+            facts.append(f'{node} "source_type" {_quote_zelph_text(source_type)}')
         for value in fact.get("source_signal_classes", []):
-            facts.append(f'{_quote_zelph_text(node)} "source_signal_class" {_quote_zelph_text(value)}.')
+            facts.append(f'{node} "source_signal_class" {_quote_zelph_text(value)}')
         for value in fact.get("signal_classes", []):
-            facts.append(f'{_quote_zelph_text(node)} "signal_class" {_quote_zelph_text(value)}.')
+            facts.append(f'{node} "signal_class" {_quote_zelph_text(value)}')
         for predicate in fact.get("legal_procedural_predicates", []):
-            facts.append(f'{_quote_zelph_text(node)} "legal_procedural_predicate" {_quote_zelph_text(predicate)}.')
+            facts.append(f'{node} "legal_procedural_predicate" {_quote_zelph_text(predicate)}')
         projection = build_fact_lexical_projection(fact)
         for pack_name in projection.pack_names:
-            facts.append(f'{_quote_zelph_text(node)} "lexical pack" {_quote_zelph_text(pack_name)}.')
+            facts.append(f'{node} "lexical pack" {_quote_zelph_text(pack_name)}')
         facts.extend(projection.facts)
 
     for observation in workbench.get("observations", []):
@@ -133,20 +172,36 @@ def workbench_to_zelph_facts(workbench: Mapping[str, Any]) -> str:
         for fact in fact_lookup.values():
             if observation_statement_id not in set(fact.get("statement_ids", [])):
                 continue
-            node = _fact_node_id(fact["fact_id"])
-            facts.append(f'{_quote_zelph_text(node)} "has_observation_predicate" {_quote_zelph_text(predicate)}.')
+            node = _fact_node_id(fact.get("fact_id"))
+            facts.append(f'{node} "has_observation_predicate" {_quote_zelph_text(predicate)}')
             object_text = str(observation.get("object_text") or "").strip()
             if object_text:
-                facts.append(f'{_quote_zelph_text(node)} {_quote_zelph_text(predicate)} {_quote_zelph_text(object_text)}.')
+                facts.append(f'{node} {_quote_zelph_text(predicate)} {_quote_zelph_text(object_text)}')
             provenance = observation.get("provenance")
             if isinstance(provenance, Mapping):
                 for value in provenance.get("signal_classes", []):
-                    facts.append(f'{_quote_zelph_text(node)} "observation_signal_class" {_quote_zelph_text(value)}.')
+                    facts.append(f'{node} "observation_signal_class" {_quote_zelph_text(value)}')
+
+    for idx, row in enumerate(workbench.get("rule_atoms", [])):
+        if not isinstance(row, Mapping):
+            continue
+        uid = f"db_atom_{idx}"
+        doc_id = row.get("doc_id")
+        if doc_id:
+            facts.append(f'{uid} "from document" {_quote_zelph_text(f"doc_{doc_id}")}')
+        stable_id = row.get("stable_id")
+        if stable_id:
+            facts.append(f'{uid} "stable id" {_quote_zelph_text(stable_id)}')
+        for field in ("party", "role", "modality", "action", "scope"):
+            val = row.get(field)
+            if val:
+                facts.append(f'{uid} "has {field}" {_quote_zelph_text(val)}')
 
     return "\n".join(_dedupe(facts))
 
 
 def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
+    from src.fact_intake.lexical_packs import build_fact_lexical_projection
     inferred: list[dict[str, str]] = []
     for fact in workbench.get("facts", []):
         if not isinstance(fact, Mapping):
@@ -163,6 +218,9 @@ def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
         lexical_signal_classes = set(projection.signal_classes)
         lexical_source_signal_classes = set(projection.source_signal_classes)
 
+        all_source_signals = source_signal_classes | lexical_source_signal_classes
+        all_signals = signal_classes | lexical_signal_classes
+
         if "wiki_article" in source_types:
             inferred.append({"subject": node, "predicate": "source_signal_class", "object": "public_summary"})
             inferred.append({"subject": node, "predicate": "source_signal_class", "object": "wiki_article"})
@@ -176,13 +234,25 @@ def _native_rule_triples(workbench: Mapping[str, Any]) -> list[dict[str, str]]:
             inferred.append({"subject": node, "predicate": "source_signal_class", "object": value})
         for value in lexical_signal_classes:
             inferred.append({"subject": node, "predicate": "signal_class", "object": value})
-        if "is_reversion" in observation_predicates or "volatility_signal" in signal_classes or "volatility_signal" in lexical_signal_classes:
+        if "is_reversion" in observation_predicates or "volatility_signal" in all_signals:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "volatility_signal"})
-        if {"public_summary", "wiki_article"} & source_signal_classes and not {"legal_record", "procedural_record", "strong_legal_source"} & source_signal_classes:
+        if "reversion_edit" in all_signals:
+            inferred.append({"subject": node, "predicate": "is_reversion", "object": "True"})
+        if "has_context_reason" in all_signals:
+            inferred.append({"subject": node, "predicate": "has_context_reason", "object": "True"})
+
+        if ("is_reversion" in observation_predicates or "reversion_edit" in all_signals) and not ("has_context_reason" in all_signals):
+            inferred.append({"subject": node, "predicate": "signal_class", "object": "Reversion without context"})
+
+        if "administrative_edit" in all_signals:
+            inferred.append({"subject": node, "predicate": "signal_class", "object": "administrative_edit"})
+        if "archive_management_edit" in all_signals:
+            inferred.append({"subject": node, "predicate": "signal_class", "object": "archive_management_edit"})
+        if {"public_summary", "wiki_article"} & all_source_signals and not {"legal_record", "procedural_record", "strong_legal_source"} & all_source_signals:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "authority_transfer_risk"})
-        if {"public_summary", "wiki_article"} & source_signal_classes and {"legal_record", "procedural_record", "strong_legal_source"} & source_signal_classes:
+        if {"public_summary", "wiki_article"} & all_source_signals and {"legal_record", "procedural_record", "strong_legal_source"} & all_source_signals:
             inferred.append({"subject": node, "predicate": "signal_class", "object": "public_knowledge_not_authority"})
-        if "wikidata_claim" in source_signal_classes and ({"public_summary", "wiki_article"} & source_signal_classes or {"identity_claim", "structural_ambiguity", "procedural_outcome"} & signal_classes):
+        if "wikidata_claim" in all_source_signals and ({"public_summary", "wiki_article"} & all_source_signals or {"identity_claim", "structural_ambiguity", "procedural_outcome"} & all_signals):
             inferred.append({"subject": node, "predicate": "signal_class", "object": "wiki_wikidata_claim_alignment"})
 
     return inferred
@@ -257,6 +327,7 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
                         }
 
     serialized_fact_lines = workbench_to_zelph_facts(workbench)
+    from src.fact_intake.lexical_packs import build_fact_lexical_projection
     active_packs = sorted(
         {
             pack_name

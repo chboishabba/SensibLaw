@@ -1,22 +1,23 @@
 # Wiki Random General-Text Timeline Harness Contract v0.1
 
-This harness is the **stage-2 Mary-parity readiness surface** for broad
-general text.
+This harness is the **derived chronology/event readiness surface** for the
+broader random-page article-ingest lane.
 
-It exists to answer a different question from the lexer/reducer harness:
+It exists to answer a different question from the parent article-ingest
+contract:
 
-- stage 1: can canonical SL structure surfaces see bounded signal in arbitrary
-  Wikipedia prose?
-- stage 2: can the existing deterministic timeline/AAO adapters turn that same
-  prose into reviewable, Mary-like chronology/event material?
+- parent lane: can SL ingest broad arbitrary Wikipedia prose into bounded
+  article-wide structure?
+- this harness: can the canonical wiki-state compiler and existing adapters
+  turn that same prose into reviewable, Mary-like chronology/event material?
 
 ## Goal
 
-Treat random Wikipedia pages as a broad general-text stress surface for:
+Treat random Wikipedia pages as a derived chronology stress surface for:
 
-`snapshot -> timeline candidates -> AAO events -> timeline readiness scoring`
+`snapshot -> canonical wiki state -> ordered timeline projection -> anchored chronology diagnostics`
 
-This is relevant to:
+This is relevant after the article-wide ingest surface is already in place:
 
 - Mary-parity chronology expectations
 - ITIR / TiRC general-text timeline work
@@ -28,16 +29,14 @@ This is relevant to:
    - live acquisition only
    - writes replayable revision-locked snapshot manifests
 
-2. `scripts/wiki_timeline_extract.py`
-   - derives bounded date-anchored timeline candidate rows from snapshot prose
+2. `src/wiki_timeline/article_state.py`
+   - derives canonical article state with sentence/text units, observations,
+     event candidates, and explicit anchor status
 
-3. `scripts/wiki_timeline_aoo_extract.py`
-   - derives sentence-local AAO mini-graphs over those candidates
-   - remains non-causal, non-authoritative, and provenance-preserving
-
-4. `scripts/report_wiki_random_timeline_readiness.py`
+3. `scripts/report_wiki_random_timeline_readiness.py`
    - offline scoring only
-   - scores whether a random-page sample yields timeline-capable event surfaces
+   - scores whether a random-page sample yields ordered timeline-capable event
+     surfaces plus anchored chronology diagnostics
 
 ## Ownership rule
 
@@ -49,34 +48,41 @@ it does not transfer semantic authority away from the existing SL contracts.
 
 ## Scored surface
 
-The scored surface is **not** raw reducer output.
+The scored surface is **not** raw reducer output and it is **not** the whole
+article-ingest score.
 
 The scored surface is the deterministic adapter chain:
 
-`wiki_timeline_extract -> wiki_timeline_aoo_extract`
+`canonical wiki state -> timeline projection -> anchored chronology diagnostics`
 
 Expected page-level signals include:
 
-- timeline candidate count
-- dated candidate count
-- AAO event count
-- actor/action/object coverage over derived AAO events
-- chronology support retention from timeline candidates into AAO events
+- ordered event count
+- explicit-anchor count
+- weak-anchor count
+- undated ordered-event count
+- actor/action/object coverage over ordered events
+- chronology support retention for the anchored subset
 
 ## Contract stance
 
 - parser-first / deterministic extraction remains preferred
-- reducer coverage is a prerequisite diagnostic, not the final deliverable
+- article-wide ingest coverage is the parent deliverable; this harness is the
+  chronology/event derivative
+- the timeline view may include undated events, but anchor status must remain
+  explicit so chronology quality is not overstated
+- reducer coverage is a companion diagnostic, not the final deliverable
 - chronology/event outputs remain observer signals, not normative truth
 - this harness is offline-replay by default; live network is acquisition-only
 - report outputs should stay replayable from stored manifests and snapshots
 
 ## Near-term follow-on
 
-This harness broadens confidence that general text can reach a Mary-like
-timeline surface.
+This harness broadens confidence that article-ingested general text can reach a
+Mary-like timeline surface.
 
-It does **not** yet replace the canonical fact-intake observation/event
-substrate. The next bridge after this harness is:
+It does **not** replace the parent article-ingest contract, and it does
+**not** yet replace the canonical fact-intake observation/event substrate. The
+next bridge after this harness is:
 
-`general text timeline/AAO output -> canonical observation/event sender`
+`canonical wiki state / timeline projection -> canonical observation/event sender`

@@ -51,6 +51,7 @@ _APPEAL_TOKENS = {"appeal", "appealed", "appellate", "appellant"}
 _PROCEDURAL_TOKENS = {"held", "ruled", "ordered", "judgment", "court", "tribunal", "hearing"}
 _ASSERTION_TOKENS = {"alleged", "allegation", "claimed", "claim", "denied", "denial"}
 _HANDOFF_TOKENS = {"handoff", "escalate", "escalated", "support", "worker", "professional", "note"}
+_REASON_TOKENS = {"because", "due", "per", "citation", "source", "since", "as"}
 
 
 def _quote_zelph_text(value: Any) -> str:
@@ -59,6 +60,19 @@ def _quote_zelph_text(value: Any) -> str:
 
 def _token_texts(text: str) -> list[str]:
     return [token for token, _start, _end in tokenize_canonical_with_spans(text)]
+
+
+def _classify_general_lexical_signals(text: str) -> list[str]:
+    tokens = {token.casefold() for token in _token_texts(text)}
+    tags: list[str] = []
+    if tokens & _UNCERTAINTY_TOKENS or "not sure" in text.casefold():
+        tags.append("uncertainty_preserved")
+    if tokens & _SEQUENCE_TOKENS:
+        tags.append("sequence_signal")
+    if tokens & _REASON_TOKENS:
+        tags.append("has_context_reason")
+    return tags
+
 
 
 def _dedupe(values: list[str]) -> tuple[str, ...]:
@@ -74,12 +88,12 @@ def _build_surface_lexical_facts(*, parent_node: str, kind: str, identifier: str
     tokens = _token_texts(text)
     node = _surface_node(kind, identifier)
     facts = [
-        f'{_quote_zelph_text(parent_node)} "has lexical surface" {_quote_zelph_text(node)}.',
-        f'{_quote_zelph_text(node)} "surface kind" {_quote_zelph_text(kind)}.',
-        f'{_quote_zelph_text(node)} "surface text" {_quote_zelph_text(text)}.',
+        f'{parent_node} "has lexical surface" {node}',
+        f'{node} "surface kind" {_quote_zelph_text(kind)}',
+        f'{node} "surface text" {_quote_zelph_text(text)}',
     ]
     for token in tokens:
-        facts.append(f'{_quote_zelph_text(node)} "has lexeme" {_quote_zelph_text(token.casefold())}.')
+        facts.append(f'{node} "has lexeme" {_quote_zelph_text(token.casefold())}')
     return facts
 
 
@@ -113,7 +127,7 @@ def _wiki_projection(fact: Mapping[str, Any]) -> LexicalProjection:
         revision_id = f"{fact.get('fact_id')}_{index}"
         revision_node = revision_node_id(revision_id)
         fact_node = _surface_node("fact", str(fact.get("fact_id") or "unknown"))
-        facts.append(f'{_quote_zelph_text(fact_node)} "has revision comment" {_quote_zelph_text(revision_node)}.')
+        facts.append(f'{fact_node} "has revision comment" {revision_node}')
         facts.extend(
             build_revision_comment_zelph_facts(
                 revision_id=revision_id,
@@ -122,6 +136,7 @@ def _wiki_projection(fact: Mapping[str, Any]) -> LexicalProjection:
             )
         )
         signal_classes.extend(classify_revision_comment(parsed["comment"]))
+        signal_classes.extend(_classify_general_lexical_signals(parsed["comment"]))
     if revision_count:
         source_signal_classes.extend(["public_summary", "wiki_article"])
     return LexicalProjection(
@@ -152,10 +167,7 @@ def _chat_archive_projection(fact: Mapping[str, Any]) -> LexicalProjection:
             )
         )
         tokens = {token.casefold() for token in _token_texts(text)}
-        if tokens & _UNCERTAINTY_TOKENS or "not sure" in text.casefold():
-            signal_classes.append("uncertainty_preserved")
-        if tokens & _SEQUENCE_TOKENS:
-            signal_classes.append("sequence_signal")
+        signal_classes.extend(_classify_general_lexical_signals(text))
         if tokens & _EXECUTION_TOKENS:
             signal_classes.append("execution_handoff_signal")
         if tokens & _CORRECTION_TOKENS:
@@ -187,6 +199,7 @@ def _au_legal_projection(fact: Mapping[str, Any]) -> LexicalProjection:
                 text=text,
             )
         )
+        signal_classes.extend(_classify_general_lexical_signals(text))
         tokens = {token.casefold() for token in _token_texts(text)}
         if tokens & _APPEAL_TOKENS:
             signal_classes.append("appeal_stage_signal")
@@ -221,11 +234,8 @@ def _transcript_handoff_projection(fact: Mapping[str, Any]) -> LexicalProjection
                 text=text,
             )
         )
+        signal_classes.extend(_classify_general_lexical_signals(text))
         tokens = {token.casefold() for token in _token_texts(text)}
-        if tokens & _UNCERTAINTY_TOKENS or "not sure" in text.casefold():
-            signal_classes.append("uncertainty_preserved")
-        if tokens & _SEQUENCE_TOKENS:
-            signal_classes.append("sequence_signal")
         if tokens & _HANDOFF_TOKENS:
             signal_classes.append("handoff_context_signal")
         if "professional" in tokens or "clinician" in tokens:

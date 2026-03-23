@@ -812,7 +812,13 @@ def build_fact_intake_payload_from_text_units(
     }
 
 
-def persist_fact_intake_payload(conn: sqlite3.Connection, payload: Mapping[str, Any]) -> dict[str, Any]:
+def persist_fact_intake_payload(
+    conn: sqlite3.Connection,
+    payload: Mapping[str, Any],
+    *,
+    deferred_refresh: bool = False,
+) -> dict[str, Any]:
+
     ensure_database(conn)
     _ensure_fact_intake_tables(conn)
     conn.row_factory = sqlite3.Row
@@ -1041,7 +1047,34 @@ def persist_fact_intake_payload(conn: sqlite3.Connection, payload: Mapping[str, 
         review_count += 1
     event_summary = _assemble_event_candidates(conn, run_id=run_id)
     conn.commit()
-    semantic_summary = persist_fact_semantic_materialization(conn, run_id=run_id, include_zelph=True, refresh_kind="dual_write")
+    semantic_summary: dict[str, Any] = {"assertion_count": 0, "relation_count": 0, "policy_count": 0}
+    if not deferred_refresh:
+        semantic_summary = persist_fact_semantic_materialization(conn, run_id=run_id, include_zelph=True, refresh_kind="dual_write")
+    else:
+        refresh_id = _stable_id(
+            "semrefresh",
+            {
+                "run_id": run_id,
+                "ruleset_version": FACT_REVIEW_ZELPH_RULESET_VERSION,
+                "refresh_kind": "dual_write",
+                "include_zelph": True,
+            },
+        )
+        _upsert_semantic_refresh_run(
+            conn,
+            refresh_id=refresh_id,
+            run_id=run_id,
+            refresh_kind="dual_write",
+            refresh_status="pending",
+            current_stage="deferred",
+            status_message="Fact intake complete; semantic refresh deferred to background.",
+            facts_serialized_count=0,
+            assertion_count=0,
+            relation_count=0,
+            policy_count=0,
+        )
+
+    conn.commit()
     return {
         "run_id": run_id,
         "source_count": source_count,
@@ -1055,7 +1088,9 @@ def persist_fact_intake_payload(conn: sqlite3.Connection, payload: Mapping[str, 
         "semantic_assertion_count": semantic_summary["assertion_count"],
         "semantic_relation_count": semantic_summary["relation_count"],
         "semantic_policy_count": semantic_summary["policy_count"],
+        "refresh_status": "deferred" if deferred_refresh else "ok",
     }
+
 
 
 def _json_or_empty(text: str | None) -> Any:
@@ -1342,6 +1377,19 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
         """,
         (run_id,),
     ).fetchall()
+    rule_atoms: list[dict[str, Any]] = []
+    try:
+        rule_atom_rows = conn.execute(
+            """
+            SELECT doc_id, stable_id, party, role, modality, action, scope
+            FROM rule_atoms
+            WHERE doc_id IN (SELECT source_label FROM fact_sources WHERE run_id = ?)
+            """,
+            (run_id,),
+        ).fetchall()
+        rule_atoms = [dict(row) for row in rule_atom_rows]
+    except sqlite3.OperationalError:
+        pass
     link_rows = conn.execute(
         """
         SELECT fcs.fact_id, fs.statement_id, fs.statement_text, fs.excerpt_id, fe.source_id
@@ -1586,6 +1634,7 @@ def build_fact_intake_report(conn: sqlite3.Connection, *, run_id: str) -> dict[s
         "observations": all_observations,
         "events": events,
         "facts": facts,
+        "rule_atoms": rule_atoms,
     }
 
 
@@ -2586,6 +2635,7 @@ def _build_fact_review_workbench_payload_legacy(
         "observations": report["observations"],
         "events": report["events"],
         "facts": facts,
+        "rule_atoms": report.get("rule_atoms", []),
         "inspector_classification": {
             "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
             "selected_fact_id": default_fact_id,
@@ -3177,6 +3227,7 @@ def build_fact_review_workbench_payload(
         "observations": report["observations"],
         "events": report["events"],
         "facts": facts,
+        "rule_atoms": report.get("rule_atoms", []),
         "inspector_classification": {
             "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
             "selected_fact_id": default_fact_id,

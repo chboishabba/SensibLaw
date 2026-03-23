@@ -54,3 +54,41 @@ def test_whisperx_importer_creates_envelope_and_segments(tmp_path, sample_transc
             assert forbidden_keys.isdisjoint(data.keys())
     finally:
         store.close()
+
+
+def test_whisperx_importer_missing_audio(tmp_path, sample_transcript):
+    audio_path = tmp_path / "missing.wav"
+    store = Storage(tmp_path / "test.db")
+    try:
+        # If the importer requires the audio file to exist for hashing/verification
+        with pytest.raises(FileNotFoundError):
+            import_whisperx_transcript(store, sample_transcript, audio_path=audio_path)
+    finally:
+        store.close()
+
+
+def test_whisperx_importer_large_transcript_smoke(tmp_path):
+    large_transcript = {
+        "model": "whisperx-large",
+        "language": "en",
+        "segments": [
+            {
+                "start": i * 1.0,
+                "end": (i + 1) * 1.0,
+                "text": f"segment {i}",
+                "confidence": 0.9,
+                "speaker": f"SPEAKER_{i % 2:02d}",
+            }
+            for i in range(100)
+        ],
+    }
+    audio_path = tmp_path / "large.wav"
+    _make_silent_wav(audio_path, seconds=100.0)
+    store = Storage(tmp_path / "test.db")
+    try:
+        env_id = import_whisperx_transcript(store, large_transcript, audio_path=audio_path)
+        assert env_id is not None
+        rows = store.conn.execute("SELECT count(*) as count FROM nodes WHERE type = 'audio_segment'").fetchone()
+        assert rows["count"] == 100
+    finally:
+        store.close()

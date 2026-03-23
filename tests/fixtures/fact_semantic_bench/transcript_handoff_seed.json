@@ -64,6 +64,25 @@
       "expected_classes": ["handoff_context_signal", "professional_handoff_signal", "sequence_signal"],
       "expected_policies": ["preserve_source_boundary"],
       "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    },
+    {
+      "id": "transcript-adversarial-overlapping-roles",
+      "source_type": "professional_note",
+      "text": "[operator1] handoff to operator2. [operator2] wait I am handing back to operator1 because of uncertain sequence. [operator1] okay confirmed.",
+      "length_bucket": "medium",
+      "expected_classes": ["handoff_context_signal", "uncertainty_preserved", "sequence_signal"],
+      "expected_policies": ["preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff"}
+    },
+    {
+      "id": "transcript-adversarial-stale-annotation",
+      "source_type": "annotation_note",
+      "text": "Annotation: the previous handoff was stale because the patient already corrected the timeline in a redacted excerpt.",
+      "length_bucket": "medium",
+      "expected_classes": ["handoff_context_signal", "uncertainty_preserved"],
+      "expected_policies": ["preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "transcript_handoff", "source_signal_classes": ["later_annotation"]}
     }
+
   ]
 }

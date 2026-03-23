@@ -1,0 +1,33 @@
+{
+  "corpus_id": "discord_archive",
+  "description": "Discord-style chat benchmark for interleaved events, user moderation signals, and rapid code-switch artifacts.",
+  "entries": [
+    {
+      "id": "discord-bot-interjection",
+      "source_type": "discord_log",
+      "text": "[log-bot (bot)] User mod-sarah timed out user spammer. \n[[embed: Timeout Event]]",
+      "length_bucket": "medium",
+      "expected_classes": ["system_summary", "sequence_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "discord-user-correction",
+      "source_type": "discord_capture",
+      "text": "Wait wait no, the deployment is at 5PM not 4PM. Correction: 5PM.",
+      "length_bucket": "short",
+      "expected_classes": ["self_correction_signal"],
+      "expected_policies": ["bounded_context_required"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    },
+    {
+      "id": "discord-complex-thread",
+      "source_type": "discord_capture",
+      "text": "The previous PR broke the build. Actually, maybe not? I am not sure, can ops check this before we hand off?\n[[attachment: logs.txt]]",
+      "length_bucket": "medium",
+      "expected_classes": ["uncertainty_preserved", "execution_handoff_signal", "self_correction_signal"],
+      "expected_policies": ["bounded_context_required", "preserve_source_boundary"],
+      "provenance": {"lexical_projection_mode": "chat_archive"}
+    }
+  ]
+}

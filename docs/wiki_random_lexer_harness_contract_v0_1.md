@@ -1,10 +1,12 @@
 # Wiki Random Lexer Harness Contract v0.1
 
-This harness is a read-only SensibLaw quality surface for broadening canonical
-lexer/reducer coverage against Wikipedia random-page samples.
+This harness is a read-only SensibLaw companion quality surface for broadening
+canonical lexer/reducer coverage against Wikipedia random-page samples.
 
-It is the **stage-1 structural signal harness**, not the full Mary-parity
-general-text timeline surface.
+It is not the authoritative article-quality score for the random-page lane.
+That parent role now belongs to the article-ingest contract:
+
+- `SensibLaw/docs/wiki_random_article_ingest_coverage_contract_v0_1.md`
 
 It is intentionally split into two tools:
 
@@ -24,9 +26,11 @@ It is intentionally split into two tools:
 ## Supported score families
 
 - `structural_coverage_score`
-  - how much of a page receives legal/structural recognition
+  - how much of a page receives current reducer/tokenizer structural
+    recognition
 - `abstention_quality_score`
-  - whether obviously non-legal pages remain cleanly abstained
+  - whether the current reducer/tokenizer posture stays clean and low-noise on
+    pages where the present structure lane has little to say
 - `shared_reducer_alignment_score`
   - whether tokenizer and shared-reducer surfaces agree on signal presence
 - `overall_quality_score`
@@ -36,26 +40,29 @@ It is intentionally split into two tools:
 
 This belongs to SensibLaw generally, not to an ITIR-only extension.
 
-The canonical scored surface is the shared reducer contract in
-`src/sensiblaw/interfaces/shared_reducer.py`.
-Raw tokenizer metrics are included as diagnostics and audit evidence, not as
-the only public score surface.
+The canonical scored surface here is still the shared reducer contract in
+`src/sensiblaw/interfaces/shared_reducer.py`, but this harness is now a
+companion diagnostic to the broader article-ingest lane rather than the lane's
+top-level success criterion. Raw tokenizer metrics remain diagnostics and audit
+evidence, not the only public score surface.
 
 ## Explicit non-goal
 
-Reducer or tokenizer signal by itself does **not** constitute:
+Reducer or tokenizer signal by itself still does **not** constitute:
 
 - fact summaries
 - Mary-style chronology
 - event candidates
 - review-ready timeline rows
 
-Those require the next deterministic layer:
+Those require the broader article-ingest and downstream chronology layers:
 
-`snapshot -> timeline candidates -> AAO/general-text event extraction -> timeline readiness report`
+- `snapshot -> article sentences -> actor/action/object extraction`
+- `snapshot -> timeline candidates -> AAO/general-text event extraction -> timeline readiness report`
 
 See:
 
+- `SensibLaw/docs/wiki_random_article_ingest_coverage_contract_v0_1.md`
 - `SensibLaw/docs/wiki_random_general_text_timeline_harness_contract_v0_1.md`
 
 ## Operational rule

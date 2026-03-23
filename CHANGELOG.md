@@ -93,6 +93,24 @@
     a new general-text timeline readiness harness scores the deterministic
     `wiki_timeline_extract -> wiki_timeline_aoo_extract` path as the Mary-like
     chronology/event surface for broad text.
+  - Added a parent random-page article-ingest contract and a new offline
+    `scripts/report_wiki_random_article_ingest_coverage.py` scorer so broad
+    arbitrary Wikipedia pages are now assessed first as article-wide sentence
+    ingestion plus actor/action/object extraction, with timeline readiness and
+    reducer/tokenizer reporting kept as companion surfaces rather than the only
+    quality signal.
+  - Realigned the Wikipedia ingest architecture around one canonical
+    wiki-state compiler (`src/wiki_timeline/article_state.py`) plus three
+    projections: article-ingest coverage, timeline, and revision/state diff.
+    The timeline surface now keeps ordered undated events with explicit anchor
+    status instead of pretending only dated rows exist, and the revision
+    harness now compares canonical wiki state before surfacing graph/timeline
+    reviewer summaries.
+  - Extended `scripts/wiki_random_page_samples.py` with bounded one-hop
+    followed-page acquisition metadata and replayable child snapshot linkage,
+    keeping discovery capped while making cross-page follow testing explicit.
+  - Added focused tests for article-wide sentence surface building, article
+    ingest report aggregation, and one-hop random-page manifest behavior.
   - Added generic fact-review run query/report helpers plus
     `scripts/query_fact_review.py`, so existing persisted runs can be listed
     and inspected via run summaries, review queues, contested-item summaries,

@@ -144,7 +144,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                     if not isinstance(t, str):
                         continue
                     title = t.strip()
-                    if _is_excluded_title(title, exclude_prefixes):
+                    # Categories start with "Category:" which is in exclude_prefixes by default.
+                    # Strip it for the exclusion check to properly honor --include-categories.
+                    test_title = title[len("Category:"):] if title.startswith("Category:") else title
+                    if _is_excluded_title(test_title, exclude_prefixes):
                         continue
                     title_counts[title] += 1
                     title_sources[title].append(ev)

@@ -1,276 +1,199 @@
-# Zelph rules for fact_intake workbench enrichment.
+# Zelph rules for fact_intake workbench enrichment
 
-(H cons T) => (H "member of" (H cons T)).
-(H cons T, X "member of" T) => (X "member of" (H cons T)).
+(H cons T) => (H "member of" (H cons T))
+{ (H cons T) (X "member of" T) } => (X "member of" (H cons T))
 
-X "source_signal_class" "public_summary" :-
-    X "source_type" "wiki_article".
+(X "source_type" "wiki_article") => (X "source_signal_class" "public_summary")
 
-X "source_signal_class" "wiki_article" :-
-    X "source_type" "wiki_article".
+(X "source_type" "wiki_article") => (X "source_signal_class" "wiki_article")
 
-X "source_signal_class" "wikidata_claim" :-
-    X "source_type" "wikidata_claim_sheet".
+(X "source_type" "wikidata_claim_sheet") => (X "source_signal_class" "wikidata_claim")
 
-X "signal_class" "volatility_signal" :-
-    X "has_observation_predicate" "is_reversion".
+(X "has_observation_predicate" "is_reversion") => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "reverted".
+{ (X "has revision comment" R) (R "has comment lexeme" "reverted") } => (X "signal_class" "volatility_signal")
+{ (X "has revision comment" R) (R "has comment lexeme" "revert") } => (X "signal_class" "volatility_signal")
+{ (X "has revision comment" R) (R "has comment lexeme" "reverting") } => (X "signal_class" "volatility_signal")
+{ (X "has revision comment" R) (R "has comment lexeme" "rv") } => (X "signal_class" "volatility_signal")
 
-(X "signal_class" "reversion_edit") => (X "is_reversion" "True").
+{ (X "has revision comment" R) (R "has comment lexeme" "reverted") } => (X "is_reversion" "True")
+{ (X "has revision comment" R) (R "has comment lexeme" "revert") } => (X "is_reversion" "True")
+{ (X "has revision comment" R) (R "has comment lexeme" "reverting") } => (X "is_reversion" "True")
+{ (X "has revision comment" R) (R "has comment lexeme" "rv") } => (X "is_reversion" "True")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "undo".
+(X "signal_class" "reversion_edit") => (X "is_reversion" "True")
 
-X "is_reversion" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "undo".
+{ (X "has revision comment" R) (R "has comment lexeme" "undo") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "undid".
+{ (X "has revision comment" R) (R "has comment lexeme" "undo") } => (X "is_reversion" "True")
 
-X "is_reversion" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "undid".
+{ (X "has revision comment" R) (R "has comment lexeme" "undid") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "remove".
+{ (X "has revision comment" R) (R "has comment lexeme" "undid") } => (X "is_reversion" "True")
 
-X "is_reversion" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "remove".
+{ (X "has revision comment" R) (R "has comment lexeme" "remove") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "removed".
+{ (X "has revision comment" R) (R "has comment lexeme" "remove") } => (X "is_reversion" "True")
 
-X "is_reversion" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "removed".
+{ (X "has revision comment" R) (R "has comment lexeme" "removed") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "vandalism".
+{ (X "has revision comment" R) (R "has comment lexeme" "removed") } => (X "is_reversion" "True")
 
-X "is_reversion" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "vandalism".
+{ (X "has revision comment" R) (R "has comment lexeme" "vandalism") } => (X "signal_class" "volatility_signal")
 
-X "has_context_reason" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "because".
+{ (X "has revision comment" R) (R "has comment lexeme" "vandalism") } => (X "is_reversion" "True")
 
-X "has_context_reason" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "due".
+{ (X "has revision comment" R) (R "has comment lexeme" "because") } => (X "has_context_reason" "True")
 
-X "has_context_reason" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "per".
+{ (X "has revision comment" R) (R "has comment lexeme" "due") } => (X "has_context_reason" "True")
 
-X "has_context_reason" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "citation".
+{ (X "has revision comment" R) (R "has comment lexeme" "per") } => (X "has_context_reason" "True")
 
-X "has_context_reason" "True" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "source".
+{ (X "has revision comment" R) (R "has comment lexeme" "citation") } => (X "has_context_reason" "True")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "dispute".
+{ (X "has revision comment" R) (R "has comment lexeme" "source") } => (X "has_context_reason" "True")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "disputed".
+{ (X "has revision comment" R) (R "has comment lexeme" "dispute") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "contested".
+{ (X "has revision comment" R) (R "has comment lexeme" "disputed") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "unverified".
+{ (X "has revision comment" R) (R "has comment lexeme" "contested") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "volatility_signal" :-
-    X "has revision comment" R,
-    R "has comment lexeme" "unsourced".
+{ (X "has revision comment" R) (R "has comment lexeme" "unverified") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "party_assertion" :-
-    X "has_observation_predicate" "claimed".
-
-X "signal_class" "party_assertion" :-
-    X "has_observation_predicate" "denied".
+{ (X "has revision comment" R) (R "has comment lexeme" "unsourced") } => (X "signal_class" "volatility_signal")
 
-X "signal_class" "party_assertion" :-
-    X "has_observation_predicate" "admitted".
-
-X "signal_class" "party_assertion" :-
-    X "has_observation_predicate" "alleged".
-
-X "signal_class" "procedural_outcome" :-
-    X "has_observation_predicate" "ruled".
-
-X "signal_class" "procedural_outcome" :-
-    X "has_observation_predicate" "ordered".
-
-X "signal_class" "procedural_outcome" :-
-    X "has_observation_predicate" "decided_by".
-
-X "signal_class" "procedural_outcome" :-
-    X "has_observation_predicate" "held_that".
-
-X "signal_class" "authority_transfer_risk" :-
-    X "source_signal_class" "public_summary",
-    not(X "source_signal_class" "legal_record"),
-    not(X "source_signal_class" "procedural_record"),
-    not(X "source_signal_class" "strong_legal_source").
-
-X "signal_class" "public_knowledge_not_authority" :-
-    X "source_signal_class" "public_summary",
-    X "source_signal_class" "legal_record".
-
-X "signal_class" "wiki_wikidata_claim_alignment" :-
-    X "source_signal_class" "wikidata_claim",
-    X "source_signal_class" "wiki_article".
-
-X "signal_class" "uncertainty_preserved" :-
-    X "has lexical surface" S,
-    S "has lexeme" "maybe".
-
-X "signal_class" "uncertainty_preserved" :-
-    X "has lexical surface" S,
-    S "has lexeme" "might".
-
-X "signal_class" "uncertainty_preserved" :-
-    X "has lexical surface" S,
-    S "has lexeme" "unclear".
-
-X "signal_class" "uncertainty_preserved" :-
-    X "has lexical surface" S,
-    S "has lexeme" "unsure".
-
-X "signal_class" "uncertainty_preserved" :-
-    X "has lexical surface" S,
-    S "has lexeme" "possibly".
-
-X "signal_class" "sequence_signal" :-
-    X "has lexical surface" S,
-    S "has lexeme" "before".
-
-X "signal_class" "sequence_signal" :-
-    X "has lexical surface" S,
-    S "has lexeme" "after".
-
-X "signal_class" "sequence_signal" :-
-    X "has lexical surface" S,
-    S "has lexeme" "then".
-
-X "signal_class" "sequence_signal" :-
-    X "has lexical surface" S,
-    S "has lexeme" "later".
-
-X "signal_class" "execution_handoff_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "handoff".
-
-X "signal_class" "execution_handoff_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "execute".
-
-X "signal_class" "execution_handoff_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "verify".
-
-X "signal_class" "self_correction_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "actually".
-
-X "signal_class" "self_correction_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "correction".
-
-X "signal_class" "self_correction_signal" :-
-    X "lexical pack" "chat_archive",
-    X "has lexical surface" S,
-    S "has lexeme" "updated".
-
-X "signal_class" "handoff_context_signal" :-
-    X "lexical pack" "transcript_handoff",
-    X "has lexical surface" S,
-    S "has lexeme" "handoff".
-
-X "signal_class" "handoff_context_signal" :-
-    X "lexical pack" "transcript_handoff",
-    X "has lexical surface" S,
-    S "has lexeme" "support".
-
-X "signal_class" "handoff_context_signal" :-
-    X "lexical pack" "transcript_handoff",
-    X "has lexical surface" S,
-    S "has lexeme" "escalated".
-
-X "signal_class" "professional_handoff_signal" :-
-    X "lexical pack" "transcript_handoff",
-    X "has lexical surface" S,
-    S "has lexeme" "professional".
-
-X "signal_class" "professional_handoff_signal" :-
-    X "lexical pack" "transcript_handoff",
-    X "has lexical surface" S,
-    S "has lexeme" "clinician".
-
-X "signal_class" "appeal_stage_signal" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "appeal".
-
-X "signal_class" "appeal_stage_signal" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "appealed".
-
-X "signal_class" "appeal_stage_signal" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "appellant".
-
-X "signal_class" "procedural_outcome" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "held".
-
-X "signal_class" "procedural_outcome" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "ruled".
-
-X "signal_class" "procedural_outcome" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "ordered".
-
-X "signal_class" "party_assertion" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "alleged".
-
-X "signal_class" "party_assertion" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "claimed".
-
-X "signal_class" "party_assertion" :-
-    X "lexical pack" "au_legal",
-    X "has lexical surface" S,
-    S "has lexeme" "denied".
+{ (X "is_reversion" "True") not(X "has_context_reason" "True") } => (X "signal_class" "Reversion without context")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "protect") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "protected") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "protection") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "block") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "blocked") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "warn") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "warning") } => (X "signal_class" "administrative_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "archive") } => (X "signal_class" "archive_management_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "archived") } => (X "signal_class" "archive_management_edit")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "archiving") } => (X "signal_class" "archive_management_edit")
+
+
+(X "has_observation_predicate" "claimed") => (X "signal_class" "party_assertion")
+
+(X "has_observation_predicate" "denied") => (X "signal_class" "party_assertion")
+
+(X "has_observation_predicate" "admitted") => (X "signal_class" "party_assertion")
+
+(X "has_observation_predicate" "alleged") => (X "signal_class" "party_assertion")
+
+(X "has_observation_predicate" "ruled") => (X "signal_class" "procedural_outcome")
+
+(X "has_observation_predicate" "ordered") => (X "signal_class" "procedural_outcome")
+
+(X "has_observation_predicate" "decided_by") => (X "signal_class" "procedural_outcome")
+
+(X "has_observation_predicate" "held_that") => (X "signal_class" "procedural_outcome")
+
+{ (X "source_signal_class" "public_summary") not(X "source_signal_class" "legal_record") not(X "source_signal_class" "procedural_record") not(X "source_signal_class" "strong_legal_source") } => (X "signal_class" "authority_transfer_risk")
+
+{ (X "source_signal_class" "public_summary") (X "source_signal_class" "legal_record") } => (X "signal_class" "public_knowledge_not_authority")
+
+{ (X "source_signal_class" "wikidata_claim") (X "source_signal_class" "wiki_article") } => (X "signal_class" "wiki_wikidata_claim_alignment")
+
+{ (X "has lexical surface" S) (S "has lexeme" "maybe") } => (X "signal_class" "uncertainty_preserved")
+
+{ (X "has lexical surface" S) (S "has lexeme" "might") } => (X "signal_class" "uncertainty_preserved")
+
+{ (X "has lexical surface" S) (S "has lexeme" "unclear") } => (X "signal_class" "uncertainty_preserved")
+
+{ (X "has lexical surface" S) (S "has lexeme" "unsure") } => (X "signal_class" "uncertainty_preserved")
+
+{ (X "has lexical surface" S) (S "has lexeme" "possibly") } => (X "signal_class" "uncertainty_preserved")
+
+{ (X "has lexical surface" S) (S "has lexeme" "before") } => (X "signal_class" "sequence_signal")
+
+{ (X "has lexical surface" S) (S "has lexeme" "after") } => (X "signal_class" "sequence_signal")
+
+{ (X "has lexical surface" S) (S "has lexeme" "then") } => (X "signal_class" "sequence_signal")
+
+{ (X "has lexical surface" S) (S "has lexeme" "later") } => (X "signal_class" "sequence_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "handoff") } => (X "signal_class" "execution_handoff_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "execute") } => (X "signal_class" "execution_handoff_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "verify") } => (X "signal_class" "execution_handoff_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "actually") } => (X "signal_class" "self_correction_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "correction") } => (X "signal_class" "self_correction_signal")
+
+{ (X "lexical pack" "chat_archive") (X "has lexical surface" S) (S "has lexeme" "updated") } => (X "signal_class" "self_correction_signal")
+
+{ (X "lexical pack" "transcript_handoff") (X "has lexical surface" S) (S "has lexeme" "handoff") } => (X "signal_class" "handoff_context_signal")
+
+{ (X "lexical pack" "transcript_handoff") (X "has lexical surface" S) (S "has lexeme" "support") } => (X "signal_class" "handoff_context_signal")
+
+{ (X "lexical pack" "transcript_handoff") (X "has lexical surface" S) (S "has lexeme" "escalated") } => (X "signal_class" "handoff_context_signal")
+
+{ (X "lexical pack" "transcript_handoff") (X "has lexical surface" S) (S "has lexeme" "professional") } => (X "signal_class" "professional_handoff_signal")
+
+{ (X "lexical pack" "transcript_handoff") (X "has lexical surface" S) (S "has lexeme" "clinician") } => (X "signal_class" "professional_handoff_signal")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "appeal") } => (X "signal_class" "appeal_stage_signal")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "appealed") } => (X "signal_class" "appeal_stage_signal")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "appellant") } => (X "signal_class" "appeal_stage_signal")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "held") } => (X "signal_class" "procedural_outcome")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "ruled") } => (X "signal_class" "procedural_outcome")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "ordered") } => (X "signal_class" "procedural_outcome")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "alleged") } => (X "signal_class" "party_assertion")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "claimed") } => (X "signal_class" "party_assertion")
+
+{ (X "lexical pack" "au_legal") (X "has lexical surface" S) (S "has lexeme" "denied") } => (X "signal_class" "party_assertion")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "spam") } => (X "signal_class" "volatility_signal")
+
+{ (X "has revision comment" R) (R "has comment lexeme" "blog") } => (X "signal_class" "volatility_signal")
+
+{ (X "is_reversion" "True") not(X "has_context_reason" "True") } => (X "signal_class" "Reversion without context")
+
+# --- Appended from wiki_lex_rules.zlp ---
+{ (R "has comment" C) (L "member of" C) (L "has text" "archive") } => (R "signal_class" "archive_management_edit")
+{ (R "has comment" C) (L "member of" C) (L "has text" "reverted") } => (R "signal_class" "reversion_edit")
+{ (R "has comment" C) (L "member of" C) (L "has text" "Reverted") } => (R "signal_class" "reversion_edit")
+
+(R "has comment lexeme" "reverted") => (R "signal_class" "reversion_edit")
+(R "has comment lexeme" "Reverted") => (R "signal_class" "reversion_edit")
+(R "has comment lexeme" "archive") => (R "signal_class" "archive_management_edit")
+
+{ (R "by user" U) (R "signal_class" "reversion_edit") } => (U "is" "wiki sentinel")
+
+# --- Queries (triggers stdout evaluation so the bridge can pick up inferences) ---
+# Used by build_fact_review_workbench_payload to detect wiki sentinels
+U "is" "wiki sentinel"
+# General signal classification for review UI
+X "signal_class" Y
+# Volatility detection triggers
+X "is_reversion" Y
+# Contextual reasoning for 'reversion without context' logic
+X "has_context_reason" Y
+
+# Coverage Notes:
+# - authority_transfer_risk is inferred when public_summary is present WITHOUT legal record.
+# - wiki_wikidata_claim_alignment is inferred when both wiki and wikidata sources exist for a fact.
+# - volatility_signal is triggered by keywords (reverted, spam, blog) in revision comments.

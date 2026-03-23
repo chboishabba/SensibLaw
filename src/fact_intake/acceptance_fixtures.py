@@ -1087,28 +1087,9 @@ def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], 
         },
     )
     
-    # Add an observation for one of the revisions if it's a reversion or removal
-    for i, row in enumerate(rows, start=1):
-        comment = (row.get("comment") or "").lower()
-        if any(kw in comment for kw in ["revert", "reverting", "remove", "removed", "undid", "undo", " rv "]) or comment.endswith(" rv"):
-             _append_observation(
-                payload, 
-                fixture_key=f"{fixture['fixture_id']}_revert_{row['revid']}", 
-                statement_index=i, 
-                predicate_key="is_reversion", 
-                object_text="True", 
-                object_type="boolean",
-                provenance={"source": "acceptance_fixture", "fixture_key": fixture["fixture_id"], "signal_classes": ["volatility_signal"]}
-            )
-             _append_contestation(
-                payload, 
-                fixture_key=f"{fixture['fixture_id']}_contest_{row['revid']}", 
-                fact_index=i, 
-                statement_index=i, 
-                reason_text=f"Revision by {row['user']} is a reversion/removal, indicating high epistemic volatility.",
-                status="disputed",
-                contestation_scope="moderation"
-            )
+    # Note: volatility signals (is_reversion, volatility_signal) are now inferred
+    # systemically by Zelph rules based on the revision comment lexemes.
+    # No manual injection needed here.
 
     with _connect(db_path) as conn:
         persisted = _persist_and_link(conn, workflow_kind="transcript_semantic", workflow_run_id=fixture["fixture_id"], payload=payload)

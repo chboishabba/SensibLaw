@@ -73,6 +73,25 @@
       "expected_classes": ["appeal_stage_signal", "procedural_outcome"],
       "expected_policies": [],
       "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record", "strong_legal_source"]}
+    },
+    {
+      "id": "au-adversarial-fragmented-reasons",
+      "source_type": "legal_record",
+      "text": "Part 1: The court noted the appeal. Part 2: The court heard the appeal. Part 3: The court dismissed the appeal. Part 4: No further orders as to costs.",
+      "length_bucket": "medium",
+      "expected_classes": ["appeal_stage_signal", "procedural_outcome"],
+      "expected_policies": [],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["legal_record"]}
+    },
+    {
+      "id": "au-adversarial-non-legal-summary",
+      "source_type": "public_summary",
+      "text": "Blog post: I think the court was wrong to dismiss the appeal, but they did it anyway because of some procedural technicality about the timeline.",
+      "length_bucket": "medium",
+      "expected_classes": ["appeal_stage_signal", "public_knowledge_not_authority"],
+      "expected_policies": ["do_not_promote_to_primary"],
+      "provenance": {"lexical_projection_mode": "au_legal", "source_signal_classes": ["public_summary"]}
     }
+
   ]
 }

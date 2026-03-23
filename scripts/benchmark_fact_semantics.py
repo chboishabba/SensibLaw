@@ -304,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--corpus-file", type=Path, default=None, help="Optional benchmark corpus JSON file under tests/fixtures/fact_semantic_bench.")
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--db-path", type=Path, default=None, help="Optional SQLite database path. Defaults to a temp file.")
+    parser.add_argument("--deferred", action="store_true", help="Defer semantic materialization to background.")
     args = parser.parse_args(argv)
+
     if args.mode is None and args.corpus_file is None:
         parser.error("one of --mode or --corpus-file is required")
     if args.mode is not None and args.corpus_file is not None:
@@ -332,7 +334,8 @@ def main(argv: list[str] | None = None) -> int:
     start = time.perf_counter()
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
-        persist_summary = persist_fact_intake_payload(conn, payload)
+        persist_summary = persist_fact_intake_payload(conn, payload, deferred_refresh=args.deferred)
+
         run_id = payload["run"]["run_id"]
         report = build_fact_intake_report(conn, run_id=run_id)
         workbench = build_fact_review_workbench_payload(conn, run_id=run_id)
@@ -373,13 +376,14 @@ def main(argv: list[str] | None = None) -> int:
             "rule_status": workbench.get("zelph", {}).get("rule_status"),
         },
         "refresh": {
-            "refresh_status": str(refresh["refresh_status"]) if refresh is not None else None,
+            "refresh_status": str(refresh["refresh_status"]) if refresh is not None else (persist_summary.get("refresh_status") if "refresh_status" in persist_summary else None),
             "current_stage": str(refresh["current_stage"]) if refresh is not None and refresh["current_stage"] is not None else None,
             "facts_serialized_count": int(refresh["facts_serialized_count"]) if refresh is not None else 0,
             "assertion_count": int(refresh["assertion_count"]) if refresh is not None else 0,
             "relation_count": int(refresh["relation_count"]) if refresh is not None else 0,
             "policy_count": int(refresh["policy_count"]) if refresh is not None else 0,
         },
+
     }
     if corpus_entries:
         payload_out["corpus_summary"] = {

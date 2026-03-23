@@ -29,6 +29,27 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Clause-local, text-derived extraction; no cross-clause inference.
 
 ## Recent decisions (2026-03-08)
+- Random Wikipedia page quality is now explicitly framed as an article-ingest
+  lane first:
+  - primary target is article-wide bounded structure over arbitrary revision-
+    locked pages
+  - the important question is which people/entities the article names, what
+    they did, and which bounded text-local context can be retained cleanly
+  - timeline readiness remains a derived quality surface, not the whole lane
+  - one-hop follow is the initial expansion cap
+  - legal-specific scoring remains a comparison slice, but arbitrary non-legal
+    pages should still be pressure-tested through the article-ingest lane
+- The Wikipedia ingest middle is now explicitly:
+  `revision-locked article -> canonical wiki state -> projections`
+  where the canonical wiki state should reuse sentence/text units,
+  observation-style rows, conservative `EventCandidate`s, claims, attributions,
+  and anchor-status metadata rather than treating anchored timeline rows as the
+  ingest ontology.
+- `timeline` remains the user-facing chronology surface, but it should include
+  ordered undated events as well as anchored ones; anchor status must remain
+  explicit so chronology quality is not overstated.
+- The revision harness should compare canonical wiki state first and only then
+  summarize graph/timeline/editorial deltas for reviewer support.
 - Wikidata ontology lane now uses the newest pinned slice/revision as the active
   baseline for routine diagnostics; explicit historical rewind checks are now
   tracked as a separate review-triggered process because they are useful but add

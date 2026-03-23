@@ -1,1 +1,17 @@
-"test" "is" "good".
+# Zelph Rules for Wave 3/4 Invariants
+
+# Reversion Check
+(X "signal_class" "reversion_edit") => (X "is_reversion" "True")
+
+{ (X "is_reversion" "True") not(X "has_context_reason" "True") } => (X "signal_class" "Reversion without context")
+
+# Test rule
+(X "is_reversion" "True") => (X "signal_class" "is_reversion_test_PASSED")
+
+# Cross-side Contradiction
+{ (S1 "source_side" "A") (S2 "source_side" "B") (S1 "claims" "X") (S2 "denies" "X") } => (S1 "signal_class" "Cross-side contradiction found")
+
+# Queries - Essential for stdout output
+X "signal_class" Y
+X "is_reversion" Y
+X "has_context_reason" Y

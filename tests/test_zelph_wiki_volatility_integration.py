@@ -128,11 +128,9 @@ def test_zelph_flags_reversion_without_context_as_risk() -> None:
     # Verify the "risk_signal" was inferred by Zelph
     # Note: inferred triples are in workbench["zelph"]["triples"]
     triples = workbench["zelph"]["triples"]
-    print(f"DEBUG: ALL TRIPLES: {json.dumps(triples, indent=2)}")
     
     # Check for is_reversion first
     is_rev_found = any(t["predicate"] == "is_reversion" for t in triples)
-    print(f"DEBUG: is_reversion found: {is_rev_found}")
 
     # Find risk_signal for rev_no_context_fact
     risk_found = any(
@@ -152,3 +150,39 @@ def test_zelph_flags_reversion_without_context_as_risk() -> None:
         for t in triples
     )
     assert not risk_for_e2, f"Should NOT have flagged reversion with context as a risk, but found: {triples}"
+
+def test_zelph_identifies_admin_and_archive_signals() -> None:
+    conn = sqlite3.connect(":memory:")
+    units = [
+        TextUnit(
+            unit_id="unit:protect",
+            source_id="wiki-protect",
+            source_type="wiki_article",
+            text="Revision by Admin: Protected the page due to persistent vandalism.",
+        ),
+        TextUnit(
+            unit_id="unit:archive",
+            source_id="wiki-archive",
+            source_type="wiki_article",
+            text="Revision by Bot: Archiving old discussion threads.",
+        ),
+    ]
+    payload = build_fact_intake_payload_from_text_units(units, source_label="zelph_admin_archive_test")
+    
+    for source in payload["sources"]:
+        source["source_type"] = "wiki_article"
+        source.setdefault("provenance", {})["source_signal_classes"] = ["wiki_article"]
+
+    persist_fact_intake_payload(conn, payload)
+    
+    workbench = build_fact_review_workbench_payload(conn, run_id=payload["run"]["run_id"])
+    
+    # Check administrative_edit
+    protect_fact = next(row for row in workbench["facts"] if "administrative_edit" in row["signal_classes"])
+    assert "administrative_edit" in protect_fact["signal_classes"]
+    assert "administrative_edit" in protect_fact["inferred_signal_classes"]
+    
+    # Check archive_management_edit
+    archive_fact = next(row for row in workbench["facts"] if "archive_management_edit" in row["signal_classes"])
+    assert "archive_management_edit" in archive_fact["signal_classes"]
+    assert "archive_management_edit" in archive_fact["inferred_signal_classes"]

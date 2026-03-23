@@ -7,7 +7,7 @@ for Wikipedia/Wikidata-adjacent work.
 
 This harness is not an edit bot, not an ontology upsert path, and not an
 authority transfer mechanism. It compares article revisions, reports local
-extraction/graph effects, and packages issue packets for human review.
+state/projection effects, and packages issue packets for human review.
 
 ## Core stance
 - Wikipedia article revisions are source artifacts.
@@ -16,6 +16,8 @@ extraction/graph effects, and packages issue packets for human review.
   attributable and replayable when the revisions remain available.
 - Wikidata remains downstream advisory context only; it does not define article
   truth or mutate canonical ontology rows.
+- The primary comparison substrate is canonical wiki state, not timeline rows
+  alone.
 
 ## Inputs
 - Previous revision source artifact:
@@ -30,6 +32,8 @@ extraction/graph effects, and packages issue packets for human review.
   - same fields as above
 - Optional previous/current AAO extraction payloads from
   `scripts/wiki_timeline_aoo_extract.py`
+- Optional previous/current canonical wiki-state bundles from
+  `src/wiki_timeline/article_state.py`
 - Optional bounded review context attached by local tooling
 
 ## Output report
@@ -39,6 +43,7 @@ Required top-level sections:
 - `article`
 - `revisions`
 - `similarities`
+- `state_delta_summary`
 - `extraction_delta_summary`
 - `graph_impact_summary`
 - `epistemic_delta_summary`
@@ -68,8 +73,17 @@ Required top-level sections:
   - SimHash Hamming distance
 - Similarity metrics are descriptive only; they do not decide truth.
 
+### `state_delta_summary`
+- Summarizes canonical wiki-state changes before projection-specific summaries:
+  - sentence/text-unit counts and changed ids
+  - observation counts and changed ids
+  - event-candidate counts and changed ids
+  - anchor-status deltas
+- If canonical state bundles are unavailable, the harness may derive a bounded
+  state view from extraction payloads, but must keep any abstention explicit.
+
 ### `extraction_delta_summary`
-- Summarizes local extractor-visible changes:
+- Summarizes local extractor-visible projection changes:
   - event counts
   - changed/added/removed `event_id`s
   - unique actor/action/object deltas
@@ -104,6 +118,12 @@ Required top-level sections:
   - `previous_event_present`
   - `current_event_present`
   - `related_entities[]`
+- Recommended additive fields:
+  - `state_change_summary[]`
+  - `changed_observation_ids[]`
+  - `claim_changed`
+  - `attribution_changed`
+  - `anchor_status_changed`
 - `surfaces[]` are drawn from:
   - `narrative`
   - `semantic`
@@ -128,6 +148,7 @@ Required top-level sections:
 ## Current implementation boundary
 v0.1 is a harness and reporting slice:
 - revision metadata capture
+- canonical wiki-state diff summary
 - similarity reporting
 - extraction delta summary
 - local graph-impact summary

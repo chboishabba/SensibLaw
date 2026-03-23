@@ -1,0 +1,85 @@
+{
+  "ok": true,
+  "facts": [
+    {
+      "id": "f1",
+      "type": "event_occurred",
+      "event_id": "slip_event",
+      "attributes": {
+        "subject": "Alice",
+        "location": "supermarket",
+        "cause": "wet_floor"
+      },
+      "provenance": {
+        "source": "sentence_1"
+      },
+      "confidence": "asserted"
+    },
+    {
+      "id": "f2",
+      "type": "condition",
+      "condition_id": "wet_floor",
+      "attributes": {
+        "location": "supermarket",
+        "time": "t0"
+      },
+      "provenance": {
+        "source": "sentence_2"
+      },
+      "confidence": "asserted"
+    },
+    {
+      "id": "f3",
+      "type": "event_occurred",
+      "event_id": "mop_event",
+      "attributes": {
+        "agent": "Bob",
+        "time": "t0 - 10min"
+      },
+      "provenance": {
+        "source": "sentence_2"
+      },
+      "confidence": "asserted"
+    },
+    {
+      "id": "f4",
+      "type": "not_condition",
+      "condition_id": "displayed_warning_sign",
+      "attributes": {
+        "location": "supermarket",
+        "time": "t0"
+      },
+      "provenance": {
+        "source": "sentence_3"
+      },
+      "confidence": "asserted"
+    },
+    {
+      "id": "f5",
+      "type": "knowledge",
+      "attributes": {
+        "agent": "Bob",
+        "knows_about": "wet_floor",
+        "time": "t0"
+      },
+      "provenance": {
+        "source": "sentence_4"
+      },
+      "confidence": "asserted"
+    },
+    {
+      "id": "f6",
+      "type": "event_occurred",
+      "event_id": "injury_event",
+      "attributes": {
+        "victim": "Alice",
+        "injury_type": "broken_wrist",
+        "caused_by": "slip_event"
+      },
+      "provenance": {
+        "source": "sentence_5"
+      },
+      "confidence": "asserted"
+    }
+  ]
+}

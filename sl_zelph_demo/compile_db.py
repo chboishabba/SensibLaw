@@ -46,6 +46,10 @@ def main():
                 facts.append(f'{uid} "has role" {quote(row["role"])}')
             if row["modality"]:
                 facts.append(f'{uid} "has modality" {quote(row["modality"])}')
+            if row["action"]:
+                facts.append(f'{uid} "has action" {quote(row["action"])}')
+            if row["scope"]:
+                facts.append(f'{uid} "has scope" {quote(row["scope"])}')
     except sqlite3.OperationalError as e:
         print(f"Query error: {e}")
     

@@ -20,6 +20,11 @@
       "corpus_id": "au_legal",
       "path": "tests/fixtures/fact_semantic_bench/au_legal_seed.json",
       "tiers": [100, 1000, 5000]
+    },
+    {
+      "corpus_id": "discord_archive",
+      "path": "tests/fixtures/fact_semantic_bench/discord_archive_seed.json",
+      "tiers": [100, 1000]
     }
   ]
 }

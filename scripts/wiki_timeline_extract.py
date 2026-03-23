@@ -692,6 +692,35 @@ def main(argv: Optional[List[str]] = None) -> int:
         if len(events) >= int(args.max_events):
             break
 
+    # Extract category-derived candidates as a lower-weight lane
+    cats = snap.get("categories") or []
+    if isinstance(cats, list):
+        for raw_cat in cats:
+            if not isinstance(raw_cat, str):
+                continue
+            cat = raw_cat.strip()
+            if not cat:
+                continue
+                
+            clean_cat = cat[9:] if cat.startswith("Category:") else cat
+            
+            anchors: List[DateAnchor] = []
+            anchors.extend(_parse_inline_year_range_anchors(clean_cat))
+            if not anchors:
+                anchors.extend(_parse_inline_weak_years(clean_cat))
+                
+            if anchors:
+                idx += 1
+                events.append({
+                    "event_id": f"ev_cat:{idx:04d}",
+                    "anchor": anchors[0].to_json(),
+                    "section": "(categories)",
+                    "text": cat,
+                    "links": [],
+                    "links_para": [],
+                    "lane": "category",
+                })
+
     out = {
         "ok": True,
         "generated_at": _utc_now_iso(),

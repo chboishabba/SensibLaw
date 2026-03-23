@@ -19,6 +19,7 @@ _REVERSION_KEYWORDS = {
     "undid",
     "undone",
     "rv",
+    "rvv",
     "remove",
     "removed",
     "removing",
@@ -83,14 +84,14 @@ def build_revision_comment_zelph_facts(
     tokens = _token_texts(comment_text)
     revision_node = revision_node_id(revision_id)
     facts = [
-        f'{_quote_zelph_text(revision_node)} "is a" "wikipedia revision".',
-        f'{_quote_zelph_text(revision_node)} "by user" {_quote_zelph_text(author)}.',
+        f'{revision_node} "is a" "wikipedia revision"',
+        f'{revision_node} "by user" {_quote_zelph_text(author)}',
     ]
     lexeme_nodes = [_lexeme_node(token) for token in tokens]
     for token, node in zip(tokens, lexeme_nodes, strict=False):
-        facts.append(f'{_quote_zelph_text(node)} "has text" {_quote_zelph_text(token)}.')
-        facts.append(f'{_quote_zelph_text(node)} "kind" "lexeme".')
-        facts.append(f'{_quote_zelph_text(revision_node)} "has comment lexeme" {_quote_zelph_text(token.casefold())}.')
+        facts.append(f'{node} "has text" {_quote_zelph_text(token)}')
+        facts.append(f'{node} "kind" "lexeme"')
+        facts.append(f'{revision_node} "has comment lexeme" {_quote_zelph_text(token.casefold())}')
     comment_list = "<" + " ".join(lexeme_nodes) + ">" if lexeme_nodes else "nil"
-    facts.append(f'{_quote_zelph_text(revision_node)} "has comment" {comment_list}.')
+    facts.append(f'{revision_node} "has comment" {comment_list}')
     return facts

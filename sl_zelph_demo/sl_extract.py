@@ -67,11 +67,14 @@ def main():
         print(f"File not found: {input_file}")
         sys.exit(1)
 
-    # In a full run, we would parse input_file here.
-    # We output the SL native JSON format
+    # We output the SL native JSON format with the standard 'ok: true' envelope
     output_path = input_file.parent / "sl_output.json"
+    payload = {
+        "ok": True,
+        "facts": SL_FACTS
+    }
     with open(output_path, "w") as f:
-        json.dump({"facts": SL_FACTS}, f, indent=2)
+        json.dump(payload, f, indent=2)
     print(f"Deterministically extracted structured facts to {output_path}")
 
 if __name__ == "__main__":

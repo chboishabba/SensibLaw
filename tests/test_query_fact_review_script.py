@@ -373,3 +373,15 @@ def test_query_fact_review_script_demo_bundle_resolves_selector_variants_for_lat
     assert bundle_payload["selector"]["wave"] == "wave4_medical_regulatory"
     assert bundle_payload["acceptance"]["wave"] == "wave4_medical_regulatory"
     assert bundle_payload["acceptance"]["summary"]["story_count"] == len(STORY_WAVES["wave4_medical_regulatory"])
+
+
+def test_query_fact_review_script_shows_full_report(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+
+    exit_code = main(["--db-path", str(db_path), "report", "--run-id", run_id])
+    report_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert "report" in report_payload
+    assert report_payload["report"]["run"]["run_id"] == run_id
+    assert "statements" in report_payload["report"]

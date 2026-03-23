@@ -1,0 +1,13 @@
+"rev_1" "by user" "Sentinel33".
+"rev_1" "has comment" < lex_1 lex_2 >.
+"lex_1" "has text" "Reverted".
+"lex_2" "has text" "unexplained".
+
+(H cons T) => (H "member of" (H cons T)).
+(H cons T, X "member of" T) => (X "member of" (H cons T)).
+
+(R "has comment" C, L "member of" C, L "has text" "Reverted") => (R "signal_class" "reversion_edit").
+(R "by user" U, R "signal_class" "reversion_edit") => (U "is" "wiki sentinel").
+
+R "signal_class" "reversion_edit".
+U "is" "wiki sentinel".

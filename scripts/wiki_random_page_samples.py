@@ -64,6 +64,8 @@ def build_random_sample_manifest(
     max_links: int,
     max_categories: int,
     include_wikitext: bool,
+    follow_hops: int = 1,
+    max_follow_links_per_page: int = 5,
 ) -> dict[str, Any]:
     pacer = wiki_pull_api._RequestPacer(wiki_rps=max(0.01, float(wiki_rps)))
     titles = _fetch_random_titles(
@@ -85,6 +87,37 @@ def build_random_sample_manifest(
             pacer=pacer,
         )
         snapshot_path = wiki_pull_api._write_snapshot(out_dir, snapshot)
+        followed_rows: list[dict[str, Any]] = []
+        if int(follow_hops) > 0:
+            seen_follow_titles: set[str] = set()
+            for follow_title in list(snapshot.links or [])[: max(0, int(max_follow_links_per_page))]:
+                follow_title = str(follow_title or "").strip()
+                if not follow_title or follow_title == snapshot.title or follow_title in seen_follow_titles:
+                    continue
+                seen_follow_titles.add(follow_title)
+                followed = wiki_pull_api._fetch_latest_wikitext(
+                    wiki=wiki,
+                    title=follow_title,
+                    max_links=max_links,
+                    max_categories=max_categories,
+                    include_wikitext=include_wikitext,
+                    timeout_s=timeout_s,
+                    pacer=pacer,
+                )
+                followed_path = wiki_pull_api._write_snapshot(out_dir, followed)
+                followed_rows.append(
+                    {
+                        "title": followed.title,
+                        "pageid": followed.pageid,
+                        "revid": followed.revid,
+                        "source_url": followed.source_url,
+                        "snapshot_path": str(followed_path),
+                        "parent_title": snapshot.title,
+                        "parent_revid": snapshot.revid,
+                        "warning_count": len(followed.warnings),
+                        "warnings": list(followed.warnings),
+                    }
+                )
         sample_rows.append(
             {
                 "title": snapshot.title,
@@ -92,8 +125,12 @@ def build_random_sample_manifest(
                 "revid": snapshot.revid,
                 "source_url": snapshot.source_url,
                 "snapshot_path": str(snapshot_path),
+                "link_count": len(snapshot.links),
+                "category_count": len(snapshot.categories),
                 "warning_count": len(snapshot.warnings),
                 "warnings": list(snapshot.warnings),
+                "followed_snapshot_count": len(followed_rows),
+                "followed_samples": followed_rows,
             }
         )
     return {
@@ -104,6 +141,8 @@ def build_random_sample_manifest(
         "namespace": int(namespace),
         "include_wikitext": bool(include_wikitext),
         "wiki_rps": float(wiki_rps),
+        "follow_hops": max(0, int(follow_hops)),
+        "max_follow_links_per_page": max(0, int(max_follow_links_per_page)),
         "generated_at": wiki_pull_api._utc_iso(),
         "samples": sample_rows,
     }
@@ -118,6 +157,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-manifest", type=Path, required=True)
     parser.add_argument("--max-links", type=int, default=50)
     parser.add_argument("--max-categories", type=int, default=50)
+    parser.add_argument("--follow-hops", type=int, default=1)
+    parser.add_argument("--max-follow-links-per-page", type=int, default=5)
     parser.add_argument("--timeout-s", type=int, default=30)
     parser.add_argument("--wiki-rps", type=float, default=1.0)
     parser.add_argument("--no-wikitext", action="store_true")
@@ -133,6 +174,8 @@ def main(argv: list[str] | None = None) -> int:
         max_links=args.max_links,
         max_categories=args.max_categories,
         include_wikitext=not args.no_wikitext,
+        follow_hops=args.follow_hops,
+        max_follow_links_per_page=args.max_follow_links_per_page,
     )
     args.out_manifest.parent.mkdir(parents=True, exist_ok=True)
     args.out_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")

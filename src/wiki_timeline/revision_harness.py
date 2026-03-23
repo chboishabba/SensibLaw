@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, Mapping
 
 from src.text.similarity import simhash, simhash_hamming_distance, token_jaccard_similarity
+from src.wiki_timeline.article_state import coalesce_snapshot, coerce_wiki_article_state
 
 REPORT_SCHEMA_VERSION = "wiki_revision_harness_report_v0_1"
 _WS_RE = re.compile(r"\s+")
@@ -25,18 +26,6 @@ def _safe_str(value: Any) -> str | None:
 
 def _sorted_unique(values: list[str]) -> list[str]:
     return sorted({value for value in values if value})
-
-
-def _coalesce_snapshot(
-    snapshot: dict[str, Any] | None,
-    payload: dict[str, Any] | None,
-) -> dict[str, Any]:
-    if isinstance(snapshot, dict):
-        return dict(snapshot)
-    source_timeline = payload.get("source_timeline") if isinstance(payload, dict) else None
-    if isinstance(source_timeline, dict) and isinstance(source_timeline.get("snapshot"), dict):
-        return dict(source_timeline["snapshot"])
-    return {}
 
 
 def _article_identity(
@@ -71,27 +60,32 @@ def _revision_meta(snapshot: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _extract_source_text(snapshot: dict[str, Any], payload: dict[str, Any] | None) -> str:
+def _extract_source_text(snapshot: Mapping[str, Any], payload: Mapping[str, Any] | None) -> str:
     wikitext = _norm_text(snapshot.get("wikitext"))
     if wikitext:
         return wikitext
-    if isinstance(payload, dict):
-        events = payload.get("events")
+    if isinstance(payload, Mapping):
+        source_text = payload.get("source_text")
+        if isinstance(source_text, Mapping):
+            text = _norm_text(source_text.get("wikitext"))
+            if text:
+                return text
+        events = payload.get("event_candidates") if payload.get("schema_version") else payload.get("events")
         if isinstance(events, list):
-            event_texts = [_norm_text(ev.get("text")) for ev in events if isinstance(ev, dict)]
+            event_texts = [_norm_text(ev.get("text")) for ev in events if isinstance(ev, Mapping)]
             joined = "\n".join(text for text in event_texts if text)
             if joined.strip():
                 return joined
     return ""
 
 
-def _extract_event_text(payload: dict[str, Any] | None) -> str:
-    if not isinstance(payload, dict):
+def _extract_event_text_from_state(state: Mapping[str, Any] | None) -> str:
+    if not isinstance(state, Mapping):
         return ""
-    events = payload.get("events")
+    events = state.get("event_candidates")
     if not isinstance(events, list):
         return ""
-    texts = [_norm_text(ev.get("text")) for ev in events if isinstance(ev, dict)]
+    texts = [_norm_text(ev.get("text")) for ev in events if isinstance(ev, Mapping)]
     return "\n".join(text for text in texts if text)
 
 
@@ -110,10 +104,40 @@ def _similarity_summary(left: str, right: str) -> dict[str, Any]:
     }
 
 
-def _event_map(payload: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
-    if not isinstance(payload, dict):
+def _sentence_unit_map(state: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not isinstance(state, Mapping):
         return {}
-    events = payload.get("events")
+    units = state.get("sentence_units")
+    if not isinstance(units, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for index, unit in enumerate(units):
+        if not isinstance(unit, dict):
+            continue
+        unit_id = _safe_str(unit.get("unit_id")) or f"unit:{index}"
+        out[unit_id] = unit
+    return out
+
+
+def _observation_map(state: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not isinstance(state, Mapping):
+        return {}
+    observations = state.get("observations")
+    if not isinstance(observations, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for index, observation in enumerate(observations):
+        if not isinstance(observation, dict):
+            continue
+        observation_id = _safe_str(observation.get("observation_id")) or f"observation:{index}"
+        out[observation_id] = observation
+    return out
+
+
+def _event_map(state: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not isinstance(state, Mapping):
+        return {}
+    events = state.get("event_candidates")
     if not isinstance(events, list):
         return {}
     out: dict[str, dict[str, Any]] = {}
@@ -126,19 +150,19 @@ def _event_map(payload: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
 
 
 def _normalize_actor(actor: Any) -> str | None:
-    if isinstance(actor, dict):
-        return _safe_str(actor.get("resolved")) or _safe_str(actor.get("label"))
+    if isinstance(actor, Mapping):
+        return _safe_str(actor.get("resolved")) or _safe_str(actor.get("label")) or _safe_str(actor.get("text"))
     return _safe_str(actor)
 
 
 def _normalize_object(obj: Any) -> str | None:
-    if isinstance(obj, dict):
+    if isinstance(obj, Mapping):
         return _safe_str(obj.get("title")) or _safe_str(obj.get("text")) or _safe_str(obj.get("label"))
     return _safe_str(obj)
 
 
 def _normalize_step_signature(step: Any) -> dict[str, Any] | None:
-    if not isinstance(step, dict):
+    if not isinstance(step, Mapping):
         return None
     return {
         "action": _safe_str(step.get("action")),
@@ -151,7 +175,7 @@ def _normalize_step_signature(step: Any) -> dict[str, Any] | None:
 
 
 def _normalize_attribution_signature(item: Any) -> dict[str, Any] | None:
-    if not isinstance(item, dict):
+    if not isinstance(item, Mapping):
         return None
     return {
         "attributed_actor_id": _safe_str(item.get("attributed_actor_id")),
@@ -163,7 +187,7 @@ def _normalize_attribution_signature(item: Any) -> dict[str, Any] | None:
     }
 
 
-def _event_signature(event: dict[str, Any]) -> dict[str, Any]:
+def _event_signature(event: Mapping[str, Any]) -> dict[str, Any]:
     steps = [_normalize_step_signature(step) for step in (event.get("steps") or [])]
     attrs = [_normalize_attribution_signature(item) for item in (event.get("attributions") or [])]
     return {
@@ -184,28 +208,55 @@ def _event_signature(event: dict[str, Any]) -> dict[str, Any]:
         ),
         "steps": [step for step in steps if step],
         "attributions": [attr for attr in attrs if attr],
+        "anchor_status": _safe_str(event.get("anchor_status")),
+        "anchor": dict(event.get("anchor")) if isinstance(event.get("anchor"), Mapping) else None,
     }
+
+
+def _text_unit_signature(unit: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "section": _safe_str(unit.get("section")),
+        "text": _safe_str(unit.get("text")),
+        "anchor_status": _safe_str(unit.get("anchor_status")),
+        "anchor": dict(unit.get("anchor")) if isinstance(unit.get("anchor"), Mapping) else None,
+    }
+
+
+def _observation_signature(observation: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "event_id": _safe_str(observation.get("event_id")),
+        "predicate": _safe_str(observation.get("predicate")),
+        "object_text": _safe_str(observation.get("object_text")),
+        "anchor_status": _safe_str(observation.get("anchor_status")),
+        "step_index": observation.get("step_index"),
+    }
+
+
+def _changed_ids_by_signature(
+    previous_map: Mapping[str, Mapping[str, Any]],
+    current_map: Mapping[str, Mapping[str, Any]],
+    signature_fn: Any,
+) -> tuple[list[str], list[str], list[str]]:
+    prev_ids = set(previous_map)
+    curr_ids = set(current_map)
+    added = sorted(curr_ids - prev_ids)
+    removed = sorted(prev_ids - curr_ids)
+    changed: list[str] = []
+    for item_id in sorted(prev_ids & curr_ids):
+        if _stable_json(signature_fn(previous_map[item_id])) != _stable_json(signature_fn(current_map[item_id])):
+            changed.append(item_id)
+    return added, removed, changed
 
 
 def _changed_event_ids(
     previous_events: dict[str, dict[str, Any]],
     current_events: dict[str, dict[str, Any]],
 ) -> tuple[list[str], list[str], list[str]]:
-    prev_ids = set(previous_events)
-    curr_ids = set(current_events)
-    added = sorted(curr_ids - prev_ids)
-    removed = sorted(prev_ids - curr_ids)
-    changed: list[str] = []
-    for event_id in sorted(prev_ids & curr_ids):
-        if _stable_json(_event_signature(previous_events[event_id])) != _stable_json(
-            _event_signature(current_events[event_id])
-        ):
-            changed.append(event_id)
-    return added, removed, changed
+    return _changed_ids_by_signature(previous_events, current_events, _event_signature)
 
 
-def _collect_actor_surfaces(payload: dict[str, Any] | None) -> list[str]:
-    events = _event_map(payload)
+def _collect_actor_surfaces(state: Mapping[str, Any] | None) -> list[str]:
+    events = _event_map(state)
     values: list[str] = []
     for event in events.values():
         for actor in (event.get("actors") or []):
@@ -213,7 +264,7 @@ def _collect_actor_surfaces(payload: dict[str, Any] | None) -> list[str]:
             if value:
                 values.append(value)
         for step in (event.get("steps") or []):
-            if isinstance(step, dict):
+            if isinstance(step, Mapping):
                 for subject in (step.get("subjects") or []):
                     value = _safe_str(subject)
                     if value:
@@ -221,23 +272,23 @@ def _collect_actor_surfaces(payload: dict[str, Any] | None) -> list[str]:
     return _sorted_unique(values)
 
 
-def _collect_action_surfaces(payload: dict[str, Any] | None) -> list[str]:
-    events = _event_map(payload)
+def _collect_action_surfaces(state: Mapping[str, Any] | None) -> list[str]:
+    events = _event_map(state)
     values: list[str] = []
     for event in events.values():
         action = _safe_str(event.get("action"))
         if action:
             values.append(action)
         for step in (event.get("steps") or []):
-            if isinstance(step, dict):
+            if isinstance(step, Mapping):
                 value = _safe_str(step.get("action"))
                 if value:
                     values.append(value)
     return _sorted_unique(values)
 
 
-def _collect_object_surfaces(payload: dict[str, Any] | None) -> list[str]:
-    events = _event_map(payload)
+def _collect_object_surfaces(state: Mapping[str, Any] | None) -> list[str]:
+    events = _event_map(state)
     values: list[str] = []
     for event in events.values():
         for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
@@ -246,7 +297,7 @@ def _collect_object_surfaces(payload: dict[str, Any] | None) -> list[str]:
                 if value:
                     values.append(value)
         for step in (event.get("steps") or []):
-            if isinstance(step, dict):
+            if isinstance(step, Mapping):
                 for obj in (step.get("objects") or []):
                     value = _normalize_object(obj)
                     if value:
@@ -254,8 +305,8 @@ def _collect_object_surfaces(payload: dict[str, Any] | None) -> list[str]:
     return _sorted_unique(values)
 
 
-def _collect_claim_bearing_event_ids(payload: dict[str, Any] | None) -> list[str]:
-    events = _event_map(payload)
+def _collect_claim_bearing_event_ids(state: Mapping[str, Any] | None) -> list[str]:
+    events = _event_map(state)
     out: list[str] = []
     for event_id, event in events.items():
         if bool(event.get("claim_bearing")):
@@ -263,8 +314,8 @@ def _collect_claim_bearing_event_ids(payload: dict[str, Any] | None) -> list[str
     return sorted(out)
 
 
-def _collect_attribution_event_ids(payload: dict[str, Any] | None) -> list[str]:
-    events = _event_map(payload)
+def _collect_attribution_event_ids(state: Mapping[str, Any] | None) -> list[str]:
+    events = _event_map(state)
     out: list[str] = []
     for event_id, event in events.items():
         attrs = event.get("attributions") or []
@@ -273,10 +324,10 @@ def _collect_attribution_event_ids(payload: dict[str, Any] | None) -> list[str]:
     return sorted(out)
 
 
-def _event_related_entities(previous_event: dict[str, Any] | None, current_event: dict[str, Any] | None) -> list[str]:
+def _event_related_entities(previous_event: Mapping[str, Any] | None, current_event: Mapping[str, Any] | None) -> list[str]:
     values: list[str] = []
     for event in (previous_event, current_event):
-        if not isinstance(event, dict):
+        if not isinstance(event, Mapping):
             continue
         for actor in (event.get("actors") or []):
             value = _normalize_actor(actor)
@@ -294,7 +345,7 @@ def _event_related_entities(previous_event: dict[str, Any] | None, current_event
     return _sorted_unique(values)[:10]
 
 
-def _event_surface_diff(previous_event: dict[str, Any] | None, current_event: dict[str, Any] | None) -> tuple[list[str], list[str]]:
+def _event_surface_diff(previous_event: Mapping[str, Any] | None, current_event: Mapping[str, Any] | None) -> tuple[list[str], list[str]]:
     surfaces: list[str] = []
     reasons: list[str] = []
     if previous_event is None or current_event is None:
@@ -323,6 +374,9 @@ def _event_surface_diff(previous_event: dict[str, Any] | None, current_event: di
     ):
         surfaces.append("epistemic")
         reasons.append("claim-bearing or attribution state changed")
+    if prev_sig["anchor_status"] != curr_sig["anchor_status"] or prev_sig["anchor"] != curr_sig["anchor"]:
+        surfaces.append("logical")
+        reasons.append("anchor status changed")
     return _sorted_unique(surfaces), reasons
 
 
@@ -341,6 +395,40 @@ def _packet_summary(reasons: list[str]) -> str:
     return "; ".join(reasons[:3])
 
 
+def _event_state_change_summary(previous_event: Mapping[str, Any] | None, current_event: Mapping[str, Any] | None) -> list[str]:
+    changes: list[str] = []
+    prev_sig = _event_signature(previous_event or {})
+    curr_sig = _event_signature(current_event or {})
+    if prev_sig["actors"] != curr_sig["actors"]:
+        changes.append("actors")
+    if prev_sig["action"] != curr_sig["action"]:
+        changes.append("action")
+    if prev_sig["objects"] != curr_sig["objects"]:
+        changes.append("objects")
+    if prev_sig["claim_bearing"] != curr_sig["claim_bearing"] or prev_sig["claim_step_indices"] != curr_sig["claim_step_indices"]:
+        changes.append("claims")
+    if prev_sig["attributions"] != curr_sig["attributions"]:
+        changes.append("attributions")
+    if prev_sig["anchor_status"] != curr_sig["anchor_status"] or prev_sig["anchor"] != curr_sig["anchor"]:
+        changes.append("anchors")
+    return changes
+
+
+def _changed_observation_ids_for_event(
+    event_id: str,
+    previous_observations: Mapping[str, Mapping[str, Any]],
+    current_observations: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    changed: list[str] = []
+    for observation_id, observation in previous_observations.items():
+        if _safe_str(observation.get("event_id")) == event_id:
+            changed.append(observation_id)
+    for observation_id, observation in current_observations.items():
+        if _safe_str(observation.get("event_id")) == event_id:
+            changed.append(observation_id)
+    return _sorted_unique(changed)
+
+
 def build_revision_comparison_report(
     *,
     previous_snapshot: dict[str, Any] | None = None,
@@ -349,29 +437,60 @@ def build_revision_comparison_report(
     current_payload: dict[str, Any] | None = None,
     review_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    previous_snapshot_obj = _coalesce_snapshot(previous_snapshot, previous_payload)
-    current_snapshot_obj = _coalesce_snapshot(current_snapshot, current_payload)
+    previous_snapshot_obj = coalesce_snapshot(previous_snapshot, previous_payload)
+    current_snapshot_obj = coalesce_snapshot(current_snapshot, current_payload)
     article = _article_identity(previous_snapshot_obj, current_snapshot_obj, previous_payload, current_payload)
 
-    previous_events = _event_map(previous_payload)
-    current_events = _event_map(current_payload)
+    previous_state = coerce_wiki_article_state(snapshot=previous_snapshot_obj, payload=previous_payload)
+    current_state = coerce_wiki_article_state(snapshot=current_snapshot_obj, payload=current_payload)
+
+    previous_units = _sentence_unit_map(previous_state)
+    current_units = _sentence_unit_map(current_state)
+    previous_observations = _observation_map(previous_state)
+    current_observations = _observation_map(current_state)
+    previous_events = _event_map(previous_state)
+    current_events = _event_map(current_state)
+
+    added_unit_ids, removed_unit_ids, changed_unit_ids = _changed_ids_by_signature(
+        previous_units,
+        current_units,
+        _text_unit_signature,
+    )
+    added_observation_ids, removed_observation_ids, changed_observation_ids = _changed_ids_by_signature(
+        previous_observations,
+        current_observations,
+        _observation_signature,
+    )
     added_event_ids, removed_event_ids, changed_event_ids = _changed_event_ids(previous_events, current_events)
 
-    source_text_previous = _extract_source_text(previous_snapshot_obj, previous_payload)
-    source_text_current = _extract_source_text(current_snapshot_obj, current_payload)
-    extraction_text_previous = _extract_event_text(previous_payload)
-    extraction_text_current = _extract_event_text(current_payload)
+    source_text_previous = _extract_source_text(previous_snapshot_obj, previous_state)
+    source_text_current = _extract_source_text(current_snapshot_obj, current_state)
+    extraction_text_previous = _extract_event_text_from_state(previous_state)
+    extraction_text_current = _extract_event_text_from_state(current_state)
 
-    prev_actors = _collect_actor_surfaces(previous_payload)
-    curr_actors = _collect_actor_surfaces(current_payload)
-    prev_actions = _collect_action_surfaces(previous_payload)
-    curr_actions = _collect_action_surfaces(current_payload)
-    prev_objects = _collect_object_surfaces(previous_payload)
-    curr_objects = _collect_object_surfaces(current_payload)
-    prev_claim_ids = _collect_claim_bearing_event_ids(previous_payload)
-    curr_claim_ids = _collect_claim_bearing_event_ids(current_payload)
-    prev_attr_ids = _collect_attribution_event_ids(previous_payload)
-    curr_attr_ids = _collect_attribution_event_ids(current_payload)
+    prev_actors = _collect_actor_surfaces(previous_state)
+    curr_actors = _collect_actor_surfaces(current_state)
+    prev_actions = _collect_action_surfaces(previous_state)
+    curr_actions = _collect_action_surfaces(current_state)
+    prev_objects = _collect_object_surfaces(previous_state)
+    curr_objects = _collect_object_surfaces(current_state)
+    prev_claim_ids = _collect_claim_bearing_event_ids(previous_state)
+    curr_claim_ids = _collect_claim_bearing_event_ids(current_state)
+    prev_attr_ids = _collect_attribution_event_ids(previous_state)
+    curr_attr_ids = _collect_attribution_event_ids(current_state)
+    prev_timeline_rows = [
+        row for row in previous_state.get("timeline_projection") or [] if isinstance(row, Mapping)
+    ] if isinstance(previous_state, Mapping) else []
+    curr_timeline_rows = [
+        row for row in current_state.get("timeline_projection") or [] if isinstance(row, Mapping)
+    ] if isinstance(current_state, Mapping) else []
+    prev_anchor_status = {str(row.get("event_id") or ""): str(row.get("anchor_status") or "none") for row in prev_timeline_rows}
+    curr_anchor_status = {str(row.get("event_id") or ""): str(row.get("anchor_status") or "none") for row in curr_timeline_rows}
+    changed_anchor_event_ids = sorted(
+        event_id
+        for event_id in set(prev_anchor_status) | set(curr_anchor_status)
+        if prev_anchor_status.get(event_id) != curr_anchor_status.get(event_id)
+    )
 
     packet_ids = sorted(set(added_event_ids + removed_event_ids + changed_event_ids))
     issue_packets: list[dict[str, Any]] = []
@@ -379,6 +498,8 @@ def build_revision_comparison_report(
         prev_event = previous_events.get(event_id)
         curr_event = current_events.get(event_id)
         surfaces, reasons = _event_surface_diff(prev_event, curr_event)
+        prev_sig = _event_signature(prev_event or {})
+        curr_sig = _event_signature(curr_event or {})
         packet = {
             "packet_id": f"packet:{article.get('title') or 'article'}:{event_id}",
             "event_id": event_id,
@@ -388,6 +509,20 @@ def build_revision_comparison_report(
             "previous_event_present": prev_event is not None,
             "current_event_present": curr_event is not None,
             "related_entities": _event_related_entities(prev_event, curr_event),
+            "state_change_summary": _event_state_change_summary(prev_event, curr_event),
+            "changed_observation_ids": _changed_observation_ids_for_event(
+                event_id,
+                previous_observations,
+                current_observations,
+            ),
+            "claim_changed": bool(
+                prev_sig["claim_bearing"] != curr_sig["claim_bearing"]
+                or prev_sig["claim_step_indices"] != curr_sig["claim_step_indices"]
+            ),
+            "attribution_changed": bool(prev_sig["attributions"] != curr_sig["attributions"]),
+            "anchor_status_changed": bool(
+                prev_sig["anchor_status"] != curr_sig["anchor_status"] or prev_sig["anchor"] != curr_sig["anchor"]
+            ),
         }
         if isinstance(review_context, dict):
             event_ctx = review_context.get(event_id)
@@ -433,9 +568,29 @@ def build_revision_comparison_report(
             "source_text": _similarity_summary(source_text_previous, source_text_current),
             "extraction_text": _similarity_summary(extraction_text_previous, extraction_text_current),
         },
+        "state_delta_summary": {
+            "available": bool(previous_state) and bool(current_state),
+            "abstained": not (previous_state and current_state),
+            "previous_sentence_unit_count": len(previous_units),
+            "current_sentence_unit_count": len(current_units),
+            "added_sentence_unit_ids": added_unit_ids,
+            "removed_sentence_unit_ids": removed_unit_ids,
+            "changed_sentence_unit_ids": changed_unit_ids,
+            "previous_observation_count": len(previous_observations),
+            "current_observation_count": len(current_observations),
+            "added_observation_ids": added_observation_ids,
+            "removed_observation_ids": removed_observation_ids,
+            "changed_observation_ids": changed_observation_ids,
+            "previous_event_candidate_count": len(previous_events),
+            "current_event_candidate_count": len(current_events),
+            "added_event_candidate_ids": added_event_ids,
+            "removed_event_candidate_ids": removed_event_ids,
+            "changed_event_candidate_ids": changed_event_ids,
+            "changed_anchor_event_ids": changed_anchor_event_ids,
+        },
         "extraction_delta_summary": {
-            "available": bool(previous_payload) and bool(current_payload),
-            "abstained": not (previous_payload and current_payload),
+            "available": bool(previous_state) and bool(current_state),
+            "abstained": not (previous_state and current_state),
             "previous_event_count": len(previous_events),
             "current_event_count": len(current_events),
             "added_event_ids": added_event_ids,
@@ -450,6 +605,11 @@ def build_revision_comparison_report(
         },
         "graph_impact_summary": {
             "material_change": material_graph_change,
+            "timeline": {
+                "previous_event_count": len(prev_timeline_rows),
+                "current_event_count": len(curr_timeline_rows),
+                "changed_anchor_event_ids": changed_anchor_event_ids,
+            },
             "actors": {
                 "added": sorted(set(curr_actors) - set(prev_actors)),
                 "removed": sorted(set(prev_actors) - set(curr_actors)),
@@ -464,8 +624,8 @@ def build_revision_comparison_report(
             },
         },
         "epistemic_delta_summary": {
-            "available": bool(previous_payload) and bool(current_payload),
-            "abstained": not (previous_payload and current_payload),
+            "available": bool(previous_state) and bool(current_state),
+            "abstained": not (previous_state and current_state),
             "previous_claim_bearing_event_count": len(prev_claim_ids),
             "current_claim_bearing_event_count": len(curr_claim_ids),
             "added_claim_bearing_event_ids": sorted(set(curr_claim_ids) - set(prev_claim_ids)),
@@ -473,12 +633,11 @@ def build_revision_comparison_report(
             "previous_attribution_event_count": len(prev_attr_ids),
             "current_attribution_event_count": len(curr_attr_ids),
             "changed_attribution_event_ids": sorted(
-                set(
+                {
                     event_id
                     for event_id in packet_ids
-                    if "epistemic"
-                    in _event_surface_diff(previous_events.get(event_id), current_events.get(event_id))[0]
-                )
+                    if "epistemic" in _event_surface_diff(previous_events.get(event_id), current_events.get(event_id))[0]
+                }
             ),
         },
         "issue_packets": issue_packets,

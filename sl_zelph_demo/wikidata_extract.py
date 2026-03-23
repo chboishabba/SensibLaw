@@ -62,7 +62,9 @@ WIKIDATA_ENRICHMENT = [
         "entity": "woolworths",
         "wikidata_id": "Q327",
         "properties": [
-            {"property_id": "wdt:P31", "property_label": "instance_of", "value_id": "wd:Q180846", "value_label": "supermarket"}
+            {"property_id": "wdt:P31", "property_label": "instance_of", "value_id": "wd:Q180846", "value_label": "supermarket"},
+            {"property_id": "wdt:P17", "property_label": "country", "value_id": "wd:Q408", "value_label": "Australia"},
+            {"property_id": "wdt:P131", "property_label": "located_in_admin_entity", "value_id": "wd:Q3224", "value_label": "New South Wales"}
         ],
         "provenance": {"source": "wikidata_sparql_lookup"}
     }
