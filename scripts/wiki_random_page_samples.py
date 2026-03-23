@@ -76,6 +76,62 @@ def build_random_sample_manifest(
         pacer=pacer,
     )
     sample_rows: list[dict[str, Any]] = []
+
+    def _collect_followed_samples(
+        *,
+        parent_snapshot: wiki_pull_api.PageSnapshot,
+        remaining_hops: int,
+        ancestry_titles: set[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        if remaining_hops <= 0:
+            return []
+        ancestry_titles = set(ancestry_titles or set())
+        ancestry_titles.add(str(parent_snapshot.title or "").strip())
+        followed_rows: list[dict[str, Any]] = []
+        seen_follow_titles: set[str] = set()
+        for follow_title in list(parent_snapshot.links or [])[: max(0, int(max_follow_links_per_page))]:
+            follow_title = str(follow_title or "").strip()
+            if (
+                not follow_title
+                or follow_title == parent_snapshot.title
+                or follow_title in ancestry_titles
+                or follow_title in seen_follow_titles
+            ):
+                continue
+            seen_follow_titles.add(follow_title)
+            followed = wiki_pull_api._fetch_latest_wikitext(
+                wiki=wiki,
+                title=follow_title,
+                max_links=max_links,
+                max_categories=max_categories,
+                include_wikitext=include_wikitext,
+                timeout_s=timeout_s,
+                pacer=pacer,
+            )
+            followed_path = wiki_pull_api._write_snapshot(out_dir, followed)
+            child_rows = _collect_followed_samples(
+                parent_snapshot=followed,
+                remaining_hops=remaining_hops - 1,
+                ancestry_titles=ancestry_titles,
+            )
+            followed_rows.append(
+                {
+                    "title": followed.title,
+                    "pageid": followed.pageid,
+                    "revid": followed.revid,
+                    "source_url": followed.source_url,
+                    "snapshot_path": str(followed_path),
+                    "parent_title": parent_snapshot.title,
+                    "parent_revid": parent_snapshot.revid,
+                    "hop": int(follow_hops) - int(remaining_hops) + 1,
+                    "warning_count": len(followed.warnings),
+                    "warnings": list(followed.warnings),
+                    "followed_snapshot_count": len(child_rows),
+                    "followed_samples": child_rows,
+                }
+            )
+        return followed_rows
+
     for title in titles:
         snapshot = wiki_pull_api._fetch_latest_wikitext(
             wiki=wiki,
@@ -87,37 +143,7 @@ def build_random_sample_manifest(
             pacer=pacer,
         )
         snapshot_path = wiki_pull_api._write_snapshot(out_dir, snapshot)
-        followed_rows: list[dict[str, Any]] = []
-        if int(follow_hops) > 0:
-            seen_follow_titles: set[str] = set()
-            for follow_title in list(snapshot.links or [])[: max(0, int(max_follow_links_per_page))]:
-                follow_title = str(follow_title or "").strip()
-                if not follow_title or follow_title == snapshot.title or follow_title in seen_follow_titles:
-                    continue
-                seen_follow_titles.add(follow_title)
-                followed = wiki_pull_api._fetch_latest_wikitext(
-                    wiki=wiki,
-                    title=follow_title,
-                    max_links=max_links,
-                    max_categories=max_categories,
-                    include_wikitext=include_wikitext,
-                    timeout_s=timeout_s,
-                    pacer=pacer,
-                )
-                followed_path = wiki_pull_api._write_snapshot(out_dir, followed)
-                followed_rows.append(
-                    {
-                        "title": followed.title,
-                        "pageid": followed.pageid,
-                        "revid": followed.revid,
-                        "source_url": followed.source_url,
-                        "snapshot_path": str(followed_path),
-                        "parent_title": snapshot.title,
-                        "parent_revid": snapshot.revid,
-                        "warning_count": len(followed.warnings),
-                        "warnings": list(followed.warnings),
-                    }
-                )
+        followed_rows = _collect_followed_samples(parent_snapshot=snapshot, remaining_hops=int(follow_hops))
         sample_rows.append(
             {
                 "title": snapshot.title,

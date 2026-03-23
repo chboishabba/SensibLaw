@@ -1,6 +1,30 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia random article-ingest generalization harness:
+  - Extended the random-page ingest report with dominant-regime counts and
+    follow-yield summary metrics so larger manifest runs can falsify the regime
+    basis, not just confirm that a handful of pages score cleanly.
+  - Kept page-family labels as derived debug output while surfacing
+    regime-generalization and graph-yield summaries at the report level.
+  - Tightened follow-target quality to the explicit richness / non-list /
+    regime-similarity / information-gain blend, and made follow-yield a
+    50/50 blend of followed-link relevance and continuation quality.
+  - Added hop-1/hop-2 decay and best-path probing so the graph-yield surface
+    now distinguishes useful continuation nodes from merely relevant link
+    overlap.
+  - Ran a recursive live sample and confirmed the new summary fields stay
+    coherent on follow-linked pages, including cases where follow-target
+    quality decays modestly over two hops.
+- Wikipedia random article-ingest regime basis:
+  - Added a small regime vector to the canonical article state so ingest
+    scoring can distinguish narrative, descriptive, and formal pages without
+    exploding the page-family taxonomy.
+  - Added regime-aware honesty/calibration score paths to the random-page
+    article-ingest report while keeping the legacy score family for
+    compatibility and comparison.
+  - Re-ran the stored random-page manifest and confirmed the regime split is
+    sensible on biography/place/facility/project/species samples.
 - Wikipedia random article-ingest consistency follow-up:
   - Recorded the first stored-manifest calibration findings in local context and
     tightened the report/docs around what the new calibration layer is actually

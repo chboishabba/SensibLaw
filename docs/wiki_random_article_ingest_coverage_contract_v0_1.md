@@ -41,6 +41,15 @@ reuse the existing SL fact-intake vocabulary where possible:
 Timeline rows are not the canonical ingest ontology. They are one view over the
 same state.
 
+The current evaluation phase is no longer just “does the report run on a few
+pages?” It is a generalization harness:
+
+- rerun the random-page manifest on a larger slice
+- compare regime distributions across pages
+- surface dominant-regime counts and issue clustering
+- track follow-yield separately from raw link relevance
+- keep family labels as derived summary helpers only
+
 ## Current v0.1 path
 
 - `scripts/wiki_random_page_samples.py`
@@ -71,6 +80,7 @@ Expected page-level signals include:
 - bounded timeline visibility with explicit anchor status (`explicit`, `weak`,
   `none`)
 - bounded one-hop follow yield from extracted wiki links
+- dominant-regime counts and regime-generalization summaries over larger slices
 
 ## Report posture
 
@@ -149,6 +159,36 @@ The calibration layer should include:
 These should remain additive report surfaces. They may feed a calibrated score,
 but they should not silently replace the earlier coverage or honesty tracks.
 
+The report should also surface `follow_yield_metrics` so operators can
+distinguish:
+
+- relevant root links that survive extraction
+- relevant one-hop follows that continue the same conceptual surface
+- pages where link relevance is strong locally but weak after follow
+
+The follow-yield score itself should be a 50/50 blend of:
+
+- followed-link relevance
+- follow-target quality for the continuation page itself
+
+Follow-target quality should be a bounded blend of:
+
+- richness
+- non-list / non-disambiguation structure
+- regime similarity
+- information gain relative to the root page
+
+The current graph-yield falsification phase should additionally expose:
+
+- `follow_target_quality_score`
+  - continuation quality for the followed page itself, not just overlap with
+    the root page
+- `two_hop_metrics`
+  - hop-1 versus hop-2 quality decay for recursive one-hop-follow manifests
+- `best_path_metrics`
+  - the strongest observed continuation chain through the sampled follow tree,
+    scored from hop-1 quality, hop-2 quality, and regime coherence
+
 ## Page-family stratification
 
 The random-page harness should now also emit a light page-family/profile guess
@@ -169,6 +209,12 @@ interpretation. It is not a classifier-training objective.
 The summary surface should also remain family-aware when reporting averages and
 issue pressure so a single biography or taxonomy page does not get normalized
 against unrelated article shapes.
+
+It should additionally report:
+
+- dominant-regime counts
+- average follow-yield metrics
+- regime-aware summary averages for honesty and calibration
 
 ## Extraction stance
 

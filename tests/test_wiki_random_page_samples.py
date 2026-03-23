@@ -107,6 +107,58 @@ def test_build_random_sample_manifest_includes_one_hop_followed_pages(tmp_path: 
     assert row["followed_samples"][0]["title"] == "Follow One"
 
 
+def test_build_random_sample_manifest_supports_recursive_follow_hops(tmp_path: Path, monkeypatch) -> None:
+    from scripts import wiki_random_page_samples as mod
+
+    monkeypatch.setattr(mod, "_fetch_random_titles", lambda **_: ["Root Page"])
+
+    def _fake_fetch_latest_wikitext(**kwargs):
+        from scripts.wiki_pull_api import PageSnapshot
+
+        title = kwargs["title"]
+        links = []
+        if title == "Root Page":
+            links = ["Follow One"]
+        elif title == "Follow One":
+            links = ["Follow Two"]
+        return PageSnapshot(
+            wiki="enwiki",
+            title=title,
+            pageid=1,
+            revid=111 if title == "Root Page" else 222 if title == "Follow One" else 333,
+            rev_timestamp="2026-03-15T00:00:00Z",
+            source_url=f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
+            api_url="https://example.test/api",
+            fetched_at="2026-03-15T00:00:01Z",
+            categories=["Category:Example"],
+            links=links,
+            wikitext=f"Sample text for {title}",
+            warnings=[],
+        )
+
+    monkeypatch.setattr(mod.wiki_pull_api, "_fetch_latest_wikitext", _fake_fetch_latest_wikitext)
+
+    manifest = build_random_sample_manifest(
+        wiki="enwiki",
+        count=1,
+        namespace=0,
+        out_dir=tmp_path / "snapshots",
+        timeout_s=10,
+        wiki_rps=5.0,
+        max_links=10,
+        max_categories=10,
+        include_wikitext=True,
+        follow_hops=2,
+        max_follow_links_per_page=1,
+    )
+
+    row = manifest["samples"][0]
+    assert row["followed_snapshot_count"] == 1
+    assert row["followed_samples"][0]["title"] == "Follow One"
+    assert row["followed_samples"][0]["followed_snapshot_count"] == 1
+    assert row["followed_samples"][0]["followed_samples"][0]["title"] == "Follow Two"
+
+
 def test_random_sample_main_writes_manifest(tmp_path: Path, monkeypatch, capsys) -> None:
     from scripts import wiki_random_page_samples as mod
 

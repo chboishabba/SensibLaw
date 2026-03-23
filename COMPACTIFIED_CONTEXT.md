@@ -100,11 +100,25 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   - current post-fix status:
     - the auth bootstrap path is now patched and tested for warning-banner
       fallback behavior
-    - the target thread is still not recovered because the current
-      session-token-only frontend path renders `client-bootstrap` as logged out
+  - the target thread is still not recovered because the current
+    session-token-only frontend path renders `client-bootstrap` as logged out
   - required next step: recover that thread after the auth-bootstrap fix and
     then re-evaluate the graph centrality / follow-yield lane with its sharper
     wording
+- Wikipedia ingest regime basis:
+  - the canonical wiki article state now carries a small regime vector
+    (`narrative`, `descriptive`, `formal`)
+  - the random-page article-ingest report emits regime-aware honesty and
+    calibration scores alongside the legacy compatibility fields
+  - the stored random-page manifest now shows a sensible split:
+    biography/facility/project/species pages stay descriptive-heavy while the
+    math/formal path can be stressed separately
+  - the next phase is a generalization harness with dominant-regime counts and
+    follow-yield summaries so graph usefulness can be tested on larger random
+    slices
+  - follow-yield now uses the explicit richness / non-list / regime /
+    information-gain blend for follow-target quality, then adds hop decay and
+    best-path probing so continuation quality can be falsified directly
 - A separate auth/input format issue is also now in play:
   - local file `~/.chatgpt_session_new` is a chunked session-token file with
     multiple raw lines

@@ -21,7 +21,7 @@ from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload
 from src.wiki_timeline.article_state import build_article_sentence_surface, build_wiki_article_state  # noqa: E402
 
 
-SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_4"
+SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_6"
 
 _NO_SPACE_SENTENCE_JOIN_RE = re.compile(r"[.!?][A-Z][a-z]")
 _CAMEL_GLUE_RE = re.compile(r"\b[a-z]{4,}[A-Z][a-z]{2,}\b")
@@ -34,6 +34,81 @@ _PLACE_TERMS = ("city", "town", "village", "county", "district", "province", "st
 _FACILITY_TERMS = ("complex", "stadium", "hotel", "airport", "museum", "building", "arena", "bridge")
 _PROJECT_TERMS = ("project", "repository", "organization", "organisation", "authority", "company", "institution")
 _SPECIES_CATEGORY_TERMS = ("species", "moths", "birds", "plants", "taxa", "genera", "fauna")
+_KEY_TERM_STOPWORDS = {
+    "about",
+    "above",
+    "after",
+    "again",
+    "against",
+    "also",
+    "among",
+    "and",
+    "are",
+    "around",
+    "because",
+    "been",
+    "before",
+    "being",
+    "between",
+    "both",
+    "but",
+    "can",
+    "could",
+    "did",
+    "does",
+    "during",
+    "each",
+    "for",
+    "from",
+    "has",
+    "have",
+    "having",
+    "here",
+    "into",
+    "its",
+    "may",
+    "more",
+    "most",
+    "not",
+    "of",
+    "on",
+    "only",
+    "or",
+    "other",
+    "over",
+    "page",
+    "pageid",
+    "revid",
+    "said",
+    "she",
+    "should",
+    "some",
+    "than",
+    "that",
+    "the",
+    "their",
+    "them",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "through",
+    "title",
+    "under",
+    "until",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "will",
+    "with",
+    "would",
+}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -59,6 +134,17 @@ def _mean_optional(values: list[float | None]) -> float | None:
     return round(sum(kept) / float(len(kept)), 6)
 
 
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
+def _regime_weighted_deficit_score(score: float | None, weight: float) -> float | None:
+    if score is None:
+        return None
+    weight = _clamp01(weight)
+    return round(1.0 - ((1.0 - float(score)) * weight), 6)
+
+
 def _linear_descending_score(value: float, *, good: float, bad: float) -> float:
     if value <= good:
         return 1.0
@@ -67,6 +153,18 @@ def _linear_descending_score(value: float, *, good: float, bad: float) -> float:
     if bad <= good:
         return 0.0
     return round(1.0 - ((value - good) / (bad - good)), 6)
+
+
+def jaccard_similarity(left: Iterable[str], right: Iterable[str]) -> float:
+    left_set = {str(item).strip().lower() for item in left if str(item).strip()}
+    right_set = {str(item).strip().lower() for item in right if str(item).strip()}
+    if not left_set and not right_set:
+        return 0.0
+    if not left_set or not right_set:
+        return 0.0
+    overlap = len(left_set & right_set)
+    union = len(left_set | right_set)
+    return round(float(overlap) / float(union), 6) if union else 0.0
 
 
 def _extract_text(value: Any) -> str:
@@ -100,6 +198,135 @@ def _surface_match(left: str, right: str) -> bool:
     if len(right) >= 5 and right in left:
         return True
     return False
+
+
+def _tokenize_key_terms(text: Any) -> list[str]:
+    normalized = _normalized_surface(text)
+    if not normalized:
+        return []
+    return [
+        token
+        for token in normalized.split()
+        if len(token) >= 3 and token not in _KEY_TERM_STOPWORDS and not token.isdigit()
+    ]
+
+
+def extract_key_terms(article_state: Mapping[str, Any], *, limit: int = 40) -> list[str]:
+    existing_terms = article_state.get("key_terms") if isinstance(article_state, Mapping) else None
+    if isinstance(existing_terms, list) and any(str(term).strip() for term in existing_terms):
+        terms = [str(term).strip().lower() for term in existing_terms if str(term).strip()]
+        return terms[: max(0, int(limit))]
+    counter: Counter[str] = Counter()
+    article = article_state.get("article") if isinstance(article_state, Mapping) else None
+    if isinstance(article, Mapping):
+        for token in _tokenize_key_terms(article.get("title")):
+            counter[token] += 2
+    for token in _tokenize_key_terms(article_state.get("title")):
+        counter[token] += 2
+    for sentence in article_state.get("sentence_units") or []:
+        if not isinstance(sentence, Mapping):
+            continue
+        for token in _tokenize_key_terms(sentence.get("section")):
+            counter[token] += 1
+        for token in _tokenize_key_terms(sentence.get("text")):
+            counter[token] += 1
+        for link in sentence.get("links") or []:
+            for token in _tokenize_key_terms(link):
+                counter[token] += 2
+    for event in article_state.get("event_candidates") or []:
+        if not isinstance(event, Mapping):
+            continue
+        for token in _tokenize_key_terms(event.get("action")):
+            counter[token] += 2
+        for actor in event.get("actors") or []:
+            for token in _tokenize_key_terms(actor):
+                counter[token] += 2
+        for field in ("objects", "entity_objects", "modifier_objects", "numeric_objects"):
+            for obj in event.get(field) or []:
+                for token in _tokenize_key_terms(obj):
+                    counter[token] += 2
+    terms = [token for token, _ in sorted(counter.items(), key=lambda item: (-item[1], item[0]))[: max(0, int(limit))]]
+    return terms
+
+
+def compute_richness_score(state: Mapping[str, Any]) -> float:
+    sentence_count = int(state.get("article_sentence_count") or len(state.get("sentence_units") or []))
+    observation_count = int(state.get("observation_count") or len(state.get("observations") or []))
+    event_count = int(state.get("article_aao_event_count") or len(state.get("event_candidates") or []))
+    sentence_score = min(1.0, sentence_count / 40.0)
+    observation_score = min(1.0, observation_count / 25.0)
+    event_score = min(1.0, event_count / 15.0)
+    return _clamp01(round(0.5 * sentence_score + 0.3 * observation_score + 0.2 * event_score, 6))
+
+
+def compute_non_list_score(state: Mapping[str, Any]) -> float:
+    raw_text = str(state.get("raw_text") or state.get("source_text") or state.get("wikitext") or "").lower()
+    hit_count = sum(1 for marker in (
+        "list of",
+        "may refer to",
+        "disambiguation",
+        "category:",
+        "index of",
+        "outline of",
+        "partial list",
+    ) if marker in raw_text)
+    listiness = min(1.0, hit_count / 2.0)
+    return round(1.0 - listiness, 6)
+
+
+def compute_regime_similarity_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
+    root_regime = _coerce_regime_vector(root_state)
+    follow_regime = _coerce_regime_vector(follow_state)
+    return round(
+        min(
+            1.0,
+            (
+                float(root_regime.get("narrative") or 0.0) * float(follow_regime.get("narrative") or 0.0)
+                + float(root_regime.get("descriptive") or 0.0) * float(follow_regime.get("descriptive") or 0.0)
+                + float(root_regime.get("formal") or 0.0) * float(follow_regime.get("formal") or 0.0)
+            ),
+        ),
+        6,
+    )
+
+
+def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
+    root_terms = extract_key_terms(root_state)
+    follow_terms = extract_key_terms(follow_state)
+    overlap = jaccard_similarity(root_terms, follow_terms)
+    if overlap < 0.15:
+        return round((overlap / 0.15) * 0.5, 6)
+    if overlap <= 0.55:
+        return round(0.5 + (((overlap - 0.15) / 0.40) * 0.5), 6)
+    if overlap <= 0.85:
+        return round(1.0 - (((overlap - 0.55) / 0.30) * 0.5), 6)
+    return 0.5
+
+
+def compute_follow_target_quality(
+    root_state: Mapping[str, Any],
+    follow_state: Mapping[str, Any],
+) -> dict[str, float]:
+    richness_score = compute_richness_score(follow_state)
+    non_list_score = compute_non_list_score(follow_state)
+    regime_similarity_score = compute_regime_similarity_score(root_state, follow_state)
+    information_gain_score = compute_information_gain_score(root_state, follow_state)
+    follow_target_quality_score = _clamp01(
+        round(
+            0.35 * richness_score
+            + 0.25 * non_list_score
+            + 0.20 * regime_similarity_score
+            + 0.20 * information_gain_score,
+            6,
+        )
+    )
+    return {
+        "richness_score": richness_score,
+        "non_list_score": non_list_score,
+        "regime_similarity_score": regime_similarity_score,
+        "information_gain_score": information_gain_score,
+        "follow_target_quality_score": follow_target_quality_score,
+    }
 
 
 def _event_has_action(event: Mapping[str, Any]) -> bool:
@@ -137,6 +364,30 @@ def _event_has_object(event: Mapping[str, Any]) -> bool:
             if _lane_has_value(step.get(lane_name)):
                 return True
     return False
+
+
+def _coerce_regime_vector(article_state: Mapping[str, Any]) -> dict[str, float]:
+    regime = article_state.get("regime")
+    if isinstance(regime, Mapping):
+        narrative = _clamp01(float(regime.get("narrative") or 0.0))
+        descriptive = _clamp01(float(regime.get("descriptive") or 0.0))
+        formal = _clamp01(float(regime.get("formal") or 0.0))
+        total = narrative + descriptive + formal
+        if total > 0.0:
+            return {
+                "narrative": round(narrative / total, 6),
+                "descriptive": round(descriptive / total, 6),
+                "formal": round(formal / total, 6),
+            }
+    return {"narrative": 1 / 3, "descriptive": 1 / 3, "formal": 1 / 3}
+
+
+def _dominant_regime(regime: Mapping[str, float]) -> str:
+    candidates = [(str(key), float(value)) for key, value in regime.items() if str(key)]
+    if not candidates:
+        return "unknown"
+    candidates.sort(key=lambda item: (-item[1], item[0]))
+    return candidates[0][0]
 
 
 def _step_has_actor_binding(step: Mapping[str, Any]) -> bool:
@@ -478,6 +729,145 @@ def _score_link_relevance(
     )
 
 
+def _score_follow_target_quality(
+    *,
+    root_page_row: Mapping[str, Any],
+    follow_page_row: Mapping[str, Any],
+    follow_sample_row: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    del follow_sample_row
+    details = compute_follow_target_quality(root_page_row, follow_page_row)
+    return {
+        **details,
+    }
+
+
+def _score_follow_yield(link_metrics: Mapping[str, Any]) -> dict[str, Any]:
+    root_link_relevance_score = link_metrics.get("root_link_relevance_score")
+    followed_link_relevance_score = link_metrics.get("followed_link_relevance_score")
+    follow_target_quality_score = link_metrics.get("follow_target_quality_score")
+    follow_yield_score = _mean_optional(
+        [
+            float(followed_link_relevance_score) if followed_link_relevance_score is not None else None,
+            float(follow_target_quality_score) if follow_target_quality_score is not None else None,
+        ]
+    )
+    return {
+        "root_link_relevance_score": root_link_relevance_score,
+        "followed_link_relevance_score": followed_link_relevance_score,
+        "follow_target_quality_score": follow_target_quality_score,
+        "follow_yield_score": follow_yield_score,
+    }
+
+
+def compute_path_score(
+    root_state: Mapping[str, Any],
+    hop1_state: Mapping[str, Any],
+    hop2_state: Mapping[str, Any],
+    hop1_quality: float,
+    hop2_quality: float,
+) -> float:
+    coherence_01 = compute_regime_similarity_score(root_state, hop1_state)
+    coherence_12 = compute_regime_similarity_score(hop1_state, hop2_state)
+    path_coherence = round(0.5 * coherence_01 + 0.5 * coherence_12, 6)
+    return _clamp01(round(0.4 * float(hop1_quality) + 0.4 * float(hop2_quality) + 0.2 * path_coherence, 6))
+
+
+def _collect_tree_graph_metrics(root_node: Mapping[str, Any]) -> dict[str, Any]:
+    root_page_row = root_node.get("page_row") if isinstance(root_node, Mapping) else {}
+    root_edges = [edge for edge in root_node.get("edge_scores") or [] if isinstance(edge, Mapping)]
+    hop1_details: list[dict[str, Any]] = []
+    hop2_details: list[dict[str, Any]] = []
+    candidate_paths: list[dict[str, Any]] = []
+    hop1_scores: list[float] = []
+    hop2_scores: list[float] = []
+
+    for edge1 in root_edges:
+        detail1 = dict(edge1.get("detail") or {})
+        if detail1:
+            hop1_details.append(detail1)
+        edge1_score = edge1.get("score")
+        if edge1_score is not None:
+            hop1_scores.append(float(edge1_score))
+        child_node = edge1.get("child")
+        child_page_row = child_node.get("page_row") if isinstance(child_node, Mapping) else {}
+        child_edges = [edge for edge in (child_node.get("edge_scores") or []) if isinstance(edge, Mapping)] if isinstance(child_node, Mapping) else []
+        for edge2 in child_edges:
+            detail2 = dict(edge2.get("detail") or {})
+            if detail2:
+                hop2_details.append(detail2)
+            edge2_score = edge2.get("score")
+            if edge2_score is not None:
+                hop2_scores.append(float(edge2_score))
+            grandchild_node = edge2.get("child")
+            grandchild_page_row = grandchild_node.get("page_row") if isinstance(grandchild_node, Mapping) else {}
+            if not isinstance(root_page_row, Mapping) or not isinstance(child_page_row, Mapping) or not isinstance(grandchild_page_row, Mapping):
+                continue
+            if edge1_score is None or edge2_score is None:
+                continue
+            path_score = compute_path_score(
+                root_page_row,
+                child_page_row,
+                grandchild_page_row,
+                float(edge1_score),
+                float(edge2_score),
+            )
+            candidate_paths.append(
+                {
+                    "score": path_score,
+                    "titles": [
+                        str(root_page_row.get("title") or ""),
+                        str(child_page_row.get("title") or ""),
+                        str(grandchild_page_row.get("title") or ""),
+                    ],
+                }
+            )
+
+    hop1_quality = _mean_optional([float(value) for value in hop1_scores] or [])
+    hop2_quality = _mean_optional([float(value) for value in hop2_scores] or [])
+    hop_quality_decay = (
+        round(max(0.0, float(hop1_quality) - float(hop2_quality)), 6)
+        if hop1_quality is not None and hop2_quality is not None
+        else None
+    )
+    hop2_listiness_rate = _mean_optional([round(1.0 - float(detail.get("non_list_score") or 0.0), 6) for detail in hop2_details] or [])
+    hop2_regime_jump_rate = _mean_optional(
+        [round(1.0 - float(detail.get("regime_similarity_score") or 0.0), 6) for detail in hop2_details] or []
+    )
+    avg_candidate_path_score = _mean_optional([float(item["score"]) for item in candidate_paths] or [])
+    if candidate_paths:
+        best_path = max(candidate_paths, key=lambda item: (item["score"], item["titles"]))
+        best_path_score = float(best_path["score"])
+        best_path_titles = list(best_path["titles"])
+        best_path_vs_avg_gap = (
+            round(best_path_score - float(avg_candidate_path_score), 6)
+            if avg_candidate_path_score is not None
+            else None
+        )
+    else:
+        best_path_score = None
+        best_path_titles = []
+        best_path_vs_avg_gap = None
+    return {
+        "two_hop_metrics": {
+            "hop1_quality": hop1_quality,
+            "hop2_quality": hop2_quality,
+            "hop_quality_decay": hop_quality_decay,
+            "hop2_listiness_rate": hop2_listiness_rate,
+            "hop2_regime_jump_rate": hop2_regime_jump_rate,
+            "hop1_count": len(hop1_details),
+            "hop2_count": len(hop2_details),
+        },
+        "best_path_metrics": {
+            "best_path_score": best_path_score,
+            "best_path_titles": best_path_titles,
+            "avg_candidate_path_score": avg_candidate_path_score,
+            "best_path_vs_avg_gap": best_path_vs_avg_gap,
+            "best_path_count": len(candidate_paths),
+        },
+    }
+
+
 def _score_claim_attribution_grounding(
     article_aao_rows: list[Mapping[str, Any]],
 ) -> tuple[dict[str, Any], list[str]]:
@@ -532,6 +922,7 @@ def _page_row_from_outputs(
     reducer_row: Mapping[str, Any],
     *,
     follow_rows: list[Mapping[str, Any]] | None,
+    follow_target_rows: list[Mapping[str, Any]] | None = None,
     max_follow_links_per_page: int,
 ) -> dict[str, Any]:
     sentence_rows = article_state.get("sentence_units")
@@ -543,8 +934,16 @@ def _page_row_from_outputs(
     observations = [row for row in observation_rows if isinstance(row, Mapping)] if isinstance(observation_rows, list) else []
     timeline_rows = [row for row in timeline_projection if isinstance(row, Mapping)] if isinstance(timeline_projection, list) else []
     follow_rows = [row for row in (follow_rows or []) if isinstance(row, Mapping)]
+    follow_target_rows = [row for row in (follow_target_rows or []) if isinstance(row, Mapping)]
+    regime = _coerce_regime_vector(article_state)
+    regime_narrative_weight = regime["narrative"]
+    regime_descriptive_weight = regime["descriptive"]
+    regime_formal_weight = regime["formal"]
+    dominant_regime = _dominant_regime(regime)
     page_profile = _classify_page_family(payload, article_sentences)
     page_family = str(page_profile["family"])
+    raw_text = str(payload.get("wikitext") or article_state.get("source_text", {}).get("wikitext") or "")
+    key_terms = extract_key_terms(article_state)
 
     article_sentence_count = len(article_sentences)
     article_aao_event_count = len(article_aao_rows)
@@ -594,6 +993,21 @@ def _page_row_from_outputs(
         ]
     )
     article_ingest_honest_score = round(article_ingest_score * honesty_multiplier, 6)
+    regime_observation_explosion_score = _regime_weighted_deficit_score(explosion_score, regime_narrative_weight)
+    regime_actor_action_binding_score = _regime_weighted_deficit_score(
+        actor_action_binding_score,
+        _clamp01(regime_narrative_weight + (0.5 * regime_descriptive_weight)),
+    )
+    regime_object_binding_score = _regime_weighted_deficit_score(object_binding_score, regime_narrative_weight)
+    regime_honesty_multiplier = _mean(
+        [
+            regime_observation_explosion_score if regime_observation_explosion_score is not None else explosion_score,
+            text_hygiene_score,
+            regime_actor_action_binding_score if regime_actor_action_binding_score is not None else actor_action_binding_score,
+            regime_object_binding_score if regime_object_binding_score is not None else object_binding_score,
+        ]
+    )
+    regime_article_ingest_honest_score = round(article_ingest_score * regime_honesty_multiplier, 6)
     density_metrics = {
         "observations_per_sentence": explosion_metrics["observations_per_sentence"],
         "observations_per_event": explosion_metrics["observations_per_event"],
@@ -617,7 +1031,54 @@ def _page_row_from_outputs(
         article_aao_rows,
         follow_rows=follow_rows,
     )
+    follow_target_quality_details: list[dict[str, Any]] = []
+    for index, follow_page_row in enumerate(follow_target_rows):
+        follow_sample_row = follow_rows[index] if index < len(follow_rows) else {}
+        follow_target_quality_details.append(
+            _score_follow_target_quality(
+                root_page_row={
+                    "regime": regime,
+                    "key_terms": key_terms,
+                    "raw_text": raw_text,
+                },
+                follow_page_row=follow_page_row,
+                follow_sample_row=follow_sample_row,
+            )
+        )
+    follow_target_quality_score = _mean_optional(
+        [detail["follow_target_quality_score"] for detail in follow_target_quality_details]
+    )
+    if follow_target_quality_score is not None:
+        follow_target_quality_score = round(follow_target_quality_score, 6)
+    else:
+        follow_target_quality_score = None
+    follow_yield_metrics = _score_follow_yield(
+        {
+            **link_metrics,
+            "follow_target_quality_score": follow_target_quality_score,
+        }
+    )
+    follow_yield_metrics["follow_target_quality_score"] = follow_target_quality_score
+    follow_yield_metrics["follow_target_quality_count"] = len(follow_target_quality_details)
+    if follow_target_quality_details:
+        for key in ("richness_score", "non_list_score", "regime_similarity_score", "information_gain_score"):
+            component_values = [detail.get(key) for detail in follow_target_quality_details]
+            follow_yield_metrics[key] = _mean_optional([float(value) if value is not None else None for value in component_values])
+    if follow_target_quality_details:
+        follow_yield_metrics["follow_target_quality_preview"] = follow_target_quality_details[:3]
     claim_attribution_metrics, claim_attr_issues = _score_claim_attribution_grounding(article_aao_rows)
+    regime_abstention_score = _regime_weighted_deficit_score(
+        abstention_metrics["abstention_calibration_score"],
+        _clamp01(regime_narrative_weight + regime_descriptive_weight),
+    )
+    regime_link_relevance_score = _regime_weighted_deficit_score(
+        link_metrics["root_link_relevance_score"],
+        _clamp01(regime_narrative_weight + regime_descriptive_weight),
+    )
+    regime_claim_grounding_score = _regime_weighted_deficit_score(
+        claim_attribution_metrics["claim_attribution_grounding_score"],
+        _clamp01(regime_narrative_weight + regime_formal_weight),
+    )
 
     link_count = int(payload.get("links") and len(payload.get("links") or []) or 0)
     followed_snapshot_count = len(follow_rows)
@@ -644,6 +1105,11 @@ def _page_row_from_outputs(
         "link_relevance_score": link_metrics["root_link_relevance_score"],
         "claim_attribution_grounding_score": claim_attribution_metrics["claim_attribution_grounding_score"],
     }
+    regime_calibration_scores = {
+        "abstention_calibration_score": regime_abstention_score,
+        "link_relevance_score": regime_link_relevance_score,
+        "claim_attribution_grounding_score": regime_claim_grounding_score,
+    }
     calibration_multiplier = _mean_optional(
         [
             calibration_scores["abstention_calibration_score"],
@@ -655,6 +1121,20 @@ def _page_row_from_outputs(
         calibration_multiplier = 1.0
     calibration_multiplier = round(calibration_multiplier, 6)
     article_ingest_calibrated_score = round(article_ingest_honest_score * calibration_multiplier, 6)
+    regime_calibration_multiplier = _mean_optional(
+        [
+            regime_abstention_score,
+            regime_link_relevance_score,
+            regime_claim_grounding_score,
+        ]
+    )
+    if regime_calibration_multiplier is None:
+        regime_calibration_multiplier = 1.0
+    regime_calibration_multiplier = round(regime_calibration_multiplier, 6)
+    regime_article_ingest_calibrated_score = round(
+        regime_article_ingest_honest_score * regime_calibration_multiplier,
+        6,
+    )
     calibration_issues = abstention_issues + link_relevance_issues + claim_attr_issues
 
     return {
@@ -662,6 +1142,10 @@ def _page_row_from_outputs(
         "pageid": payload.get("pageid"),
         "revid": payload.get("revid"),
         "source_url": payload.get("source_url"),
+        "regime": regime,
+        "raw_text": raw_text,
+        "key_terms": key_terms,
+        "dominant_regime": dominant_regime,
         "article_sentence_count": article_sentence_count,
         "observation_count": observation_count,
         "article_aao_event_count": article_aao_event_count,
@@ -675,6 +1159,7 @@ def _page_row_from_outputs(
         "link_count": link_count,
         "followed_snapshot_count": followed_snapshot_count,
         "followed_titles": [str(row.get("title") or "") for row in follow_rows[:10]],
+        "follow_target_quality_score": follow_target_quality_score,
         "scores": {
             "sentence_retention_score": sentence_retention_score,
             "observation_density_score": observation_density_score,
@@ -692,10 +1177,23 @@ def _page_row_from_outputs(
             "honesty_multiplier": honesty_multiplier,
             "article_ingest_honest_score": article_ingest_honest_score,
         },
+        "regime_adjusted_scores": {
+            "observation_explosion_score": regime_observation_explosion_score,
+            "text_hygiene_score": text_hygiene_score,
+            "actor_action_binding_score": regime_actor_action_binding_score,
+            "object_binding_score": regime_object_binding_score,
+            "honesty_multiplier": regime_honesty_multiplier,
+            "article_ingest_honest_score": regime_article_ingest_honest_score,
+        },
         "calibration_scores": {
             **calibration_scores,
             "calibration_multiplier": calibration_multiplier,
             "article_ingest_calibrated_score": article_ingest_calibrated_score,
+        },
+        "regime_calibration_scores": {
+            **regime_calibration_scores,
+            "calibration_multiplier": regime_calibration_multiplier,
+            "article_ingest_calibrated_score": regime_article_ingest_calibrated_score,
         },
         "density_metrics": density_metrics,
         "timeline_honesty": timeline_honesty,
@@ -703,6 +1201,24 @@ def _page_row_from_outputs(
         "abstention_metrics": abstention_metrics,
         "abstention_warnings": abstention_warnings,
         "link_metrics": link_metrics,
+        "follow_yield_metrics": follow_yield_metrics,
+        "follow_target_quality_details": follow_target_quality_details[:5],
+        "two_hop_metrics": {
+            "hop1_quality": None,
+            "hop2_quality": None,
+            "hop_quality_decay": None,
+            "hop2_listiness_rate": None,
+            "hop2_regime_jump_rate": None,
+            "hop1_count": 0,
+            "hop2_count": 0,
+        },
+        "best_path_metrics": {
+            "best_path_score": None,
+            "best_path_titles": [],
+            "avg_candidate_path_score": None,
+            "best_path_vs_avg_gap": None,
+            "best_path_count": 0,
+        },
         "claim_attribution_metrics": claim_attribution_metrics,
         "text_hygiene_warnings": text_hygiene_warnings,
         "article_preview": [
@@ -779,11 +1295,30 @@ def score_snapshot_payload(
     payload: Mapping[str, Any],
     *,
     follow_rows: list[Mapping[str, Any]] | None = None,
+    follow_target_rows: list[Mapping[str, Any]] | None = None,
     max_sentences: int = 400,
     max_events: int = 64,
     max_follow_links_per_page: int = 0,
     no_spacy: bool = False,
 ) -> dict[str, Any]:
+    if follow_target_rows is None and follow_rows:
+        follow_target_rows = []
+        for follow_row in follow_rows:
+            snapshot_path = follow_row.get("snapshot_path") if isinstance(follow_row, Mapping) else None
+            if not isinstance(snapshot_path, str):
+                continue
+            follow_payload = _load_json(Path(snapshot_path))
+            follow_target_rows.append(
+                score_snapshot_payload(
+                    follow_payload,
+                    follow_rows=[],
+                    follow_target_rows=[],
+                    max_sentences=max_sentences,
+                    max_events=max_events,
+                    max_follow_links_per_page=0,
+                    no_spacy=no_spacy,
+                )
+            )
     article_state = build_wiki_article_state(
         payload,
         max_sentences=max_sentences,
@@ -798,6 +1333,7 @@ def score_snapshot_payload(
         timeline_row,
         reducer_row,
         follow_rows=follow_rows,
+        follow_target_rows=follow_target_rows,
         max_follow_links_per_page=max_follow_links_per_page,
     )
 
@@ -839,6 +1375,32 @@ def build_article_ingest_report(
         "honesty_multiplier": 0.0,
         "article_ingest_honest_score": 0.0,
     }
+    regime_score_sums = {
+        "narrative": 0.0,
+        "descriptive": 0.0,
+        "formal": 0.0,
+    }
+    dominant_regime_counts: Counter[str] = Counter()
+    regime_honesty_score_sums = {
+        "observation_explosion_score": 0.0,
+        "text_hygiene_score": 0.0,
+        "actor_action_binding_score": 0.0,
+        "object_binding_score": 0.0,
+        "honesty_multiplier": 0.0,
+        "article_ingest_honest_score": 0.0,
+    }
+    regime_calibration_score_sums: dict[str, float] = defaultdict(float)
+    regime_calibration_score_counts: dict[str, int] = defaultdict(int)
+    follow_target_quality_sum = 0.0
+    follow_target_quality_count = 0
+    follow_target_quality_by_depth_sum: dict[int, float] = defaultdict(float)
+    follow_target_quality_by_depth_count: dict[int, int] = defaultdict(int)
+    best_path_score_sum = 0.0
+    best_path_score_count = 0
+    best_path_avg_candidate_score_sum = 0.0
+    best_path_avg_candidate_score_count = 0
+    best_path_gap_sum = 0.0
+    best_path_gap_count = 0
     calibration_score_sums: dict[str, float] = defaultdict(float)
     calibration_score_counts: dict[str, int] = defaultdict(int)
     density_metric_sums = {
@@ -848,6 +1410,8 @@ def build_article_ingest_report(
         "multi_step_event_ratio": 0.0,
         "zero_step_event_ratio": 0.0,
     }
+    follow_yield_metric_sums: dict[str, float] = defaultdict(float)
+    follow_yield_metric_counts: dict[str, int] = defaultdict(int)
     timeline_honesty_sums = {
         "explicit_anchor_ratio": 0.0,
         "weak_anchor_ratio": 0.0,
@@ -863,21 +1427,84 @@ def build_article_ingest_report(
     page_family_calibration_issue_counts: dict[str, Counter[str]] = defaultdict(Counter)
     max_follow_links_per_page = int(manifest.get("max_follow_links_per_page") or 0)
 
-    for row in sample_rows:
-        if not isinstance(row, Mapping):
-            continue
-        snapshot_path = row.get("snapshot_path")
+    def _score_sample_tree(
+        sample_row: Mapping[str, Any],
+        *,
+        depth: int = 0,
+    ) -> dict[str, Any]:
+        snapshot_path = sample_row.get("snapshot_path")
         if not isinstance(snapshot_path, str):
-            continue
+            raise ValueError("sample row missing snapshot_path")
         payload = _load_json(Path(snapshot_path))
+        child_results = []
+        raw_children = [row for row in (sample_row.get("followed_samples") or []) if isinstance(row, Mapping)]
+        for child_row in raw_children:
+            child_results.append(_score_sample_tree(child_row, depth=depth + 1))
         page_row = score_snapshot_payload(
             payload,
-            follow_rows=list(row.get("followed_samples") or []),
+            follow_rows=raw_children,
+            follow_target_rows=[child["page_row"] for child in child_results],
             max_sentences=max_sentences,
             max_events=max_events,
             max_follow_links_per_page=max_follow_links_per_page,
             no_spacy=no_spacy,
         )
+        edge_scores = []
+        for child_raw, child_result in zip(raw_children, child_results):
+            edge_detail = _score_follow_target_quality(
+                root_page_row=page_row,
+                follow_page_row=child_result["page_row"],
+                follow_sample_row=child_raw,
+            )
+            edge_scores.append(
+                {
+                    "depth": depth + 1,
+                    "score": edge_detail["follow_target_quality_score"],
+                    "detail": edge_detail,
+                    "child": child_result,
+                }
+            )
+        graph_metrics = _collect_tree_graph_metrics(
+            {
+                "page_row": page_row,
+                "edge_scores": edge_scores,
+            }
+        )
+        page_row["follow_target_quality_details"] = [edge["detail"] for edge in edge_scores[:5]]
+        page_row["follow_yield_metrics"]["follow_target_quality_count"] = len(edge_scores)
+        if edge_scores:
+            page_row["follow_yield_metrics"]["follow_target_quality_preview"] = [edge["detail"] for edge in edge_scores[:3]]
+        page_row["two_hop_metrics"] = graph_metrics["two_hop_metrics"]
+        page_row["best_path_metrics"] = graph_metrics["best_path_metrics"]
+        return {
+            "depth": depth,
+            "page_row": page_row,
+            "sample_row": dict(sample_row),
+            "children": child_results,
+            "edge_scores": edge_scores,
+        }
+
+    def _collect_follow_metrics(
+        node: Mapping[str, Any],
+    ) -> None:
+        nonlocal follow_target_quality_sum, follow_target_quality_count
+        for edge in node.get("edge_scores") or []:
+            edge_score = edge.get("score")
+            if edge_score is None:
+                continue
+            edge_score = float(edge_score)
+            edge_depth = int(edge.get("depth") or 0)
+            follow_target_quality_sum += edge_score
+            follow_target_quality_count += 1
+            follow_target_quality_by_depth_sum[edge_depth] += edge_score
+            follow_target_quality_by_depth_count[edge_depth] += 1
+            _collect_follow_metrics(edge["child"])
+
+    for row in sample_rows:
+        if not isinstance(row, Mapping):
+            continue
+        root_node = _score_sample_tree(row, depth=0)
+        page_row = root_node["page_row"]
         page_rows.append(page_row)
         for issue in page_row["issues"]:
             issue_counts[issue] = issue_counts.get(issue, 0) + 1
@@ -907,13 +1534,28 @@ def build_article_ingest_report(
             score_sums[key] += float(page_row["scores"][key])
         for key in honesty_score_sums:
             honesty_score_sums[key] += float(page_row["honesty_scores"][key])
+        for key in regime_honesty_score_sums:
+            regime_honesty_score_sums[key] += float(page_row["regime_adjusted_scores"][key])
+        for key, value in page_row["regime_calibration_scores"].items():
+            if value is None:
+                continue
+            regime_calibration_score_sums[key] += float(value)
+            regime_calibration_score_counts[key] += 1
         for key, value in page_row["calibration_scores"].items():
             if value is None:
                 continue
             calibration_score_sums[key] += float(value)
             calibration_score_counts[key] += 1
+        for key in regime_score_sums:
+            regime_score_sums[key] += float(page_row["regime"][key])
+        dominant_regime_counts[str(page_row["dominant_regime"])] += 1
         for key in density_metric_sums:
             density_metric_sums[key] += float(page_row["density_metrics"][key])
+        for key, value in page_row["follow_yield_metrics"].items():
+            if value is None or not isinstance(value, (int, float)):
+                continue
+            follow_yield_metric_sums[key] += float(value)
+            follow_yield_metric_counts[key] += 1
         timeline_honesty_row = page_row["timeline_honesty"]
         if timeline_honesty_row["timeline_honesty_score"] is not None:
             timeline_honesty_page_count += 1
@@ -931,6 +1573,17 @@ def build_article_ingest_report(
         if timeline_honesty_row["timeline_honesty_score"] is not None:
             page_family_timeline_counts[family] += 1
             page_family_score_sums[family]["timeline_honesty_score"] += float(timeline_honesty_row["timeline_honesty_score"])
+        _collect_follow_metrics(root_node)
+        best_path_metrics = page_row.get("best_path_metrics") or {}
+        if best_path_metrics.get("best_path_score") is not None:
+            best_path_score_sum += float(best_path_metrics["best_path_score"])
+            best_path_score_count += 1
+        if best_path_metrics.get("avg_candidate_path_score") is not None:
+            best_path_avg_candidate_score_sum += float(best_path_metrics["avg_candidate_path_score"])
+            best_path_avg_candidate_score_count += 1
+        if best_path_metrics.get("best_path_vs_avg_gap") is not None:
+            best_path_gap_sum += float(best_path_metrics["best_path_vs_avg_gap"])
+            best_path_gap_count += 1
 
     page_count = len(page_rows)
     summary = {
@@ -948,13 +1601,130 @@ def build_article_ingest_report(
         "average_honesty_scores": {
             key: round((value / page_count), 6) if page_count else 0.0 for key, value in honesty_score_sums.items()
         },
+        "average_regime": {
+            key: round((value / page_count), 6) if page_count else 0.0 for key, value in regime_score_sums.items()
+        },
+        "dominant_regime_counts": dict(sorted(dominant_regime_counts.items())),
+        "average_regime_honesty_scores": {
+            key: round((value / page_count), 6) if page_count else 0.0 for key, value in regime_honesty_score_sums.items()
+        },
+        "average_follow_yield_metrics": {
+            key: round((follow_yield_metric_sums[key] / follow_yield_metric_counts[key]), 6)
+            if follow_yield_metric_counts[key]
+            else None
+            for key in sorted(follow_yield_metric_sums.keys() | follow_yield_metric_counts.keys())
+        },
+        "average_follow_target_quality": {
+            "overall": round((follow_target_quality_sum / follow_target_quality_count), 6)
+            if follow_target_quality_count
+            else None,
+            "by_depth": {
+                str(depth): round(
+                    (follow_target_quality_by_depth_sum[depth] / follow_target_quality_by_depth_count[depth]),
+                    6,
+                )
+                if follow_target_quality_by_depth_count[depth]
+                else None
+                for depth in sorted(follow_target_quality_by_depth_sum.keys() | follow_target_quality_by_depth_count.keys())
+            },
+        },
+        "average_two_hop_metrics": {
+            "hop1_quality": round(
+                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+            )
+            if follow_target_quality_by_depth_count[1]
+            else None,
+            "hop2_quality": round(
+                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+            )
+            if follow_target_quality_by_depth_count[2]
+            else None,
+            "hop_quality_decay": round(
+                (
+                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
+                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                ),
+                6,
+            )
+            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            else None,
+            "hop1_count": follow_target_quality_by_depth_count[1],
+            "hop2_count": follow_target_quality_by_depth_count[2],
+            "hop1_follow_target_quality": round(
+                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+            )
+            if follow_target_quality_by_depth_count[1]
+            else None,
+            "hop2_follow_target_quality": round(
+                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+            )
+            if follow_target_quality_by_depth_count[2]
+            else None,
+            "quality_decay": round(
+                (
+                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
+                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                ),
+                6,
+            )
+            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            else None,
+        },
+        "average_best_path_metrics": {
+            "best_path_score": round((best_path_score_sum / best_path_score_count), 6)
+            if best_path_score_count
+            else None,
+            "avg_candidate_path_score": round((best_path_avg_candidate_score_sum / best_path_avg_candidate_score_count), 6)
+            if best_path_avg_candidate_score_count
+            else None,
+            "best_path_vs_avg_gap": round((best_path_gap_sum / best_path_gap_count), 6)
+            if best_path_gap_count
+            else None,
+            "best_path_count": best_path_score_count,
+        },
+        "two_hop_metrics": {
+            "hop1_follow_target_quality": round(
+                (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1]), 6
+            )
+            if follow_target_quality_by_depth_count[1]
+            else None,
+            "hop2_follow_target_quality": round(
+                (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2]), 6
+            )
+            if follow_target_quality_by_depth_count[2]
+            else None,
+            "quality_decay": round(
+                (
+                    (follow_target_quality_by_depth_sum[1] / follow_target_quality_by_depth_count[1])
+                    - (follow_target_quality_by_depth_sum[2] / follow_target_quality_by_depth_count[2])
+                ),
+                6,
+            )
+            if follow_target_quality_by_depth_count[1] and follow_target_quality_by_depth_count[2]
+            else None,
+            "hop1_count": follow_target_quality_by_depth_count[1],
+            "hop2_count": follow_target_quality_by_depth_count[2],
+        },
+        "best_path_metrics": {
+            "best_path_score": round((best_path_score_sum / best_path_score_count), 6)
+            if best_path_score_count
+            else None,
+            "best_path_count": best_path_score_count,
+        },
         "average_calibration_scores": {
             key: round((calibration_score_sums[key] / calibration_score_counts[key]), 6)
             if calibration_score_counts[key]
             else None
             for key in sorted(calibration_score_sums.keys() | calibration_score_counts.keys())
         },
+        "average_regime_calibration_scores": {
+            key: round((regime_calibration_score_sums[key] / regime_calibration_score_counts[key]), 6)
+            if regime_calibration_score_counts[key]
+            else None
+            for key in sorted(regime_calibration_score_sums.keys() | regime_calibration_score_counts.keys())
+        },
         "pages_with_calibration_metric": dict(sorted(calibration_score_counts.items())),
+        "pages_with_regime_calibration_metric": dict(sorted(regime_calibration_score_counts.items())),
         "average_density_metrics": {
             key: round((value / page_count), 6) if page_count else 0.0 for key, value in density_metric_sums.items()
         },

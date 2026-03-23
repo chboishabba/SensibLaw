@@ -34,6 +34,30 @@ def test_build_wiki_article_state_preserves_dated_and_undated_events() -> None:
     assert all(row["ordering_basis"] == "source_text_order" for row in state["timeline_projection"])
 
 
+def test_build_wiki_article_state_derives_regime_vector() -> None:
+    state = build_wiki_article_state(
+        {
+            "wiki": "enwiki",
+            "title": "Formal example",
+            "pageid": 2,
+            "revid": 101,
+            "source_url": "https://en.wikipedia.org/wiki/Formal_example",
+            "wikitext": (
+                "Theorem. Let X be a compact space.\n"
+                "There exists a continuous function f.\n"
+                "Suppose Y is compact and let g be continuous."
+            ),
+        },
+        no_spacy=True,
+    )
+
+    regime = state["regime"]
+    assert set(regime) == {"narrative", "descriptive", "formal"}
+    assert round(sum(regime.values()), 6) == 1.0
+    assert regime["formal"] > regime["narrative"]
+    assert regime["formal"] > regime["descriptive"]
+
+
 def test_observation_builder_emits_actor_action_object_claim_and_anchor_rows() -> None:
     observations = build_observations_from_event_candidates(
         [

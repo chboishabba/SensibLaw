@@ -23,6 +23,60 @@ from scripts.wiki_timeline_aoo_extract import main as wiki_timeline_aoo_main  # 
 STATE_SCHEMA_VERSION = "wiki_article_state_v0_1"
 SENTENCE_SURFACE_SCHEMA_VERSION = "wiki_random_article_sentences_v0_1"
 
+_REGIME_NARRATIVE_MARKERS = (
+    " said ",
+    " reported ",
+    " asked ",
+    " called ",
+    " met ",
+    " arrived ",
+    " launched ",
+    " established ",
+    " performed ",
+    " ordered ",
+    " in ",
+    " on ",
+    " after ",
+    " before ",
+    " later ",
+)
+_REGIME_DESCRIPTIVE_MARKERS = (
+    " is ",
+    " are ",
+    " was ",
+    " were ",
+    " has ",
+    " have ",
+    " consists of ",
+    " includes ",
+    " contains ",
+    " based in ",
+    " designed to ",
+    " known for ",
+)
+_REGIME_FORMAL_MARKERS = (
+    " theorem",
+    " lemma",
+    " proposition",
+    " corollary",
+    " proof",
+    " if and only if",
+    " iff",
+    " let ",
+    " suppose ",
+    " there exists",
+    " continuous",
+    " compact",
+    " operator",
+    " function",
+    " ∀",
+    " ∃",
+    " ⇒",
+    " →",
+    " ↦",
+    " ∫",
+)
+
 
 def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
@@ -118,6 +172,61 @@ def _normalize_object(obj: Any) -> str | None:
     if isinstance(obj, Mapping):
         return _safe_str(obj.get("title")) or _safe_str(obj.get("text")) or _safe_str(obj.get("label"))
     return _safe_str(obj)
+
+
+def _contains_any(text: str, markers: Iterable[str]) -> bool:
+    return any(marker in text for marker in markers)
+
+
+def _derive_regime_vector(
+    *,
+    sentence_units: Iterable[Mapping[str, Any]],
+    event_candidates: Iterable[Mapping[str, Any]],
+) -> dict[str, float]:
+    narrative = 0.0
+    descriptive = 0.0
+    formal = 0.0
+
+    event_by_id = {
+        str(event.get("event_id") or ""): event
+        for event in event_candidates
+        if isinstance(event, Mapping)
+    }
+
+    for sentence in sentence_units:
+        if not isinstance(sentence, Mapping):
+            continue
+        text = str(sentence.get("text") or "").lower()
+        event_id = str(sentence.get("event_id") or sentence.get("unit_id") or "")
+        anchor_status = str(sentence.get("anchor_status") or "none")
+        event = event_by_id.get(event_id)
+
+        if anchor_status == "explicit":
+            narrative += 1.5
+        elif anchor_status == "weak":
+            narrative += 0.75
+
+        if isinstance(event, Mapping):
+            if _safe_str(event.get("action")):
+                narrative += 1.25
+            if bool(event.get("claim_bearing")):
+                narrative += 0.5
+
+        if _contains_any(text, _REGIME_NARRATIVE_MARKERS):
+            narrative += 0.5
+        if _contains_any(text, _REGIME_DESCRIPTIVE_MARKERS) or ":" in text or text.count(",") >= 4 or ";" in text:
+            descriptive += 1.0
+        if _contains_any(text, _REGIME_FORMAL_MARKERS):
+            formal += 1.5
+
+    total = narrative + descriptive + formal
+    if total <= 0.0:
+        return {"narrative": 1 / 3, "descriptive": 1 / 3, "formal": 1 / 3}
+    return {
+        "narrative": round(narrative / total, 6),
+        "descriptive": round(descriptive / total, 6),
+        "formal": round(formal / total, 6),
+    }
 
 
 def _anchor_status_from_anchor(anchor: Mapping[str, Any] | None) -> str:
@@ -546,6 +655,7 @@ def build_wiki_article_state(
     article = _article_identity(snapshot, aoo_payload)
     wikitext = str(snapshot.get("wikitext") or "")
     anchor_counter = Counter(str(row.get("anchor_status") or "none") for row in timeline_projection)
+    regime = _derive_regime_vector(sentence_units=sentence_units, event_candidates=event_candidates)
     return {
         "schema_version": STATE_SCHEMA_VERSION,
         "generated_at": _utc_now_iso(),
@@ -559,6 +669,7 @@ def build_wiki_article_state(
         "observations": observations,
         "event_candidates": event_candidates,
         "timeline_projection": timeline_projection,
+        "regime": regime,
         "parser": aoo_payload.get("parser"),
         "extraction_profile": aoo_payload.get("extraction_profile"),
         "summary": {
@@ -567,6 +678,7 @@ def build_wiki_article_state(
             "event_candidate_count": len(event_candidates),
             "timeline_event_count": len(timeline_projection),
             "anchor_status_counts": dict(sorted(anchor_counter.items())),
+            "regime": regime,
         },
     }
 
@@ -607,6 +719,7 @@ def _state_from_event_payload(
             str(event.get("text") or "") for event in raw_events if str(event.get("text") or "").strip()
         )
     anchor_counter = Counter(str(row.get("anchor_status") or "none") for row in timeline_projection)
+    regime = _derive_regime_vector(sentence_units=sentence_units, event_candidates=event_candidates)
     return {
         "schema_version": STATE_SCHEMA_VERSION,
         "generated_at": _utc_now_iso(),
@@ -620,6 +733,7 @@ def _state_from_event_payload(
         "observations": observations,
         "event_candidates": event_candidates,
         "timeline_projection": timeline_projection,
+        "regime": regime,
         "parser": payload.get("parser"),
         "extraction_profile": payload.get("extraction_profile"),
         "summary": {
@@ -628,6 +742,7 @@ def _state_from_event_payload(
             "event_candidate_count": len(event_candidates),
             "timeline_event_count": len(timeline_projection),
             "anchor_status_counts": dict(sorted(anchor_counter.items())),
+            "regime": regime,
         },
     }
 
