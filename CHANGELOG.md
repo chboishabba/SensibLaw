@@ -1,6 +1,36 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia random article-ingest consistency follow-up:
+  - Recorded the first stored-manifest calibration findings in local context and
+    tightened the report/docs around what the new calibration layer is actually
+    showing.
+  - Clarified that link relevance currently measures sentence-local
+    actor/object/attribution participation and still needs a stronger
+    centrality/follow-yield formulation before it becomes a useful discriminator.
+  - Tightened the family classifier so biography pages no longer misclassify as
+    taxonomy pages, and kept family-aware summary reporting aligned with the
+    current report semantics.
+  - Corrected the local context note around the referenced ChatGPT UUID so a
+    later `re_gpt` auth failure is not misread as proof that the original pull
+    or earlier context ingestion failed.
+- Wikipedia random article-ingest calibration pass:
+  - Added a third scorer-only calibration layer over the random-page report for
+    abstention quality, sentence-link relevance, and claim/attribution
+    grounding, keeping the earlier coverage and honesty tracks intact.
+  - Added heuristic page-family profiling and summary stratification so random
+    biography/place/facility/project/species pages can be compared without
+    collapsing into one blended average.
+- Wikipedia random article-ingest scoring honesty pass:
+  - Kept the earlier coverage-oriented article-ingest scores for report
+    continuity, but added a second honesty-oriented score family so noisy
+    extraction no longer looks near-perfect by default.
+  - Added scorer-only penalties for observation explosion, malformed extracted
+    text, weak actor-action binding, and weak object binding, plus page-level
+    density metrics for observations/events/steps.
+  - Added separate timeline-honesty reporting over explicit/weak/none anchor
+    ratios so chronology quality is visible without treating mostly undated
+    pages as article-ingest failures.
 - Fact semantic benchmark hardening:
   - Added prompt-injection/link-spam/code-switch/redaction adversarial entries across wiki, chat, transcript, and AU legal corpora.
   - Added corpus shape/adversarial smoke test (`tests/test_fact_semantic_bench_corpora.py`).

@@ -72,6 +72,104 @@ Expected page-level signals include:
   `none`)
 - bounded one-hop follow yield from extracted wiki links
 
+## Report posture
+
+The article-ingest report now carries two parallel score families:
+
+- legacy `scores`
+  - coverage-oriented comparability surface
+  - answers "did we extract bounded article structure at all?"
+- `honesty_scores`
+  - penalty-aware quality surface
+  - answers "is the extracted structure bounded, clean, and plausibly bound to
+    who-did-what relations?"
+
+This keeps the older broad-coverage score visible while preventing noisy output
+from looking artificially excellent.
+
+## Required honesty diagnostics
+
+The report contract should expose these additive scorer-only diagnostics:
+
+- `observation_explosion_score`
+  - penalize runaway observation density per sentence or per event candidate
+- `text_hygiene_score`
+  - penalize citation tails, template residue, smashed sentence joins, and
+    similar malformed extracted text
+- `actor_action_binding_score`
+  - penalize events where an action exists but no actor is plausibly bound to
+    it
+- `object_binding_score`
+  - penalize events where an action exists but no acted-on target/object is
+    plausibly bound to it
+- `article_ingest_honest_score`
+  - derived from coverage score times an honesty multiplier over the above
+    bounded penalties
+
+The report should also expose density metrics such as observations per sentence,
+observations per event, and step density so pressure-test runs can distinguish
+real coverage from extraction blowup.
+
+## Timeline honesty
+
+Timeline quality remains a separate projection-level surface.
+
+The article-ingest report should expose timeline honesty explicitly via:
+
+- explicit anchor ratio
+- weak anchor ratio
+- none anchor ratio
+- `timeline_honesty_score`
+
+This chronology honesty surface must not directly reduce
+`article_ingest_honest_score`. A page can ingest well while remaining mostly
+undated.
+
+## Calibration extension
+
+After the initial honesty pass, the report should also expose a scorer-only
+calibration layer so operators can distinguish real extraction weakness from
+page-shape mismatch.
+
+The calibration layer should include:
+
+- `abstention_calibration_score`
+  - reward conservative abstention on list-like, taxonomic, measurement-heavy,
+    and otherwise structurally awkward sentences
+  - penalize forced event extraction when the sentence looks more like
+    structure/catalogue than article action
+- `link_relevance_score`
+  - measure whether sentence-local wiki links are actually participating in the
+    extracted actor/object/attribution structure rather than merely surviving as
+    unrelated decoration
+- `claim_attribution_grounding_score`
+  - measure whether claim-bearing and attribution-bearing rows remain text-
+    grounded and minimally supported by actor/action/source structure
+
+These should remain additive report surfaces. They may feed a calibrated score,
+but they should not silently replace the earlier coverage or honesty tracks.
+
+## Page-family stratification
+
+The random-page harness should now also emit a light page-family/profile guess
+so different failure modes stop collapsing into one blended average.
+
+Initial families should remain heuristic and bounded, for example:
+
+- `biography`
+- `place`
+- `facility`
+- `project_institution`
+- `species_taxonomy`
+- `general`
+
+This page-family/profile surface is for summary stratification and operator
+interpretation. It is not a classifier-training objective.
+
+The summary surface should also remain family-aware when reporting averages and
+issue pressure so a single biography or taxonomy page does not get normalized
+against unrelated article shapes.
+
 ## Extraction stance
 
 - prefer deterministic sentence-local extraction over speculative synthesis

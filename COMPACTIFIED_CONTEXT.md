@@ -50,6 +50,66 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   explicit so chronology quality is not overstated.
 - The revision harness should compare canonical wiki state first and only then
   summarize graph/timeline/editorial deltas for reviewer support.
+- The random-page article-ingest report should now expose two parallel score
+  families:
+  - legacy coverage scores for comparability with the earlier harness
+  - honesty scores that explicitly penalize observation explosion, malformed
+    extracted text, and weak actor/object binding
+- Timeline chronology quality should remain visible but separate:
+  - expose explicit/weak/none anchor ratios and a timeline-honesty score
+  - do not let mostly undated pages automatically drag down the main
+    article-ingest honesty score
+- Density metrics such as observations per sentence, observations per event,
+  and step density should be treated as first-class operator signals rather
+  than hidden debug numbers.
+- The random-page report should now also expose a third scorer-only
+  calibration layer:
+  - abstention quality on list-like/taxonomic/measurement-heavy sentences
+  - sentence-link relevance against extracted actor/object structure
+  - claim/attribution grounding quality
+- Page-family stratification should now be explicit and bounded:
+  - heuristic families such as `biography`, `place`, `facility`,
+    `project_institution`, `species_taxonomy`, and `general`
+  - used for operator interpretation and summary rollups, not as a learned
+    classifier target
+- Current stored-manifest findings after the calibration pass:
+  - abstention calibration is informative on `Agrega` and
+    `Euchlaena deductaria`
+  - weak object binding still fires broadly and should not yet be read as a
+    settled extractor failure without stronger family-aware interpretation
+  - current link-relevance scoring saturates near `1.0` on the stored random
+    manifest and still needs a stronger centrality/follow-yield formulation
+    before it is trusted as a discriminating metric
+- Referenced but unresolved online ChatGPT thread:
+  - online UUID: `69c0b4d1-d714-839b-b21c-ce162292db4f`
+  - source used: prior local context plus failed later refresh attempt
+  - live fetch blocker: unresolved `re_gpt` refresh-path failure; likely in the
+    request/auth flow rather than safe to assume a stale token
+  - correction:
+    - this later refresh failure does not imply the original pull never
+      succeeded
+    - the more accurate reading is that earlier ingestion/context use may have
+      worked, while this pass simply failed to re-verify the thread live
+- A newer graph-quality follow-up thread is now explicitly tracked:
+  - online UUID: `69c0bd1d-389c-8399-a23e-10efab70a1a9`
+  - suspected topic: graph-quality improvement / `PositiveBorelMeasure`
+    followthrough
+  - current blocker: `re_gpt` auth bootstrap reproduced a warning-banner-only
+    `/api/auth/session` response, which points to missing frontend-cookie
+    hydration rather than a safe “stale token” diagnosis
+  - current post-fix status:
+    - the auth bootstrap path is now patched and tested for warning-banner
+      fallback behavior
+    - the target thread is still not recovered because the current
+      session-token-only frontend path renders `client-bootstrap` as logged out
+  - required next step: recover that thread after the auth-bootstrap fix and
+    then re-evaluate the graph centrality / follow-yield lane with its sharper
+    wording
+- A separate auth/input format issue is also now in play:
+  - local file `~/.chatgpt_session_new` is a chunked session-token file with
+    multiple raw lines
+  - `re_gpt` should learn that format explicitly rather than treating it like a
+    single-line token file
 - Wikidata ontology lane now uses the newest pinned slice/revision as the active
   baseline for routine diagnostics; explicit historical rewind checks are now
   tracked as a separate review-triggered process because they are useful but add
