@@ -170,6 +170,27 @@ def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(tmp_pat
     assert row["page_profile"]["family"] in {"general", "project_institution", "facility"}
 
 
+def test_score_snapshot_payload_handles_missing_wikitext_snapshot() -> None:
+    row = score_snapshot_payload(
+        {
+            "title": "Missing Page",
+            "source_url": "https://en.wikipedia.org/wiki/Missing_Page",
+            "warnings": ["page_missing", "no_revisions_returned"],
+            "wikitext": "",
+        },
+        follow_rows=[],
+        max_follow_links_per_page=2,
+        no_spacy=True,
+    )
+
+    assert "snapshot_missing_wikitext" in row["issues"]
+    assert row["article_sentence_count"] == 0
+    assert row["article_aao_event_count"] == 0
+    assert row["timeline_readiness"]["issues"] == ["snapshot_missing_wikitext"]
+    assert row["shared_reducer"]["issues"] == ["snapshot_missing_wikitext"]
+    assert row["snapshot_warnings"] == ["page_missing", "no_revisions_returned"]
+
+
 def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     strong_path = _write_snapshot(
         tmp_path,

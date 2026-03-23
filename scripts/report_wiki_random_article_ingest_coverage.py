@@ -1319,6 +1319,33 @@ def score_snapshot_payload(
                     no_spacy=no_spacy,
                 )
             )
+    wikitext = str(payload.get("wikitext") or "")
+    if not wikitext.strip():
+        article_state = {
+            "sentence_units": [],
+            "observations": [],
+            "event_candidates": [],
+            "timeline_projection": [],
+            "parser": None,
+            "extraction_profile": None,
+        }
+        timeline_row = {"scores": {}, "issues": ["snapshot_missing_wikitext"]}
+        reducer_row = {"scores": {}, "issues": ["snapshot_missing_wikitext"]}
+        row = _page_row_from_outputs(
+            payload,
+            article_state,
+            timeline_row,
+            reducer_row,
+            follow_rows=follow_rows,
+            follow_target_rows=follow_target_rows,
+            max_follow_links_per_page=max_follow_links_per_page,
+        )
+        row["issues"].append("snapshot_missing_wikitext")
+        warnings = [str(item) for item in (payload.get("warnings") or []) if str(item).strip()]
+        if warnings:
+            row["snapshot_warnings"] = warnings
+        return row
+
     article_state = build_wiki_article_state(
         payload,
         max_sentences=max_sentences,
