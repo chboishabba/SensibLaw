@@ -16,6 +16,29 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _find_existing_envelope_id(
+    storage: Storage,
+    *,
+    source: str,
+    transcript_hash: str,
+    audio_hash: str | None,
+) -> int | None:
+    rows = storage.conn.execute(
+        "SELECT id, data FROM nodes WHERE type = 'execution_envelope' ORDER BY id"
+    ).fetchall()
+    for row in rows:
+        data = json.loads(row["data"])
+        provenance = data.get("provenance") or {}
+        if data.get("source") != source:
+            continue
+        if provenance.get("transcript_hash") != transcript_hash:
+            continue
+        if data.get("audio_hash") != audio_hash:
+            continue
+        return int(row["id"])
+    return None
+
+
 def import_asr_transcript(
     storage: Storage,
     transcript: Mapping[str, Any],
@@ -31,6 +54,18 @@ def import_asr_transcript(
 
     audio_hash = _sha256_file(Path(audio_path)) if audio_path else None
     segments = transcript.get("segments", [])
+    transcript_hash = hashlib.sha256(
+        json.dumps(transcript, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+    existing_id = _find_existing_envelope_id(
+        storage,
+        source=source,
+        transcript_hash=transcript_hash,
+        audio_hash=audio_hash,
+    )
+    if existing_id is not None:
+        return existing_id
 
     envelope_id = storage.insert_node(
         "execution_envelope",
@@ -40,9 +75,7 @@ def import_asr_transcript(
             "audio_hash": audio_hash,
             "segment_count": len(segments),
             "provenance": {
-                "transcript_hash": hashlib.sha256(
-                    json.dumps(transcript, sort_keys=True).encode("utf-8")
-                ).hexdigest(),
+                "transcript_hash": transcript_hash,
                 "adapter": adapter_label,
             },
         },

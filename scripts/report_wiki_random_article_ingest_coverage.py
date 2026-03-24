@@ -21,19 +21,46 @@ from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload
 from src.wiki_timeline.article_state import build_article_sentence_surface, build_wiki_article_state  # noqa: E402
 
 
-SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_6"
+SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_7"
 
 _NO_SPACE_SENTENCE_JOIN_RE = re.compile(r"[.!?][A-Z][a-z]")
 _CAMEL_GLUE_RE = re.compile(r"\b[a-z]{4,}[A-Z][a-z]{2,}\b")
 _CITATION_TAIL_RE = re.compile(r"\[\d+(?:\s*,\s*\d+)*\]\s*$")
 _METADATA_TAIL_RE = re.compile(r"(?:\s+[|;]\s*[A-Za-z0-9_()/-]+){1,}\s*$")
 _TEMPLATE_RESIDUE_MARKERS = ("{{", "}}", "[[", "]]", "thumb|", "File:", "Image:", "px|")
+_CATEGORY_LINE_RE = re.compile(r"\[\[\s*category:[^\]]+\]\]", re.IGNORECASE)
+_DEFAULTSORT_RE = re.compile(r"\{\{\s*defaultsort:[^}]+\}\}", re.IGNORECASE)
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _BIOGRAPHY_CATEGORY_TERMS = (" births", " deaths", "people", "biography")
 _PLACE_TERMS = ("city", "town", "village", "county", "district", "province", "state", "metropolitan area")
 _FACILITY_TERMS = ("complex", "stadium", "hotel", "airport", "museum", "building", "arena", "bridge")
 _PROJECT_TERMS = ("project", "repository", "organization", "organisation", "authority", "company", "institution")
 _SPECIES_CATEGORY_TERMS = ("species", "moths", "birds", "plants", "taxa", "genera", "fauna")
+_LIST_TEXT_MARKERS = (
+    "list of",
+    "may refer to",
+    "disambiguation",
+    "index of",
+    "outline of",
+    "partial list",
+)
+_TITLE_AGGREGATION_MARKERS = (
+    "list of ",
+    "index of ",
+    "outline of ",
+    "timeline of ",
+)
+_TITLE_AGGREGATION_SUFFIXES = (
+    " by year",
+    " by country",
+    " by state",
+)
+_WARNING_AGGREGATION_MARKERS = (
+    "partial_lists_continue_present",
+)
+_YEAR_AGGREGATION_TITLE_RE = re.compile(
+    r"^(?:\d{3,4}(?:s)?|(?:early|mid|late)\s+\d{1,2}(?:st|nd|rd|th)\s+century)\s+in\s+"
+)
 _KEY_TERM_STOPWORDS = {
     "about",
     "above",
@@ -259,19 +286,48 @@ def compute_richness_score(state: Mapping[str, Any]) -> float:
     return _clamp01(round(0.5 * sentence_score + 0.3 * observation_score + 0.2 * event_score, 6))
 
 
+def _canonicalize_follow_text_for_listiness(raw_text: str) -> str:
+    cleaned = _CATEGORY_LINE_RE.sub(" ", raw_text)
+    cleaned = _DEFAULTSORT_RE.sub(" ", cleaned)
+    return cleaned
+
+
+def compute_non_list_profile(state: Mapping[str, Any]) -> dict[str, Any]:
+    raw_text = str(state.get("raw_text") or state.get("source_text") or state.get("wikitext") or "")
+    raw_text = _canonicalize_follow_text_for_listiness(raw_text).lower()
+    title = str(state.get("title") or "").strip()
+    lower_title = title.lower()
+    warnings = [str(item).strip().lower() for item in (state.get("snapshot_warnings") or state.get("warnings") or []) if str(item).strip()]
+
+    text_markers = [marker for marker in _LIST_TEXT_MARKERS if marker in raw_text]
+    title_markers = [marker.strip() for marker in _TITLE_AGGREGATION_MARKERS if lower_title.startswith(marker)]
+    if "(disambiguation)" in lower_title:
+        title_markers.append("disambiguation_title")
+    if _YEAR_AGGREGATION_TITLE_RE.search(lower_title):
+        title_markers.append("year_in_title")
+    for suffix in _TITLE_AGGREGATION_SUFFIXES:
+        if lower_title.endswith(suffix):
+            title_markers.append(suffix.strip())
+    warning_markers = [marker for marker in _WARNING_AGGREGATION_MARKERS if marker in warnings]
+
+    weighted_hits = (
+        float(len(text_markers))
+        + 1.25 * float(len(title_markers))
+        + 1.0 * float(len(warning_markers))
+    )
+    listiness = min(1.0, weighted_hits / 2.0)
+    return {
+        "non_list_score": round(1.0 - listiness, 6),
+        "listiness": round(listiness, 6),
+        "list_signal_weight": round(weighted_hits, 6),
+        "list_text_markers": text_markers,
+        "list_title_markers": title_markers,
+        "list_warning_markers": warning_markers,
+    }
+
+
 def compute_non_list_score(state: Mapping[str, Any]) -> float:
-    raw_text = str(state.get("raw_text") or state.get("source_text") or state.get("wikitext") or "").lower()
-    hit_count = sum(1 for marker in (
-        "list of",
-        "may refer to",
-        "disambiguation",
-        "category:",
-        "index of",
-        "outline of",
-        "partial list",
-    ) if marker in raw_text)
-    listiness = min(1.0, hit_count / 2.0)
-    return round(1.0 - listiness, 6)
+    return float(compute_non_list_profile(state)["non_list_score"])
 
 
 def compute_regime_similarity_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
@@ -306,9 +362,10 @@ def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: 
 def compute_follow_target_quality(
     root_state: Mapping[str, Any],
     follow_state: Mapping[str, Any],
-) -> dict[str, float]:
+) -> dict[str, Any]:
     richness_score = compute_richness_score(follow_state)
-    non_list_score = compute_non_list_score(follow_state)
+    non_list_profile = compute_non_list_profile(follow_state)
+    non_list_score = float(non_list_profile["non_list_score"])
     regime_similarity_score = compute_regime_similarity_score(root_state, follow_state)
     information_gain_score = compute_information_gain_score(root_state, follow_state)
     follow_target_quality_score = _clamp01(
@@ -320,12 +377,32 @@ def compute_follow_target_quality(
             6,
         )
     )
+    quality_flags: list[str] = []
+    if non_list_score <= 0.25:
+        quality_flags.append("list_like_follow")
+    if richness_score < 0.35:
+        quality_flags.append("thin_follow")
+    if information_gain_score < 0.35:
+        quality_flags.append("low_information_gain_follow")
+    if regime_similarity_score < 0.35:
+        quality_flags.append("regime_jump_follow")
+    if quality_flags:
+        primary_failure_bucket = quality_flags[0]
+    else:
+        primary_failure_bucket = "stable_follow"
     return {
         "richness_score": richness_score,
         "non_list_score": non_list_score,
         "regime_similarity_score": regime_similarity_score,
         "information_gain_score": information_gain_score,
         "follow_target_quality_score": follow_target_quality_score,
+        "listiness": float(non_list_profile["listiness"]),
+        "list_signal_weight": float(non_list_profile["list_signal_weight"]),
+        "list_text_markers": list(non_list_profile["list_text_markers"]),
+        "list_title_markers": list(non_list_profile["list_title_markers"]),
+        "list_warning_markers": list(non_list_profile["list_warning_markers"]),
+        "quality_flags": quality_flags,
+        "primary_failure_bucket": primary_failure_bucket,
     }
 
 
@@ -735,10 +812,14 @@ def _score_follow_target_quality(
     follow_page_row: Mapping[str, Any],
     follow_sample_row: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    del follow_sample_row
     details = compute_follow_target_quality(root_page_row, follow_page_row)
     return {
         **details,
+        "follow_title": str(
+            (follow_page_row.get("title") if isinstance(follow_page_row, Mapping) else "")
+            or (follow_sample_row.get("title") if isinstance(follow_sample_row, Mapping) else "")
+            or ""
+        ),
     }
 
 
@@ -1428,6 +1509,8 @@ def build_article_ingest_report(
     best_path_avg_candidate_score_count = 0
     best_path_gap_sum = 0.0
     best_path_gap_count = 0
+    follow_failure_bucket_counts: Counter[str] = Counter()
+    follow_failure_bucket_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
     calibration_score_sums: dict[str, float] = defaultdict(float)
     calibration_score_counts: dict[str, int] = defaultdict(int)
     density_metric_sums = {
@@ -1525,6 +1608,21 @@ def build_article_ingest_report(
             follow_target_quality_count += 1
             follow_target_quality_by_depth_sum[edge_depth] += edge_score
             follow_target_quality_by_depth_count[edge_depth] += 1
+            detail = edge.get("detail") or {}
+            bucket = str(detail.get("primary_failure_bucket") or "unknown_follow")
+            follow_failure_bucket_counts[bucket] += 1
+            examples = follow_failure_bucket_examples[bucket]
+            if len(examples) < 5:
+                child = edge.get("child") or {}
+                child_page_row = child.get("page_row") or {}
+                examples.append(
+                    {
+                        "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                        "follow_title": str(child_page_row.get("title") or ""),
+                        "score": round(edge_score, 6),
+                        "quality_flags": list(detail.get("quality_flags") or []),
+                    }
+                )
             _collect_follow_metrics(edge["child"])
 
     for row in sample_rows:
@@ -1654,6 +1752,11 @@ def build_article_ingest_report(
                 else None
                 for depth in sorted(follow_target_quality_by_depth_sum.keys() | follow_target_quality_by_depth_count.keys())
             },
+        },
+        "follow_failure_bucket_counts": dict(sorted(follow_failure_bucket_counts.items())),
+        "follow_failure_bucket_examples": {
+            bucket: examples
+            for bucket, examples in sorted(follow_failure_bucket_examples.items())
         },
         "average_two_hop_metrics": {
             "hop1_quality": round(

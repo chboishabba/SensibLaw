@@ -188,6 +188,11 @@ The current graph-yield falsification phase should additionally expose:
 - `best_path_metrics`
   - the strongest observed continuation chain through the sampled follow tree,
     scored from hop-1 quality, hop-2 quality, and regime coherence
+- `follow_failure_bucket_counts`
+  - aggregated weak-follow buckets so operators can separate list-like,
+    thin/stub, regime-jump, and low-information-gain failures
+- `follow_failure_bucket_examples`
+  - bounded concrete examples of those weak-follow buckets for manual review
 
 The first live multi-hop campaign should be treated as a calibration datapoint,
 not a victory lap. On the completed 8-page recursive run, the important

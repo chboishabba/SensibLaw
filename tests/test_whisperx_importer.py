@@ -92,3 +92,34 @@ def test_whisperx_importer_large_transcript_smoke(tmp_path):
         assert rows["count"] == 100
     finally:
         store.close()
+
+
+def test_whisperx_importer_is_idempotent_for_same_transcript_and_audio(
+    tmp_path, sample_transcript
+):
+    audio_path = tmp_path / "sample.wav"
+    _make_silent_wav(audio_path, seconds=1.0)
+    store = Storage(tmp_path / "test.db")
+    try:
+        first_env_id = import_whisperx_transcript(
+            store,
+            sample_transcript,
+            audio_path=audio_path,
+        )
+        second_env_id = import_whisperx_transcript(
+            store,
+            sample_transcript,
+            audio_path=audio_path,
+        )
+
+        assert first_env_id == second_env_id
+        env_rows = store.conn.execute(
+            "SELECT COUNT(*) AS count FROM nodes WHERE type = 'execution_envelope'"
+        ).fetchone()
+        segment_rows = store.conn.execute(
+            "SELECT COUNT(*) AS count FROM nodes WHERE type = 'audio_segment'"
+        ).fetchone()
+        assert env_rows["count"] == 1
+        assert segment_rows["count"] == 2
+    finally:
+        store.close()

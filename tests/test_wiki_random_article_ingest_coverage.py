@@ -10,6 +10,7 @@ from scripts.report_wiki_random_article_ingest_coverage import (
     _page_row_from_outputs,
     compute_follow_target_quality,
     compute_information_gain_score,
+    compute_non_list_profile,
     compute_non_list_score,
     compute_path_score,
     compute_regime_similarity_score,
@@ -117,6 +118,36 @@ def test_follow_target_quality_and_path_scoring_match_requested_formula() -> Non
         6,
     )
     assert math.isclose(path_score, expected_path_score, abs_tol=1e-6)
+
+
+def test_non_list_profile_uses_title_and_warning_level_aggregation_cues() -> None:
+    profile = compute_non_list_profile(
+        {
+            "title": "1764 in Russia",
+            "raw_text": "Events from 1764 in Russia are listed here.",
+            "snapshot_warnings": ["partial_lists_continue_present"],
+        }
+    )
+
+    assert profile["non_list_score"] == 0.0
+    assert "year_in_title" in profile["list_title_markers"]
+    assert "partial_lists_continue_present" in profile["list_warning_markers"]
+
+
+def test_non_list_profile_ignores_category_markup_residue() -> None:
+    profile = compute_non_list_profile(
+        {
+            "title": "Alaska",
+            "raw_text": (
+                "Alaska is a U.S. state.\n"
+                "[[Category:Lists of populated places in Alaska]]\n"
+                "[[Category:Index of Alaska-related articles]]"
+            ),
+        }
+    )
+
+    assert profile["non_list_score"] == 1.0
+    assert profile["list_text_markers"] == []
 
 
 def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(tmp_path: Path) -> None:
@@ -230,7 +261,7 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     }
 
     report = build_article_ingest_report(manifest, emit_page_rows=True, no_spacy=True)
-    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_6"
+    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_7"
     assert report["supported_surface"]["canonical_state_surface"] == "wiki_article_state_v0_1"
     assert report["summary"]["page_count"] == 2
     assert report["summary"]["pages_with_article_sentences"] == 2
@@ -242,6 +273,8 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     assert "average_regime_honesty_scores" in report["summary"]
     assert "average_follow_yield_metrics" in report["summary"]
     assert "average_follow_target_quality" in report["summary"]
+    assert "follow_failure_bucket_counts" in report["summary"]
+    assert "follow_failure_bucket_examples" in report["summary"]
     assert "two_hop_metrics" in report["summary"]
     assert "best_path_metrics" in report["summary"]
     assert "average_regime_calibration_scores" in report["summary"]
@@ -310,7 +343,7 @@ def test_article_ingest_main_writes_report(tmp_path: Path, capsys) -> None:
     assert report_path.exists()
     assert payload["summary"]["page_count"] == 1
     assert payload["pages"][0]["title"] == "Article example"
-    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_6"
+    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_7"
 
 
 def test_event_has_action_and_object_detection() -> None:

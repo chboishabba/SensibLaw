@@ -1,6 +1,26 @@
 # Changelog
 
 ## Unreleased
+- Wikipedia random article-ingest live campaign follow-up:
+  - Recorded the first completed recursive random-run results, including the
+    observed gap between root-link relevance (`0.982143`) and followed-link
+    relevance (`0.5625`) plus the current follow-target-quality average
+    (`0.446047`).
+  - Confirmed on the first 8-page live slice that hop-2 quality did not
+    collapse relative to hop-1, so shallow path decay is not yet the primary
+    graph-yield failure.
+  - Tightened the next work focus around list/year/generic aggregation follow
+    pages after the weakest follow targets clustered around `non_list_score =
+    0.0`.
+  - Added archived repeat-run tooling plus a report-aggregation helper so
+    operators can run multi-campaign follow-quality sweeps and cluster the weak
+    follows without hand-editing temp paths.
+  - Tightened `non_list_score` so title-level and warning-level aggregation
+    cues now penalize list/disambiguation/year-style follow pages more sharply,
+    while the report surfaces explicit follow-failure buckets and examples.
+  - Fixed a follow-target-quality false positive where raw wikitext
+    `[[Category:...]]` residue could make ordinary pages look list-like; the
+    non-list detector now strips category/defaultsort markup before scoring.
 - Wikipedia random article-ingest generalization harness:
   - Extended the random-page ingest report with dominant-regime counts and
     follow-yield summary metrics so larger manifest runs can falsify the regime

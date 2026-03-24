@@ -119,6 +119,29 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
   - follow-yield now uses the explicit richness / non-list / regime /
     information-gain blend for follow-target quality, then adds hop decay and
     best-path probing so continuation quality can be falsified directly
+  - first live recursive campaign result:
+    - root-link relevance stayed high (`0.982143`) while followed-link
+      relevance fell to `0.5625`
+    - follow-target quality averaged `0.446047`
+    - hop-2 quality did not collapse versus hop-1 on the first 8-page slice
+    - best-path remained above average candidate path quality by `0.055025`
+  - immediate empirical bottleneck:
+    - weak follows clustered around `non_list_score = 0.0`
+    - list/year/generic aggregation pages are the next target, not regime
+      redesign or deeper path analytics
+  - implemented followthrough:
+    - archived multi-run campaign execution now lives in
+      `scripts/run_follow_quality_campaign.sh`
+    - aggregated report clustering now lives in
+      `SensibLaw/scripts/analyze_follow_quality_reports.py`
+    - `non_list_score` now incorporates title-level and warning-level
+      aggregation cues so list/year/disambiguation-like follows are penalized
+      before deeper graph metrics are revisited
+    - bug fix after the first 3-run aggregate:
+      - raw `[[Category:...]]` residue in stored wikitext was falsely driving
+        some ordinary pages into `list_like_follow`
+      - category/defaultsort markup is now stripped before non-list marker
+        evaluation
 - A separate auth/input format issue is also now in play:
   - local file `~/.chatgpt_session_new` is a chunked session-token file with
     multiple raw lines
