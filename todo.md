@@ -74,6 +74,13 @@
   cross-product reducer surface and move SB/TiRC/ITIR consumers onto it
   instead of relying on internal `src.text.*` imports or opaque fixture-only
   boundary assumptions.
+- [ ] Track the resolved thread `QG Unification Proofs`
+  (`69c27a0a-ed74-839c-8a57-3c184c28f88e` / canonical
+  `f20d9304aae805879a1f934b71443bd2c80ac19b`) as a cross-project formalization
+  boundary reference:
+  - preserve the proposed `DA51 (empirical) → SL (canonical structure) → Agda (formal proof)` contract shape
+  - preserve the `DA51Trace` fields (`da51`, `exponents`, `hot`, `cold`, `mass`, `steps`, `basin`, `j_fixed`)
+  - avoid implementation until a minimal prototype and external adapter are explicitly approved.
 - [ ] Add cross-product adapter consumers one path at a time:
   first a real SB ingest/read-model path, then a TiRC transcript/capture path,
   then any ITIR-facing UI/report producers that need canonical refs.

@@ -21,7 +21,7 @@ from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload
 from src.wiki_timeline.article_state import build_article_sentence_surface, build_wiki_article_state  # noqa: E402
 
 
-SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_10"
+SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_11"
 
 _NO_SPACE_SENTENCE_JOIN_RE = re.compile(r"[.!?][A-Z][a-z]")
 _CAMEL_GLUE_RE = re.compile(r"\b[a-z]{4,}[A-Z][a-z]{2,}\b")
@@ -468,6 +468,81 @@ def _derive_specificity_profile(
     }
 
 
+def _classify_follow_list_subtype(
+    non_list_profile: Mapping[str, Any],
+    information_gain_profile: Mapping[str, Any],
+    *,
+    richness_score: float,
+) -> dict[str, Any]:
+    list_text_markers = set(non_list_profile.get("list_text_markers") or [])
+    list_warning_markers = set(non_list_profile.get("list_warning_markers") or [])
+    title_markers = set(non_list_profile.get("specificity_title_markers") or [])
+    lexical_markers = set(non_list_profile.get("specificity_lexical_markers") or [])
+    information_gain_score = float(information_gain_profile.get("information_gain_score") or 0.0)
+    content_lift_score = float(information_gain_profile.get("content_lift_score") or 0.0)
+    non_list_score = float(non_list_profile.get("non_list_score") or 0.0)
+
+    list_title_markers = set(non_list_profile.get("list_title_markers") or [])
+    has_title_aggregation = bool(list_title_markers)
+    has_list_text = bool(list_text_markers)
+    has_warning_markers = bool(list_warning_markers)
+    has_disambiguation = "disambiguation_title" in list_title_markers
+    has_structural = has_list_text or has_warning_markers or has_disambiguation or has_title_aggregation
+
+    if has_structural:
+        return {
+            "list_follow_subtype": "structural_list_like",
+            "list_like_penalty_active": non_list_score <= 0.25,
+            "list_like_penalty_reason": "structural_list_signature",
+        }
+
+    if (
+        "shared_tail_locality_sibling" in title_markers
+        and richness_score >= 0.25
+        and (information_gain_score >= 0.35 or content_lift_score >= 0.45)
+    ):
+        return {
+            "list_follow_subtype": "contentful_locality_continuation",
+            "list_like_penalty_active": False,
+            "list_like_penalty_reason": None,
+        }
+
+    if (
+        "title_overlap_generalization" in lexical_markers
+        and "same_neighborhood_low_lift" not in set(non_list_profile.get("specificity_no_lift_markers") or [])
+        and (content_lift_score >= 0.45 or information_gain_score >= 0.40)
+    ):
+        return {
+            "list_follow_subtype": "contentful_regime_adjacency",
+            "list_like_penalty_active": False,
+            "list_like_penalty_reason": None,
+        }
+
+    if (
+        "umbrella_title" in title_markers
+        and information_gain_score >= 0.40
+        and content_lift_score >= 0.45
+    ):
+        return {
+            "list_follow_subtype": "seasonal_or_domain_continuation",
+            "list_like_penalty_active": False,
+            "list_like_penalty_reason": None,
+        }
+
+    if non_list_score <= 0.25:
+        return {
+            "list_follow_subtype": "weak_specificity_continuation",
+            "list_like_penalty_active": True,
+            "list_like_penalty_reason": "low_specificity_signal_with_weak_content",
+        }
+
+    return {
+        "list_follow_subtype": "high_specificity_continuation",
+        "list_like_penalty_active": False,
+        "list_like_penalty_reason": None,
+    }
+
+
 def compute_non_list_profile(
     state: Mapping[str, Any],
     *,
@@ -628,6 +703,12 @@ def compute_follow_target_quality(
     regime_similarity_score = compute_regime_similarity_score(root_state, follow_state)
     information_gain_profile = compute_information_gain_profile(root_state, follow_state)
     information_gain_score = float(information_gain_profile["information_gain_score"])
+    list_like_profile = _classify_follow_list_subtype(
+        non_list_profile,
+        information_gain_profile,
+        richness_score=richness_score,
+    )
+    list_like_penalty_active = bool(list_like_profile["list_like_penalty_active"])
     follow_target_quality_score = _clamp01(
         round(
             0.35 * richness_score
@@ -638,7 +719,7 @@ def compute_follow_target_quality(
         )
     )
     quality_flags: list[str] = []
-    if non_list_score <= 0.25:
+    if non_list_score <= 0.25 and list_like_penalty_active:
         quality_flags.append("list_like_follow")
     if richness_score < 0.35:
         quality_flags.append("thin_follow")
@@ -658,6 +739,9 @@ def compute_follow_target_quality(
         "follow_target_quality_score": follow_target_quality_score,
         "listiness": float(non_list_profile["listiness"]),
         "list_signal_weight": float(non_list_profile["list_signal_weight"]),
+        "list_follow_subtype": str(list_like_profile["list_follow_subtype"]),
+        "list_like_penalty_active": list_like_penalty_active,
+        "list_like_penalty_reason": list_like_profile["list_like_penalty_reason"],
         "list_text_markers": list(non_list_profile["list_text_markers"]),
         "list_title_markers": list(non_list_profile["list_title_markers"]),
         "list_warning_markers": list(non_list_profile["list_warning_markers"]),

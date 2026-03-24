@@ -42,3 +42,19 @@
 ### Channel D: Operations Ingress
 - Input: CLI/UI/API commands for ingest, validation, and inspection.
 - Constraint: commands must preserve deterministic substrate guarantees.
+
+## External Formalization Boundary Notes
+
+- In 2026-03-24 the thread `QG Unification Proofs` (canonical ID
+  `f20d9304aae805879a1f934b71443bd2c80ac19b`) introduced a proposed
+  cross-project formalization boundary:
+  `DA51 (empirical) -> SL (canonical structure) -> Agda (formal proof)`.
+- That proposal states:
+  - SL should not alter canonical proof or trace semantics.
+  - SL provides structured representation, MDL compression, admissibility
+    filtering, and dependency graph output.
+  - A typed canonical boundary contract is preferred over ad hoc pipeline glue.
+- For now this lane is a **documentation-only cross-project reference**.
+  It is not implemented as runtime code in SensibLaw, but the contract terms are
+  now the intended vocabulary if/when external formalization integration is
+  planned.

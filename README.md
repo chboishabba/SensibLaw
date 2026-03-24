@@ -154,7 +154,7 @@ a structured, linked, machine-readable backbone.
 | [SQLite Migrations](docs/sqlite_migrations.md) |  |  |  |
 | [Policy](docs/policy.md) | [Reading Fatigue Killers](docs/reading_fatigue_killers.md) | [Roadmap](docs/roadmaps/roadmap.md) | [DB Roadmap](docs/roadmaps/DB_ROADMAP.md) |
 | [Versioning](docs/versioning.md) | [Research Paper](PAPER.md) | [Database Design Document](DATABASE.md) | [Schema](docs/schema.md) |
-| [Todo](todo.md) | [streamline - data visualisation](docs/roadmaps/TIMELINE_STREAM_VIZ_ROADMAP.md)  | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
+| [Todo](todo.md) | [QG Unification Contract](docs/plan_qg_unification_sl_da51_agda_contract_20260324.md) | [Ontology ER working dog](docs/ontology_er.md) | [Agents](AGENTS.md) |
 | [ITIR Integration Roadmap](docs/ITIR.md) |    | [External Ontologies](docs/external_ontologies.md) | [Wikidata Queries](docs/wikidata_queries.md) |
 
 ## Current Wikidata workflow

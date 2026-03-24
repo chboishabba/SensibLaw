@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- QG/DA51/Agda boundary contract (documentation capture):
+  - Added `docs/plan_qg_unification_sl_da51_agda_contract_20260324.md` to
+    record the resolved `QG Unification Proofs` thread outcome as an interface
+    contract reference for future cross-project integration.
+  - Updated `docs/interfaces.md` to include the proposed boundary semantics and
+    the non-authoritative "documentation-only for now" status of this lane.
+  - Added a follow-up task entry in `todo.md` to keep the contract in the
+    Medium-Term workflow with explicit adapter gating before any implementation
+    starts.
 - AU/GWB corpus-level completeness checkpoints:
   - Added `scripts/build_au_corpus_scorecard.py` to aggregate the persisted
     real AU and transcript-adjacent fact-review bundles into one
