@@ -55,9 +55,16 @@
     filtering, and dependency graph output.
   - A typed canonical boundary contract is preferred over ad hoc pipeline glue.
 - Runtime bridge stubs exist in `src/qg_unification.py` as a staged prototype.
+- Fixture-backed replay exists for the same boundary:
+  - `SensibLaw/tests/fixtures/qg_unification/da51_valid_demo.json`
+  - `SensibLaw/tests/fixtures/qg_unification/da51_invalid_short_exponents.json`
+  - `SensibLaw/scripts/qg_unification_smoke.py --json-file ...`
 - Stage-2 bridge execution now writes deterministic staged JSON artifacts and may also persist
   each run to SQLite with `--db-path` (`qg_unification_runs` table), giving
   adapters a durable first-class record key before consuming payload artifacts.
+- The stage-2 SL record is a typed transport boundary, not the formal proof
+  authority: SL emits canonical `TraceVector` + dependency-envelope payloads,
+  while Agda remains the source of proof semantics outside the SL runtime.
 - Stage-3 and Stage-3b adapters support `--dry-run` and persistence modes:
   - `SensibLaw/scripts/qg_unification_to_itir_db.py`
   - `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py`

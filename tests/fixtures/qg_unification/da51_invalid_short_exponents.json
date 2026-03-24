@@ -1,0 +1,10 @@
+{
+  "da51": "trace-invalid-001",
+  "exponents": [1, 0, -1, 2, 0],
+  "hot": 1,
+  "cold": 2,
+  "mass": 3,
+  "steps": 4,
+  "basin": 0,
+  "j_fixed": false
+}

@@ -1,0 +1,10 @@
+{
+  "da51": "trace-demo-001",
+  "exponents": [1, 0, -1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "hot": 3,
+  "cold": 7,
+  "mass": 8,
+  "steps": 42,
+  "basin": 1,
+  "j_fixed": false
+}

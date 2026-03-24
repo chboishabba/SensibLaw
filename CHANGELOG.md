@@ -26,6 +26,9 @@
     failures for malformed `DA51Trace` payloads.
   - Added a one-command smoke runner:
     `SensibLaw/scripts/run_qg_unification_smoke.sh` (sets `PYTHONPATH=.` so imports resolve).
+  - Added deterministic DA51 fixture payloads under
+    `SensibLaw/tests/fixtures/qg_unification/` and taught the smoke utility to
+    replay them via `--json-file`.
   - Added stage-2 artifact bridge script:
     `SensibLaw/scripts/qg_unification_stage2_bridge.py`, which validates
     `DA51Trace`, emits deterministic `TraceVector` + envelope payloads, and
@@ -33,6 +36,9 @@
   - Extended stage-2 bridge to support optional SQLite persistence:
     when `--db-path` is provided, stage outputs are upserted into a durable
     `qg_unification_runs` table in that database for downstream adapter query.
+  - Added `SensibLaw/scripts/run_qg_unification_stage2_fixture.sh` and verified
+    that the valid fixture writes both an artifact JSON and a durable
+    `qg_unification_runs` SQLite row.
 - Added Stage-3 read-model adapter:
   `SensibLaw/scripts/qg_unification_to_itir_db.py` to consume staged runs from
   `qg_unification_runs` and persist them deterministically into an ITIR-facing
@@ -70,14 +76,19 @@
     `src/gwb_us_law/semantic.py` so public-bios and corpus/book lanes can
     reach candidate-level semantic anchoring on strong matched-seed events
     without loosening promotion policy or perturbing the checked wiki handoff.
+  - Tightened that broader-source seed-backed semantic pass so the repeated
+    Supreme Court review family now promotes under policy-evaluated confidence
+    when the broader-source text explicitly names the court/decision and the
+    subject/object are already resolved.
   - Added a focused test and generated the checkpoint artifact under
     `tests/fixtures/zelph/gwb_broader_corpus_checkpoint_v1/`.
   - Recorded the updated result honestly: richer public-bios input lifted that
     lane from `0` to `1` matched seed lane, but the broader families still add
     `0` new promoted relations beyond the checked handoff; after the new
-    broader-source candidate pass, both broader families now yield relation
-    candidates and text-debug support, so the next bottleneck is candidate
-    quality / promotion readiness rather than inventory.
+    broader-source semantic pass, both broader families now yield relation
+    candidates, promoted confirmations, and text-debug support on the repeated
+    Supreme Court review family, so the next bottleneck is broadening beyond
+    that first repeated-family confirmation rather than inventory.
 - Wikipedia random article-ingest live campaign follow-up:
   - Recorded the first completed recursive random-run results, including the
     observed gap between root-link relevance (`0.982143`) and followed-link

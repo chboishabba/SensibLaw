@@ -15,8 +15,8 @@ deterministic extraction over the public-bios and corpus/book timelines.
 ## Per-source-family summary
 
 - checked_handoff: 19 promoted relations, 11 matched seed lanes, 9 ambiguous events, 7 unresolved surfaces.
-- public_bios_timeline: 0 promoted relations, 1 matched seed lanes, 12 ambiguous events, 9 unresolved surfaces.
-- corpus_book_timeline: 0 promoted relations, 1 matched seed lanes, 15 ambiguous events, 34 unresolved surfaces.
+- public_bios_timeline: 3 promoted relations, 1 matched seed lanes, 12 ambiguous events, 9 unresolved surfaces.
+- corpus_book_timeline: 3 promoted relations, 1 matched seed lanes, 15 ambiguous events, 34 unresolved surfaces.
 
 ## New relations beyond checked handoff
 

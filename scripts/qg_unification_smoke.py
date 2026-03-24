@@ -3,6 +3,7 @@
 Usage (from repo root):
   PYTHONPATH=. python SensibLaw/scripts/qg_unification_smoke.py
   PYTHONPATH=. python SensibLaw/scripts/qg_unification_smoke.py --json '{"da51":"trace-1","exponents":[1,0,2,0,0,0,0,0,0,0,0,0,0,0,0],"hot":3,"cold":2,"mass":5,"steps":10,"basin":1,"j_fixed":true}'
+  PYTHONPATH=. python SensibLaw/scripts/qg_unification_smoke.py --json-file SensibLaw/tests/fixtures/qg_unification/da51_valid_demo.json
   PYTHONPATH=. python SensibLaw/scripts/qg_unification_smoke.py --invalid
 """
 
@@ -11,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 # Support running this script from the repo root in a lightweight way.
 sys.path.append("SensibLaw")
@@ -51,6 +53,7 @@ def main() -> int:
         default=None,
         help="JSON object representing DA51Trace payload",
     )
+    parser.add_argument("--json-file", type=Path, default=None, help="Path to JSON file containing DA51Trace payload")
     parser.add_argument(
         "--invalid",
         action="store_true",
@@ -59,7 +62,9 @@ def main() -> int:
     args = parser.parse_args()
 
     payload = _default_payload()
-    if args.json:
+    if args.json_file is not None:
+        payload = json.loads(args.json_file.read_text(encoding="utf-8"))
+    elif args.json:
         payload = json.loads(args.json)
     if args.invalid:
         payload = _invalid_payload()

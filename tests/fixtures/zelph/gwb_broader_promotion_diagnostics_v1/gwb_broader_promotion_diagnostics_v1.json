@@ -569,7 +569,7 @@
           "text": "Bush initiated what he called the \u201c war on terrorism ,\u201d portrayed as an American-led global counterterrorism campaign launched in response to the terrorist attacks of September 11, 2001 . Included were the Afghanistan (2001\u201314) and Iraq (2003\u201311) wars. Also, his administration sp"
         }
       ],
-      "promoted_relation_count": 0,
+      "promoted_relation_count": 3,
       "relation_candidate_count": 3,
       "source_family": "public_bios_timeline",
       "text_debug_unavailable_reason": "",
@@ -623,7 +623,7 @@
           "text": "Senior Open. In 1950, Gampy, as we all called him, ran for the Senate. He lost by just over a thousand votes and swore off politics. But two years later, Connecticut Republicans persuaded him to try again. This time he won. My grandparents, Prescott and Dorothy Walker Bush, campa"
         }
       ],
-      "promoted_relation_count": 0,
+      "promoted_relation_count": 3,
       "relation_candidate_count": 3,
       "source_family": "corpus_book_timeline",
       "text_debug_unavailable_reason": "",
@@ -646,7 +646,7 @@
     "broader_seed_diagnostic_count": 8,
     "core_reading": "Broader GWB sources are producing linkage support, but almost no text-rich semantically anchorable events yet.",
     "families_with_matched_seed_support": 2,
-    "families_with_promoted_relations": 0,
+    "families_with_promoted_relations": 2,
     "families_with_relation_candidates": 2,
     "source_family_count": 2
   },

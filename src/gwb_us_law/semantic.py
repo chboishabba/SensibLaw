@@ -2411,7 +2411,12 @@ def _insert_broader_source_seed_backfill_candidates(
             object_entity_id=supreme_court_id,
         ):
             _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=supreme_court_id, note="subject_of_review_seed_backfill_v1")
-            receipts = [("subject", "George W. Bush"), ("verb", "decision"), ("cue_surface", "Supreme Court")]
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "decision"),
+                ("object_actor", "actor:u_s_supreme_court"),
+                ("cue_surface", "Supreme Court"),
+            ]
             _insert_relation_candidate(
                 conn,
                 run_id=run_id,
@@ -2419,7 +2424,7 @@ def _insert_broader_source_seed_backfill_candidates(
                 subject_entity_id=bush_id,
                 predicate_id=predicate_ids["subject_of_review_by"],
                 object_entity_id=supreme_court_id,
-                confidence_tier="low",
+                confidence_tier=_predicate_confidence(conn, "subject_of_review_by", receipts),
                 receipts=receipts,
             )
 

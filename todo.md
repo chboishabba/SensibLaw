@@ -88,6 +88,14 @@
   - Added stage-2 staged artifact bridge output in
     `SensibLaw/scripts/qg_unification_stage2_bridge.py` (persisting run-id
     keyed artifacts).
+  - Added deterministic fixture payloads for replayable boundary checks:
+    - `SensibLaw/tests/fixtures/qg_unification/da51_valid_demo.json`
+    - `SensibLaw/tests/fixtures/qg_unification/da51_invalid_short_exponents.json`
+  - Added fixture-backed smoke/stage-2 runners so the same payload can be
+    replayed through stage-1 and stage-2 paths.
+  - Verified fixture-backed stage-2 output end-to-end:
+    - artifact JSON emitted in caller-selected `--out-dir`
+    - `qg_unification_runs` row persisted when `--db-path` is supplied
 - [x] Add cross-product adapter consumers one path at a time:
   - added a first-path read-model adapter to persist staged QG runs into an
     ITIR-facing DB table:

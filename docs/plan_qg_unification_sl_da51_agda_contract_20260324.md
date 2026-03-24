@@ -76,17 +76,26 @@ Current status in this PR:
   - `PYTHONPATH=. bash SensibLaw/scripts/run_qg_unification_smoke.sh`
 7. Added stage-2 bridge artifact writer:
    - `python SensibLaw/scripts/qg_unification_stage2_bridge.py`
+8. Added deterministic replay fixtures for the boundary payload shape:
+   - `SensibLaw/tests/fixtures/qg_unification/da51_valid_demo.json`
+   - `SensibLaw/tests/fixtures/qg_unification/da51_invalid_short_exponents.json`
+9. Added fixture-backed stage-2 runner:
+   - `PYTHONPATH=. bash SensibLaw/scripts/run_qg_unification_stage2_fixture.sh`
+10. Verified stage-2 fixture replay writes both artifact JSON and optional
+    SQLite `qg_unification_runs` state from the same typed payload.
 
 Suggested Stage 2 command:
-- `python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2`
-- `python SensibLaw/scripts/qg_unification_stage2_bridge.py --json-file /path/to/payload.json --out-dir /tmp/qg-unification-stage2`
+- `PYTHONPATH=. python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2`
+- `PYTHONPATH=. python SensibLaw/scripts/qg_unification_stage2_bridge.py --json-file /path/to/payload.json --out-dir /tmp/qg-unification-stage2`
 
 Suggested Stage 3 bridge command:
-- `python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2 --db-path /tmp/qg-unification-stage2/qg_unification.sqlite`
+- `PYTHONPATH=. python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2 --db-path /tmp/qg-unification-stage2/qg_unification.sqlite`
 Suggested Stage 4 adapter command:
-- `python SensibLaw/scripts/qg_unification_to_itir_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
+- `PYTHONPATH=. python SensibLaw/scripts/qg_unification_to_itir_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
 Suggested Stage 4a TiRC/capture adapter command:
-- `python SensibLaw/scripts/qg_unification_to_tirc_capture_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
+- `PYTHONPATH=. python SensibLaw/scripts/qg_unification_to_tirc_capture_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
+- Suggested one-command demo run (dry-run then persist):
+  - `PYTHONPATH=. bash SensibLaw/scripts/run_qg_unification_to_tirc_capture.sh --run-id demo-1 --out-dir /tmp/qg-unification-stage2`
 
 Planned follow-up:
 - Persist canonical stage-2 outputs in SQLite (`qg_unification_runs`) whenever a run is built with `--db-path`, so cross-product adapters can resolve a stable, queryable record first and then consume artifact payloads.

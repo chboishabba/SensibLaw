@@ -202,7 +202,9 @@
       },
       "predicate_key": "subject_of_review_by",
       "source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
       ],
       "subject": {
         "canonical_key": "actor:george_w_bush",
@@ -541,7 +543,7 @@
     {
       "ambiguous_event_count": 12,
       "matched_seed_lane_count": 1,
-      "promoted_relation_count": 0,
+      "promoted_relation_count": 3,
       "source_family": "public_bios_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json",
       "unresolved_surface_count": 9
@@ -549,7 +551,7 @@
     {
       "ambiguous_event_count": 15,
       "matched_seed_lane_count": 1,
-      "promoted_relation_count": 0,
+      "promoted_relation_count": 3,
       "source_family": "corpus_book_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
       "unresolved_surface_count": 34
