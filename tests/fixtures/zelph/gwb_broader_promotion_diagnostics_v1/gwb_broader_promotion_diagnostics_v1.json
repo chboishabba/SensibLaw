@@ -727,7 +727,7 @@
   ],
   "summary": {
     "broader_seed_diagnostic_count": 10,
-    "core_reading": "Broader GWB sources now yield two clean promoted families, but most broader-source lanes remain linkage-heavy and semantics-light.",
+    "core_reading": "Broader GWB sources now yield three clean promoted relation families, but most broader-source lanes remain linkage-heavy and semantics-light.",
     "families_with_matched_seed_support": 2,
     "families_with_promoted_relations": 2,
     "families_with_relation_candidates": 2,

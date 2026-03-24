@@ -11,7 +11,7 @@ seed support without widening promoted relation coverage.
 - Families with promoted relations: 2
 - Diagnostic seed lanes captured: 10
 
-- Reading: Broader GWB sources now yield two clean promoted families, but most broader-source lanes remain linkage-heavy and semantics-light.
+- Reading: Broader GWB sources now yield three clean promoted relation families, but most broader-source lanes remain linkage-heavy and semantics-light.
 
 ## Per-family diagnosis
 

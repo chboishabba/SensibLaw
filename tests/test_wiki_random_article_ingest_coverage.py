@@ -198,6 +198,26 @@ def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
     assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
 
 
+def test_follow_target_quality_prefers_low_information_for_substantial_generic_continuation() -> None:
+    root = {
+        "title": "Fernandes",
+        "key_terms": ["fernandes"],
+        "regime": {"narrative": 0.2, "descriptive": 0.7, "formal": 0.1},
+    }
+    follow = {
+        "title": "2018 Oracle Challenger Series – Chicago",
+        "raw_text": "2018 Oracle Challenger Series in Chicago.",
+        "article_sentence_count": 7,
+        "observation_count": 2,
+        "article_aao_event_count": 2,
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "thin_follow" in details["quality_flags"]
+    assert "low_information_gain_follow" in details["quality_flags"]
+    assert details["primary_failure_bucket"] == "low_information_gain_follow"
+
+
 def test_follow_target_quality_marks_parent_child_generalization_as_list_like() -> None:
     root = {
         "title": "2020 Grand Prix of Example City – Final",
@@ -221,6 +241,26 @@ def test_follow_target_quality_marks_parent_child_generalization_as_list_like() 
     assert details["list_follow_subtype"] == "parent_child_aggregation"
     assert "parent_child_generalization" in details["information_gain_reason_markers"]
     assert "parent_child_generalization" in details["information_gain_penalty_markers"]
+
+
+def test_follow_target_quality_keeps_true_stub_as_thin_follow() -> None:
+    root = {
+        "title": "Example root",
+        "key_terms": ["example", "root"],
+        "regime": {"narrative": 0.2, "descriptive": 0.7, "formal": 0.1},
+    }
+    follow = {
+        "title": "Example stub",
+        "raw_text": "Example stub.",
+        "article_sentence_count": 1,
+        "observation_count": 0,
+        "article_aao_event_count": 0,
+        "key_terms": ["example", "stub"],
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "thin_follow" in details["quality_flags"]
+    assert details["primary_failure_bucket"] == "thin_follow"
 
 
 def test_information_gain_penalizes_year_umbrella_generalization() -> None:

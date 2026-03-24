@@ -873,6 +873,61 @@ def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: 
     return float(compute_information_gain_profile(root_state, follow_state)["information_gain_score"])
 
 
+def _prefer_low_information_primary_bucket(
+    *,
+    follow_state: Mapping[str, Any],
+    richness_score: float,
+    non_list_profile: Mapping[str, Any],
+    information_gain_profile: Mapping[str, Any],
+    list_like_profile: Mapping[str, Any],
+) -> bool:
+    sentence_count, observation_count, event_count = _follow_structure_counts(follow_state)
+    is_true_stub = (
+        richness_score < 0.12
+        and sentence_count <= 1
+        and observation_count == 0
+        and event_count == 0
+    )
+    has_meaningful_structure = (
+        richness_score >= 0.16
+        or sentence_count >= 4
+        or observation_count >= 2
+        or event_count >= 1
+    )
+    generic_continuation_signal = bool(
+        list_like_profile.get("list_follow_subtype") == "generic_continuation_routing_to_low_information"
+        or non_list_profile.get("specificity_title_markers")
+        or non_list_profile.get("specificity_lexical_markers")
+        or non_list_profile.get("specificity_no_lift_markers")
+        or information_gain_profile.get("information_gain_reason_markers")
+    )
+    return bool(not is_true_stub and has_meaningful_structure and generic_continuation_signal)
+
+
+def _primary_follow_failure_bucket(
+    *,
+    quality_flags: list[str],
+    follow_state: Mapping[str, Any],
+    richness_score: float,
+    non_list_profile: Mapping[str, Any],
+    information_gain_profile: Mapping[str, Any],
+    list_like_profile: Mapping[str, Any],
+) -> str:
+    if not quality_flags:
+        return "stable_follow"
+    if "list_like_follow" in quality_flags and str(list_like_profile.get("list_follow_subtype") or "") == "parent_child_aggregation":
+        return "list_like_follow"
+    if "low_information_gain_follow" in quality_flags and _prefer_low_information_primary_bucket(
+        follow_state=follow_state,
+        richness_score=richness_score,
+        non_list_profile=non_list_profile,
+        information_gain_profile=information_gain_profile,
+        list_like_profile=list_like_profile,
+    ):
+        return "low_information_gain_follow"
+    return quality_flags[0]
+
+
 def compute_follow_target_quality(
     root_state: Mapping[str, Any],
     follow_state: Mapping[str, Any],
@@ -907,10 +962,14 @@ def compute_follow_target_quality(
         quality_flags.append("low_information_gain_follow")
     if regime_similarity_score < 0.35:
         quality_flags.append("regime_jump_follow")
-    if quality_flags:
-        primary_failure_bucket = quality_flags[0]
-    else:
-        primary_failure_bucket = "stable_follow"
+    primary_failure_bucket = _primary_follow_failure_bucket(
+        quality_flags=quality_flags,
+        follow_state=follow_state,
+        richness_score=richness_score,
+        non_list_profile=non_list_profile,
+        information_gain_profile=information_gain_profile,
+        list_like_profile=list_like_profile,
+    )
     return {
         "richness_score": richness_score,
         "non_list_score": non_list_score,

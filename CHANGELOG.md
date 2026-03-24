@@ -10,12 +10,17 @@
     narrow broader-source semantic backfill path so matched public-bios events
     can promote `George W. Bush -> signed -> No Child Left Behind Act` without
     loosening general promotion policy.
+  - Added a reviewed
+    `gwb_us_law:northwestern_hawaiian_islands_marine_national_monument`
+    linkage seed so the explicit public-bios proclamation event promotes
+    `George W. Bush -> signed -> Northwestern Hawaiian Islands Marine National Monument`
+    through the existing signed/legal-ref path.
   - Replaced the earlier broader-source alias inflation with one canonical NCLB
     legal-ref target, so the broader checkpoint records one real new promoted
     family rather than two title variants.
   - Updated broader GWB diagnostics/checkpoint artifacts and tests; current
-    merged checkpoint now reports `16` distinct promoted relations and `1` new
-    distinct promoted relation beyond the checked handoff.
+    merged checkpoint now reports `17` distinct promoted relations and `2` new
+    distinct promoted relations beyond the checked handoff.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,
