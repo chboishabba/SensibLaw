@@ -238,6 +238,26 @@ That means the current falsification surface is now saying:
   treated as the next likely discriminator to sharpen after list/generic
   continuation filtering
 
+The next implementation slice should stay deliberately narrow:
+
+- keep the current 4-part follow-target-quality blend unchanged
+- keep the current weak-follow bucket thresholds unchanged
+- expand `non_list_score` / `list_like_follow` with continuation-specific
+  signals instead of adding a new top-level score component
+
+Those continuation-specific signals should be limited to:
+
+- bounded title heuristics for generic aggregation/umbrella pages
+- mostly lexical parent-child specificity checks
+- cheap same-neighborhood/no-lift detection
+
+The first bounded target set is:
+
+- admin/place adjacency pages
+- year/edition/championship umbrella pages
+- broad generic concept pages that are related but too unspecific to be worth
+  following
+
 ## Page-family stratification
 
 The random-page harness should now also emit a light page-family/profile guess

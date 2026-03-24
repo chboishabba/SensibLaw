@@ -1,0 +1,422 @@
+{
+  "status": "ok",
+  "stderr": "Importing file /tmp/tmpctr10488/bundle.zlp...\n",
+  "stdout": " actor_george_w_bush   kind   actor \n actor_george_w_bush   label   George W. Bush \n actor_george_w_bush   canonical_key   actor:george_w_bush \n actor_john_roberts   kind   actor \n actor_john_roberts   label   John Roberts \n actor_john_roberts   canonical_key   actor:john_roberts \n actor_george_w_bush   nominated   actor_john_roberts \n actor_george_w_bush   review_status   promoted_relation \n actor_u_s_senate   kind   actor \n actor_u_s_senate   label   U.S. Senate \n actor_u_s_senate   canonical_key   actor:u_s_senate \n actor_john_roberts   confirmed_by   actor_u_s_senate \n actor_john_roberts   review_status   promoted_relation \n legal_ref_stem_cell_research_enhancement_act   kind   legal_ref \n legal_ref_stem_cell_research_enhancement_act   label   Stem Cell Research Enhancement Act \n legal_ref_stem_cell_research_enhancement_act   canonical_key   legal_ref:stem_cell_research_enhancement_act \n actor_george_w_bush   vetoed   legal_ref_stem_cell_research_enhancement_act \n legal_ref_military_commissions_act_of_2006   kind   legal_ref \n legal_ref_military_commissions_act_of_2006   label   Military Commissions Act of 2006 \n legal_ref_military_commissions_act_of_2006   canonical_key   legal_ref:military_commissions_act_of_2006 \n actor_george_w_bush   signed   legal_ref_military_commissions_act_of_2006 \n actor_united_states_district_court   kind   actor \n actor_united_states_district_court   label   United States district court \n actor_united_states_district_court   canonical_key   actor:united_states_district_court \n legal_ref_military_commissions_act_of_2006   ruled_by   actor_united_states_district_court \n legal_ref_military_commissions_act_of_2006   review_status   promoted_relation \n gwb_us_law_clear_skies_2003   kind   review_item \n gwb_us_law_clear_skies_2003   label   Clear Skies legislative and Clean Air amendment lane \n gwb_us_law_clear_skies_2003   canonical_key   gwb_us_law:clear_skies_2003 \n gwb_us_law_clear_skies_2003   review_status   matched \n gwb_us_law_clear_skies_2003   support_kind   direct \n gwb_us_law_clear_skies_2003   linkage_kind   domestic_statute \n gwb_us_law_supreme_court_appointments   kind   review_item \n gwb_us_law_supreme_court_appointments   label   Supreme Court nominations and legitimacy lane \n gwb_us_law_supreme_court_appointments   canonical_key   gwb_us_law:supreme_court_appointments \n gwb_us_law_supreme_court_appointments   review_status   candidate_only \n gwb_us_law_supreme_court_appointments   support_kind   broad_cue \n gwb_us_law_supreme_court_appointments   linkage_kind   court_and_confirmation \n gwb_us_law_stem_cell_research_enhancement_act   kind   review_item \n gwb_us_law_stem_cell_research_enhancement_act   label   Stem cell veto and bioethics legislation lane \n gwb_us_law_stem_cell_research_enhancement_act   canonical_key   gwb_us_law:stem_cell_research_enhancement_act \n gwb_us_law_stem_cell_research_enhancement_act   review_status   matched \n gwb_us_law_stem_cell_research_enhancement_act   support_kind   broad_cue \n gwb_us_law_stem_cell_research_enhancement_act   linkage_kind   domestic_statute \n gwb_us_law_military_commissions_2006   kind   review_item \n gwb_us_law_military_commissions_2006   label   Military commissions and detainee-review lane \n gwb_us_law_military_commissions_2006   canonical_key   gwb_us_law:military_commissions_2006 \n gwb_us_law_military_commissions_2006   review_status   matched \n gwb_us_law_military_commissions_2006   support_kind   broad_cue \n gwb_us_law_military_commissions_2006   linkage_kind   statute_and_litigation \n gwb_us_law_nsa_surveillance_review   kind   review_item \n gwb_us_law_nsa_surveillance_review   label   NSA surveillance and review/litigation lane \n gwb_us_law_nsa_surveillance_review   canonical_key   gwb_us_law:nsa_surveillance_review \n gwb_us_law_nsa_surveillance_review   review_status   matched \n gwb_us_law_nsa_surveillance_review   support_kind   direct \n gwb_us_law_nsa_surveillance_review   linkage_kind   statute_and_litigation \n gwb_us_law_iraq_2002_authorization   kind   review_item \n gwb_us_law_iraq_2002_authorization   label   Iraq war authorization and related executive decision path \n gwb_us_law_iraq_2002_authorization   canonical_key   gwb_us_law:iraq_2002_authorization \n gwb_us_law_iraq_2002_authorization   review_status   matched \n gwb_us_law_iraq_2002_authorization   support_kind   broad_cue \n gwb_us_law_iraq_2002_authorization   linkage_kind   congressional_authority \n surface_the_administration   kind   review_item \n surface_the_administration   label   the administration \n surface_the_administration   review_status   unresolved_surface \n surface_the_president   kind   review_item \n surface_the_president   label   the President \n surface_the_president   review_status   unresolved_surface \n surface_the_court   kind   review_item \n surface_the_court   label   the court \n surface_the_court   review_status   unresolved_surface \n( actor_george_w_bush   nominated  X) => ( actor_george_w_bush   executive_public_law_action  X)\n( actor_george_w_bush   signed  X) => ( actor_george_w_bush   executive_public_law_action  X)\n( actor_george_w_bush   vetoed  X) => ( actor_george_w_bush   executive_public_law_action  X)\n(S  review_status   ambiguous ) => (S  needs_review_due_to_ambiguity   true )\n(S  review_status   candidate_only ) => (S  needs_review_due_to_ambiguity   true )\n(S  review_status   unresolved_surface ) => (S  needs_review_due_to_ambiguity   true )\n(S  support_kind   broad_cue ) => (S  needs_review_due_to_ambiguity   true )\n actor_george_w_bush   executive_public_law_action  X\nX  needs_review_due_to_ambiguity   true \n( surface_the_president   needs_review_due_to_ambiguity   true ) \u21d0 ( surface_the_president   review_status   unresolved_surface )\n( surface_the_administration   needs_review_due_to_ambiguity   true ) \u21d0 ( surface_the_administration   review_status   unresolved_surface )\n( surface_the_court   needs_review_due_to_ambiguity   true ) \u21d0 ( surface_the_court   review_status   unresolved_surface )\n( gwb_us_law_supreme_court_appointments   needs_review_due_to_ambiguity   true ) \u21d0 ( gwb_us_law_supreme_court_appointments   support_kind   broad_cue )\n( gwb_us_law_stem_cell_research_enhancement_act   needs_review_due_to_ambiguity   true ) \u21d0 ( gwb_us_law_stem_cell_research_enhancement_act   support_kind   broad_cue )\n( gwb_us_law_iraq_2002_authorization   needs_review_due_to_ambiguity   true ) \u21d0 ( gwb_us_law_iraq_2002_authorization   support_kind   broad_cue )\n( gwb_us_law_military_commissions_2006   needs_review_due_to_ambiguity   true ) \u21d0 ( gwb_us_law_military_commissions_2006   support_kind   broad_cue )\n( actor_george_w_bush   executive_public_law_action   legal_ref_stem_cell_research_enhancement_act ) \u21d0 ( actor_george_w_bush   vetoed   legal_ref_stem_cell_research_enhancement_act )\n( actor_george_w_bush   executive_public_law_action   legal_ref_military_commissions_act_of_2006 ) \u21d0 ( actor_george_w_bush   signed   legal_ref_military_commissions_act_of_2006 )\n( actor_george_w_bush   executive_public_law_action   actor_john_roberts ) \u21d0 ( actor_george_w_bush   nominated   actor_john_roberts )\n",
+  "triples": [
+    {
+      "object": "actor",
+      "predicate": "kind",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "George W. Bush",
+      "predicate": "label",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "actor:george_w_bush",
+      "predicate": "canonical_key",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "actor",
+      "predicate": "kind",
+      "subject": "actor_john_roberts"
+    },
+    {
+      "object": "John Roberts",
+      "predicate": "label",
+      "subject": "actor_john_roberts"
+    },
+    {
+      "object": "actor:john_roberts",
+      "predicate": "canonical_key",
+      "subject": "actor_john_roberts"
+    },
+    {
+      "object": "actor_john_roberts",
+      "predicate": "nominated",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "promoted_relation",
+      "predicate": "review_status",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "actor",
+      "predicate": "kind",
+      "subject": "actor_u_s_senate"
+    },
+    {
+      "object": "U.S. Senate",
+      "predicate": "label",
+      "subject": "actor_u_s_senate"
+    },
+    {
+      "object": "actor:u_s_senate",
+      "predicate": "canonical_key",
+      "subject": "actor_u_s_senate"
+    },
+    {
+      "object": "actor_u_s_senate",
+      "predicate": "confirmed_by",
+      "subject": "actor_john_roberts"
+    },
+    {
+      "object": "promoted_relation",
+      "predicate": "review_status",
+      "subject": "actor_john_roberts"
+    },
+    {
+      "object": "legal_ref",
+      "predicate": "kind",
+      "subject": "legal_ref_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "Stem Cell Research Enhancement Act",
+      "predicate": "label",
+      "subject": "legal_ref_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "legal_ref:stem_cell_research_enhancement_act",
+      "predicate": "canonical_key",
+      "subject": "legal_ref_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "legal_ref_stem_cell_research_enhancement_act",
+      "predicate": "vetoed",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "legal_ref",
+      "predicate": "kind",
+      "subject": "legal_ref_military_commissions_act_of_2006"
+    },
+    {
+      "object": "Military Commissions Act of 2006",
+      "predicate": "label",
+      "subject": "legal_ref_military_commissions_act_of_2006"
+    },
+    {
+      "object": "legal_ref:military_commissions_act_of_2006",
+      "predicate": "canonical_key",
+      "subject": "legal_ref_military_commissions_act_of_2006"
+    },
+    {
+      "object": "legal_ref_military_commissions_act_of_2006",
+      "predicate": "signed",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "actor",
+      "predicate": "kind",
+      "subject": "actor_united_states_district_court"
+    },
+    {
+      "object": "United States district court",
+      "predicate": "label",
+      "subject": "actor_united_states_district_court"
+    },
+    {
+      "object": "actor:united_states_district_court",
+      "predicate": "canonical_key",
+      "subject": "actor_united_states_district_court"
+    },
+    {
+      "object": "actor_united_states_district_court",
+      "predicate": "ruled_by",
+      "subject": "legal_ref_military_commissions_act_of_2006"
+    },
+    {
+      "object": "promoted_relation",
+      "predicate": "review_status",
+      "subject": "legal_ref_military_commissions_act_of_2006"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "Clear Skies legislative and Clean Air amendment lane",
+      "predicate": "label",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "gwb_us_law:clear_skies_2003",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "matched",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "direct",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "domestic_statute",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_clear_skies_2003"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "Supreme Court nominations and legitimacy lane",
+      "predicate": "label",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "gwb_us_law:supreme_court_appointments",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "candidate_only",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "broad_cue",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "court_and_confirmation",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "Stem cell veto and bioethics legislation lane",
+      "predicate": "label",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "gwb_us_law:stem_cell_research_enhancement_act",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "matched",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "broad_cue",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "domestic_statute",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "Military commissions and detainee-review lane",
+      "predicate": "label",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "gwb_us_law:military_commissions_2006",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "matched",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "broad_cue",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "statute_and_litigation",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "NSA surveillance and review/litigation lane",
+      "predicate": "label",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "gwb_us_law:nsa_surveillance_review",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "matched",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "direct",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "statute_and_litigation",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_nsa_surveillance_review"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "Iraq war authorization and related executive decision path",
+      "predicate": "label",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "gwb_us_law:iraq_2002_authorization",
+      "predicate": "canonical_key",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "matched",
+      "predicate": "review_status",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "broad_cue",
+      "predicate": "support_kind",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "congressional_authority",
+      "predicate": "linkage_kind",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "surface_the_administration"
+    },
+    {
+      "object": "the administration",
+      "predicate": "label",
+      "subject": "surface_the_administration"
+    },
+    {
+      "object": "unresolved_surface",
+      "predicate": "review_status",
+      "subject": "surface_the_administration"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "surface_the_president"
+    },
+    {
+      "object": "the President",
+      "predicate": "label",
+      "subject": "surface_the_president"
+    },
+    {
+      "object": "unresolved_surface",
+      "predicate": "review_status",
+      "subject": "surface_the_president"
+    },
+    {
+      "object": "review_item",
+      "predicate": "kind",
+      "subject": "surface_the_court"
+    },
+    {
+      "object": "the court",
+      "predicate": "label",
+      "subject": "surface_the_court"
+    },
+    {
+      "object": "unresolved_surface",
+      "predicate": "review_status",
+      "subject": "surface_the_court"
+    },
+    {
+      "object": "X",
+      "predicate": "executive_public_law_action",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "surface_the_president"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "surface_the_administration"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "surface_the_court"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "gwb_us_law_supreme_court_appointments"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "gwb_us_law_stem_cell_research_enhancement_act"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "gwb_us_law_iraq_2002_authorization"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_ambiguity",
+      "subject": "gwb_us_law_military_commissions_2006"
+    },
+    {
+      "object": "legal_ref_stem_cell_research_enhancement_act",
+      "predicate": "executive_public_law_action",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "legal_ref_military_commissions_act_of_2006",
+      "predicate": "executive_public_law_action",
+      "subject": "actor_george_w_bush"
+    },
+    {
+      "object": "actor_john_roberts",
+      "predicate": "executive_public_law_action",
+      "subject": "actor_george_w_bush"
+    }
+  ]
+}

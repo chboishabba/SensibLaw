@@ -1,0 +1,580 @@
+{
+  "ambiguous_events": [
+    {
+      "event_id": "ev2",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    }
+  ],
+  "fixture_kind": "public_checked_fixture",
+  "linkage_run_id": "run:dd2203ac335c1199be137ca7bc1a1a117e8897523aaf62dc8a87f05390d38b30",
+  "selected_promoted_relations": [
+    {
+      "confidence_tier": "high",
+      "event_id": "ev2",
+      "object": {
+        "canonical_key": "actor:john_roberts",
+        "canonical_label": "John Roberts",
+        "entity_id": 2,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "nominated",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "nominated"
+        },
+        {
+          "kind": "object_actor",
+          "value": "actor:john_roberts"
+        },
+        {
+          "kind": "rule_type",
+          "value": "governance_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_nomination_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev3",
+      "object": {
+        "canonical_key": "actor:u_s_senate",
+        "canonical_label": "U.S. Senate",
+        "entity_id": 5,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "confirmed_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:john_roberts"
+        },
+        {
+          "kind": "verb",
+          "value": "confirmed_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "actor:u_s_senate"
+        },
+        {
+          "kind": "rule_type",
+          "value": "governance_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_confirmation_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:john_roberts",
+        "canonical_label": "John Roberts",
+        "entity_id": 2,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev4",
+      "object": {
+        "canonical_key": "legal_ref:stem_cell_research_enhancement_act",
+        "canonical_label": "Stem Cell Research Enhancement Act",
+        "entity_id": 15,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "veto"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:stem_cell_research_enhancement_act"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_vetoed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev5",
+      "object": {
+        "canonical_key": "legal_ref:military_commissions_act_of_2006",
+        "canonical_label": "Military Commissions Act of 2006",
+        "entity_id": 16,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "signed"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:military_commissions_act_of_2006"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_signed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev9",
+      "object": {
+        "canonical_key": "actor:united_states_district_court",
+        "canonical_label": "United States district court",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "legal_ref:military_commissions_act_of_2006"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "9"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "legal_ref:military_commissions_act_of_2006",
+        "canonical_label": "Military Commissions Act of 2006",
+        "entity_id": 16,
+        "entity_kind": "legal_ref"
+      }
+    }
+  ],
+  "selected_seed_lanes": [
+    {
+      "action_summary": "Clear Skies legislative and Clean Air amendment lane",
+      "candidate_event_count": 1,
+      "confidence_counts": {
+        "high": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev1",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Clear Skies Act of 2003"
+            },
+            {
+              "kind": "authority_title",
+              "value": "Clear Skies Act"
+            },
+            {
+              "kind": "authority_title",
+              "value": "Clean Air Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Clear Skies"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Clean Air Act"
+            }
+          ],
+          "text": "In 2002, Bush proposed the Clear Skies Act of 2003, which aimed at amending the Clean Air Act."
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:clear_skies_2003",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "candidate_event_count": 2,
+      "confidence_counts": {
+        "abstain": 1,
+        "low": 1
+      },
+      "events": [
+        {
+          "confidence": "low",
+          "event_id": "ev2",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "On July 19, 2005, Bush nominated John Roberts to the Supreme Court."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev3",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue",
+              "value": "confirmed by the Senate"
+            }
+          ],
+          "text": "John Roberts was confirmed by the Senate on September 29, 2005."
+        }
+      ],
+      "linkage_kind": "court_and_confirmation",
+      "matched_event_count": 0,
+      "review_status": "candidate_only",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "candidate_event_count": 1,
+      "confidence_counts": {
+        "high": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev4",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Stem Cell Research Enhancement Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Stem Cell Research Enhancement Act"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "veto"
+            }
+          ],
+          "text": "On July 19, 2006, Bush vetoed the Stem Cell Research Enhancement Act."
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Military commissions and detainee-review lane",
+      "candidate_event_count": 3,
+      "confidence_counts": {
+        "high": 2,
+        "low": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev5",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Military Commissions Act of 2006"
+            },
+            {
+              "kind": "authority_title",
+              "value": "Military Commissions Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Military Commissions Act of 2006"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Military Commissions Act"
+            }
+          ],
+          "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law."
+        },
+        {
+          "confidence": "high",
+          "event_id": "ev9",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Military Commissions Act of 2006"
+            },
+            {
+              "kind": "authority_title",
+              "value": "Military Commissions Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Military Commissions Act of 2006"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Military Commissions Act"
+            }
+          ],
+          "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."
+        }
+      ],
+      "linkage_kind": "statute_and_litigation",
+      "matched_event_count": 2,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "NSA surveillance and review/litigation lane",
+      "candidate_event_count": 2,
+      "confidence_counts": {
+        "high": 1,
+        "medium": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev6",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "United States Court of Appeals for the Sixth Circuit"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "surveillance"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "NSA"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Sixth Circuit"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "electronic surveillance program"
+            }
+          ],
+          "text": "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing in the NSA electronic surveillance program case."
+        },
+        {
+          "confidence": "medium",
+          "event_id": "ev9",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "United States district court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "district court"
+            }
+          ],
+          "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."
+        }
+      ],
+      "linkage_kind": "statute_and_litigation",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "candidate_event_count": 1,
+      "confidence_counts": {
+        "low": 1
+      },
+      "events": [
+        {
+          "confidence": "low",
+          "event_id": "ev7",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "Bush discussed Iraq in a televised address."
+        }
+      ],
+      "linkage_kind": "congressional_authority",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "support_kind": "broad_cue"
+    }
+  ],
+  "semantic_run_id": "run:dd2203ac335c1199be137ca7bc1a1a117e8897523aaf62dc8a87f05390d38b30",
+  "summary": {
+    "ambiguous_event_count": 1,
+    "selected_promoted_relation_count": 5,
+    "selected_seed_lane_count": 6,
+    "unresolved_surface_count": 3
+  },
+  "timeline_event_count": 9,
+  "unresolved_surfaces": [
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "the administration"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "the President"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "the court"
+    }
+  ],
+  "version": "gwb_public_handoff_v1"
+}

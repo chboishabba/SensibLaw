@@ -1,0 +1,12 @@
+{
+  "ambiguous_event_count": 1,
+  "broad_cue_seed_lane_count": 4,
+  "candidate_only_seed_lane_count": 1,
+  "current_stage": "checked_public_handoff_checkpoint",
+  "destination": "complete_gwb_topic_understanding",
+  "direct_support_seed_lane_count": 2,
+  "matched_seed_lane_count": 5,
+  "promoted_relation_count": 5,
+  "unresolved_surface_count": 3,
+  "zelph_engine_status": "ok"
+}

@@ -1,0 +1,13 @@
+# GWB public handoff rules
+
+(actor_george_w_bush "nominated" X) => (actor_george_w_bush "executive_public_law_action" X)
+(actor_george_w_bush "signed" X) => (actor_george_w_bush "executive_public_law_action" X)
+(actor_george_w_bush "vetoed" X) => (actor_george_w_bush "executive_public_law_action" X)
+
+(S "review_status" "ambiguous") => (S "needs_review_due_to_ambiguity" "true")
+(S "review_status" "candidate_only") => (S "needs_review_due_to_ambiguity" "true")
+(S "review_status" "unresolved_surface") => (S "needs_review_due_to_ambiguity" "true")
+(S "support_kind" "broad_cue") => (S "needs_review_due_to_ambiguity" "true")
+
+actor_george_w_bush "executive_public_law_action" X
+X "needs_review_due_to_ambiguity" "true"

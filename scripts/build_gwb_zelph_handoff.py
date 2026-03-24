@@ -153,6 +153,22 @@ def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any]
     }
 
 
+def _build_scorecard(slice_payload: dict[str, Any], engine_status: str | None) -> dict[str, Any]:
+    seed_rows = slice_payload["selected_seed_lanes"]
+    return {
+        "destination": "complete_gwb_topic_understanding",
+        "current_stage": "checked_public_handoff_checkpoint",
+        "promoted_relation_count": slice_payload["summary"]["selected_promoted_relation_count"],
+        "matched_seed_lane_count": sum(1 for row in seed_rows if row["review_status"] == "matched"),
+        "candidate_only_seed_lane_count": sum(1 for row in seed_rows if row["review_status"] == "candidate_only"),
+        "broad_cue_seed_lane_count": sum(1 for row in seed_rows if row["support_kind"] == "broad_cue"),
+        "direct_support_seed_lane_count": sum(1 for row in seed_rows if row["support_kind"] == "direct"),
+        "ambiguous_event_count": slice_payload["summary"]["ambiguous_event_count"],
+        "unresolved_surface_count": slice_payload["summary"]["unresolved_surface_count"],
+        "zelph_engine_status": engine_status or "unknown",
+    }
+
+
 def _build_summary_text(slice_payload: dict[str, Any]) -> str:
     lines = [
         "# GWB Public Handoff Narrative Summary",
@@ -253,6 +269,7 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()
     engine_payload = run_zelph_inference(facts_text, rules_text)
+    scorecard_payload = _build_scorecard(slice_payload, str(engine_payload.get("status") or "unknown"))
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
         "slice_path": output_dir / f"{ARTIFACT_VERSION}.slice.json",
@@ -260,13 +277,20 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
         "facts_path": output_dir / f"{ARTIFACT_VERSION}.facts.zlp",
         "rules_path": output_dir / f"{ARTIFACT_VERSION}.rules.zlp",
         "engine_path": output_dir / f"{ARTIFACT_VERSION}.engine.json",
+        "scorecard_path": output_dir / f"{ARTIFACT_VERSION}.scorecard.json",
     }
     paths["slice_path"].write_text(json.dumps(slice_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
     paths["facts_path"].write_text(facts_text, encoding="utf-8")
     paths["rules_path"].write_text(rules_text, encoding="utf-8")
     paths["engine_path"].write_text(json.dumps(engine_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return {"engine_status": engine_payload.get("status"), "summary": slice_payload["summary"], **{k: str(v) for k, v in paths.items()}}
+    paths["scorecard_path"].write_text(json.dumps(scorecard_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {
+        "engine_status": engine_payload.get("status"),
+        "scorecard": scorecard_payload,
+        "summary": slice_payload["summary"],
+        **{k: str(v) for k, v in paths.items()},
+    }
 
 
 def main() -> int:
