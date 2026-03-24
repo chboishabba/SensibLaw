@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- Zelph handoff documentation alignment:
+  - Added a canonical Zelph handoff index and clarified the reading order
+    between external framing, pack definition, artifact-specific handoff notes,
+    and corpus-level completeness notes.
+  - Recorded the current corpus-expansion priority order:
+    broader GWB public-source extraction first, AU transcript/WhisperX-backed
+    expansion second, and safe chat-history lane third.
 - QG/DA51/Agda boundary contract (documentation capture):
   - Added `docs/plan_qg_unification_sl_da51_agda_contract_20260324.md` to
     record the resolved `QG Unification Proofs` thread outcome as an interface
@@ -10,6 +17,31 @@
   - Added a follow-up task entry in `todo.md` to keep the contract in the
     Medium-Term workflow with explicit adapter gating before any implementation
     starts.
+  - Added `src/qg_unification.py` as a minimal boundary scaffold that validates
+    `DA51Trace`, projects it to `TraceVector`, and emits a typed adapter
+    envelope.
+  - Added a smoke-run utility at `SensibLaw/scripts/qg_unification_smoke.py` to
+    render `TraceVector` + dependency envelope output from a sample payload.
+  - Extended smoke utility with `--invalid` mode to emit deterministic validation
+    failures for malformed `DA51Trace` payloads.
+  - Added a one-command smoke runner:
+    `SensibLaw/scripts/run_qg_unification_smoke.sh` (sets `PYTHONPATH=.` so imports resolve).
+  - Added stage-2 artifact bridge script:
+    `SensibLaw/scripts/qg_unification_stage2_bridge.py`, which validates
+    `DA51Trace`, emits deterministic `TraceVector` + envelope payloads, and
+    persists staged JSON artifacts to a configured output directory.
+  - Extended stage-2 bridge to support optional SQLite persistence:
+    when `--db-path` is provided, stage outputs are upserted into a durable
+    `qg_unification_runs` table in that database for downstream adapter query.
+- Added Stage-3 read-model adapter:
+  `SensibLaw/scripts/qg_unification_to_itir_db.py` to consume staged runs from
+  `qg_unification_runs` and persist them deterministically into an ITIR-facing
+  `qg_unification_runs` table (`INSERT OR REPLACE`) for downstream consumers.
+  - Added Stage-3b TiRC/transcript capture adapter:
+    `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py`, which resolves
+    bridge-run records and writes deterministic transcript-style capture rows into
+    `qg_tirc_capture_runs`, `qg_tirc_capture_sessions`, and
+    `qg_tirc_capture_utterances`.
 - AU/GWB corpus-level completeness checkpoints:
   - Added `scripts/build_au_corpus_scorecard.py` to aggregate the persisted
     real AU and transcript-adjacent fact-review bundles into one
@@ -20,6 +52,32 @@
   - Added focused tests for both scorecard builders and generated the checked
     artifacts under `tests/fixtures/zelph/au_corpus_scorecard_v1/` and
     `tests/fixtures/zelph/gwb_corpus_scorecard_v1/`.
+- Broader GWB extraction checkpoint:
+  - Added `scripts/build_gwb_broader_corpus_checkpoint.py` to combine the
+    checked handoff lane with fresh deterministic extraction over the
+    public-bios and corpus/book timelines.
+  - Added `scripts/build_gwb_public_bios_rich_timeline.py` to rebuild the
+    public-bios input from raw HTML cue-bearing snippets instead of title-only
+    rows, and generated
+    `demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json`.
+  - Added a focused test for the richer public-bios timeline builder.
+  - Added `scripts/build_gwb_broader_promotion_diagnostics.py` plus a focused
+    test and generated
+    `tests/fixtures/zelph/gwb_broader_promotion_diagnostics_v1/` to explain
+    why broader-source GWB runs widen seed support without widening promoted
+    relation coverage.
+  - Added a broader-source seed-backed candidate backfill in
+    `src/gwb_us_law/semantic.py` so public-bios and corpus/book lanes can
+    reach candidate-level semantic anchoring on strong matched-seed events
+    without loosening promotion policy or perturbing the checked wiki handoff.
+  - Added a focused test and generated the checkpoint artifact under
+    `tests/fixtures/zelph/gwb_broader_corpus_checkpoint_v1/`.
+  - Recorded the updated result honestly: richer public-bios input lifted that
+    lane from `0` to `1` matched seed lane, but the broader families still add
+    `0` new promoted relations beyond the checked handoff; after the new
+    broader-source candidate pass, both broader families now yield relation
+    candidates and text-debug support, so the next bottleneck is candidate
+    quality / promotion readiness rather than inventory.
 - Wikipedia random article-ingest live campaign follow-up:
   - Recorded the first completed recursive random-run results, including the
     observed gap between root-link relevance (`0.982143`) and followed-link

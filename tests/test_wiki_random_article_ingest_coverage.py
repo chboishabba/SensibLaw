@@ -233,6 +233,42 @@ def test_information_gain_penalizes_broad_competition_parent() -> None:
     assert "same_neighborhood_low_lift" in profile["information_gain_penalty_markers"]
 
 
+def test_information_gain_penalizes_generic_disconnected_follow_pages() -> None:
+    root = {
+        "title": "Acme Foundation",
+        "key_terms": ["acme", "foundation", "research", "project", "software"],
+    }
+    follow = {
+        "title": "Geographic coordinate system",
+        "key_terms": [
+            "geographic",
+            "coordinate",
+            "system",
+            "latitude",
+            "longitude",
+            "projection",
+            "ellipsoid",
+            "datum",
+            "map",
+            "navigation",
+            "position",
+            "grid",
+        ],
+        "article_aao_event_count": 10,
+        "action_event_count": 10,
+        "object_event_count": 8,
+        "claim_event_count": 1,
+        "attribution_event_count": 1,
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    expected_score = max(0.0, profile["base_information_gain_score"] - profile["information_gain_penalty"])
+    assert math.isclose(profile["information_gain_score"], expected_score, abs_tol=1e-9)
+    assert "weak_root_term_overlap" in profile["information_gain_reason_markers"]
+    assert "weak_root_term_overlap" in profile["information_gain_penalty_markers"]
+    assert profile["information_gain_penalty"] > 0.0
+
+
 def test_information_gain_keeps_umbrella_title_as_reason_without_low_lift_penalty() -> None:
     root = {
         "title": "Gösta Magnusson",
@@ -432,7 +468,7 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     }
 
     report = build_article_ingest_report(manifest, emit_page_rows=True, no_spacy=True)
-    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_10"
+    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
     assert report["supported_surface"]["canonical_state_surface"] == "wiki_article_state_v0_1"
     assert report["summary"]["page_count"] == 2
     assert report["summary"]["pages_with_article_sentences"] == 2
@@ -519,7 +555,7 @@ def test_article_ingest_main_writes_report(tmp_path: Path, capsys) -> None:
     assert report_path.exists()
     assert payload["summary"]["page_count"] == 1
     assert payload["pages"][0]["title"] == "Article example"
-    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_10"
+    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_11"
 
 
 def test_event_has_action_and_object_detection() -> None:

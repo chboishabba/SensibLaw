@@ -628,6 +628,12 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
     content_lift = compute_content_lift_profile(root_state, follow_state)
     novelty_floor_triggered = int(specificity["novel_follow_term_count"]) <= 1 and float(specificity["term_overlap_ratio"]) >= 0.34
     low_lift_evidence = bool(no_lift_markers) or novelty_floor_triggered or float(content_lift["content_lift_score"]) < 0.34
+    weak_root_overlap = (
+        float(specificity["term_overlap_ratio"]) <= 0.12
+        and float(content_lift["content_lift_score"]) >= 0.63
+        and int(specificity["novel_follow_term_count"]) >= 8
+        and not (title_markers or lexical_markers)
+    )
 
     if "year_prefixed_title" in title_markers:
         reason_markers.append("year_prefixed_title")
@@ -666,6 +672,11 @@ def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state
         reason_markers.append("novelty_floor_penalty")
         penalty += 0.06
         penalty_markers.append("novelty_floor_penalty")
+    if weak_root_overlap:
+        reason_markers.append("weak_root_term_overlap")
+        penalty += 0.12
+        if "weak_root_term_overlap" not in penalty_markers:
+            penalty_markers.append("weak_root_term_overlap")
 
     penalty = round(min(0.6, penalty), 6)
     content_lift_bonus = 0.0

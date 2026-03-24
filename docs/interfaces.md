@@ -54,7 +54,18 @@
   - SL provides structured representation, MDL compression, admissibility
     filtering, and dependency graph output.
   - A typed canonical boundary contract is preferred over ad hoc pipeline glue.
-- For now this lane is a **documentation-only cross-project reference**.
-  It is not implemented as runtime code in SensibLaw, but the contract terms are
-  now the intended vocabulary if/when external formalization integration is
-  planned.
+- Runtime bridge stubs exist in `src/qg_unification.py` as a staged prototype.
+- Stage-2 bridge execution now writes deterministic staged JSON artifacts and may also persist
+  each run to SQLite with `--db-path` (`qg_unification_runs` table), giving
+  adapters a durable first-class record key before consuming payload artifacts.
+- Stage-3 and Stage-3b adapters support `--dry-run` and persistence modes:
+  - `SensibLaw/scripts/qg_unification_to_itir_db.py`
+  - `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py`
+- `SensibLaw/scripts/run_qg_unification_to_tirc_capture.sh` runs stage-2 bridging, both
+  adapter dry-runs, and both adapter persistence steps in one command.
+- Stage-3b adapter path adds transcript/capture projection:
+  `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py` creates
+  `qg_tirc_capture_runs`, `qg_tirc_capture_sessions`, and
+  `qg_tirc_capture_utterances` rows in the destination DB.
+- The cross-project lane remains non-authoritative and remains private pending
+  explicit JMD confirmation of the remaining mapping context.

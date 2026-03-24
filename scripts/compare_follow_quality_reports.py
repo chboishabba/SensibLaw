@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -21,56 +20,91 @@ def _metric(summary: dict[str, Any], key: str) -> float | None:
         if not isinstance(node, dict):
             return None
         node = node.get(part)
-    return float(node) if isinstance(node, (int, float)) else None
+    if isinstance(node, (int, float)):
+        return float(node)
+    return None
+
+
+def _load_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(payload.get("summary"), dict):
+        return payload["summary"]
+    return {}
+
+
+def _load_average_metrics(payload: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(payload.get("average_metrics"), dict):
+        return payload["average_metrics"]
+    return {}
+
+
+def _load_counts(payload: dict[str, Any], key: str) -> dict[str, int]:
+    summary = _load_summary(payload)
+    if isinstance(summary.get(key), dict):
+        return {str(k): int(v or 0) for k, v in summary[key].items()}
+    fallback = payload.get(key)
+    if isinstance(fallback, dict):
+        return {str(k): int(v or 0) for k, v in fallback.items()}
+    return {}
+
+
+def _load_metric(payload: dict[str, Any], key: str) -> float | None:
+    summary = _load_summary(payload)
+    if summary:
+        value = _metric(summary, key)
+        if value is not None:
+            return value
+    average_metrics = _load_average_metrics(payload)
+    if key in average_metrics:
+        value = average_metrics[key]
+        return float(value) if isinstance(value, (int, float)) else None
+    return None
 
 
 def build_comparison(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
-    before_summary = before.get("summary") or {}
-    after_summary = after.get("summary") or {}
     keys = [
         "average_follow_yield_metrics.follow_target_quality_score",
+        "average_follow_yield_metrics.followed_link_relevance_score",
         "average_best_path_metrics.best_path_vs_avg_gap",
         "average_two_hop_metrics.hop_quality_decay",
-        "average_follow_yield_metrics.followed_link_relevance_score",
     ]
     metric_deltas = {}
     for key in keys:
-        b = _metric(before_summary, key)
-        a = _metric(after_summary, key)
+        b = _load_metric(before, key)
+        a = _load_metric(after, key)
         metric_deltas[key] = {
             "before": b,
             "after": a,
             "delta": round(a - b, 6) if a is not None and b is not None else None,
         }
 
-    bucket_names = sorted(
-        set((before_summary.get("follow_failure_bucket_counts") or {}).keys())
-        | set((after_summary.get("follow_failure_bucket_counts") or {}).keys())
-    )
+    before_summary = _load_summary(before)
+    after_summary = _load_summary(after)
+    before_counts = _load_counts(before, "follow_failure_bucket_counts")
+    after_counts = _load_counts(after, "follow_failure_bucket_counts")
+
+    bucket_names = sorted(set(before_counts.keys()) | set(after_counts.keys()))
     bucket_deltas = {}
     for name in bucket_names:
-        b = int((before_summary.get("follow_failure_bucket_counts") or {}).get(name) or 0)
-        a = int((after_summary.get("follow_failure_bucket_counts") or {}).get(name) or 0)
+        b = before_counts.get(name, 0)
+        a = after_counts.get(name, 0)
         bucket_deltas[name] = {"before": b, "after": a, "delta": a - b}
 
-    reason_names = sorted(
-        set((before_summary.get("specificity_reason_counts") or {}).keys())
-        | set((after_summary.get("specificity_reason_counts") or {}).keys())
-    )
+    before_specificity = _load_counts(before, "specificity_reason_counts")
+    after_specificity = _load_counts(after, "specificity_reason_counts")
+    reason_names = sorted(set(before_specificity.keys()) | set(after_specificity.keys()))
     specificity_reason_deltas = {}
     for name in reason_names:
-        b = int((before_summary.get("specificity_reason_counts") or {}).get(name) or 0)
-        a = int((after_summary.get("specificity_reason_counts") or {}).get(name) or 0)
+        b = before_specificity.get(name, 0)
+        a = after_specificity.get(name, 0)
         specificity_reason_deltas[name] = {"before": b, "after": a, "delta": a - b}
 
-    info_reason_names = sorted(
-        set((before_summary.get("information_gain_reason_counts") or {}).keys())
-        | set((after_summary.get("information_gain_reason_counts") or {}).keys())
-    )
+    before_info = _load_counts(before, "information_gain_reason_counts")
+    after_info = _load_counts(after, "information_gain_reason_counts")
+    info_reason_names = sorted(set(before_info.keys()) | set(after_info.keys()))
     information_gain_reason_deltas = {}
     for name in info_reason_names:
-        b = int((before_summary.get("information_gain_reason_counts") or {}).get(name) or 0)
-        a = int((after_summary.get("information_gain_reason_counts") or {}).get(name) or 0)
+        b = before_info.get(name, 0)
+        a = after_info.get(name, 0)
         information_gain_reason_deltas[name] = {"before": b, "after": a, "delta": a - b}
 
     before_pages = {str(page.get("title") or ""): page for page in (before.get("pages") or [])}

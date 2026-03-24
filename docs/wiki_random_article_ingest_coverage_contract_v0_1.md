@@ -295,6 +295,12 @@ information-gain component, so weak follows are judged by whether the follow
 page contributes new relation-bearing structure, not just by title shape or raw
 term overlap.
 
+The current implementation records a `weak_root_term_overlap` reason in the
+information-gain profile when a follow target is low-overlap with the root but
+still shows high content-lift characteristics while providing many novel terms.
+In that mode the follow is treated as weakly informative even when title shape
+signals alone are not strong enough to trigger penalties.
+
 Before treating any live rerun as quantitative evidence, the harness should
 also support fixed-manifest rescoring and direct before/after comparison. That
 comparison path should:

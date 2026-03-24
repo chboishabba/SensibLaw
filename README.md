@@ -57,6 +57,41 @@ Useful entry points:
 
 - CLI: `python -m sensiblaw.cli --help`
 - Streamlit dashboard: `streamlit run streamlit_app.py`
+- QG unification smoke check:
+- `PYTHONPATH=. bash SensibLaw/scripts/run_qg_unification_smoke.sh`
+  - Custom payload example:
+    - `python SensibLaw/scripts/qg_unification_smoke.py --json '{"da51":"trace-1","exponents":[1,0,2,0,0,0,0,0,0,0,0,0,0,0,0],"hot":3,"cold":2,"mass":5,"steps":10,"basin":1,"j_fixed":true}'
+  - Stage-2 artifact bridge:
+    - `python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2`
+    - `python SensibLaw/scripts/qg_unification_stage2_bridge.py --run-id demo-1 --out-dir /tmp/qg-unification-stage2 --db-path /tmp/qg-unification-stage2/qg_unification.sqlite`
+  - Stage-3 adapter sink (ITIR read-model):
+    - `touch /tmp/qg-unification-stage2/itir.sqlite`
+    - `python SensibLaw/scripts/qg_unification_to_itir_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite --dry-run`
+    - `python SensibLaw/scripts/qg_unification_to_itir_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
+    - Sample output:
+      ```json
+      {
+        "artifact_path": "/tmp/qg-unification-stage2/qg_unification_run_demo-1.json",
+        "dry_run": true,
+        "run_id": "demo-1",
+        "status": "ready",
+        "trace_id": "trace-demo-001"
+      }
+      ```
+  - Stage-3b adapter sink (TiRC/transcript capture):
+    - `python SensibLaw/scripts/qg_unification_to_tirc_capture_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite --dry-run`
+    - `python SensibLaw/scripts/qg_unification_to_tirc_capture_db.py --run-id demo-1 --bridge-db /tmp/qg-unification-stage2/qg_unification.sqlite --itir-db /tmp/qg-unification-stage2/itir.sqlite`
+    - Sample output:
+      ```json
+      {
+        "run_id": "demo-1",
+        "session_id": "qg-unification:demo-1:capture-session",
+        "status": "ready",
+        "utterance_count": 1
+      }
+      ```
+  - Full run wrapper:
+    - `bash SensibLaw/scripts/run_qg_unification_to_tirc_capture.sh --run-id demo-1 --out-dir /tmp/qg-unification-stage2`
 
 ## Project layout
 

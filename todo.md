@@ -70,7 +70,7 @@
   additions remain review-gated).
 
 ## Medium-Term Targets
-- [ ] Adopt `sensiblaw.interfaces.shared_reducer` as the explicit supported
+- [x] Adopt `sensiblaw.interfaces.shared_reducer` as the explicit supported
   cross-product reducer surface and move SB/TiRC/ITIR consumers onto it
   instead of relying on internal `src.text.*` imports or opaque fixture-only
   boundary assumptions.
@@ -80,10 +80,26 @@
   boundary reference:
   - preserve the proposed `DA51 (empirical) → SL (canonical structure) → Agda (formal proof)` contract shape
   - preserve the `DA51Trace` fields (`da51`, `exponents`, `hot`, `cold`, `mass`, `steps`, `basin`, `j_fixed`)
-  - avoid implementation until a minimal prototype and external adapter are explicitly approved.
-- [ ] Add cross-product adapter consumers one path at a time:
-  first a real SB ingest/read-model path, then a TiRC transcript/capture path,
-  then any ITIR-facing UI/report producers that need canonical refs.
+  - note that this remains non-authoritative and private until JMD confirms any
+    additional mapping context; do not publish private mapping details.
+  - implement minimal prototype and adapter stubs in `src/qg_unification.py`.
+- [x] Move to phase-1 adapter wiring once external adapter approvals are explicit:
+  first DA51-like staged input -> `TraceVector` -> typed dependency envelope.
+  - Added stage-2 staged artifact bridge output in
+    `SensibLaw/scripts/qg_unification_stage2_bridge.py` (persisting run-id
+    keyed artifacts).
+- [x] Add cross-product adapter consumers one path at a time:
+  - added a first-path read-model adapter to persist staged QG runs into an
+    ITIR-facing DB table:
+    - `SensibLaw/scripts/qg_unification_to_itir_db.py`
+    - `--bridge-db` + `--run-id` + `--itir-db` + `--dry-run`
+    - data lands in `qg_unification_runs` using deterministic upsert semantics
+  - added TiRC transcript/capture adapter sink:
+    - `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py`
+    - creates transcript-like session/utterance rows in destination DB
+    - deterministic run-id mapped records in `qg_tirc_capture_runs`,
+      `qg_tirc_capture_sessions`, and `qg_tirc_capture_utterances`
+  - next path: ITIR-facing UI/report producers needing canonical refs.
 - [ ] Bridge the new random-page general-text timeline readiness harness into
   the canonical fact-intake observation/event seam. The current harness should
   prove `snapshot -> timeline candidates -> AAO events`; the next step is a

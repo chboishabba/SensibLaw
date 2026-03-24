@@ -1,0 +1,654 @@
+{
+  "fixture_kind": "gwb_broader_promotion_diagnostics",
+  "seed_diagnostics": [
+    {
+      "action_summary": "Congressional subpoena and immunity litigation lane",
+      "families": [
+        {
+          "candidate_event_count": 8,
+          "confidence_counts": {
+            "abstain": 6,
+            "low": 2
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0098",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref",
+                "institution_ref"
+              ],
+              "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0257",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref",
+                "institution_ref"
+              ],
+              "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0002",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref"
+              ],
+              "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "litigation_and_subpoena",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation"
+    },
+    {
+      "action_summary": "Department of Defense institutional review lane",
+      "families": [
+        {
+          "candidate_event_count": 1,
+          "confidence_counts": {
+            "abstain": 1
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0006",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "In May 1968, two weeks before his graduation from Yale and the expiration of his student draft deferment, Bush applied as a pilot trainee in the Texas Air National Guard, whose members were less likely than regular soldiers to fight in the Vietnam War . Commissioned a second lieu"
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "direct"
+        },
+        {
+          "candidate_event_count": 2,
+          "confidence_counts": {
+            "abstain": 2
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0043",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "Baker does a much more comprehensive job of documenting Bush\u2019s irresponsible behavior in his youth than did every journalist in Texas that had heard stories of pregnant girlfriends, secret abortions, drunk driving, and walking away from an officer\u2019s commission in the Texas Air Na"
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0106",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "Bush - Born July 6, 1946; New Haven, CT - Yale University BA 1968; Harvard Business School MBA 1975 - Member Skull and Bones - Texas Air National Guard 1968 - Alabama Air National Guard 1972 - Married Laura Welch, 1977 - Candidate for U.S."
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "institutional_anchor",
+      "seed_id": "gwb_us_law:defense_executive_operations"
+    },
+    {
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "families": [
+        {
+          "candidate_event_count": 19,
+          "confidence_counts": {
+            "low": 19
+          },
+          "matched_event_count": 10,
+          "review_status": "matched",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0002",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Bush is the 43rd president of the United States (2001\u201309), who led his country\u2019s response to the September 11 terrorist attacks in 2001 and initiated the Iraq War in 2003. He won the presidency in 2000 over Vice President Al Gore in one of the closest and most-controversial elect"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0003",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Bush initiated what he called the \u201c war on terrorism ,\u201d portrayed as an American-led global counterterrorism campaign launched in response to the terrorist attacks of September 11, 2001 . Included were the Afghanistan (2001\u201314) and Iraq (2003\u201311) wars. Also, his administration sp"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0004",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "(more) See all videos for this article Bush (born July 6, 1946, New Haven , Connecticut , U.S.) is the 43rd president of the United States (2001\u201309), who led his country\u2019s response to the September 11 terrorist attacks in 2001 and initiated the Iraq War in 2003. Narrowly winning "
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "broad_cue"
+        },
+        {
+          "candidate_event_count": 20,
+          "confidence_counts": {
+            "abstain": 5,
+            "low": 15
+          },
+          "matched_event_count": 6,
+          "review_status": "matched",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0081",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "In the immediate aftermath of Iraq\u2019s August 1990 invasion of Kuwait, who in America envisioned or called for the dispatch of 500,000 American soldiers to the sands of Saudi Arabia who were prepared to reverse it?"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0089",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "All this was afire with political controversy (the resolution authorizing the use of force passed the Senate by only five votes; his son\u2019s 2002 Iraq vote would pass by fifty). That was the context in which, barely a week before the 1990 mid- term elections, Bush decided to double"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0131",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "The litany of Bush disasters was as dismally familiar as the brash one-liners that accompanied them: the failed pursuit of Osama bin Laden (\u201cWanted: Dead or Alive\u201d); the bungled federal response to Katrina (\u201cHeck-uva job, Brownie\u201d); the mishandled occupation of Iraq (\u201cMission Acc"
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "broad_cue"
+        }
+      ],
+      "linkage_kind": "congressional_authority",
+      "seed_id": "gwb_us_law:iraq_2002_authorization"
+    },
+    {
+      "action_summary": "Military commissions and detainee-review lane",
+      "families": [
+        {
+          "candidate_event_count": 3,
+          "confidence_counts": {
+            "low": 3
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0041",
+              "matched": false,
+              "receipt_kinds": [
+                "court_ref",
+                "provenance_cue_broad"
+              ],
+              "text": "The election spurred weeks of litigation, ultimately settled by the U.S. Supreme Court, making it one of the most controversial elections in American history. Bush launched his administration against one of the most polarized political landscapes in recent memory."
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0012",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "The general election result hinged on the state of Florida. Due to the closeness of the vote, a recount was conducted and was contested in federal court. In a controversial decision, the Supreme Court ordered Florida to stop a subsequent recount of the ballots. Bush won the Elect"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0020",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Bush announced his candidacy for the Presidency of the United States. His opponent in the 2000 election was Vice President Albert Gore. Though the Presidential election was held November 7, 2000, the final outcome was not known until December 12, 2000, when the Supreme Court deci"
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "broad_cue"
+        },
+        {
+          "candidate_event_count": 3,
+          "confidence_counts": {
+            "low": 3
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0029",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "The Offered Hand and the Veto Fist: George Bush, Congress, and Domestic Policy Making Barbara Sinclair 143 7. From Oral History to Oral Argument: George Bush\u2019s Supreme Court Appointments Barbara A. Perry and Henry J. Abraham 167 Conclusion: Navigating the Crosswinds of Modern Pol"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0205",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "They were joined by Professors Bartholomew Sparrow, Jeffrey Engel, and Robert Strong, who spoke on war and statecraft; Michael Nelson and Hugh Heclo on Bush\u2019s conservatism; and Barbara Sinclair, Barbara Perry, and Henry Abraham on relations with Congress and the Supreme Court. C-"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0266",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Ryan of the Campaign Legal Center said: \u201cThe Supreme Court has recognized that a check above $2,700 directly to someone who admits they are a candidate could corrupt them and therefore can be limited. But we\u2019re to believe that the corruptive potential is miraculously washed from "
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "broad_cue"
+        }
+      ],
+      "linkage_kind": "statute_and_litigation",
+      "seed_id": "gwb_us_law:military_commissions_2006"
+    },
+    {
+      "action_summary": "NSA surveillance and review/litigation lane",
+      "families": [
+        {
+          "candidate_event_count": 4,
+          "confidence_counts": {
+            "abstain": 4
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0083",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "The Obama White House is also investing American taxpayer funds in auto manufacturing firms that the market appears to have already decided no longer have a viable product. Warrantless surveillance, which he condemned on the campaign trail, lingers and risks infecting the integri"
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0226",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "He functioned as a de facto lobbyist for both the corrupt health care company IMC as well as housing builder Camilio Padrera, lobbying Cabinet members for administrative favors while carefully cloaking his compensation as \u201creal estate fees.\u201d 7 Virtually every one of Jeb\u2019s failed "
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0289",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "After a third- place finish in the Iowa caucuses, behind Senator Robert Dole of Kansas and televangelist Pat Robertson, the vice president decided to hew especially closely to Reagan\u2019s economic policies. Although he had once dismissed Reagan\u2019s pro- posal for massive tax cuts as \u201c"
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "statute_and_litigation",
+      "seed_id": "gwb_us_law:nsa_surveillance_review"
+    },
+    {
+      "action_summary": "SCHIP veto and congressional funding lane",
+      "families": [
+        {
+          "candidate_event_count": 9,
+          "confidence_counts": {
+            "low": 9
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0008",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "from Harvard in 1975, Bush returned to Midland, where he began working for a Bush family friend, an oil and gas attorney, and later started his own oil and gas firm. He married Laura Welch , a teacher and librarian, in Midland in 1977. After an unsuccessful run for Congress in 19"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0016",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "After Congress failed to pass a bill to provide support to banks, the stock market crashed on September 29, 2008, with the Dow Jones falling 777 points in one day."
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0018",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Bush Presidential Library maintains over 47,000 artifacts, primarily foreign and domestic gifts given to the President and Mrs. Laura Bush, and other items obtained throughout the Presidency. and Laura Bush campaigned from the back of a pickup truck for the 1978 Congressional rac"
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "broad_cue"
+        },
+        {
+          "candidate_event_count": 14,
+          "confidence_counts": {
+            "abstain": 5,
+            "low": 9
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0098",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref",
+                "institution_ref"
+              ],
+              "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0257",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref",
+                "institution_ref"
+              ],
+              "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0110",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref",
+                "provenance_cue_broad"
+              ],
+              "text": "House of Representatives 1978 (defeated) - Founded Arbusto Energy (later changed to Bush Exploration) - Co-owned the Texas Rangers 1989\u20131998 - 46th Governor of Texas 1995\u20132000 - Proclaimed June 10, 2000 to be Jesus Day - 43rd US President 2001\u20132009 John Ellis \u201cJeb\u201d Bush - Born Fe"
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "broad_cue"
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "seed_id": "gwb_us_law:schip_veto"
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "families": [
+        {
+          "candidate_event_count": 1,
+          "confidence_counts": {
+            "low": 1
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0029",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "The Offered Hand and the Veto Fist: George Bush, Congress, and Domestic Policy Making Barbara Sinclair 143 7. From Oral History to Oral Argument: George Bush\u2019s Supreme Court Appointments Barbara A. Perry and Henry J. Abraham 167 Conclusion: Navigating the Crosswinds of Modern Pol"
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "broad_cue"
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act"
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "families": [
+        {
+          "candidate_event_count": 3,
+          "confidence_counts": {
+            "low": 3
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0041",
+              "matched": false,
+              "receipt_kinds": [
+                "court_ref",
+                "provenance_cue_broad",
+                "provenance_cue_broad"
+              ],
+              "text": "The election spurred weeks of litigation, ultimately settled by the U.S. Supreme Court, making it one of the most controversial elections in American history. Bush launched his administration against one of the most polarized political landscapes in recent memory."
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0012",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "The general election result hinged on the state of Florida. Due to the closeness of the vote, a recount was conducted and was contested in federal court. In a controversial decision, the Supreme Court ordered Florida to stop a subsequent recount of the ballots. Bush won the Elect"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0020",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Bush announced his candidacy for the Presidency of the United States. His opponent in the 2000 election was Vice President Albert Gore. Though the Presidential election was held November 7, 2000, the final outcome was not known until December 12, 2000, when the Supreme Court deci"
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "broad_cue"
+        },
+        {
+          "candidate_event_count": 9,
+          "confidence_counts": {
+            "abstain": 6,
+            "low": 3
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0002",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref"
+              ],
+              "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0090",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref"
+              ],
+              "text": "Army 1917\u20131919 - Married Dorothy Walker, 1921 - Vice president investment bank A. Harriman & Co. 1924 - Partner Brown Brothers Harriman 1931 - Founding member and director in Union Banking Corporation - Treasurer of first Planned Parenthood campaign 1947 - Chairman United Negro C"
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0094",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref"
+              ],
+              "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "broad_cue"
+        }
+      ],
+      "linkage_kind": "court_and_confirmation",
+      "seed_id": "gwb_us_law:supreme_court_appointments"
+    }
+  ],
+  "source_family_summaries": [
+    {
+      "ambiguous_event_count": 12,
+      "candidate_only_seed_count": 4,
+      "matched_seed_count": 1,
+      "mention_heavy_events": [
+        {
+          "event_id": "ev:0025",
+          "match_count": 1,
+          "mention_count": 4,
+          "text": "In the 2004 election, President George W. Bush faced Senator John Kerry of Massachusetts. President Bush was re-elected for a second term, and inaugurated January 20, 2005. Iraq also held its elections \u2013 the first free elections in the country \u2013 in January 2005. Laura Bush and gu"
+        },
+        {
+          "event_id": "ev:0020",
+          "match_count": 2,
+          "mention_count": 3,
+          "text": "Bush announced his candidacy for the Presidency of the United States. His opponent in the 2000 election was Vice President Albert Gore. Though the Presidential election was held November 7, 2000, the final outcome was not known until December 12, 2000, when the Supreme Court deci"
+        },
+        {
+          "event_id": "ev:0027",
+          "match_count": 2,
+          "mention_count": 3,
+          "text": "President Bush also led efforts to provide more than $3.3 billion to the Global Fund to Fight AIDS, Tuberculosis, and Malaria. Bush worked together to establish the Preserve America Initiative and the National Parks Centennial Initiative, and the President asked Congress to provi"
+        },
+        {
+          "event_id": "ev:0041",
+          "match_count": 2,
+          "mention_count": 3,
+          "text": "The election spurred weeks of litigation, ultimately settled by the U.S. Supreme Court, making it one of the most controversial elections in American history. Bush launched his administration against one of the most polarized political landscapes in recent memory."
+        },
+        {
+          "event_id": "ev:0003",
+          "match_count": 1,
+          "mention_count": 3,
+          "text": "Bush initiated what he called the \u201c war on terrorism ,\u201d portrayed as an American-led global counterterrorism campaign launched in response to the terrorist attacks of September 11, 2001 . Included were the Afghanistan (2001\u201314) and Iraq (2003\u201311) wars. Also, his administration sp"
+        }
+      ],
+      "promoted_relation_count": 0,
+      "relation_candidate_count": 3,
+      "source_family": "public_bios_timeline",
+      "text_debug_unavailable_reason": "",
+      "timeline_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json",
+      "top_unresolved_surfaces": [
+        "White House",
+        "the President",
+        "Bush administration",
+        "White House",
+        "the President",
+        "the President",
+        "Bush administration",
+        "Bush administration"
+      ],
+      "unmatched_seed_count": 6,
+      "unresolved_mention_count": 9
+    },
+    {
+      "ambiguous_event_count": 15,
+      "candidate_only_seed_count": 7,
+      "matched_seed_count": 1,
+      "mention_heavy_events": [
+        {
+          "event_id": "ev:0257",
+          "match_count": 4,
+          "mention_count": 7,
+          "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+        },
+        {
+          "event_id": "ev:0098",
+          "match_count": 4,
+          "mention_count": 6,
+          "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
+        },
+        {
+          "event_id": "ev:0002",
+          "match_count": 4,
+          "mention_count": 4,
+          "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
+        },
+        {
+          "event_id": "ev:0094",
+          "match_count": 4,
+          "mention_count": 4,
+          "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
+        },
+        {
+          "event_id": "ev:0232",
+          "match_count": 4,
+          "mention_count": 4,
+          "text": "Senior Open. In 1950, Gampy, as we all called him, ran for the Senate. He lost by just over a thousand votes and swore off politics. But two years later, Connecticut Republicans persuaded him to try again. This time he won. My grandparents, Prescott and Dorothy Walker Bush, campa"
+        }
+      ],
+      "promoted_relation_count": 0,
+      "relation_candidate_count": 3,
+      "source_family": "corpus_book_timeline",
+      "text_debug_unavailable_reason": "",
+      "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
+      "top_unresolved_surfaces": [
+        "White House",
+        "White House",
+        "White House",
+        "the President",
+        "White House",
+        "the President",
+        "the President",
+        "the President"
+      ],
+      "unmatched_seed_count": 3,
+      "unresolved_mention_count": 34
+    }
+  ],
+  "summary": {
+    "broader_seed_diagnostic_count": 8,
+    "core_reading": "Broader GWB sources are producing linkage support, but almost no text-rich semantically anchorable events yet.",
+    "families_with_matched_seed_support": 2,
+    "families_with_promoted_relations": 0,
+    "families_with_relation_candidates": 2,
+    "source_family_count": 2
+  },
+  "version": "gwb_broader_promotion_diagnostics_v1"
+}

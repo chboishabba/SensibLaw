@@ -1,0 +1,566 @@
+{
+  "fixture_kind": "broader_gwb_corpus_checkpoint",
+  "merged_promoted_relations": [
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "actor:harriet_miers",
+        "canonical_label": "Harriet Miers",
+        "entity_id": 4,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "nominated",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "actor:john_roberts",
+        "canonical_label": "John Roberts",
+        "entity_id": 2,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "nominated",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "actor:samuel_alito",
+        "canonical_label": "Samuel Alito",
+        "entity_id": 3,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "nominated",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "medium"
+      ],
+      "object": {
+        "canonical_key": "actor:sixth_circuit",
+        "canonical_label": "United States Court of Appeals for the Sixth Circuit",
+        "entity_id": 10,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "medium"
+      ],
+      "object": {
+        "canonical_key": "actor:united_states_district_court",
+        "canonical_label": "United States district court",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:genetic_information_nondiscrimination_act",
+        "canonical_label": "Genetic Information Nondiscrimination Act",
+        "entity_id": 21,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:military_commissions_act",
+        "canonical_label": "Military Commissions Act",
+        "entity_id": 18,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:military_commissions_act_of_2006",
+        "canonical_label": "Military Commissions Act of 2006",
+        "entity_id": 17,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:syria_accountability_act",
+        "canonical_label": "Syria Accountability Act",
+        "entity_id": 15,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "medium"
+      ],
+      "object": {
+        "canonical_key": "actor:u_s_supreme_court",
+        "canonical_label": "Supreme Court of the United States",
+        "entity_id": 8,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "subject_of_review_by",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:schip",
+        "canonical_label": "SCHIP",
+        "entity_id": 20,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:state_children_s_health_insurance_program",
+        "canonical_label": "State Children's Health Insurance Program",
+        "entity_id": 19,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:stem_cell_research_enhancement_act",
+        "canonical_label": "Stem Cell Research Enhancement Act",
+        "entity_id": 16,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "actor:u_s_senate",
+        "canonical_label": "U.S. Senate",
+        "entity_id": 5,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "confirmed_by",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:john_roberts",
+        "canonical_label": "John Roberts",
+        "entity_id": 2,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "actor:u_s_senate",
+        "canonical_label": "U.S. Senate",
+        "entity_id": 5,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "confirmed_by",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:samuel_alito",
+        "canonical_label": "Samuel Alito",
+        "entity_id": 3,
+        "entity_kind": "actor"
+      }
+    }
+  ],
+  "merged_seed_lanes": [
+    {
+      "action_summary": "Clear Skies legislative and Clean Air amendment lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:clear_skies_2003",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "Congressional subpoena and immunity litigation lane",
+      "linkage_kind": "litigation_and_subpoena",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_families": [
+        "checked_handoff",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "Department of Defense institutional review lane",
+      "linkage_kind": "institutional_anchor",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "Genetic discrimination legislation lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "linkage_kind": "congressional_authority",
+      "matched_source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "broad_cue"
+      ]
+    },
+    {
+      "action_summary": "Military commissions and detainee-review lane",
+      "linkage_kind": "statute_and_litigation",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "broad_cue"
+      ]
+    },
+    {
+      "action_summary": "NSA surveillance and review/litigation lane",
+      "linkage_kind": "statute_and_litigation",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "source_families": [
+        "checked_handoff",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "SCHIP veto and congressional funding lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "broad_cue"
+      ]
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_families": [
+        "checked_handoff",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "broad_cue"
+      ]
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "linkage_kind": "court_and_confirmation",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched",
+        "candidate_only"
+      ],
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_families": [
+        "checked_handoff",
+        "public_bios_timeline",
+        "corpus_book_timeline"
+      ],
+      "support_kinds": [
+        "broad_cue"
+      ]
+    },
+    {
+      "action_summary": "Syria sanctions legislation lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "checked_handoff"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:syria_accountability_act",
+      "source_families": [
+        "checked_handoff"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    }
+  ],
+  "new_relations_vs_checked_handoff": [],
+  "source_family_summaries": [
+    {
+      "ambiguous_event_count": 9,
+      "matched_seed_lane_count": 11,
+      "promoted_relation_count": 19,
+      "source_family": "checked_handoff",
+      "timeline_path": "SensibLaw/tests/fixtures/zelph/gwb_public_handoff_v1/gwb_public_handoff_v1.slice.json",
+      "unresolved_surface_count": 7
+    },
+    {
+      "ambiguous_event_count": 12,
+      "matched_seed_lane_count": 1,
+      "promoted_relation_count": 0,
+      "source_family": "public_bios_timeline",
+      "timeline_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json",
+      "unresolved_surface_count": 9
+    },
+    {
+      "ambiguous_event_count": 15,
+      "matched_seed_lane_count": 1,
+      "promoted_relation_count": 0,
+      "source_family": "corpus_book_timeline",
+      "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
+      "unresolved_surface_count": 34
+    }
+  ],
+  "summary": {
+    "distinct_promoted_relation_count": 15,
+    "distinct_seed_lane_count": 11,
+    "new_relation_count_vs_checked_handoff": 0,
+    "seed_lanes_supported_in_multiple_families": 1,
+    "source_family_count": 3
+  },
+  "version": "gwb_broader_corpus_checkpoint_v1"
+}

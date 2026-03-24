@@ -2294,6 +2294,136 @@ def _entity_for_key(conn: sqlite3.Connection, canonical_key: str) -> int | None:
     return int(row["entity_id"]) if row else None
 
 
+def _candidate_exists(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    event_id: str,
+    predicate_id: int,
+    object_entity_id: int,
+) -> bool:
+    row = conn.execute(
+        """
+        SELECT 1
+        FROM semantic_relation_candidates
+        WHERE run_id = ? AND event_id = ? AND predicate_id = ? AND object_entity_id = ?
+        LIMIT 1
+        """,
+        (run_id, event_id, predicate_id, object_entity_id),
+    ).fetchone()
+    return row is not None
+
+
+def _load_event_linkage_matches(conn: sqlite3.Connection, *, run_id: str, event_id: str) -> dict[str, dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT m.seed_id, m.confidence, m.matched, r.reason_kind, r.reason_value
+        FROM gwb_us_law_linkage_matches AS m
+        LEFT JOIN gwb_us_law_linkage_match_receipts AS r
+          ON r.run_id = m.run_id AND r.event_id = m.event_id AND r.seed_id = m.seed_id
+        WHERE m.run_id = ? AND m.event_id = ?
+        ORDER BY m.seed_id, r.receipt_order
+        """,
+        (run_id, event_id),
+    ).fetchall()
+    out: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        seed_id = str(row["seed_id"])
+        bucket = out.setdefault(
+            seed_id,
+            {
+                "seed_id": seed_id,
+                "confidence": str(row["confidence"] or ""),
+                "matched": bool(row["matched"]),
+                "receipts": [],
+            },
+        )
+        if row["reason_kind"] is not None:
+            bucket["receipts"].append((str(row["reason_kind"]), str(row["reason_value"])))
+    return out
+
+
+def _broader_source_seed_backfill_allowed(event: Mapping[str, Any]) -> bool:
+    source_id = str(event.get("source_id") or "")
+    return source_id in {"gwb_public_bios_web", "gwb_corpus_local"}
+
+
+def _insert_broader_source_seed_backfill_candidates(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    event_id: str,
+    event: Mapping[str, Any],
+    mention_clusters: Mapping[str, list[int]],
+    entity_ids: Mapping[str, int],
+    predicate_ids: Mapping[str, int],
+) -> None:
+    if not _broader_source_seed_backfill_allowed(event):
+        return
+
+    text = str(event.get("text") or "")
+    text_fold = text.casefold()
+    bush_id = entity_ids.get("actor:george_w_bush")
+    if bush_id is None:
+        return
+
+    linkage_matches = _load_event_linkage_matches(conn, run_id=run_id, event_id=event_id)
+
+    iraq_match = linkage_matches.get("gwb_us_law:iraq_2002_authorization")
+    if iraq_match and iraq_match["matched"] and any(term in text_fold for term in ("authorization", "authorize", "authorized")):
+        legal_title = "Authorization for Use of Military Force Against Iraq Resolution of 2002"
+        legal_key = f"legal_ref:{_slug(legal_title)}"
+        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        if not _candidate_exists(
+            conn,
+            run_id=run_id,
+            event_id=event_id,
+            predicate_id=predicate_ids["authorized"],
+            object_entity_id=legal_id,
+        ):
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="authorized_seed_backfill_v1")
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="authorized_seed_backfill_v1")
+            receipts = [("subject", "George W. Bush"), ("verb", "authorization"), ("cue_surface", "Iraq")]
+            _insert_relation_candidate(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                subject_entity_id=bush_id,
+                predicate_id=predicate_ids["authorized"],
+                object_entity_id=legal_id,
+                confidence_tier="low",
+                receipts=receipts,
+            )
+
+    supreme_court_match = linkage_matches.get("gwb_us_law:supreme_court_appointments")
+    supreme_court_id = entity_ids.get("actor:u_s_supreme_court") or _entity_for_key(conn, "actor:u_s_supreme_court")
+    if (
+        supreme_court_match
+        and supreme_court_id is not None
+        and mention_clusters.get("actor:u_s_supreme_court")
+        and any(term in text_fold for term in ("supreme court", "court decision", "ordered", "recount"))
+    ):
+        if not _candidate_exists(
+            conn,
+            run_id=run_id,
+            event_id=event_id,
+            predicate_id=predicate_ids["subject_of_review_by"],
+            object_entity_id=supreme_court_id,
+        ):
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="forum", entity_id=supreme_court_id, note="subject_of_review_seed_backfill_v1")
+            receipts = [("subject", "George W. Bush"), ("verb", "decision"), ("cue_surface", "Supreme Court")]
+            _insert_relation_candidate(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                subject_entity_id=bush_id,
+                predicate_id=predicate_ids["subject_of_review_by"],
+                object_entity_id=supreme_court_id,
+                confidence_tier="low",
+                receipts=receipts,
+            )
+
+
 def _confidence_rank(confidence_tier: str) -> int:
     return {
         "abstain": 0,
@@ -2652,6 +2782,16 @@ def _extract_event_relations(
                         confidence_tier=_predicate_confidence(conn, "subject_of_review_by", receipts),
                         receipts=receipts,
                     )
+
+    _insert_broader_source_seed_backfill_candidates(
+        conn,
+        run_id=run_id,
+        event_id=event_id,
+        event=event,
+        mention_clusters=mention_clusters,
+        entity_ids=entity_ids,
+        predicate_ids=predicate_ids,
+    )
 
 
 def run_gwb_semantic_pipeline(
