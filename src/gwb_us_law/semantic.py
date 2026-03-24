@@ -974,6 +974,8 @@ _GENERATION_AMBIGUITY_KINSHIP_CUES = frozenset(
     }
 )
 
+_POSSESSIVE_PRONOUNS = frozenset({"his", "her", "their"})
+
 def _slug(text: str) -> str:
     parts: list[str] = []
     previous_sep = True
@@ -1005,6 +1007,10 @@ def _bare_bush_is_generation_ambiguous(text: str) -> bool:
     words = [part for part in _slug(text).split("_") if part]
     if not words:
         return False
+
+    for idx in range(len(words) - 1):
+        if words[idx] in _POSSESSIVE_PRONOUNS and words[idx + 1] in _GENERATION_AMBIGUITY_KINSHIP_CUES:
+            return True
 
     bush_positions = [idx for idx, word in enumerate(words) if word == "bush"]
     if not bush_positions:
@@ -2304,7 +2310,7 @@ def _detect_mentions_for_event(
                 continue
             if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _text_contains_phrase(text, "Bush administration"):
                 continue
-            if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _bare_bush_is_generation_ambiguous(text):
+            if seed.canonical_key == "actor:george_w_bush" and alias in {"Bush", "George Bush"} and _bare_bush_is_generation_ambiguous(text):
                 cluster_id, _ = _insert_cluster_and_resolution(
                     conn,
                     run_id=run_id,

@@ -561,6 +561,30 @@ def test_score_snapshot_payload_handles_nested_wikitext_payload() -> None:
     assert row["article_sentence_count"] >= 1
 
 
+def test_score_snapshot_payload_preserves_string_wikitext_structure() -> None:
+    row = score_snapshot_payload(
+        {
+            "title": "Structured Wikitext",
+            "source_url": "https://en.wikipedia.org/wiki/Structured_Wikitext",
+            "wikitext": (
+                "{{Short description|Example}}\n"
+                "'''Structured Wikitext''' is a sample article.\n\n"
+                "== Biography ==\n"
+                "She wrote a novel in 1990.\n"
+                "In 2009 she won an award."
+            ),
+            "links": ["Novel"],
+        },
+        follow_rows=[],
+        max_follow_links_per_page=1,
+        no_spacy=True,
+    )
+
+    assert row["article_sentence_count"] >= 2
+    assert row["observation_count"] >= row["article_aao_event_count"]
+    assert "no_article_sentences" not in row["issues"]
+
+
 def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     strong_path = _write_snapshot(
         tmp_path,

@@ -19,16 +19,20 @@ def test_father_era_bush_surface_abstains_in_corpus() -> None:
         )
     )
     _, semantic = _build_reports(timeline_payload=payload)
-    event = next(row for row in semantic["per_event"] if row["event_id"] == "ev:0089")
+    event = next(
+        row
+        for row in semantic["per_event"]
+        if "his son" in str(row.get("text") or "").lower() and "iraq vote" in str(row.get("text") or "").lower()
+    )
     mentions = list(event.get("mentions", []))
     assert any(
-        mention["surface_text"] == "Bush"
+        mention["surface_text"] in {"Bush", "George Bush"}
         and mention["resolution_status"] == "abstained"
         and mention["resolution_rule"] == "generation_disambiguation_required_v1"
         for mention in mentions
     )
     assert not any(
-        mention["surface_text"] == "Bush"
+        mention["surface_text"] in {"Bush", "George Bush"}
         and mention["resolution_status"] == "resolved"
         and (mention.get("resolved_entity") or {}).get("canonical_key") == "actor:george_w_bush"
         for mention in mentions

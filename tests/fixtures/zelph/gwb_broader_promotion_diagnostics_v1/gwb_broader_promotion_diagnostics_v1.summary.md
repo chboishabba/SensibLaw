@@ -9,14 +9,14 @@ seed support without widening promoted relation coverage.
 - Families with matched seed support: 2
 - Families with relation candidates: 2
 - Families with promoted relations: 2
-- Diagnostic seed lanes captured: 10
+- Diagnostic seed lanes captured: 11
 
-- Reading: Broader GWB sources now yield three clean promoted relation families, but most broader-source lanes remain linkage-heavy and semantics-light.
+- Reading: Broader GWB sources now yield several promoted relations across public-bios and corpus lanes, but most broader-source lanes remain linkage-heavy and semantics-light.
 
 ## Per-family diagnosis
 
 - public_bios_timeline: matched_seed_count=3, candidate_only_seed_count=4, relation_candidate_count=8, promoted_relation_count=8, unresolved_mention_count=12.
-- corpus_book_timeline: matched_seed_count=1, candidate_only_seed_count=7, relation_candidate_count=3, promoted_relation_count=3, unresolved_mention_count=72.
+- corpus_book_timeline: matched_seed_count=5, candidate_only_seed_count=4, relation_candidate_count=33, promoted_relation_count=32, unresolved_mention_count=91.
 
 ## Practical reading
 

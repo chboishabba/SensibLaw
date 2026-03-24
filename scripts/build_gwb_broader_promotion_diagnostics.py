@@ -138,7 +138,7 @@ def _build_summary(family_summaries: list[dict[str, Any]], seed_diagnostics: lis
         "families_with_relation_candidates": sum(1 for row in family_summaries if row["relation_candidate_count"] > 0),
         "families_with_promoted_relations": sum(1 for row in family_summaries if row["promoted_relation_count"] > 0),
         "broader_seed_diagnostic_count": len(seed_diagnostics),
-        "core_reading": "Broader GWB sources now yield three clean promoted relation families, but most broader-source lanes remain linkage-heavy and semantics-light.",
+        "core_reading": "Broader GWB sources now yield several promoted relations across public-bios and corpus lanes, but most broader-source lanes remain linkage-heavy and semantics-light.",
     }
 
 

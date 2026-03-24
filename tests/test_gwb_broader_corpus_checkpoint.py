@@ -20,9 +20,10 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
 
     assert slice_payload["version"] == "gwb_broader_corpus_checkpoint_v1"
     assert summary["source_family_count"] == 3
-    assert summary["distinct_promoted_relation_count"] >= 12
+    assert summary["distinct_promoted_relation_count"] >= 18
     assert summary["distinct_seed_lane_count"] == 13
-    assert summary["new_relation_count_vs_checked_handoff"] >= 2
+    assert summary["new_relation_count_vs_checked_handoff"] >= 3
+    assert summary["seed_lanes_supported_in_multiple_families"] >= 5
 
     source_families = {row["source_family"] for row in slice_payload["source_family_summaries"]}
     assert source_families == {"checked_handoff", "public_bios_timeline", "corpus_book_timeline"}
@@ -42,5 +43,9 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
     assert any(
         row["predicate_key"] == "signed"
         and row["object"]["canonical_key"] == "legal_ref:northwestern_hawaiian_islands_marine_national_monument"
+        for row in merged_relations
+    )
+    assert any(
+        row["predicate_key"] == "ruled_by" and row["source_families"] == ["corpus_book_timeline"]
         for row in merged_relations
     )

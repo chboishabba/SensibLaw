@@ -18,8 +18,19 @@
   - Replaced the earlier broader-source alias inflation with one canonical NCLB
     legal-ref target, so the broader checkpoint records one real new promoted
     family rather than two title variants.
+  - Fixed `scripts/gwb_corpus_timeline_build.py` by importing `re`, filtering
+    more TOC/index noise, and prioritizing legally salient sentences across the
+    full corpus text instead of mostly front-loading early-book material.
+  - That corpus shaping now surfaces real `Decision Points` legal snippets
+    (FISA, Harriet Miers, Supreme Court material, military-tribunal passages),
+    which lifts the corpus/book lane from a weak broad-cue surface to real
+    broader-source nomination/review confirmations and one new merged relation:
+    `George W. Bush -> ruled_by -> Supreme Court of the United States`.
+  - Tightened generation ambiguity handling so father-era corpus passages with
+    explicit global kinship cues like `his son` no longer overresolve `Bush` or
+    `George Bush` to `actor:george_w_bush`.
   - Updated broader GWB diagnostics/checkpoint artifacts and tests; current
-    merged checkpoint now reports `17` distinct promoted relations and `2` new
+    merged checkpoint now reports `18` distinct promoted relations and `3` new
     distinct promoted relations beyond the checked handoff.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order

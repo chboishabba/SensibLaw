@@ -5,42 +5,39 @@
       "action_summary": "Congressional subpoena and immunity litigation lane",
       "families": [
         {
-          "candidate_event_count": 8,
+          "candidate_event_count": 10,
           "confidence_counts": {
-            "abstain": 6,
-            "low": 2
+            "abstain": 10
           },
           "matched_event_count": 0,
           "review_status": "candidate_only",
           "sample_events": [
             {
-              "confidence": "low",
-              "event_id": "ev:0098",
+              "confidence": "abstain",
+              "event_id": "ev:0022",
               "matched": false,
               "receipt_kinds": [
-                "institution_ref",
                 "institution_ref"
               ],
-              "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
-            },
-            {
-              "confidence": "low",
-              "event_id": "ev:0257",
-              "matched": false,
-              "receipt_kinds": [
-                "institution_ref",
-                "institution_ref"
-              ],
-              "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+              "text": "A distinguished group of approximately 125 associates of yours, including the Chief Justice of the Texas Supreme Court, expressed assurance that you are a righteous man. Elimination of German Resources for War; Hearings Before a Subcommittee of the Committee on Military Affairs, "
             },
             {
               "confidence": "abstain",
-              "event_id": "ev:0002",
+              "event_id": "ev:0026",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref"
               ],
-              "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
+              "text": "\u201cElimination of German Resources for War ,\u201d Hearings Before a Subcommittee of the Committee on Military Affairs, United States Senate, Seventy-Ninth Congress, July 2, 1945. Senate, an act of courage."
+            },
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0034",
+              "matched": false,
+              "receipt_kinds": [
+                "institution_ref"
+              ],
+              "text": "Senate 1950 (defeated) - Republican candidate U.S. Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. Senate 1964 (defeated) - Member U.S. Senate 1970 (defeated) - UN Ambassador 1971\u20131973 - Chairman of the Republican National Committee 1973\u20131974 - US"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -75,30 +72,43 @@
           "support_kind": "direct"
         },
         {
-          "candidate_event_count": 2,
+          "candidate_event_count": 4,
           "confidence_counts": {
-            "abstain": 2
+            "abstain": 1,
+            "medium": 3
           },
-          "matched_event_count": 0,
-          "review_status": "candidate_only",
+          "matched_event_count": 3,
+          "review_status": "matched",
           "sample_events": [
             {
-              "confidence": "abstain",
-              "event_id": "ev:0043",
-              "matched": false,
+              "confidence": "medium",
+              "event_id": "ev:0028",
+              "matched": true,
               "receipt_kinds": [
+                "institution_ref",
                 "provenance_cue"
               ],
-              "text": "Baker does a much more comprehensive job of documenting Bush\u2019s irresponsible behavior in his youth than did every journalist in Texas that had heard stories of pregnant girlfriends, secret abortions, drunk driving, and walking away from an officer\u2019s commission in the Texas Air Na"
+              "text": "Truman forged the NATO alliance; signed the National Security Act of 1947, which created the CIA, the National Security Council, and the Defense Department; fought an unpopular war that enabled the rise of a democratic ally in South Korea; and pledged assistance to all countries "
             },
             {
-              "confidence": "abstain",
-              "event_id": "ev:0106",
-              "matched": false,
+              "confidence": "medium",
+              "event_id": "ev:0102",
+              "matched": true,
               "receipt_kinds": [
+                "institution_ref",
                 "provenance_cue"
               ],
-              "text": "Bush - Born July 6, 1946; New Haven, CT - Yale University BA 1968; Harvard Business School MBA 1975 - Member Skull and Bones - Texas Air National Guard 1968 - Alabama Air National Guard 1972 - Married Laura Welch, 1977 - Candidate for U.S."
+              "text": "I was volunteering for the New York campaign of Jim Buckley for the Senate at the time, and I recall spending election night with Pete. Glen Beall snagged a Senate seat in Maryland, Lowell Weicker (then a Nixon man) won in Connecticut over Reverend Joe Duffy, a far-left anti-war "
+            },
+            {
+              "confidence": "medium",
+              "event_id": "ev:0208",
+              "matched": true,
+              "receipt_kinds": [
+                "institution_ref",
+                "provenance_cue"
+              ],
+              "text": "More than a decade after the Berlin Wall fell, much of the Defense Department was still designed for fighting the Cold War. He didn\u2019t gain my confidence, nor did he build credibility with the financial community, Congress, or his colleagues in the administration. But when the deb"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -107,6 +117,34 @@
       ],
       "linkage_kind": "institutional_anchor",
       "seed_id": "gwb_us_law:defense_executive_operations"
+    },
+    {
+      "action_summary": "Genetic discrimination legislation lane",
+      "families": [
+        {
+          "candidate_event_count": 1,
+          "confidence_counts": {
+            "abstain": 1
+          },
+          "matched_event_count": 0,
+          "review_status": "candidate_only",
+          "sample_events": [
+            {
+              "confidence": "abstain",
+              "event_id": "ev:0247",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue"
+              ],
+              "text": "17 At one congressional hearing, former FDA chief counsel Peter Barton Hutt said the agency was \u201cbarely hanging on by its fingertips.\u201d He begged for more funding and skilled personnel. vetoed the State Children\u2019s Health Insurance Program (S-CHIP), which would have utilized an inc"
+            }
+          ],
+          "source_family": "corpus_book_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act"
     },
     {
       "action_summary": "Iraq war authorization and related executive decision path",
@@ -151,22 +189,22 @@
           "support_kind": "broad_cue"
         },
         {
-          "candidate_event_count": 20,
+          "candidate_event_count": 170,
           "confidence_counts": {
             "abstain": 5,
-            "low": 15
+            "low": 165
           },
-          "matched_event_count": 6,
+          "matched_event_count": 38,
           "review_status": "matched",
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0081",
+              "event_id": "ev:0041",
               "matched": true,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "In the immediate aftermath of Iraq\u2019s August 1990 invasion of Kuwait, who in America envisioned or called for the dispatch of 500,000 American soldiers to the sands of Saudi Arabia who were prepared to reverse it?"
+              "text": "After Nixon resigned in 1974, his successor, Gerald Ford, asked Bush to serve as the chief of the U.S. Clearly in the court of public opinion, George H. Bush, as it grew in the aftermath of the Iraq inva- sion and Hurricane Katrina, had the effect of pulling down his father\u2019s rat"
             },
             {
               "confidence": "low",
@@ -175,16 +213,16 @@
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "All this was afire with political controversy (the resolution authorizing the use of force passed the Senate by only five votes; his son\u2019s 2002 Iraq vote would pass by fifty). That was the context in which, barely a week before the 1990 mid- term elections, Bush decided to double"
+              "text": "To be sure, this pattern was not perfectly replicated following the wars in Korea, Vietnam, and Iraq, because in these instances the nation still found itself confronted by the perils of a protracted low-intensity conflict."
             },
             {
               "confidence": "low",
-              "event_id": "ev:0131",
+              "event_id": "ev:0105",
               "matched": true,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "The litany of Bush disasters was as dismally familiar as the brash one-liners that accompanied them: the failed pursuit of Osama bin Laden (\u201cWanted: Dead or Alive\u201d); the bungled federal response to Katrina (\u201cHeck-uva job, Brownie\u201d); the mishandled occupation of Iraq (\u201cMission Acc"
+              "text": "According HISTORY AND GEORGE BUSH 19 to Musallam Ali Musallam, \u201cIf a Cold War situation had existed, in which U.S.-Soviet tensions were acute, it is difficult to imagine Saddam Hussein\u2019s Iraq, a client of the Soviet Union, invading a major oil-producing state friendly to the Unit"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -238,39 +276,45 @@
           "support_kind": "broad_cue"
         },
         {
-          "candidate_event_count": 3,
+          "candidate_event_count": 29,
           "confidence_counts": {
-            "low": 3
+            "abstain": 1,
+            "high": 1,
+            "low": 27
           },
-          "matched_event_count": 0,
-          "review_status": "candidate_only",
+          "matched_event_count": 1,
+          "review_status": "matched",
           "sample_events": [
             {
-              "confidence": "low",
-              "event_id": "ev:0029",
-              "matched": false,
+              "confidence": "high",
+              "event_id": "ev:0100",
+              "matched": true,
               "receipt_kinds": [
+                "authority_title",
+                "authority_title",
+                "provenance_cue",
+                "provenance_cue",
                 "provenance_cue_broad"
               ],
-              "text": "The Offered Hand and the Veto Fist: George Bush, Congress, and Domestic Policy Making Barbara Sinclair 143 7. From Oral History to Oral Argument: George Bush\u2019s Supreme Court Appointments Barbara A. Perry and Henry J. Abraham 167 Conclusion: Navigating the Crosswinds of Modern Pol"
+              "text": "Similar to the TSP leak, the Supreme Court decision made clear it was time to seek legislation codifying the military tribunal system and CIA interrogation program. Within a month of my East Room speech, Congress passed the Military Commissions Act of 2006 by a comfortable bipart"
             },
             {
               "confidence": "low",
-              "event_id": "ev:0205",
+              "event_id": "ev:0001",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "They were joined by Professors Bartholomew Sparrow, Jeffrey Engel, and Robert Strong, who spoke on war and statecraft; Michael Nelson and Hugh Heclo on Bush\u2019s conservatism; and Barbara Sinclair, Barbara Perry, and Henry Abraham on relations with Congress and the Supreme Court. C-"
+              "text": "They were joined by Professors Bartholomew Sparrow, Jeffrey Engel, and Robert Strong, who spoke on war and statecraft; Michael Nelson and Hugh Heclo on Bush\u2019s conservatism; and Barbara Sinclair, Barbara Perry, and Henry Abraham on relations with Congress and the Supreme Court."
             },
             {
               "confidence": "low",
-              "event_id": "ev:0266",
+              "event_id": "ev:0009",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "Ryan of the Campaign Legal Center said: \u201cThe Supreme Court has recognized that a check above $2,700 directly to someone who admits they are a candidate could corrupt them and therefore can be limited. But we\u2019re to believe that the corruptive potential is miraculously washed from "
+              "text": "Chase Untermeyer recalls in his oral history interview that in response to a series of recent Supreme Court decisions, \u201credistricting of congressional and legislative districts for that matter became required in the mid \u2019sixties. The Offered Hand and the Veto Fist: George Bush, C"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -367,39 +411,43 @@
       "action_summary": "NSA surveillance and review/litigation lane",
       "families": [
         {
-          "candidate_event_count": 4,
+          "candidate_event_count": 19,
           "confidence_counts": {
-            "abstain": 4
+            "abstain": 16,
+            "high": 3
           },
-          "matched_event_count": 0,
-          "review_status": "candidate_only",
+          "matched_event_count": 3,
+          "review_status": "matched",
           "sample_events": [
             {
-              "confidence": "abstain",
-              "event_id": "ev:0083",
-              "matched": false,
+              "confidence": "high",
+              "event_id": "ev:0003",
+              "matched": true,
               "receipt_kinds": [
+                "authority_title",
                 "provenance_cue"
               ],
-              "text": "The Obama White House is also investing American taxpayer funds in auto manufacturing firms that the market appears to have already decided no longer have a viable product. Warrantless surveillance, which he condemned on the campaign trail, lingers and risks infecting the integri"
+              "text": "Foreign Intelligence Surveillance Act (FISA) annual reports to Congress, available through the Federation of American Scientists, www.fas.org/irp/agency/doj/fisa/#rept ."
             },
             {
-              "confidence": "abstain",
-              "event_id": "ev:0226",
-              "matched": false,
+              "confidence": "high",
+              "event_id": "ev:0008",
+              "matched": true,
               "receipt_kinds": [
+                "authority_title",
                 "provenance_cue"
               ],
-              "text": "He functioned as a de facto lobbyist for both the corrupt health care company IMC as well as housing builder Camilio Padrera, lobbying Cabinet members for administrative favors while carefully cloaking his compensation as \u201creal estate fees.\u201d 7 Virtually every one of Jeb\u2019s failed "
+              "text": "White House/Eric Draper The reason was a law called the Foreign Intelligence Surveillance Act."
             },
             {
-              "confidence": "abstain",
-              "event_id": "ev:0289",
-              "matched": false,
+              "confidence": "high",
+              "event_id": "ev:0012",
+              "matched": true,
               "receipt_kinds": [
+                "authority_title",
                 "provenance_cue"
               ],
-              "text": "After a third- place finish in the Iowa caucuses, behind Senator Robert Dole of Kansas and televangelist Pat Robertson, the vice president decided to hew especially closely to Reagan\u2019s economic policies. Although he had once dismissed Reagan\u2019s pro- posal for massive tax cuts as \u201c"
+              "text": "In early 2006, I began outreach to key legislators on a bill modernizing the Foreign Intelligence Surveillance Act."
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -452,37 +500,37 @@
           "support_kind": "broad_cue"
         },
         {
-          "candidate_event_count": 14,
+          "candidate_event_count": 129,
           "confidence_counts": {
             "abstain": 5,
-            "low": 9
+            "low": 124
           },
           "matched_event_count": 0,
           "review_status": "candidate_only",
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0098",
+              "event_id": "ev:0022",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref",
-                "institution_ref"
+                "provenance_cue_broad"
               ],
-              "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
+              "text": "A distinguished group of approximately 125 associates of yours, including the Chief Justice of the Texas Supreme Court, expressed assurance that you are a righteous man. Elimination of German Resources for War; Hearings Before a Subcommittee of the Committee on Military Affairs, "
             },
             {
               "confidence": "low",
-              "event_id": "ev:0257",
+              "event_id": "ev:0026",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref",
-                "institution_ref"
+                "provenance_cue_broad"
               ],
-              "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+              "text": "\u201cElimination of German Resources for War ,\u201d Hearings Before a Subcommittee of the Committee on Military Affairs, United States Senate, Seventy-Ninth Congress, July 2, 1945. Senate, an act of courage."
             },
             {
               "confidence": "low",
-              "event_id": "ev:0110",
+              "event_id": "ev:0038",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref",
@@ -502,21 +550,39 @@
       "action_summary": "Stem cell veto and bioethics legislation lane",
       "families": [
         {
-          "candidate_event_count": 1,
+          "candidate_event_count": 8,
           "confidence_counts": {
-            "low": 1
+            "low": 8
           },
-          "matched_event_count": 0,
-          "review_status": "candidate_only",
+          "matched_event_count": 1,
+          "review_status": "matched",
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0029",
+              "event_id": "ev:0137",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "to go back to a policy of investing in America.\u201d Yet these efforts were frustrated by the terms of the 1990 agreement, which were reenforced, Sasser lamented, by \u201cunreconstructed old Cold Warriors [who] strap on their rusty armor and come over here on the floor and tell us, \u2018Oh, "
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0009",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
-              "text": "The Offered Hand and the Veto Fist: George Bush, Congress, and Domestic Policy Making Barbara Sinclair 143 7. From Oral History to Oral Argument: George Bush\u2019s Supreme Court Appointments Barbara A. Perry and Henry J. Abraham 167 Conclusion: Navigating the Crosswinds of Modern Pol"
+              "text": "Chase Untermeyer recalls in his oral history interview that in response to a series of recent Supreme Court decisions, \u201credistricting of congressional and legislative districts for that matter became required in the mid \u2019sixties. The Offered Hand and the Veto Fist: George Bush, C"
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0024",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "But as the stem cell bill was working its way through Congress, I had made clear I would veto it. So was almost every member of Congress, the whole Cabinet, the Joint Chiefs of Staff, the justices of the Supreme Court, the diplomatic corps, and families of the victims. John Adams"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -571,40 +637,41 @@
           "support_kind": "broad_cue"
         },
         {
-          "candidate_event_count": 9,
+          "candidate_event_count": 34,
           "confidence_counts": {
             "abstain": 6,
-            "low": 3
+            "low": 28
           },
           "matched_event_count": 0,
           "review_status": "candidate_only",
           "sample_events": [
             {
-              "confidence": "abstain",
-              "event_id": "ev:0002",
+              "confidence": "low",
+              "event_id": "ev:0022",
               "matched": false,
               "receipt_kinds": [
-                "institution_ref"
+                "institution_ref",
+                "provenance_cue_broad"
               ],
-              "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
+              "text": "A distinguished group of approximately 125 associates of yours, including the Chief Justice of the Texas Supreme Court, expressed assurance that you are a righteous man. Elimination of German Resources for War; Hearings Before a Subcommittee of the Committee on Military Affairs, "
             },
             {
               "confidence": "abstain",
-              "event_id": "ev:0090",
+              "event_id": "ev:0026",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref"
               ],
-              "text": "Army 1917\u20131919 - Married Dorothy Walker, 1921 - Vice president investment bank A. Harriman & Co. 1924 - Partner Brown Brothers Harriman 1931 - Founding member and director in Union Banking Corporation - Treasurer of first Planned Parenthood campaign 1947 - Chairman United Negro C"
+              "text": "\u201cElimination of German Resources for War ,\u201d Hearings Before a Subcommittee of the Committee on Military Affairs, United States Senate, Seventy-Ninth Congress, July 2, 1945. Senate, an act of courage."
             },
             {
               "confidence": "abstain",
-              "event_id": "ev:0094",
+              "event_id": "ev:0034",
               "matched": false,
               "receipt_kinds": [
                 "institution_ref"
               ],
-              "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
+              "text": "Senate 1950 (defeated) - Republican candidate U.S. Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. Senate 1964 (defeated) - Member U.S. Senate 1970 (defeated) - UN Ambassador 1971\u20131973 - Chairman of the Republican National Committee 1973\u20131974 - US"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -671,63 +738,63 @@
       "unresolved_mention_count": 12
     },
     {
-      "ambiguous_event_count": 15,
-      "candidate_only_seed_count": 7,
-      "matched_seed_count": 1,
+      "ambiguous_event_count": 145,
+      "candidate_only_seed_count": 4,
+      "matched_seed_count": 5,
       "mention_heavy_events": [
         {
-          "event_id": "ev:0257",
-          "match_count": 4,
+          "event_id": "ev:0052",
+          "match_count": 2,
           "mention_count": 7,
-          "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
+          "text": "I told him the Supreme Court list should include women, minorities, and people with no previous experience on the bench. After studying the binder, I narrowed the list down to five impressive judges: Samuel Alito , Edith Brown Clement , Michael Luttig , John Roberts , and J."
         },
         {
-          "event_id": "ev:0094",
-          "match_count": 4,
+          "event_id": "ev:0016",
+          "match_count": 2,
           "mention_count": 6,
-          "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
+          "text": "Fortunately for her, the stadium included a double-wide seat behind home plate designed for former law professor William Howard Taft. On June 30, 2005, Harriet Miers \u2014who had replaced Al Gonzales as White House counsel when he became attorney general\u2014was informed that the Supreme"
         },
         {
-          "event_id": "ev:0098",
-          "match_count": 4,
+          "event_id": "ev:0205",
+          "match_count": 2,
           "mention_count": 6,
-          "text": "Navy 1942\u20131945 - Married Barbara Pierce, 1945 - Yale University BA 1948 - Member Skull and Bones - Member Brown Brothers Harriman - Cofounder Zapata Petroleum Corporation 1953 - President of Zapata Offshore Company 1954 - Chairman Harris County (Houston) Republican Committee 1964"
+          "text": "In doing so, Bush became Houston\u2019s first Republican member of Congress since Reconstruction. 41 41 Inside the Presidency of George H. W. Bush Edited by Michael Nelson and Barbara A. Perry CORNELL UNIVERSITY PRESS ITHACA AND LONDON PUBLISHED IN ASSOCIATION WITH THE UNIVERSITY OF V"
         },
         {
-          "event_id": "ev:0002",
+          "event_id": "ev:0064",
+          "match_count": 2,
+          "mention_count": 5,
+          "text": "After the Senate confirmed Sam to the Court, I invited him and his family to the White House for his swearing-in. That changed in 1973 when the Supreme Court, in a decision Justice Byron White called \u201can exercise in raw judicial power,\u201d deemed abortion a right protected by the Co"
+        },
+        {
+          "event_id": "ev:0031",
           "match_count": 4,
           "mention_count": 4,
-          "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
-        },
-        {
-          "event_id": "ev:0232",
-          "match_count": 4,
-          "mention_count": 4,
-          "text": "Senior Open. In 1950, Gampy, as we all called him, ran for the Senate. He lost by just over a thousand votes and swore off politics. But two years later, Connecticut Republicans persuaded him to try again. This time he won. My grandparents, Prescott and Dorothy Walker Bush, campa"
+          "text": "As would be demonstrated by the Supreme Court that would decide the 2000 election in W.\u2019s favor, getting a \u201cfair break\u201d for oneself begins with knowing the referee. Bush\u2019s beliefs on Iraq were based in part on a notion dating back to the Reagan White House, and ascribed in part t"
         }
       ],
-      "promoted_relation_count": 3,
-      "relation_candidate_count": 3,
+      "promoted_relation_count": 32,
+      "relation_candidate_count": 33,
       "source_family": "corpus_book_timeline",
       "text_debug_unavailable_reason": "",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
       "top_unresolved_surfaces": [
         "White House",
         "Bush",
-        "Bush",
-        "White House",
+        "George Bush",
         "White House",
         "the President",
         "White House",
-        "Bush"
+        "the court",
+        "White House"
       ],
-      "unmatched_seed_count": 5,
-      "unresolved_mention_count": 72
+      "unmatched_seed_count": 4,
+      "unresolved_mention_count": 91
     }
   ],
   "summary": {
-    "broader_seed_diagnostic_count": 10,
-    "core_reading": "Broader GWB sources now yield three clean promoted relation families, but most broader-source lanes remain linkage-heavy and semantics-light.",
+    "broader_seed_diagnostic_count": 11,
+    "core_reading": "Broader GWB sources now yield several promoted relations across public-bios and corpus lanes, but most broader-source lanes remain linkage-heavy and semantics-light.",
     "families_with_matched_seed_support": 2,
     "families_with_promoted_relations": 2,
     "families_with_relation_candidates": 2,

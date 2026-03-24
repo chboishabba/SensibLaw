@@ -190,7 +190,7 @@ def _to_text(value: Any) -> str:
 def _extract_wikitext(snapshot: Mapping[str, Any]) -> str:
     root_value = snapshot.get("wikitext")
     if isinstance(root_value, str):
-        return " ".join(root_value.split()).strip()
+        return root_value.strip()
 
     if isinstance(root_value, Mapping):
         for key in ("*", "wikitext", "content", "text"):

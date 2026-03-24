@@ -19,6 +19,7 @@ This script intentionally keeps extraction light:
 import argparse
 import json
 import posixpath
+import re
 import shutil
 import subprocess
 import zipfile
@@ -77,6 +78,29 @@ _BOILERPLATE_MARKERS = [
     "isbn",
 ]
 
+_CORPUS_PRIORITY_CUES = (
+    "no child left behind",
+    "john roberts",
+    "samuel alito",
+    "harriet miers",
+    "military commissions act",
+    "foreign intelligence surveillance act",
+    "fisa",
+    "surveillance",
+    "stem cell",
+    "schip",
+    "syria accountability",
+    "iraq",
+    "authorization",
+    "supreme court",
+    "court",
+    "congress",
+    "senate",
+    "signed",
+    "veto",
+    "nominated",
+)
+
 
 def _is_tocish(s: str) -> bool:
     s2 = s.strip()
@@ -117,6 +141,10 @@ def _is_tocish(s: str) -> bool:
     # TOCs often look like: "INTRODUCTION 1 Foo 2 Bar 3 Baz ..."
     nums = _count_digit_tokens(max_len=3)
     if nums >= 8 and len(s2) < 700:
+        return True
+    if "chapter" in low and nums >= 3 and s2.count(",") >= 4:
+        return True
+    if re.search(r"chapter\s+\d", low) and s2.count(",") >= 6:
         return True
     if any(m in low for m in _BOILERPLATE_MARKERS):
         return True
@@ -191,6 +219,60 @@ def _split_sentences(s: str) -> List[str]:
             continue
         out.append(p2)
     return out
+
+
+def _sentence_signal_score(s: str) -> int:
+    low = s.lower()
+    score = 0
+    for cue in _CORPUS_PRIORITY_CUES:
+        if cue in low:
+            score += 1
+    if "signed" in low and ("act" in low or "law" in low or "proclamation" in low):
+        score += 2
+    if "nominated" in low and ("john roberts" in low or "samuel alito" in low or "harriet miers" in low):
+        score += 2
+    if "surveillance" in low and ("fisa" in low or "foreign intelligence surveillance act" in low):
+        score += 2
+    return score
+
+
+def _chunk_snippets(sentences: List[str], *, max_snippets: int, snippet_chars: int) -> List[str]:
+    if not sentences:
+        return []
+
+    scored = [(idx, _sentence_signal_score(sent)) for idx, sent in enumerate(sentences)]
+    priority_indices = [idx for idx, score in sorted(scored, key=lambda item: (-item[1], item[0])) if score > 0]
+    priority_set = set(priority_indices)
+    ordered = [sentences[idx] for idx in priority_indices] + [sent for idx, sent in enumerate(sentences) if idx not in priority_set]
+
+    snippets: List[str] = []
+    buf = ""
+    for sent in ordered:
+        if not sent:
+            continue
+        if _sentence_signal_score(sent) >= 4:
+            if buf and len(snippets) < max_snippets:
+                snippets.append(buf)
+                buf = ""
+            if sent not in snippets:
+                snippets.append(sent[:snippet_chars])
+            if len(snippets) >= max_snippets:
+                break
+            continue
+        if not buf:
+            buf = sent
+            continue
+        if len(buf) + 1 + len(sent) <= snippet_chars:
+            buf = f"{buf} {sent}"
+        else:
+            snippets.append(buf)
+            buf = sent
+        if len(snippets) >= max_snippets:
+            buf = ""
+            break
+    if buf and len(snippets) < max_snippets:
+        snippets.append(buf)
+    return snippets
 
 
 def _pdf_text(path: Path, *, limit_chars: int) -> str:
@@ -308,7 +390,7 @@ def main() -> int:
     ap.add_argument("--max-docs", type=int, default=20, help="Max docs processed (default: %(default)s)")
     ap.add_argument("--max-snippets-per-doc", type=int, default=80, help="Max snippet events per doc (default: %(default)s)")
     ap.add_argument("--snippet-chars", type=int, default=420, help="Max characters per snippet event (default: %(default)s)")
-    ap.add_argument("--extract-chars-per-doc", type=int, default=200_000, help="Max extracted chars per doc (default: %(default)s)")
+    ap.add_argument("--extract-chars-per-doc", type=int, default=1_200_000, help="Max extracted chars per doc (default: %(default)s)")
     args = ap.parse_args()
 
     root = args.root.resolve()
@@ -336,24 +418,11 @@ def main() -> int:
             sents = [d.title]
 
         # Chunk sentences into bounded snippet rows.
-        snippets: List[str] = []
-        buf = ""
-        for s in sents:
-            if not s:
-                continue
-            if not buf:
-                buf = s
-                continue
-            if len(buf) + 1 + len(s) <= int(args.snippet_chars):
-                buf = f"{buf} {s}"
-            else:
-                snippets.append(buf)
-                buf = s
-            if len(snippets) >= int(args.max_snippets_per_doc):
-                buf = ""
-                break
-        if buf and len(snippets) < int(args.max_snippets_per_doc):
-            snippets.append(buf)
+        snippets = _chunk_snippets(
+            sents,
+            max_snippets=int(args.max_snippets_per_doc),
+            snippet_chars=int(args.snippet_chars),
+        )
         per_doc_snips.append((d, snippets))
 
     # Interleave snippets across docs so limited `--max-events` extraction still touches every file.

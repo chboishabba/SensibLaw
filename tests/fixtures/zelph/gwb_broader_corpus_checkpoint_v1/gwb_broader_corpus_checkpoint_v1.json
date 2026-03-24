@@ -13,7 +13,8 @@
       },
       "predicate_key": "nominated",
       "source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "subject": {
         "canonical_key": "actor:george_w_bush",
@@ -34,7 +35,8 @@
       },
       "predicate_key": "nominated",
       "source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "subject": {
         "canonical_key": "actor:george_w_bush",
@@ -56,6 +58,27 @@
       "predicate_key": "nominated",
       "source_families": [
         "checked_handoff"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "medium"
+      ],
+      "object": {
+        "canonical_key": "actor:u_s_supreme_court",
+        "canonical_label": "Supreme Court of the United States",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "source_families": [
+        "corpus_book_timeline"
       ],
       "subject": {
         "canonical_key": "actor:george_w_bush",
@@ -402,7 +425,8 @@
       "action_summary": "Department of Defense institutional review lane",
       "linkage_kind": "institutional_anchor",
       "matched_source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "review_statuses": [
         "matched",
@@ -425,11 +449,13 @@
         "checked_handoff"
       ],
       "review_statuses": [
-        "matched"
+        "matched",
+        "candidate_only"
       ],
       "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
       "source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "support_kinds": [
         "direct"
@@ -460,7 +486,8 @@
       "action_summary": "Military commissions and detainee-review lane",
       "linkage_kind": "statute_and_litigation",
       "matched_source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "review_statuses": [
         "matched",
@@ -514,11 +541,11 @@
       "action_summary": "NSA surveillance and review/litigation lane",
       "linkage_kind": "statute_and_litigation",
       "matched_source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "review_statuses": [
-        "matched",
-        "candidate_only"
+        "matched"
       ],
       "seed_id": "gwb_us_law:nsa_surveillance_review",
       "source_families": [
@@ -553,11 +580,11 @@
       "action_summary": "Stem cell veto and bioethics legislation lane",
       "linkage_kind": "domestic_statute",
       "matched_source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "review_statuses": [
-        "matched",
-        "candidate_only"
+        "matched"
       ],
       "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
       "source_families": [
@@ -607,6 +634,27 @@
     }
   ],
   "new_relations_vs_checked_handoff": [
+    {
+      "confidence_tiers": [
+        "medium"
+      ],
+      "object": {
+        "canonical_key": "actor:u_s_supreme_court",
+        "canonical_label": "Supreme Court of the United States",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "source_families": [
+        "corpus_book_timeline"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
     {
       "confidence_tiers": [
         "high"
@@ -668,19 +716,19 @@
       "unresolved_surface_count": 12
     },
     {
-      "ambiguous_event_count": 15,
-      "matched_seed_lane_count": 1,
-      "promoted_relation_count": 3,
+      "ambiguous_event_count": 145,
+      "matched_seed_lane_count": 5,
+      "promoted_relation_count": 32,
       "source_family": "corpus_book_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
-      "unresolved_surface_count": 72
+      "unresolved_surface_count": 91
     }
   ],
   "summary": {
-    "distinct_promoted_relation_count": 17,
+    "distinct_promoted_relation_count": 18,
     "distinct_seed_lane_count": 13,
-    "new_relation_count_vs_checked_handoff": 2,
-    "seed_lanes_supported_in_multiple_families": 1,
+    "new_relation_count_vs_checked_handoff": 3,
+    "seed_lanes_supported_in_multiple_families": 5,
     "source_family_count": 3
   },
   "version": "gwb_broader_corpus_checkpoint_v1"

@@ -25,6 +25,12 @@ shared handoff.
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review
+- current framing is now explicitly domain-agnostic:
+  - finance/property examples are useful, but not special
+  - software/project/artifact examples like `GNU` / `GNU Project` are equally
+    valid demonstrations of entity-kind collapse
+  - the next benchmark-facing lane should mine structural hotspots, not assume
+    a clean ontology by flattening `P31`/`P279` away
 
 ## Current artifacts
 - Diagnostic taxonomy:
@@ -239,6 +245,10 @@ The report now exposes:
 - The current mereology/parthood lane should anchor on the actual property
   family (`P527`, `P361`, related parthood-like predicates), not just on
   abstract discussion.
+- Competitor hotspot/consistency work built from Wikidata-derived ontologies is
+  worth treating as pressure, but not as the design model to copy directly:
+  the stronger repo posture is to preserve structural pathology provenance
+  instead of collapsing it into a generic `subConceptOf` graph too early.
 
 ## Immediate next actions
 1. Re-run the seeded review pass with the importer-backed qualifier baseline and
