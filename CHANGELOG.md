@@ -21,6 +21,10 @@
   - Fixed a follow-target-quality false positive where raw wikitext
     `[[Category:...]]` residue could make ordinary pages look list-like; the
     non-list detector now strips category/defaultsort markup before scoring.
+  - Recorded the corrected 3-run post-fix aggregate: root-link relevance stayed
+    near-saturated, follow-target quality remained materially lower, hop decay
+    stayed near zero, and `list_like_follow` still dominated the weak follow
+    buckets with `low_information_gain_follow` second.
 - Wikipedia random article-ingest generalization harness:
   - Extended the random-page ingest report with dominant-regime counts and
     follow-yield summary metrics so larger manifest runs can falsify the regime

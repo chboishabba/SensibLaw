@@ -137,11 +137,17 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
     - `non_list_score` now incorporates title-level and warning-level
       aggregation cues so list/year/disambiguation-like follows are penalized
       before deeper graph metrics are revisited
-    - bug fix after the first 3-run aggregate:
-      - raw `[[Category:...]]` residue in stored wikitext was falsely driving
-        some ordinary pages into `list_like_follow`
-      - category/defaultsort markup is now stripped before non-list marker
-        evaluation
+  - bug fix after the first 3-run aggregate:
+    - raw `[[Category:...]]` residue in stored wikitext was falsely driving
+      some ordinary pages into `list_like_follow`
+    - category/defaultsort markup is now stripped before non-list marker
+      evaluation
+  - corrected aggregate after that fix:
+    - 24 root pages / 3 runs still left `list_like_follow` as the primary
+      weak-follow bucket
+    - `low_information_gain_follow` remained the next residual bucket
+    - root-link relevance stayed high, hop decay stayed near zero, and the
+      graph still looked walkable rather than collapsing with depth
 - A separate auth/input format issue is also now in play:
   - local file `~/.chatgpt_session_new` is a chunked session-token file with
     multiple raw lines

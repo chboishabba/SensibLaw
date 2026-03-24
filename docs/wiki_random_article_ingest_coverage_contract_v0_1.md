@@ -213,6 +213,30 @@ The next tightening pass should focus first on:
 - stronger non-list / generic-aggregation discrimination
 - explicit failure bucketing over weak follow targets
 - repeated-run distribution checks rather than one-off averages
+- then, if those buckets remain dominant, sharper low-information-gain
+  discrimination for broad but weakly informative continuation pages
+
+After the post-fix 3-run aggregate over 24 root pages, the working reading
+should be tightened again:
+
+- dominant regimes remained stable (`narrative` still dominated over
+  `descriptive`)
+- root-link relevance remained near-saturated (`0.981941`)
+- followed-link relevance remained much lower (`0.5`)
+- follow-target quality stayed materially lower than root relevance
+  (`0.506859`)
+- best-path remained above average candidate path quality (`0.042809` gap)
+- hop-quality decay remained near-zero (`0.000996`)
+
+That means the current falsification surface is now saying:
+
+- the graph is not collapsing at two hops
+- the main residual weakness is still poor continuation specificity
+- `list_like_follow` remains the largest weak-follow bucket even after the
+  category-markup false-positive fix
+- `low_information_gain_follow` is the second residual bucket and should be
+  treated as the next likely discriminator to sharpen after list/generic
+  continuation filtering
 
 ## Page-family stratification
 
