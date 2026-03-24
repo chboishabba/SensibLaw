@@ -189,6 +189,26 @@ The current graph-yield falsification phase should additionally expose:
   - the strongest observed continuation chain through the sampled follow tree,
     scored from hop-1 quality, hop-2 quality, and regime coherence
 
+The first live multi-hop campaign should be treated as a calibration datapoint,
+not a victory lap. On the completed 8-page recursive run, the important
+pattern was:
+
+- root-link relevance stayed near-saturated
+- followed-link relevance dropped sharply
+- follow-target quality stayed materially below root relevance
+- hop-2 quality did not collapse relative to hop-1 on that slice
+
+Operators should therefore read the current bottleneck as:
+
+- generic/list/aggregation continuation pages are still too admissible
+- shallow path decay is not yet the dominant failure mode
+
+The next tightening pass should focus first on:
+
+- stronger non-list / generic-aggregation discrimination
+- explicit failure bucketing over weak follow targets
+- repeated-run distribution checks rather than one-off averages
+
 ## Page-family stratification
 
 The random-page harness should now also emit a light page-family/profile guess
@@ -215,6 +235,14 @@ It should additionally report:
 - dominant-regime counts
 - average follow-yield metrics
 - regime-aware summary averages for honesty and calibration
+
+For repeated campaign analysis, summary/debug surfaces should make it easy to
+separate:
+
+- list/disambiguation/year-style aggregation follows
+- thin/stub follows
+- regime-jump follows
+- low-information-gain follows
 
 ## Extraction stance
 

@@ -20,6 +20,7 @@ import hashlib
 import json
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -55,9 +56,19 @@ def _utc_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def _parse_retry_after(headers: Any) -> float | None:
+    if headers is None:
+        return None
+    value = headers.get("Retry-After")
+    if value is None:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return None
+
+
 def _get_json(url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None) -> dict:
-    if pacer is not None:
-        pacer.wait()
     req = urllib.request.Request(
         url,
         headers={
@@ -66,9 +77,21 @@ def _get_json(url: str, *, timeout_s: int, pacer: Optional[_RequestPacer] = None
         },
         method="GET",
     )
-    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-        body = resp.read().decode("utf-8", errors="replace")
-    return json.loads(body)
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        if pacer is not None:
+            pacer.wait()
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+            return json.loads(body)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in {429, 500, 502, 503, 504} or attempt == max_attempts - 1:
+                raise
+            retry_after_s = _parse_retry_after(exc.headers)
+            backoff_s = retry_after_s if retry_after_s is not None else min(60.0, 2.0 ** attempt)
+            time.sleep(backoff_s)
+    raise RuntimeError("unreachable")
 
 
 def _build_url(base: str, params: dict[str, str | int]) -> str:
