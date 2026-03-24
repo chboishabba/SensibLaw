@@ -843,6 +843,13 @@ _ENTITY_SEEDS: tuple[EntitySeed, ...] = (
     ),
     EntitySeed(
         entity_kind="actor",
+        canonical_key="actor:george_h_w_bush",
+        canonical_label="George H. W. Bush",
+        actor_kind="person_actor",
+        aliases=("George H. W. Bush", "George H.W. Bush", "George Herbert Walker Bush"),
+    ),
+    EntitySeed(
+        entity_kind="actor",
         canonical_key="actor:john_roberts",
         canonical_label="John Roberts",
         actor_kind="person_actor",
@@ -942,6 +949,30 @@ _ABSTAINED_TITLE_SURFACES = (
     "the court",
 )
 
+_ELDER_BUSH_EXPLICIT_SURFACES = (
+    "George H. W. Bush",
+    "George H.W. Bush",
+    "George Herbert Walker Bush",
+    "Prescott Bush",
+)
+
+_GENERATION_AMBIGUITY_KINSHIP_CUES = frozenset(
+    {
+        "father",
+        "fathers",
+        "son",
+        "sons",
+        "grandfather",
+        "grandfathers",
+        "grandmother",
+        "grandmothers",
+        "grandparent",
+        "grandparents",
+        "granddad",
+        "grandpa",
+        "grandma",
+    }
+)
 
 def _slug(text: str) -> str:
     parts: list[str] = []
@@ -965,6 +996,36 @@ def _text_contains_phrase(text: str, phrase: str) -> bool:
     if not text.strip() or not phrase.strip():
         return False
     return _normalize_phrase(phrase) in _normalize_phrase(text)
+
+
+def _bare_bush_is_generation_ambiguous(text: str) -> bool:
+    if any(_text_contains_phrase(text, surface) for surface in _ELDER_BUSH_EXPLICIT_SURFACES):
+        return True
+
+    words = [part for part in _slug(text).split("_") if part]
+    if not words:
+        return False
+
+    bush_positions = [idx for idx, word in enumerate(words) if word == "bush"]
+    if not bush_positions:
+        return False
+
+    for idx in bush_positions:
+        left = max(0, idx - 40)
+        right = min(len(words), idx + 12)
+        window = words[left:right]
+        window_set = set(window)
+        if window_set & _GENERATION_AMBIGUITY_KINSHIP_CUES:
+            return True
+        if "prescott" in window_set:
+            return True
+        if {"son", "vote"} <= window_set:
+            return True
+        if {"father", "campaign"} <= window_set:
+            return True
+        if {"grandparents", "campaigning"} <= window_set:
+            return True
+    return False
 
 
 def _ensure_shared_actor(
@@ -2243,6 +2304,22 @@ def _detect_mentions_for_event(
                 continue
             if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _text_contains_phrase(text, "Bush administration"):
                 continue
+            if seed.canonical_key == "actor:george_w_bush" and alias == "Bush" and _bare_bush_is_generation_ambiguous(text):
+                cluster_id, _ = _insert_cluster_and_resolution(
+                    conn,
+                    run_id=run_id,
+                    event_id=event_id,
+                    mention_kind="actor",
+                    canonical_key_hint=None,
+                    surface_text=alias,
+                    source_rule="ambiguous_bush_generation_surface_v1",
+                    resolved_entity_id=None,
+                    resolution_status="abstained",
+                    resolution_rule="generation_disambiguation_required_v1",
+                    receipts=[("surface", alias), ("reason", "ambiguous_bush_generation_context")],
+                )
+                found["abstained"].append(cluster_id)
+                continue
             cluster_id, _ = _insert_cluster_and_resolution(
                 conn,
                 run_id=run_id,
@@ -2368,6 +2445,39 @@ def _insert_broader_source_seed_backfill_candidates(
         return
 
     linkage_matches = _load_event_linkage_matches(conn, run_id=run_id, event_id=event_id)
+
+    nclb_match = linkage_matches.get("gwb_us_law:no_child_left_behind_act")
+    if nclb_match and nclb_match["matched"] and (
+        "no child left behind" in text_fold or ("signed" in text_fold and "education" in text_fold)
+    ):
+        legal_title = "No Child Left Behind Act"
+        legal_key = f"legal_ref:{_slug(legal_title)}"
+        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        if not _candidate_exists(
+            conn,
+            run_id=run_id,
+            event_id=event_id,
+            predicate_id=predicate_ids["signed"],
+            object_entity_id=legal_id,
+        ):
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="signed_seed_backfill_nclb_v1")
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="signed_seed_backfill_nclb_v1")
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "signed"),
+                ("object_legal_ref", legal_key),
+                ("cue_surface", "No Child Left Behind Act"),
+            ]
+            _insert_relation_candidate(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                subject_entity_id=bush_id,
+                predicate_id=predicate_ids["signed"],
+                object_entity_id=legal_id,
+                confidence_tier=_predicate_confidence(conn, "signed", receipts),
+                receipts=receipts,
+            )
 
     iraq_match = linkage_matches.get("gwb_us_law:iraq_2002_authorization")
     if iraq_match and iraq_match["matched"] and any(term in text_fold for term in ("authorization", "authorize", "authorized")):

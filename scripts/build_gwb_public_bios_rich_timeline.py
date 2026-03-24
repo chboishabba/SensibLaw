@@ -37,6 +37,14 @@ _KEYWORD_CUES = (
     "stem cell",
 )
 
+_STRONG_LEGAL_CUES = (
+    "signed into law",
+    "signed",
+    "act",
+    "law",
+    "no child left behind",
+)
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -70,6 +78,19 @@ def _contains_signal(text: str) -> bool:
     return any(cue in low for cue in _KEYWORD_CUES)
 
 
+def _sentence_signal_score(text: str) -> int:
+    low = text.lower()
+    score = 0
+    for cue in _STRONG_LEGAL_CUES:
+        if cue in low:
+            score += 1
+    if "signed" in low and ("act" in low or "law" in low):
+        score += 2
+    if "no child left behind" in low:
+        score += 2
+    return score
+
+
 class _BioHTMLParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -97,6 +118,8 @@ class _BioHTMLParser(HTMLParser):
                 if content not in self.meta_descriptions:
                     self.meta_descriptions.append(content)
         if self.skip_depth == 0 and low_tag in {"p", "figcaption", "h1", "h2", "h3"}:
+            if self.block_stack:
+                self._flush_block()
             self.block_stack.append(low_tag)
             self.current_parts = []
 
@@ -108,11 +131,17 @@ class _BioHTMLParser(HTMLParser):
         if low_tag == "title":
             self.in_title = False
         if self.skip_depth == 0 and self.block_stack and low_tag == self.block_stack[-1]:
-            text = _collapse_ws(unescape(" ".join(self.current_parts)))
-            if text:
-                self.blocks.append({"tag": low_tag, "text": text})
-            self.block_stack.pop()
+            self._flush_block()
+
+    def _flush_block(self) -> None:
+        if not self.block_stack:
             self.current_parts = []
+            return
+        text = _collapse_ws(unescape(" ".join(self.current_parts)))
+        if text:
+            self.blocks.append({"tag": self.block_stack[-1], "text": text})
+        self.block_stack.pop()
+        self.current_parts = []
 
     def handle_data(self, data: str) -> None:  # pragma: no cover - stdlib callback
         if self.skip_depth > 0:
@@ -180,6 +209,15 @@ def _doc_snippets(path: Path, *, max_snippets: int, snippet_chars: int) -> tuple
     snippets: list[str] = []
     buf = ""
     for sent in sentences:
+        if _sentence_signal_score(sent) >= 4:
+            if buf and len(snippets) < max_snippets:
+                snippets.append(buf)
+                buf = ""
+            if sent not in snippets:
+                snippets.append(sent[:snippet_chars])
+            if len(snippets) >= max_snippets:
+                break
+            continue
         if not buf:
             buf = sent
             continue

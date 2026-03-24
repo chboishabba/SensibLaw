@@ -53,6 +53,48 @@
       "seed_id": "gwb_us_law:clear_skies_2003"
     },
     {
+      "action_summary": "No Child Left Behind education law lane",
+      "authority_titles": [
+        "No Child Left Behind Act"
+      ],
+      "court_refs": [],
+      "institution_refs": [],
+      "lane_tags": [
+        "domestic_statute",
+        "education_policy"
+      ],
+      "linkage_kind": "domestic_statute",
+      "provenance_cues": [
+        "No Child Left Behind Act",
+        "No Child Left Behind Act of 2001",
+        "education reform",
+        "accountability in schools"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:no_child_left_behind_act"
+    },
+    {
+      "action_summary": "Northwestern Hawaiian Islands Marine National Monument proclamation lane",
+      "authority_titles": [
+        "Northwestern Hawaiian Islands Marine National Monument"
+      ],
+      "court_refs": [],
+      "institution_refs": [],
+      "lane_tags": [
+        "environment",
+        "executive_action",
+        "proclamation"
+      ],
+      "linkage_kind": "executive_proclamation",
+      "provenance_cues": [
+        "signed a proclamation",
+        "Northwestern Hawaiian Islands Marine National Monument",
+        "June 15, 2006"
+      ],
+      "review_status": "reviewed_v1",
+      "seed_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument"
+    },
+    {
       "action_summary": "Syria sanctions legislation lane",
       "authority_titles": [
         "Syria Accountability Act"

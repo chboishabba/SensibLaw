@@ -1,6 +1,21 @@
 # Changelog
 
 ## Unreleased
+- GWB broader-source corpus expansion:
+  - Fixed `scripts/build_gwb_public_bios_rich_timeline.py` so malformed HTML
+    paragraph transitions no longer drop strong public-bios sentences; explicit
+    statute-signing lines like the No Child Left Behind sentence now survive as
+    standalone events in `demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json`.
+  - Added a reviewed `gwb_us_law:no_child_left_behind_act` linkage seed and a
+    narrow broader-source semantic backfill path so matched public-bios events
+    can promote `George W. Bush -> signed -> No Child Left Behind Act` without
+    loosening general promotion policy.
+  - Replaced the earlier broader-source alias inflation with one canonical NCLB
+    legal-ref target, so the broader checkpoint records one real new promoted
+    family rather than two title variants.
+  - Updated broader GWB diagnostics/checkpoint artifacts and tests; current
+    merged checkpoint now reports `16` distinct promoted relations and `1` new
+    distinct promoted relation beyond the checked handoff.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,
@@ -80,6 +95,10 @@
     Supreme Court review family now promotes under policy-evaluated confidence
     when the broader-source text explicitly names the court/decision and the
     subject/object are already resolved.
+  - Added generation-aware bare-`Bush` abstention in
+    `src/gwb_us_law/semantic.py` plus a regression test so explicit
+    father/family-history corpus contexts no longer silently resolve to
+    `actor:george_w_bush`.
   - Added a focused test and generated the checkpoint artifact under
     `tests/fixtures/zelph/gwb_broader_corpus_checkpoint_v1/`.
   - Recorded the updated result honestly: richer public-bios input lifted that
@@ -137,6 +156,10 @@
     nudging `low_information_gain_follow` only slightly upward, lowering
     average `follow_target_quality_score`, and leaving hop decay effectively
     flat.
+  - Added a cross-bucket diagnostic guard so mixed follow failures prefer
+    `low_information_gain_follow` unless an explicit bucket override is present;
+    this keeps generic low-lift aggregations grouped with information-gain
+    failures for cleaner residual clustering.
   - Narrowed those information-gain penalties so title-shape cues now need
     co-occurring low-novelty / no-lift evidence before they become the main
     score penalty, and confirmed on the same manifests that the scorer stayed
@@ -156,6 +179,18 @@
   - Ran a recursive live sample and confirmed the new summary fields stay
     coherent on follow-linked pages, including cases where follow-target
     quality decays modestly over two hops.
+- Follow-quality continuation specificity hardening (Slice 1/Slice 2 v0.11->v0.12):
+  - Added parent-child generalization and generic-umbrella specificity signals into
+    continuation profiling, including `parent_child_generalization` and
+    `parent_child_no_lift` markers.
+  - Made parent-child/general-title continuations more likely to surface as
+    weak continuations when lift is low, without changing the follow-target blend.
+  - Added additional low-information gain penalties tied to low novelty + same-
+    neighborhood + parent-child generalization, while requiring novelty/no-lift
+    evidence before title-shape alone can drive the penalty.
+  - Hardened report scoring against malformed cached follow snapshots by normalizing
+    structured/non-string `wikitext` payloads before sentence extraction and
+    returning bounded `snapshot_missing_wikitext` rows when empty.
 - Wikipedia random article-ingest regime basis:
   - Added a small regime vector to the canonical article state so ingest
     scoring can distinguish narrative, descriptive, and formal pages without

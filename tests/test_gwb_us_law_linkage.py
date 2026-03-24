@@ -54,6 +54,18 @@ def test_gwb_us_law_seed_import_and_matching(tmp_path: Path) -> None:
                 "section": "Domestic policy",
                 "text": "Bush threatened a veto if Congress did not change the bill."
             },
+            {
+                "event_id": "ev6",
+                "anchor": {"year": 2001, "text": "2001"},
+                "section": "Education policy",
+                "text": "He signed into law the most comprehensive education reforms in a generation, the No Child Left Behind Act of 2001."
+            },
+            {
+                "event_id": "ev7",
+                "anchor": {"year": 2006, "text": "June 15, 2006"},
+                "section": "Environment",
+                "text": "President George W. Bush signed a proclamation to create the Northwestern Hawaiian Islands Marine National Monument at a ceremony on June 15, 2006."
+            },
         ],
     }
 
@@ -64,13 +76,15 @@ def test_gwb_us_law_seed_import_and_matching(tmp_path: Path) -> None:
         ensure_bridge_schema(conn)
         ensure_seeded_bridge_slice(conn)
         imported = import_gwb_us_law_seed_payload(conn, payload)
-        assert imported["seed_count"] >= 8
+        assert imported["seed_count"] >= 10
         result = run_gwb_us_law_linkage(conn)
-        assert result["matched_event_count"] >= 3
+        assert result["matched_event_count"] >= 5
         report = build_gwb_us_law_linkage_report(conn, run_id=result["run_id"])
 
     matched_seed_ids = {row["seed_id"] for row in report["per_seed"]}
     assert "gwb_us_law:clear_skies_2003" in matched_seed_ids
+    assert "gwb_us_law:no_child_left_behind_act" in matched_seed_ids
+    assert "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument" in matched_seed_ids
     assert "gwb_us_law:stem_cell_research_enhancement_act" in matched_seed_ids
     assert "gwb_us_law:nsa_surveillance_review" in matched_seed_ids
 
@@ -86,4 +100,9 @@ def test_gwb_us_law_seed_import_and_matching(tmp_path: Path) -> None:
     assert any(
         match["confidence"] == "low" and any(receipt["kind"] == "provenance_cue_broad" for receipt in match["receipts"])
         for match in per_event["ev5"]["matches"]
+    )
+    assert any(match["seed_id"] == "gwb_us_law:no_child_left_behind_act" and match["matched"] for match in per_event["ev6"]["matches"])
+    assert any(
+        match["seed_id"] == "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument" and match["matched"]
+        for match in per_event["ev7"]["matches"]
     )

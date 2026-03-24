@@ -244,6 +244,10 @@ The next implementation slice should stay deliberately narrow:
 - keep the current weak-follow bucket thresholds unchanged
 - expand `non_list_score` / `list_like_follow` with continuation-specific
   signals instead of adding a new top-level score component
+- add parent-child generalization signals specifically:
+  - `parent_child_generalization`
+  - `parent_child_no_lift`
+  to catch parent-like weak aggregations that are not literal lists
 
 Those continuation-specific signals should be limited to:
 
@@ -257,6 +261,15 @@ The first bounded target set is:
 - year/edition/championship umbrella pages
 - broad generic concept pages that are related but too unspecific to be worth
   following
+
+The analyzer now also treats mixed-failure follow rows conservatively:
+
+- if both list-like and low-information signals are present without an explicit
+  primary failure override, low-information is the canonical diagnostic bucket for
+  manual triage
+- generic continuation pages (for example year-prefixed and umbrella titles with weak
+  lift) are routed to a dedicated internal subtype so they are tracked as low-
+  information continuation candidates rather than over-classified as list-like
 
 The fixed-manifest rescoring pass should now be treated as the authoritative
 read on Slice 2, because it compares scorer behavior on the same stored
@@ -278,6 +291,8 @@ So the current interpretation must stay narrow:
 - narrow the next information-gain refinement so broad/year/umbrella
   generalization penalties land only when they co-occur with low-novelty or
   same-neighborhood/no-lift evidence
+- treat malformed/missing cached follow snapshots as bounded input issues
+  (`snapshot_missing_wikitext`) rather than crashing the scoring pass
 
 After the narrower `v0_9` rescoring pass on the same manifests, the working
 read should tighten again:

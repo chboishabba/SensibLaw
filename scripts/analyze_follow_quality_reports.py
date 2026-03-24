@@ -58,6 +58,8 @@ def _infer_follow_bucket(detail: dict[str, Any]) -> str:
         return explicit
     flags = _infer_follow_flags(detail)
     if flags:
+        if "low_information_gain_follow" in flags:
+            return "low_information_gain_follow"
         return flags[0]
     return "stable_follow"
 

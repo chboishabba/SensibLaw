@@ -63,7 +63,7 @@
           "sample_events": [
             {
               "confidence": "abstain",
-              "event_id": "ev:0006",
+              "event_id": "ev:0010",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue"
@@ -112,16 +112,16 @@
       "action_summary": "Iraq war authorization and related executive decision path",
       "families": [
         {
-          "candidate_event_count": 19,
+          "candidate_event_count": 17,
           "confidence_counts": {
-            "low": 19
+            "low": 17
           },
-          "matched_event_count": 10,
+          "matched_event_count": 9,
           "review_status": "matched",
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0002",
+              "event_id": "ev:0006",
               "matched": true,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -130,7 +130,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0003",
+              "event_id": "ev:0007",
               "matched": true,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -139,7 +139,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0004",
+              "event_id": "ev:0008",
               "matched": true,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -207,7 +207,7 @@
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0041",
+              "event_id": "ev:0045",
               "matched": false,
               "receipt_kinds": [
                 "court_ref",
@@ -217,7 +217,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0012",
+              "event_id": "ev:0016",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -226,7 +226,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0020",
+              "event_id": "ev:0024",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -281,6 +281,89 @@
       "seed_id": "gwb_us_law:military_commissions_2006"
     },
     {
+      "action_summary": "No Child Left Behind education law lane",
+      "families": [
+        {
+          "candidate_event_count": 5,
+          "confidence_counts": {
+            "abstain": 1,
+            "high": 4
+          },
+          "matched_event_count": 4,
+          "review_status": "matched",
+          "sample_events": [
+            {
+              "confidence": "high",
+              "event_id": "ev:0002",
+              "matched": true,
+              "receipt_kinds": [
+                "authority_title",
+                "provenance_cue",
+                "provenance_cue",
+                "provenance_cue"
+              ],
+              "text": "He signed into law tax relief that helps workers keep more of their hard-earned money, as well as the most comprehensive education reforms in a generation, the No Child Left Behind Act of 2001."
+            },
+            {
+              "confidence": "high",
+              "event_id": "ev:0026",
+              "matched": true,
+              "receipt_kinds": [
+                "authority_title",
+                "provenance_cue"
+              ],
+              "text": "President Bush\u2019s first major initiative, the No Child Left Behind Act of 2002, created reforms that raised standards and improved test scores in the public education system."
+            },
+            {
+              "confidence": "high",
+              "event_id": "ev:0034",
+              "matched": true,
+              "receipt_kinds": [
+                "authority_title",
+                "provenance_cue"
+              ],
+              "text": "His first initiative as President was the No Child Left Behind Act, a bipartisan measure that raised standards in schools, insisted on accountability in return for federal dollars, and led to measurable g\u00adains in achievement \u2013 especially among minority students."
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "seed_id": "gwb_us_law:no_child_left_behind_act"
+    },
+    {
+      "action_summary": "Northwestern Hawaiian Islands Marine National Monument proclamation lane",
+      "families": [
+        {
+          "candidate_event_count": 1,
+          "confidence_counts": {
+            "high": 1
+          },
+          "matched_event_count": 1,
+          "review_status": "matched",
+          "sample_events": [
+            {
+              "confidence": "high",
+              "event_id": "ev:0031",
+              "matched": true,
+              "receipt_kinds": [
+                "authority_title",
+                "provenance_cue",
+                "provenance_cue",
+                "provenance_cue"
+              ],
+              "text": "Laura Bush and guests looking on, President George W. Bush signed a proclamation to create the Northwestern Hawaiian Islands Marine National Monument at a ceremony on June 15, 2006 at the White House. During his second administration, President George W."
+            }
+          ],
+          "source_family": "public_bios_timeline",
+          "support_kind": "direct"
+        }
+      ],
+      "linkage_kind": "executive_proclamation",
+      "seed_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument"
+    },
+    {
       "action_summary": "NSA surveillance and review/litigation lane",
       "families": [
         {
@@ -330,16 +413,25 @@
       "action_summary": "SCHIP veto and congressional funding lane",
       "families": [
         {
-          "candidate_event_count": 9,
+          "candidate_event_count": 8,
           "confidence_counts": {
-            "low": 9
+            "low": 8
           },
           "matched_event_count": 0,
           "review_status": "candidate_only",
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0008",
+              "event_id": "ev:0001",
+              "matched": false,
+              "receipt_kinds": [
+                "provenance_cue_broad"
+              ],
+              "text": "Since becoming President of the United States in 2001, President Bush has worked with the Congress to create an ownership society and build a future of security, prosperity, and opportunity for all Americans."
+            },
+            {
+              "confidence": "low",
+              "event_id": "ev:0012",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -348,21 +440,12 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0016",
+              "event_id": "ev:0020",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
               ],
               "text": "After Congress failed to pass a bill to provide support to banks, the stock market crashed on September 29, 2008, with the Dow Jones falling 777 points in one day."
-            },
-            {
-              "confidence": "low",
-              "event_id": "ev:0018",
-              "matched": false,
-              "receipt_kinds": [
-                "provenance_cue_broad"
-              ],
-              "text": "Bush Presidential Library maintains over 47,000 artifacts, primarily foreign and domestic gifts given to the President and Mrs. Laura Bush, and other items obtained throughout the Presidency. and Laura Bush campaigned from the back of a pickup truck for the 1978 Congressional rac"
             }
           ],
           "source_family": "public_bios_timeline",
@@ -456,7 +539,7 @@
           "sample_events": [
             {
               "confidence": "low",
-              "event_id": "ev:0041",
+              "event_id": "ev:0045",
               "matched": false,
               "receipt_kinds": [
                 "court_ref",
@@ -467,7 +550,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0012",
+              "event_id": "ev:0016",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -476,7 +559,7 @@
             },
             {
               "confidence": "low",
-              "event_id": "ev:0020",
+              "event_id": "ev:0024",
               "matched": false,
               "receipt_kinds": [
                 "provenance_cue_broad"
@@ -534,58 +617,58 @@
   ],
   "source_family_summaries": [
     {
-      "ambiguous_event_count": 12,
+      "ambiguous_event_count": 10,
       "candidate_only_seed_count": 4,
-      "matched_seed_count": 1,
+      "matched_seed_count": 3,
       "mention_heavy_events": [
         {
-          "event_id": "ev:0025",
+          "event_id": "ev:0031",
           "match_count": 1,
-          "mention_count": 4,
-          "text": "In the 2004 election, President George W. Bush faced Senator John Kerry of Massachusetts. President Bush was re-elected for a second term, and inaugurated January 20, 2005. Iraq also held its elections \u2013 the first free elections in the country \u2013 in January 2005. Laura Bush and gu"
+          "mention_count": 6,
+          "text": "Laura Bush and guests looking on, President George W. Bush signed a proclamation to create the Northwestern Hawaiian Islands Marine National Monument at a ceremony on June 15, 2006 at the White House. During his second administration, President George W."
         },
         {
-          "event_id": "ev:0020",
+          "event_id": "ev:0030",
+          "match_count": 1,
+          "mention_count": 4,
+          "text": "The USA Freedom Corps, also created following September 11th, aimed to inspire American citizens to serve humanitarian causes greater than themselves. In the 2004 election, President George W. Bush faced Senator John Kerry of Massachusetts. President Bush was re-elected for a sec"
+        },
+        {
+          "event_id": "ev:0001",
+          "match_count": 2,
+          "mention_count": 3,
+          "text": "Since becoming President of the United States in 2001, President Bush has worked with the Congress to create an ownership society and build a future of security, prosperity, and opportunity for all Americans."
+        },
+        {
+          "event_id": "ev:0024",
           "match_count": 2,
           "mention_count": 3,
           "text": "Bush announced his candidacy for the Presidency of the United States. His opponent in the 2000 election was Vice President Albert Gore. Though the Presidential election was held November 7, 2000, the final outcome was not known until December 12, 2000, when the Supreme Court deci"
         },
         {
-          "event_id": "ev:0027",
-          "match_count": 2,
-          "mention_count": 3,
-          "text": "President Bush also led efforts to provide more than $3.3 billion to the Global Fund to Fight AIDS, Tuberculosis, and Malaria. Bush worked together to establish the Preserve America Initiative and the National Parks Centennial Initiative, and the President asked Congress to provi"
-        },
-        {
-          "event_id": "ev:0041",
+          "event_id": "ev:0045",
           "match_count": 2,
           "mention_count": 3,
           "text": "The election spurred weeks of litigation, ultimately settled by the U.S. Supreme Court, making it one of the most controversial elections in American history. Bush launched his administration against one of the most polarized political landscapes in recent memory."
-        },
-        {
-          "event_id": "ev:0003",
-          "match_count": 1,
-          "mention_count": 3,
-          "text": "Bush initiated what he called the \u201c war on terrorism ,\u201d portrayed as an American-led global counterterrorism campaign launched in response to the terrorist attacks of September 11, 2001 . Included were the Afghanistan (2001\u201314) and Iraq (2003\u201311) wars. Also, his administration sp"
         }
       ],
-      "promoted_relation_count": 3,
-      "relation_candidate_count": 3,
+      "promoted_relation_count": 8,
+      "relation_candidate_count": 8,
       "source_family": "public_bios_timeline",
       "text_debug_unavailable_reason": "",
       "timeline_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json",
       "top_unresolved_surfaces": [
+        "Bush",
         "White House",
+        "Bush",
+        "Bush",
         "the President",
         "Bush administration",
         "White House",
-        "the President",
-        "the President",
-        "Bush administration",
-        "Bush administration"
+        "the President"
       ],
       "unmatched_seed_count": 6,
-      "unresolved_mention_count": 9
+      "unresolved_mention_count": 12
     },
     {
       "ambiguous_event_count": 15,
@@ -599,6 +682,12 @@
           "text": "A transplanted New Englander who moved to Texas, succeeded in the oil business, and was elected to the U.S. House of Representatives from Texas\u2019s 7th District in 1966, Bush ran for the U.S. Senate in 1970. He lost, but as a reward for supporting President Richard Nixon\u2019s Vietnam "
         },
         {
+          "event_id": "ev:0094",
+          "match_count": 4,
+          "mention_count": 6,
+          "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
+        },
+        {
           "event_id": "ev:0098",
           "match_count": 4,
           "mention_count": 6,
@@ -609,12 +698,6 @@
           "match_count": 4,
           "mention_count": 4,
           "text": "Jeb and the Bush Crime Family This book is dedicated to Governor John Davis Lodge, my political mentor, who taught me that politics is the art of inclusion and who, under extreme pressure, refused to appoint Prescott Bush to fill a vacancy in the U.S. Senate, an act of courage."
-        },
-        {
-          "event_id": "ev:0094",
-          "match_count": 4,
-          "mention_count": 4,
-          "text": "Senate 1952 to 1963\u2014Connecticut - Member U.S. Senate Banking Committee George H. W. Bush - Born June 12, 1924; Milton, MA - U.S."
         },
         {
           "event_id": "ev:0232",
@@ -630,21 +713,21 @@
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
       "top_unresolved_surfaces": [
         "White House",
+        "Bush",
+        "Bush",
         "White House",
         "White House",
         "the President",
         "White House",
-        "the President",
-        "the President",
-        "the President"
+        "Bush"
       ],
-      "unmatched_seed_count": 3,
-      "unresolved_mention_count": 34
+      "unmatched_seed_count": 5,
+      "unresolved_mention_count": 72
     }
   ],
   "summary": {
-    "broader_seed_diagnostic_count": 8,
-    "core_reading": "Broader GWB sources are producing linkage support, but almost no text-rich semantically anchorable events yet.",
+    "broader_seed_diagnostic_count": 10,
+    "core_reading": "Broader GWB sources now yield two clean promoted families, but most broader-source lanes remain linkage-heavy and semantics-light.",
     "families_with_matched_seed_support": 2,
     "families_with_promoted_relations": 2,
     "families_with_relation_candidates": 2,

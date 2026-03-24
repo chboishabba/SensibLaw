@@ -174,6 +174,48 @@
         "high"
       ],
       "object": {
+        "canonical_key": "legal_ref:no_child_left_behind_act",
+        "canonical_label": "No Child Left Behind Act",
+        "entity_id": 13,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:northwestern_hawaiian_islands_marine_national_monument",
+        "canonical_label": "Northwestern Hawaiian Islands Marine National Monument",
+        "entity_id": 14,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
         "canonical_key": "legal_ref:syria_accountability_act",
         "canonical_label": "Syria Accountability Act",
         "entity_id": 15,
@@ -435,6 +477,40 @@
       ]
     },
     {
+      "action_summary": "No Child Left Behind education law lane",
+      "linkage_kind": "domestic_statute",
+      "matched_source_families": [
+        "public_bios_timeline"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:no_child_left_behind_act",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
+      "action_summary": "Northwestern Hawaiian Islands Marine National Monument proclamation lane",
+      "linkage_kind": "executive_proclamation",
+      "matched_source_families": [
+        "public_bios_timeline"
+      ],
+      "review_statuses": [
+        "matched"
+      ],
+      "seed_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "support_kinds": [
+        "direct"
+      ]
+    },
+    {
       "action_summary": "NSA surveillance and review/litigation lane",
       "linkage_kind": "statute_and_litigation",
       "matched_source_families": [
@@ -530,7 +606,50 @@
       ]
     }
   ],
-  "new_relations_vs_checked_handoff": [],
+  "new_relations_vs_checked_handoff": [
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:no_child_left_behind_act",
+        "canonical_label": "No Child Left Behind Act",
+        "entity_id": 13,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tiers": [
+        "high"
+      ],
+      "object": {
+        "canonical_key": "legal_ref:northwestern_hawaiian_islands_marine_national_monument",
+        "canonical_label": "Northwestern Hawaiian Islands Marine National Monument",
+        "entity_id": 14,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "source_families": [
+        "public_bios_timeline"
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    }
+  ],
   "source_family_summaries": [
     {
       "ambiguous_event_count": 9,
@@ -541,12 +660,12 @@
       "unresolved_surface_count": 7
     },
     {
-      "ambiguous_event_count": 12,
-      "matched_seed_lane_count": 1,
-      "promoted_relation_count": 3,
+      "ambiguous_event_count": 10,
+      "matched_seed_lane_count": 3,
+      "promoted_relation_count": 8,
       "source_family": "public_bios_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json",
-      "unresolved_surface_count": 9
+      "unresolved_surface_count": 12
     },
     {
       "ambiguous_event_count": 15,
@@ -554,13 +673,13 @@
       "promoted_relation_count": 3,
       "source_family": "corpus_book_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
-      "unresolved_surface_count": 34
+      "unresolved_surface_count": 72
     }
   ],
   "summary": {
-    "distinct_promoted_relation_count": 15,
-    "distinct_seed_lane_count": 11,
-    "new_relation_count_vs_checked_handoff": 0,
+    "distinct_promoted_relation_count": 17,
+    "distinct_seed_lane_count": 13,
+    "new_relation_count_vs_checked_handoff": 2,
     "seed_lanes_supported_in_multiple_families": 1,
     "source_family_count": 3
   },

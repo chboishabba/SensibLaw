@@ -170,8 +170,9 @@ def test_follow_target_quality_marks_admin_place_adjacency_as_list_like() -> Non
 
     details = compute_follow_target_quality(root, follow)
     assert "shared_tail_locality_sibling" in details["specificity_title_markers"]
-    assert details["primary_failure_bucket"] == "list_like_follow"
+    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
     assert details["non_list_score"] <= 0.25
+    assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
 
 
 def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
@@ -193,7 +194,33 @@ def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
     details = compute_follow_target_quality(root, follow)
     assert "umbrella_title" in details["specificity_title_markers"]
     assert "same_neighborhood_low_lift" in details["specificity_no_lift_markers"]
+    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
+    assert details["list_follow_subtype"] == "generic_continuation_routing_to_low_information"
+
+
+def test_follow_target_quality_marks_parent_child_generalization_as_list_like() -> None:
+    root = {
+        "title": "2020 Grand Prix of Example City – Final",
+        "key_terms": ["2020", "grand", "prix", "example", "city", "final"],
+        "regime": {"narrative": 0.25, "descriptive": 0.7, "formal": 0.05},
+    }
+    follow = {
+        "title": "2020 Grand Prix of Example City",
+        "article_sentence_count": 10,
+        "observation_count": 6,
+        "article_aao_event_count": 4,
+        "key_terms": ["2020", "grand", "prix", "example", "city"],
+        "regime": {"narrative": 0.25, "descriptive": 0.7, "formal": 0.05},
+        "raw_text": "The 2020 Grand Prix of Example City was contested on a major circuit.",
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "parent_child_generalization" in details["specificity_title_markers"]
     assert details["primary_failure_bucket"] == "list_like_follow"
+    assert details["list_like_penalty_reason"] == "parent_child_generalization_with_weak_lift"
+    assert details["list_follow_subtype"] == "parent_child_aggregation"
+    assert "parent_child_generalization" in details["information_gain_reason_markers"]
+    assert "parent_child_generalization" in details["information_gain_penalty_markers"]
 
 
 def test_information_gain_penalizes_year_umbrella_generalization() -> None:
@@ -231,6 +258,54 @@ def test_information_gain_penalizes_broad_competition_parent() -> None:
     assert profile["information_gain_score"] < profile["base_information_gain_score"]
     assert "umbrella_title" in profile["information_gain_penalty_markers"]
     assert "same_neighborhood_low_lift" in profile["information_gain_penalty_markers"]
+
+
+def test_information_gain_penalizes_parent_child_generalization() -> None:
+    root = {
+        "title": "2021 ATP Challenger Championships – Finals",
+        "key_terms": ["2021", "atp", "challenger", "championships", "finals"],
+    }
+    follow = {
+        "title": "2021 ATP Challenger Championships",
+        "key_terms": [
+            "2021",
+            "atp",
+            "challenger",
+            "championships",
+            "tennis",
+            "tournament",
+        ],
+        "article_aao_event_count": 8,
+        "action_event_count": 8,
+        "object_event_count": 5,
+        "claim_event_count": 1,
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert "parent_child_generalization" in profile["information_gain_reason_markers"]
+    assert "parent_child_generalization" in profile["information_gain_penalty_markers"]
+    assert profile["information_gain_penalty"] >= 0.08
+
+
+def test_information_gain_penalizes_generic_broad_event_no_lift() -> None:
+    root = {
+        "title": "World Table Tennis Championships",
+        "key_terms": ["world", "table", "tennis", "championships"],
+    }
+    follow = {
+        "title": "1928 World Table Tennis Championships",
+        "key_terms": ["1928", "world", "table", "tennis", "championships"],
+        "article_aao_event_count": 12,
+        "action_event_count": 0,
+        "object_event_count": 0,
+        "claim_event_count": 0,
+        "regime": {"narrative": 0.3, "descriptive": 0.65, "formal": 0.05},
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert "generic_breadth" in profile["information_gain_reason_markers"]
+    assert "generic_breadth" in profile["information_gain_penalty_markers"]
+    assert profile["information_gain_score"] < 0.20
 
 
 def test_information_gain_penalizes_generic_disconnected_follow_pages() -> None:
@@ -351,7 +426,7 @@ def test_follow_target_quality_marks_broad_generic_parent_as_list_like() -> None
 
     details = compute_follow_target_quality(root, follow)
     assert "short_broad_generalization" in details["specificity_lexical_markers"]
-    assert details["primary_failure_bucket"] == "list_like_follow"
+    assert details["primary_failure_bucket"] in {"thin_follow", "low_information_gain_follow"}
     assert details["primary_specificity_reason"] == "short_broad_generalization"
     assert "short_broad_generalization" in details["information_gain_reason_markers"]
     assert "short_broad_generalization" not in details["information_gain_penalty_markers"]
@@ -427,6 +502,23 @@ def test_score_snapshot_payload_handles_missing_wikitext_snapshot() -> None:
     assert row["timeline_readiness"]["issues"] == ["snapshot_missing_wikitext"]
     assert row["shared_reducer"]["issues"] == ["snapshot_missing_wikitext"]
     assert row["snapshot_warnings"] == ["page_missing", "no_revisions_returned"]
+
+
+def test_score_snapshot_payload_handles_nested_wikitext_payload() -> None:
+    row = score_snapshot_payload(
+        {
+            "title": "Nested Wikitext",
+            "source_url": "https://en.wikipedia.org/wiki/Nested_Wikitext",
+            "wikitext": {"*": "Nested page says this is safe source text."},
+            "links": ["Alice"],
+        },
+        follow_rows=[],
+        max_follow_links_per_page=1,
+        no_spacy=True,
+    )
+
+    assert "snapshot_missing_wikitext" not in row["issues"]
+    assert row["article_sentence_count"] >= 1
 
 
 def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:

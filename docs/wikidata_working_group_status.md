@@ -1,10 +1,17 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-03-08
+Last updated: 2026-03-25
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
 entry point for Niklas, Ege, Peter, and related reviewers.
+
+If you need one short plain-language handoff that also works for the Zelph
+developer, start with:
+- `../../docs/planning/wikidata_zelph_single_handoff_20260325.md`
+
+Treat this status note as the Wikidata-specific detailed appendix after that
+shared handoff.
 
 ## Current focus
 - bounded slice now includes structural `P31` / `P279` review plus phase-2

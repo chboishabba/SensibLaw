@@ -188,6 +188,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout-s", type=int, default=30)
     parser.add_argument("--wiki-rps", type=float, default=1.0)
     parser.add_argument("--no-wikitext", action="store_true")
+    parser.add_argument(
+        "--include-wikitext",
+        action="store_true",
+        help="Backward-compatible alias; wikitext is included unless --no-wikitext is set",
+    )
     args = parser.parse_args(argv)
 
     manifest = build_random_sample_manifest(
@@ -199,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
         wiki_rps=args.wiki_rps,
         max_links=args.max_links,
         max_categories=args.max_categories,
-        include_wikitext=not args.no_wikitext,
+        include_wikitext=bool(args.include_wikitext or not args.no_wikitext),
         follow_hops=args.follow_hops,
         max_follow_links_per_page=args.max_follow_links_per_page,
     )

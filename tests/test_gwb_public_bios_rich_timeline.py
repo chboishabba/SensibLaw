@@ -24,3 +24,5 @@ def test_build_gwb_public_bios_rich_timeline(tmp_path: Path) -> None:
     texts = [str(row.get("text") or "") for row in payload["events"]]
     assert any("George W. Bush" in text for text in texts)
     assert any("Iraq" in text or "Supreme Court" in text or "signed" in text for text in texts)
+    assert any("No Child Left Behind Act" in text for text in texts)
+    assert any("signed into law" in text and "No Child Left Behind Act" in text for text in texts)

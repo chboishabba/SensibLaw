@@ -196,6 +196,8 @@ a structured, linked, machine-readable backbone.
 
 For the current bounded Wikidata ontology work, start with:
 
+- ITIR-suite shared handoff:
+  `../docs/planning/wikidata_zelph_single_handoff_20260325.md`
 - [Wikidata Working Group Status](docs/wikidata_working_group_status.md)
 - [Wikidata Report Contract](docs/wikidata_report_contract_v0_1.md)
 - [Wikidata Working Group Review Pass](docs/planning/wikidata_working_group_review_pass_20260307.md)
