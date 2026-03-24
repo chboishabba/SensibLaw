@@ -1,0 +1,232 @@
+{
+  "chronology_summary": {
+    "approximate_event_count": 2,
+    "contested_chronology_item_count": 1,
+    "dated_event_count": 0,
+    "dated_fact_count": 3,
+    "event_count": 2,
+    "fact_count": 3,
+    "no_event_fact_count": 1,
+    "undated_event_count": 0,
+    "undated_fact_count": 0
+  },
+  "contested_summary": {
+    "chronology_impacted_count": 1,
+    "chronology_impacted_items": [
+      {
+        "chronology_impacted": true,
+        "chronology_sort_key": "1936",
+        "contestation_count": 1,
+        "contestation_statuses": [
+          "disputed"
+        ],
+        "event_ids": [
+          "event:41c5bbdbd409a0f6"
+        ],
+        "fact_id": "fact:44e3b170c347a29b",
+        "label": "Criminal appeal",
+        "reason_texts": [
+          "Competing accounts of what was denied affect the procedural chronology."
+        ],
+        "review_statuses": [
+          "needs_followup"
+        ]
+      }
+    ],
+    "count": 1,
+    "items": [
+      {
+        "chronology_impacted": true,
+        "chronology_sort_key": "1936",
+        "contestation_count": 1,
+        "contestation_statuses": [
+          "disputed"
+        ],
+        "event_ids": [
+          "event:41c5bbdbd409a0f6"
+        ],
+        "fact_id": "fact:44e3b170c347a29b",
+        "label": "Criminal appeal",
+        "reason_texts": [
+          "Competing accounts of what was denied affect the procedural chronology."
+        ],
+        "review_statuses": [
+          "needs_followup"
+        ]
+      }
+    ],
+    "needs_followup_count": 1,
+    "needs_followup_items": [
+      {
+        "chronology_impacted": true,
+        "chronology_sort_key": "1936",
+        "contestation_count": 1,
+        "contestation_statuses": [
+          "disputed"
+        ],
+        "event_ids": [
+          "event:41c5bbdbd409a0f6"
+        ],
+        "fact_id": "fact:44e3b170c347a29b",
+        "label": "Criminal appeal",
+        "reason_texts": [
+          "Competing accounts of what was denied affect the procedural chronology."
+        ],
+        "review_statuses": [
+          "needs_followup"
+        ]
+      }
+    ],
+    "reviewed_count": 1,
+    "reviewed_items": [
+      {
+        "chronology_impacted": true,
+        "chronology_sort_key": "1936",
+        "contestation_count": 1,
+        "contestation_statuses": [
+          "disputed"
+        ],
+        "event_ids": [
+          "event:41c5bbdbd409a0f6"
+        ],
+        "fact_id": "fact:44e3b170c347a29b",
+        "label": "Criminal appeal",
+        "reason_texts": [
+          "Competing accounts of what was denied affect the procedural chronology."
+        ],
+        "review_statuses": [
+          "needs_followup"
+        ]
+      }
+    ]
+  },
+  "fixture_kind": "real_checked_bundle_projection",
+  "operator_view_names": [
+    "chronology_prep",
+    "claim_alignment",
+    "contested_items",
+    "false_coherence_review",
+    "intake_triage",
+    "procedural_posture",
+    "professional_handoff",
+    "public_claim_review",
+    "trauma_handoff",
+    "wiki_fidelity"
+  ],
+  "review_queue_fact_ids": [
+    "fact:33bf5d1e2fbd3c36",
+    "fact:44e3b170c347a29b",
+    "fact:9d43035cc83c0c08"
+  ],
+  "run": {
+    "contract_version": "fact.intake.bundle.v1",
+    "created_at": "2026-03-19 14:26:44",
+    "mary_projection_version": "mary.fact_workflow.v1",
+    "notes": "Wave 1 legal acceptance AU procedural fixture",
+    "run_id": "factrun:1de59c55e079ea96c0b1a4ad7f0df5635d37d963ce6b07d43a407bb442d0f6c5",
+    "source_label": "wave1:real_au_procedural_v1",
+    "workflow_link": {
+      "adapter_version": "fact_workflow_link_v1",
+      "created_at": "2026-03-19 14:26:44",
+      "fact_run_id": "factrun:1de59c55e079ea96c0b1a4ad7f0df5635d37d963ce6b07d43a407bb442d0f6c5",
+      "source_label": "wave1:real_au_procedural_v1",
+      "workflow_kind": "au_semantic",
+      "workflow_run_id": "run:5ab560b645ee10d0badd59fe6ef0a9442bf5d41bc57e7ff950688ae5961ef12d"
+    }
+  },
+  "selected_facts": [
+    {
+      "fact_id": "fact:44e3b170c347a29b",
+      "fact_text": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "legal_procedural_predicates": [
+        "appealed",
+        "heard_by",
+        "claimed",
+        "denied"
+      ],
+      "review_status": "review_queue",
+      "signal_classes": [
+        "appeal_stage_signal",
+        "party_assertion",
+        "procedural_context",
+        "procedural_outcome"
+      ],
+      "source_bundles": [
+        "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json"
+      ],
+      "source_types": [
+        "timeline_payload"
+      ]
+    },
+    {
+      "fact_id": "fact:33bf5d1e2fbd3c36",
+      "fact_text": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+      "legal_procedural_predicates": [
+        "challenged",
+        "heard_by",
+        "ruled",
+        "ordered"
+      ],
+      "review_status": "review_queue",
+      "signal_classes": [
+        "party_assertion",
+        "procedural_context",
+        "procedural_outcome"
+      ],
+      "source_bundles": [
+        "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json"
+      ],
+      "source_types": [
+        "timeline_payload"
+      ]
+    },
+    {
+      "fact_id": "fact:9d43035cc83c0c08",
+      "fact_text": "The High Court ruled on the challenge and ordered the matter to proceed.",
+      "legal_procedural_predicates": [],
+      "review_status": "review_queue",
+      "signal_classes": [
+        "procedural_outcome"
+      ],
+      "source_bundles": [
+        "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json"
+      ],
+      "source_types": [
+        "timeline_payload"
+      ]
+    }
+  ],
+  "source_bundle_paths": [
+    "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json"
+  ],
+  "summary": {
+    "abstained_fact_count": 0,
+    "approximate_event_count": 2,
+    "chronology_impacted_review_queue_count": 3,
+    "contested_chronology_item_count": 1,
+    "contested_fact_count": 1,
+    "contested_item_count": 1,
+    "contradictory_chronology_review_queue_count": 1,
+    "dated_event_count": 0,
+    "dated_fact_count": 3,
+    "event_count": 2,
+    "excerpt_count": 3,
+    "fact_count": 3,
+    "legal_procedural_review_queue_count": 3,
+    "merged_source_bundle_count": 1,
+    "missing_actor_review_queue_count": 1,
+    "missing_date_review_queue_count": 0,
+    "needs_followup_count": 1,
+    "no_event_fact_count": 1,
+    "observation_count": 27,
+    "policy_review_required_count": 3,
+    "review_queue_count": 3,
+    "reviewed_fact_count": 1,
+    "source_count": 1,
+    "statement_count": 3,
+    "statement_only_review_queue_count": 1,
+    "undated_event_count": 0,
+    "undated_fact_count": 0
+  },
+  "version": "au_public_handoff_v1"
+}

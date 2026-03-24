@@ -25,9 +25,9 @@ def test_build_gwb_zelph_handoff_artifact(tmp_path: Path) -> None:
 
     slice_payload = json.loads(slice_path.read_text(encoding="utf-8"))
     assert slice_payload["version"] == "gwb_public_handoff_v1"
-    assert slice_payload["summary"]["selected_promoted_relation_count"] >= 5
-    assert slice_payload["summary"]["selected_seed_lane_count"] >= 5
-    assert slice_payload["summary"]["unresolved_surface_count"] == 3
+    assert slice_payload["summary"]["selected_promoted_relation_count"] >= 10
+    assert slice_payload["summary"]["selected_seed_lane_count"] == 11
+    assert slice_payload["summary"]["unresolved_surface_count"] >= 3
 
     predicates = {
         row["predicate_key"] for row in slice_payload["selected_promoted_relations"]
@@ -37,7 +37,8 @@ def test_build_gwb_zelph_handoff_artifact(tmp_path: Path) -> None:
     summary_text = summary_path.read_text(encoding="utf-8")
     assert "What the system recovered cleanly" in summary_text
     assert "George W. Bush nominated John Roberts." in summary_text
-    assert "`the administration` stayed unresolved." in summary_text
+    assert "nominated John Roberts" in summary_text
+    assert "## What the system refused to overresolve" in summary_text
 
     facts_text = facts_path.read_text(encoding="utf-8")
     assert 'actor_george_w_bush "nominated" actor_john_roberts' in facts_text
@@ -50,8 +51,9 @@ def test_build_gwb_zelph_handoff_artifact(tmp_path: Path) -> None:
     scorecard_payload = json.loads(scorecard_path.read_text(encoding="utf-8"))
     assert scorecard_payload["destination"] == "complete_gwb_topic_understanding"
     assert scorecard_payload["current_stage"] == "checked_public_handoff_checkpoint"
-    assert scorecard_payload["promoted_relation_count"] >= 5
-    assert scorecard_payload["candidate_only_seed_lane_count"] >= 1
+    assert scorecard_payload["promoted_relation_count"] >= 10
+    assert scorecard_payload["candidate_only_seed_lane_count"] >= 0
+    assert scorecard_payload["matched_seed_lane_count"] >= 10
     assert scorecard_payload["broad_cue_seed_lane_count"] >= 1
     assert scorecard_payload["direct_support_seed_lane_count"] >= 1
 

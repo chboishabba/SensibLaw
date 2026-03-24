@@ -1,18 +1,781 @@
 {
   "ambiguous_events": [
     {
-      "event_id": "ev2",
+      "event_id": "ev:0020",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0027",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0048",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0052",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0075",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0082",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0095",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0097",
+      "match_count": 0,
+      "matches": [],
+      "text": null
+    },
+    {
+      "event_id": "ev:0102",
       "match_count": 0,
       "matches": [],
       "text": null
     }
   ],
   "fixture_kind": "public_checked_fixture",
-  "linkage_run_id": "run:dd2203ac335c1199be137ca7bc1a1a117e8897523aaf62dc8a87f05390d38b30",
+  "linkage_run_id": "run:9142609fc9b8b634e34cb11a2696825f2a4563d821056877d9bf34af3c6a45f8",
   "selected_promoted_relations": [
     {
+      "confidence_tier": "medium",
+      "event_id": "ev:0027",
+      "object": {
+        "canonical_key": "actor:u_s_supreme_court",
+        "canonical_label": "Supreme Court of the United States",
+        "entity_id": 8,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "subject_of_review_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "subject_of_review_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "8"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_review_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
       "confidence_tier": "high",
-      "event_id": "ev2",
+      "event_id": "ev:0040",
+      "object": {
+        "canonical_key": "legal_ref:state_children_s_health_insurance_program",
+        "canonical_label": "State Children's Health Insurance Program",
+        "entity_id": 19,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "veto"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:state_children_s_health_insurance_program"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_vetoed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0040",
+      "object": {
+        "canonical_key": "legal_ref:schip",
+        "canonical_label": "SCHIP",
+        "entity_id": 20,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "veto"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:schip"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_vetoed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0041",
+      "object": {
+        "canonical_key": "legal_ref:genetic_information_nondiscrimination_act",
+        "canonical_label": "Genetic Information Nondiscrimination Act",
+        "entity_id": 21,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "signed"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:genetic_information_nondiscrimination_act"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_signed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0046",
+      "object": {
+        "canonical_key": "legal_ref:stem_cell_research_enhancement_act",
+        "canonical_label": "Stem Cell Research Enhancement Act",
+        "entity_id": 16,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "vetoed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "veto"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:stem_cell_research_enhancement_act"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_vetoed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev:0053",
+      "object": {
+        "canonical_key": "actor:united_states_district_court",
+        "canonical_label": "United States district court",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "9"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev:0080",
+      "object": {
+        "canonical_key": "actor:united_states_district_court",
+        "canonical_label": "United States district court",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "9"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev:0080",
+      "object": {
+        "canonical_key": "actor:sixth_circuit",
+        "canonical_label": "United States Court of Appeals for the Sixth Circuit",
+        "entity_id": 10,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "10"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev:0081",
+      "object": {
+        "canonical_key": "actor:united_states_district_court",
+        "canonical_label": "United States district court",
+        "entity_id": 9,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "9"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "medium",
+      "event_id": "ev:0081",
+      "object": {
+        "canonical_key": "actor:sixth_circuit",
+        "canonical_label": "United States Court of Appeals for the Sixth Circuit",
+        "entity_id": 10,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "ruled_by",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "actor:george_w_bush"
+        },
+        {
+          "kind": "verb",
+          "value": "ruled_by"
+        },
+        {
+          "kind": "object_actor",
+          "value": "10"
+        },
+        {
+          "kind": "rule_type",
+          "value": "review_relation"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_ruled_by_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "2"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0083",
+      "object": {
+        "canonical_key": "legal_ref:military_commissions_act_of_2006",
+        "canonical_label": "Military Commissions Act of 2006",
+        "entity_id": 17,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "signed"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:military_commissions_act_of_2006"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_signed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0083",
+      "object": {
+        "canonical_key": "legal_ref:military_commissions_act",
+        "canonical_label": "Military Commissions Act",
+        "entity_id": 18,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "signed"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:military_commissions_act"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_signed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0090",
+      "object": {
+        "canonical_key": "legal_ref:syria_accountability_act",
+        "canonical_label": "Syria Accountability Act",
+        "entity_id": 15,
+        "entity_kind": "legal_ref"
+      },
+      "predicate_key": "signed",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "signed"
+        },
+        {
+          "kind": "object_legal_ref",
+          "value": "legal_ref:syria_accountability_act"
+        },
+        {
+          "kind": "rule_type",
+          "value": "executive_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_signed_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0095",
       "object": {
         "canonical_key": "actor:john_roberts",
         "canonical_label": "John Roberts",
@@ -67,7 +830,62 @@
     },
     {
       "confidence_tier": "high",
-      "event_id": "ev3",
+      "event_id": "ev:0096",
+      "object": {
+        "canonical_key": "actor:john_roberts",
+        "canonical_label": "John Roberts",
+        "entity_id": 2,
+        "entity_kind": "actor"
+      },
+      "predicate_key": "nominated",
+      "receipts": [
+        {
+          "kind": "subject",
+          "value": "George W. Bush"
+        },
+        {
+          "kind": "verb",
+          "value": "nominated"
+        },
+        {
+          "kind": "object_actor",
+          "value": "actor:john_roberts"
+        },
+        {
+          "kind": "rule_type",
+          "value": "governance_action"
+        },
+        {
+          "kind": "promotion_rule_key",
+          "value": "gwb_nomination_v1"
+        },
+        {
+          "kind": "promotion_min_confidence",
+          "value": "medium"
+        },
+        {
+          "kind": "promotion_required_evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "evidence_count",
+          "value": "3"
+        },
+        {
+          "kind": "promotion_status",
+          "value": "promoted"
+        }
+      ],
+      "subject": {
+        "canonical_key": "actor:george_w_bush",
+        "canonical_label": "George W. Bush",
+        "entity_id": 1,
+        "entity_kind": "actor"
+      }
+    },
+    {
+      "confidence_tier": "high",
+      "event_id": "ev:0096",
       "object": {
         "canonical_key": "actor:u_s_senate",
         "canonical_label": "U.S. Senate",
@@ -122,14 +940,14 @@
     },
     {
       "confidence_tier": "high",
-      "event_id": "ev4",
+      "event_id": "ev:0097",
       "object": {
-        "canonical_key": "legal_ref:stem_cell_research_enhancement_act",
-        "canonical_label": "Stem Cell Research Enhancement Act",
-        "entity_id": 15,
-        "entity_kind": "legal_ref"
+        "canonical_key": "actor:harriet_miers",
+        "canonical_label": "Harriet Miers",
+        "entity_id": 4,
+        "entity_kind": "actor"
       },
-      "predicate_key": "vetoed",
+      "predicate_key": "nominated",
       "receipts": [
         {
           "kind": "subject",
@@ -137,19 +955,19 @@
         },
         {
           "kind": "verb",
-          "value": "veto"
+          "value": "nominated"
         },
         {
-          "kind": "object_legal_ref",
-          "value": "legal_ref:stem_cell_research_enhancement_act"
+          "kind": "object_actor",
+          "value": "actor:harriet_miers"
         },
         {
           "kind": "rule_type",
-          "value": "executive_action"
+          "value": "governance_action"
         },
         {
           "kind": "promotion_rule_key",
-          "value": "gwb_vetoed_v1"
+          "value": "gwb_nomination_v1"
         },
         {
           "kind": "promotion_min_confidence",
@@ -177,14 +995,14 @@
     },
     {
       "confidence_tier": "high",
-      "event_id": "ev5",
+      "event_id": "ev:0098",
       "object": {
-        "canonical_key": "legal_ref:military_commissions_act_of_2006",
-        "canonical_label": "Military Commissions Act of 2006",
-        "entity_id": 16,
-        "entity_kind": "legal_ref"
+        "canonical_key": "actor:samuel_alito",
+        "canonical_label": "Samuel Alito",
+        "entity_id": 3,
+        "entity_kind": "actor"
       },
-      "predicate_key": "signed",
+      "predicate_key": "nominated",
       "receipts": [
         {
           "kind": "subject",
@@ -192,19 +1010,19 @@
         },
         {
           "kind": "verb",
-          "value": "signed"
+          "value": "nominated"
         },
         {
-          "kind": "object_legal_ref",
-          "value": "legal_ref:military_commissions_act_of_2006"
+          "kind": "object_actor",
+          "value": "actor:samuel_alito"
         },
         {
           "kind": "rule_type",
-          "value": "executive_action"
+          "value": "governance_action"
         },
         {
           "kind": "promotion_rule_key",
-          "value": "gwb_signed_v1"
+          "value": "gwb_nomination_v1"
         },
         {
           "kind": "promotion_min_confidence",
@@ -231,35 +1049,35 @@
       }
     },
     {
-      "confidence_tier": "medium",
-      "event_id": "ev9",
+      "confidence_tier": "high",
+      "event_id": "ev:0098",
       "object": {
-        "canonical_key": "actor:united_states_district_court",
-        "canonical_label": "United States district court",
-        "entity_id": 9,
+        "canonical_key": "actor:u_s_senate",
+        "canonical_label": "U.S. Senate",
+        "entity_id": 5,
         "entity_kind": "actor"
       },
-      "predicate_key": "ruled_by",
+      "predicate_key": "confirmed_by",
       "receipts": [
         {
           "kind": "subject",
-          "value": "legal_ref:military_commissions_act_of_2006"
+          "value": "actor:samuel_alito"
         },
         {
           "kind": "verb",
-          "value": "ruled_by"
+          "value": "confirmed_by"
         },
         {
           "kind": "object_actor",
-          "value": "9"
+          "value": "actor:u_s_senate"
         },
         {
           "kind": "rule_type",
-          "value": "review_relation"
+          "value": "governance_action"
         },
         {
           "kind": "promotion_rule_key",
-          "value": "gwb_ruled_by_v1"
+          "value": "gwb_confirmation_v1"
         },
         {
           "kind": "promotion_min_confidence",
@@ -267,7 +1085,7 @@
         },
         {
           "kind": "promotion_required_evidence_count",
-          "value": "2"
+          "value": "3"
         },
         {
           "kind": "evidence_count",
@@ -279,10 +1097,10 @@
         }
       ],
       "subject": {
-        "canonical_key": "legal_ref:military_commissions_act_of_2006",
-        "canonical_label": "Military Commissions Act of 2006",
-        "entity_id": 16,
-        "entity_kind": "legal_ref"
+        "canonical_key": "actor:samuel_alito",
+        "canonical_label": "Samuel Alito",
+        "entity_id": 3,
+        "entity_kind": "actor"
       }
     }
   ],
@@ -296,7 +1114,7 @@
       "events": [
         {
           "confidence": "high",
-          "event_id": "ev1",
+          "event_id": "ev:0044",
           "matched": true,
           "receipts": [
             {
@@ -318,9 +1136,13 @@
             {
               "kind": "provenance_cue",
               "value": "Clean Air Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "emissions trading"
             }
           ],
-          "text": "In 2002, Bush proposed the Clear Skies Act of 2003, which aimed at amending the Clean Air Act."
+          "text": "In 2002, Bush proposed the Clear Skies Act of 2003, which aimed at amending the Clean Air Act to reduce air pollution through the use of emissions trading programs."
         }
       ],
       "linkage_kind": "domestic_statute",
@@ -330,89 +1152,584 @@
       "support_kind": "direct"
     },
     {
-      "action_summary": "Supreme Court nominations and legitimacy lane",
-      "candidate_event_count": 2,
+      "action_summary": "Congressional subpoena and immunity litigation lane",
+      "candidate_event_count": 8,
       "confidence_counts": {
-        "abstain": 1,
-        "low": 1
+        "abstain": 7,
+        "medium": 1
       },
       "events": [
         {
-          "confidence": "low",
-          "event_id": "ev2",
-          "matched": false,
+          "confidence": "medium",
+          "event_id": "ev:0053",
+          "matched": true,
           "receipts": [
             {
-              "kind": "provenance_cue_broad",
-              "value": "Supreme Court"
+              "kind": "court_ref",
+              "value": "United States district court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "congressional subpoenas"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "United States district court"
             }
           ],
-          "text": "On July 19, 2005, Bush nominated John Roberts to the Supreme Court."
+          "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas."
         },
         {
           "confidence": "abstain",
-          "event_id": "ev3",
+          "event_id": "ev:0020",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            }
+          ],
+          "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0080",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "U.S. district court"
+            }
+          ],
+          "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0081",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "U.S. district court"
+            }
+          ],
+          "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0082",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0096",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0102",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            }
+          ],
+          "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\"."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0052",
           "matched": false,
           "receipts": [
             {
               "kind": "provenance_cue",
-              "value": "confirmed by the Senate"
+              "value": "Congress filed a federal lawsuit"
             }
           ],
-          "text": "John Roberts was confirmed by the Senate on September 29, 2005."
+          "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas."
         }
       ],
-      "linkage_kind": "court_and_confirmation",
-      "matched_event_count": 0,
-      "review_status": "candidate_only",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
-      "support_kind": "broad_cue"
+      "linkage_kind": "litigation_and_subpoena",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "support_kind": "direct"
     },
     {
-      "action_summary": "Stem cell veto and bioethics legislation lane",
-      "candidate_event_count": 1,
+      "action_summary": "Department of Defense institutional review lane",
+      "candidate_event_count": 2,
       "confidence_counts": {
+        "abstain": 1,
+        "medium": 1
+      },
+      "events": [
+        {
+          "confidence": "medium",
+          "event_id": "ev:0015",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States Department of Defense"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Department of Defense"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Texas Air National Guard"
+            }
+          ],
+          "text": "In June 2005, the Department of Defense released all the records of Bush's Texas Air National Guard service, which remain in its official archives."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0014",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue",
+              "value": "Texas Air National Guard"
+            }
+          ],
+          "text": "In May 1968, Bush joined the United States Air Force and was commissioned into the Texas Air National Guard."
+        }
+      ],
+      "linkage_kind": "institutional_anchor",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Genetic discrimination legislation lane",
+      "candidate_event_count": 2,
+      "confidence_counts": {
+        "abstain": 1,
         "high": 1
       },
       "events": [
         {
           "confidence": "high",
-          "event_id": "ev4",
+          "event_id": "ev:0041",
           "matched": true,
           "receipts": [
             {
               "kind": "authority_title",
-              "value": "Stem Cell Research Enhancement Act"
+              "value": "Genetic Information Nondiscrimination Act"
             },
             {
               "kind": "provenance_cue",
-              "value": "Stem Cell Research Enhancement Act"
+              "value": "Genetic Information Nondiscrimination Act"
             },
             {
-              "kind": "provenance_cue_broad",
-              "value": "veto"
+              "kind": "provenance_cue",
+              "value": "employment discrimination"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "health insurance"
             }
           ],
-          "text": "On July 19, 2006, Bush vetoed the Stem Cell Research Enhancement Act."
+          "text": "On May 21, 2008, Bush signed into law the Genetic Information Nondiscrimination Act, aimed to protect Americans against health insurance and employment discrimination based on a person's genetic information."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0040",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue",
+              "value": "health insurance"
+            }
+          ],
+          "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress."
         }
       ],
       "linkage_kind": "domestic_statute",
       "matched_event_count": 1,
       "review_status": "matched",
-      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "candidate_event_count": 27,
+      "confidence_counts": {
+        "abstain": 3,
+        "low": 24
+      },
+      "events": [
+        {
+          "confidence": "low",
+          "event_id": "ev:0004",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In January 2007, Bush launched a surge of troops in Iraq."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0051",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "Leaders attacked Bush for having appointed incompetent leaders to positions of power at FEMA, notably Michael D. Brown; federal resources to respond were also limited as a result of being allocated to the Iraq War, and Bush himself did not act upon warnings of floods.\"I don't think anybody anticipated the breach of the levees.\" George W. Bush to Diane Sawyer, Good Morning America, September 1, 2005."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0061",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In Bush's September 20 speech, he declared that \"our war on terror begins with Al Qaeda, but it does not end there.\" In his January 29, 2002 State of the Union Address, he asserted that an \"axis of evil\" consisting of North Korea, Iran, and Ba'athist Iraq was \"arming to threaten the peace of the world\" and \"pose[d] a grave and growing danger\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0063",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "Dissent and criticism of Bush's leadership in the war on terror increased as the war in Iraq continued. Lopez, George E., \"Perils of Bush's Pre-emptive War Doctrine\", The Indianapolis Star, October 3, 2003."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0064",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In 2006, a National Intelligence Estimate concluded that the Iraq War had become the \"cause c\u00e9l\u00e8bre for jihadists\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0068",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "weapons of mass destruction"
+            }
+          ],
+          "text": "Beginning with his January 29, 2002 State of the Union address, Bush began publicly focusing attention on Iraq, which he labeled as part of an \"axis of evil\" allied with terrorists and posing \"a grave and growing danger\" to U.S. interests through possession of weapons of mass destruction."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0069",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "weapons of mass destruction"
+            }
+          ],
+          "text": "Contentions that the Bush Administration manipulated or exaggerated the threat and evidence of Iraq's weapons of mass destruction capabilities would eventually become a major point of criticism for the president. Hersh, Seymour M., \"The Stovepipe\", The New Yorker, October 27, 2003."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0070",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In November 2002, Hans Blix and Mohamed ElBaradei led UN weapons inspectors in Iraq, but were advised by the U.S. to depart the country four days prior to the U.S. invasion, despite their requests for more time to complete their tasks."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0071",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "They launched the invasion on March 20, 2003."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0072",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "The capital, Baghdad, fell on April 9, 2003."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0073",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In January 2005, elections recognized by the West as free and fair were held in Iraq for the first time in 50 years."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0074",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "On January 10, 2007, Bush launched a surge of 21,500 more troops for Iraq, as well as a job program for Iraqis, more reconstruction proposals, and $1.2billion (equivalent to $billion in ) for these programs."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0076",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In March 2008, Bush praised the Iraqi government's \"bold decision\" to launch the Battle of Basra against the Mahdi Army, calling it \"a defining moment in the history of a free Iraq\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0077",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "During Bush's last visit to Iraq in December 2008, Iraqi journalist Muntadhar al-Zaidi threw both of his shoes at him during an official press conference with Iraqi Prime Minister Nouri al-Maliki. Bush shoe-ing worst Arab insult, BBC, December 16, 2008."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0078",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In March 2010, Center for Public Integrity released a report that President Bush's administration had made more than 900 false pretenses in a two-year period about the alleged threat of Iraq against the United States, as his rationale to engage in war in Iraq.\"Study: Bush led U.S. to war on 'false pretenses'\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0079",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "Retrieved March 22, 2010."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0113",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "In an interview published by Israel Hayom magazine on June 12, 2015, Bush said that \"boots on the ground\" would be needed to defeat the Islamic State of Iraq and the Levant (ISIS)."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0137",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "Ben Ferencz, former chief prosecutor for the United States Army at the Nuremberg Trials, stated that Bush likely committed war crimes in relation to the Iraq War. Glantz, A.: \"Bush and Saddam Should Both Stand Trial, Says Nuremberg Prosecutor \", OneWorld U.S., August 25, 2006."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0020",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0082",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0096",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0102",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            }
+          ],
+          "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0040",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0048",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 2006, Bush urged Congress to allow more than twelve million illegal immigrants to work in the United States with the creation of a \"temporary guest-worker program\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0052",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0053",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0075",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Iraq"
+            }
+          ],
+          "text": "On May 1, 2007, Bush used his second-ever veto to reject a bill setting a deadline for the withdrawal of U.S. troops, saying the debate over the conflict was \"understandable\" but insisting that a continued U.S. presence there was crucial."
+        }
+      ],
+      "linkage_kind": "congressional_authority",
+      "matched_event_count": 18,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
       "support_kind": "broad_cue"
     },
     {
       "action_summary": "Military commissions and detainee-review lane",
-      "candidate_event_count": 3,
+      "candidate_event_count": 6,
       "confidence_counts": {
-        "high": 2,
-        "low": 1
+        "high": 1,
+        "low": 5
       },
       "events": [
         {
           "confidence": "high",
-          "event_id": "ev5",
+          "event_id": "ev:0083",
           "matched": true,
           "receipts": [
             {
@@ -435,49 +1752,102 @@
           "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law."
         },
         {
-          "confidence": "high",
-          "event_id": "ev9",
-          "matched": true,
+          "confidence": "low",
+          "event_id": "ev:0027",
+          "matched": false,
           "receipts": [
             {
-              "kind": "authority_title",
-              "value": "Military Commissions Act of 2006"
+              "kind": "court_ref",
+              "value": "U.S. Supreme Court"
             },
             {
-              "kind": "authority_title",
-              "value": "Military Commissions Act"
-            },
-            {
-              "kind": "provenance_cue",
-              "value": "Military Commissions Act of 2006"
-            },
-            {
-              "kind": "provenance_cue",
-              "value": "Military Commissions Act"
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
             }
           ],
-          "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."
+          "text": "The initial recount also went to Bush, but the outcome was tied up in lower courts for a month until eventually reaching the U.S. Supreme Court. Retrieved February 12, 2010."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0095",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "Supreme Court of the United States"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "On July 19, 2005, following the retirement of Associate Justice Sandra Day O'Connor on July 1, Bush nominated federal appellate judge John Roberts as her replacement; however, following the death of Chief Justice William Rehnquist on September 3, the still-pending nomination was withdrawn on September 5, with Bush instead nominating Roberts to be the next Chief Justice of the United States."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0098",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "US Supreme Court"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "Finally, on October 31, Bush nominated federal appellate judge Samuel Alito, who was confirmed by the Senate to replace O'Connor on January 31, 2006. James L. Gibson, and Gregory A. Caldeira, \"Confirmation politics and the legitimacy of the US Supreme Court: Institutional loyalty, positivity bias, and the Alito nomination\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0096",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0097",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "On October 3, 2005, Bush nominated White House Counsel Harriet Miers to succeed O'Connor; however, Miers withdrew her nomination on October 27 after encountering significant opposition from both parties, who found her to be ill-prepared and uninformed on the law."
         }
       ],
       "linkage_kind": "statute_and_litigation",
-      "matched_event_count": 2,
+      "matched_event_count": 1,
       "review_status": "matched",
       "seed_id": "gwb_us_law:military_commissions_2006",
       "support_kind": "broad_cue"
     },
     {
       "action_summary": "NSA surveillance and review/litigation lane",
-      "candidate_event_count": 2,
+      "candidate_event_count": 4,
       "confidence_counts": {
-        "high": 1,
+        "abstain": 1,
+        "high": 2,
         "medium": 1
       },
       "events": [
         {
           "confidence": "high",
-          "event_id": "ev6",
+          "event_id": "ev:0080",
           "matched": true,
           "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "U.S. district court"
+            },
             {
               "kind": "court_ref",
               "value": "United States Court of Appeals for the Sixth Circuit"
@@ -492,6 +1862,10 @@
             },
             {
               "kind": "provenance_cue",
+              "value": "district court"
+            },
+            {
+              "kind": "provenance_cue",
               "value": "Sixth Circuit"
             },
             {
@@ -499,11 +1873,47 @@
               "value": "electronic surveillance program"
             }
           ],
-          "text": "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing in the NSA electronic surveillance program case."
+          "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing."
+        },
+        {
+          "confidence": "high",
+          "event_id": "ev:0081",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "U.S. district court"
+            },
+            {
+              "kind": "court_ref",
+              "value": "United States Court of Appeals for the Sixth Circuit"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "surveillance"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "NSA"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "district court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Sixth Circuit"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "electronic surveillance program"
+            }
+          ],
+          "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing."
         },
         {
           "confidence": "medium",
-          "event_id": "ev9",
+          "event_id": "ev:0053",
           "matched": false,
           "receipts": [
             {
@@ -515,55 +1925,421 @@
               "value": "district court"
             }
           ],
-          "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."
+          "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0082",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue",
+              "value": "surveillance"
+            }
+          ],
+          "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight."
         }
       ],
       "linkage_kind": "statute_and_litigation",
-      "matched_event_count": 1,
+      "matched_event_count": 2,
       "review_status": "matched",
       "seed_id": "gwb_us_law:nsa_surveillance_review",
       "support_kind": "direct"
     },
     {
-      "action_summary": "Iraq war authorization and related executive decision path",
-      "candidate_event_count": 1,
+      "action_summary": "SCHIP veto and congressional funding lane",
+      "candidate_event_count": 8,
       "confidence_counts": {
-        "low": 1
+        "abstain": 3,
+        "high": 1,
+        "low": 4
       },
       "events": [
         {
+          "confidence": "high",
+          "event_id": "ev:0040",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "State Children's Health Insurance Program"
+            },
+            {
+              "kind": "authority_title",
+              "value": "SCHIP"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "SCHIP"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "State Children's Health Insurance Program"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "war funding bill"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress."
+        },
+        {
           "confidence": "low",
-          "event_id": "ev7",
+          "event_id": "ev:0020",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0082",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0096",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0102",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "United States House of Representatives"
+            }
+          ],
+          "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0048",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "In 2006, Bush urged Congress to allow more than twelve million illegal immigrants to work in the United States with the creation of a \"temporary guest-worker program\"."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0052",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0053",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Congress"
+            }
+          ],
+          "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas."
+        }
+      ],
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:schip_veto",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "candidate_event_count": 5,
+      "confidence_counts": {
+        "high": 1,
+        "low": 4
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev:0046",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Stem Cell Research Enhancement Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Stem Cell Research Enhancement Act"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "veto"
+            }
+          ],
+          "text": "On July 19, 2006, Bush used his veto power for the first time in his presidency to veto the Stem Cell Research Enhancement Act."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0045",
           "matched": true,
           "receipts": [
             {
               "kind": "provenance_cue_broad",
-              "value": "Iraq"
+              "value": "veto"
             }
           ],
-          "text": "Bush discussed Iraq in a televised address."
+          "text": "On August 9, 2001, Bush signed an executive order lifting the ban on federal funding for the 71 existing \"lines\" of stem cells, but the ability of these existing lines to provide an adequate medium for testing has been questioned."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0084",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "veto"
+            }
+          ],
+          "text": "On March 8, 2008, Bush vetoed H.R."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0040",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "veto"
+            }
+          ],
+          "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0075",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "veto"
+            }
+          ],
+          "text": "On May 1, 2007, Bush used his second-ever veto to reject a bill setting a deadline for the withdrawal of U.S. troops, saying the debate over the conflict was \"understandable\" but insisting that a continued U.S. presence there was crucial."
         }
       ],
-      "linkage_kind": "congressional_authority",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 3,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "candidate_event_count": 6,
+      "confidence_counts": {
+        "abstain": 1,
+        "high": 1,
+        "low": 3,
+        "medium": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev:0098",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "US Supreme Court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "US Supreme Court"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "confirmed by the Senate"
+            }
+          ],
+          "text": "Finally, on October 31, Bush nominated federal appellate judge Samuel Alito, who was confirmed by the Senate to replace O'Connor on January 31, 2006. James L. Gibson, and Gregory A. Caldeira, \"Confirmation politics and the legitimacy of the US Supreme Court: Institutional loyalty, positivity bias, and the Alito nomination\"."
+        },
+        {
+          "confidence": "medium",
+          "event_id": "ev:0096",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "confirmed by the Senate"
+            }
+          ],
+          "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0027",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "U.S. Supreme Court"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "U.S. Supreme Court"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "The initial recount also went to Bush, but the outcome was tied up in lower courts for a month until eventually reaching the U.S. Supreme Court. Retrieved February 12, 2010."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0095",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "court_ref",
+              "value": "Supreme Court of the United States"
+            },
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "On July 19, 2005, following the retirement of Associate Justice Sandra Day O'Connor on July 1, Bush nominated federal appellate judge John Roberts as her replacement; however, following the death of Chief Justice William Rehnquist on September 3, the still-pending nomination was withdrawn on September 5, with Bush instead nominating Roberts to be the next Chief Justice of the United States."
+        },
+        {
+          "confidence": "abstain",
+          "event_id": "ev:0082",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "institution_ref",
+              "value": "U.S. Senate"
+            }
+          ],
+          "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight."
+        },
+        {
+          "confidence": "low",
+          "event_id": "ev:0097",
+          "matched": false,
+          "receipts": [
+            {
+              "kind": "provenance_cue_broad",
+              "value": "Supreme Court"
+            }
+          ],
+          "text": "On October 3, 2005, Bush nominated White House Counsel Harriet Miers to succeed O'Connor; however, Miers withdrew her nomination on October 27 after encountering significant opposition from both parties, who found her to be ill-prepared and uninformed on the law."
+        }
+      ],
+      "linkage_kind": "court_and_confirmation",
+      "matched_event_count": 2,
+      "review_status": "matched",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Syria sanctions legislation lane",
+      "candidate_event_count": 1,
+      "confidence_counts": {
+        "high": 1
+      },
+      "events": [
+        {
+          "confidence": "high",
+          "event_id": "ev:0090",
+          "matched": true,
+          "receipts": [
+            {
+              "kind": "authority_title",
+              "value": "Syria Accountability Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "Syria Accountability Act"
+            },
+            {
+              "kind": "provenance_cue",
+              "value": "sanctions on Syria"
+            }
+          ],
+          "text": "In 2003, Bush signed the Syria Accountability Act, which expanded sanctions on Syria."
+        }
+      ],
+      "linkage_kind": "domestic_statute",
       "matched_event_count": 1,
       "review_status": "matched",
-      "seed_id": "gwb_us_law:iraq_2002_authorization",
-      "support_kind": "broad_cue"
+      "seed_id": "gwb_us_law:syria_accountability_act",
+      "support_kind": "direct"
     }
   ],
-  "semantic_run_id": "run:dd2203ac335c1199be137ca7bc1a1a117e8897523aaf62dc8a87f05390d38b30",
+  "semantic_run_id": "run:9142609fc9b8b634e34cb11a2696825f2a4563d821056877d9bf34af3c6a45f8",
   "summary": {
-    "ambiguous_event_count": 1,
-    "selected_promoted_relation_count": 5,
-    "selected_seed_lane_count": 6,
-    "unresolved_surface_count": 3
+    "ambiguous_event_count": 9,
+    "selected_promoted_relation_count": 19,
+    "selected_seed_lane_count": 11,
+    "unresolved_surface_count": 7
   },
-  "timeline_event_count": 9,
+  "timeline_event_count": 142,
+  "timeline_path": "wiki_timeline_gwb.json",
   "unresolved_surfaces": [
     {
       "mention_count": null,
       "review_status": "unresolved_surface",
-      "surface_text": "the administration"
+      "surface_text": "White House"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "Bush administration"
     },
     {
       "mention_count": null,
@@ -573,7 +2349,22 @@
     {
       "mention_count": null,
       "review_status": "unresolved_surface",
-      "surface_text": "the court"
+      "surface_text": "the President"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "Bush administration"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "White House"
+    },
+    {
+      "mention_count": null,
+      "review_status": "unresolved_surface",
+      "surface_text": "White House"
     }
   ],
   "version": "gwb_public_handoff_v1"

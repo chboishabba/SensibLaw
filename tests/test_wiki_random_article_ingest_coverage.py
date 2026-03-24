@@ -8,7 +8,9 @@ from scripts.report_wiki_random_article_ingest_coverage import (
     _event_has_action,
     _event_has_object,
     _page_row_from_outputs,
+    compute_content_lift_profile,
     compute_follow_target_quality,
+    compute_information_gain_profile,
     compute_information_gain_score,
     compute_non_list_profile,
     compute_non_list_score,
@@ -150,6 +152,175 @@ def test_non_list_profile_ignores_category_markup_residue() -> None:
     assert profile["list_text_markers"] == []
 
 
+def test_follow_target_quality_marks_admin_place_adjacency_as_list_like() -> None:
+    root = {
+        "title": "Kosewo, Gmina Stary Lubotyń",
+        "key_terms": ["kosewo", "gmina", "stary", "lubotyn", "village", "poland"],
+        "regime": {"narrative": 0.2, "descriptive": 0.75, "formal": 0.05},
+    }
+    follow = {
+        "title": "Budziszki, Gmina Stary Lubotyń",
+        "article_sentence_count": 5,
+        "observation_count": 3,
+        "article_aao_event_count": 1,
+        "key_terms": ["budziszki", "gmina", "stary", "lubotyn", "village", "poland"],
+        "regime": {"narrative": 0.2, "descriptive": 0.75, "formal": 0.05},
+        "raw_text": "Budziszki is a village in the administrative district of Gmina Stary Lubotyń, Poland.",
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "shared_tail_locality_sibling" in details["specificity_title_markers"]
+    assert details["primary_failure_bucket"] == "list_like_follow"
+    assert details["non_list_score"] <= 0.25
+
+
+def test_follow_target_quality_marks_year_umbrella_pages_as_list_like() -> None:
+    root = {
+        "title": "2007 World Table Tennis Championships – Women's doubles",
+        "key_terms": ["2007", "world", "table", "tennis", "championships", "women", "doubles"],
+        "regime": {"narrative": 0.35, "descriptive": 0.6, "formal": 0.05},
+    }
+    follow = {
+        "title": "1928 World Table Tennis Championships",
+        "article_sentence_count": 14,
+        "observation_count": 7,
+        "article_aao_event_count": 3,
+        "key_terms": ["1928", "world", "table", "tennis", "championships"],
+        "regime": {"narrative": 0.35, "descriptive": 0.6, "formal": 0.05},
+        "raw_text": "The 1928 World Table Tennis Championships were held in Stockholm and included several events.",
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "umbrella_title" in details["specificity_title_markers"]
+    assert "same_neighborhood_low_lift" in details["specificity_no_lift_markers"]
+    assert details["primary_failure_bucket"] == "list_like_follow"
+
+
+def test_information_gain_penalizes_year_umbrella_generalization() -> None:
+    root = {
+        "title": "2007 World Table Tennis Championships – Women's doubles",
+        "key_terms": ["2007", "world", "table", "tennis", "championships", "women", "doubles"],
+    }
+    follow = {
+        "title": "1928 World Table Tennis Championships",
+        "key_terms": ["1928", "world", "table", "tennis", "championships"],
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert profile["information_gain_score"] < profile["base_information_gain_score"]
+    assert "year_prefixed_title" in profile["information_gain_penalty_markers"]
+    assert "same_neighborhood_low_lift" in profile["information_gain_penalty_markers"]
+    assert "year_prefixed_title" in profile["information_gain_reason_markers"]
+
+
+def test_information_gain_penalizes_broad_competition_parent() -> None:
+    root = {
+        "title": "Gösta Magnusson",
+        "key_terms": ["gosta", "magnusson", "weightlifting", "european", "championships"],
+    }
+    follow = {
+        "title": "European Weightlifting Championships",
+        "key_terms": ["european", "weightlifting", "championships"],
+        "article_aao_event_count": 5,
+        "action_event_count": 5,
+        "object_event_count": 3,
+        "claim_event_count": 1,
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert profile["information_gain_score"] < profile["base_information_gain_score"]
+    assert "umbrella_title" in profile["information_gain_penalty_markers"]
+    assert "same_neighborhood_low_lift" in profile["information_gain_penalty_markers"]
+
+
+def test_information_gain_keeps_umbrella_title_as_reason_without_low_lift_penalty() -> None:
+    root = {
+        "title": "Gösta Magnusson",
+        "key_terms": ["gosta", "magnusson", "sweden", "athlete"],
+    }
+    follow = {
+        "title": "European Weightlifting Championships",
+        "key_terms": ["european", "weightlifting", "championships"],
+        "article_aao_event_count": 5,
+        "action_event_count": 5,
+        "object_event_count": 3,
+        "claim_event_count": 1,
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert profile["primary_information_gain_reason"] == "umbrella_title"
+    assert "umbrella_title" in profile["information_gain_reason_markers"]
+    assert "umbrella_title" not in profile["information_gain_penalty_markers"]
+    assert profile["information_gain_penalty"] == 0.0
+    assert profile["content_lift_bonus"] > 0.0
+    assert profile["information_gain_score"] > profile["base_information_gain_score"]
+
+
+def test_information_gain_can_receive_content_lift_bonus_without_title_penalty() -> None:
+    root = {
+        "title": "Agrega",
+        "key_terms": ["agrega", "project", "repository", "schools"],
+    }
+    follow = {
+        "title": "Educational metadata standards",
+        "key_terms": ["educational", "metadata", "standards", "repositories", "interoperability", "schools"],
+        "article_aao_event_count": 6,
+        "action_event_count": 6,
+        "object_event_count": 4,
+        "claim_event_count": 2,
+        "attribution_event_count": 1,
+    }
+
+    profile = compute_information_gain_profile(root, follow)
+    assert profile["content_lift_score"] > 0.45
+    assert profile["content_lift_bonus"] > 0.0
+    assert profile["information_gain_penalty"] == 0.0
+    assert profile["information_gain_score"] > profile["base_information_gain_score"]
+
+
+def test_content_lift_profile_reports_relation_and_novel_term_support() -> None:
+    root = {"title": "Agrega", "key_terms": ["agrega", "project", "repository", "schools"]}
+    follow = {
+        "title": "Educational metadata standards",
+        "key_terms": ["educational", "metadata", "standards", "repositories", "interoperability", "schools"],
+        "article_aao_event_count": 6,
+        "action_event_count": 6,
+        "object_event_count": 4,
+        "claim_event_count": 2,
+        "attribution_event_count": 1,
+    }
+
+    profile = compute_content_lift_profile(root, follow)
+    assert profile["relation_surface_score"] > 0.5
+    assert profile["novel_term_support_score"] > 0.5
+    assert "relation_bearing_lift" in profile["content_lift_reason_markers"]
+    assert "novel_term_lift" in profile["content_lift_reason_markers"]
+
+
+def test_follow_target_quality_marks_broad_generic_parent_as_list_like() -> None:
+    root = {
+        "title": "Alaskan Way",
+        "key_terms": ["alaskan", "way", "seattle", "waterfront", "street"],
+        "regime": {"narrative": 0.25, "descriptive": 0.7, "formal": 0.05},
+    }
+    follow = {
+        "title": "Alaska",
+        "article_sentence_count": 40,
+        "observation_count": 25,
+        "article_aao_event_count": 15,
+        "key_terms": ["alaska", "state", "united", "states", "anchorage", "juneau"],
+        "regime": {"narrative": 0.25, "descriptive": 0.7, "formal": 0.05},
+        "raw_text": "Alaska is a state in the United States with Juneau as its capital.",
+    }
+
+    details = compute_follow_target_quality(root, follow)
+    assert "short_broad_generalization" in details["specificity_lexical_markers"]
+    assert details["primary_failure_bucket"] == "list_like_follow"
+    assert details["primary_specificity_reason"] == "short_broad_generalization"
+    assert "short_broad_generalization" in details["information_gain_reason_markers"]
+    assert "short_broad_generalization" not in details["information_gain_penalty_markers"]
+
+
 def test_score_snapshot_payload_reports_canonical_state_and_follow_usage(tmp_path: Path) -> None:
     follow_snapshot_path = _write_snapshot(
         tmp_path,
@@ -261,7 +432,7 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     }
 
     report = build_article_ingest_report(manifest, emit_page_rows=True, no_spacy=True)
-    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_7"
+    assert report["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_10"
     assert report["supported_surface"]["canonical_state_surface"] == "wiki_article_state_v0_1"
     assert report["summary"]["page_count"] == 2
     assert report["summary"]["pages_with_article_sentences"] == 2
@@ -275,6 +446,11 @@ def test_build_article_ingest_report_aggregates_pages(tmp_path: Path) -> None:
     assert "average_follow_target_quality" in report["summary"]
     assert "follow_failure_bucket_counts" in report["summary"]
     assert "follow_failure_bucket_examples" in report["summary"]
+    assert "specificity_reason_counts" in report["summary"]
+    assert "specificity_reason_examples" in report["summary"]
+    assert "information_gain_reason_counts" in report["summary"]
+    assert "content_lift_score" in report["summary"]["average_follow_yield_metrics"]
+    assert "information_gain_reason_examples" in report["summary"]
     assert "two_hop_metrics" in report["summary"]
     assert "best_path_metrics" in report["summary"]
     assert "average_regime_calibration_scores" in report["summary"]
@@ -343,7 +519,7 @@ def test_article_ingest_main_writes_report(tmp_path: Path, capsys) -> None:
     assert report_path.exists()
     assert payload["summary"]["page_count"] == 1
     assert payload["pages"][0]["title"] == "Article example"
-    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_7"
+    assert payload["schema_version"] == "wiki_random_article_ingest_coverage_report_v0_10"
 
 
 def test_event_has_action_and_object_detection() -> None:

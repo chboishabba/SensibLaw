@@ -1,0 +1,8 @@
+# AU public handoff rules
+
+(X "signal_class" "procedural_outcome") => (X "au_procedural_fact" "true")
+(X "signal_class" "appeal_stage_signal") => (X "au_procedural_fact" "true")
+(X "review_status" "review_queue") => (X "needs_review_due_to_procedural_pressure" "true")
+
+X "au_procedural_fact" "true"
+X "needs_review_due_to_procedural_pressure" "true"

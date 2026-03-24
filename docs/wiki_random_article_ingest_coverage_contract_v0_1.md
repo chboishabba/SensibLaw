@@ -258,6 +258,69 @@ The first bounded target set is:
 - broad generic concept pages that are related but too unspecific to be worth
   following
 
+The fixed-manifest rescoring pass should now be treated as the authoritative
+read on Slice 2, because it compares scorer behavior on the same stored
+manifests rather than on a fresh random slice.
+
+That fixed-manifest comparison currently says:
+
+- `list_like_follow` did not decrease on the same manifests
+- `low_information_gain_follow` increased only slightly
+- average `follow_target_quality_score` moved down (`0.525836 -> 0.507564`)
+- `best_path_vs_avg_gap` improved slightly (`0.047057 -> 0.050072`)
+- `hop_quality_decay` stayed effectively flat (`-0.021348 -> -0.019689`)
+
+So the current interpretation must stay narrow:
+
+- keep the fixed-manifest comparison path
+- keep the new information-gain reason instrumentation
+- do not trust title-shape penalties alone as a scoring improvement
+- narrow the next information-gain refinement so broad/year/umbrella
+  generalization penalties land only when they co-occur with low-novelty or
+  same-neighborhood/no-lift evidence
+
+After the narrower `v0_9` rescoring pass on the same manifests, the working
+read should tighten again:
+
+- weak-follow bucket counts stayed unchanged on the same manifests
+- average follow-target quality stayed almost flat rather than being dragged
+  down materially
+- hop decay and best-path gap stayed effectively stable
+- information-gain reasons remained visible even when they no longer triggered
+  a score penalty
+
+That means the next scorer slice should not add more title heuristics. It
+should add a content-based continuation-lift signal inside the existing
+information-gain component, so weak follows are judged by whether the follow
+page contributes new relation-bearing structure, not just by title shape or raw
+term overlap.
+
+Before treating any live rerun as quantitative evidence, the harness should
+also support fixed-manifest rescoring and direct before/after comparison. That
+comparison path should:
+
+- rescore the same stored manifests with the current scorer
+- compare report-level deltas on the same root pages
+- report changes in:
+  - `list_like_follow`
+  - `low_information_gain_follow`
+  - `follow_target_quality_score`
+  - `best_path_vs_avg_gap`
+  - `hop_quality_decay`
+
+After the continuation-specificity slice, the next scoring refinement should be
+inside the existing information-gain component, not as a new top-level score.
+That refinement should distinguish:
+
+- related and useful continuations
+- related but overly generic / weakly informative continuations
+
+The first bounded targets for that slice are:
+
+- year/edition umbrella continuations such as older competition pages
+- broad championship / conference / competition parent pages
+- broad generic parent concepts when the follow contributes little novelty
+
 ## Page-family stratification
 
 The random-page harness should now also emit a light page-family/profile guess

@@ -203,9 +203,13 @@ def _persist_structural_atoms(dest_conn: sqlite3.Connection, run_id: str, row_or
     sensiblaw_root = Path(__file__).resolve().parents[1]
     if str(sensiblaw_root) not in sys.path:
         sys.path.insert(0, str(sensiblaw_root))
-    from src.text.structure_index import collect_structure_occurrences  # noqa: PLC0415
+    from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences  # noqa: PLC0415
 
-    occurrences = [occ for occ in collect_structure_occurrences(text, canonical_mode="deterministic_legal") if occ.kind.endswith("_ref")]
+    occurrences = [
+        occ
+        for occ in collect_canonical_structure_occurrences(text, canonical_mode="deterministic_legal")
+        if occ.kind.endswith("_ref")
+    ]
     if not occurrences:
         return
     atom_keys = sorted({(occ.norm_text, occ.kind) for occ in occurrences})

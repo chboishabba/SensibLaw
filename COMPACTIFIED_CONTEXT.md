@@ -148,11 +148,95 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
     - `low_information_gain_follow` remained the next residual bucket
     - root-link relevance stayed high, hop decay stayed near zero, and the
       graph still looked walkable rather than collapsing with depth
+  - slice-1 continuation-specificity implementation:
+    - the follow-target-quality blend and current thresholds stayed fixed
+    - `non_list_score` / `list_like_follow` now absorbs bounded title
+      heuristics, lexical parent-child specificity checks, and same-
+      neighborhood/no-lift detection
+    - follow details and summaries now emit explicit specificity reasons
+    - the next validation step is the same 3x8 campaign rerun before changing
+      `low_information_gain_follow`
+  - post-slice-1 rerun reading:
+    - the live rerun confirms the new specificity reasons are hitting the
+      intended weak continuation shapes
+    - but because the sample changed, the next quantitative step should be a
+      fixed-manifest before/after comparison
+    - the next scorer refinement after that should stay inside the existing
+      information-gain component and target related-but-generic continuations
+  - fixed-manifest + slice-2 implementation:
+    - `scripts/run_follow_quality_campaign.sh` can now rescore stored manifests
+      by reusing an existing run root
+    - `SensibLaw/scripts/compare_follow_quality_reports.py` compares before/after
+      reports on the same manifests
+    - the information-gain component now carries bounded penalties for
+      year/umbrella/generalization and low-novelty continuations while keeping
+      the overall score shape unchanged
+    - fixed-manifest comparison then showed:
+      - `list_like_follow` unchanged on the same manifests
+      - `low_information_gain_follow` only slightly higher
+      - average `follow_target_quality_score` lower (`0.525836 -> 0.507564`)
+      - `best_path_vs_avg_gap` slightly higher (`0.047057 -> 0.050072`)
+      - `hop_quality_decay` effectively flat (`-0.021348 -> -0.019689`)
+    - current reading:
+      - fixed-manifest compare path is correct and should stay
+      - information-gain reason instrumentation is useful and should stay
+      - title-shape cues alone are too blunt as score penalties
+      - the next scorer narrowing should require co-occurring low-novelty /
+        no-lift evidence before the main year/umbrella/generalization
+        information-gain penalties apply
+    - narrower `v0_9` rescoring then showed:
+      - weak-follow bucket counts unchanged on the same manifests
+      - average follow-target quality nearly flat rather than materially lower
+      - hop decay and best-path gap effectively stable
+      - information-gain reasons remained visible even when they did not
+        trigger score penalties
+    - next scorer step:
+      - stop tightening title cues
+      - add a content-based continuation-lift signal inside the existing
+        information-gain component so relation-bearing structural lift can
+        distinguish genuinely informative continuations from generic title
+        matches
 - A separate auth/input format issue is also now in play:
   - local file `~/.chatgpt_session_new` is a chunked session-token file with
     multiple raw lines
   - `re_gpt` should learn that format explicitly rather than treating it like a
     single-line token file
+
+- 2026-03-24 online Context resolution attempt (SensibLaw thread refresh):
+  - online UUID: `69c27a0a-ed74-839c-8a57-3c184c28f88e`
+  - title from input URL:
+    `https://chatgpt.com/g/g-p-6983ff87bc608191905a33b93daa74f7-sensiblaw/c/69c27a0a-ed74-839c-8a57-3c184c28f88e`
+  - decision:
+    - **source:** `error` (resolver: local DB miss + web fallback failure)
+    - **decision reason:** `not_found_in_db`; web fallback could not complete
+    - canonical thread ID: unresolved
+    - main topics: context refresh verification request only; no canonical match
+      extracted
+  - failure details:
+    - `re_gpt` hit Playwright browser bootstrap and required `firefox` at
+      `/home/c/.cache/ms-playwright/firefox-1509/firefox/firefox`
+    - install path currently unavailable in this environment, so cloudflare
+      auth path could not be solved
+  - next action:
+    - use `pull_to_structurer.py` to ingest from online ID first and re-resolve from DB
+      in the same session
+- 2026-03-24 context resolution correction for the same SensibLaw thread:
+  - online UUID: `69c27a0a-ed74-839c-8a57-3c184c28f88e`
+  - title: `QG Unification Proofs`
+  - canonical thread ID: `f20d9304aae805879a1f934b71443bd2c80ac19b`
+  - source used: `db` (post pull-to-structurer ingestion)
+  - decision reason: `db_match_found` via `online_thread_id_exact`
+  - pulled with:
+    - `/home/c/Documents/code/ITIR-suite/.venv/bin/python
+      /home/c/Documents/code/ITIR-suite/reverse-engineered-chatgpt/scripts/pull_to_structurer.py --ids "69c27a0a-ed74-839c-8a57-3c184c28f88e" --db ~/chat_archive.sqlite --engine async --json`
+  - resolved content summary:
+    - `thread_message_count`: 42
+    - earliest_ts: `2026-03-24T11:48:25+00:00`
+    - latest_ts: `2026-03-24T11:54:22+00:00`
+  - no firefox/browser path is required for this online-ID workflow when using direct pull
+  - next action:
+    - if a future direct pull attempt fails, log the concrete blocker and retry only with
+      corrected authentication/session inputs before trying browser-based resolver fallback
 - Wikidata ontology lane now uses the newest pinned slice/revision as the active
   baseline for routine diagnostics; explicit historical rewind checks are now
   tracked as a separate review-triggered process because they are useful but add

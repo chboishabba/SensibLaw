@@ -24,52 +24,34 @@ from src.zelph_bridge import run_zelph_inference
 ARTIFACT_VERSION = "gwb_public_handoff_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 
-FIXTURE_TIMELINE = {
-    "generated_at": "2026-03-24T00:00:00Z",
-    "parser": {"name": "fixture"},
-    "source_timeline": {"path": "wiki_timeline_gwb.json", "snapshot": None},
-    "events": [
-        {"event_id": "ev1", "anchor": {"year": 2002, "text": "2002"}, "section": "Domestic policy", "text": "In 2002, Bush proposed the Clear Skies Act of 2003, which aimed at amending the Clean Air Act."},
-        {"event_id": "ev2", "anchor": {"year": 2005, "text": "July 19, 2005"}, "section": "Nominations", "text": "On July 19, 2005, Bush nominated John Roberts to the Supreme Court."},
-        {"event_id": "ev3", "anchor": {"year": 2005, "text": "September 29, 2005"}, "section": "Confirmations", "text": "John Roberts was confirmed by the Senate on September 29, 2005."},
-        {"event_id": "ev4", "anchor": {"year": 2006, "text": "July 19, 2006"}, "section": "Legislation", "text": "On July 19, 2006, Bush vetoed the Stem Cell Research Enhancement Act."},
-        {"event_id": "ev5", "anchor": {"year": 2006, "text": "October 17, 2006"}, "section": "Legislation", "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law."},
-        {"event_id": "ev6", "anchor": {"year": 2007, "text": "July 6, 2007"}, "section": "Surveillance", "text": "The ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing in the NSA electronic surveillance program case."},
-        {"event_id": "ev7", "anchor": {"year": 2003, "text": "2003"}, "section": "Foreign policy", "text": "Bush discussed Iraq in a televised address."},
-        {"event_id": "ev8", "anchor": {"year": 2006, "text": "Unknown"}, "section": "Politics", "text": "The administration and the President were under pressure from the court."},
-        {"event_id": "ev9", "anchor": {"year": 2008, "text": "July 31, 2008"}, "section": "Litigation", "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional."},
-    ],
-}
-
-SELECTED_RELATIONS = {
-    ("nominated", "actor:george_w_bush", "actor:john_roberts"),
-    ("confirmed_by", "actor:john_roberts", "actor:u_s_senate"),
-    ("vetoed", "actor:george_w_bush", "legal_ref:stem_cell_research_enhancement_act"),
-    ("signed", "actor:george_w_bush", "legal_ref:military_commissions_act_of_2006"),
-    ("ruled_by", "legal_ref:military_commissions_act_of_2006", "actor:united_states_district_court"),
-}
-
-SELECTED_SEEDS = [
-    "gwb_us_law:clear_skies_2003",
-    "gwb_us_law:supreme_court_appointments",
-    "gwb_us_law:stem_cell_research_enhancement_act",
-    "gwb_us_law:military_commissions_2006",
-    "gwb_us_law:nsa_surveillance_review",
-    "gwb_us_law:iraq_2002_authorization",
-]
+DEFAULT_TIMELINE_PATH = SENSIBLAW_ROOT / ".cache_local" / "wiki_timeline_gwb.json"
 
 
 def _sanitize_id(raw: str) -> str:
     return "".join(ch if ch.isalnum() else "_" for ch in raw).strip("_").lower()
 
 
-def _build_reports() -> tuple[dict[str, Any], dict[str, Any]]:
+def _load_timeline_payload(*, timeline_path: Path | None = None) -> dict[str, Any]:
+    selected_path = timeline_path or DEFAULT_TIMELINE_PATH
+    if not selected_path.exists():
+        raise FileNotFoundError(
+            f"timeline payload not found at {selected_path}. Run the GWB timeline build or pass --timeline-path."
+        )
+    payload = json.loads(selected_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or not isinstance(payload.get("events"), list):
+        raise ValueError(f"timeline payload at {selected_path} is not in expected format: missing list events")
+    return payload
+
+
+def _build_reports(*, timeline_payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     seed_path = SENSIBLAW_ROOT / "data" / "ontology" / "gwb_us_law_linkage_seed_v1.json"
     seed_payload = json.loads(seed_path.read_text(encoding="utf-8"))
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         db_path = tmpdir_path / "itir.sqlite"
-        persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=FIXTURE_TIMELINE, timeline_path=tmpdir_path / "wiki_timeline_gwb.json")
+        timeline_out_path = tmpdir_path / "wiki_timeline_gwb.json"
+        timeline_out_path.write_text(json.dumps(timeline_payload, sort_keys=True, indent=2), encoding="utf-8")
+        persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=timeline_out_path)
         with sqlite3.connect(str(db_path)) as conn:
             conn.row_factory = sqlite3.Row
             ensure_bridge_schema(conn)
@@ -100,26 +82,21 @@ def _seed_support_kind(row: dict[str, Any]) -> str:
     return "direct"
 
 
-def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any]) -> dict[str, Any]:
+def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any], *, timeline_payload: dict[str, Any]) -> dict[str, Any]:
     selected_relations = []
     for row in semantic_report.get("promoted_relations", []):
-        triple = (str(row.get("predicate_key") or ""), str(row.get("subject", {}).get("canonical_key") or ""), str(row.get("object", {}).get("canonical_key") or ""))
-        if triple in SELECTED_RELATIONS:
-            selected_relations.append({
-                "event_id": row.get("event_id"),
-                "predicate_key": row.get("predicate_key"),
-                "confidence_tier": row.get("confidence_tier"),
-                "subject": row.get("subject"),
-                "object": row.get("object"),
-                "receipts": row.get("receipts", []),
-            })
+        selected_relations.append({
+            "event_id": row.get("event_id"),
+            "predicate_key": row.get("predicate_key"),
+            "confidence_tier": row.get("confidence_tier"),
+            "subject": row.get("subject"),
+            "object": row.get("object"),
+            "receipts": row.get("receipts", []),
+        })
 
     seed_lookup = {str(row.get("seed_id")): row for row in linkage_report.get("per_seed", [])}
     selected_seed_rows = []
-    for seed_id in SELECTED_SEEDS:
-        row = seed_lookup.get(seed_id)
-        if not row:
-            continue
+    for seed_id, row in seed_lookup.items():
         selected_seed_rows.append({
             "seed_id": seed_id,
             "action_summary": row.get("action_summary"),
@@ -129,7 +106,7 @@ def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any]
             "matched_event_count": row.get("matched_event_count"),
             "candidate_event_count": row.get("candidate_event_count"),
             "confidence_counts": row.get("confidence_counts", {}),
-            "events": [{"event_id": event.get("event_id"), "confidence": event.get("confidence"), "matched": event.get("matched"), "text": event.get("text"), "receipts": event.get("receipts", [])} for event in row.get("events", [])[:2]],
+            "events": [{"event_id": event.get("event_id"), "confidence": event.get("confidence"), "matched": event.get("matched"), "text": event.get("text"), "receipts": event.get("receipts", [])} for event in row.get("events", [])],
         })
 
     unresolved_mentions = [{"surface_text": row.get("surface_text"), "review_status": "unresolved_surface", "mention_count": row.get("mention_count")} for row in semantic_report.get("unresolved_mentions", [])]
@@ -137,7 +114,8 @@ def _build_slice(linkage_report: dict[str, Any], semantic_report: dict[str, Any]
     return {
         "version": ARTIFACT_VERSION,
         "fixture_kind": "public_checked_fixture",
-        "timeline_event_count": len(FIXTURE_TIMELINE["events"]),
+        "timeline_path": str((timeline_payload.get("source_timeline") or {}).get("path") or timeline_payload.get("source") or "wiki_timeline_gwb.json"),
+        "timeline_event_count": len(timeline_payload["events"]),
         "linkage_run_id": linkage_report.get("run_id"),
         "semantic_run_id": semantic_report.get("run_id"),
         "summary": {
@@ -262,9 +240,10 @@ def _build_rules() -> str:
     )
 
 
-def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
-    linkage_report, semantic_report = _build_reports()
-    slice_payload = _build_slice(linkage_report, semantic_report)
+def build_handoff_artifact(output_dir: Path, *, timeline_path: Path | None = None) -> dict[str, Any]:
+    timeline_payload = _load_timeline_payload(timeline_path=timeline_path)
+    linkage_report, semantic_report = _build_reports(timeline_payload=timeline_payload)
+    slice_payload = _build_slice(linkage_report, semantic_report, timeline_payload=timeline_payload)
     summary_text = _build_summary_text(slice_payload)
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()
@@ -296,8 +275,10 @@ def build_handoff_artifact(output_dir: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the checked GWB public-entity Zelph handoff artifact.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the checked handoff artifact into.")
+    parser.add_argument("--timeline-path", default=str(DEFAULT_TIMELINE_PATH), help="Path to the GWB timeline JSON payload.")
     args = parser.parse_args()
-    print(json.dumps(build_handoff_artifact(Path(args.output_dir).resolve()), indent=2, sort_keys=True))
+    timeline_path = Path(args.timeline_path).resolve() if args.timeline_path else None
+    print(json.dumps(build_handoff_artifact(Path(args.output_dir).resolve(), timeline_path=timeline_path), indent=2, sort_keys=True))
     return 0
 
 

@@ -1,0 +1,120 @@
+{
+  "approximate_event_count_total": 2,
+  "contested_item_count_total": 3,
+  "current_stage": "real_bundle_coverage_checkpoint",
+  "destination": "broader_au_corpus_understanding",
+  "event_count_total": 2,
+  "fact_count_total": 13,
+  "included_real_bundle_count": 4,
+  "known_raw_transcript_file_count": 4,
+  "observation_count_total": 40,
+  "review_queue_count_total": 11,
+  "slice": {
+    "bundle_inventory": [
+      {
+        "approximate_event_count": 2,
+        "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json",
+        "contested_item_count": 1,
+        "event_count": 2,
+        "fact_count": 3,
+        "observation_count": 27,
+        "review_queue_count": 3,
+        "source_count": 1,
+        "source_label": "wave1:real_au_procedural_v1",
+        "statement_count": 3,
+        "workflow_kind": "au_semantic",
+        "workflow_run_id": "run:5ab560b645ee10d0badd59fe6ef0a9442bf5d41bc57e7ff950688ae5961ef12d"
+      },
+      {
+        "approximate_event_count": 0,
+        "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave3_real_fragmented_support_demo_bundle.json",
+        "contested_item_count": 1,
+        "event_count": 0,
+        "fact_count": 3,
+        "observation_count": 4,
+        "review_queue_count": 2,
+        "source_count": 3,
+        "source_label": "wave3:real_transcript_fragmented_support_v1",
+        "statement_count": 3,
+        "workflow_kind": "transcript_semantic",
+        "workflow_run_id": "real_transcript_fragmented_support_v1"
+      },
+      {
+        "approximate_event_count": 0,
+        "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave5_real_professional_handoff_demo_bundle.json",
+        "contested_item_count": 0,
+        "event_count": 0,
+        "fact_count": 3,
+        "observation_count": 4,
+        "review_queue_count": 2,
+        "source_count": 3,
+        "source_label": "wave5:real_transcript_professional_handoff_v1",
+        "statement_count": 3,
+        "workflow_kind": "transcript_semantic",
+        "workflow_run_id": "real_transcript_professional_handoff_v1"
+      },
+      {
+        "approximate_event_count": 0,
+        "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave5_real_false_coherence_demo_bundle.json",
+        "contested_item_count": 1,
+        "event_count": 0,
+        "fact_count": 4,
+        "observation_count": 5,
+        "review_queue_count": 4,
+        "source_count": 4,
+        "source_label": "wave5:real_transcript_false_coherence_v1",
+        "statement_count": 4,
+        "workflow_kind": "transcript_semantic",
+        "workflow_run_id": "real_transcript_false_coherence_v1"
+      }
+    ],
+    "fixture_kind": "real_bundle_coverage_scorecard",
+    "included_source_labels": [
+      "wave1:real_au_procedural_v1",
+      "wave3:real_transcript_fragmented_support_v1",
+      "wave5:real_transcript_false_coherence_v1",
+      "wave5:real_transcript_professional_handoff_v1"
+    ],
+    "included_workflow_kinds": [
+      "au_semantic",
+      "transcript_semantic"
+    ],
+    "known_raw_source_backlog": {
+      "file_count": 4,
+      "files": [
+        "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.html",
+        "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+        "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+        "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.segments.json"
+      ],
+      "files_by_suffix": {
+        ".html": 1,
+        ".json": 1,
+        ".md": 1,
+        ".txt": 1
+      },
+      "root": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts"
+    },
+    "summary": {
+      "approximate_event_count_total": 2,
+      "contested_item_count_total": 3,
+      "event_count_total": 2,
+      "fact_count_total": 13,
+      "included_real_bundle_count": 4,
+      "known_raw_transcript_file_count": 4,
+      "observation_count_total": 40,
+      "review_queue_count_total": 11,
+      "source_count_total": 11,
+      "source_label_count": 4,
+      "statement_count_total": 13,
+      "workflow_kind_count": 2,
+      "workflow_run_count": 4
+    },
+    "version": "au_corpus_scorecard_v1"
+  },
+  "source_count_total": 11,
+  "source_label_count": 4,
+  "statement_count_total": 13,
+  "workflow_kind_count": 2,
+  "workflow_run_count": 4
+}

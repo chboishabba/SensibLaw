@@ -1,0 +1,217 @@
+{
+  "status": "ok",
+  "stderr": "Importing file /tmp/tmpbu3og5v_/bundle.zlp...\n",
+  "stdout": " fact_fact_44e3b170c347a29b   kind   fact \n fact_fact_44e3b170c347a29b   label   In House v The King the appellant appealed and the matter was heard by the High Court. \n fact_fact_44e3b170c347a29b   canonical_key   fact:44e3b170c347a29b \n fact_fact_44e3b170c347a29b   review_status   review_queue \n fact_fact_44e3b170c347a29b   source_type   timeline_payload \n fact_fact_44e3b170c347a29b   signal_class   appeal_stage_signal \n fact_fact_44e3b170c347a29b   signal_class   party_assertion \n fact_fact_44e3b170c347a29b   signal_class   procedural_context \n fact_fact_44e3b170c347a29b   signal_class   procedural_outcome \n fact_fact_44e3b170c347a29b   source_bundle   itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json \n fact_fact_44e3b170c347a29b   legal_procedural_predicate   appealed \n fact_fact_44e3b170c347a29b   legal_procedural_predicate   heard_by \n fact_fact_44e3b170c347a29b   legal_procedural_predicate   claimed \n fact_fact_44e3b170c347a29b   legal_procedural_predicate   denied \n fact_fact_33bf5d1e2fbd3c36   kind   fact \n fact_fact_33bf5d1e2fbd3c36   label   The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court. \n fact_fact_33bf5d1e2fbd3c36   canonical_key   fact:33bf5d1e2fbd3c36 \n fact_fact_33bf5d1e2fbd3c36   review_status   review_queue \n fact_fact_33bf5d1e2fbd3c36   source_type   timeline_payload \n fact_fact_33bf5d1e2fbd3c36   signal_class   party_assertion \n fact_fact_33bf5d1e2fbd3c36   signal_class   procedural_context \n fact_fact_33bf5d1e2fbd3c36   signal_class   procedural_outcome \n fact_fact_33bf5d1e2fbd3c36   source_bundle   itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json \n fact_fact_33bf5d1e2fbd3c36   legal_procedural_predicate   challenged \n fact_fact_33bf5d1e2fbd3c36   legal_procedural_predicate   heard_by \n fact_fact_33bf5d1e2fbd3c36   legal_procedural_predicate   ruled \n fact_fact_33bf5d1e2fbd3c36   legal_procedural_predicate   ordered \n fact_fact_9d43035cc83c0c08   kind   fact \n fact_fact_9d43035cc83c0c08   label   The High Court ruled on the challenge and ordered the matter to proceed. \n fact_fact_9d43035cc83c0c08   canonical_key   fact:9d43035cc83c0c08 \n fact_fact_9d43035cc83c0c08   review_status   review_queue \n fact_fact_9d43035cc83c0c08   source_type   timeline_payload \n fact_fact_9d43035cc83c0c08   signal_class   procedural_outcome \n fact_fact_9d43035cc83c0c08   source_bundle   itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json \n(X  signal_class   procedural_outcome ) => (X  au_procedural_fact   true )\n(X  signal_class   appeal_stage_signal ) => (X  au_procedural_fact   true )\n(X  review_status   review_queue ) => (X  needs_review_due_to_procedural_pressure   true )\nX  au_procedural_fact   true \nX  needs_review_due_to_procedural_pressure   true \n( fact_fact_33bf5d1e2fbd3c36   au_procedural_fact   true ) \u21d0 ( fact_fact_33bf5d1e2fbd3c36   signal_class   procedural_outcome )\n( fact_fact_9d43035cc83c0c08   au_procedural_fact   true ) \u21d0 ( fact_fact_9d43035cc83c0c08   signal_class   procedural_outcome )\n( fact_fact_44e3b170c347a29b   au_procedural_fact   true ) \u21d0 ( fact_fact_44e3b170c347a29b   signal_class   procedural_outcome )\n( fact_fact_44e3b170c347a29b   needs_review_due_to_procedural_pressure   true ) \u21d0 ( fact_fact_44e3b170c347a29b   review_status   review_queue )\n( fact_fact_33bf5d1e2fbd3c36   needs_review_due_to_procedural_pressure   true ) \u21d0 ( fact_fact_33bf5d1e2fbd3c36   review_status   review_queue )\n( fact_fact_9d43035cc83c0c08   needs_review_due_to_procedural_pressure   true ) \u21d0 ( fact_fact_9d43035cc83c0c08   review_status   review_queue )\n",
+  "triples": [
+    {
+      "object": "fact",
+      "predicate": "kind",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "predicate": "label",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "fact:44e3b170c347a29b",
+      "predicate": "canonical_key",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "review_queue",
+      "predicate": "review_status",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "timeline_payload",
+      "predicate": "source_type",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "appeal_stage_signal",
+      "predicate": "signal_class",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "party_assertion",
+      "predicate": "signal_class",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "procedural_context",
+      "predicate": "signal_class",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "procedural_outcome",
+      "predicate": "signal_class",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json",
+      "predicate": "source_bundle",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "appealed",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "heard_by",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "claimed",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "denied",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "fact",
+      "predicate": "kind",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+      "predicate": "label",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "fact:33bf5d1e2fbd3c36",
+      "predicate": "canonical_key",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "review_queue",
+      "predicate": "review_status",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "timeline_payload",
+      "predicate": "source_type",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "party_assertion",
+      "predicate": "signal_class",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "procedural_context",
+      "predicate": "signal_class",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "procedural_outcome",
+      "predicate": "signal_class",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json",
+      "predicate": "source_bundle",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "challenged",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "heard_by",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "ruled",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "ordered",
+      "predicate": "legal_procedural_predicate",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "fact",
+      "predicate": "kind",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "The High Court ruled on the challenge and ordered the matter to proceed.",
+      "predicate": "label",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "fact:9d43035cc83c0c08",
+      "predicate": "canonical_key",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "review_queue",
+      "predicate": "review_status",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "timeline_payload",
+      "predicate": "source_type",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "procedural_outcome",
+      "predicate": "signal_class",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json",
+      "predicate": "source_bundle",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "true",
+      "predicate": "au_procedural_fact",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_procedural_pressure",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "au_procedural_fact",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "true",
+      "predicate": "au_procedural_fact",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    },
+    {
+      "object": "true",
+      "predicate": "au_procedural_fact",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_procedural_pressure",
+      "subject": "fact_fact_44e3b170c347a29b"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_procedural_pressure",
+      "subject": "fact_fact_33bf5d1e2fbd3c36"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_procedural_pressure",
+      "subject": "fact_fact_9d43035cc83c0c08"
+    }
+  ]
+}

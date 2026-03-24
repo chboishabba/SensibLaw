@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- AU/GWB corpus-level completeness checkpoints:
+  - Added `scripts/build_au_corpus_scorecard.py` to aggregate the persisted
+    real AU and transcript-adjacent fact-review bundles into one
+    machine-readable corpus checkpoint plus a plain-language summary.
+  - Added `scripts/build_gwb_corpus_scorecard.py` to inventory the broader
+    in-repo GWB source families, including the checked handoff, public-bios
+    pack, corpus timeline, and local book/demo files.
+  - Added focused tests for both scorecard builders and generated the checked
+    artifacts under `tests/fixtures/zelph/au_corpus_scorecard_v1/` and
+    `tests/fixtures/zelph/gwb_corpus_scorecard_v1/`.
 - Wikipedia random article-ingest live campaign follow-up:
   - Recorded the first completed recursive random-run results, including the
     observed gap between root-link relevance (`0.982143`) and followed-link
@@ -25,6 +35,34 @@
     near-saturated, follow-target quality remained materially lower, hop decay
     stayed near zero, and `list_like_follow` still dominated the weak follow
     buckets with `low_information_gain_follow` second.
+  - Implemented the first continuation-specificity slice without changing the
+    4-part follow-target-quality blend or the existing weak-follow thresholds.
+  - Expanded `non_list_score` / `list_like_follow` with bounded title
+    heuristics, lexical parent-child specificity checks, and same-
+    neighborhood/no-lift detection for generic continuation pages.
+  - Added explicit specificity reasons to follow-detail output and aggregate
+    summaries so the next 3x8 rerun can show which generic-follow shapes still
+    dominate before any `low_information_gain_follow` tuning.
+  - Locked the next phase around fixed-manifest rescoring/report comparison and
+    a follow-on refinement inside the existing information-gain component for
+    related-but-generic continuations.
+  - Added fixed-manifest rescoring/report comparison support so scorer changes
+    can now be measured on the same manifests instead of only against fresh
+    random samples.
+  - Tightened the existing information-gain component for related-but-generic
+    continuations using bounded penalties for year/umbrella/generalization and
+    low-novelty signals, while keeping the overall follow-target-quality score
+    shape unchanged.
+  - Recorded the fixed-manifest comparison result for that slice: the new
+    information-gain instrumentation was useful, but the score penalties were
+    too broad, leaving `list_like_follow` unchanged on the same manifests,
+    nudging `low_information_gain_follow` only slightly upward, lowering
+    average `follow_target_quality_score`, and leaving hop decay effectively
+    flat.
+  - Narrowed those information-gain penalties so title-shape cues now need
+    co-occurring low-novelty / no-lift evidence before they become the main
+    score penalty, and confirmed on the same manifests that the scorer stayed
+    effectively neutral while preserving the reason instrumentation.
 - Wikipedia random article-ingest generalization harness:
   - Extended the random-page ingest report with dominant-regime counts and
     follow-yield summary metrics so larger manifest runs can falsify the regime

@@ -65,6 +65,8 @@ def _infer_follow_bucket(detail: dict[str, Any]) -> str:
 def build_summary(report_paths: list[Path], *, worst_limit: int) -> dict[str, Any]:
     regime_counts: Counter[str] = Counter()
     follow_failure_bucket_counts: Counter[str] = Counter()
+    specificity_reason_counts: Counter[str] = Counter()
+    information_gain_reason_counts: Counter[str] = Counter()
     metric_values: dict[str, list[float]] = defaultdict(list)
     worst_follows: list[dict[str, Any]] = []
     report_summaries: list[dict[str, Any]] = []
@@ -84,6 +86,10 @@ def build_summary(report_paths: list[Path], *, worst_limit: int) -> dict[str, An
             regime_counts[str(key)] += int(value or 0)
         for key, value in (summary.get("follow_failure_bucket_counts") or {}).items():
             follow_failure_bucket_counts[str(key)] += int(value or 0)
+        for key, value in (summary.get("specificity_reason_counts") or {}).items():
+            specificity_reason_counts[str(key)] += int(value or 0)
+        for key, value in (summary.get("information_gain_reason_counts") or {}).items():
+            information_gain_reason_counts[str(key)] += int(value or 0)
         for section in ("average_follow_yield_metrics", "average_two_hop_metrics", "average_best_path_metrics"):
             for key, value in (summary.get(section) or {}).items():
                 if isinstance(value, (int, float)):
@@ -94,6 +100,12 @@ def build_summary(report_paths: list[Path], *, worst_limit: int) -> dict[str, An
                 flags = _infer_follow_flags(detail)
                 bucket = _infer_follow_bucket(detail)
                 follow_failure_bucket_counts[bucket] += 1
+                reason = str(detail.get("primary_specificity_reason") or "").strip()
+                if reason:
+                    specificity_reason_counts[reason] += 1
+                info_reason = str(detail.get("primary_information_gain_reason") or "").strip()
+                if info_reason:
+                    information_gain_reason_counts[info_reason] += 1
                 worst_follows.append(
                     {
                         "score": float(detail.get("follow_target_quality_score") or 0.0),
@@ -105,8 +117,20 @@ def build_summary(report_paths: list[Path], *, worst_limit: int) -> dict[str, An
                         "richness_score": detail.get("richness_score"),
                         "regime_similarity_score": detail.get("regime_similarity_score"),
                         "information_gain_score": detail.get("information_gain_score"),
+                        "content_lift_score": detail.get("content_lift_score"),
                         "list_title_markers": list(detail.get("list_title_markers") or []),
                         "list_warning_markers": list(detail.get("list_warning_markers") or []),
+                        "primary_specificity_reason": reason,
+                        "specificity_title_markers": list(detail.get("specificity_title_markers") or []),
+                        "specificity_lexical_markers": list(detail.get("specificity_lexical_markers") or []),
+                        "specificity_no_lift_markers": list(detail.get("specificity_no_lift_markers") or []),
+                        "primary_information_gain_reason": info_reason,
+                        "content_lift_reason_markers": list(detail.get("content_lift_reason_markers") or []),
+                        "content_lift_bonus": detail.get("content_lift_bonus"),
+                        "information_gain_reason_markers": list(detail.get("information_gain_reason_markers") or []),
+                        "information_gain_penalty_markers": list(detail.get("information_gain_penalty_markers") or []),
+                        "information_gain_penalty": detail.get("information_gain_penalty"),
+                        "base_information_gain_score": detail.get("base_information_gain_score"),
                     }
                 )
     worst_follows = sorted(worst_follows, key=lambda item: (item["score"], item["root_title"], item["follow_title"]))[:worst_limit]
@@ -115,6 +139,8 @@ def build_summary(report_paths: list[Path], *, worst_limit: int) -> dict[str, An
         "report_summaries": report_summaries,
         "dominant_regime_counts": dict(sorted(regime_counts.items())),
         "follow_failure_bucket_counts": dict(sorted(follow_failure_bucket_counts.items())),
+        "specificity_reason_counts": dict(sorted(specificity_reason_counts.items())),
+        "information_gain_reason_counts": dict(sorted(information_gain_reason_counts.items())),
         "average_metrics": {
             key: _mean(values)
             for key, values in sorted(metric_values.items())
@@ -139,6 +165,8 @@ def main(argv: list[str] | None = None) -> int:
     print("report_count", summary["report_count"])
     print("dominant_regime_counts", summary["dominant_regime_counts"])
     print("follow_failure_bucket_counts", summary["follow_failure_bucket_counts"])
+    print("specificity_reason_counts", summary["specificity_reason_counts"])
+    print("information_gain_reason_counts", summary["information_gain_reason_counts"])
     print("average_metrics", summary["average_metrics"])
     print("worst_follows")
     for item in summary["worst_follows"]:
@@ -147,7 +175,19 @@ def main(argv: list[str] | None = None) -> int:
             f"bucket={item['bucket']} flags={item['flags']} "
             f"non_list={item['non_list_score']} richness={item['richness_score']} "
             f"regime={item['regime_similarity_score']} info={item['information_gain_score']} "
-            f"title_markers={item['list_title_markers']} warning_markers={item['list_warning_markers']}"
+            f"content_lift={item['content_lift_score']} "
+            f"title_markers={item['list_title_markers']} warning_markers={item['list_warning_markers']} "
+            f"reason={item['primary_specificity_reason']} "
+            f"specificity_title={item['specificity_title_markers']} "
+            f"specificity_lexical={item['specificity_lexical_markers']} "
+            f"specificity_no_lift={item['specificity_no_lift_markers']} "
+            f"info_reason={item['primary_information_gain_reason']} "
+            f"content_lift_reason={item['content_lift_reason_markers']} "
+            f"content_lift_bonus={item['content_lift_bonus']} "
+            f"info_reason_markers={item['information_gain_reason_markers']} "
+            f"info_penalty={item['information_gain_penalty']} "
+            f"info_base={item['base_information_gain_score']} "
+            f"info_markers={item['information_gain_penalty_markers']}"
         )
     return 0
 

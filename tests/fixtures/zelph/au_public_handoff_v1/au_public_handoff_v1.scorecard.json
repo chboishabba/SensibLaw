@@ -1,0 +1,12 @@
+{
+  "approximate_event_count": 2,
+  "contested_item_count": 1,
+  "current_stage": "checked_real_workbench_checkpoint",
+  "destination": "complete_au_topic_understanding",
+  "event_count": 2,
+  "fact_count": 3,
+  "observation_count": 27,
+  "operator_view_count": 10,
+  "review_queue_count": 3,
+  "zelph_engine_status": "ok"
+}

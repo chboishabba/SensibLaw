@@ -1,0 +1,66 @@
+{
+  "checked_handoff_matched_seed_lane_count": 11,
+  "checked_handoff_promoted_relation_count": 19,
+  "corpus_aao_event_count": 260,
+  "corpus_timeline_event_count": 320,
+  "current_stage": "source_family_inventory_checkpoint",
+  "destination": "complete_gwb_topic_understanding",
+  "local_book_file_count": 4,
+  "public_bios_graph_edge_count": 27,
+  "public_bios_graph_node_count": 12,
+  "public_bios_manifest_document_count": 9,
+  "public_bios_timeline_event_count": 9,
+  "slice": {
+    "fixture_kind": "source_family_inventory_scorecard",
+    "source_family_inventory": [
+      {
+        "ambiguous_event_count": 9,
+        "family": "checked_handoff",
+        "matched_seed_lane_count": 11,
+        "path": "SensibLaw/tests/fixtures/zelph/gwb_public_handoff_v1/gwb_public_handoff_v1.scorecard.json",
+        "promoted_relation_count": 19
+      },
+      {
+        "family": "public_bios_pack",
+        "graph_edge_count": 27,
+        "graph_node_count": 12,
+        "manifest_document_count": 9,
+        "path": "SensibLaw/demo/ingest/gwb/gwb_public_bios_v1.json",
+        "seed_path_count": 3,
+        "seed_url_count": 6,
+        "timeline_event_count": 9
+      },
+      {
+        "aao_event_count": 260,
+        "family": "corpus_timeline",
+        "path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
+        "timeline_event_count": 320
+      },
+      {
+        "family": "local_books",
+        "file_count": 4,
+        "files": [
+          "Bush family._ Bush, George_ Bush, George Walker_ Bush, Jeb_ Bush - Jeb and the Bush crime family _ the inside story of an American dynasty (2016, Skyhorse Publishing, Inc.) - libgen.li.epub",
+          "Bush family._Bush, George_Bush, George Walker_Baker, Russ - Family of secrets_ the Bush dynasty, the powerful forces that put it in the White House, and what their influence means for Ame (2009, Bloomsbury Publishing Plc_Bloomsb - libgen.li.epub",
+          "Bush, George_Bush, George H._Nelson, Michael_Perry, Barbara Ann - 41 - Inside the Presidency of George H. W. Bush (2014, Cornell University Press, in association with the University of Virginia's Miller Center) - libgen.li.pdf",
+          "[Decision Points 1 ] Bush, George W - Decision Points (2010, Crown Publishers) - libgen.li.epub"
+        ],
+        "path": "SensibLaw/demo/ingest/gwb"
+      }
+    ],
+    "summary": {
+      "checked_handoff_matched_seed_lane_count": 11,
+      "checked_handoff_promoted_relation_count": 19,
+      "corpus_aao_event_count": 260,
+      "corpus_timeline_event_count": 320,
+      "local_book_file_count": 4,
+      "public_bios_graph_edge_count": 27,
+      "public_bios_graph_node_count": 12,
+      "public_bios_manifest_document_count": 9,
+      "public_bios_timeline_event_count": 9,
+      "source_family_count": 4
+    },
+    "version": "gwb_corpus_scorecard_v1"
+  },
+  "source_family_count": 4
+}

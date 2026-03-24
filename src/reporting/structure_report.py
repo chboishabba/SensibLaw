@@ -8,8 +8,8 @@ from pathlib import Path
 import sqlite3
 from typing import Iterable
 
-from src.text.structure_index import collect_structure_occurrences
 from src.text.message_transcript import parse_message_header, parse_time_range_header
+from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences
 
 
 @dataclass(frozen=True, slots=True)
@@ -306,7 +306,7 @@ def build_structure_report(
     pair_counter: Counter[tuple[tuple[str, str], tuple[str, str]]] = Counter()
     unit_kind_counter: Counter[str] = Counter()
     for unit in unit_list:
-        occs = collect_structure_occurrences(unit.text, canonical_mode=canonical_mode)
+        occs = collect_canonical_structure_occurrences(unit.text, canonical_mode=canonical_mode)
         all_occs.extend(occs)
         per_unit_counts.append(len(occs))
         for occ in occs:

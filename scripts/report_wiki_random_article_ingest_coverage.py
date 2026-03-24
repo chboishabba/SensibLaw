@@ -21,7 +21,7 @@ from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload
 from src.wiki_timeline.article_state import build_article_sentence_surface, build_wiki_article_state  # noqa: E402
 
 
-SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_7"
+SCHEMA_VERSION = "wiki_random_article_ingest_coverage_report_v0_10"
 
 _NO_SPACE_SENTENCE_JOIN_RE = re.compile(r"[.!?][A-Z][a-z]")
 _CAMEL_GLUE_RE = re.compile(r"\b[a-z]{4,}[A-Z][a-z]{2,}\b")
@@ -57,6 +57,27 @@ _TITLE_AGGREGATION_SUFFIXES = (
 )
 _WARNING_AGGREGATION_MARKERS = (
     "partial_lists_continue_present",
+)
+_TITLE_BROAD_ADMIN_TERMS = (
+    "district",
+    "electoral district",
+    "municipality",
+    "county",
+    "province",
+    "state",
+    "gmina",
+    "voivodeship",
+)
+_TITLE_UMBRELLA_TERMS = (
+    "championship",
+    "championships",
+    "tournament",
+    "tournaments",
+    "cup",
+    "league",
+    "season",
+    "seasons",
+    "spill",
 )
 _YEAR_AGGREGATION_TITLE_RE = re.compile(
     r"^(?:\d{3,4}(?:s)?|(?:early|mid|late)\s+\d{1,2}(?:st|nd|rd|th)\s+century)\s+in\s+"
@@ -286,13 +307,172 @@ def compute_richness_score(state: Mapping[str, Any]) -> float:
     return _clamp01(round(0.5 * sentence_score + 0.3 * observation_score + 0.2 * event_score, 6))
 
 
+def compute_content_lift_profile(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> dict[str, Any]:
+    root_terms = set(extract_key_terms(root_state or {})[:12])
+    follow_terms = extract_key_terms(follow_state)[:12]
+    novel_follow_terms = [term for term in follow_terms if term not in root_terms]
+
+    event_count = int(follow_state.get("article_aao_event_count") or len(follow_state.get("event_candidates") or []))
+    action_event_count = int(follow_state.get("action_event_count") or event_count)
+    object_event_count = int(follow_state.get("object_event_count") or 0)
+    claim_event_count = int(follow_state.get("claim_event_count") or 0)
+    attribution_event_count = int(follow_state.get("attribution_event_count") or 0)
+
+    relation_surface_score = _clamp01(
+        round(
+            0.45 * _ratio(action_event_count, event_count)
+            + 0.35 * _ratio(object_event_count, event_count)
+            + 0.20 * _ratio(claim_event_count + attribution_event_count, event_count),
+            6,
+        )
+        if event_count
+        else 0.0
+    )
+    novel_term_support_score = _clamp01(round(min(1.0, len(novel_follow_terms) / 4.0), 6))
+    content_lift_score = _clamp01(
+        round(0.65 * relation_surface_score + 0.35 * novel_term_support_score, 6)
+    )
+    reason_markers: list[str] = []
+    if relation_surface_score >= 0.5:
+        reason_markers.append("relation_bearing_lift")
+    if novel_term_support_score >= 0.5:
+        reason_markers.append("novel_term_lift")
+    if event_count and _ratio(claim_event_count + attribution_event_count, event_count) >= 0.25:
+        reason_markers.append("epistemic_lift")
+    return {
+        "relation_surface_score": relation_surface_score,
+        "novel_term_support_score": novel_term_support_score,
+        "content_lift_score": content_lift_score,
+        "content_lift_reason_markers": reason_markers,
+    }
+
+
 def _canonicalize_follow_text_for_listiness(raw_text: str) -> str:
     cleaned = _CATEGORY_LINE_RE.sub(" ", raw_text)
     cleaned = _DEFAULTSORT_RE.sub(" ", cleaned)
     return cleaned
 
 
-def compute_non_list_profile(state: Mapping[str, Any]) -> dict[str, Any]:
+def _token_overlap_ratio(left_tokens: list[str], right_tokens: list[str]) -> float:
+    if not left_tokens or not right_tokens:
+        return 0.0
+    left = set(left_tokens)
+    right = set(right_tokens)
+    return round(len(left & right) / max(1, min(len(left), len(right))), 6)
+
+
+def _tokens_lexically_related(left: str, right: str) -> bool:
+    if left == right:
+        return True
+    if len(left) >= 5 and len(right) >= 5:
+        return left.startswith(right[:5]) or right.startswith(left[:5])
+    return False
+
+
+def _derive_specificity_profile(
+    root_state: Mapping[str, Any] | None,
+    follow_state: Mapping[str, Any],
+) -> dict[str, Any]:
+    follow_title = str(follow_state.get("title") or "").strip()
+    root_title = str((root_state or {}).get("title") or "").strip()
+    if not follow_title:
+        return {
+            "specificity_title_markers": [],
+            "specificity_lexical_markers": [],
+            "specificity_no_lift_markers": [],
+            "specificity_signal_weight": 0.0,
+            "primary_specificity_reason": None,
+            "title_overlap_ratio": 0.0,
+            "term_overlap_ratio": 0.0,
+            "novel_follow_term_count": 0,
+        }
+    lower_follow_title = follow_title.lower()
+    lower_root_title = root_title.lower()
+    follow_title_tokens = _tokenize_key_terms(follow_title)
+    root_title_tokens = _tokenize_key_terms(root_title)
+    root_terms = extract_key_terms(root_state or {})
+    follow_terms = extract_key_terms(follow_state)
+
+    title_markers: list[str] = []
+    lexical_markers: list[str] = []
+    no_lift_markers: list[str] = []
+
+    if "," in follow_title and "," in root_title:
+        follow_tail = lower_follow_title.split(",", 1)[1].strip()
+        root_tail = lower_root_title.split(",", 1)[1].strip()
+        if follow_tail and root_tail and follow_tail == root_tail:
+            title_markers.append("shared_tail_locality_sibling")
+    if any(term in lower_follow_title for term in _TITLE_BROAD_ADMIN_TERMS):
+        title_markers.append("broad_admin_title")
+    if any(term in lower_follow_title for term in _TITLE_UMBRELLA_TERMS):
+        title_markers.append("umbrella_title")
+    if re.match(r"^\d{4}\s+", follow_title):
+        title_markers.append("year_prefixed_title")
+
+    title_overlap = _token_overlap_ratio(follow_title_tokens, root_title_tokens)
+    term_overlap = _token_overlap_ratio(follow_terms[:12], root_terms[:12])
+    novel_follow_terms = [term for term in follow_terms[:12] if term not in set(root_terms[:12])]
+
+    if root_title and follow_title and root_title != follow_title and title_overlap >= 0.5:
+        lexical_markers.append("title_overlap_generalization")
+    if len(follow_title_tokens) <= 2 and term_overlap >= 0.5 and len(root_title_tokens) >= len(follow_title_tokens):
+        lexical_markers.append("short_broad_generalization")
+    if (
+        len(follow_title_tokens) == 1
+        and root_title_tokens
+        and any(
+            _tokens_lexically_related(follow_title_tokens[0], token)
+            for token in root_title_tokens + root_terms[:12]
+        )
+    ):
+        lexical_markers.append("short_broad_generalization")
+    if follow_title_tokens and root_terms and all(token in set(root_terms) for token in follow_title_tokens):
+        lexical_markers.append("title_tokens_contained_in_root_terms")
+
+    if term_overlap >= 0.5 and len(novel_follow_terms) <= 2:
+        no_lift_markers.append("same_neighborhood_low_lift")
+    if len(novel_follow_terms) <= 1 and len(follow_terms[:12]) >= 3 and term_overlap >= 0.34:
+        no_lift_markers.append("few_novel_terms")
+
+    title_markers = list(dict.fromkeys(title_markers))
+    lexical_markers = list(dict.fromkeys(lexical_markers))
+    no_lift_markers = list(dict.fromkeys(no_lift_markers))
+
+    weighted_hits = 0.0
+    weighted_hits += 1.0 * float(len(title_markers))
+    for marker in lexical_markers:
+        if marker == "short_broad_generalization":
+            weighted_hits += 1.5
+        elif marker == "title_overlap_generalization":
+            weighted_hits += 1.0
+        else:
+            weighted_hits += 0.75
+    weighted_hits += 0.75 * float(len(no_lift_markers))
+    if title_markers:
+        primary_reason = title_markers[0]
+    elif lexical_markers:
+        primary_reason = lexical_markers[0]
+    elif no_lift_markers:
+        primary_reason = no_lift_markers[0]
+    else:
+        primary_reason = None
+    return {
+        "specificity_title_markers": title_markers,
+        "specificity_lexical_markers": lexical_markers,
+        "specificity_no_lift_markers": no_lift_markers,
+        "specificity_signal_weight": round(weighted_hits, 6),
+        "primary_specificity_reason": primary_reason,
+        "title_overlap_ratio": title_overlap,
+        "term_overlap_ratio": term_overlap,
+        "novel_follow_term_count": len(novel_follow_terms),
+    }
+
+
+def compute_non_list_profile(
+    state: Mapping[str, Any],
+    *,
+    root_state: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     raw_text = str(state.get("raw_text") or state.get("source_text") or state.get("wikitext") or "")
     raw_text = _canonicalize_follow_text_for_listiness(raw_text).lower()
     title = str(state.get("title") or "").strip()
@@ -309,11 +489,13 @@ def compute_non_list_profile(state: Mapping[str, Any]) -> dict[str, Any]:
         if lower_title.endswith(suffix):
             title_markers.append(suffix.strip())
     warning_markers = [marker for marker in _WARNING_AGGREGATION_MARKERS if marker in warnings]
+    specificity_profile = _derive_specificity_profile(root_state, state)
 
     weighted_hits = (
         float(len(text_markers))
         + 1.25 * float(len(title_markers))
         + 1.0 * float(len(warning_markers))
+        + float(specificity_profile["specificity_signal_weight"])
     )
     listiness = min(1.0, weighted_hits / 2.0)
     return {
@@ -323,6 +505,7 @@ def compute_non_list_profile(state: Mapping[str, Any]) -> dict[str, Any]:
         "list_text_markers": text_markers,
         "list_title_markers": title_markers,
         "list_warning_markers": warning_markers,
+        **specificity_profile,
     }
 
 
@@ -346,17 +529,93 @@ def compute_regime_similarity_score(root_state: Mapping[str, Any], follow_state:
     )
 
 
-def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
+def compute_information_gain_profile(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> dict[str, Any]:
     root_terms = extract_key_terms(root_state)
     follow_terms = extract_key_terms(follow_state)
     overlap = jaccard_similarity(root_terms, follow_terms)
     if overlap < 0.15:
-        return round((overlap / 0.15) * 0.5, 6)
-    if overlap <= 0.55:
-        return round(0.5 + (((overlap - 0.15) / 0.40) * 0.5), 6)
-    if overlap <= 0.85:
-        return round(1.0 - (((overlap - 0.55) / 0.30) * 0.5), 6)
-    return 0.5
+        base_score = round((overlap / 0.15) * 0.5, 6)
+    elif overlap <= 0.55:
+        base_score = round(0.5 + (((overlap - 0.15) / 0.40) * 0.5), 6)
+    elif overlap <= 0.85:
+        base_score = round(1.0 - (((overlap - 0.55) / 0.30) * 0.5), 6)
+    else:
+        base_score = 0.5
+
+    specificity = _derive_specificity_profile(root_state, follow_state)
+    penalty = 0.0
+    reason_markers: list[str] = []
+    penalty_markers: list[str] = []
+
+    title_markers = set(specificity["specificity_title_markers"])
+    lexical_markers = set(specificity["specificity_lexical_markers"])
+    no_lift_markers = set(specificity["specificity_no_lift_markers"])
+    content_lift = compute_content_lift_profile(root_state, follow_state)
+    novelty_floor_triggered = int(specificity["novel_follow_term_count"]) <= 1 and float(specificity["term_overlap_ratio"]) >= 0.34
+    low_lift_evidence = bool(no_lift_markers) or novelty_floor_triggered or float(content_lift["content_lift_score"]) < 0.34
+
+    if "year_prefixed_title" in title_markers:
+        reason_markers.append("year_prefixed_title")
+        if low_lift_evidence:
+            penalty += 0.08
+            penalty_markers.append("year_prefixed_title")
+    if "umbrella_title" in title_markers:
+        reason_markers.append("umbrella_title")
+        if low_lift_evidence:
+            penalty += 0.08
+            penalty_markers.append("umbrella_title")
+    if "short_broad_generalization" in lexical_markers:
+        reason_markers.append("short_broad_generalization")
+        if low_lift_evidence:
+            penalty += 0.10
+            penalty_markers.append("short_broad_generalization")
+    if "title_overlap_generalization" in lexical_markers:
+        reason_markers.append("title_overlap_generalization")
+        if low_lift_evidence:
+            penalty += 0.06
+            penalty_markers.append("title_overlap_generalization")
+    if "title_tokens_contained_in_root_terms" in lexical_markers:
+        reason_markers.append("title_tokens_contained_in_root_terms")
+        if low_lift_evidence:
+            penalty += 0.05
+            penalty_markers.append("title_tokens_contained_in_root_terms")
+    if "same_neighborhood_low_lift" in no_lift_markers:
+        reason_markers.append("same_neighborhood_low_lift")
+        penalty += 0.16
+        penalty_markers.append("same_neighborhood_low_lift")
+    if "few_novel_terms" in no_lift_markers:
+        reason_markers.append("few_novel_terms")
+        penalty += 0.08
+        penalty_markers.append("few_novel_terms")
+    if novelty_floor_triggered:
+        reason_markers.append("novelty_floor_penalty")
+        penalty += 0.06
+        penalty_markers.append("novelty_floor_penalty")
+
+    penalty = round(min(0.6, penalty), 6)
+    content_lift_bonus = 0.0
+    if not penalty_markers and float(content_lift["content_lift_score"]) >= 0.45:
+        content_lift_bonus = round(min(0.12, (float(content_lift["content_lift_score"]) - 0.45) * 0.30), 6)
+    score = _clamp01(round(base_score - penalty + content_lift_bonus, 6))
+    primary_reason = reason_markers[0] if reason_markers else None
+    return {
+        "information_gain_score": score,
+        "base_information_gain_score": base_score,
+        "term_overlap": overlap,
+        "content_lift_score": float(content_lift["content_lift_score"]),
+        "relation_surface_score": float(content_lift["relation_surface_score"]),
+        "novel_term_support_score": float(content_lift["novel_term_support_score"]),
+        "content_lift_bonus": content_lift_bonus,
+        "content_lift_reason_markers": list(content_lift["content_lift_reason_markers"]),
+        "information_gain_penalty": penalty,
+        "information_gain_reason_markers": reason_markers,
+        "information_gain_penalty_markers": penalty_markers,
+        "primary_information_gain_reason": primary_reason,
+    }
+
+
+def compute_information_gain_score(root_state: Mapping[str, Any], follow_state: Mapping[str, Any]) -> float:
+    return float(compute_information_gain_profile(root_state, follow_state)["information_gain_score"])
 
 
 def compute_follow_target_quality(
@@ -364,10 +623,11 @@ def compute_follow_target_quality(
     follow_state: Mapping[str, Any],
 ) -> dict[str, Any]:
     richness_score = compute_richness_score(follow_state)
-    non_list_profile = compute_non_list_profile(follow_state)
+    non_list_profile = compute_non_list_profile(follow_state, root_state=root_state)
     non_list_score = float(non_list_profile["non_list_score"])
     regime_similarity_score = compute_regime_similarity_score(root_state, follow_state)
-    information_gain_score = compute_information_gain_score(root_state, follow_state)
+    information_gain_profile = compute_information_gain_profile(root_state, follow_state)
+    information_gain_score = float(information_gain_profile["information_gain_score"])
     follow_target_quality_score = _clamp01(
         round(
             0.35 * richness_score
@@ -401,6 +661,24 @@ def compute_follow_target_quality(
         "list_text_markers": list(non_list_profile["list_text_markers"]),
         "list_title_markers": list(non_list_profile["list_title_markers"]),
         "list_warning_markers": list(non_list_profile["list_warning_markers"]),
+        "specificity_title_markers": list(non_list_profile["specificity_title_markers"]),
+        "specificity_lexical_markers": list(non_list_profile["specificity_lexical_markers"]),
+        "specificity_no_lift_markers": list(non_list_profile["specificity_no_lift_markers"]),
+        "specificity_signal_weight": float(non_list_profile["specificity_signal_weight"]),
+        "primary_specificity_reason": non_list_profile["primary_specificity_reason"],
+        "title_overlap_ratio": float(non_list_profile["title_overlap_ratio"]),
+        "term_overlap_ratio": float(non_list_profile["term_overlap_ratio"]),
+        "novel_follow_term_count": int(non_list_profile["novel_follow_term_count"]),
+        "base_information_gain_score": float(information_gain_profile["base_information_gain_score"]),
+        "content_lift_score": float(information_gain_profile["content_lift_score"]),
+        "relation_surface_score": float(information_gain_profile["relation_surface_score"]),
+        "novel_term_support_score": float(information_gain_profile["novel_term_support_score"]),
+        "content_lift_bonus": float(information_gain_profile["content_lift_bonus"]),
+        "content_lift_reason_markers": list(information_gain_profile["content_lift_reason_markers"]),
+        "information_gain_penalty": float(information_gain_profile["information_gain_penalty"]),
+        "information_gain_reason_markers": list(information_gain_profile["information_gain_reason_markers"]),
+        "information_gain_penalty_markers": list(information_gain_profile["information_gain_penalty_markers"]),
+        "primary_information_gain_reason": information_gain_profile["primary_information_gain_reason"],
         "quality_flags": quality_flags,
         "primary_failure_bucket": primary_failure_bucket,
     }
@@ -1142,7 +1420,13 @@ def _page_row_from_outputs(
     follow_yield_metrics["follow_target_quality_score"] = follow_target_quality_score
     follow_yield_metrics["follow_target_quality_count"] = len(follow_target_quality_details)
     if follow_target_quality_details:
-        for key in ("richness_score", "non_list_score", "regime_similarity_score", "information_gain_score"):
+        for key in (
+            "richness_score",
+            "non_list_score",
+            "regime_similarity_score",
+            "information_gain_score",
+            "content_lift_score",
+        ):
             component_values = [detail.get(key) for detail in follow_target_quality_details]
             follow_yield_metrics[key] = _mean_optional([float(value) if value is not None else None for value in component_values])
     if follow_target_quality_details:
@@ -1511,6 +1795,10 @@ def build_article_ingest_report(
     best_path_gap_count = 0
     follow_failure_bucket_counts: Counter[str] = Counter()
     follow_failure_bucket_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    specificity_reason_counts: Counter[str] = Counter()
+    specificity_reason_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    information_gain_reason_counts: Counter[str] = Counter()
+    information_gain_reason_examples: dict[str, list[dict[str, Any]]] = defaultdict(list)
     calibration_score_sums: dict[str, float] = defaultdict(float)
     calibration_score_counts: dict[str, int] = defaultdict(int)
     density_metric_sums = {
@@ -1623,6 +1911,36 @@ def build_article_ingest_report(
                         "quality_flags": list(detail.get("quality_flags") or []),
                     }
                 )
+            specificity_reason = str(detail.get("primary_specificity_reason") or "").strip()
+            if specificity_reason:
+                specificity_reason_counts[specificity_reason] += 1
+                reason_examples = specificity_reason_examples[specificity_reason]
+                if len(reason_examples) < 5:
+                    child = edge.get("child") or {}
+                    child_page_row = child.get("page_row") or {}
+                    reason_examples.append(
+                        {
+                            "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                            "follow_title": str(child_page_row.get("title") or ""),
+                            "score": round(edge_score, 6),
+                            "bucket": bucket,
+                        }
+                    )
+            information_gain_reason = str(detail.get("primary_information_gain_reason") or "").strip()
+            if information_gain_reason:
+                information_gain_reason_counts[information_gain_reason] += 1
+                gain_examples = information_gain_reason_examples[information_gain_reason]
+                if len(gain_examples) < 5:
+                    child = edge.get("child") or {}
+                    child_page_row = child.get("page_row") or {}
+                    gain_examples.append(
+                        {
+                            "root_title": str((node.get("page_row") or {}).get("title") or ""),
+                            "follow_title": str(child_page_row.get("title") or ""),
+                            "score": round(edge_score, 6),
+                            "bucket": bucket,
+                        }
+                    )
             _collect_follow_metrics(edge["child"])
 
     for row in sample_rows:
@@ -1757,6 +2075,16 @@ def build_article_ingest_report(
         "follow_failure_bucket_examples": {
             bucket: examples
             for bucket, examples in sorted(follow_failure_bucket_examples.items())
+        },
+        "specificity_reason_counts": dict(sorted(specificity_reason_counts.items())),
+        "specificity_reason_examples": {
+            reason: examples
+            for reason, examples in sorted(specificity_reason_examples.items())
+        },
+        "information_gain_reason_counts": dict(sorted(information_gain_reason_counts.items())),
+        "information_gain_reason_examples": {
+            reason: examples
+            for reason, examples in sorted(information_gain_reason_examples.items())
         },
         "average_two_hop_metrics": {
             "hop1_quality": round(
