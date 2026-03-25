@@ -61,6 +61,11 @@ _OVERLAY_KEYWORD_HINTS = (
 _COUNSEL_PREFIX_RE = re.compile(r"^(MR|MS|MRS|DR|PROF)\b", re.IGNORECASE)
 _COURT_PREFIX_RE = re.compile(r"^[A-Z][A-Z .'-]{1,40}(?:CJ|J|ACJ)\s*:")
 _SPEAKER_PREFIX_RE = re.compile(r"^([A-Z][A-Z .,'-]{1,60}):\s*")
+_SECTION_REF_RE = re.compile(r"\bsection\s+([0-9]+[a-z]?)\b", re.IGNORECASE)
+_CASE_CITATION_RE = re.compile(r"\b([A-Z][A-Za-z.&'-]+)\s+v(?:s\.)?\s+([A-Z][A-Za-z.&'-]+)\b")
+_REVIEWED_EVENT_MIN_SCORE = 4
+_REVIEWED_EVENT_LIMIT = 12
+_REVIEWED_EVENT_FILTER_REASON_LOW_CONFIDENCE = "low_confidence"
 _PROCEDURAL_KIND_RULES: tuple[tuple[str, dict[str, int]], ...] = (
     (
         "bench_question",
@@ -259,6 +264,95 @@ def _selected_overlay(bundle: dict[str, Any], *, limit: int = 24) -> dict[str, A
     }
 
 
+def _reviewed_event_projection(bundle: dict[str, Any], event_overlay: dict[str, Any], *, limit: int = _REVIEWED_EVENT_LIMIT) -> dict[str, Any]:
+    review_by_fact = {str(row.get("fact_id") or ""): row for row in bundle.get("review_queue", [])}
+    fact_by_id = {str(row.get("fact_id") or ""): row for row in bundle.get("facts", [])}
+    scored: list[dict[str, Any]] = []
+    exclusion_counts: Counter[str] = Counter()
+    for row in event_overlay.get("events", []):
+        if not isinstance(row, dict):
+            continue
+        fact_ids = [str(fact_id) for fact_id in row.get("fact_ids", []) if str(fact_id)]
+        review_rows = [review_by_fact[fact_id] for fact_id in fact_ids if fact_id in review_by_fact]
+        fact_statuses = sorted(
+            {
+                str((fact_by_id.get(fact_id) or {}).get("candidate_status") or "")
+                for fact_id in fact_ids
+                if fact_id in fact_by_id
+            }
+        )
+        if not fact_ids and not review_rows:
+            exclusion_counts["no_fact_or_review_support"] += 1
+            continue
+        event_score = int(row.get("event_score") or 0)
+        review_bonus = min(len(review_rows), 4)
+        fact_bonus = min(len(fact_ids), 4)
+        provenance_bonus = min(len(row.get("source_move_ids") or []), 3)
+        total_score = event_score + review_bonus + fact_bonus + provenance_bonus
+        if total_score < _REVIEWED_EVENT_MIN_SCORE and not row.get("topic_tokens"):
+            exclusion_counts[_REVIEWED_EVENT_FILTER_REASON_LOW_CONFIDENCE] += 1
+            continue
+        scored.append(
+            {
+                "event_id": str(row.get("event_id") or ""),
+                "event_kind": str(row.get("event_kind") or ""),
+                "event_score": event_score,
+                "reviewed_event_score": total_score,
+                "speaker_group": str(row.get("speaker_group") or "unknown"),
+                "speaker_labels": list(row.get("speaker_labels") or []),
+                "source_move_ids": list(row.get("source_move_ids") or []),
+                "event_ids": list(row.get("event_ids") or []),
+                "fact_ids": fact_ids,
+                "fact_statuses": fact_statuses,
+                "review_queue_count": len(review_rows),
+                "review_rows": review_rows,
+                "score_breakdown": {
+                    "event_score": event_score,
+                    "review_bonus": review_bonus,
+                    "fact_bonus": fact_bonus,
+                    "provenance_bonus": provenance_bonus,
+                },
+                "topic_tokens": list(row.get("topic_tokens") or []),
+                "hearing_act_kinds": list(row.get("hearing_act_kinds") or []),
+                "excerpt_preview": str(row.get("excerpt_preview") or ""),
+            }
+        )
+    scored.sort(
+        key=lambda row: (
+            -int(row["reviewed_event_score"]),
+            -int(row["review_queue_count"]),
+            -int(row["event_score"]),
+            str(row["event_id"]),
+        )
+    )
+    selected = scored[:limit]
+    review_queue_total = len(bundle.get("review_queue", []))
+    selected_fact_ids = {fact_id for row in selected for fact_id in row.get("fact_ids", [])}
+    selected_review_queue = [row for row in bundle.get("review_queue", []) if str(row.get("fact_id") or "") in selected_fact_ids]
+    selected_review_queue_count = len(selected_review_queue)
+    reviewed_event_coverage_ratio = round(
+        selected_review_queue_count / review_queue_total,
+        6,
+    ) if review_queue_total else 0.0
+    reviewed_event_total = len(scored) + sum(exclusion_counts.values())
+    exclusion_counts["total_excluded"] = max(0, reviewed_event_total - len(scored))
+    kind_counts = Counter(str(row["event_kind"]) for row in selected)
+    return {
+        "overlay_kind": "au_reviewed_hearing_event_projection",
+        "selection_rule": "top assembled hearing events ranked by local event score plus linked review/fact support from the dense transcript bundle",
+        "reviewed_event_count": len(scored),
+        "reviewed_event_total_candidate_count": reviewed_event_total,
+        "reviewed_event_excluded_counts": {label: int(count) for label, count in sorted(exclusion_counts.items())},
+        "reviewed_event_coverage_ratio": reviewed_event_coverage_ratio,
+        "selected_review_queue_count": len(selected_review_queue),
+        "selected_reviewed_event_count": len(selected),
+        "selected_kind_counts": {label: int(count) for label, count in sorted(kind_counts.items())},
+        "reviewed_events": scored,
+        "selected_reviewed_events": selected,
+        "selected_review_queue": selected_review_queue,
+    }
+
+
 def _procedural_turn_score(text: str) -> tuple[int, str | None, list[str]]:
     lowered = str(text or "").casefold()
     total_scores: dict[str, int] = {}
@@ -331,6 +425,14 @@ def _topic_tokens(text: str) -> set[str]:
         )
         if phrase in lowered
     }
+    for match in _SECTION_REF_RE.finditer(str(text or "")):
+        ref = re.sub(r"\s+", "", match.group(1).casefold())
+        if ref:
+            tokens.add(f"section_{ref}")
+    for match in _CASE_CITATION_RE.finditer(str(text or "")):
+        lhs = match.group(1).casefold()
+        rhs = match.group(2).casefold()
+        tokens.add(f"case_{lhs}_v_{rhs}")
     return tokens
 
 
@@ -424,6 +526,7 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
                 "move_kind": act_kind,
                 "speaker_group": act_speaker,
                 "speaker_label": act.get("speaker_label"),
+                "first_event_order": int(act.get("event_order") or 0),
                 "last_event_order": int(act.get("event_order") or 0),
                 "event_ids": [str(act.get("event_id") or "")],
                 "hearing_act_kinds": [act_kind],
@@ -466,6 +569,7 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
             "move_kind": act_kind,
             "speaker_group": act_speaker,
             "speaker_label": act.get("speaker_label"),
+            "first_event_order": int(act.get("event_order") or 0),
             "last_event_order": int(act.get("event_order") or 0),
             "event_ids": [str(act.get("event_id") or "")],
             "hearing_act_kinds": [act_kind],
@@ -488,6 +592,7 @@ def _procedural_move_overlay(hearing_act_overlay: dict[str, Any], *, limit: int 
                 "move_kind": move["move_kind"],
                 "speaker_group": move["speaker_group"],
                 "speaker_label": move.get("speaker_label"),
+                "first_event_order": int(move.get("first_event_order") or 0),
                 "event_count": len(move["event_ids"]),
                 "event_ids": move["event_ids"],
                 "hearing_act_kinds": sorted(set(move["hearing_act_kinds"])),
@@ -557,7 +662,10 @@ def _looks_like_exchange_pair(left: dict[str, Any], right: dict[str, Any]) -> bo
 
 
 def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: int = 16) -> dict[str, Any]:
-    moves = [move for move in procedural_move_overlay.get("procedural_moves", []) if isinstance(move, dict)]
+    moves = sorted(
+        [move for move in procedural_move_overlay.get("procedural_moves", []) if isinstance(move, dict)],
+        key=lambda row: (int(row.get("first_event_order") or 0), str(row.get("move_id") or "")),
+    )
     events: list[dict[str, Any]] = []
     consumed_move_ids: set[str] = set()
 
@@ -582,7 +690,11 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
             _looks_like_exchange_pair(left, middle)
             and right.get("speaker_group") == "bench"
             and right_kind in {"bench_question", "court_intervention"}
-            and (chain_topics or "answer_or_response" in set(middle.get("hearing_act_kinds") or []))
+            and (
+                chain_topics
+                or left_kind in {"bench_question", "court_intervention"}
+                or "answer_or_response" in set(middle.get("hearing_act_kinds") or [])
+            )
         ):
             consumed_move_ids.update({left_id, middle_id, right_id})
             events.append(
@@ -634,11 +746,17 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
         right_id = str(right.get("move_id") or "")
         if {left_id, right_id} & consumed_move_ids:
             continue
+        left_kind = _exchange_move_kind(left)
         left_topics = set(left.get("topic_tokens") or [])
         right_topics = set(right.get("topic_tokens") or [])
         shared_topics = _exchange_topics(left, right)
 
-        if _looks_like_exchange_pair(left, right) and (shared_topics or "answer_or_response" in set(right.get("hearing_act_kinds") or []) or "question" in set(left.get("topic_tokens") or [])):
+        if _looks_like_exchange_pair(left, right) and (
+            shared_topics
+            or left_kind in {"bench_question", "court_intervention"}
+            or "answer_or_response" in set(right.get("hearing_act_kinds") or [])
+            or "question" in set(left.get("topic_tokens") or [])
+        ):
             consumed_move_ids.update({left_id, right_id})
             events.append(
                 {
@@ -825,8 +943,14 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
             "procedural_move_selected_count": 0,
             "assembled_event_count": 0,
             "selected_event_count": 0,
+            "reviewed_event_coverage_ratio": 0.0,
+            "reviewed_event_review_queue_count": 0,
+            "reviewed_event_projection_count": 0,
+            "selected_reviewed_event_count": 0,
             "event_move_coverage_count": 0,
             "event_move_coverage_ratio": 0.0,
+            "reviewed_event_total_candidate_count": 0,
+            "reviewed_event_excluded_counts": {},
             "core_reading": "This AU artifact treats the real hearing as a dense transcript-derived substrate and keeps the narrower fact-review bundle as a secondary overlay/projection.",
         },
         "run": {
@@ -851,6 +975,7 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
     }
     payload["procedural_move_overlay"] = _procedural_move_overlay(payload["procedural_overlay"])
     payload["event_assembly_overlay"] = _event_assembly_overlay(payload["procedural_move_overlay"])
+    payload["reviewed_event_projection"] = _reviewed_event_projection(bundle, payload["event_assembly_overlay"])
     payload["summary"]["hearing_act_count"] = int(payload["procedural_overlay"]["classified_hearing_act_count"])
     payload["summary"]["procedural_overlay_candidate_count"] = int(payload["procedural_overlay"]["selected_candidate_count"])
     payload["summary"]["procedural_move_count"] = int(payload["procedural_move_overlay"]["assembled_move_count"])
@@ -859,6 +984,12 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
     payload["summary"]["selected_event_count"] = int(payload["event_assembly_overlay"]["selected_event_count"])
     payload["summary"]["event_move_coverage_count"] = int(payload["event_assembly_overlay"]["source_move_coverage_count"])
     payload["summary"]["event_move_coverage_ratio"] = float(payload["event_assembly_overlay"]["source_move_coverage_ratio"])
+    payload["summary"]["reviewed_event_review_queue_count"] = int(payload["reviewed_event_projection"]["selected_review_queue_count"])
+    payload["summary"]["reviewed_event_coverage_ratio"] = float(payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"])
+    payload["summary"]["reviewed_event_total_candidate_count"] = int(payload["reviewed_event_projection"]["reviewed_event_total_candidate_count"])
+    payload["summary"]["reviewed_event_excluded_counts"] = payload["reviewed_event_projection"]["reviewed_event_excluded_counts"]
+    payload["summary"]["reviewed_event_projection_count"] = int(payload["reviewed_event_projection"]["reviewed_event_count"])
+    payload["summary"]["selected_reviewed_event_count"] = int(payload["reviewed_event_projection"]["selected_reviewed_event_count"])
     _emit_progress(
         progress_callback,
         "overlay_projection_finished",
@@ -885,6 +1016,14 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
         selected_event_count=int(payload["event_assembly_overlay"]["selected_event_count"]),
         source_move_coverage_count=int(payload["event_assembly_overlay"]["source_move_coverage_count"]),
         source_move_coverage_ratio=float(payload["event_assembly_overlay"]["source_move_coverage_ratio"]),
+    )
+    _emit_progress(
+        progress_callback,
+        "reviewed_event_projection_finished",
+        reviewed_event_count=int(payload["reviewed_event_projection"]["reviewed_event_count"]),
+        selected_reviewed_event_count=int(payload["reviewed_event_projection"]["selected_reviewed_event_count"]),
+        selected_review_queue_count=int(payload["reviewed_event_projection"]["selected_review_queue_count"]),
+        reviewed_event_coverage_ratio=float(payload["reviewed_event_projection"]["reviewed_event_coverage_ratio"]),
     )
     return payload
 
@@ -915,6 +1054,11 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         f"- Selected procedural moves: {summary['procedural_move_selected_count']}",
         f"- Assembled hearing events: {summary['assembled_event_count']}",
         f"- Selected hearing events: {summary['selected_event_count']}",
+        f"- Reviewed hearing events: {summary['reviewed_event_projection_count']}",
+        f"- Selected reviewed hearing events: {summary['selected_reviewed_event_count']}",
+        f"- Reviewed hearing-event candidates: {summary['reviewed_event_total_candidate_count']}",
+        f"- Reviewed hearing-event exclusions: {summary['reviewed_event_excluded_counts']}",
+        f"- Reviewed hearing-event review queue coverage: {summary['reviewed_event_review_queue_count']} ({summary['reviewed_event_coverage_ratio']})",
         f"- Event move coverage: {summary['event_move_coverage_count']} ({summary['event_move_coverage_ratio']})",
         f"- Reading: {summary['core_reading']}",
         "",
@@ -933,6 +1077,9 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         f"- Selected procedural moves: {payload['procedural_move_overlay']['selected_move_count']}",
         f"- Assembled hearing events: {payload['event_assembly_overlay']['assembled_event_count']}",
         f"- Selected hearing events: {payload['event_assembly_overlay']['selected_event_count']}",
+        f"- Reviewed hearing events: {payload['reviewed_event_projection']['reviewed_event_count']}",
+        f"- Selected reviewed hearing events: {payload['reviewed_event_projection']['selected_reviewed_event_count']}",
+        f"- Reviewed hearing-event review queue coverage: {payload['reviewed_event_projection']['selected_review_queue_count']} ({payload['reviewed_event_projection']['reviewed_event_coverage_ratio']})",
         f"- Covered procedural moves: {payload['event_assembly_overlay']['source_move_coverage_count']}",
         f"- Move coverage ratio: {payload['event_assembly_overlay']['source_move_coverage_ratio']}",
         "",
@@ -967,6 +1114,19 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
         lines.append(
             f"- score={row['event_score']} kind={row['event_kind']} speaker={row['speaker_group']} source_moves={source_moves} acts={row['event_count']} act_kinds={kinds} topics={topics}: {row['excerpt_preview']}"
         )
+    lines.extend(["", "## Selected reviewed hearing events", ""])
+    for row in payload["reviewed_event_projection"]["selected_reviewed_events"][:8]:
+        kinds = ", ".join(row["hearing_act_kinds"]) or "-"
+        topics = ", ".join(row["topic_tokens"]) or "-"
+        speakers = ", ".join(row.get("speaker_labels") or []) or row.get("speaker_group") or "-"
+        reasons = ", ".join(
+            reason
+            for review_row in row.get("review_rows", [])
+            for reason in review_row.get("reason_codes", [])
+        ) or "-"
+        lines.append(
+            f"- score={row['reviewed_event_score']} kind={row['event_kind']} speakers={speakers} review_queue={row['review_queue_count']} reasons={reasons} act_kinds={kinds} topics={topics}: {row['excerpt_preview']}"
+        )
     lines.extend(
         [
             "",
@@ -977,6 +1137,7 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
             "- The hearing-act layer separates party submissions, bench questions, court interventions, and statute-heavy turns from the flatter transcript substrate.",
             "- The procedural-move layer then groups adjacent compatible hearing acts into bounded local procedural structure.",
             "- The event-assembly layer now lifts a conservative subset of those moves into bounded hearing events, including short exchange/cluster chains, while leaving broader merits/event understanding for later review.",
+            "- The reviewed hearing-event projection now derives a smaller operator-facing layer from assembled events plus linked review/fact support, instead of relying only on top-ranked dense facts.",
             "- The next AU step is to improve how much of this dense substrate can be surfaced as procedurally meaningful reviewed coverage without discarding substrate density.",
             "",
         ]

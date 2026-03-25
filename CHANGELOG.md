@@ -113,6 +113,17 @@
   - Tightened the conservative AU event contract so local cue strength,
     speaker continuity, and bounded topic continuity now work together in the
     event assembler instead of topic overlap carrying too much of the load.
+  - Preserved transcript-order semantics on AU procedural moves and switched
+    event assembly to use hearing order rather than ranked move order, fixing a
+    real exchange-chain assembly bug.
+  - Normalized AU section references and case-style authority cues into topic
+    continuity tokens (for example `section_6k`) so statute/authority carryover
+    is stronger across adjacent moves and assembled events.
+  - Added a reviewed hearing-event projection above the AU assembled-event
+    layer so the dense transcript artifact now exposes a smaller
+    operator-facing event review surface derived from assembled local hearing
+    events plus linked fact/review support, rather than only a dense fact
+    overlay.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,

@@ -230,6 +230,31 @@ def test_disjointness_scan_cli_zelph_prelude(tmp_path) -> None:
     assert payload["candidates"][0]["violator_qid"] == "Q217236"
 
 
+@pytest.mark.skipif(shutil.which("zelph") is None, reason="zelph not installed")
+def test_scan_candidates_zelph_seedless_local_bin(tmp_path) -> None:
+    bin_path = Path("/home/c/Documents/code/ITIR-suite/wikidata-20171227-pruned.bin")
+    if not bin_path.exists():
+        pytest.skip("pruned bin not available")
+
+    payload = scan_candidates(
+        backend="zelph-seedless",
+        limit=10,
+        query_kind="instance",
+        timeout=10,
+        zelph_load_path=bin_path,
+        seedless_topn=5,
+    )
+
+    assert payload["schema_version"] == SCAN_SCHEMA_VERSION
+    assert payload["query_kind"] == "instance"
+    assert payload["candidate_count"] <= 5
+    for row in payload["candidates"]:
+        assert row["violation_kind"] == "instance"
+        assert row["violator_qid"].startswith("Q")
+        assert row["left_qid"].startswith("Q")
+        assert row["right_qid"].startswith("Q")
+
+
 def test_machine_readable_indexes_have_promotion_metadata() -> None:
     disjointness_index = json.loads(
         (ROOT.parent / "docs" / "planning" / "wikidata_disjointness_case_index_v1.json").read_text(

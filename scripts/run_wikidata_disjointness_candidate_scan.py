@@ -68,7 +68,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--backend",
-        choices=("wdqs", "zelph"),
+        choices=("wdqs", "zelph", "zelph-seedless"),
         default="wdqs",
         help="Candidate discovery backend.",
     )
@@ -119,6 +119,12 @@ def _parse_args() -> argparse.Namespace:
         "--zelph-prelude-path",
         type=Path,
         help="Optional raw zelph script prepended before generated rules. Useful for tests and small local networks.",
+    )
+    parser.add_argument(
+        "--seedless-topn",
+        type=int,
+        default=50,
+        help="For --backend zelph-seedless: cap the number of dual-P31 violators returned.",
     )
     return parser.parse_args()
 
@@ -351,6 +357,59 @@ def _scan_candidates_zelph(
     return rows
 
 
+def _scan_candidates_zelph_seedless(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+    seedless_topn: int,
+) -> list[dict[str, Any]]:
+    # Build a tiny Zelph script that finds items with two distinct P31 values.
+    # We do not import wikidata.zph to keep startup fast.
+    bundle_lines = [
+        ".lang zelph",
+        f".load {zelph_load_path}",
+        # Extract any item that has two distinct P31 assertions.
+        '(X "wikidata P31" A, X "wikidata P31" B, A != B) => (X "sl/dual-instance" (A B))',
+        ".run",
+        'X "sl/dual-instance" META',
+    ]
+    bundle_text = "\n".join(bundle_lines) + "\n"
+    stdout = _run_zelph_bundle(bundle_text, zelph_command=zelph_command)
+    rows: list[dict[str, Any]] = []
+    for triple in parse_zelph_inference(stdout):
+        if triple.get("predicate") != "sl/dual-instance":
+            continue
+        subject_qid = _qid_from_zelph_node(triple.get("subject"))
+        obj_text = str(triple.get("object") or "")
+        # crude parse: expect "(Q1 Q2)" style; fall back to splitting on space
+        parts = QID_RE.findall(obj_text)
+        if subject_qid and len(parts) >= 2:
+            left_qid, right_qid = parts[:2]
+            rows.append(
+                {
+                    "holder_qid": "seedless",
+                    "holder_label": "seedless",
+                    "left_qid": left_qid,
+                    "left_label": left_qid,
+                    "right_qid": right_qid,
+                    "right_label": right_qid,
+                    "violator_qid": subject_qid,
+                    "violator_label": subject_qid,
+                    "violation_kind": "instance",
+                    "rank_score": 30,
+                    "selection_reason": "seedless local dual-P31 candidate",
+                }
+            )
+    rows.sort(
+        key=lambda row: (
+            str(row["left_qid"] or ""),
+            str(row["right_qid"] or ""),
+            str(row["violator_qid"] or ""),
+        )
+    )
+    return rows[:seedless_topn]
+
+
 def scan_candidates(
     *,
     backend: str,
@@ -362,6 +421,7 @@ def scan_candidates(
     zelph_load_path: Path | None = None,
     zelph_wikidata_script: Path | None = None,
     zelph_prelude_path: Path | None = None,
+    seedless_topn: int = 50,
 ) -> dict[str, Any]:
     if backend == "wdqs":
         candidates = _scan_candidates_wdqs(limit=limit, query_kind=query_kind, timeout=timeout)
@@ -373,6 +433,14 @@ def scan_candidates(
             zelph_load_path=zelph_load_path,
             zelph_wikidata_script=zelph_wikidata_script,
             zelph_prelude_path=zelph_prelude_path,
+        )
+    elif backend == "zelph-seedless":
+        if not zelph_load_path:
+            raise ValueError("zelph-seedless backend requires --zelph-load-path")
+        candidates = _scan_candidates_zelph_seedless(
+            zelph_command=zelph_command,
+            zelph_load_path=zelph_load_path,
+            seedless_topn=seedless_topn,
         )
     else:
         raise ValueError(f"unsupported backend: {backend}")
@@ -408,6 +476,7 @@ def main() -> None:
             zelph_load_path=args.zelph_load_path,
             zelph_wikidata_script=args.zelph_wikidata_script,
             zelph_prelude_path=args.zelph_prelude_path,
+            seedless_topn=args.seedless_topn,
         )
     except requests.RequestException as exc:
         raise SystemExit(f"live WDQS disjointness scan failed: {exc}") from exc
