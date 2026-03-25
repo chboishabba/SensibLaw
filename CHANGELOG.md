@@ -97,6 +97,22 @@
     classified `hearing_act` layer and bounded `procedural_move` assembly over
     adjacent compatible hearing turns, making the next bottleneck explicit as
     broader reviewed event assembly rather than transcript density collapse.
+  - Extended the same AU hearing lane again with a first conservative
+    `event_assembly_overlay` over procedural moves, so the dense transcript
+    artifact now reaches bounded hearing-event structure while keeping persisted
+    fact-review event counts unchanged and conservative.
+  - Extended that AU `event_assembly_overlay` again so it now assembles short
+    local bench/counsel exchanges and authority/submission clusters, not only
+    single-move hearing events.
+  - Added event-assembly coverage metrics over the procedural-move layer so AU
+    hearing progress is now measurable as coverage of local procedural
+    structure, not just raw event counts.
+  - Preserved explicit speaker labels across AU hearing acts, procedural moves,
+  and assembled events so local bench/counsel exchange assembly is less
+  dependent on topic overlap alone.
+  - Tightened the conservative AU event contract so local cue strength,
+    speaker continuity, and bounded topic continuity now work together in the
+    event assembler instead of topic overlap carrying too much of the load.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,

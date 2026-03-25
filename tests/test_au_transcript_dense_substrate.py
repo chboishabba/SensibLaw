@@ -45,9 +45,15 @@ def test_build_au_transcript_dense_substrate(tmp_path: Path) -> None:
     assert payload["summary"]["hearing_act_count"] >= payload["summary"]["procedural_overlay_candidate_count"] >= 1
     assert payload["procedural_overlay"]["selected_candidates"]
     assert payload["procedural_overlay"]["hearing_acts"]
+    assert any(row.get("speaker_label") for row in payload["procedural_overlay"]["hearing_acts"])
     assert payload["summary"]["procedural_overlay_candidate_count"] >= 1
     assert payload["procedural_move_overlay"]["selected_moves"]
     assert payload["summary"]["procedural_move_count"] >= payload["summary"]["procedural_move_selected_count"] >= 1
+    assert any(row.get("speaker_label") for row in payload["procedural_move_overlay"]["selected_moves"])
+    assert payload["event_assembly_overlay"]["selected_events"]
+    assert payload["summary"]["assembled_event_count"] >= payload["summary"]["selected_event_count"] >= 1
+    assert payload["summary"]["event_move_coverage_count"] >= 1
+    assert payload["summary"]["event_move_coverage_ratio"] > 0.0
     assert any(
         row["hearing_act_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
         for row in payload["procedural_overlay"]["selected_candidates"]
@@ -55,6 +61,18 @@ def test_build_au_transcript_dense_substrate(tmp_path: Path) -> None:
     assert any(
         row["move_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
         for row in payload["procedural_move_overlay"]["selected_moves"]
+    )
+    assert any(
+        row["event_kind"] in {"bench_question_exchange", "bench_counsel_exchange", "bench_counsel_exchange_chain", "party_submission_sequence", "authority_argument_sequence", "authority_argument_cluster", "extended_authority_argument_cluster", "procedural_direction_event"}
+        for row in payload["event_assembly_overlay"]["selected_events"]
+    )
+    assert any(
+        len(row.get("source_move_ids") or []) >= 1
+        for row in payload["event_assembly_overlay"]["selected_events"]
+    )
+    assert any(
+        row.get("speaker_labels")
+        for row in payload["event_assembly_overlay"]["selected_events"]
     )
     assert any("civil liability act" in row["excerpt_preview"].casefold() for row in payload["overlay_projection"]["selected_facts"])
 
@@ -100,4 +118,5 @@ def test_build_au_transcript_dense_substrate_reports_progress(tmp_path: Path) ->
     assert "overlay_projection_finished" in stages
     assert "procedural_overlay_finished" in stages
     assert "procedural_move_overlay_finished" in stages
+    assert "event_assembly_overlay_finished" in stages
     assert stages[-1] == "build_finished"
