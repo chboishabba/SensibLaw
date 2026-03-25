@@ -115,7 +115,12 @@ def main() -> int:
     parser.add_argument("--run-id", default="")
     parser.add_argument("--transcript-file", action="append", default=[])
     parser.add_argument("--progress", action="store_true", help="Emit stage progress JSON to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json", "bar"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
     parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run")

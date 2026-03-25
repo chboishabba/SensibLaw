@@ -126,6 +126,12 @@ def _parse_args() -> argparse.Namespace:
         default=50,
         help="For --backend zelph-seedless: cap the number of dual-P31 violators returned.",
     )
+    parser.add_argument(
+        "--seedless-mode",
+        choices=("p31", "p279", "both"),
+        default="both",
+        help="For --backend zelph-seedless: which dual-relations to search.",
+    )
     return parser.parse_args()
 
 
@@ -362,22 +368,33 @@ def _scan_candidates_zelph_seedless(
     zelph_command: str,
     zelph_load_path: Path,
     seedless_topn: int,
+    seedless_mode: str,
 ) -> list[dict[str, Any]]:
-    # Build a tiny Zelph script that finds items with two distinct P31 values.
+    # Build a tiny Zelph script that finds items/classes with two distinct P31 or P279 values.
     # We do not import wikidata.zph to keep startup fast.
-    bundle_lines = [
-        ".lang zelph",
-        f".load {zelph_load_path}",
-        # Extract any item that has two distinct P31 assertions.
-        '(X "wikidata P31" A, X "wikidata P31" B, A != B) => (X "sl/dual-instance" (A B))',
-        ".run",
-        'X "sl/dual-instance" META',
-    ]
+    bundle_lines = [".lang zelph", f".load {zelph_load_path}"]
+    if seedless_mode in ("p31", "both"):
+        bundle_lines.append(
+            '(X "wikidata P31" A, X "wikidata P31" B, A != B) => (X "sl/dual-instance" (A B))'
+        )
+    if seedless_mode in ("p279", "both"):
+        bundle_lines.append(
+            '(X "wikidata P279" A, X "wikidata P279" B, A != B) => (X "sl/dual-subclass" (A B))'
+        )
+    bundle_lines.extend(
+        [
+            ".run",
+            'X "sl/dual-instance" META',
+            'X "sl/dual-subclass" META',
+        ]
+    )
     bundle_text = "\n".join(bundle_lines) + "\n"
     stdout = _run_zelph_bundle(bundle_text, zelph_command=zelph_command)
     rows: list[dict[str, Any]] = []
+    pair_counts: dict[str, int] = {}
     for triple in parse_zelph_inference(stdout):
-        if triple.get("predicate") != "sl/dual-instance":
+        predicate = triple.get("predicate")
+        if predicate not in {"sl/dual-instance", "sl/dual-subclass"}:
             continue
         subject_qid = _qid_from_zelph_node(triple.get("subject"))
         obj_text = str(triple.get("object") or "")
@@ -385,6 +402,8 @@ def _scan_candidates_zelph_seedless(
         parts = QID_RE.findall(obj_text)
         if subject_qid and len(parts) >= 2:
             left_qid, right_qid = parts[:2]
+            pair_key = "|".join(sorted((left_qid, right_qid)))
+            pair_counts[pair_key] = pair_counts.get(pair_key, 0) + 1
             rows.append(
                 {
                     "holder_qid": "seedless",
@@ -395,9 +414,13 @@ def _scan_candidates_zelph_seedless(
                     "right_label": right_qid,
                     "violator_qid": subject_qid,
                     "violator_label": subject_qid,
-                    "violation_kind": "instance",
-                    "rank_score": 30,
-                    "selection_reason": "seedless local dual-P31 candidate",
+                    "violation_kind": "instance"
+                    if predicate == "sl/dual-instance"
+                    else "subclass",
+                    "rank_score": 30 if predicate == "sl/dual-instance" else 25,
+                    "selection_reason": "seedless local dual-P31 candidate"
+                    if predicate == "sl/dual-instance"
+                    else "seedless local dual-P279 candidate",
                 }
             )
     rows.sort(
@@ -407,7 +430,10 @@ def _scan_candidates_zelph_seedless(
             str(row["violator_qid"] or ""),
         )
     )
-    return rows[:seedless_topn]
+    pair_suggestions = [
+        {"pair_key": key, "count": count} for key, count in sorted(pair_counts.items(), key=lambda kv: -kv[1])
+    ][: seedless_topn]
+    return rows[:seedless_topn], pair_suggestions
 
 
 def scan_candidates(
@@ -422,7 +448,9 @@ def scan_candidates(
     zelph_wikidata_script: Path | None = None,
     zelph_prelude_path: Path | None = None,
     seedless_topn: int = 50,
+    seedless_mode: str = "both",
 ) -> dict[str, Any]:
+    pair_suggestions: list[dict[str, Any]] = []
     if backend == "wdqs":
         candidates = _scan_candidates_wdqs(limit=limit, query_kind=query_kind, timeout=timeout)
     elif backend == "zelph":
@@ -437,10 +465,11 @@ def scan_candidates(
     elif backend == "zelph-seedless":
         if not zelph_load_path:
             raise ValueError("zelph-seedless backend requires --zelph-load-path")
-        candidates = _scan_candidates_zelph_seedless(
+        candidates, pair_suggestions = _scan_candidates_zelph_seedless(
             zelph_command=zelph_command,
             zelph_load_path=zelph_load_path,
             seedless_topn=seedless_topn,
+            seedless_mode=seedless_mode,
         )
     else:
         raise ValueError(f"unsupported backend: {backend}")
@@ -460,6 +489,7 @@ def scan_candidates(
         "query_kind": query_kind,
         "candidate_count": len(candidates),
         "candidates": candidates,
+        "pair_suggestions": pair_suggestions if backend == "zelph-seedless" else [],
     }
 
 
@@ -477,6 +507,7 @@ def main() -> None:
             zelph_wikidata_script=args.zelph_wikidata_script,
             zelph_prelude_path=args.zelph_prelude_path,
             seedless_topn=args.seedless_topn,
+            seedless_mode=args.seedless_mode,
         )
     except requests.RequestException as exc:
         raise SystemExit(f"live WDQS disjointness scan failed: {exc}") from exc

@@ -847,7 +847,12 @@ def _event_assembly_overlay(procedural_move_overlay: dict[str, Any], *, limit: i
     }
 
 
-def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressCallback | None = None) -> dict[str, Any]:
+def _build_payload(
+    transcript_paths: list[Path],
+    *,
+    reviewed_event_limit: int = _REVIEWED_EVENT_LIMIT,
+    progress_callback: ProgressCallback | None = None,
+) -> dict[str, Any]:
     _emit_progress(progress_callback, "load_units_started", source_file_count=len(transcript_paths))
     units = []
     for path in transcript_paths:
@@ -975,7 +980,12 @@ def _build_payload(transcript_paths: list[Path], *, progress_callback: ProgressC
     }
     payload["procedural_move_overlay"] = _procedural_move_overlay(payload["procedural_overlay"])
     payload["event_assembly_overlay"] = _event_assembly_overlay(payload["procedural_move_overlay"])
-    payload["reviewed_event_projection"] = _reviewed_event_projection(bundle, payload["event_assembly_overlay"])
+    reviewed_event_limit = max(1, int(reviewed_event_limit or 0))
+    payload["reviewed_event_projection"] = _reviewed_event_projection(
+        bundle,
+        payload["event_assembly_overlay"],
+        limit=reviewed_event_limit,
+    )
     payload["summary"]["hearing_act_count"] = int(payload["procedural_overlay"]["classified_hearing_act_count"])
     payload["summary"]["procedural_overlay_candidate_count"] = int(payload["procedural_overlay"]["selected_candidate_count"])
     payload["summary"]["procedural_move_count"] = int(payload["procedural_move_overlay"]["assembled_move_count"])
@@ -1149,11 +1159,16 @@ def build_dense_substrate(
     output_dir: Path,
     *,
     transcript_paths: list[Path] | None = None,
+    reviewed_event_limit: int = _REVIEWED_EVENT_LIMIT,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     selected_paths = [path.resolve() for path in (transcript_paths or DEFAULT_TRANSCRIPT_PATHS)]
     _emit_progress(progress_callback, "build_started", output_dir=str(output_dir), source_file_count=len(selected_paths))
-    payload = _build_payload(selected_paths, progress_callback=progress_callback)
+    payload = _build_payload(
+        selected_paths,
+        reviewed_event_limit=reviewed_event_limit,
+        progress_callback=progress_callback,
+    )
     summary_text = _build_summary_text(payload)
     _emit_progress(progress_callback, "artifact_write_started", output_dir=str(output_dir))
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1181,7 +1196,18 @@ def main() -> int:
     parser.add_argument("--transcript-file", action="append", default=[], help="Transcript file to include; repeat to override the default AU set.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the artifact into.")
     parser.add_argument("--progress", action="store_true", help="Emit stage progress JSON to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json", "bar"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
+    parser.add_argument(
+        "--reviewed-event-limit",
+        type=int,
+        default=_REVIEWED_EVENT_LIMIT,
+        help="Maximum number of reviewed hearing events to keep in the reviewed projection (default: %(default)s).",
+    )
     parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     args = parser.parse_args()
     configure_cli_logging(args.log_level)
@@ -1189,6 +1215,7 @@ def main() -> int:
     result = build_dense_substrate(
         Path(args.output_dir).resolve(),
         transcript_paths=transcript_paths,
+        reviewed_event_limit=int(args.reviewed_event_limit or _REVIEWED_EVENT_LIMIT),
         progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
     )
     print(json.dumps(result, indent=2, sort_keys=True))

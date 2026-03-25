@@ -62,6 +62,12 @@
     `1747` facts, `1482` observations, `0` events, and a 24-row secondary
     review-overlay projection, making transcript density explicit instead of
     treating it as an error to collapse immediately.
+  - Added explicit `--reviewed-event-limit` CLI control to tune reviewed hearing
+    event projection size from `build_au_transcript_dense_substrate.py` and
+    validated a higher-coverage run (`/tmp/au_real_round2_v2`) at
+    `--reviewed-event-limit 24`, which yields `183` reviewed-event queue links,
+    `24` selected reviewed hearing events, and `0.104751` reviewed-event
+    coverage ratio.
   - Added opt-in `--progress` stage reporting to the AU structural-checkpoint
     and dense-substrate builders so longer runs can emit stderr progress events
     without changing default stdout artifact/result behavior.

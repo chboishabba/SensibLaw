@@ -240,7 +240,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--notes", default=None, help="Optional notes for the fact-intake run")
     parser.add_argument("--use-demo", action="store_true", help="Use built-in demo transcript units when no files are provided")
     parser.add_argument("--progress", action="store_true", help="Emit stage progress JSON to stderr.")
-    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument(
+        "--progress-format",
+        choices=("human", "json", "bar"),
+        default="human",
+        help="Progress renderer for stderr output.",
+    )
     parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run", help="Run transcript semantic + fact-intake persistence and print summary identifiers/counts")
