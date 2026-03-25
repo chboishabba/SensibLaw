@@ -42,11 +42,19 @@ def test_build_au_transcript_dense_substrate(tmp_path: Path) -> None:
     assert payload["summary"]["review_queue_count"] >= payload["overlay_projection"]["selected_review_queue_count"] >= 1
     assert payload["run"]["bundle_version"] == "fact.review.bundle.v1"
     assert payload["overlay_projection"]["selected_facts"]
+    assert payload["summary"]["hearing_act_count"] >= payload["summary"]["procedural_overlay_candidate_count"] >= 1
     assert payload["procedural_overlay"]["selected_candidates"]
+    assert payload["procedural_overlay"]["hearing_acts"]
     assert payload["summary"]["procedural_overlay_candidate_count"] >= 1
+    assert payload["procedural_move_overlay"]["selected_moves"]
+    assert payload["summary"]["procedural_move_count"] >= payload["summary"]["procedural_move_selected_count"] >= 1
     assert any(
-        row["procedural_kind"] in {"party_submission", "statutory_argument", "court_intervention"}
+        row["hearing_act_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
         for row in payload["procedural_overlay"]["selected_candidates"]
+    )
+    assert any(
+        row["move_kind"] in {"party_submission", "statutory_argument", "court_intervention", "bench_question"}
+        for row in payload["procedural_move_overlay"]["selected_moves"]
     )
     assert any("civil liability act" in row["excerpt_preview"].casefold() for row in payload["overlay_projection"]["selected_facts"])
 
@@ -90,4 +98,6 @@ def test_build_au_transcript_dense_substrate_reports_progress(tmp_path: Path) ->
     assert "semantic_pipeline_finished" in stages
     assert "overlay_bundle_finished" in stages
     assert "overlay_projection_finished" in stages
+    assert "procedural_overlay_finished" in stages
+    assert "procedural_move_overlay_finished" in stages
     assert stages[-1] == "build_finished"

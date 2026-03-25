@@ -1,0 +1,29 @@
+{
+  "schema_version": "wikidata_disjointness_pair_seed/v1",
+  "entries": [
+    {
+      "holder_qid": "Q102205",
+      "holder_label": "fluid",
+      "left_qid": "Q11432",
+      "left_label": "gas",
+      "right_qid": "Q11435",
+      "right_label": "liquid"
+    },
+    {
+      "holder_qid": "Q102165",
+      "holder_label": "nucleon",
+      "left_qid": "Q2294",
+      "left_label": "proton",
+      "right_qid": "Q2348",
+      "right_label": "neutron"
+    },
+    {
+      "holder_qid": "Q53617489",
+      "holder_label": "independent continuant",
+      "left_qid": "Q53617407",
+      "left_label": "material entity",
+      "right_qid": "Q124711467",
+      "right_label": "immaterial entity"
+    }
+  ]
+}

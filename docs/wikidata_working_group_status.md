@@ -47,6 +47,8 @@ shared handoff.
     - one real contradiction pack
     - machine-readable case governance
     - a callable live scan script for WDQS-backed candidate discovery
+    - a callable local `zelph` scan mode for instance contradictions from
+      explicit disjoint-pair seeds
 
 ## Current artifacts
 - Hotspot benchmark roadmap:
@@ -61,6 +63,8 @@ shared handoff.
   - `../../docs/planning/wikidata_disjointness_report_contract_v1_20260325.md`
 - Disjointness case index:
   - `../../docs/planning/wikidata_disjointness_case_index_v1.json`
+- Disjointness pair seed:
+  - `data/ontology/wikidata_disjointness_pair_seed_v1.json`
 - Page-review candidate index:
   - `../../docs/planning/wikidata_page_review_candidate_index_v1.json`
 - Diagnostic taxonomy:
@@ -154,6 +158,9 @@ shared handoff.
     - promotion metadata stays out of `wikidata_disjointness_report/v1`
     - live contradiction discovery can now be rerun with:
       `SensibLaw/scripts/run_wikidata_disjointness_candidate_scan.py`
+    - current scan backends are explicit:
+      - `wdqs`: live subclass/instance discovery
+      - `zelph`: local instance-only discovery from explicit pair seeds
 
 ## Current phase-2 qualifier pack
 - Real imported baseline slice:

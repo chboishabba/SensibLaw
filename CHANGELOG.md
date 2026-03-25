@@ -83,10 +83,20 @@
     `build_gwb_broader_promotion_diagnostics.py`,
     `run_wikidata_qualifier_drift_scan.py`, and
     `wiki_revision_pack_runner.py`.
+  - Threaded progress into the deeper Wikidata/Wikipedia internals too:
+    `src/ontology/wikidata.py::find_qualifier_drift_candidates(...)` now emits
+    candidate-query, revision-metadata, and revision-compare updates, while
+    `src/wiki_timeline/revision_pack_runner.py::run(...)` now emits per-article,
+    history, candidate-scoring, and pair-report progress. Added renderer tests
+    in `tests/test_cli_runtime.py`.
   - Extended the dense AU transcript artifact with a first hearing-procedural
     reviewed projection so court interventions, party submissions, and
     statute-heavy turns are surfaced separately from the flatter dense fact
     layer.
+  - Extended that AU dense hearing lane again so it now carries a first
+    classified `hearing_act` layer and bounded `procedural_move` assembly over
+    adjacent compatible hearing turns, making the next bottleneck explicit as
+    broader reviewed event assembly rather than transcript density collapse.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,
