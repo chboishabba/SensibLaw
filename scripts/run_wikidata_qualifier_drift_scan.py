@@ -8,6 +8,12 @@ from pathlib import Path
 
 import requests
 
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from cli_runtime import build_progress_callback, configure_cli_logging
+
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -60,6 +66,9 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not download entity exports or build/project a confirmed case.",
     )
+    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
+    parser.add_argument("--progress-format", choices=("human", "json", "bar"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     return parser.parse_args()
 
 
@@ -76,7 +85,7 @@ def _download_json(url: str, out_path: Path) -> dict:
     return payload
 
 
-def _materialize_first_case(report: dict, out_dir: Path) -> dict | None:
+def _materialize_first_case(report: dict, out_dir: Path, *, progress_callback=None) -> dict | None:
     confirmed = report.get("confirmed_drift_cases", [])
     if not confirmed:
         return None
@@ -85,8 +94,14 @@ def _materialize_first_case(report: dict, out_dir: Path) -> dict | None:
     case_dir = out_dir / stem
     case_dir.mkdir(parents=True, exist_ok=True)
 
+    if callable(progress_callback):
+        progress_callback("materialize_download_started", {"section": "wikidata_materialize", "completed": 0, "total": 4, "message": "Downloading first entity export."})
     from_payload = _download_json(case["entity_export_urls"]["from"], case_dir / "from_entity.json")
+    if callable(progress_callback):
+        progress_callback("materialize_download_progress", {"section": "wikidata_materialize", "completed": 1, "total": 4, "message": "Downloaded from_entity export."})
     to_payload = _download_json(case["entity_export_urls"]["to"], case_dir / "to_entity.json")
+    if callable(progress_callback):
+        progress_callback("materialize_download_progress", {"section": "wikidata_materialize", "completed": 2, "total": 4, "message": "Downloaded to_entity export."})
 
     from_payload["_source_path"] = str(case_dir / "from_entity.json")
     to_payload["_source_path"] = str(case_dir / "to_entity.json")
@@ -103,6 +118,8 @@ def _materialize_first_case(report: dict, out_dir: Path) -> dict | None:
     )
     projection_path = case_dir / "projection.json"
     _write_json(projection_path, projection)
+    if callable(progress_callback):
+        progress_callback("materialize_download_finished", {"section": "wikidata_materialize", "completed": 4, "total": 4, "message": "Materialized first confirmed case."})
 
     return {
         "case_dir": str(case_dir),
@@ -115,22 +132,37 @@ def _materialize_first_case(report: dict, out_dir: Path) -> dict | None:
 
 def main() -> None:
     args = _parse_args()
+    configure_cli_logging(args.log_level)
+    progress_callback = build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format))
     properties = tuple(sorted(set(args.property or DEFAULT_FIND_QUALIFIER_PROPERTIES)))
     out_dir = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if callable(progress_callback):
+        progress_callback("scan_started", {"section": "wikidata_scan", "completed": 0, "total": max(int(args.candidate_limit), 1), "message": "Scanning qualifier drift candidates."})
     report = find_qualifier_drift_candidates(
         property_filter=properties,
         candidate_limit=args.candidate_limit,
         revision_limit=args.revision_limit,
         timeout_seconds=args.query_timeout,
+        progress_callback=progress_callback,
     )
+    if callable(progress_callback):
+        progress_callback(
+            "scan_finished",
+            {
+                "section": "wikidata_scan",
+                "completed": int(report.get("candidate_count") or 0),
+                "total": max(int(args.candidate_limit), int(report.get("candidate_count") or 0), 1),
+                "message": f"Scan finished with {len(report.get('confirmed_drift_cases', []))} confirmed cases.",
+            },
+        )
     report_path = out_dir / "scan_report.json"
     _write_json(report_path, report)
 
     materialized = None
     if not args.no_materialize:
-        materialized = _materialize_first_case(report, out_dir)
+        materialized = _materialize_first_case(report, out_dir, progress_callback=progress_callback)
 
     summary = {
         "report": str(report_path),

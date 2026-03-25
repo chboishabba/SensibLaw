@@ -268,6 +268,38 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert graph_rows[0] >= 1
 
 
+def test_pack_runner_emits_progress(tmp_path: Path) -> None:
+    pack_path = _pack(tmp_path)
+    out_dir = tmp_path / "out"
+    state_db = tmp_path / "state.sqlite"
+    current_revid = {"value": 1}
+    fetch_current, fetch_revision, fetch_history, build_timeline, build_aoo, auto_review_context = _fake_env(tmp_path, current_revid)
+    seen: list[tuple[str, dict]] = []
+
+    result = run(
+        pack_path=pack_path,
+        out_dir=out_dir,
+        state_db_path=state_db,
+        fetch_current_snapshot_fn=fetch_current,
+        fetch_revision_history_fn=fetch_history,
+        fetch_revision_snapshot_fn=fetch_revision,
+        build_timeline_fn=build_timeline,
+        build_aoo_fn=build_aoo,
+        auto_review_context_fn=auto_review_context,
+        progress_callback=lambda stage, details: seen.append((stage, details)),
+    )
+
+    assert result["ok"] is True
+    stages = [stage for stage, _ in seen]
+    assert "revision_pack_articles_started" in stages
+    assert "revision_pack_article_started" in stages
+    assert "revision_pack_article_history" in stages
+    assert "revision_pack_article_candidates_progress" in stages
+    assert "revision_pack_article_reports_progress" in stages
+    finished = [details for stage, details in seen if stage == "revision_pack_article_finished"]
+    assert finished[-1]["status"] == "changed"
+
+
 def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> None:
     pack_path = _pack(tmp_path)
     out_dir = tmp_path / "out"

@@ -218,6 +218,28 @@ def test_find_qualifier_drift_candidates_detects_real_change(monkeypatch) -> Non
     assert report["failures"] == []
 
 
+def test_find_qualifier_drift_candidates_emits_progress(monkeypatch) -> None:
+    monkeypatch.setattr(wikidata_mod.requests, "get", _fake_requests_get)
+    seen: list[tuple[str, dict]] = []
+
+    report = find_qualifier_drift_candidates(
+        property_filter=("P166", "P39"),
+        candidate_limit=5,
+        revision_limit=2,
+        progress_callback=lambda stage, details: seen.append((stage, details)),
+    )
+
+    assert report["candidate_count"] == 2
+    stages = [stage for stage, _ in seen]
+    assert "candidate_query_started" in stages
+    assert "candidate_query_finished" in stages
+    assert "revision_metadata_progress" in stages
+    assert "revision_compare_started" in stages
+    finished = [details for stage, details in seen if stage == "revision_compare_finished"]
+    assert any(item.get("status") == "confirmed_drift" for item in finished)
+    assert any(item.get("status") == "stable" for item in finished)
+
+
 def test_wikidata_find_qualifier_drift_cli_writes_report(tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.setattr(wikidata_mod.requests, "get", _fake_requests_get)
     out_path = tmp_path / "qualifier_drift_finder.json"

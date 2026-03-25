@@ -59,6 +59,11 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _emit_progress(progress_callback: Callable[[str, Mapping[str, Any]], None] | None, stage: str, details: Mapping[str, Any]) -> None:
+    if callable(progress_callback):
+        progress_callback(stage, dict(details))
+
+
 def default_out_dir_for_pack(pack_path: Path) -> Path:
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack_id = str(pack.get("pack_id") or pack_path.stem or "wiki_revision_monitor").strip()
@@ -1599,6 +1604,7 @@ def run(
     build_timeline_fn: Callable[..., Mapping[str, Any]] | None = None,
     build_aoo_fn: Callable[..., Mapping[str, Any]] | None = None,
     auto_review_context_fn: Callable[..., Mapping[str, Any]] | None = None,
+    progress_callback: Callable[[str, Mapping[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack_id = str(pack.get("pack_id") or "wiki_revision_monitor")
@@ -1627,7 +1633,20 @@ def run(
         _store_pack_manifest(conn, pack_path=pack_path, pack=pack)
         _insert_run(conn, run_id=run_id, pack_id=pack_id, started_at=run_started, out_dir=out_dir)
 
-        for article in pack.get("articles") or []:
+        articles = [article for article in pack.get("articles") or [] if isinstance(article, Mapping)]
+        total_articles = len(articles)
+        _emit_progress(
+            progress_callback,
+            "revision_pack_articles_started",
+            {
+                "section": "wiki_revision_articles",
+                "completed": 0,
+                "total": max(total_articles, 1),
+                "message": f"Processing {total_articles} articles.",
+            },
+        )
+
+        for article_index, article in enumerate(articles, start=1):
             if not isinstance(article, Mapping):
                 continue
             article_id = str(article.get("article_id") or "")
@@ -1642,6 +1661,17 @@ def run(
             contested_graph_summary: dict[str, Any] | None = None
 
             try:
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_started",
+                    {
+                        "section": "wiki_revision_articles",
+                        "completed": article_index - 1,
+                        "total": max(total_articles, 1),
+                        "article_id": article_id,
+                        "message": f"Fetching current snapshot for {article.get('title')}.",
+                    },
+                )
                 fetched = fetch_current_snapshot_fn(article=article, out_dir=out_dir / "snapshots", python_cmd=py, repo_root=repo_root)
                 current_snapshot_path = Path(str(fetched["snapshot_path"]))
                 current_snapshot_payload = dict(fetched["snapshot_payload"])
@@ -1664,11 +1694,35 @@ def run(
                 )
                 history_rows = _ensure_history_contains_current(_normalize_history_rows(history.get("history_payload")), current_snapshot_payload)
                 _insert_history_rows(conn, run_id=run_id, article_id=article_id, rows=history_rows)
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_history",
+                    {
+                        "section": "wiki_revision_articles",
+                        "completed": article_index - 1,
+                        "total": max(total_articles, 1),
+                        "article_id": article_id,
+                        "message": f"Loaded {len(history_rows)} history rows.",
+                        "history_row_count": len(history_rows),
+                    },
+                )
 
                 selected_pairs: list[dict[str, Any]] = []
                 candidates = _candidate_pairs(history_rows, previous_state, current_revid)
                 scored_candidates: list[dict[str, Any]] = []
-                for candidate in candidates:
+                total_candidates = len(candidates)
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_candidates_started",
+                    {
+                        "section": "wiki_revision_candidates",
+                        "completed": 0,
+                        "total": max(total_candidates, 1),
+                        "article_id": article_id,
+                        "message": f"Scoring {total_candidates} candidate pairs.",
+                    },
+                )
+                for candidate_index, candidate in enumerate(candidates, start=1):
                     older_revid = int(candidate["older_revid"])
                     newer_revid = int(candidate["newer_revid"])
                     older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=out_dir / "pair_snapshots", python_cmd=py, repo_root=repo_root)
@@ -1692,6 +1746,17 @@ def run(
                     candidate["selected"] = False
                     candidate["status"] = "candidate"
                     scored_candidates.append(candidate)
+                    _emit_progress(
+                        progress_callback,
+                        "revision_pack_article_candidates_progress",
+                        {
+                            "section": "wiki_revision_candidates",
+                            "completed": candidate_index,
+                            "total": max(total_candidates, 1),
+                            "article_id": article_id,
+                            "message": f"Scored pair {candidate['pair_kind']} {older_revid}->{newer_revid}.",
+                        },
+                    )
 
                 scored_candidates.sort(
                     key=lambda row: (
@@ -1702,7 +1767,19 @@ def run(
                 )
                 candidate_pair_counts["considered"] += len(scored_candidates)
 
-                for candidate in scored_candidates[: history_cfg["max_candidate_pairs"]]:
+                selected_limit = min(len(scored_candidates), history_cfg["max_candidate_pairs"])
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_reports_started",
+                    {
+                        "section": "wiki_revision_reports",
+                        "completed": 0,
+                        "total": max(selected_limit, 1),
+                        "article_id": article_id,
+                        "message": f"Building up to {selected_limit} pair reports.",
+                    },
+                )
+                for selected_index, candidate in enumerate(scored_candidates[: history_cfg["max_candidate_pairs"]], start=1):
                     selected = _build_pair_report(
                         article=article,
                         pair=dict(candidate),
@@ -1720,6 +1797,17 @@ def run(
                     candidate_pair_counts["selected"] += 1
                     if selected.get("pair_report_path"):
                         candidate_pair_counts["reported"] += 1
+                    _emit_progress(
+                        progress_callback,
+                        "revision_pack_article_reports_progress",
+                        {
+                            "section": "wiki_revision_reports",
+                            "completed": selected_index,
+                            "total": max(selected_limit, 1),
+                            "article_id": article_id,
+                            "message": f"Built pair report {selected.get('pair_id')}.",
+                        },
+                    )
 
                 for candidate in scored_candidates:
                     materialized = next((row for row in selected_pairs if row["pair_id"] == candidate["pair_id"]), candidate)
@@ -1845,6 +1933,18 @@ def run(
                     result_payload=result_payload,
                 )
                 article_results.append(result_payload)
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_finished",
+                    {
+                        "section": "wiki_revision_articles",
+                        "completed": article_index,
+                        "total": max(total_articles, 1),
+                        "article_id": article_id,
+                        "status": status,
+                        "message": f"Finished {article.get('title')} with status {status}.",
+                    },
+                )
             except Exception as exc:
                 status = "error"
                 summary_counts[status] = summary_counts.get(status, 0) + 1
@@ -1876,6 +1976,18 @@ def run(
                     result_payload=result_payload,
                 )
                 article_results.append(result_payload)
+                _emit_progress(
+                    progress_callback,
+                    "revision_pack_article_finished",
+                    {
+                        "section": "wiki_revision_articles",
+                        "completed": article_index,
+                        "total": max(total_articles, 1),
+                        "article_id": article_id,
+                        "status": status,
+                        "message": f"Failed {article.get('title')}: {type(exc).__name__}.",
+                    },
+                )
 
         highest_severity = "none"
         for candidate in ("high", "medium", "low"):
@@ -1899,6 +2011,17 @@ def run(
         summary_path = out_dir / "runs" / f"{_slug(run_id)}.json"
         _write_json(summary_path, summary)
         summary["summary_path"] = str(summary_path)
+        _emit_progress(
+            progress_callback,
+            "revision_pack_articles_finished",
+            {
+                "section": "wiki_revision_articles",
+                "completed": len(article_results),
+                "total": max(total_articles, 1),
+                "status": "ok",
+                "message": f"Processed {len(article_results)} article results.",
+            },
+        )
         _complete_run(conn, run_id=run_id, status="ok", summary=summary)
         conn.commit()
         return summary

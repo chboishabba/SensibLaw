@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "label_map": {
+      "Q102165": "nucleon",
+      "Q2294": "proton",
+      "Q2348": "neutron",
+      "Q23766486": "list of values as qualifiers"
+    },
+    "source_note": "Repo-pinned real Wikidata-backed baseline built from the visible statements on Q102165, Q2294, and Q2348 as reviewed on 2026-03-25."
+  },
+  "windows": [
+    {
+      "id": "real_2026_03_25",
+      "statement_bundles": [
+        {
+          "subject": "Q102165",
+          "property": "P2738",
+          "rank": "normal",
+          "value": "Q23766486",
+          "qualifiers": {
+            "P11260": [
+              "Q2294",
+              "Q2348"
+            ]
+          }
+        },
+        {
+          "subject": "Q2294",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q102165"
+        },
+        {
+          "subject": "Q2348",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q102165"
+        }
+      ]
+    }
+  ]
+}

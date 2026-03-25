@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "label_map": {
+      "Q102205": "fluid",
+      "Q11432": "gas",
+      "Q11435": "liquid",
+      "Q217236": "working fluid",
+      "Q23766486": "list of values as qualifiers"
+    },
+    "source_note": "Repo-pinned real contradiction pack based on live WDQS scan output from 2026-03-25 identifying working fluid as an instance of both gas and liquid."
+  },
+  "windows": [
+    {
+      "id": "real_working_fluid_2026_03_25",
+      "statement_bundles": [
+        {
+          "subject": "Q102205",
+          "property": "P2738",
+          "rank": "normal",
+          "value": "Q23766486",
+          "qualifiers": {
+            "P11260": [
+              "Q11432",
+              "Q11435"
+            ]
+          }
+        },
+        {
+          "subject": "Q217236",
+          "property": "P31",
+          "rank": "normal",
+          "value": "Q11432"
+        },
+        {
+          "subject": "Q217236",
+          "property": "P31",
+          "rank": "normal",
+          "value": "Q11435"
+        }
+      ]
+    }
+  ]
+}

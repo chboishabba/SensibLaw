@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "label_map": {
+      "Q53617489": "independent continuant",
+      "Q53617407": "material entity",
+      "Q124711467": "immaterial entity",
+      "Q23766486": "list of values as qualifiers",
+      "Q123349660": "geolocatable entity",
+      "Q124711484": "spatial region",
+      "Q26713767": "region of space",
+      "Q27096213": "geographic entity",
+      "Q618123": "geographical feature",
+      "Q811430": "fixed construction",
+      "Q2131593": "framing"
+    },
+    "source_note": "Repo-pinned real contradiction pack assembled from current Wikidata page review and classification-tree review around independent continuant, geographic entity, fixed construction, and framing on 2026-03-25."
+  },
+  "windows": [
+    {
+      "id": "real_fixed_construction_2026_03_25",
+      "statement_bundles": [
+        {
+          "subject": "Q53617489",
+          "property": "P2738",
+          "rank": "normal",
+          "value": "Q23766486",
+          "qualifiers": {
+            "P11260": [
+              "Q53617407",
+              "Q124711467"
+            ]
+          }
+        },
+        {
+          "subject": "Q123349660",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q53617407"
+        },
+        {
+          "subject": "Q124711484",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q124711467"
+        },
+        {
+          "subject": "Q26713767",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q124711484"
+        },
+        {
+          "subject": "Q27096213",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q123349660"
+        },
+        {
+          "subject": "Q27096213",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q26713767"
+        },
+        {
+          "subject": "Q618123",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q27096213"
+        },
+        {
+          "subject": "Q811430",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q618123"
+        },
+        {
+          "subject": "Q2131593",
+          "property": "P279",
+          "rank": "normal",
+          "value": "Q811430"
+        }
+      ]
+    }
+  ]
+}

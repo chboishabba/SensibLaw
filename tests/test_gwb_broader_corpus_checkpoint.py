@@ -49,3 +49,9 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
         row["predicate_key"] == "ruled_by" and row["source_families"] == ["corpus_book_timeline"]
         for row in merged_relations
     )
+    assert any(
+        row["predicate_key"] == "vetoed"
+        and row["object"]["canonical_key"] == "legal_ref:stem_cell_research_enhancement_act"
+        and row["source_families"] == ["checked_handoff", "corpus_book_timeline"]
+        for row in merged_relations
+    )

@@ -18,21 +18,38 @@ This script intentionally keeps extraction light:
 
 import argparse
 import json
+import logging
 import posixpath
 import re
 import shutil
 import subprocess
+import sys
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from xml.etree import ElementTree as ET
-from typing import Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
+
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from cli_runtime import build_progress_callback, configure_cli_logging
+
+LOGGER = logging.getLogger(__name__)
+ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+    if progress_callback is None:
+        return
+    progress_callback(stage, details)
 
 
 def _anchor_from_iso(ts: str) -> dict:
@@ -378,54 +395,54 @@ def _root_actor_for_doc_title(title: str) -> tuple[str, str]:
     return ("", "")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Build a local corpus wiki_timeline JSON for AAO extraction.")
-    ap.add_argument("--root", type=Path, default=Path("SensibLaw/demo/ingest/gwb"), help="Corpus root (default: %(default)s)")
-    ap.add_argument(
-        "--out",
-        type=Path,
-        default=Path("SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json"),
-        help="Output timeline JSON path (default: %(default)s)",
-    )
-    ap.add_argument("--max-docs", type=int, default=20, help="Max docs processed (default: %(default)s)")
-    ap.add_argument("--max-snippets-per-doc", type=int, default=80, help="Max snippet events per doc (default: %(default)s)")
-    ap.add_argument("--snippet-chars", type=int, default=420, help="Max characters per snippet event (default: %(default)s)")
-    ap.add_argument("--extract-chars-per-doc", type=int, default=1_200_000, help="Max extracted chars per doc (default: %(default)s)")
-    args = ap.parse_args()
-
-    root = args.root.resolve()
-    out_path = args.out
+def build_corpus_timeline(
+    *,
+    root: Path,
+    out_path: Path,
+    max_docs: int,
+    max_snippets_per_doc: int,
+    snippet_chars: int,
+    extract_chars_per_doc: int,
+    progress_callback: ProgressCallback | None = None,
+) -> dict[str, Any]:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     generated_at = _utc_now_iso()
     anchor = _anchor_from_iso(generated_at)
 
-    docs = list(_iter_docs(root))[: max(0, int(args.max_docs))]
+    docs = list(_iter_docs(root))[: max(0, int(max_docs))]
     events: List[dict] = []
     ev_i = 0
     per_doc_snips: List[tuple[_Doc, List[str]]] = []
+    _emit_progress(progress_callback, "docs_started", section="corpus_docs", completed=0, total=len(docs), message="Scanning corpus docs.")
 
-    for d in docs:
-        # Extract a bounded amount of raw text; if extraction fails, fall back to a filename-only stub row.
+    for index, d in enumerate(docs, start=1):
+        LOGGER.info("Processing corpus doc %s", d.title)
         txt = ""
         if d.kind == "pdf":
-            txt = _pdf_text(d.path, limit_chars=int(args.extract_chars_per_doc))
+            txt = _pdf_text(d.path, limit_chars=int(extract_chars_per_doc))
         elif d.kind == "epub":
-            txt = _epub_text(d.path, limit_chars=int(args.extract_chars_per_doc))
+            txt = _epub_text(d.path, limit_chars=int(extract_chars_per_doc))
 
         sents = _split_sentences(txt)
         if not sents:
             sents = [d.title]
 
-        # Chunk sentences into bounded snippet rows.
         snippets = _chunk_snippets(
             sents,
-            max_snippets=int(args.max_snippets_per_doc),
-            snippet_chars=int(args.snippet_chars),
+            max_snippets=int(max_snippets_per_doc),
+            snippet_chars=int(snippet_chars),
         )
         per_doc_snips.append((d, snippets))
+        _emit_progress(
+            progress_callback,
+            "docs_progress",
+            section="corpus_docs",
+            completed=index,
+            total=len(docs),
+            message=f"Processed {d.title} with {len(snippets)} snippets.",
+        )
 
-    # Interleave snippets across docs so limited `--max-events` extraction still touches every file.
     max_len = max((len(snips) for _, snips in per_doc_snips), default=0)
     for i in range(max_len):
         for d, snips in per_doc_snips:
@@ -442,7 +459,6 @@ def main() -> int:
                 "links": [],
                 "source_id": "gwb_corpus_local",
                 "title": d.title,
-                # Use `path` (not `url`) so wiki_timeline_aoo_extract emits follow mode=path.
                 "path": str(d.path),
             }
             if root_actor:
@@ -460,7 +476,38 @@ def main() -> int:
     }
 
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(out_path), "docs": len(docs), "events": len(events)}, indent=2, sort_keys=True))
+    _emit_progress(progress_callback, "docs_finished", section="corpus_docs", completed=len(docs), total=len(docs), message="Corpus timeline written.", event_count=len(events))
+    return {"ok": True, "out": str(out_path), "docs": len(docs), "events": len(events)}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Build a local corpus wiki_timeline JSON for AAO extraction.")
+    ap.add_argument("--root", type=Path, default=Path("SensibLaw/demo/ingest/gwb"), help="Corpus root (default: %(default)s)")
+    ap.add_argument(
+        "--out",
+        type=Path,
+        default=Path("SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json"),
+        help="Output timeline JSON path (default: %(default)s)",
+    )
+    ap.add_argument("--max-docs", type=int, default=20, help="Max docs processed (default: %(default)s)")
+    ap.add_argument("--max-snippets-per-doc", type=int, default=80, help="Max snippet events per doc (default: %(default)s)")
+    ap.add_argument("--snippet-chars", type=int, default=420, help="Max characters per snippet event (default: %(default)s)")
+    ap.add_argument("--extract-chars-per-doc", type=int, default=1_200_000, help="Max extracted chars per doc (default: %(default)s)")
+    ap.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
+    ap.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    ap.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
+    args = ap.parse_args()
+    configure_cli_logging(args.log_level)
+    result = build_corpus_timeline(
+        root=args.root.resolve(),
+        out_path=args.out,
+        max_docs=int(args.max_docs),
+        max_snippets_per_doc=int(args.max_snippets_per_doc),
+        snippet_chars=int(args.snippet_chars),
+        extract_chars_per_doc=int(args.extract_chars_per_doc),
+        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 

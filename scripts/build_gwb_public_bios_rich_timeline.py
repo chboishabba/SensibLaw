@@ -3,17 +3,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Callable, Iterable
+
+import sys
+
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from cli_runtime import build_progress_callback, configure_cli_logging
 
 
 RAW_ROOT = Path("SensibLaw/demo/ingest/gwb/public_bios_v1/raw")
 DEFAULT_OUT = Path("SensibLaw/demo/ingest/gwb/public_bios_v1/wiki_timeline_gwb_public_bios_v1_rich.json")
+LOGGER = logging.getLogger(__name__)
+ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 _KEYWORD_CUES = (
     "signed",
@@ -48,6 +59,12 @@ _STRONG_LEGAL_CUES = (
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+    if progress_callback is None:
+        return
+    progress_callback(stage, details)
 
 
 def _anchor_from_iso(ts: str) -> dict[str, object]:
@@ -237,13 +254,23 @@ def _doc_snippets(path: Path, *, max_snippets: int, snippet_chars: int) -> tuple
     return title, snippets
 
 
-def build_public_bios_timeline(*, raw_root: Path, out_path: Path, max_docs: int, max_snippets_per_doc: int, snippet_chars: int) -> dict[str, object]:
+def build_public_bios_timeline(
+    *,
+    raw_root: Path,
+    out_path: Path,
+    max_docs: int,
+    max_snippets_per_doc: int,
+    snippet_chars: int,
+    progress_callback: ProgressCallback | None = None,
+) -> dict[str, object]:
     generated_at = _utc_now_iso()
     anchor = _anchor_from_iso(generated_at)
     events: list[dict[str, object]] = []
     docs = list(_iter_docs(raw_root))[: max(0, max_docs)]
+    _emit_progress(progress_callback, "docs_started", section="public_bios_docs", completed=0, total=len(docs), message="Scanning public bios docs.")
     ev_i = 0
-    for doc in docs:
+    for index, doc in enumerate(docs, start=1):
+        LOGGER.info("Processing public bio doc %s", doc.path.name)
         title, snippets = _doc_snippets(doc.path, max_snippets=max_snippets_per_doc, snippet_chars=snippet_chars)
         doc_url = _doc_url(doc.path)
         for snippet in snippets:
@@ -263,6 +290,15 @@ def build_public_bios_timeline(*, raw_root: Path, out_path: Path, max_docs: int,
             if doc_url:
                 row["url"] = doc_url
             events.append(row)
+        _emit_progress(
+            progress_callback,
+            "docs_progress",
+            section="public_bios_docs",
+            completed=index,
+            total=len(docs),
+            message=f"Processed {doc.path.name} with {len(snippets)} snippets.",
+            event_count=len(events),
+        )
 
     payload = {
         "snapshot": {"title": "GWB public bios v1 rich", "wiki": "gwb_public_bios_v1_rich", "revid": None, "source_url": None},
@@ -273,6 +309,7 @@ def build_public_bios_timeline(*, raw_root: Path, out_path: Path, max_docs: int,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n", encoding="utf-8")
+    _emit_progress(progress_callback, "docs_finished", section="public_bios_docs", completed=len(docs), total=len(docs), message="Public bios timeline written.", event_count=len(events))
     return {"ok": True, "out": str(out_path), "docs": len(docs), "events": len(events)}
 
 
@@ -283,7 +320,11 @@ def main() -> int:
     ap.add_argument("--max-docs", type=int, default=20, help="Max docs processed.")
     ap.add_argument("--max-snippets-per-doc", type=int, default=12, help="Max snippets emitted per doc.")
     ap.add_argument("--snippet-chars", type=int, default=420, help="Max characters per snippet.")
+    ap.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
+    ap.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    ap.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     args = ap.parse_args()
+    configure_cli_logging(args.log_level)
 
     result = build_public_bios_timeline(
         raw_root=args.raw_root.resolve(),
@@ -291,6 +332,7 @@ def main() -> int:
         max_docs=int(args.max_docs),
         max_snippets_per_doc=int(args.max_snippets_per_doc),
         snippet_chars=int(args.snippet_chars),
+        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

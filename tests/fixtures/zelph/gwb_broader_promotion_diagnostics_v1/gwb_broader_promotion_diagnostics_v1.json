@@ -554,9 +554,20 @@
           "confidence_counts": {
             "low": 8
           },
-          "matched_event_count": 1,
+          "matched_event_count": 2,
           "review_status": "matched",
           "sample_events": [
+            {
+              "confidence": "low",
+              "event_id": "ev:0072",
+              "matched": true,
+              "receipt_kinds": [
+                "provenance_cue",
+                "provenance_cue",
+                "provenance_cue_broad"
+              ],
+              "text": "In July 2006, the House and Senate considered a bill that would overturn my stem cell policy by permitting federal funding for research that destroyed human life. Congress\u2019s response to my veto was not so warm. The Democratic sponsor of the bill erupted with a statement claiming "
+            },
             {
               "confidence": "low",
               "event_id": "ev:0137",
@@ -574,15 +585,6 @@
                 "provenance_cue_broad"
               ],
               "text": "Chase Untermeyer recalls in his oral history interview that in response to a series of recent Supreme Court decisions, \u201credistricting of congressional and legislative districts for that matter became required in the mid \u2019sixties. The Offered Hand and the Veto Fist: George Bush, C"
-            },
-            {
-              "confidence": "low",
-              "event_id": "ev:0024",
-              "matched": false,
-              "receipt_kinds": [
-                "provenance_cue_broad"
-              ],
-              "text": "But as the stem cell bill was working its way through Congress, I had made clear I would veto it. So was almost every member of Congress, the whole Cabinet, the Joint Chiefs of Staff, the justices of the Supreme Court, the diplomatic corps, and families of the victims. John Adams"
             }
           ],
           "source_family": "corpus_book_timeline",
@@ -738,7 +740,7 @@
       "unresolved_mention_count": 12
     },
     {
-      "ambiguous_event_count": 145,
+      "ambiguous_event_count": 144,
       "candidate_only_seed_count": 4,
       "matched_seed_count": 5,
       "mention_heavy_events": [
@@ -773,8 +775,8 @@
           "text": "As would be demonstrated by the Supreme Court that would decide the 2000 election in W.\u2019s favor, getting a \u201cfair break\u201d for oneself begins with knowing the referee. Bush\u2019s beliefs on Iraq were based in part on a notion dating back to the Reagan White House, and ascribed in part t"
         }
       ],
-      "promoted_relation_count": 32,
-      "relation_candidate_count": 33,
+      "promoted_relation_count": 33,
+      "relation_candidate_count": 34,
       "source_family": "corpus_book_timeline",
       "text_debug_unavailable_reason": "",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",

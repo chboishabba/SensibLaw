@@ -3,9 +3,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Callable
+
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from cli_runtime import build_progress_callback, configure_cli_logging
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
@@ -19,6 +26,15 @@ CORPUS_TIMELINE_PATH = SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "corpus_v1" 
 
 if str(THIS_DIR) not in sys.path:
     sys.path.insert(0, str(THIS_DIR))
+
+LOGGER = logging.getLogger(__name__)
+ProgressCallback = Callable[[str, dict[str, Any]], None]
+
+
+def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+    if progress_callback is None:
+        return
+    progress_callback(stage, details)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -180,11 +196,13 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_diagnostics(output_dir: Path) -> dict[str, Any]:
+def build_diagnostics(output_dir: Path, *, progress_callback: ProgressCallback | None = None) -> dict[str, Any]:
+    _emit_progress(progress_callback, "family_runs_started", section="diagnostics", completed=0, total=2, message="Building broader promotion diagnostics.")
     family_runs = [
         _build_family_run("public_bios_timeline", PUBLIC_BIOS_TIMELINE_PATH),
         _build_family_run("corpus_book_timeline", CORPUS_TIMELINE_PATH),
     ]
+    _emit_progress(progress_callback, "family_runs_finished", section="diagnostics", completed=2, total=2, message="Family reports built.")
     family_summaries = [_build_family_summary(row) for row in family_runs]
     seed_diagnostics = _build_seed_diagnostics(family_runs)
     payload = {
@@ -200,14 +218,23 @@ def build_diagnostics(output_dir: Path) -> dict[str, Any]:
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
     artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     summary_path.write_text(summary_text, encoding="utf-8")
+    LOGGER.info("Wrote broader GWB promotion diagnostics to %s", artifact_path)
+    _emit_progress(progress_callback, "diagnostics_written", section="diagnostics", message="Diagnostics artifact written.", artifact_path=str(artifact_path))
     return {"summary": payload["summary"], "artifact_path": str(artifact_path), "summary_path": str(summary_path)}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build diagnostics for broader GWB promotion failures.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write diagnostics into.")
+    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
+    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     args = parser.parse_args()
-    result = build_diagnostics(Path(args.output_dir).resolve())
+    configure_cli_logging(args.log_level)
+    result = build_diagnostics(
+        Path(args.output_dir).resolve(),
+        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+    )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

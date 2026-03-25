@@ -3,9 +3,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Callable
+
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from cli_runtime import build_progress_callback, configure_cli_logging
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
@@ -24,6 +31,15 @@ DEFAULT_CORPUS_TIMELINE_PATH = (
 
 if str(THIS_DIR) not in sys.path:
     sys.path.insert(0, str(THIS_DIR))
+
+LOGGER = logging.getLogger(__name__)
+ProgressCallback = Callable[[str, dict[str, Any]], None]
+
+
+def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
+    if progress_callback is None:
+        return
+    progress_callback(stage, details)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -217,21 +233,25 @@ def _build_summary_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_broader_checkpoint(output_dir: Path) -> dict[str, Any]:
+def build_broader_checkpoint(output_dir: Path, *, progress_callback: ProgressCallback | None = None) -> dict[str, Any]:
     from build_gwb_public_bios_rich_timeline import build_public_bios_timeline
 
+    _emit_progress(progress_callback, "public_bios_timeline_started", section="checkpoint_inputs", message="Rebuilding richer public bios timeline.")
     build_public_bios_timeline(
         raw_root=SENSIBLAW_ROOT / "demo" / "ingest" / "gwb" / "public_bios_v1" / "raw",
         out_path=DEFAULT_PUBLIC_BIOS_TIMELINE_PATH,
         max_docs=20,
         max_snippets_per_doc=12,
         snippet_chars=420,
+        progress_callback=progress_callback,
     )
+    _emit_progress(progress_callback, "public_bios_timeline_finished", section="checkpoint_inputs", message="Public bios timeline ready.")
     families = [
         _read_checked_handoff_slice(DEFAULT_HANDOFF_SLICE_PATH),
         _run_extraction_for_timeline("public_bios_timeline", DEFAULT_PUBLIC_BIOS_TIMELINE_PATH),
         _run_extraction_for_timeline("corpus_book_timeline", DEFAULT_CORPUS_TIMELINE_PATH),
     ]
+    _emit_progress(progress_callback, "family_merge_started", section="checkpoint_merge", completed=0, total=len(families), message="Merging source families.")
     payload = _merge_families(families)
     summary_text = _build_summary_text(payload)
 
@@ -242,6 +262,8 @@ def build_broader_checkpoint(output_dir: Path) -> dict[str, Any]:
     }
     paths["slice_path"].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     paths["summary_path"].write_text(summary_text, encoding="utf-8")
+    LOGGER.info("Wrote broader GWB checkpoint to %s", paths["slice_path"])
+    _emit_progress(progress_callback, "family_merge_finished", section="checkpoint_merge", completed=len(families), total=len(families), message="Broader checkpoint written.")
     return {
         "summary": payload["summary"],
         **{k: str(v) for k, v in paths.items()},
@@ -251,8 +273,15 @@ def build_broader_checkpoint(output_dir: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the first broader GWB corpus extraction checkpoint.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory to write the broader GWB checkpoint into.")
+    parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
+    parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
+    parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
     args = parser.parse_args()
-    payload = build_broader_checkpoint(Path(args.output_dir).resolve())
+    configure_cli_logging(args.log_level)
+    payload = build_broader_checkpoint(
+        Path(args.output_dir).resolve(),
+        progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
 

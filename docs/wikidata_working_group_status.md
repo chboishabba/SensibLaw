@@ -31,8 +31,38 @@ shared handoff.
     valid demonstrations of entity-kind collapse
   - the next benchmark-facing lane should mine structural hotspots, not assume
     a clean ontology by flattening `P31`/`P279` away
+  - the lane should follow a pilot-pack-first roadmap:
+    taxonomy -> pack contract -> compare/report contract -> deterministic pilot
+    pack -> later generator/evaluator work
+- promotion governance is now explicit:
+  - hotspot packs track both backing state and readiness state
+  - disjointness uses the same readiness language in docs/governance
+  - no case should be promoted from thematic messiness alone
+- bounded `P2738` disjointness work now exists as a sibling lane:
+  - pair extraction from `P2738` + `P11260`
+  - local subclass and instance violation detection
+  - bounded culprit class/item surfacing
+  - explicit separation from the hotspot benchmark lane for now
+  - phase-2 followthrough now adds:
+    - one real contradiction pack
+    - machine-readable case governance
+    - a callable live scan script for WDQS-backed candidate discovery
 
 ## Current artifacts
+- Hotspot benchmark roadmap:
+  - `../../docs/planning/wikidata_hotspot_benchmark_lane_20260325.md`
+- Hotspot pack contract:
+  - `../../docs/planning/wikidata_hotspot_pack_contract_20260325.md`
+- Hotspot pilot-pack manifest:
+  - `../../docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json`
+- Disjointness parity/design note:
+  - `../../docs/planning/wikidata_p2738_disjointness_lane_20260325.md`
+- Disjointness report contract:
+  - `../../docs/planning/wikidata_disjointness_report_contract_v1_20260325.md`
+- Disjointness case index:
+  - `../../docs/planning/wikidata_disjointness_case_index_v1.json`
+- Page-review candidate index:
+  - `../../docs/planning/wikidata_page_review_candidate_index_v1.json`
 - Diagnostic taxonomy:
   - `docs/ontology_diagnostic_taxonomy_wikidata_v0_1.md`
 - Projection spec:
@@ -57,6 +87,12 @@ shared handoff.
   - `tests/fixtures/wikidata/parthood_pilot_pack_20260308/projection.json`
 - import-backed parthood/artifact:
   - `tests/fixtures/wikidata/parthood_imported_pack_20260308/projection.json`
+- Real disjointness baseline pack:
+  - `tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json`
+- Real disjointness contradiction pack:
+  - `tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json`
+- Real disjointness instance-contradiction pack:
+  - `tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json`
 
 ## Current demo / review pack
 - Primary local slice:
@@ -65,6 +101,9 @@ shared handoff.
   - `sensiblaw wikidata build-slice`
   - `sensiblaw wikidata project`
   - `sensiblaw wikidata find-qualifier-drift`
+  - `sensiblaw wikidata hotspot-generate-clusters`
+  - `sensiblaw wikidata hotspot-eval`
+  - `sensiblaw wikidata disjointness-report`
 - Current test-suite interface (flag this as the primary local debug surface for
   the sprint):
   - `tests/test_wikidata_cli.py`
@@ -91,6 +130,30 @@ shared handoff.
   - 1 real imported qualifier-bearing baseline slice
   - 1 bounded synthetic qualifier-drift fixture
   - live finder now produces confirmed revision-pair qualifier-drift cases
+  - hotspot benchmark lane remains docs/spec first:
+    - deterministic generator/evaluator code now exists for the `v1` pilot
+      pack, while live runner policy remains intentionally external-first
+    - pilot-manifest readiness is now explicit:
+      - mixed-order, SCC, and qualifier drift are `promoted`
+      - finance/software entity-kind-collapse packs are `promotable`
+  - disjointness parity lane now exists in bounded `v1` form:
+    - first local fixture-backed report covers `P2738`/`P11260` pair
+      extraction, subclass violations, instance violations, and culprit
+      surfacing
+    - one real Wikidata-backed baseline pack now exists beside the synthetic
+      pilot
+    - one real contradiction pack now exists too
+    - a cleaner real instance-violation pack now also exists from live scan
+      output:
+      `fluid -> {gas, liquid} -> working fluid`
+    - culprit reporting is now tighter:
+      downstream impact counts for culprit classes and explanation linkage for
+      instance rows
+    - lane decision stays conservative:
+      keep disjointness as a sibling review lane until more real packs exist
+    - promotion metadata stays out of `wikidata_disjointness_report/v1`
+    - live contradiction discovery can now be rerun with:
+      `SensibLaw/scripts/run_wikidata_disjointness_candidate_scan.py`
 
 ## Current phase-2 qualifier pack
 - Real imported baseline slice:

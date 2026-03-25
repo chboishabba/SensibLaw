@@ -12,6 +12,7 @@ from src.gwb_us_law.semantic import (
     upsert_mission_actual_mapping,
 )
 from src.reporting.structure_report import TextUnit
+from scripts.transcript_semantic import build_transcript_semantic_cli_payload
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
 
 
@@ -78,6 +79,26 @@ def test_transcript_semantic_pipeline_persists_speakers_and_candidate_reply_rela
     assert replied_policy["min_confidence"] == "high"
     assert replied_policy["required_evidence_count"] == 3
     assert report["text_debug"]["unavailableReason"] is not None
+
+
+def test_transcript_semantic_cli_payload_reports_progress() -> None:
+    updates: list[tuple[str, dict[str, object]]] = []
+
+    payload = build_transcript_semantic_cli_payload(
+        db_path=":memory:",
+        run_id="",
+        transcript_files=[],
+        cmd="summary",
+        progress_callback=lambda stage, details: updates.append((stage, details)),
+    )
+
+    stages = [stage for stage, _ in updates]
+    assert stages[0] == "load_units_started"
+    assert "demo_units_used" in stages
+    assert "semantic_pipeline_started" in stages
+    assert "summary_build_finished" in stages
+    assert stages[-1] == "build_finished"
+    assert "family_counts" in payload
 
 
 def test_transcript_semantic_pipeline_abstains_on_timing_only_and_role_only_sources() -> None:

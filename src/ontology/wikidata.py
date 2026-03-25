@@ -319,6 +319,11 @@ def _http_get_json(
     return response.json()
 
 
+def _emit_progress(progress_callback: Any, stage: str, details: Mapping[str, Any]) -> None:
+    if callable(progress_callback):
+        progress_callback(stage, dict(details))
+
+
 def _collect_current_qualifier_candidates(
     *,
     property_filter: Sequence[str],
@@ -550,12 +555,33 @@ def find_qualifier_drift_candidates(
     candidate_limit: int = 20,
     revision_limit: int = 5,
     timeout_seconds: int = 30,
+    progress_callback: Any | None = None,
 ) -> Dict[str, Any]:
     allowed = tuple(sorted(set(property_filter or DEFAULT_FIND_QUALIFIER_PROPERTIES)))
+    _emit_progress(
+        progress_callback,
+        "candidate_query_started",
+        {
+            "section": "wikidata_candidate_query",
+            "completed": 0,
+            "total": len(allowed),
+            "message": "Collecting qualifier-bearing statement candidates.",
+        },
+    )
     raw_candidates, failures = _collect_current_qualifier_candidates(
         property_filter=allowed,
         candidate_limit=candidate_limit,
         timeout_seconds=timeout_seconds,
+    )
+    _emit_progress(
+        progress_callback,
+        "candidate_query_finished",
+        {
+            "section": "wikidata_candidate_query",
+            "completed": len(allowed),
+            "total": len(allowed),
+            "message": f"Collected {len(raw_candidates)} raw candidates with {len(failures)} failures.",
+        },
     )
     if not raw_candidates and failures:
         return {
@@ -577,9 +603,19 @@ def find_qualifier_drift_candidates(
     confirmed_drift_cases: list[dict[str, Any]] = []
     stable_baselines: list[dict[str, Any]] = []
 
-    for candidate in raw_candidates:
+    for index, candidate in enumerate(raw_candidates, start=1):
         qid = candidate["qid"]
         property_pid = candidate["property_pid"]
+        _emit_progress(
+            progress_callback,
+            "revision_metadata_started",
+            {
+                "section": "wikidata_revision_metadata",
+                "completed": index - 1,
+                "total": len(raw_candidates),
+                "message": f"Fetching recent revisions for {qid} {property_pid}.",
+            },
+        )
         try:
             revisions = _fetch_recent_revisions(
                 qid,
@@ -608,12 +644,23 @@ def find_qualifier_drift_candidates(
                 "recent_revision_ids": [item["revid"] for item in revisions],
             }
         )
+        _emit_progress(
+            progress_callback,
+            "revision_metadata_progress",
+            {
+                "section": "wikidata_revision_metadata",
+                "completed": index,
+                "total": len(raw_candidates),
+                "message": f"Fetched {len(revisions)} revisions for {qid} {property_pid}.",
+            },
+        )
 
     ranked_candidates.sort(
         key=lambda item: (-item["score"], item["qid"], item["property_pid"])
     )
 
-    for candidate in ranked_candidates[: max(1, int(candidate_limit))]:
+    selected_candidates = ranked_candidates[: max(1, int(candidate_limit))]
+    for candidate_index, candidate in enumerate(selected_candidates, start=1):
         qid = candidate["qid"]
         property_pid = candidate["property_pid"]
         revisions = candidate["recent_revision_ids"]
@@ -638,10 +685,40 @@ def find_qualifier_drift_candidates(
         found_case = None
         had_failure = False
         scanned_pairs = 0
+        total_pairs = max(len(revisions) - 1, 0)
+        _emit_progress(
+            progress_callback,
+            "revision_compare_started",
+            {
+                "section": "wikidata_revision_compare",
+                "completed": candidate_index - 1,
+                "total": len(selected_candidates),
+                "message": f"Comparing revision windows for {qid} {property_pid}.",
+                "candidate_qid": qid,
+                "property_pid": property_pid,
+                "pair_total": total_pairs,
+            },
+        )
         for index in range(len(revisions) - 1):
             newer_revid = revisions[index]
             older_revid = revisions[index + 1]
             scanned_pairs += 1
+            _emit_progress(
+                progress_callback,
+                "revision_compare_progress",
+                {
+                    "section": "wikidata_revision_compare",
+                    "completed": candidate_index - 1,
+                    "total": len(selected_candidates),
+                    "message": f"Compared pair {scanned_pairs}/{max(total_pairs, 1)} for {qid} {property_pid}.",
+                    "candidate_qid": qid,
+                    "property_pid": property_pid,
+                    "pair_completed": scanned_pairs,
+                    "pair_total": total_pairs,
+                    "from_revision": older_revid,
+                    "to_revision": newer_revid,
+                },
+            )
             try:
                 older_payload = entity_cache.setdefault(
                     (qid, older_revid),
@@ -714,8 +791,38 @@ def find_qualifier_drift_candidates(
                 break
         if found_case:
             confirmed_drift_cases.append(found_case)
+            _emit_progress(
+                progress_callback,
+                "revision_compare_finished",
+                {
+                    "section": "wikidata_revision_compare",
+                    "completed": candidate_index,
+                    "total": len(selected_candidates),
+                    "status": "confirmed_drift",
+                    "message": f"Confirmed qualifier drift for {qid} {property_pid}.",
+                    "candidate_qid": qid,
+                    "property_pid": property_pid,
+                    "pair_completed": scanned_pairs,
+                    "pair_total": total_pairs,
+                },
+            )
             continue
         if had_failure:
+            _emit_progress(
+                progress_callback,
+                "revision_compare_finished",
+                {
+                    "section": "wikidata_revision_compare",
+                    "completed": candidate_index,
+                    "total": len(selected_candidates),
+                    "status": "failed",
+                    "message": f"Failed to compare revisions for {qid} {property_pid}.",
+                    "candidate_qid": qid,
+                    "property_pid": property_pid,
+                    "pair_completed": scanned_pairs,
+                    "pair_total": total_pairs,
+                },
+            )
             continue
         stable_baselines.append(
             {
@@ -727,6 +834,21 @@ def find_qualifier_drift_candidates(
                 "scanned_pairs": scanned_pairs,
                 "status": "stable",
             }
+        )
+        _emit_progress(
+            progress_callback,
+            "revision_compare_finished",
+            {
+                "section": "wikidata_revision_compare",
+                "completed": candidate_index,
+                "total": len(selected_candidates),
+                "status": "stable",
+                "message": f"No qualifier drift found for {qid} {property_pid}.",
+                "candidate_qid": qid,
+                "property_pid": property_pid,
+                "pair_completed": scanned_pairs,
+                "pair_total": total_pairs,
+            },
         )
 
     return {

@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "captured_at": "2026-03-25",
+    "purpose": "Bounded local fixture for software/project/artifact entity-kind collapse derived from reviewed Wikidata item pages on 2026-03-25.",
+    "notes": [
+      "This fixture is based on page-reviewed statements for Q44571 (GNU) and Q7598 (GNU Project).",
+      "It is intended as a deterministic benchmark seed for entity-kind collapse rather than a full entity export.",
+      "The main pressure point is that GNU and GNU Project cross artifact, project, community, and class-like surfaces."
+    ],
+    "source_urls": [
+      "https://www.wikidata.org/wiki/Q44571",
+      "https://www.wikidata.org/wiki/Q7598"
+    ],
+    "label_map": {
+      "Q44571": "GNU",
+      "Q7598": "GNU Project",
+      "Qoperating_system": "operating system",
+      "Qunix_like_operating_system": "Unix-like operating system",
+      "Qgnu_bash": "GNU Bash",
+      "Qopen_source_project": "open-source project",
+      "Qgroup_of_humans": "group of humans",
+      "Qcommunity": "community",
+      "Qgnu_linux": "GNU/Linux",
+      "Qgnu_unifont": "GNU Unifont"
+    }
+  },
+  "windows": [
+    {
+      "id": "2026-03-25-page-review",
+      "statement_bundles": [
+        {
+          "subject": "Q44571",
+          "property": "P31",
+          "value": "Qoperating_system",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q44571", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q44571",
+          "property": "P279",
+          "value": "Qunix_like_operating_system",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q44571", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q44571",
+          "property": "P527",
+          "value": "Qgnu_bash",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q44571", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q7598",
+          "property": "P31",
+          "value": "Qopen_source_project",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q7598", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q7598",
+          "property": "P31",
+          "value": "Qgroup_of_humans",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q7598", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q7598",
+          "property": "P31",
+          "value": "Qcommunity",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q7598", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q7598",
+          "property": "P279",
+          "value": "Qgnu_linux",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q7598", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q7598",
+          "property": "P527",
+          "value": "Qgnu_unifont",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q7598", "P813": "2026-03-25"}]
+        }
+      ]
+    }
+  ]
+}

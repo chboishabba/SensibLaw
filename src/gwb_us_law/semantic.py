@@ -975,6 +975,7 @@ _GENERATION_AMBIGUITY_KINSHIP_CUES = frozenset(
 )
 
 _POSSESSIVE_PRONOUNS = frozenset({"his", "her", "their"})
+_FIRST_PERSON_SINGULAR = frozenset({"i", "me", "my", "mine"})
 
 def _slug(text: str) -> str:
     parts: list[str] = []
@@ -1030,6 +1031,28 @@ def _bare_bush_is_generation_ambiguous(text: str) -> bool:
         if {"father", "campaign"} <= window_set:
             return True
         if {"grandparents", "campaigning"} <= window_set:
+            return True
+    return False
+
+
+def _event_root_actor_key(event: Mapping[str, Any]) -> str | None:
+    root_actor = str(event.get("root_actor") or "")
+    if root_actor == "George W. Bush":
+        return "actor:george_w_bush"
+    return None
+
+
+def _text_has_first_person_action(text: str, *action_roots: str) -> bool:
+    words = [part for part in _slug(text).split("_") if part]
+    if not words or not any(word in _FIRST_PERSON_SINGULAR for word in words):
+        return False
+    for idx, word in enumerate(words):
+        if not any(word.startswith(root) for root in action_roots):
+            continue
+        left = max(0, idx - 8)
+        right = min(len(words), idx + 8)
+        window = words[left:right]
+        if any(token in _FIRST_PERSON_SINGULAR for token in window):
             return True
     return False
 
@@ -2451,6 +2474,8 @@ def _insert_broader_source_seed_backfill_candidates(
         return
 
     linkage_matches = _load_event_linkage_matches(conn, run_id=run_id, event_id=event_id)
+    root_actor_key = _event_root_actor_key(event)
+    bush_rooted_first_person = root_actor_key == "actor:george_w_bush"
 
     nclb_match = linkage_matches.get("gwb_us_law:no_child_left_behind_act")
     if nclb_match and nclb_match["matched"] and (
@@ -2482,6 +2507,44 @@ def _insert_broader_source_seed_backfill_candidates(
                 predicate_id=predicate_ids["signed"],
                 object_entity_id=legal_id,
                 confidence_tier=_predicate_confidence(conn, "signed", receipts),
+                receipts=receipts,
+            )
+
+    stem_cell_match = linkage_matches.get("gwb_us_law:stem_cell_research_enhancement_act")
+    if (
+        stem_cell_match
+        and stem_cell_match["matched"]
+        and bush_rooted_first_person
+        and "stem cell" in text_fold
+        and _text_has_first_person_action(text, "veto")
+    ):
+        legal_title = "Stem Cell Research Enhancement Act"
+        legal_key = f"legal_ref:{_slug(legal_title)}"
+        legal_id = entity_ids.get(legal_key) or _entity_for_key(conn, legal_key) or _ensure_legal_ref_entity(conn, legal_title)
+        if not _candidate_exists(
+            conn,
+            run_id=run_id,
+            event_id=event_id,
+            predicate_id=predicate_ids["vetoed"],
+            object_entity_id=legal_id,
+        ):
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="agent", entity_id=bush_id, note="vetoed_seed_backfill_stem_cell_v1")
+            _insert_event_role(conn, run_id=run_id, event_id=event_id, role_kind="theme", entity_id=legal_id, note="vetoed_seed_backfill_stem_cell_v1")
+            receipts = [
+                ("subject", "George W. Bush"),
+                ("verb", "veto"),
+                ("object_legal_ref", legal_key),
+                ("cue_surface", "stem cell"),
+                ("root_actor", root_actor_key),
+            ]
+            _insert_relation_candidate(
+                conn,
+                run_id=run_id,
+                event_id=event_id,
+                subject_entity_id=bush_id,
+                predicate_id=predicate_ids["vetoed"],
+                object_entity_id=legal_id,
+                confidence_tier=_predicate_confidence(conn, "vetoed", receipts),
                 receipts=receipts,
             )
 

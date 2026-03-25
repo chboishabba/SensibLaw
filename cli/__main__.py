@@ -684,6 +684,87 @@ def _handle_wikidata_find_qualifier_drift(args: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _handle_wikidata_hotspot_generate_clusters(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
+
+    manifest = load_hotspot_manifest(Path(args.manifest))
+    report = generate_hotspot_cluster_pack(
+        manifest,
+        repo_root=Path.cwd(),
+        pack_ids=args.pack_id,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "pack_count": report["pack_count"],
+                "cluster_count": report["cluster_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_hotspot_eval(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_hotspot_eval import (
+        evaluate_hotspot_cluster_pack,
+        load_hotspot_response_bundle,
+    )
+
+    cluster_pack = json.loads(Path(args.cluster_pack).read_text(encoding="utf-8"))
+    response_bundle = load_hotspot_response_bundle(Path(args.responses))
+    report = evaluate_hotspot_cluster_pack(cluster_pack, response_bundle)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "cluster_total": report["summary"]["cluster_counts"]["total"],
+                "inconsistent": report["summary"]["cluster_counts"]["inconsistent"],
+                "incomplete": report["summary"]["cluster_counts"]["incomplete"],
+                "abstained": report["summary"]["cluster_counts"]["abstained"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_disjointness_report(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_disjointness import (
+        load_disjointness_slice,
+        project_wikidata_disjointness_payload,
+    )
+
+    payload = load_disjointness_slice(Path(args.input))
+    report = project_wikidata_disjointness_payload(payload)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "subclass_violation_count": report["subclass_violation_count"],
+                "instance_violation_count": report["instance_violation_count"],
+                "culprit_class_count": report["review_summary"]["culprit_class_count"],
+                "culprit_item_count": report["review_summary"]["culprit_item_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_extract_frl(args: argparse.Namespace) -> None:
     from src.ingestion.frl import fetch_acts
 
@@ -1778,6 +1859,65 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional path to write the drift-finder report JSON",
     )
     wikidata_find_qualifier_drift.set_defaults(func=_handle_wikidata_find_qualifier_drift)
+    wikidata_hotspot_generate_clusters = wikidata_sub.add_parser(
+        "hotspot-generate-clusters",
+        help="Generate a deterministic hotspot cluster pack from the hotspot manifest",
+    )
+    wikidata_hotspot_generate_clusters.add_argument(
+        "--manifest",
+        type=Path,
+        required=True,
+        help="Path to the hotspot pack manifest JSON",
+    )
+    wikidata_hotspot_generate_clusters.add_argument(
+        "--pack-id",
+        action="append",
+        help="Optional repeatable pack id filter; defaults to all manifest entries",
+    )
+    wikidata_hotspot_generate_clusters.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the hotspot cluster pack JSON",
+    )
+    wikidata_hotspot_generate_clusters.set_defaults(func=_handle_wikidata_hotspot_generate_clusters)
+    wikidata_hotspot_eval = wikidata_sub.add_parser(
+        "hotspot-eval",
+        help="Evaluate a hotspot cluster pack against a captured response bundle",
+    )
+    wikidata_hotspot_eval.add_argument(
+        "--cluster-pack",
+        type=Path,
+        required=True,
+        help="Path to the generated hotspot cluster pack JSON",
+    )
+    wikidata_hotspot_eval.add_argument(
+        "--responses",
+        type=Path,
+        required=True,
+        help="Path to the normalized hotspot response bundle JSON",
+    )
+    wikidata_hotspot_eval.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the hotspot evaluation report JSON",
+    )
+    wikidata_hotspot_eval.set_defaults(func=_handle_wikidata_hotspot_eval)
+    wikidata_disjointness_report = wikidata_sub.add_parser(
+        "disjointness-report",
+        help="Project a bounded P2738/P11260 slice into deterministic disjointness diagnostics",
+    )
+    wikidata_disjointness_report.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the bounded disjointness slice JSON",
+    )
+    wikidata_disjointness_report.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the disjointness report JSON",
+    )
+    wikidata_disjointness_report.set_defaults(func=_handle_wikidata_disjointness_report)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)

@@ -1,0 +1,188 @@
+{
+  "model_id": "fixture-labels",
+  "model_run_id": "finance_entity_kind_incomplete-run",
+  "prompt_profile": "default_yes_no_v1",
+  "responses": [
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:1:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:2:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:3:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:4:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:5:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:6:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:7:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:8:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:9:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10:q0",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10:q1",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10",
+      "label": "no",
+      "question_id": "finance_entity_kind_collapse_pack_v0:kind_disambiguation:10:q2",
+      "raw_text": "NO"
+    }
+  ],
+  "schema_version": "wikidata_hotspot_responses/v1"
+}

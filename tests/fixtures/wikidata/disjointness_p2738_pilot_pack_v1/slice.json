@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "label_map": {
+      "QAmphibiousVehicle": "amphibious vehicle",
+      "QDuckBoat": "duck boat",
+      "QHovercraft": "hovercraft subclass",
+      "QJetSkiCar": "jet ski car",
+      "QLandMode": "land transport mode",
+      "QTransportFamily": "transport family",
+      "QTransportMode": "transport mode",
+      "QWaterMode": "water transport mode"
+    }
+  },
+  "windows": [
+    {
+      "id": "t1",
+      "statement_bundles": [
+        {
+          "subject": "QTransportFamily",
+          "property": "P2738",
+          "qualifiers": {
+            "P11260": [
+              "QLandMode",
+              "QWaterMode"
+            ]
+          },
+          "rank": "preferred",
+          "value": "QTransportMode"
+        },
+        {
+          "subject": "QTransportFamily",
+          "property": "P2738",
+          "qualifiers": {
+            "P11260": [
+              "QLandMode",
+              "QWaterMode"
+            ]
+          },
+          "rank": "deprecated",
+          "value": "QTransportMode"
+        },
+        {
+          "subject": "QAmphibiousVehicle",
+          "property": "P279",
+          "rank": "preferred",
+          "value": "QLandMode"
+        },
+        {
+          "subject": "QAmphibiousVehicle",
+          "property": "P279",
+          "rank": "preferred",
+          "value": "QWaterMode"
+        },
+        {
+          "subject": "QHovercraft",
+          "property": "P279",
+          "rank": "preferred",
+          "value": "QAmphibiousVehicle"
+        },
+        {
+          "subject": "QDuckBoat",
+          "property": "P31",
+          "rank": "preferred",
+          "value": "QAmphibiousVehicle"
+        },
+        {
+          "subject": "QJetSkiCar",
+          "property": "P31",
+          "rank": "preferred",
+          "value": "QLandMode"
+        },
+        {
+          "subject": "QJetSkiCar",
+          "property": "P31",
+          "rank": "preferred",
+          "value": "QWaterMode"
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import itertools
 import json
 from pathlib import Path
+import re
 import sqlite3
 from typing import Iterable
 
@@ -18,6 +19,13 @@ class TextUnit:
     source_id: str
     source_type: str
     text: str
+
+
+_TIMESTAMP_BULLET_RE = re.compile(
+    r"^\s*[-*]\s+\[(?P<start>\d{2}:\d{2}:\d{2}[.,]\d{3})\s+-->\s+(?P<end>\d{2}:\d{2}:\d{2}[.,]\d{3})\]\s*(?P<text>.+?)\s*$"
+)
+_COURT_SPEAKER_RE = re.compile(r"^(?P<label>[A-Z][A-Z .,'’‑-]{1,96}|Q|A):\s*(?P<body>.*)$")
+_WRAPPED_SPEAKER_SUFFIX_RE = re.compile(r"^(?:SC|KC|CJ|DCJ|AC|JA|J|QC)\s*:\s*.*$")
 
 
 def _trim_snippet(text: str, start: int, end: int, radius: int = 48) -> str:
@@ -60,6 +68,13 @@ def _split_markdown_units(text: str, source_id: str, source_type: str) -> list[T
 
 
 def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
+    asr_units = _split_timestamp_bullet_transcript_units(text, source_id)
+    if asr_units:
+        return asr_units
+    court_units = _split_court_transcript_units(text, source_id)
+    if court_units:
+        return court_units
+
     lines = text.splitlines()
     structured_units: list[TextUnit] = []
     current: list[str] = []
@@ -118,6 +133,108 @@ def _split_transcript_units(text: str, source_id: str) -> list[TextUnit]:
     if not blocks:
         return [TextUnit(f"{source_id}#1", source_id, "transcript_file", text.strip())] if text.strip() else []
     return [TextUnit(f"{source_id}#{index}", source_id, "transcript_file", block) for index, block in enumerate(blocks, start=1)]
+
+
+def _split_timestamp_bullet_transcript_units(text: str, source_id: str) -> list[TextUnit]:
+    lines = text.splitlines()
+    matches = [match for match in (_TIMESTAMP_BULLET_RE.match(line) for line in lines) if match]
+    if len(matches) < 5:
+        return []
+
+    units: list[TextUnit] = []
+    parts: list[str] = []
+    chunk_start: str | None = None
+    chunk_end: str | None = None
+    count = 0
+
+    def flush() -> None:
+        nonlocal parts, chunk_start, chunk_end, count
+        payload = " ".join(parts).strip()
+        if payload:
+            count += 1
+            label = f"[{chunk_start} -> {chunk_end}] " if chunk_start and chunk_end else ""
+            units.append(TextUnit(f"{source_id}#{count}", source_id, "transcript_file", f"{label}{payload}".strip()))
+        parts = []
+        chunk_start = None
+        chunk_end = None
+
+    for match in matches:
+        segment_text = re.sub(r"\s+", " ", str(match.group("text") or "").strip())
+        if not segment_text:
+            continue
+        if chunk_start is None:
+            chunk_start = str(match.group("start"))
+        chunk_end = str(match.group("end"))
+        parts.append(segment_text)
+        if (
+            segment_text.endswith((".", "?", "!"))
+            and len(" ".join(parts)) >= 180
+        ) or len(" ".join(parts)) >= 420:
+            flush()
+
+    flush()
+    return units
+
+
+def _split_court_transcript_units(text: str, source_id: str) -> list[TextUnit]:
+    raw_lines = text.splitlines()
+    lines: list[str] = []
+    idx = 0
+    while idx < len(raw_lines):
+        stripped = raw_lines[idx].strip()
+        if idx + 1 < len(raw_lines):
+            next_stripped = raw_lines[idx + 1].strip()
+            if stripped and ":" not in stripped and _WRAPPED_SPEAKER_SUFFIX_RE.match(next_stripped):
+                candidate = f"{stripped} {next_stripped}"
+                if _COURT_SPEAKER_RE.match(candidate):
+                    lines.append(candidate)
+                    idx += 2
+                    continue
+        lines.append(raw_lines[idx])
+        idx += 1
+
+    speaker_indexes = [index for index, line in enumerate(lines) if _COURT_SPEAKER_RE.match(line.strip())]
+    if not speaker_indexes:
+        return []
+
+    start_index = speaker_indexes[0]
+    transcript_marker_indexes = [index for index, line in enumerate(lines) if line.strip().upper() == "TRANSCRIPT OF PROCEEDINGS"]
+    if transcript_marker_indexes:
+        marker_index = transcript_marker_indexes[0]
+        start_index = next((index for index in speaker_indexes if index > marker_index), speaker_indexes[0])
+
+    units: list[TextUnit] = []
+    current: list[str] = []
+    current_speaker: str | None = None
+    count = 0
+
+    def flush() -> None:
+        nonlocal current, count
+        payload = "\n".join(current).strip()
+        if payload:
+            count += 1
+            units.append(TextUnit(f"{source_id}#{count}", source_id, "transcript_file", payload))
+        current = []
+
+    for line in lines[start_index:]:
+        stripped = line.strip()
+        if not stripped:
+            flush()
+            continue
+        if _COURT_SPEAKER_RE.match(stripped):
+            flush()
+            current_speaker = stripped.split(":", 1)[0].strip()
+            current = [stripped]
+            continue
+        if current:
+            if current_speaker and len("\n".join(current)) >= 1200:
+                flush()
+                current = [f"{current_speaker}: {stripped}"]
+                continue
+            current.append(stripped)
+
+    flush()
+    return units
 
 
 def _split_shell_units(text: str, source_id: str) -> list[TextUnit]:

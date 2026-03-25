@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "captured_at": "2026-03-25",
+    "purpose": "Bounded local fixture for product/service/category entity-kind collapse derived from reviewed Wikidata item pages on 2026-03-25.",
+    "notes": [
+      "This fixture is based on page-reviewed statements for Q15809678 (financial product), Q837171 (financial services), and Q2424752 (product).",
+      "It is intended as a deterministic benchmark seed for entity-kind collapse rather than a complete export of those items.",
+      "The deprecated Q15809678 -> P279 -> Q837171 statement is included because the deprecated-rank governance reason is part of the hotspot's value."
+    ],
+    "source_urls": [
+      "https://www.wikidata.org/wiki/Q15809678",
+      "https://www.wikidata.org/wiki/Q837171",
+      "https://www.wikidata.org/wiki/Q2424752"
+    ],
+    "label_map": {
+      "Q15809678": "financial product",
+      "Q837171": "financial services",
+      "Q2424752": "product",
+      "Qproduct_category": "product category",
+      "Qeconomic_activity": "economic activity",
+      "Qservice": "service",
+      "Qbusiness_service": "business service",
+      "Qbusiness_model": "business model",
+      "Qeconomic_concept": "economic concept",
+      "Qobject": "object"
+    }
+  },
+  "windows": [
+    {
+      "id": "2026-03-25-page-review",
+      "statement_bundles": [
+        {
+          "subject": "Q15809678",
+          "property": "P31",
+          "value": "Qproduct_category",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q15809678", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q15809678",
+          "property": "P279",
+          "value": "Q2424752",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q15809678", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q15809678",
+          "property": "P279",
+          "value": "Q837171",
+          "rank": "deprecated",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q15809678", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q837171",
+          "property": "P31",
+          "value": "Qeconomic_activity",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q837171", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q837171",
+          "property": "P279",
+          "value": "Qservice",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q837171", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q837171",
+          "property": "P279",
+          "value": "Qbusiness_service",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q837171", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q837171",
+          "property": "P279",
+          "value": "Q2424752",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q837171", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q837171",
+          "property": "P279",
+          "value": "Qbusiness_model",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q837171", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q2424752",
+          "property": "P31",
+          "value": "Qeconomic_concept",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q2424752", "P813": "2026-03-25"}]
+        },
+        {
+          "subject": "Q2424752",
+          "property": "P279",
+          "value": "Qobject",
+          "rank": "preferred",
+          "references": [{"P854": "https://www.wikidata.org/wiki/Q2424752", "P813": "2026-03-25"}]
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
+import statistics
+import time
 from typing import Any, Iterable, Mapping
 
 from src.reporting.structure_report import TextUnit
@@ -817,6 +820,7 @@ def persist_fact_intake_payload(
     payload: Mapping[str, Any],
     *,
     deferred_refresh: bool = False,
+    progress_callback: Any | None = None,
 ) -> dict[str, Any]:
 
     ensure_database(conn)
@@ -831,6 +835,142 @@ def persist_fact_intake_payload(
     if not source_label:
         raise ValueError("payload.run.source_label is required")
     mary_projection_version = str(run.get("mary_projection_version") or MARY_FACT_WORKFLOW_VERSION).strip()
+
+    def emit_progress(
+        stage: str,
+        *,
+        status: str,
+        section: str | None = None,
+        completed: int | None = None,
+        total: int | None = None,
+        started_at: float | None = None,
+        message: str | None = None,
+        **extra: Any,
+    ) -> None:
+        if not callable(progress_callback):
+            return
+        elapsed_seconds = None if started_at is None else max(time.monotonic() - started_at, 0.0)
+        items_per_second = None
+        if elapsed_seconds and completed is not None and elapsed_seconds > 0:
+            items_per_second = round(completed / elapsed_seconds, 2)
+        progress_callback(
+            {
+                "run_id": run_id,
+                "stage": stage,
+                "status": status,
+                "section": section,
+                "completed": completed,
+                "total": total,
+                "elapsed_seconds": None if elapsed_seconds is None else round(elapsed_seconds, 3),
+                "items_per_second": items_per_second,
+                "message": message,
+                **extra,
+            }
+        )
+
+    def persist_section(
+        stage_prefix: str,
+        rows: list[Any],
+        *,
+        total_label: str,
+        insert_row: Any,
+        chunk_size: int = 250,
+    ) -> int:
+        total = len(rows)
+        section_started_at = time.monotonic()
+        rate_samples: list[float] = []
+
+        def eta_fields(completed: int) -> dict[str, Any]:
+            if completed <= 0 or total <= 0:
+                return {
+                    "eta_seconds_remaining": None,
+                    "eta_finish_utc": None,
+                    "eta_confidence_interval_seconds": None,
+                    "eta_confidence": "none",
+                }
+            elapsed = max(time.monotonic() - section_started_at, 0.0)
+            if elapsed <= 0:
+                return {
+                    "eta_seconds_remaining": None,
+                    "eta_finish_utc": None,
+                    "eta_confidence_interval_seconds": None,
+                    "eta_confidence": "none",
+                }
+            current_rate = completed / elapsed
+            if current_rate <= 0:
+                return {
+                    "eta_seconds_remaining": None,
+                    "eta_finish_utc": None,
+                    "eta_confidence_interval_seconds": None,
+                    "eta_confidence": "none",
+                }
+            rate_samples.append(current_rate)
+            remaining = max(total - completed, 0)
+            eta_seconds = remaining / current_rate
+            finish_at = datetime.now(timezone.utc).timestamp() + eta_seconds
+            eta_finish_utc = datetime.fromtimestamp(finish_at, tz=timezone.utc).isoformat()
+            if len(rate_samples) >= 2:
+                mean_rate = statistics.fmean(rate_samples)
+                rate_std = statistics.pstdev(rate_samples) if len(rate_samples) > 1 else 0.0
+                low_rate = max(mean_rate - rate_std, 0.001)
+                high_rate = max(mean_rate + rate_std, low_rate)
+                lower_eta = remaining / high_rate
+                upper_eta = remaining / low_rate
+                eta_interval = [round(lower_eta, 3), round(upper_eta, 3)]
+                eta_confidence = "heuristic_1sigma_rate_band"
+            else:
+                eta_interval = [round(eta_seconds * 0.5, 3), round(eta_seconds * 1.5, 3)]
+                eta_confidence = "heuristic_single_sample_low_confidence"
+            return {
+                "eta_seconds_remaining": round(eta_seconds, 3),
+                "eta_finish_utc": eta_finish_utc,
+                "eta_confidence_interval_seconds": eta_interval,
+                "eta_confidence": eta_confidence,
+            }
+
+        emit_progress(
+            f"{stage_prefix}_started",
+            status="running",
+            section=stage_prefix,
+            completed=0,
+            total=total,
+            started_at=section_started_at,
+            message=f"Persisting {total_label}.",
+        )
+        count = 0
+        next_chunk_mark = chunk_size
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            insert_row(row)
+            count += 1
+            if count >= next_chunk_mark or count == total:
+                emit_progress(
+                    f"{stage_prefix}_progress",
+                    status="running",
+                    section=stage_prefix,
+                    completed=count,
+                    total=total,
+                    started_at=section_started_at,
+                    message=f"Persisted {count}/{total} {total_label}.",
+                    **eta_fields(count),
+                )
+                next_chunk_mark += chunk_size
+        emit_progress(
+            f"{stage_prefix}_finished",
+            status="ok",
+            section=stage_prefix,
+            completed=count,
+            total=total,
+            started_at=section_started_at,
+            message=f"Finished persisting {count} {total_label}.",
+            eta_seconds_remaining=0.0,
+            eta_finish_utc=datetime.now(timezone.utc).isoformat(),
+            eta_confidence_interval_seconds=[0.0, 0.0],
+            eta_confidence="complete",
+        )
+        return count
+
     _delete_run(conn, run_id)
     conn.execute(
         """
@@ -845,11 +985,12 @@ def persist_fact_intake_payload(
             _normalize_opt_text(run.get("notes")),
         ),
     )
-    source_count = 0
-    for row in payload.get("sources") if isinstance(payload.get("sources"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        conn.execute(
+    source_rows = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    source_count = persist_section(
+        "sources",
+        list(source_rows),
+        total_label="sources",
+        insert_row=lambda row: conn.execute(
             """
             INSERT INTO fact_sources(
               source_id, run_id, source_order, source_type, source_label, source_ref, content_sha256, provenance_json
@@ -865,13 +1006,14 @@ def persist_fact_intake_payload(
                 _normalize_opt_text(row.get("content_sha256")),
                 _normalize_json(row.get("provenance")),
             ),
-        )
-        source_count += 1
-    excerpt_count = 0
-    for row in payload.get("excerpts") if isinstance(payload.get("excerpts"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        conn.execute(
+        ),
+    )
+    excerpt_rows = payload.get("excerpts") if isinstance(payload.get("excerpts"), list) else []
+    excerpt_count = persist_section(
+        "excerpts",
+        list(excerpt_rows),
+        total_label="excerpts",
+        insert_row=lambda row: conn.execute(
             """
             INSERT INTO fact_excerpts(
               excerpt_id, run_id, source_id, excerpt_order, excerpt_text, char_start, char_end, anchor_label, provenance_json
@@ -888,13 +1030,14 @@ def persist_fact_intake_payload(
                 _normalize_opt_text(row.get("anchor_label")),
                 _normalize_json(row.get("provenance")),
             ),
-        )
-        excerpt_count += 1
-    statement_count = 0
-    for row in payload.get("statements") if isinstance(payload.get("statements"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        conn.execute(
+        ),
+    )
+    statement_rows = payload.get("statements") if isinstance(payload.get("statements"), list) else []
+    statement_count = persist_section(
+        "statements",
+        list(statement_rows),
+        total_label="statements",
+        insert_row=lambda row: conn.execute(
             """
             INSERT INTO fact_statements(
               statement_id, run_id, excerpt_id, statement_order, statement_text, speaker_label,
@@ -918,97 +1061,112 @@ def persist_fact_intake_payload(
                 _normalize_opt_text(row.get("chronology_hint")),
                 _normalize_json(row.get("provenance")),
             ),
-        )
-        statement_count += 1
-    observation_count = 0
-    for row in payload.get("observations") if isinstance(payload.get("observations"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        predicate_key = _normalize_observation_predicate_key(row.get("predicate_key"))
-        predicate_family = str(row.get("predicate_family") or "").strip() or OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]
-        if predicate_family != OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]:
-            raise ValueError(
-                f"predicate_family mismatch for {predicate_key}: expected {OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]}, got {predicate_family}"
-            )
-        conn.execute(
-            """
-            INSERT INTO fact_observations(
-              observation_id, run_id, statement_id, excerpt_id, source_id, observation_order,
-              predicate_key, predicate_family, object_text, object_type, object_ref, subject_text,
-              observation_status, provenance_json
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                str(row.get("observation_id") or "").strip(),
-                run_id,
-                str(row.get("statement_id") or "").strip(),
-                _normalize_opt_text(row.get("excerpt_id")),
-                _normalize_opt_text(row.get("source_id")),
-                int(row.get("observation_order") or 1),
-                predicate_key,
-                predicate_family,
-                str(row.get("object_text") or "").strip(),
-                _normalize_opt_text(row.get("object_type")),
-                _normalize_opt_text(row.get("object_ref")),
-                _normalize_opt_text(row.get("subject_text")),
-                _normalize_status(
-                    row.get("observation_status"),
-                    allowed=OBSERVATION_STATUS_VALUES,
-                    label="observation_status",
-                    default="captured",
-                ),
-                _normalize_json(row.get("provenance")),
-            ),
-        )
-        observation_count += 1
-    fact_count = 0
-    for row in payload.get("fact_candidates") if isinstance(payload.get("fact_candidates"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        fact_id = str(row.get("fact_id") or "").strip()
-        conn.execute(
-            """
-            INSERT INTO fact_candidates(
-              fact_id, run_id, canonical_label, fact_text, fact_type, candidate_status,
-              chronology_sort_key, chronology_label, primary_statement_id, provenance_json
-            ) VALUES (?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                fact_id,
-                run_id,
-                _normalize_opt_text(row.get("canonical_label")),
-                str(row.get("fact_text") or ""),
-                str(row.get("fact_type") or ""),
-                _normalize_status(
-                    row.get("candidate_status"),
-                    allowed=FACT_STATUS_VALUES,
-                    label="candidate_status",
-                    default="captured",
-                ),
-                _normalize_opt_text(row.get("chronology_sort_key")),
-                _normalize_opt_text(row.get("chronology_label")),
-                _normalize_opt_text(row.get("primary_statement_id")),
-                _normalize_json(row.get("provenance")),
-            ),
-        )
-        for statement_id in row.get("statement_ids") if isinstance(row.get("statement_ids"), list) else []:
-            conn.execute(
+        ),
+    )
+    observation_rows = payload.get("observations") if isinstance(payload.get("observations"), list) else []
+    observation_count = persist_section(
+        "observations",
+        list(observation_rows),
+        total_label="observations",
+        insert_row=lambda row: (
+            lambda predicate_key: conn.execute(
                 """
-                INSERT INTO fact_candidate_statements(fact_id, statement_id, link_kind)
-                VALUES (?,?,?)
+                INSERT INTO fact_observations(
+                  observation_id, run_id, statement_id, excerpt_id, source_id, observation_order,
+                  predicate_key, predicate_family, object_text, object_type, object_ref, subject_text,
+                  observation_status, provenance_json
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
-                    fact_id,
-                    str(statement_id),
-                    str(row.get("link_kind") or "supporting_statement"),
+                    str(row.get("observation_id") or "").strip(),
+                    run_id,
+                    str(row.get("statement_id") or "").strip(),
+                    _normalize_opt_text(row.get("excerpt_id")),
+                    _normalize_opt_text(row.get("source_id")),
+                    int(row.get("observation_order") or 1),
+                    predicate_key,
+                    (
+                        lambda predicate_family: (
+                            predicate_family
+                            if predicate_family == OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]
+                            else (_ for _ in ()).throw(
+                                ValueError(
+                                    f"predicate_family mismatch for {predicate_key}: expected {OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]}, got {predicate_family}"
+                                )
+                            )
+                        )
+                    )(str(row.get("predicate_family") or "").strip() or OBSERVATION_PREDICATE_TO_FAMILY[predicate_key]),
+                    str(row.get("object_text") or "").strip(),
+                    _normalize_opt_text(row.get("object_type")),
+                    _normalize_opt_text(row.get("object_ref")),
+                    _normalize_opt_text(row.get("subject_text")),
+                    _normalize_status(
+                        row.get("observation_status"),
+                        allowed=OBSERVATION_STATUS_VALUES,
+                        label="observation_status",
+                        default="captured",
+                    ),
+                    _normalize_json(row.get("provenance")),
                 ),
             )
-        fact_count += 1
-    contestation_count = 0
-    for row in payload.get("contestations") if isinstance(payload.get("contestations"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        conn.execute(
+        )(_normalize_observation_predicate_key(row.get("predicate_key"))),
+    )
+    fact_rows = payload.get("fact_candidates") if isinstance(payload.get("fact_candidates"), list) else []
+    fact_count = persist_section(
+        "facts",
+        list(fact_rows),
+        total_label="fact candidates",
+        insert_row=lambda row: (
+            lambda fact_id: (
+                conn.execute(
+                    """
+                    INSERT INTO fact_candidates(
+                      fact_id, run_id, canonical_label, fact_text, fact_type, candidate_status,
+                      chronology_sort_key, chronology_label, primary_statement_id, provenance_json
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        fact_id,
+                        run_id,
+                        _normalize_opt_text(row.get("canonical_label")),
+                        str(row.get("fact_text") or ""),
+                        str(row.get("fact_type") or ""),
+                        _normalize_status(
+                            row.get("candidate_status"),
+                            allowed=FACT_STATUS_VALUES,
+                            label="candidate_status",
+                            default="captured",
+                        ),
+                        _normalize_opt_text(row.get("chronology_sort_key")),
+                        _normalize_opt_text(row.get("chronology_label")),
+                        _normalize_opt_text(row.get("primary_statement_id")),
+                        _normalize_json(row.get("provenance")),
+                    ),
+                ),
+                [
+                    conn.execute(
+                        """
+                        INSERT INTO fact_candidate_statements(fact_id, statement_id, link_kind)
+                        VALUES (?,?,?)
+                        """,
+                        (
+                            fact_id,
+                            str(statement_id),
+                            str(row.get("link_kind") or "supporting_statement"),
+                        ),
+                    )
+                    for statement_id in row.get("statement_ids")
+                    if isinstance(row.get("statement_ids"), list)
+                ],
+            )
+        )(str(row.get("fact_id") or "").strip()),
+    )
+    contestation_rows = payload.get("contestations") if isinstance(payload.get("contestations"), list) else []
+    contestation_count = persist_section(
+        "contestations",
+        list(contestation_rows),
+        total_label="contestations",
+        insert_row=lambda row: conn.execute(
             """
             INSERT INTO fact_contestations(
               contestation_id, fact_id, statement_id, contestation_status, reason_text, author, provenance_json
@@ -1023,13 +1181,14 @@ def persist_fact_intake_payload(
                 _normalize_opt_text(row.get("author")),
                 _normalize_json(row.get("provenance")),
             ),
-        )
-        contestation_count += 1
-    review_count = 0
-    for row in payload.get("reviews") if isinstance(payload.get("reviews"), list) else []:
-        if not isinstance(row, Mapping):
-            continue
-        conn.execute(
+        ),
+    )
+    review_rows = payload.get("reviews") if isinstance(payload.get("reviews"), list) else []
+    review_count = persist_section(
+        "reviews",
+        list(review_rows),
+        total_label="reviews",
+        insert_row=lambda row: conn.execute(
             """
             INSERT INTO fact_reviews(
               review_id, fact_id, review_status, reviewer, note, provenance_json
@@ -1043,13 +1202,28 @@ def persist_fact_intake_payload(
                 _normalize_opt_text(row.get("note")),
                 _normalize_json(row.get("provenance")),
             ),
-        )
-        review_count += 1
+        ),
+    )
+    emit_progress("event_assembly_started", status="running", section="event_assembly", message="Assembling event candidates.")
     event_summary = _assemble_event_candidates(conn, run_id=run_id)
+    emit_progress(
+        "event_assembly_finished",
+        status="ok",
+        section="event_assembly",
+        completed=int(event_summary.get("event_count") or 0),
+        total=int(fact_count),
+        message="Event candidate assembly finished.",
+    )
     conn.commit()
     semantic_summary: dict[str, Any] = {"assertion_count": 0, "relation_count": 0, "policy_count": 0}
     if not deferred_refresh:
-        semantic_summary = persist_fact_semantic_materialization(conn, run_id=run_id, include_zelph=True, refresh_kind="dual_write")
+        semantic_summary = persist_fact_semantic_materialization(
+            conn,
+            run_id=run_id,
+            include_zelph=True,
+            refresh_kind="dual_write",
+            progress_callback=progress_callback,
+        )
     else:
         refresh_id = _stable_id(
             "semrefresh",

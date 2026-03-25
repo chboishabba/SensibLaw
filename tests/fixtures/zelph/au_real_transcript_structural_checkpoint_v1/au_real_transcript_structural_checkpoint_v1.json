@@ -1,0 +1,930 @@
+{
+  "fixture_kind": "au_real_transcript_structural_checkpoint",
+  "per_source_summary": [
+    {
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "source_type": "transcript_file",
+      "structural_token_count": 459,
+      "top_structural_atoms": [
+        {
+          "count": 208,
+          "cross_kind_neighbor_count": 4,
+          "examples": [
+            {
+              "snippet": "MR HERZFELD: Thank you, your Honour. May we structure our or",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+            },
+            {
+              "snippet": "MR HERZFELD: organisation \u2013 and, as I will show your Honours",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#5"
+            },
+            {
+              "snippet": "MR HERZFELD: a court may make substantive findings in the ch",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#6"
+            }
+          ],
+          "kind": "speaker_ref",
+          "neighbor_count": 12,
+          "norm_text": "speaker:mr_herzfeld",
+          "reuse_ratio": 0.9951923076923077,
+          "unit_count": 208,
+          "utility_score": 1096
+        },
+        {
+          "count": 143,
+          "cross_kind_neighbor_count": 8,
+          "examples": [
+            {
+              "snippet": "MR GLEESON: Your Honours, our first proposition concerns a",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#500"
+            },
+            {
+              "snippet": "MR GLEESON: defendant if the defendant had been fulfilling",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#501"
+            },
+            {
+              "snippet": "MR GLEESON: duty, your Honours can observe these points. Th",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#502"
+            }
+          ],
+          "kind": "speaker_ref",
+          "neighbor_count": 19,
+          "norm_text": "speaker:mr_gleeson",
+          "reuse_ratio": 0.993006993006993,
+          "unit_count": 143,
+          "utility_score": 807
+        },
+        {
+          "count": 19,
+          "cross_kind_neighbor_count": 5,
+          "examples": [
+            {
+              "snippet": "emphasise at once the significant effect of the Civil Liability Act on that question. Would your Honours take up, pl",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+            },
+            {
+              "snippet": "rs take up, please. If your Honours turn in the Civil Liability Act to section 6I, your Honours will see the objects",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+            },
+            {
+              "snippet": "GAGELER CJ: Are you coming back to the Civil Liability Act at any stage?",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#36"
+            }
+          ],
+          "kind": "act_ref",
+          "neighbor_count": 13,
+          "norm_text": "act:civil_liability_act",
+          "reuse_ratio": 0.9473684210526316,
+          "unit_count": 17,
+          "utility_score": 151
+        },
+        {
+          "count": 17,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "MR SHELLER: Your Honours, the position of the respondent is",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#821"
+            },
+            {
+              "snippet": "MR SHELLER: because the view taken by this point in time wa",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#822"
+            },
+            {
+              "snippet": "MR SHELLER: the fact\u2011finding on the question of whether the",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#823"
+            }
+          ],
+          "kind": "speaker_ref",
+          "neighbor_count": 1,
+          "norm_text": "speaker:mr_sheller",
+          "reuse_ratio": 0.9411764705882353,
+          "unit_count": 17,
+          "utility_score": 91
+        },
+        {
+          "count": 14,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "or did they just leave it hanging, at it were? MR McCOMISH: Your Honour, it was expressly left hanging prec",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#464"
+            },
+            {
+              "snippet": "enge\u201d. What success is his Honour referring to? MR McCOMISH: With respect, it is difficult to see. The chall",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#465"
+            },
+            {
+              "snippet": "s findings in this regard. What does that mean? MR McCOMISH: That is difficult to understand, your Honour, b",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#467"
+            }
+          ],
+          "kind": "speaker_ref",
+          "neighbor_count": 1,
+          "norm_text": "speaker:mr_mccomish",
+          "reuse_ratio": 0.9285714285714286,
+          "unit_count": 14,
+          "utility_score": 76
+        },
+        {
+          "count": 10,
+          "cross_kind_neighbor_count": 2,
+          "examples": [
+            {
+              "snippet": "GAGELER CJ: Was that language used in the submission? Where does it come from?",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#142"
+            },
+            {
+              "snippet": "MR HERZFELD: He was slightly older, but, in our submission, once those facts are known, the risk as I have articulated it was one that was in fact known to this",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#353"
+            },
+            {
+              "snippet": "in the majority never got to that point. In my submission, the very circumstance with which I am discussing with your Honours is now manifest in this Court. I d",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#467"
+            }
+          ],
+          "kind": "procedure_ref",
+          "neighbor_count": 4,
+          "norm_text": "procedure:submission",
+          "reuse_ratio": 0.9,
+          "unit_count": 10,
+          "utility_score": 70
+        }
+      ],
+      "unique_structural_atoms": 45,
+      "unit_count": 879
+    },
+    {
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "source_type": "transcript_file",
+      "structural_token_count": 1765,
+      "top_structural_atoms": [
+        {
+          "count": 16,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "emphasize at once the significant effect of the Civil Liability Act on that question. Would your honors take that up",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#6"
+            },
+            {
+              "snippet": "ake that up please? If your honor's turn in the Civil Liability Act to Section six, capital I, your honors will see",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#6"
+            },
+            {
+              "snippet": "eating the organization for the purposes of the Civil Liability Act as extending to the bishop and then the priests",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#233"
+            }
+          ],
+          "kind": "act_ref",
+          "neighbor_count": 30,
+          "norm_text": "act:civil_liability_act",
+          "reuse_ratio": 0.9375,
+          "unit_count": 15,
+          "utility_score": 199
+        },
+        {
+          "count": 2,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "hould have given an example, but if you look at section 21, what that says, if is if you in personal injur",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#795"
+            },
+            {
+              "snippet": "ussion in Gray's case has now been overtaken by Section 21. If, if the substance of your case, the pleadin",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#796"
+            }
+          ],
+          "kind": "section_ref",
+          "neighbor_count": 4,
+          "norm_text": "sec:21",
+          "reuse_ratio": 0.5,
+          "unit_count": 2,
+          "utility_score": 28
+        },
+        {
+          "count": 2,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "[00:00:54.095 -> 00:01:10.155] Yes. Thank you, Mr. Gleason. Mr. Hertz. Uh",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#3"
+            },
+            {
+              "snippet": "[00:01:10.825 -> 00:01:22.795] I'll then deal with the qu",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#4"
+            }
+          ],
+          "kind": "timestamp_ref",
+          "neighbor_count": 2,
+          "norm_text": "ts:00:01:10",
+          "reuse_ratio": 0.5,
+          "unit_count": 2,
+          "utility_score": 20
+        },
+        {
+          "count": 2,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "[00:04:07.405 -> 00:04:27.425] And your honors will notice that both para",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#12"
+            },
+            {
+              "snippet": "[00:04:27.945 -> 00:05:03.115] A court may make substanti",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#13"
+            }
+          ],
+          "kind": "timestamp_ref",
+          "neighbor_count": 2,
+          "norm_text": "ts:00:04:27",
+          "reuse_ratio": 0.5,
+          "unit_count": 2,
+          "utility_score": 20
+        },
+        {
+          "count": 2,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "[00:05:04.055 -> 00:05:41.595] Mr. Hertz, with b anything done? Mate, you",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#14"
+            },
+            {
+              "snippet": "[00:05:41.605 -> 00:05:59.735] legal existence. And so an",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#15"
+            }
+          ],
+          "kind": "timestamp_ref",
+          "neighbor_count": 2,
+          "norm_text": "ts:00:05:41",
+          "reuse_ratio": 0.5,
+          "unit_count": 2,
+          "utility_score": 20
+        },
+        {
+          "count": 2,
+          "cross_kind_neighbor_count": 1,
+          "examples": [
+            {
+              "snippet": "[00:06:00.145 -> 00:06:14.215] Right. The well, perhaps in this case, who",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#16"
+            },
+            {
+              "snippet": "[00:06:14.915 -> 00:06:35.775] The trustees are not relev",
+              "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#17"
+            }
+          ],
+          "kind": "timestamp_ref",
+          "neighbor_count": 2,
+          "norm_text": "ts:00:06:14",
+          "reuse_ratio": 0.5,
+          "unit_count": 2,
+          "utility_score": 20
+        }
+      ],
+      "unique_structural_atoms": 1309,
+      "unit_count": 868
+    }
+  ],
+  "selected_excerpts": [
+    {
+      "excerpt_text": "MR HERZFELD: Thank you, your Honour. May we structure our oral submissions in this way. I will deal first with the question of whether the Diocese \u2013 and I will come back to that word \u2013 owed a relevant duty of care to the appellant. I will then deal with the question of whether, if so, that was a non-delegable duty and whether that can be breached by intentional conduct. Mr McComish will then deal with the notice o...",
+      "keyword_hits": [
+        "duty of care",
+        "civil liability act",
+        "appellant",
+        "respondent",
+        "child abuse proceedings"
+      ],
+      "score": 29,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "act_ref": 2,
+        "section_ref": 3,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 6,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_herzfeld"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6i"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6j"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6k"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+    },
+    {
+      "excerpt_text": "MR GLEESON: Your Honours, that is one of the fundamental problems that has not been addressed this morning about the Civil Liability Act . I will mention the point now, but develop it this afternoon. One of the critical features of the original Civil Liability Act , Part 1A, which was introduced in 2002, was that it sharpened any doubt there may have been about the distinction between intentional wrongs and neglig...",
+      "keyword_hits": [
+        "civil liability act"
+      ],
+      "score": 16,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "act_ref": 2,
+        "part_ref": 3,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 6,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_gleeson"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "part_ref",
+          "norm_text": "pt:1a"
+        },
+        {
+          "kind": "part_ref",
+          "norm_text": "pt:1b"
+        },
+        {
+          "kind": "part_ref",
+          "norm_text": "pt:1a"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#509"
+    },
+    {
+      "excerpt_text": "[00:01:46.095 -> 00:02:15.515] Um, starting with the duty of care. May we emphasize at once the significant effect of the Civil Liability Act on that question. Would your honors take that up please? If your honor's turn in the Civil Liability Act to Section six, capital I, your honors will see the objects of Division four of the relevant part.",
+      "keyword_hits": [
+        "duty of care",
+        "civil liability act"
+      ],
+      "score": 16,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "structural_kind_counts": {
+        "act_ref": 2,
+        "timestamp_ref": 2
+      },
+      "structural_ref_count": 4,
+      "top_structural_refs": [
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:01:46"
+        },
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:02:15"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#6"
+    },
+    {
+      "excerpt_text": "MR HERZFELD: It is, it is paragraph 51. The Court of Appeal really did not engage with these issues because they could not. Their real point only was that non\u2011delegable duty is academically controversial. That may be so, but while it is part of our law, it should be principled. If it is principled, it extends to intentional torts. The other point the Court of Appeal made was about section 6F of the Civil Liability...",
+      "keyword_hits": [
+        "duty of care",
+        "civil liability act"
+      ],
+      "score": 14,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "act_ref": 1,
+        "section_ref": 1,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 3,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_herzfeld"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6f"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#447"
+    },
+    {
+      "excerpt_text": "MR GLEESON: the problem of non-delegable duties, and they have chosen to solve it in a particular fashion. This Court should be very slow to retrospectively state the law 55 years ago, inconsistent with the choice the Parliament has made. Now, I am jumping ahead, but time is short. Can I ask your Honour to go to the next part of the Civil Liability Act . This is really important to what happened in 2018. A couple...",
+      "keyword_hits": [
+        "duty of care",
+        "civil liability act"
+      ],
+      "score": 14,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "act_ref": 2,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 3,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_gleeson"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:victorian_act"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#773"
+    },
+    {
+      "excerpt_text": "[00:11:29.215 -> 00:11:54.725] Yes. And that aspect of attribution we don't think is in controversy. Some other aspects of attribution are in controversy, and I'll come to those. So in relation to the duty of care at issue here, would your honors turn back to the statement of claim, please, at page 15 of this volume, Are you coming Back to the Civil Liability Act at any stage?",
+      "keyword_hits": [
+        "duty of care",
+        "civil liability act"
+      ],
+      "score": 14,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "structural_kind_counts": {
+        "act_ref": 1,
+        "timestamp_ref": 2
+      },
+      "structural_ref_count": 3,
+      "top_structural_refs": [
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:11:29"
+        },
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:11:54"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:back_to_the_civil_liability_act"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#30"
+    },
+    {
+      "excerpt_text": "[04:46:31.065 -> 04:47:00.805] In addition, appellant's book of further materials, volume two pages 5 0 5 to six in relation to duty of care, there was an attack by Mr. Gleason on the weight to be given to Father Di, to be given to Father Dylan's evidence that evidence was unchallenged and uncontradicted by any competing evidence from the party best able to lead it, namely the respondent, either on the question of...",
+      "keyword_hits": [
+        "duty of care",
+        "appellant",
+        "respondent"
+      ],
+      "score": 14,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "structural_kind_counts": {
+        "timestamp_ref": 2
+      },
+      "structural_ref_count": 2,
+      "top_structural_refs": [
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:04:46:31"
+        },
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:04:47:00"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#843"
+    },
+    {
+      "excerpt_text": "[00:04:27.945 -> 00:05:03.115] A court may make substantive findings in the child abuse proceedings against an unincorporated association as if the organization had legal personality. And then paragraph E, uh, again, assumes that, uh, or proceeds on the basis that if the unincorporated organization had legal personality, which this provision effectively deems it to have, uh, and would've incurred a liability, that...",
+      "keyword_hits": [
+        "proper defendant",
+        "unincorporated organization",
+        "child abuse proceedings"
+      ],
+      "score": 13,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "structural_kind_counts": {
+        "timestamp_ref": 2
+      },
+      "structural_ref_count": 2,
+      "top_structural_refs": [
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:04:27"
+        },
+        {
+          "kind": "timestamp_ref",
+          "norm_text": "ts:00:05:03"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#13"
+    },
+    {
+      "excerpt_text": "MR GLEESON: the: failure to exercise reasonable care and skill. And section 5A makes clear it applies to claims in negligence, however framed, and then section 5B, which is headed \u201cDuty of care\u201d \u2013 this Court has pointed out that is a misnomer, this is about breach: A person is not negligent . . . unless \u2013 And then we have the formulation of Wyong Shire Council v Shirt. So, if a non-delegable duty is an aspect of t...",
+      "keyword_hits": [
+        "civil liability act"
+      ],
+      "score": 12,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "act_ref": 1,
+        "part_ref": 1,
+        "section_ref": 1,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 4,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_gleeson"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:5b"
+        },
+        {
+          "kind": "act_ref",
+          "norm_text": "act:civil_liability_act"
+        },
+        {
+          "kind": "part_ref",
+          "norm_text": "pt:1a"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#510"
+    },
+    {
+      "excerpt_text": "MR HERZFELD: organisation \u2013 and, as I will show your Honours in a moment, that provision ultimately was not needed here. Section 6L permits an unincorporated organisation to \u201cappoint\u201d an: entity as a proper defendant \u2013 and again, as I will show your Honours in a moment, that is, in substance, what appears to have happened here. Turning over to section 6N, that empowers the Court to appoint a proper defendant if on...",
+      "keyword_hits": [
+        "proper defendant",
+        "unincorporated organisation"
+      ],
+      "score": 12,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "section_ref": 2,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 3,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_herzfeld"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6l"
+        },
+        {
+          "kind": "section_ref",
+          "norm_text": "sec:6n"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#5"
+    },
+    {
+      "excerpt_text": "MR GLEESON: defendant if the defendant had been fulfilling the duty of care. For that reason, we will start, as the appellant has this morning, with the ordinary duty of care. Our starting point is to take up some observations of the Court this morning, consistently with a matter which your Honour Justice Jagot raised in Bird , around paragraphs [255] to [256] in relation to the non\u2011delegable duty, but it is criti...",
+      "keyword_hits": [
+        "duty of care",
+        "appellant"
+      ],
+      "score": 11,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "case_ref": 1,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 2,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_gleeson"
+        },
+        {
+          "kind": "case_ref",
+          "norm_text": "case:2014_hca_36"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#501"
+    },
+    {
+      "excerpt_text": "MR GLEESON: Yes. So, this is the point at which \u2013 although I am trying to keep them separate \u2013 the ordinary duty of care starts to blend into some of the discussion under the non\u2011delegable duty. What we have effectively got is we have the findings of not a church event, no religious instruction; we have the analysis of Father Dillon that I have been to, and I will not repeat. The appellant does not have the findin...",
+      "keyword_hits": [
+        "duty of care",
+        "appellant"
+      ],
+      "score": 11,
+      "source_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "structural_kind_counts": {
+        "procedure_ref": 1,
+        "speaker_ref": 1
+      },
+      "structural_ref_count": 2,
+      "top_structural_refs": [
+        {
+          "kind": "speaker_ref",
+          "norm_text": "speaker:mr_gleeson"
+        },
+        {
+          "kind": "procedure_ref",
+          "norm_text": "procedure:submission"
+        }
+      ],
+      "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#734"
+    }
+  ],
+  "summary": {
+    "core_reading": "The real AU hearing transcript lane now has a persisted structural/legal checkpoint, even though the generic transcript fact-review path is still too noisy to treat as reviewed fact coverage.",
+    "selected_excerpt_count": 12,
+    "source_file_count": 2,
+    "structural_token_count": 2224,
+    "top_structural_kinds": {
+      "act_ref": 47,
+      "case_ref": 6,
+      "clause_ref": 3,
+      "paragraph_ref": 1,
+      "part_ref": 6,
+      "path_ref": 1,
+      "procedure_ref": 11,
+      "qa_ref": 1,
+      "schedule_ref": 1,
+      "section_ref": 16,
+      "speaker_ref": 389,
+      "subsection_ref": 1,
+      "task_ref": 2,
+      "timestamp_ref": 1739
+    },
+    "unique_structural_atoms": 1348,
+    "unit_count": 1747
+  },
+  "top_structural_atoms": [
+    {
+      "count": 208,
+      "cross_kind_neighbor_count": 4,
+      "examples": [
+        {
+          "snippet": "MR HERZFELD: Thank you, your Honour. May we structure our or",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+        },
+        {
+          "snippet": "MR HERZFELD: organisation \u2013 and, as I will show your Honours",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#5"
+        },
+        {
+          "snippet": "MR HERZFELD: a court may make substantive findings in the ch",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#6"
+        }
+      ],
+      "kind": "speaker_ref",
+      "neighbor_count": 12,
+      "norm_text": "speaker:mr_herzfeld",
+      "reuse_ratio": 0.9951923076923077,
+      "unit_count": 208,
+      "utility_score": 1096
+    },
+    {
+      "count": 143,
+      "cross_kind_neighbor_count": 8,
+      "examples": [
+        {
+          "snippet": "MR GLEESON: Your Honours, our first proposition concerns a",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#500"
+        },
+        {
+          "snippet": "MR GLEESON: defendant if the defendant had been fulfilling",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#501"
+        },
+        {
+          "snippet": "MR GLEESON: duty, your Honours can observe these points. Th",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#502"
+        }
+      ],
+      "kind": "speaker_ref",
+      "neighbor_count": 19,
+      "norm_text": "speaker:mr_gleeson",
+      "reuse_ratio": 0.993006993006993,
+      "unit_count": 143,
+      "utility_score": 807
+    },
+    {
+      "count": 35,
+      "cross_kind_neighbor_count": 6,
+      "examples": [
+        {
+          "snippet": "emphasise at once the significant effect of the Civil Liability Act on that question. Would your Honours take up, pl",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+        },
+        {
+          "snippet": "rs take up, please. If your Honours turn in the Civil Liability Act to section 6I, your Honours will see the objects",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#4"
+        },
+        {
+          "snippet": "GAGELER CJ: Are you coming back to the Civil Liability Act at any stage?",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#36"
+        }
+      ],
+      "kind": "act_ref",
+      "neighbor_count": 43,
+      "norm_text": "act:civil_liability_act",
+      "reuse_ratio": 0.9714285714285714,
+      "unit_count": 32,
+      "utility_score": 350
+    },
+    {
+      "count": 17,
+      "cross_kind_neighbor_count": 1,
+      "examples": [
+        {
+          "snippet": "MR SHELLER: Your Honours, the position of the respondent is",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#821"
+        },
+        {
+          "snippet": "MR SHELLER: because the view taken by this point in time wa",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#822"
+        },
+        {
+          "snippet": "MR SHELLER: the fact\u2011finding on the question of whether the",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#823"
+        }
+      ],
+      "kind": "speaker_ref",
+      "neighbor_count": 1,
+      "norm_text": "speaker:mr_sheller",
+      "reuse_ratio": 0.9411764705882353,
+      "unit_count": 17,
+      "utility_score": 91
+    },
+    {
+      "count": 14,
+      "cross_kind_neighbor_count": 1,
+      "examples": [
+        {
+          "snippet": "or did they just leave it hanging, at it were? MR McCOMISH: Your Honour, it was expressly left hanging prec",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#464"
+        },
+        {
+          "snippet": "enge\u201d. What success is his Honour referring to? MR McCOMISH: With respect, it is difficult to see. The chall",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#465"
+        },
+        {
+          "snippet": "s findings in this regard. What does that mean? MR McCOMISH: That is difficult to understand, your Honour, b",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#467"
+        }
+      ],
+      "kind": "speaker_ref",
+      "neighbor_count": 1,
+      "norm_text": "speaker:mr_mccomish",
+      "reuse_ratio": 0.9285714285714286,
+      "unit_count": 14,
+      "utility_score": 76
+    },
+    {
+      "count": 10,
+      "cross_kind_neighbor_count": 2,
+      "examples": [
+        {
+          "snippet": "GAGELER CJ: Was that language used in the submission? Where does it come from?",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#142"
+        },
+        {
+          "snippet": "MR HERZFELD: He was slightly older, but, in our submission, once those facts are known, the risk as I have articulated it was one that was in fact known to this",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#353"
+        },
+        {
+          "snippet": "in the majority never got to that point. In my submission, the very circumstance with which I am discussing with your Honours is now manifest in this Court. I d",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#467"
+        }
+      ],
+      "kind": "procedure_ref",
+      "neighbor_count": 4,
+      "norm_text": "procedure:submission",
+      "reuse_ratio": 0.9,
+      "unit_count": 10,
+      "utility_score": 70
+    },
+    {
+      "count": 5,
+      "cross_kind_neighbor_count": 1,
+      "examples": [
+        {
+          "snippet": "MR SHELLER SC: Did they ask why you were going to meet him? [A",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#595"
+        },
+        {
+          "snippet": "MR SHELLER SC: Did \u2013 they: ask why you were coming home so lat",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#596"
+        },
+        {
+          "snippet": "MR SHELLER SC: Did they ask you anything about what you\u2019d been",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#597"
+        }
+      ],
+      "kind": "speaker_ref",
+      "neighbor_count": 1,
+      "norm_text": "speaker:mr_sheller_sc",
+      "reuse_ratio": 0.8,
+      "unit_count": 5,
+      "utility_score": 31
+    },
+    {
+      "count": 5,
+      "cross_kind_neighbor_count": 4,
+      "examples": [
+        {
+          "snippet": "features of the original Civil Liability Act , Part 1A, which was introduced in 2002, was that it shar",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#509"
+        },
+        {
+          "snippet": "ional wrongs, which are not regulated, and then Part 1A, which is about \u2013 the heading is \u201cNegligence\u201d,",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#509"
+        },
+        {
+          "snippet": "lysis of that tort be done through the prism of Part 1A, where the negligence stage of the analysis wil",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#510"
+        }
+      ],
+      "kind": "part_ref",
+      "neighbor_count": 4,
+      "norm_text": "pt:1a",
+      "reuse_ratio": 0.8,
+      "unit_count": 4,
+      "utility_score": 46
+    },
+    {
+      "count": 4,
+      "cross_kind_neighbor_count": 2,
+      "examples": [
+        {
+          "snippet": "hould have given an example, but if you look at section 21 , what that says is if you are in personal inju",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#814"
+        },
+        {
+          "snippet": "ussion in Gray\u2019s Case has now been overtaken by section 21. If the substance of your case \u2013 the pleading d",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#814"
+        },
+        {
+          "snippet": "hould have given an example, but if you look at section 21, what that says, if is if you in personal injur",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#795"
+        }
+      ],
+      "kind": "section_ref",
+      "neighbor_count": 5,
+      "norm_text": "sec:21",
+      "reuse_ratio": 0.75,
+      "unit_count": 3,
+      "utility_score": 41
+    },
+    {
+      "count": 2,
+      "cross_kind_neighbor_count": 2,
+      "examples": [
+        {
+          "snippet": "f it has a hierarchy \u2013 which it does, under the Corporations Act \u2013 that would help inform whose acts and whose mi",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt#661"
+        },
+        {
+          "snippet": "if it has a hierarchy, which it does under the Corporations Act, that will help inform whose acts and whose min",
+          "unit_id": "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md#608"
+        }
+      ],
+      "kind": "act_ref",
+      "neighbor_count": 3,
+      "norm_text": "act:corporations_act",
+      "reuse_ratio": 0.5,
+      "unit_count": 2,
+      "utility_score": 26
+    }
+  ],
+  "transcript_paths": [
+    "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+    "/home/c/Documents/code/ITIR-suite/SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md"
+  ],
+  "version": "au_real_transcript_structural_checkpoint_v1"
+}

@@ -7,6 +7,7 @@ from pathlib import Path
 import jsonschema
 import yaml
 
+from scripts.transcript_fact_review import build_transcript_fact_review_cli_payload
 from src.fact_intake import (
     EVENT_ASSEMBLER_VERSION,
     FACT_REVIEW_BUNDLE_VERSION,
@@ -96,3 +97,45 @@ def test_transcript_semantic_report_adapts_into_fact_review_bundle() -> None:
         "fact_abstentions": 0,
     }
     assert bundle["semantic_context"]["summary"]["relation_candidate_count"] >= 1
+
+
+def test_transcript_fact_review_cli_payload_reports_progress(tmp_path: Path) -> None:
+    transcript_path = tmp_path / "hearing.txt"
+    transcript_path.write_text(
+        "\n".join(
+            [
+                "Q: Where were you?",
+                "A: At home.",
+                "A: Thanks.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    updates: list[tuple[str, dict[str, object]]] = []
+
+    payload = build_transcript_fact_review_cli_payload(
+        db_path=tmp_path / "itir.sqlite",
+        run_id="",
+        transcript_files=[str(transcript_path)],
+        known_participants_values=[],
+        source_label=None,
+        notes=None,
+        use_demo=False,
+        command="run",
+        progress_callback=lambda stage, details: updates.append((stage, details)),
+    )
+
+    stages = [stage for stage, _ in updates]
+    assert stages[0] == "load_units_started"
+    assert "semantic_pipeline_started" in stages
+    assert "fact_persist_sources_started" in stages
+    assert any(stage.startswith("fact_persist_") and stage.endswith("_progress") for stage in stages)
+    assert "fact_persist_build_workbench" in stages
+    assert "bundle_build_finished" in stages
+    assert stages[-1] == "build_finished"
+    progress_details = next(details for stage, details in updates if stage == "fact_persist_statements_progress")
+    assert "eta_seconds_remaining" in progress_details
+    assert "eta_finish_utc" in progress_details
+    assert "eta_confidence_interval_seconds" in progress_details
+    assert "eta_confidence" in progress_details
+    assert "factRunId" in payload

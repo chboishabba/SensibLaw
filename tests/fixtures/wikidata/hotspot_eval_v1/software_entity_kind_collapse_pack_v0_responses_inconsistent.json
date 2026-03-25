@@ -1,0 +1,140 @@
+{
+  "model_id": "fixture-labels",
+  "model_run_id": "software_entity_kind_inconsistent-run",
+  "prompt_profile": "default_yes_no_v1",
+  "responses": [
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1",
+      "label": "no",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:1:q2",
+      "raw_text": "NO"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:2:q2",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:property_inheritance:3",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:property_inheritance:3:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:property_inheritance:3",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:property_inheritance:3:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:4:q2",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:5:q2",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:6:q2",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7:q1",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:kind_disambiguation:7:q2",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:property_inheritance:8",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:property_inheritance:8:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "software_entity_kind_collapse_pack_v0:property_inheritance:8",
+      "label": "yes",
+      "question_id": "software_entity_kind_collapse_pack_v0:property_inheritance:8:q1",
+      "raw_text": "YES"
+    }
+  ],
+  "schema_version": "wikidata_hotspot_responses/v1"
+}

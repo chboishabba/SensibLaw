@@ -1,0 +1,120 @@
+{
+  "bundle_pressure_inventory": [
+    {
+      "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave5_real_false_coherence_demo_bundle.json",
+      "contested_item_count": 1,
+      "event_count": 0,
+      "fact_count": 4,
+      "pressure_score": 5,
+      "review_queue_count": 4,
+      "source_label": "wave5:real_transcript_false_coherence_v1",
+      "workflow_kind": "transcript_semantic"
+    },
+    {
+      "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave1_real_au_demo_bundle.json",
+      "contested_item_count": 1,
+      "event_count": 2,
+      "fact_count": 3,
+      "pressure_score": 4,
+      "review_queue_count": 3,
+      "source_label": "wave1:real_au_procedural_v1",
+      "workflow_kind": "au_semantic"
+    },
+    {
+      "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave3_real_fragmented_support_demo_bundle.json",
+      "contested_item_count": 1,
+      "event_count": 0,
+      "fact_count": 3,
+      "pressure_score": 3,
+      "review_queue_count": 2,
+      "source_label": "wave3:real_transcript_fragmented_support_v1",
+      "workflow_kind": "transcript_semantic"
+    },
+    {
+      "bundle_path": "itir-svelte/tests/fixtures/fact_review_wave5_real_professional_handoff_demo_bundle.json",
+      "contested_item_count": 0,
+      "event_count": 0,
+      "fact_count": 3,
+      "pressure_score": 2,
+      "review_queue_count": 2,
+      "source_label": "wave5:real_transcript_professional_handoff_v1",
+      "workflow_kind": "transcript_semantic"
+    }
+  ],
+  "fixture_kind": "au_broader_corpus_diagnostics",
+  "raw_source_backlog": {
+    "file_count": 4,
+    "files": [
+      "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.html",
+      "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/01_Hearing.txt",
+      "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.md",
+      "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts/vimeo_1109898693_en-x-autogen.segments.json"
+    ],
+    "files_by_suffix": {
+      ".html": 1,
+      ".json": 1,
+      ".md": 1,
+      ".txt": 1
+    },
+    "root": "SensibLaw/demo/ingest/hca_case_s942025/media/transcripts"
+  },
+  "slice_summary": {
+    "approximate_event_count_total": 2,
+    "contested_item_count_total": 3,
+    "event_count_total": 2,
+    "fact_count_total": 13,
+    "included_real_bundle_count": 4,
+    "known_raw_transcript_file_count": 4,
+    "observation_count_total": 40,
+    "review_queue_count_total": 11,
+    "source_count_total": 11,
+    "source_label_count": 4,
+    "statement_count_total": 13,
+    "workflow_kind_count": 2,
+    "workflow_run_count": 4
+  },
+  "summary": {
+    "bundles_with_contested_items_count": 3,
+    "bundles_with_events_count": 1,
+    "core_reading": "AU broader corpus coverage now spans multiple real workbench bundles and transcript-semantic lanes, but full transcript-derived event coverage still sits in a visible raw-source backlog.",
+    "fact_count_total": 13,
+    "known_raw_transcript_file_count": 4,
+    "observation_count_total": 40,
+    "peak_pressure_bundle": "wave5:real_transcript_false_coherence_v1",
+    "review_queue_count_total": 11,
+    "source_family_count": 4,
+    "transcript_semantic_bundle_count": 3,
+    "workflow_kind_count": 2
+  },
+  "version": "au_broader_corpus_diagnostics_v1",
+  "workflow_summaries": [
+    {
+      "bundle_count": 1,
+      "contested_item_count_total": 1,
+      "event_count_total": 2,
+      "fact_count_total": 3,
+      "observation_count_total": 27,
+      "review_queue_count_total": 3,
+      "source_label_count": 1,
+      "source_labels": [
+        "wave1:real_au_procedural_v1"
+      ],
+      "workflow_kind": "au_semantic"
+    },
+    {
+      "bundle_count": 3,
+      "contested_item_count_total": 2,
+      "event_count_total": 0,
+      "fact_count_total": 10,
+      "observation_count_total": 13,
+      "review_queue_count_total": 8,
+      "source_label_count": 3,
+      "source_labels": [
+        "wave3:real_transcript_fragmented_support_v1",
+        "wave5:real_transcript_false_coherence_v1",
+        "wave5:real_transcript_professional_handoff_v1"
+      ],
+      "workflow_kind": "transcript_semantic"
+    }
+  ]
+}

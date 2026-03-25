@@ -29,13 +29,71 @@
   - Tightened generation ambiguity handling so father-era corpus passages with
     explicit global kinship cues like `his son` no longer overresolve `Bush` or
     `George Bush` to `actor:george_w_bush`.
+  - Wired the existing corpus-builder `root_actor` memoir hint into a
+    conservative first-person legal-action pass in `src/gwb_us_law/semantic.py`
+    and expanded the reviewed stem-cell linkage cues so the corpus/book lane
+    now independently confirms
+    `George W. Bush -> vetoed -> Stem Cell Research Enhancement Act`
+    without changing the honest deduped broader-checkpoint total.
   - Updated broader GWB diagnostics/checkpoint artifacts and tests; current
     merged checkpoint now reports `18` distinct promoted relations and `3` new
     distinct promoted relations beyond the checked handoff.
+- AU broader-corpus parity:
+  - Added `scripts/build_au_broader_corpus_diagnostics.py` plus
+    `tests/test_au_broader_corpus_diagnostics.py` and generated
+    `tests/fixtures/zelph/au_broader_corpus_diagnostics_v1/` so AU now has a
+    broader-corpus companion alongside the scorecard and checked handoff.
+  - Added `scripts/build_au_transcript_structural_checkpoint.py` plus
+    `tests/test_au_transcript_structural_checkpoint.py` and generated
+    `tests/fixtures/zelph/au_real_transcript_structural_checkpoint_v1/` from
+    the real HCA hearing transcript files.
+  - Upgraded `src/reporting/structure_report.py` so AustLII/HCA hearing text
+    splits on speaker turns and Whisper-style timestamp markdown groups into
+    sentence-ish transcript units instead of one or two giant blobs.
+  - This gives AU an internal real-transcript structural/legal checkpoint while
+    staying honest that the generic transcript fact-review path is still too
+    noisy to count as reviewed fact/event coverage.
+  - Added `scripts/build_au_transcript_dense_substrate.py` plus
+    `tests/test_au_transcript_dense_substrate.py` and generated
+    `tests/fixtures/zelph/au_real_transcript_dense_substrate_v1/` so the real
+    HCA hearing lane now has a dense transcript-derived substrate artifact
+    alongside the narrower reviewed handoff.
+  - The dense AU artifact currently reports `1747` transcript units,
+    `1747` facts, `1482` observations, `0` events, and a 24-row secondary
+    review-overlay projection, making transcript density explicit instead of
+    treating it as an error to collapse immediately.
+  - Added opt-in `--progress` stage reporting to the AU structural-checkpoint
+    and dense-substrate builders so longer runs can emit stderr progress events
+    without changing default stdout artifact/result behavior.
+  - Propagated the same opt-in `--progress` stage reporting contract into
+    `scripts/transcript_semantic.py` and `scripts/transcript_fact_review.py`.
+  - Extended `persist_fact_intake_payload(...)` to emit nested section progress
+    with totals, elapsed seconds, item rates, estimated finish times, and
+    heuristic ETA intervals, and threaded those updates through the transcript
+    review/dense AU builders.
+  - Added shared `scripts/cli_runtime.py` for human-first stderr progress,
+    optional terminal bar rendering, optional JSON progress for wrappers, and
+    CLI logging configuration, and rolled `--log-level` plus opt-in progress
+    rendering through `transcript_semantic.py`, `transcript_fact_review.py`,
+    `au_fact_review.py`, `build_au_transcript_structural_checkpoint.py`,
+    `build_au_transcript_dense_substrate.py`,
+    `build_gwb_public_bios_rich_timeline.py`,
+    `gwb_corpus_timeline_build.py`,
+    `build_gwb_broader_corpus_checkpoint.py`,
+    `build_gwb_broader_promotion_diagnostics.py`,
+    `run_wikidata_qualifier_drift_scan.py`, and
+    `wiki_revision_pack_runner.py`.
+  - Extended the dense AU transcript artifact with a first hearing-procedural
+    reviewed projection so court interventions, party submissions, and
+    statute-heavy turns are surfaced separately from the flatter dense fact
+    layer.
 - Zelph handoff documentation alignment:
   - Added a canonical Zelph handoff index and clarified the reading order
     between external framing, pack definition, artifact-specific handoff notes,
     and corpus-level completeness notes.
+  - Added the broader-companion pack note + manifest:
+    `docs/planning/zelph_real_world_pack_v1_6_20260325.md` and
+    `docs/planning/zelph_real_world_pack_v1_6.manifest.json`.
   - Recorded the current corpus-expansion priority order:
     broader GWB public-source extraction first, AU transcript/WhisperX-backed
     expansion second, and safe chat-history lane third.

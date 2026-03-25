@@ -1,0 +1,20 @@
+{
+  "model_id": "fixture-labels",
+  "model_run_id": "qualifier_drift_consistent-run",
+  "prompt_profile": "default_yes_no_v1",
+  "responses": [
+    {
+      "cluster_id": "qualifier_drift_p166_live_pack_v1:temporalized_statement:1",
+      "label": "yes",
+      "question_id": "qualifier_drift_p166_live_pack_v1:temporalized_statement:1:q0",
+      "raw_text": "YES"
+    },
+    {
+      "cluster_id": "qualifier_drift_p166_live_pack_v1:temporalized_statement:1",
+      "label": "yes",
+      "question_id": "qualifier_drift_p166_live_pack_v1:temporalized_statement:1:q1",
+      "raw_text": "YES"
+    }
+  ],
+  "schema_version": "wikidata_hotspot_responses/v1"
+}

@@ -169,6 +169,42 @@ def test_gwb_semantic_pipeline_stays_stable_with_au_linkage_imported(tmp_path: P
     assert not any(row["entity"]["canonical_key"].startswith("actor:high_court_of_australia") for row in report["per_entity"])
 
 
+def test_gwb_semantic_pipeline_uses_root_actor_for_first_person_stem_cell_veto(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "gwb_us_law_linkage_seed_v1.json"
+    payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-25T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_gwb.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 2006, "text": "July 2006"},
+                "section": "Decision Points",
+                "text": "In July 2006, the House and Senate considered a bill that would overturn my stem cell policy by permitting federal funding for research that destroyed human life. Congress's response to my veto was not so warm.",
+                "source_id": "gwb_corpus_local",
+                "title": "Bush, George W. - Decision Points",
+                "root_actor": "George W. Bush",
+                "root_surname": "Bush",
+            }
+        ],
+    }
+    persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_gwb.json")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
+        ensure_gwb_us_law_schema(conn)
+        ensure_gwb_semantic_schema(conn)
+        import_gwb_us_law_seed_payload(conn, payload)
+        result = run_gwb_semantic_pipeline(conn)
+        report = build_gwb_semantic_report(conn, run_id=result["run_id"])
+
+    promoted = {(row["predicate_key"], row["subject"]["canonical_key"], row["object"]["canonical_key"]) for row in report["promoted_relations"]}
+    assert ("vetoed", "actor:george_w_bush", "legal_ref:stem_cell_research_enhancement_act") in promoted
+
+
 def test_gwb_semantic_schema_populates_shared_actor_aliases_and_role_vocab() -> None:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row

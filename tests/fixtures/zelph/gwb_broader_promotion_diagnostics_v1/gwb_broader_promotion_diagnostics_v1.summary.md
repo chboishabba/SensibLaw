@@ -16,7 +16,7 @@ seed support without widening promoted relation coverage.
 ## Per-family diagnosis
 
 - public_bios_timeline: matched_seed_count=3, candidate_only_seed_count=4, relation_candidate_count=8, promoted_relation_count=8, unresolved_mention_count=12.
-- corpus_book_timeline: matched_seed_count=5, candidate_only_seed_count=4, relation_candidate_count=33, promoted_relation_count=32, unresolved_mention_count=91.
+- corpus_book_timeline: matched_seed_count=5, candidate_only_seed_count=4, relation_candidate_count=34, promoted_relation_count=33, unresolved_mention_count=91.
 
 ## Practical reading
 

@@ -332,7 +332,8 @@
       },
       "predicate_key": "vetoed",
       "source_families": [
-        "checked_handoff"
+        "checked_handoff",
+        "corpus_book_timeline"
       ],
       "subject": {
         "canonical_key": "actor:george_w_bush",
@@ -716,9 +717,9 @@
       "unresolved_surface_count": 12
     },
     {
-      "ambiguous_event_count": 145,
+      "ambiguous_event_count": 144,
       "matched_seed_lane_count": 5,
-      "promoted_relation_count": 32,
+      "promoted_relation_count": 33,
       "source_family": "corpus_book_timeline",
       "timeline_path": "SensibLaw/demo/ingest/gwb/corpus_v1/wiki_timeline_gwb_corpus_v1.json",
       "unresolved_surface_count": 91
