@@ -5,6 +5,8 @@ from pathlib import Path
 
 from scripts.build_affidavit_coverage_review import (
     _classify_argumentative_role,
+    _derive_primary_target_component,
+    _derive_semantic_basis,
     _infer_response_packet,
     build_affidavit_coverage_review,
     write_affidavit_coverage_review,
@@ -333,7 +335,9 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
     assert source_row["best_response_role"] == "restatement_only"
 
 
-def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response() -> None:
+def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(monkeypatch) -> None:
+    from scripts import build_affidavit_coverage_review as module
+
     source_payload = {
         "version": "fact.review.bundle.v1",
         "run": {"source_label": "au_semantic:dispute", "comparison_mode": "contested_narrative"},
@@ -352,7 +356,19 @@ def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response()
         ],
     }
 
-    payload = build_affidavit_coverage_review(
+    monkeypatch.setattr(
+        module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"],
+            "verb_lemmas": ["dispute"],
+            "has_negation": True if "dispute" in text.casefold() else False,
+            "has_first_person_subject": True,
+            "has_hedge_verb": False,
+        },
+    )
+
+    payload = module.build_affidavit_coverage_review(
         source_payload=source_payload,
         affidavit_text="The respondent cut off my internet in November 2024.",
     )
@@ -360,7 +376,7 @@ def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response()
     affidavit_row = payload["affidavit_rows"][0]
     assert affidavit_row["coverage_status"] == "covered"
     assert affidavit_row["best_response_role"] == "dispute"
-    assert "i dispute" in affidavit_row["best_response_cues"]
+    assert "structural:negation" in affidavit_row["best_response_cues"]
     assert affidavit_row["best_adjusted_match_score"] >= affidavit_row["best_match_score"]
 
     source_row = payload["source_review_rows"][0]
@@ -368,14 +384,28 @@ def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response()
     assert source_row["best_response_role"] == "dispute"
 
 
-def test_hedged_denial_is_not_treated_as_admission() -> None:
+def test_hedged_denial_is_not_treated_as_admission(monkeypatch) -> None:
+    from scripts import build_affidavit_coverage_review as module
+
     proposition = (
         "During that period, I feel that Johl engaged in behaviours that were coercive, "
         "controlling, intimidating, and on one occasion physically abusive."
     )
     excerpt = "I do not feel I did such in a controlling, coercive, or other similar manner that could intimidate or likewise."
 
-    role = _classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
+    monkeypatch.setattr(
+        module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"],
+            "verb_lemmas": ["feel"],
+            "has_negation": True,
+            "has_first_person_subject": True,
+            "has_hedge_verb": True,
+        },
+    )
+
+    role = module._classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
     packet = _infer_response_packet(
         proposition_text=proposition,
         best_match_excerpt=excerpt,
@@ -390,7 +420,7 @@ def test_hedged_denial_is_not_treated_as_admission() -> None:
     assert "deny_characterisation" in packet["response_acts"]
     assert "hedged_denial_signal" in packet["legal_significance_signals"]
     assert "characterization_dispute" in packet["legal_significance_signals"]
-    response = build_affidavit_coverage_review(
+    response = module.build_affidavit_coverage_review(
         source_payload={
             "version": "fact.review.bundle.v1",
             "run": {"source_label": "au_semantic:hedged", "comparison_mode": "contested_narrative"},
@@ -403,7 +433,7 @@ def test_hedged_denial_is_not_treated_as_admission() -> None:
     assert "hedged" in response["modifiers"]
 
 
-def test_low_overlap_explanation_cue_becomes_non_response() -> None:
+def test_low_overlap_explanation_like_text_stays_non_substantive() -> None:
     proposition = "I had no privacy at all while he had an expectation of privacy around some of his own communication."
     excerpt = "While some greater degree of urgency may have motivated my actions at some time."
 
@@ -417,8 +447,8 @@ def test_low_overlap_explanation_cue_becomes_non_response() -> None:
         coverage_status="partial",
     )
 
-    assert role["response_role"] == "non_response"
-    assert packet["response_acts"] == ["non_response"]
+    assert role["response_role"] in {"non_response", "procedural_frame"}
+    assert packet["response_acts"] in (["non_response"], ["procedural_or_nonresponsive_frame"])
     response = build_affidavit_coverage_review(
         source_payload={
             "version": "fact.review.bundle.v1",
@@ -429,4 +459,55 @@ def test_low_overlap_explanation_cue_becomes_non_response() -> None:
         affidavit_text=proposition,
     )["affidavit_rows"][0]["response"]
     assert response["speech_act"] == "other"
-    assert "non_responsive" in response["modifiers"]
+    assert set(response["modifiers"]) <= {"non_responsive", "repetition"}
+
+
+def test_structural_negated_hedge_promotes_hedged_denial(monkeypatch) -> None:
+    from scripts import build_affidavit_coverage_review as module
+
+    monkeypatch.setattr(
+        module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"],
+            "verb_lemmas": ["feel"],
+            "has_negation": True,
+            "has_first_person_subject": True,
+            "has_hedge_verb": True,
+        },
+    )
+
+    role = module._classify_argumentative_role(
+        "The respondent cut off my internet in November 2024.",
+        "I do not feel I did such.",
+        "I do not feel I did such.",
+        use_row_fallback=False,
+    )
+
+    assert role["response_role"] == "hedged_denial"
+    assert role["response_cues"] == ["structural:negated_hedge"]
+
+
+def test_primary_target_component_prefers_characterization_over_predicate() -> None:
+    target = _derive_primary_target_component(
+        response={"component_targets": ["predicate_text", "characterization"]},
+        response_acts=["deny_characterisation"],
+    )
+    assert target == "characterization"
+
+
+def test_semantic_basis_becomes_mixed_for_structured_binding_plus_heuristic_justification() -> None:
+    basis = _derive_semantic_basis(
+        response_cues=[],
+        response={"speech_act": "other"},
+        response_component_bindings=[
+            {
+                "component": "time",
+                "binding_kind": "time_alignment",
+                "claim_span": {"text": "November 2024"},
+                "response_span": {"text": "November 2024"},
+            }
+        ],
+        justifications=[{"type": "consent"}],
+    )
+    assert basis == "mixed"

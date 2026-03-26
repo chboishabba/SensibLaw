@@ -16,12 +16,40 @@ Move the comparison output away from flat `proposition -> matched excerpt` readi
 - `conflict_state`
 - `evidentiary_state`
 - `operational_status`
+- `semantic_basis`
+- `promotion_status`
+- `promotion_basis`
+- `promotion_reason`
+- `semantic_candidate`
 - `claim`
 - `response`
 - `justifications`
 - `zelph_claim_state_facts`
 
 This is not yet full legal reasoning. It is a typed intermediate layer.
+
+## Rule Substrate
+
+The contested lane is now structural-first.
+
+Primary semantic derivation in `scripts/build_affidavit_coverage_review.py`
+should come from bounded structural signals taken from parsed sentence
+dependencies:
+
+- sentence subject
+- negation presence
+- hedge-verb presence
+
+Current lexical rules are quarantined to auxiliary justification hints only.
+They may enrich `justifications` and auxiliary signals, but they must not drive:
+
+- `best_response_role`
+- `response.speech_act`
+- claim `actor`
+- claim-state axes
+
+If structure is insufficient, this lane should abstain conservatively rather
+than infer meaning from surface tokens.
 
 ## Output Fields
 
@@ -100,6 +128,24 @@ Each contested affidavit proposition row may now carry:
   - `disputed_claim`
   - `partially_reconciled_claim`
   - `resolved_but_unproven`
+- `semantic_basis`
+  Current candidate basis:
+  - `structural`
+  - `heuristic`
+  - `mixed`
+- `semantic_candidate`
+  Minimal promotion-facing candidate object. See
+  `docs/planning/contested_semantic_candidate_schema_20260327.md`.
+- `promotion_status`
+  Canonical tetralemma promotion state from the central policy gate:
+  - `promoted_true`
+  - `promoted_false`
+  - `candidate_conflict`
+  - `abstained`
+- `promotion_basis`
+  The basis seen by the central promotion gate.
+- `promotion_reason`
+  Small deterministic explanation from the central promotion gate.
 - `claim`
   Span-safe claim packet with:
   - `text_span`
@@ -131,6 +177,7 @@ Each contested affidavit proposition row may now carry:
   Each packet may also carry:
   - `target_component`
   - `bound_response_span`
+  These are currently heuristic lexical hints, not primary semantic drivers.
 - `zelph_claim_state_facts`
   Conservative bridge rows for downstream rule/inference work. These are derived
   from the claim-state packet; Zelph should consume them rather than raw text.
@@ -168,6 +215,10 @@ Each fact row carries:
 - `conflict_state`
 - `evidentiary_state`
 - `operational_status`
+- `semantic_basis`
+- `promotion_status`
+- `promotion_basis`
+- `promotion_reason`
 
 The nested `claim`, `response`, and `justifications` packets remain
 SensibLaw-internal row fields. They are the extraction substrate, not the
@@ -178,6 +229,12 @@ canonical Zelph bridge.
 - Duplicate opening allegation sentences are preserved as `duplicate_match_excerpt`.
 - In contested mode, surfaced excerpts prefer later non-duplicate sentences inside the same response block.
 - `response_acts` and `legal_significance_signals` are candidate labels only.
+- lexical justification hints are auxiliary only and do not promote claim-state
+  axes on their own.
+- `target_component` is now derived binding-first rather than by naive target
+  list order.
+- canonical truth-bearing promotion is not assigned in this script directly; it
+  passes through `src/policy/semantic_promotion.py`.
 - Promotion is conservative:
   - no implicit win/loss judgment
   - no doctrinal conclusion

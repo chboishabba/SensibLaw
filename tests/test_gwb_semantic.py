@@ -93,6 +93,14 @@ def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) 
     signed_receipts = {(receipt["kind"], receipt["value"]) for receipt in signed_row["receipts"]}
     assert ("rule_type", "executive_action") in signed_receipts
     assert ("promotion_status", "promoted") in signed_receipts
+    assert signed_row["semantic_candidate"]["schema_version"] == "relation.semantic_candidate.v1"
+    assert signed_row["semantic_candidate"]["candidate_kind"] == "semantic_relation"
+    assert signed_row["semantic_candidate"]["basis"] == "structural"
+    assert signed_row["semantic_candidate"]["predicate_key"] == "signed"
+    assert signed_row["semantic_basis"] == "structural"
+    assert signed_row["canonical_promotion_status"] == "promoted_true"
+    assert signed_row["canonical_promotion_basis"] == "structural"
+    assert signed_row["canonical_promotion_reason"] == "structural_relation_promoted"
 
     per_entity = {row["entity"]["canonical_key"]: row for row in report["per_entity"]}
     assert per_entity["actor:george_w_bush"]["promoted_relation_count"] >= 3
@@ -167,6 +175,7 @@ def test_gwb_semantic_pipeline_stays_stable_with_au_linkage_imported(tmp_path: P
     assert ("signed", "actor:george_w_bush", "legal_ref:military_commissions_act_of_2006") in promoted
     assert ("ruled_by", "legal_ref:military_commissions_act_of_2006", "actor:united_states_district_court") in promoted
     assert not any(row["entity"]["canonical_key"].startswith("actor:high_court_of_australia") for row in report["per_entity"])
+    assert all(row["semantic_candidate"]["candidate_kind"] == "semantic_relation" for row in report["relation_candidates"])
 
 
 def test_gwb_semantic_pipeline_uses_root_actor_for_first_person_stem_cell_veto(tmp_path: Path) -> None:

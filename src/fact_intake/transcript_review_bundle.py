@@ -283,6 +283,13 @@ def build_fact_intake_payload_from_transcript_report(
                             "relation_candidate_id": relation.get("candidate_id"),
                             "source_predicate_key": predicate_key,
                             "promotion_status": str(relation.get("promotion_status") or ""),
+                            "semantic_basis": str(relation.get("semantic_basis") or ""),
+                            "canonical_promotion_status": str(relation.get("canonical_promotion_status") or ""),
+                            "canonical_promotion_basis": str(relation.get("canonical_promotion_basis") or ""),
+                            "canonical_promotion_reason": str(relation.get("canonical_promotion_reason") or ""),
+                            "semantic_candidate": dict(relation.get("semantic_candidate", {}))
+                            if isinstance(relation.get("semantic_candidate"), Mapping)
+                            else None,
                             **(
                                 {"signal_classes": list(relation.get("signal_classes", []))}
                                 if isinstance(relation.get("signal_classes"), list)
@@ -446,5 +453,22 @@ def build_transcript_fact_review_bundle(
             "text_debug": dict(semantic_report.get("text_debug", {}))
             if isinstance(semantic_report.get("text_debug"), Mapping)
             else {},
+            "relation_candidates": [
+                {
+                    "candidate_id": row.get("candidate_id"),
+                    "event_id": row.get("event_id"),
+                    "predicate_key": row.get("predicate_key"),
+                    "promotion_status": row.get("promotion_status"),
+                    "semantic_basis": row.get("semantic_basis"),
+                    "canonical_promotion_status": row.get("canonical_promotion_status"),
+                    "canonical_promotion_basis": row.get("canonical_promotion_basis"),
+                    "canonical_promotion_reason": row.get("canonical_promotion_reason"),
+                    "semantic_candidate": dict(row.get("semantic_candidate", {}))
+                    if isinstance(row.get("semantic_candidate"), Mapping)
+                    else None,
+                }
+                for row in semantic_report.get("relation_candidates", [])
+                if isinstance(row, Mapping)
+            ],
         },
     }

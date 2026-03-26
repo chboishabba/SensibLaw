@@ -24,11 +24,26 @@ from src.gwb_us_law.semantic import (
     load_mission_observer,
     persist_mission_observer,
 )
+from src.policy.semantic_promotion import build_relation_candidate, promote_relation_candidate
 from src.reporting.structure_report import TextUnit
 from src.text.speaker_inference import SpeakerInferenceReceipt, infer_speakers
 
 
 PIPELINE_VERSION = "transcript_semantic_v1"
+
+
+def _derive_relation_semantic_basis(
+    *,
+    receipts: list[dict[str, Any]],
+    subject: dict[str, Any] | None,
+    object_: dict[str, Any] | None,
+) -> str:
+    has_participants = bool(subject) and bool(object_)
+    has_structural_receipt = any(
+        str(receipt.get("kind") or "") in {"subject", "object", "verb", "rule_type", "promotion_status"}
+        for receipt in receipts
+    )
+    return "structural" if has_participants and has_structural_receipt else "heuristic"
 
 _TRANSCRIPT_PREDICATES = (
     ("felt_state", "felt state", "affect_state"),
@@ -1259,6 +1274,25 @@ def build_transcript_semantic_report(
                 (int(row["candidate_id"]),),
             ).fetchall()
         ]
+        subject = entities[int(row["subject_entity_id"])]
+        object_ = entities[int(row["object_entity_id"])]
+        semantic_basis = _derive_relation_semantic_basis(receipts=receipts, subject=subject, object_=object_)
+        semantic_candidate = build_relation_candidate(
+            basis=semantic_basis,
+            event_id=str(row["event_id"]),
+            predicate_key=str(row["predicate_key"]),
+            subject=subject,
+            object=object_,
+            lane_promotion_status=str(row["promotion_status"]),
+            confidence_tier=str(row["confidence_tier"]),
+            receipts=receipts,
+            rule_ids=[
+                str(receipt.get("value"))
+                for receipt in receipts
+                if str(receipt.get("kind") or "") == "rule_type" and str(receipt.get("value") or "").strip()
+            ],
+        )
+        promotion = promote_relation_candidate(semantic_candidate)
         candidate_rows.append(
             {
                 "candidate_id": int(row["candidate_id"]),
@@ -1267,9 +1301,14 @@ def build_transcript_semantic_report(
                 "confidence_tier": str(row["confidence_tier"]),
                 "predicate_key": str(row["predicate_key"]),
                 "display_label": str(row["display_label"]),
-                "subject": entities[int(row["subject_entity_id"])],
-                "object": entities[int(row["object_entity_id"])],
+                "subject": subject,
+                "object": object_,
                 "receipts": receipts,
+                "semantic_candidate": semantic_candidate,
+                "semantic_basis": semantic_basis,
+                "canonical_promotion_status": promotion["status"],
+                "canonical_promotion_basis": promotion["basis"],
+                "canonical_promotion_reason": promotion["reason"],
             }
         )
     promoted = [row for row in candidate_rows if row["promotion_status"] == "promoted"]

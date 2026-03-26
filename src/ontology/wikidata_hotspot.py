@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from src.policy.semantic_promotion import (
+    build_hotspot_pack_candidate,
+    promote_hotspot_pack_candidate,
+)
+
 from .wikidata import project_wikidata_payload
 
 
@@ -20,6 +25,15 @@ VALID_PROMOTION_STATUSES = {
     "promotable",
     "promoted",
 }
+
+
+def _derive_hotspot_semantic_basis(entry: Mapping[str, Any]) -> str:
+    status = str(entry.get("status") or "").strip()
+    if status in {"fixture_backed", "report_backed"}:
+        return "structural"
+    if status == "page_locked_candidate":
+        return "mixed"
+    return "heuristic"
 
 
 def _string_list(values: Any) -> list[str]:
@@ -394,6 +408,19 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
         clusters = _clusters_from_entity_kind_collapse(entry, payload, repo_root=repo_root)
     else:
         raise ValueError(f"unsupported hotspot family for generation: {family}")
+    semantic_basis = _derive_hotspot_semantic_basis(entry)
+    semantic_candidate = build_hotspot_pack_candidate(
+        basis=semantic_basis,
+        pack_id=str(entry["pack_id"]),
+        hotspot_family=family,
+        lane_promotion_status=str(entry.get("promotion_status") or "candidate"),
+        status=str(entry.get("status") or "planned_only"),
+        cluster_count=len(clusters),
+        hold_reason=str(entry["hold_reason"]) if entry.get("hold_reason") not in (None, "") else None,
+        source_artifacts=source_artifacts,
+        rule_ids=[family],
+    )
+    promotion = promote_hotspot_pack_candidate(semantic_candidate)
     return {
         "pack_id": str(entry["pack_id"]),
         "status": str(entry.get("status") or "planned_only"),
@@ -410,6 +437,11 @@ def _clusters_for_entry(entry: Mapping[str, Any], *, repo_root: Path) -> dict[st
         "source_artifacts": source_artifacts,
         "candidate_cluster_families": _string_list(entry.get("candidate_cluster_families")),
         "cluster_count": len(clusters),
+        "semantic_candidate": semantic_candidate,
+        "semantic_basis": semantic_basis,
+        "canonical_promotion_status": promotion["status"],
+        "canonical_promotion_basis": promotion["basis"],
+        "canonical_promotion_reason": promotion["reason"],
         "clusters": clusters,
     }
 

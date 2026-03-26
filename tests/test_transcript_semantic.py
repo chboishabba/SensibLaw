@@ -48,6 +48,12 @@ def test_transcript_semantic_pipeline_persists_speakers_and_candidate_reply_rela
     replied_receipts = {(receipt["kind"], receipt["value"]) for receipt in replied_row["receipts"]}
     assert ("rule_type", "conversational_relation") in replied_receipts
     assert ("promotion_status", "candidate") in replied_receipts
+    assert replied_row["semantic_candidate"]["schema_version"] == "relation.semantic_candidate.v1"
+    assert replied_row["semantic_candidate"]["candidate_kind"] == "semantic_relation"
+    assert replied_row["semantic_basis"] == "structural"
+    assert replied_row["canonical_promotion_status"] == "abstained"
+    assert replied_row["canonical_promotion_basis"] == "structural"
+    assert replied_row["canonical_promotion_reason"] == "relation_candidate_not_promoted"
 
     alice_entity = conn.execute(
         """
@@ -213,6 +219,7 @@ def test_transcript_semantic_pipeline_extracts_explicit_social_relations_as_cand
     candidate_predicates = {row["predicate_key"] for row in report["candidate_only_relations"]}
     assert {"sibling_of", "friend_of", "parent_of", "guardian_of", "caregiver_of"} <= candidate_predicates
     assert result["promoted_relation_count"] == 0
+    assert all(row["semantic_candidate"]["candidate_kind"] == "semantic_relation" for row in report["relation_candidates"])
 
     sibling_row = next(row for row in report["candidate_only_relations"] if row["predicate_key"] == "sibling_of")
     sibling_receipts = {(receipt["kind"], receipt["value"]) for receipt in sibling_row["receipts"]}
@@ -649,6 +656,11 @@ def test_transcript_semantic_report_builds_mission_observer_followup_refs() -> N
     assert overlay["observer_kind"] == "itir_mission_graph_v1"
     assert overlay["mission_refs"][0]["topic_label"] == "notification routing feature"
     assert any(ref["ref_kind"] == "resolved_topic" for ref in overlay["evidence_refs"])
+    assert "promotion_status" not in overlay
+    assert "support_direction" not in overlay
+    assert "conflict_state" not in overlay
+    assert "evidentiary_state" not in overlay
+    assert "promotion_status" not in resolved_followup
 
 
 def test_transcript_report_emits_grouped_source_documents_and_source_spans() -> None:

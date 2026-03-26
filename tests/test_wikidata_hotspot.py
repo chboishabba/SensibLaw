@@ -37,6 +37,11 @@ def test_generate_hotspot_cluster_pack_builds_selected_packs() -> None:
     assert finance["status"] == "fixture_backed"
     assert finance["promotion_status"] == "promotable"
     assert finance["hold_reason"] == "awaiting_manifest_promotion"
+    assert finance["semantic_candidate"]["schema_version"] == "hotspot_pack.semantic_candidate.v1"
+    assert finance["semantic_candidate"]["candidate_kind"] == "hotspot_pack"
+    assert finance["semantic_basis"] == "structural"
+    assert finance["canonical_promotion_status"] == "abstained"
+    assert finance["canonical_promotion_basis"] == "structural"
     assert any(cluster["cluster_family"] == "kind_disambiguation" for cluster in finance["clusters"])
 
 
@@ -71,9 +76,12 @@ def test_generate_hotspot_cluster_pack_builds_all_manifest_entries() -> None:
     assert pack["pack_count"] == len(expected_ids)
     assert pack["cluster_count"] > 0
     assert all("promotion_status" in emitted_pack for emitted_pack in pack["packs"])
+    assert all("semantic_candidate" in emitted_pack for emitted_pack in pack["packs"])
+    assert all("canonical_promotion_status" in emitted_pack for emitted_pack in pack["packs"])
     for emitted_pack in pack["packs"]:
         if emitted_pack["promotion_status"] == "promoted":
             assert emitted_pack["hold_reason"] is None
+            assert emitted_pack["canonical_promotion_status"] == "promoted_true"
         else:
             assert isinstance(emitted_pack["hold_reason"], str)
         for cluster in emitted_pack["clusters"]:

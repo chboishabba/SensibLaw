@@ -274,10 +274,11 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
         fact_id = fact_id_by_node.get(subject)
         if fact_id not in fact_by_id:
             continue
-        bucket = inferred_by_fact_id.setdefault(fact_id, {"signal_classes": [], "source_signal_classes": []})
         if predicate == "signal_class":
+            bucket = inferred_by_fact_id.setdefault(fact_id, {"signal_classes": [], "source_signal_classes": []})
             bucket["signal_classes"].append(obj)
         elif predicate == "source_signal_class":
+            bucket = inferred_by_fact_id.setdefault(fact_id, {"signal_classes": [], "source_signal_classes": []})
             bucket["source_signal_classes"].append(obj)
 
     for fact_id, payload in inferred_by_fact_id.items():
@@ -340,7 +341,7 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
         "version": ZELPH_BRIDGE_VERSION,
         "rule_status": "portable_ok" if inferred_by_fact_id else "portable_noop",
         "facts_serialized_count": len(serialized_fact_lines.splitlines()) if serialized_fact_lines else 0,
-        "inferred_fact_count": len(inferred_by_fact_id),
+        "inferred_fact_count": sum(1 for payload in inferred_by_fact_id.values() if payload.get("signal_classes")),
         "inferred_by_fact_id": inferred_by_fact_id,
         "active_packs": active_packs,
         "triples": triples,

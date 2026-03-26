@@ -21,6 +21,16 @@ except (ModuleNotFoundError, ImportError):
         render_normalized_metrics_markdown,
     )
 
+try:
+    from src.rules.dependencies import get_dependencies as _get_dependencies
+except Exception:  # pragma: no cover - optional structural parser path
+    _get_dependencies = None
+
+try:
+    from src.policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
+
 
 ARTIFACT_VERSION = "affidavit_coverage_review_v1"
 _PARTIAL_MATCH_THRESHOLD = 0.3
@@ -108,59 +118,6 @@ _PROCEDURAL_EVENT_KEYWORDS = {
     "submissions",
 }
 
-_DISPUTE_CUES = (
-    "dispute",
-    "disputes",
-    "i dispute",
-    "i deny",
-    "did not",
-    "not true",
-    "incorrect",
-    "i reject",
-    "i do not agree",
-    "i disagree",
-)
-
-_HEDGED_DENIAL_CUES = (
-    "i do not feel",
-    "i don't feel",
-    "i do not believe",
-    "i don't believe",
-    "i do not recall",
-    "i don't recall",
-)
-
-_EXPLANATION_CUES = (
-    "because",
-    "so that",
-    "in order to",
-    "to facilitate",
-    "context",
-    "at the time",
-    "while",
-    "due to",
-)
-
-_ADMISSION_CUES = (
-    "i acknowledge",
-    "i admit",
-    "i accept",
-    "i did",
-    "on multiple occasions",
-)
-
-_SUPPORT_CUES = (
-    "confirmed",
-    "record",
-    "email",
-    "letter",
-    "with consent",
-    "consent",
-    "documented",
-    "attached",
-    "witnessed",
-)
-
 _CHARACTERIZATION_TERMS = {
     "abusive",
     "coercive",
@@ -173,34 +130,42 @@ _CHARACTERIZATION_TERMS = {
     "improper",
 }
 
-_CONSENT_TERMS = (
-    "consent",
-    "with consent",
-    "knowledge and consent",
-    "permission",
-)
-
-_AUTHORITY_TERMS = (
-    "epoa",
-    "duty",
-    "duties",
-    "authority",
-    "legal matters",
-    "care",
-)
-
-_LIMITATION_TERMS = (
-    "specific purposes",
-    "only to",
-    "limited",
-    "minimally",
-    "no further than necessary",
-)
-
-_JUSTIFICATION_TERM_MAP = {
-    "consent": _CONSENT_TERMS,
-    "authority_or_necessity": _AUTHORITY_TERMS,
-    "scope_limitation": _LIMITATION_TERMS,
+_LEXICAL_HEURISTIC_HINT_RULES: dict[str, tuple[dict[str, Any], ...]] = {
+    "justification": (
+        {
+            "rule_id": "justification.consent",
+            "label": "consent",
+            "patterns": (
+                r"\bconsent\b",
+                r"\bwith consent\b",
+                r"\bknowledge and consent\b",
+                r"\bpermission\b",
+            ),
+        },
+        {
+            "rule_id": "justification.authority_or_necessity",
+            "label": "authority_or_necessity",
+            "patterns": (
+                r"\bepoa\b",
+                r"\bduty\b",
+                r"\bduties\b",
+                r"\bauthority\b",
+                r"\blegal matters\b",
+                r"\bcare\b",
+            ),
+        },
+        {
+            "rule_id": "justification.scope_limitation",
+            "label": "scope_limitation",
+            "patterns": (
+                r"\bspecific purposes\b",
+                r"\bonly to\b",
+                r"\blimited\b",
+                r"\bminimally\b",
+                r"\bno further than necessary\b",
+            ),
+        },
+    ),
 }
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -219,8 +184,56 @@ def _tokenize(text: str) -> set[str]:
     return tokens
 
 
-def _explanation_discourse_tokens() -> set[str]:
-    return _tokenize(" ".join(_EXPLANATION_CUES)) | {"some"}
+def _apply_lexical_heuristic_group(text: str, group: str) -> dict[str, list[dict[str, Any]]]:
+    matches: dict[str, list[dict[str, Any]]] = {}
+    for rule in _LEXICAL_HEURISTIC_HINT_RULES.get(group, ()):
+        label = str(rule.get("label") or "").strip()
+        rule_id = str(rule.get("rule_id") or "").strip()
+        if not label or not rule_id:
+            continue
+        rule_matches: list[dict[str, Any]] = []
+        for pattern in rule.get("patterns", ()):
+            compiled = re.compile(str(pattern), re.IGNORECASE)
+            for match in compiled.finditer(text):
+                rule_matches.append(
+                    {
+                        "rule_id": rule_id,
+                        "text": match.group(0),
+                        "start": match.start(),
+                        "end": match.end(),
+                    }
+                )
+        if rule_matches:
+            matches[label] = rule_matches
+    return matches
+
+
+_HEDGE_VERBS = {"feel", "believe", "think", "recall"}
+
+
+def _analyze_structural_sentence(text: str) -> dict[str, Any]:
+    if _get_dependencies is None:
+        return {}
+    try:
+        sentences = _get_dependencies(text)
+    except Exception:
+        return {}
+    if not sentences:
+        return {}
+    first = sentences[0]
+    candidates = getattr(first, "candidates", {}) or {}
+    subjects = list(candidates.get("nsubj", [])) + list(candidates.get("nsubjpass", []))
+    verbs = list(candidates.get("verb", []))
+    negations = list(candidates.get("neg", []))
+    subject_texts = [str(getattr(item, "text", "") or "").strip() for item in subjects if str(getattr(item, "text", "") or "").strip()]
+    verb_lemmas = [str(getattr(item, "lemma", "") or getattr(item, "text", "") or "").strip().lower() for item in verbs]
+    return {
+        "subject_texts": subject_texts,
+        "verb_lemmas": verb_lemmas,
+        "has_negation": bool(negations),
+        "has_first_person_subject": any(text.casefold() == "i" for text in subject_texts),
+        "has_hedge_verb": any(lemma in _HEDGE_VERBS for lemma in verb_lemmas),
+    }
 
 
 def _split_source_text_segments(text: str) -> list[str]:
@@ -707,18 +720,6 @@ def _similarity_score(left_tokens: Iterable[str], right_tokens: Iterable[str]) -
     return round((2.0 * len(shared)) / (len(left) + len(right)), 6)
 
 
-def _find_argumentative_cues(text: str) -> dict[str, list[str]]:
-    lowered = text.casefold()
-    cues = {
-        "hedged_denial": [cue for cue in _HEDGED_DENIAL_CUES if cue in lowered],
-        "dispute": [cue for cue in _DISPUTE_CUES if cue in lowered],
-        "explanation": [cue for cue in _EXPLANATION_CUES if cue in lowered],
-        "admission": [cue for cue in _ADMISSION_CUES if cue in lowered],
-        "support_or_corroboration": [cue for cue in _SUPPORT_CUES if cue in lowered],
-    }
-    return cues
-
-
 def _classify_argumentative_role(
     proposition_text: str,
     excerpt_text: str,
@@ -727,40 +728,33 @@ def _classify_argumentative_role(
     use_row_fallback: bool = True,
 ) -> dict[str, Any]:
     excerpt = excerpt_text.strip()
-    row = row_text.strip()
-    excerpt_cues = _find_argumentative_cues(excerpt)
-    row_cues = _find_argumentative_cues(row) if use_row_fallback else {
-        "hedged_denial": [],
-        "dispute": [],
-        "explanation": [],
-        "admission": [],
-        "support_or_corroboration": [],
-    }
+    structural = _analyze_structural_sentence(excerpt)
     proposition_tokens = _tokenize(proposition_text)
     excerpt_tokens = _tokenize(excerpt)
     shared_ratio = 0.0
     substantive_shared_tokens = proposition_tokens & excerpt_tokens
     if proposition_tokens:
         shared_ratio = len(substantive_shared_tokens) / len(proposition_tokens)
-    role_priority = [
-        "hedged_denial",
-        "dispute",
-        "admission",
-        "explanation",
-        "support_or_corroboration",
-    ]
-    for role in role_priority:
-        cues = excerpt_cues[role] or row_cues[role]
-        if cues:
-            if role == "explanation" and not (substantive_shared_tokens - _explanation_discourse_tokens()):
-                return {
-                    "response_role": "non_response",
-                    "response_cues": cues,
-                }
-            return {
-                "response_role": role,
-                "response_cues": cues,
-            }
+    if structural.get("has_negation") and structural.get("has_hedge_verb"):
+        return {
+            "response_role": "hedged_denial",
+            "response_cues": ["structural:negated_hedge"],
+        }
+    if structural.get("has_negation"):
+        return {
+            "response_role": "dispute",
+            "response_cues": ["structural:negation"],
+        }
+    if structural.get("has_first_person_subject") and substantive_shared_tokens and not use_row_fallback:
+        return {
+            "response_role": "admission",
+            "response_cues": ["structural:first_person_subject"],
+        }
+    if not substantive_shared_tokens:
+        return {
+            "response_role": "non_response",
+            "response_cues": [],
+        }
     if shared_ratio >= 0.5:
         role = "restatement_only"
     else:
@@ -827,12 +821,13 @@ def _infer_response_packet(
     elif role == "procedural_frame":
         response_acts.append("procedural_or_nonresponsive_frame")
 
-    if any(term in excerpt_lower for term in _CONSENT_TERMS):
+    justification_matches = _apply_lexical_heuristic_group(excerpt, "justification")
+    if justification_matches.get("consent"):
         response_acts.append("justify")
         legal_significance_signals.append("consent_signal")
-    if any(term in excerpt_lower for term in _AUTHORITY_TERMS):
+    if justification_matches.get("authority_or_necessity"):
         legal_significance_signals.append("authority_or_necessity_signal")
-    if any(term in excerpt_lower for term in _LIMITATION_TERMS):
+    if justification_matches.get("scope_limitation"):
         response_acts.append("scope_limitation")
         legal_significance_signals.append("scope_limitation")
 
@@ -860,6 +855,44 @@ def _infer_response_packet(
     }
 
 
+def _derive_primary_target_component(*, response: Mapping[str, Any], response_acts: list[str]) -> str:
+    component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
+    normalized_targets = [str(target).strip() for target in component_targets if str(target).strip()]
+    if "characterization" in normalized_targets and "deny_characterisation" in set(response_acts):
+        return "characterization"
+    if "time" in normalized_targets:
+        return "time"
+    if "predicate_text" in normalized_targets:
+        return "predicate_text"
+    return normalized_targets[0] if normalized_targets else "predicate_text"
+
+
+def _derive_semantic_basis(
+    *,
+    response_cues: list[str],
+    response: Mapping[str, Any],
+    response_component_bindings: list[dict[str, Any]],
+    justifications: list[dict[str, Any]],
+) -> str:
+    if any(str(cue).startswith("structural:") for cue in response_cues):
+        return "structural"
+    structural_binding_components = {
+        str(binding.get("component") or "").strip()
+        for binding in response_component_bindings
+        if isinstance(binding, Mapping) and str(binding.get("component") or "").strip() in {"characterization", "time"}
+    }
+    if structural_binding_components and justifications:
+        return "mixed"
+    if structural_binding_components:
+        return "mixed"
+    if justifications:
+        return "heuristic"
+    speech_act = str(response.get("speech_act") or "").strip()
+    if speech_act in {"deny", "admit", "explain"}:
+        return "heuristic"
+    return "heuristic"
+
+
 def _derive_claim_state(
     *,
     response_acts: list[str],
@@ -870,8 +903,8 @@ def _derive_claim_state(
     acts = set(response_acts)
     signals = set(legal_significance_signals)
     has_for = bool(
-        {"admit_fact", "corroborate_or_ground", "justify", "scope_limitation"} & acts
-        or {"factual_admission", "evidentiary_grounding_signal", "consent_signal", "authority_or_necessity_signal"} & signals
+        {"admit_fact", "corroborate_or_ground"} & acts
+        or {"factual_admission", "evidentiary_grounding_signal"} & signals
     )
     has_against = bool(
         {"deny_fact", "deny_characterisation", "hedged_denial"} & acts
@@ -942,6 +975,8 @@ def _build_zelph_claim_state_fact(
     legal_significance_signals: list[str],
     support_status: str,
     coverage_status: str,
+    semantic_basis: str,
+    promotion: Mapping[str, Any],
 ) -> dict[str, Any]:
     claim_components = claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
     response_component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
@@ -961,6 +996,10 @@ def _build_zelph_claim_state_fact(
         "response_polarity": response.get("polarity"),
         "response_modifiers": list(response.get("modifiers") or []),
         "response_component_targets": list(response_component_targets),
+        "semantic_basis": semantic_basis,
+        "promotion_status": promotion.get("status"),
+        "promotion_basis": promotion.get("basis"),
+        "promotion_reason": promotion.get("reason"),
         "support_direction": claim_state.get("support_direction"),
         "conflict_state": claim_state.get("conflict_state"),
         "evidentiary_state": claim_state.get("evidentiary_state"),
@@ -1020,17 +1059,16 @@ def _extract_time_spans(text: str) -> list[dict[str, Any]]:
 
 def _extract_characterization_spans(text: str) -> list[dict[str, Any]]:
     spans: list[dict[str, Any]] = []
-    lowered = text.casefold()
     for term in sorted(_CHARACTERIZATION_TERMS):
-        start = lowered.find(term)
-        if start == -1:
-            continue
-        span = {
-            "text": text[start:start + len(term)],
-            "start": start,
-            "end": start + len(term),
-        }
-        spans.append(span)
+        pattern = re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE)
+        for match in pattern.finditer(text):
+            spans.append(
+                {
+                    "text": match.group(0),
+                    "start": match.start(),
+                    "end": match.end(),
+                }
+            )
     return spans
 
 
@@ -1038,10 +1076,13 @@ def _extract_claim_components(proposition_text: str) -> dict[str, Any]:
     claim_text = str(proposition_text or "").strip()
     predicate_span = _span_ref(claim_text, claim_text)
     actor = None
-    for candidate in ("The respondent", "The applicant", "Johl", "John", "I", "He", "She", "We"):
-        if claim_text.startswith(candidate + " ") or claim_text == candidate:
-            actor = _span_ref(claim_text, candidate)
-            break
+    structural = _analyze_structural_sentence(claim_text)
+    subject_texts = structural.get("subject_texts")
+    if isinstance(subject_texts, list):
+        for subject_text in subject_texts:
+            actor = _span_ref(claim_text, str(subject_text))
+            if actor is not None:
+                break
     components: dict[str, Any] = {
         "predicate_text": predicate_span,
     }
@@ -1118,30 +1159,29 @@ def _build_response_packet(
 
 def _build_justification_packets(excerpt_text: str) -> list[dict[str, Any]]:
     excerpt = str(excerpt_text or "")
-    lowered = excerpt.casefold()
     packets: list[dict[str, Any]] = []
-    for justification_type, terms in _JUSTIFICATION_TERM_MAP.items():
-        for term in terms:
-            idx = lowered.find(term)
-            if idx == -1:
-                continue
-            packets.append(
-                {
-                    "type": justification_type,
-                    "span": {
-                        "text": excerpt[idx:idx + len(term)],
-                        "start": idx,
-                        "end": idx + len(term),
-                    },
-                    "target_component": "predicate_text",
-                    "bound_response_span": {
-                        "text": excerpt[idx:idx + len(term)],
-                        "start": idx,
-                        "end": idx + len(term),
-                    },
-                }
-            )
-            break
+    rule_matches = _apply_lexical_heuristic_group(excerpt, "justification")
+    for justification_type, matches in rule_matches.items():
+        if not matches:
+            continue
+        match = matches[0]
+        packets.append(
+            {
+                "type": justification_type,
+                "rule_id": match["rule_id"],
+                "span": {
+                    "text": match["text"],
+                    "start": match["start"],
+                    "end": match["end"],
+                },
+                "target_component": "predicate_text",
+                "bound_response_span": {
+                    "text": match["text"],
+                    "start": match["start"],
+                    "end": match["end"],
+                },
+            }
+        )
     return packets
 
 
@@ -1530,6 +1570,39 @@ def build_affidavit_coverage_review(
             support_status=response_packet["support_status"],
             duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
         )
+        primary_target_component = _derive_primary_target_component(
+            response=response_object,
+            response_acts=response_packet["response_acts"],
+        )
+        semantic_basis = _derive_semantic_basis(
+            response_cues=list(best_score_row.get("response_cues", [])),
+            response=response_object,
+            response_component_bindings=response_component_bindings,
+            justifications=justification_packets,
+        )
+        semantic_candidate = build_contested_claim_candidate(
+            basis=semantic_basis,
+            claim_span=claim_packet.get("text_span") if isinstance(claim_packet, Mapping) else None,
+            response_span=response_object.get("text_span") if isinstance(response_object, Mapping) else None,
+            speech_act=str(response_object.get("speech_act") or ""),
+            polarity=str(response_object.get("polarity") or ""),
+            target_component=primary_target_component,
+            support_direction=claim_state["support_direction"],
+            conflict_state=claim_state["conflict_state"],
+            evidentiary_state=claim_state["evidentiary_state"],
+            modifiers=list(response_object.get("modifiers") or []),
+            justifications=justification_packets,
+            evidence_spans=[
+                span
+                for span in [
+                    response_object.get("text_span"),
+                    response_object.get("duplicate_text_span"),
+                ]
+                if isinstance(span, Mapping)
+            ],
+            rule_ids=list(best_score_row.get("response_cues", [])),
+        )
+        promotion = promote_contested_claim(semantic_candidate)
         affidavit_rows.append(
             {
                 "proposition_id": proposition["proposition_id"],
@@ -1550,6 +1623,11 @@ def build_affidavit_coverage_review(
                 "response_acts": response_packet["response_acts"],
                 "legal_significance_signals": response_packet["legal_significance_signals"],
                 "support_status": response_packet["support_status"],
+                "semantic_candidate": semantic_candidate,
+                "semantic_basis": semantic_basis,
+                "promotion_status": promotion["status"],
+                "promotion_basis": promotion["basis"],
+                "promotion_reason": promotion["reason"],
                 "support_direction": claim_state["support_direction"],
                 "conflict_state": claim_state["conflict_state"],
                 "evidentiary_state": claim_state["evidentiary_state"],
@@ -1572,6 +1650,8 @@ def build_affidavit_coverage_review(
                 legal_significance_signals=response_packet["legal_significance_signals"],
                 support_status=response_packet["support_status"],
                 coverage_status=status,
+                semantic_basis=semantic_basis,
+                promotion=promotion,
             )
         )
         for adjusted_score, raw_score, row, score_row in scored_rows:

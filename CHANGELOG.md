@@ -1,6 +1,90 @@
 # Changelog
 
 ## Unreleased
+- Transcript / observer / Wikidata parity lift:
+  - Extended `src/transcript_semantic/semantic.py` so transcript relation rows
+    now emit the same relation-candidate metadata as `GWB/AU`:
+    `semantic_candidate`, `semantic_basis`, and canonical tetralemma
+    promotion fields, while preserving the lane-local `promotion_status`.
+  - Extended `src/ontology/wikidata_hotspot.py` with a separate
+    `hotspot_pack.semantic_candidate.v1` contract plus central canonical
+    promotion metadata for hotspot packs, without forcing relation semantics
+    onto pack-shaped outputs.
+  - Tightened `tests/test_transcript_semantic.py`,
+    `tests/test_wikidata_hotspot.py`, and
+    `docs/planning/no_surface_semantic_mapping_policy_20260326.md` so
+    mission-observer overlays are explicitly pinned as operational-state-only,
+    not truth-bearing semantic promotion outputs.
+- GWB/AU semantic promotion parity:
+  - Extended `src/policy/semantic_promotion.py` with a minimal
+    `relation.semantic_candidate.v1` contract plus a central tetralemma
+    mapper for structural semantic-relation rows.
+  - Updated `src/gwb_us_law/semantic.py` so each relation row now emits
+    `semantic_candidate`, `semantic_basis`, and central
+    `canonical_promotion_status` / `canonical_promotion_basis` /
+    `canonical_promotion_reason` fields without breaking the existing
+    lane-local `promotion_status`.
+  - Tightened `tests/test_gwb_semantic.py`, `tests/test_au_semantic.py`, and
+    `tests/policy/test_semantic_promotion.py` so AU inherits the same parity
+    metadata via `build_au_semantic_report(...)`.
+- Contested runtime-depth refinement:
+  - Tightened `scripts/build_affidavit_coverage_review.py` so
+    `semantic_candidate.target_component` is derived binding-first rather than
+    from naive component-target ordering.
+  - Extended `semantic_basis` derivation so structurally grounded component
+    bindings plus heuristic justification hints can surface as `mixed` instead
+    of collapsing to `heuristic`.
+  - Added direct coverage in `tests/test_affidavit_coverage_review.py` for
+    target-component priority and `mixed` basis derivation.
+- Contested candidate schema + truth-bearing inventory:
+  - Added `docs/planning/contested_semantic_candidate_schema_20260327.md` to
+    freeze the minimal contested semantic candidate object emitted before
+    canonical promotion.
+  - Extended `src/policy/semantic_promotion.py` with candidate-schema constants,
+    builder/validator helpers, and explicit truth-bearing vs non-truth-bearing
+    field inventories.
+  - Routed the contested lane to emit `semantic_candidate` rows and tightened
+    tests so candidate shape and truth-bearing assignment are pinned in code.
+- Central semantic promotion gate:
+  - Added `src/policy/semantic_promotion.py` with a first central tetralemma
+    promotion gate for contested-claim semantics.
+  - Routed the contested lane in
+    `scripts/build_affidavit_coverage_review.py` through that gate, adding
+    `semantic_basis`, `promotion_status`, `promotion_basis`, and
+    `promotion_reason` to contested affidavit rows and the flat Zelph bridge.
+  - Added direct policy coverage in
+    `tests/policy/test_semantic_promotion.py` and tightened the contested
+    surface-policy guard to assert that canonical promotion uses the central
+    policy gate.
+- Contested-lane no-surface-semantic policy and guard:
+  - Added
+    `docs/planning/no_surface_semantic_mapping_policy_20260326.md` to record
+    the rule that semantic labels in this lane must be structural-first and may
+    not be derived directly from surface tokens.
+  - Added `tests/test_contested_surface_semantic_policy.py` to pin the current
+    enforcement boundary: lexical heuristics are quarantined to justification
+    hints only, and they do not drive `speech_act`, claim `actor`, or
+    claim-state axes.
+  - Tightened `scripts/build_affidavit_coverage_review.py` so lexical
+    speech-act and actor mappings are removed; only auxiliary lexical
+    justification hints remain, under an explicitly named heuristic surface.
+- Contested-lane optional structural parser seam:
+  - Added an optional dependency-parser path in
+    `scripts/build_affidavit_coverage_review.py` that can derive bounded
+    subject/negation/hedge signals from the existing repo-local dependency
+    helper when spaCy + a dependency model are available.
+  - Kept the explicit local rule registry as the fallback so the lane remains
+    deterministic in environments where spaCy is declared but not installed.
+  - Added test coverage for the structural negated-hedge path via monkeypatch.
+- Contested-lane rule substrate cleanup:
+  - Replaced the remaining inline contested response heuristics in
+    `scripts/build_affidavit_coverage_review.py` with a single local
+    rule-registry + evaluator path for `speech_act`, `justification`, and
+    `actor` rules.
+  - Tightened characterization extraction to boundary-aware regex matches so
+    spans are collected explicitly instead of via first-hit substring search.
+  - Documented the contested lane’s explicit rule substrate in
+    `docs/planning/contested_narrative_response_packet_contract_20260326.md`.
 - Contested-narrative response packet compression:
   - Compressed `response.speech_act` in
     `scripts/build_affidavit_coverage_review.py` to a small fixed basis

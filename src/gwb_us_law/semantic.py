@@ -13,10 +13,25 @@ from src.gwb_us_law.linkage import (
     build_gwb_us_law_linkage_report,
     run_gwb_us_law_linkage,
 )
+from src.policy.semantic_promotion import build_relation_candidate, promote_relation_candidate
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 
 
 PIPELINE_VERSION = "gwb_semantic_v1"
+
+
+def _derive_relation_semantic_basis(
+    *,
+    receipts: list[Mapping[str, Any]],
+    subject: Mapping[str, Any] | None,
+    object: Mapping[str, Any] | None,
+) -> str:
+    has_participants = bool(subject) and bool(object)
+    has_structural_receipt = any(
+        str(receipt.get("kind") or "") in {"subject", "object", "verb", "rule_type", "promotion_status"}
+        for receipt in receipts
+    )
+    return "structural" if has_participants and has_structural_receipt else "heuristic"
 
 _EVENT_ROLE_VOCAB: tuple[tuple[str, str, str], ...] = (
     ("agent", "Agent", "core_participant"),
@@ -3577,6 +3592,25 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
                 (int(row["candidate_id"]),),
             ).fetchall()
         ]
+        subject = entities[int(row["subject_entity_id"])]
+        object_ = entities[int(row["object_entity_id"])]
+        semantic_basis = _derive_relation_semantic_basis(receipts=receipts, subject=subject, object=object_)
+        semantic_candidate = build_relation_candidate(
+            basis=semantic_basis,
+            event_id=str(row["event_id"]),
+            predicate_key=str(row["predicate_key"]),
+            subject=subject,
+            object=object_,
+            lane_promotion_status=str(row["promotion_status"]),
+            confidence_tier=str(row["confidence_tier"]),
+            receipts=receipts,
+            rule_ids=[
+                str(receipt.get("value"))
+                for receipt in receipts
+                if str(receipt.get("kind") or "") == "rule_type" and str(receipt.get("value") or "").strip()
+            ],
+        )
+        promotion = promote_relation_candidate(semantic_candidate)
         entry = {
             "candidate_id": int(row["candidate_id"]),
             "event_id": str(row["event_id"]),
@@ -3584,9 +3618,14 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
             "confidence_tier": str(row["confidence_tier"]),
             "predicate_key": str(row["predicate_key"]),
             "display_label": str(row["display_label"]),
-            "subject": entities[int(row["subject_entity_id"])],
-            "object": entities[int(row["object_entity_id"])],
+            "subject": subject,
+            "object": object_,
             "receipts": receipts,
+            "semantic_candidate": semantic_candidate,
+            "semantic_basis": semantic_basis,
+            "canonical_promotion_status": promotion["status"],
+            "canonical_promotion_basis": promotion["basis"],
+            "canonical_promotion_reason": promotion["reason"],
         }
         candidate_relations.append(entry)
         for participant in (int(row["subject_entity_id"]), int(row["object_entity_id"])):

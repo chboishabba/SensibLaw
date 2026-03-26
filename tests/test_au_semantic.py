@@ -95,6 +95,10 @@ def test_au_semantic_pipeline_creates_doc_local_participants_and_abstains_weak_f
     assert "review_summary" in report
     assert "text_debug" in report
     assert report["source_documents"]
+    assert report["promoted_relations"]
+    assert all(row["semantic_candidate"]["schema_version"] == "relation.semantic_candidate.v1" for row in report["promoted_relations"])
+    assert all(row["semantic_basis"] == "structural" for row in report["promoted_relations"])
+    assert all(row["canonical_promotion_status"] == "promoted_true" for row in report["promoted_relations"])
     assert "predicate_counts" in report["review_summary"]
     assert report["review_summary"]["text_debug"]["event_count"] >= 0
     assert report["review_summary"]["text_debug"]["excluded_relation_count"] >= 0
