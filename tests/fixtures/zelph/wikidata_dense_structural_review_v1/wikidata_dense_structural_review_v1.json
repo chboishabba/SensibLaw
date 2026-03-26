@@ -1,0 +1,3057 @@
+{
+  "candidate_structural_cues": [
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:1:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q28792860",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:1"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:1:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:1"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:2:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:2"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:2:qualifier:P2241",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P2241",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:2"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:qualifier:P7452",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P7452",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:4:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:4"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:4:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:4"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:1:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q28792860",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:1"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:1:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:1"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:2:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:2"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:2:qualifier:P2241",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P2241",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:2"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:qualifier:P7452",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P7452",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:4:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:4"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:4:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:4"
+    },
+    {
+      "cue_id": "source:dense:qualifier_drift:Q100104196|P166:signature:19",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:dense:qualifier_drift:Q100104196|P166"
+    },
+    {
+      "cue_id": "source:dense:qualifier_drift:Q100104196|P166:signature:20",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[]",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:dense:qualifier_drift:Q100104196|P166"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q9779",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q9779",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q8192",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q8192",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q21169592",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q21169592",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q7187",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7187",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:hierarchy",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q9779",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q8192",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:3:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q21169592",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:4:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7187",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:4"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22652",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22652",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22698",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22698",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q52040",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q52040",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q188",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q188",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:hierarchy",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:closure_conflict",
+      "cue_kind": "cluster_family",
+      "cue_value": "closure_conflict",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22652",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22698",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:3:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q52040",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:4:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q188",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:4"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "closure_conflict",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:focus_qid:Q100104196",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q100104196",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:temporalized_statement",
+      "cue_kind": "cluster_family",
+      "cue_value": "temporalized_statement",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:revision_pair_agreement",
+      "cue_kind": "cluster_family",
+      "cue_value": "revision_pair_agreement",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:property_inheritance",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q100104196",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "temporalized_statement",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "revision_pair_agreement",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q44571",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q44571",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q7598",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7598",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:kind_disambiguation",
+      "cue_kind": "cluster_family",
+      "cue_value": "kind_disambiguation",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:property_inheritance",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q44571",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7598",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "kind_disambiguation",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:2"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:3"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:2"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:3"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:4:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:4"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:5:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:5"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:6:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:6"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:7:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:7"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:8:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:8"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:9:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:9"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:1"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P31",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:2"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P31",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:3"
+    }
+  ],
+  "provisional_review_bundles": [
+    {
+      "anchor_count": 10,
+      "bundle_id": "bundle:review:disjointness_case:fixed_construction_contradiction",
+      "bundle_rank": 1,
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_ids": [
+        "source:dense:disjointness:fixed_construction_contradiction:1",
+        "source:dense:disjointness:fixed_construction_contradiction:2",
+        "source:dense:disjointness:fixed_construction_contradiction:3",
+        "source:dense:disjointness:fixed_construction_contradiction:4",
+        "source:dense:disjointness:fixed_construction_contradiction:5",
+        "source:dense:disjointness:fixed_construction_contradiction:6",
+        "source:dense:disjointness:fixed_construction_contradiction:7",
+        "source:dense:disjointness:fixed_construction_contradiction:8",
+        "source:dense:disjointness:fixed_construction_contradiction:9"
+      ],
+      "source_texts": [
+        "independent continuant (Q53617489) P2738 list of values as qualifiers (Q23766486)",
+        "geolocatable entity (Q123349660) P279 material entity (Q53617407)",
+        "spatial region (Q124711484) P279 immaterial entity (Q124711467)",
+        "region of space (Q26713767) P279 spatial region (Q124711484)",
+        "geographic entity (Q27096213) P279 geolocatable entity (Q123349660)",
+        "geographic entity (Q27096213) P279 region of space (Q26713767)",
+        "geographical feature (Q618123) P279 geographic entity (Q27096213)",
+        "fixed construction (Q811430) P279 geographical feature (Q618123)",
+        "framing (Q2131593) P279 fixed construction (Q811430)"
+      ],
+      "top_priority_score": 94
+    },
+    {
+      "anchor_count": 4,
+      "bundle_id": "bundle:review:disjointness_case:working_fluid_contradiction",
+      "bundle_rank": 2,
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_ids": [
+        "source:dense:disjointness:working_fluid_contradiction:1",
+        "source:dense:disjointness:working_fluid_contradiction:2",
+        "source:dense:disjointness:working_fluid_contradiction:3"
+      ],
+      "source_texts": [
+        "fluid (Q102205) P2738 list of values as qualifiers (Q23766486)",
+        "working fluid (Q217236) P31 gas (Q11432)",
+        "working fluid (Q217236) P31 liquid (Q11435)"
+      ],
+      "top_priority_score": 94
+    },
+    {
+      "anchor_count": 2,
+      "bundle_id": "bundle:review:qualifier_drift:Q100104196|P166",
+      "bundle_rank": 3,
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_ids": [
+        "source:dense:qualifier_drift:Q100104196|P166"
+      ],
+      "source_texts": [
+        "Q100104196|P166 drift from t1 to t2 at severity=medium."
+      ],
+      "top_priority_score": 84
+    },
+    {
+      "anchor_count": 12,
+      "bundle_id": "bundle:review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "bundle_rank": 4,
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_ids": [
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4",
+        "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1",
+        "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2",
+        "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0"
+      ],
+      "source_texts": [
+        "edge_yes",
+        "edge_inv",
+        "kind_disambiguation",
+        "property_inheritance",
+        "Focus QID Q44571",
+        "Focus QID Q7598",
+        "software_entity_kind_collapse_pack_v0 focuses on Q44571,Q7598."
+      ],
+      "top_priority_score": 80
+    },
+    {
+      "anchor_count": 16,
+      "bundle_id": "bundle:review:hotspot_pack:p279_scc_live_pack_v1",
+      "bundle_rank": 5,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_ids": [
+        "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1",
+        "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2",
+        "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3",
+        "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4",
+        "source:dense:hotspot_focus:p279_scc_live_pack_v1:1",
+        "source:dense:hotspot_focus:p279_scc_live_pack_v1:2",
+        "source:dense:hotspot_focus:p279_scc_live_pack_v1:3",
+        "source:dense:hotspot_focus:p279_scc_live_pack_v1:4",
+        "source:dense:hotspot_pack:p279_scc_live_pack_v1"
+      ],
+      "source_texts": [
+        "edge_yes",
+        "edge_inv",
+        "hierarchy",
+        "closure_conflict",
+        "Focus QID Q22652",
+        "Focus QID Q22698",
+        "Focus QID Q52040",
+        "Focus QID Q188",
+        "p279_scc_live_pack_v1 focuses on Q22652,Q22698,Q52040,Q188."
+      ],
+      "top_priority_score": 62
+    },
+    {
+      "anchor_count": 14,
+      "bundle_id": "bundle:review:hotspot_pack:mixed_order_live_pack_v1",
+      "bundle_rank": 6,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_ids": [
+        "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1",
+        "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2",
+        "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3",
+        "source:dense:hotspot_focus:mixed_order_live_pack_v1:1",
+        "source:dense:hotspot_focus:mixed_order_live_pack_v1:2",
+        "source:dense:hotspot_focus:mixed_order_live_pack_v1:3",
+        "source:dense:hotspot_focus:mixed_order_live_pack_v1:4",
+        "source:dense:hotspot_pack:mixed_order_live_pack_v1"
+      ],
+      "source_texts": [
+        "edge_yes",
+        "edge_inv",
+        "hierarchy",
+        "Focus QID Q9779",
+        "Focus QID Q8192",
+        "Focus QID Q21169592",
+        "Focus QID Q7187",
+        "mixed_order_live_pack_v1 focuses on Q9779,Q8192,Q21169592,Q7187."
+      ],
+      "top_priority_score": 62
+    },
+    {
+      "anchor_count": 8,
+      "bundle_id": "bundle:review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "bundle_rank": 7,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_ids": [
+        "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1",
+        "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2",
+        "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3",
+        "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1",
+        "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+      ],
+      "source_texts": [
+        "temporalized_statement",
+        "revision_pair_agreement",
+        "property_inheritance",
+        "Focus QID Q100104196",
+        "qualifier_drift_p166_live_pack_v1 focuses on Q100104196."
+      ],
+      "top_priority_score": 62
+    },
+    {
+      "anchor_count": 4,
+      "bundle_id": "bundle:review:disjointness_case:nucleon_baseline",
+      "bundle_rank": 8,
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_ids": [
+        "source:dense:disjointness:nucleon_baseline:1",
+        "source:dense:disjointness:nucleon_baseline:2",
+        "source:dense:disjointness:nucleon_baseline:3"
+      ],
+      "source_texts": [
+        "nucleon (Q102165) P2738 list of values as qualifiers (Q23766486)",
+        "proton (Q2294) P279 nucleon (Q102165)",
+        "neutron (Q2348) P279 nucleon (Q102165)"
+      ],
+      "top_priority_score": 29
+    },
+    {
+      "anchor_count": 18,
+      "bundle_id": "bundle:review:qualifier_baseline",
+      "bundle_rank": 9,
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_ids": [
+        "source:dense:qualifier_baseline:t1:1",
+        "source:dense:qualifier_baseline:t1:2",
+        "source:dense:qualifier_baseline:t1:3",
+        "source:dense:qualifier_baseline:t1:4",
+        "source:dense:qualifier_baseline:t2:1",
+        "source:dense:qualifier_baseline:t2:2",
+        "source:dense:qualifier_baseline:t2:3",
+        "source:dense:qualifier_baseline:t2:4"
+      ],
+      "source_texts": [
+        "Q28792860 P166 Q2113 in t1 with qualifiers P585.",
+        "Q1336181 P166 Q20872 in t1 with qualifiers P2241.",
+        "Q1336181 P166 Q18601721 in t1 with qualifiers P585,P7452.",
+        "Q1336181 P166 Q10639464 in t1 with qualifiers P585.",
+        "Q28792860 P166 Q2113 in t2 with qualifiers P585.",
+        "Q1336181 P166 Q20872 in t2 with qualifiers P2241.",
+        "Q1336181 P166 Q18601721 in t2 with qualifiers P585,P7452.",
+        "Q1336181 P166 Q10639464 in t2 with qualifiers P585."
+      ],
+      "top_priority_score": 27
+    }
+  ],
+  "provisional_review_rows": [
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P2738",
+      "priority_rank": 1,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:1:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 2,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:2:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:2",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 3,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:3:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:3",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:4:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 4,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:4:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:4",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:5:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 5,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:5:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:5",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:6:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 6,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:6:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:6",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:7:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 7,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:7:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:7",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:8:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 8,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:8:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:8",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:9:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|property_pid|P279",
+      "priority_rank": 9,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:9:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:9",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|property_pid|P2738",
+      "priority_rank": 10,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:working_fluid_contradiction:1:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P31",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|property_pid|P31",
+      "priority_rank": 11,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:working_fluid_contradiction:2:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:2",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P31",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|property_pid|P31",
+      "priority_rank": 12,
+      "priority_score": 94,
+      "provisional_review_id": "prov:source:dense:disjointness:working_fluid_contradiction:3:property",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:3",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:fixed_construction_contradiction:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|qualifier_property|P11260",
+      "priority_rank": 13,
+      "priority_score": 92,
+      "provisional_review_id": "prov:source:dense:disjointness:fixed_construction_contradiction:1:qualifier:P11260",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:disjointness:working_fluid_contradiction:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|qualifier_property|P11260",
+      "priority_rank": 14,
+      "priority_score": 92,
+      "provisional_review_id": "prov:source:dense:disjointness:working_fluid_contradiction:1:qualifier:P11260",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:dense:qualifier_drift:Q100104196|P166:signature:19",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "dedupe_key": "review:qualifier_drift:Q100104196|P166|qualifier_signature_delta|[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "priority_rank": 15,
+      "priority_score": 84,
+      "provisional_review_id": "prov:source:dense:qualifier_drift:Q100104196|P166:signature:19",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:dense:qualifier_drift:Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_id": "source:dense:qualifier_drift:Q100104196|P166:signature:20",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[]",
+      "dedupe_key": "review:qualifier_drift:Q100104196|P166|qualifier_signature_delta|[]",
+      "priority_rank": 16,
+      "priority_score": 84,
+      "provisional_review_id": "prov:source:dense:qualifier_drift:Q100104196|P166:signature:20",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:dense:qualifier_drift:Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|edge_yes",
+      "priority_rank": 17,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1:cluster_family",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|edge_inv",
+      "priority_rank": 18,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2:cluster_family",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "kind_disambiguation",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|kind_disambiguation",
+      "priority_rank": 19,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3:cluster_family",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|property_inheritance",
+      "priority_rank": 20,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4:cluster_family",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q44571",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|focus_qid|Q44571",
+      "priority_rank": 21,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1:focus_qid",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7598",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|focus_qid|Q7598",
+      "priority_rank": 22,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2:focus_qid",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|edge_inv",
+      "priority_rank": 23,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_inv",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|edge_yes",
+      "priority_rank": 24,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:edge_yes",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:kind_disambiguation",
+      "cue_kind": "cluster_family",
+      "cue_value": "kind_disambiguation",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|kind_disambiguation",
+      "priority_rank": 25,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:kind_disambiguation",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:property_inheritance",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|cluster_family|property_inheritance",
+      "priority_rank": 26,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:cluster_family:property_inheritance",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q44571",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q44571",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|focus_qid|Q44571",
+      "priority_rank": 27,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q44571",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q7598",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7598",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|focus_qid|Q7598",
+      "priority_rank": 28,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0:focus_qid:Q7598",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|edge_yes",
+      "priority_rank": 29,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|edge_inv",
+      "priority_rank": 30,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|hierarchy",
+      "priority_rank": 31,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q9779",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q9779",
+      "priority_rank": 32,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:mixed_order_live_pack_v1:1:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q8192",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q8192",
+      "priority_rank": 33,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:mixed_order_live_pack_v1:2:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:3:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q21169592",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q21169592",
+      "priority_rank": 34,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:mixed_order_live_pack_v1:3:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:3",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:4:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7187",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q7187",
+      "priority_rank": 35,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:mixed_order_live_pack_v1:4:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:4",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|edge_inv",
+      "priority_rank": 36,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_inv",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|edge_yes",
+      "priority_rank": 37,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:edge_yes",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:hierarchy",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|cluster_family|hierarchy",
+      "priority_rank": 38,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:cluster_family:hierarchy",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q21169592",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q21169592",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q21169592",
+      "priority_rank": 39,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q21169592",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q7187",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q7187",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q7187",
+      "priority_rank": 40,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q7187",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q8192",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q8192",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q8192",
+      "priority_rank": 41,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q8192",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q9779",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q9779",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|focus_qid|Q9779",
+      "priority_rank": 42,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:mixed_order_live_pack_v1:focus_qid:Q9779",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|edge_yes",
+      "priority_rank": 43,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|edge_inv",
+      "priority_rank": 44,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|hierarchy",
+      "priority_rank": 45,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "closure_conflict",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|closure_conflict",
+      "priority_rank": 46,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22652",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q22652",
+      "priority_rank": 47,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:p279_scc_live_pack_v1:1:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:2:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22698",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q22698",
+      "priority_rank": 48,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:p279_scc_live_pack_v1:2:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:3:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q52040",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q52040",
+      "priority_rank": 49,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:p279_scc_live_pack_v1:3:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:3",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:4:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q188",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q188",
+      "priority_rank": 50,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:p279_scc_live_pack_v1:4:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:4",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:closure_conflict",
+      "cue_kind": "cluster_family",
+      "cue_value": "closure_conflict",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|closure_conflict",
+      "priority_rank": 51,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:closure_conflict",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_inv",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_inv",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|edge_inv",
+      "priority_rank": 52,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_inv",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_yes",
+      "cue_kind": "cluster_family",
+      "cue_value": "edge_yes",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|edge_yes",
+      "priority_rank": 53,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:edge_yes",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:hierarchy",
+      "cue_kind": "cluster_family",
+      "cue_value": "hierarchy",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|cluster_family|hierarchy",
+      "priority_rank": 54,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:cluster_family:hierarchy",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q188",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q188",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q188",
+      "priority_rank": 55,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q188",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22652",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22652",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q22652",
+      "priority_rank": 56,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22652",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22698",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q22698",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q22698",
+      "priority_rank": 57,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q22698",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q52040",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q52040",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|focus_qid|Q52040",
+      "priority_rank": 58,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:p279_scc_live_pack_v1:focus_qid:Q52040",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "temporalized_statement",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|temporalized_statement",
+      "priority_rank": 59,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "revision_pair_agreement",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|revision_pair_agreement",
+      "priority_rank": 60,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3:cluster_family",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|property_inheritance",
+      "priority_rank": 61,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3:cluster_family",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1:focus_qid",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q100104196",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|focus_qid|Q100104196",
+      "priority_rank": 62,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1:focus_qid",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:property_inheritance",
+      "cue_kind": "cluster_family",
+      "cue_value": "property_inheritance",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|property_inheritance",
+      "priority_rank": 63,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:property_inheritance",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:revision_pair_agreement",
+      "cue_kind": "cluster_family",
+      "cue_value": "revision_pair_agreement",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|revision_pair_agreement",
+      "priority_rank": 64,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:revision_pair_agreement",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:temporalized_statement",
+      "cue_kind": "cluster_family",
+      "cue_value": "temporalized_statement",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|cluster_family|temporalized_statement",
+      "priority_rank": 65,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:cluster_family:temporalized_statement",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:focus_qid:Q100104196",
+      "cue_kind": "focus_qid",
+      "cue_value": "Q100104196",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|focus_qid|Q100104196",
+      "priority_rank": 66,
+      "priority_score": 62,
+      "provisional_review_id": "prov:source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1:focus_qid:Q100104196",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:1:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P2738",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|property_pid|P2738",
+      "priority_rank": 67,
+      "priority_score": 29,
+      "provisional_review_id": "prov:source:dense:disjointness:nucleon_baseline:1:property",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:2:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|property_pid|P279",
+      "priority_rank": 68,
+      "priority_score": 29,
+      "provisional_review_id": "prov:source:dense:disjointness:nucleon_baseline:2:property",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:2",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:3:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P279",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|property_pid|P279",
+      "priority_rank": 69,
+      "priority_score": 29,
+      "provisional_review_id": "prov:source:dense:disjointness:nucleon_baseline:3:property",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:disjointness:nucleon_baseline:1:qualifier:P11260",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P11260",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|qualifier_property|P11260",
+      "priority_rank": 70,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:disjointness:nucleon_baseline:1:qualifier:P11260",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:1:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 71,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:1:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:1:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q28792860",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q28792860",
+      "priority_rank": 72,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:1:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:2:qualifier:P2241",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P2241",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P2241",
+      "priority_rank": 73,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:2:qualifier:P2241",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:2",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:2:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 74,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:2:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:2",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 75,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:3:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:qualifier:P7452",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P7452",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P7452",
+      "priority_rank": 76,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:3:qualifier:P7452",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:3:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 77,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:3:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:4:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 78,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:4:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:4",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t1:4:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 79,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t1:4:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t1:4",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:1:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 80,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:1:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:1:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q28792860",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q28792860",
+      "priority_rank": 81,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:1:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:2:qualifier:P2241",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P2241",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P2241",
+      "priority_rank": 82,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:2:qualifier:P2241",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:2",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:2:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 83,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:2:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:2",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 84,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:3:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:qualifier:P7452",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P7452",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P7452",
+      "priority_rank": 85,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:3:qualifier:P7452",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:3:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 86,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:3:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:4:qualifier:P585",
+      "cue_kind": "qualifier_property",
+      "cue_value": "P585",
+      "dedupe_key": "review:qualifier_baseline|qualifier_property|P585",
+      "priority_rank": 87,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:4:qualifier:P585",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:4",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:dense:qualifier_baseline:t2:4:subject",
+      "cue_kind": "subject_qid",
+      "cue_value": "Q1336181",
+      "dedupe_key": "review:qualifier_baseline|subject_qid|Q1336181",
+      "priority_rank": 88,
+      "priority_score": 27,
+      "provisional_review_id": "prov:source:dense:qualifier_baseline:t2:4:subject",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:dense:qualifier_baseline:t2:4",
+      "workload_class": "baseline_confirmation"
+    }
+  ],
+  "related_review_clusters": [
+    {
+      "candidate_cue_count": 10,
+      "candidate_cue_rollup": {
+        "property_pid": 9,
+        "qualifier_property": 1
+      },
+      "cluster_id": "cluster:review:disjointness_case:fixed_construction_contradiction",
+      "dominant_workload_class": "structural_contradiction",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_row_count": 9,
+      "source_row_ids": [
+        "source:dense:disjointness:fixed_construction_contradiction:1",
+        "source:dense:disjointness:fixed_construction_contradiction:2",
+        "source:dense:disjointness:fixed_construction_contradiction:3",
+        "source:dense:disjointness:fixed_construction_contradiction:4",
+        "source:dense:disjointness:fixed_construction_contradiction:5",
+        "source:dense:disjointness:fixed_construction_contradiction:6",
+        "source:dense:disjointness:fixed_construction_contradiction:7",
+        "source:dense:disjointness:fixed_construction_contradiction:8",
+        "source:dense:disjointness:fixed_construction_contradiction:9"
+      ],
+      "title": "Disjointness case fixed_construction_contradiction",
+      "workload_class_rollup": {
+        "structural_contradiction": 9
+      }
+    },
+    {
+      "candidate_cue_count": 12,
+      "candidate_cue_rollup": {
+        "cluster_family": 8,
+        "focus_qid": 4
+      },
+      "cluster_id": "cluster:review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "dominant_workload_class": "governance_gap",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_row_count": 7,
+      "source_row_ids": [
+        "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+        "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1",
+        "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3",
+        "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4"
+      ],
+      "title": "Hotspot pack software_entity_kind_collapse_pack_v0",
+      "workload_class_rollup": {
+        "governance_gap": 7
+      }
+    },
+    {
+      "candidate_cue_count": 4,
+      "candidate_cue_rollup": {
+        "property_pid": 3,
+        "qualifier_property": 1
+      },
+      "cluster_id": "cluster:review:disjointness_case:working_fluid_contradiction",
+      "dominant_workload_class": "structural_contradiction",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_row_count": 3,
+      "source_row_ids": [
+        "source:dense:disjointness:working_fluid_contradiction:1",
+        "source:dense:disjointness:working_fluid_contradiction:2",
+        "source:dense:disjointness:working_fluid_contradiction:3"
+      ],
+      "title": "Disjointness case working_fluid_contradiction",
+      "workload_class_rollup": {
+        "structural_contradiction": 3
+      }
+    },
+    {
+      "candidate_cue_count": 2,
+      "candidate_cue_rollup": {
+        "qualifier_signature_delta": 2
+      },
+      "cluster_id": "cluster:review:qualifier_drift:Q100104196|P166",
+      "dominant_workload_class": "qualifier_drift_gap",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_row_count": 1,
+      "source_row_ids": [
+        "source:dense:qualifier_drift:Q100104196|P166"
+      ],
+      "title": "Qualifier drift case Q100104196|P166",
+      "workload_class_rollup": {
+        "qualifier_drift_gap": 1
+      }
+    }
+  ],
+  "review_item_rows": [
+    {
+      "evidence_summary": "8 statements across 2 windows for P166",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_kind": "qualifier_baseline",
+      "review_status": "baseline",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json"
+      ],
+      "title": "Qualifier-bearing import baseline",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "evidence_summary": "severity=medium from t1 to t2",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_kind": "qualifier_drift_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+      ],
+      "title": "Qualifier drift case Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "evidence_summary": "mixed_order with 6 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+        "SensibLaw/tests/test_wikidata_projection.py"
+      ],
+      "title": "Hotspot pack mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "p279_scc with 4 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+        "SensibLaw/tests/test_wikidata_projection.py"
+      ],
+      "title": "Hotspot pack p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "qualifier_drift with 1 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+      ],
+      "title": "Hotspot pack qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "entity_kind_collapse with 8 generated clusters",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_kind": "hotspot_pack",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json"
+      ],
+      "title": "Hotspot pack software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "evidence_summary": "proton vs neutron",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_kind": "disjointness_case",
+      "review_status": "baseline",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case nucleon_baseline",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "evidence_summary": "immaterial entity vs material entity",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_kind": "disjointness_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case fixed_construction_contradiction",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "evidence_summary": "gas vs liquid",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_kind": "disjointness_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case working_fluid_contradiction",
+      "workload_class": "structural_contradiction"
+    }
+  ],
+  "source_handoff_version": "wikidata_structural_handoff_v1",
+  "source_review_rows": [
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585"
+        ],
+        "rank": "normal",
+        "subject": "Q28792860",
+        "value": "Q2113"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t1:1",
+      "text": "Q28792860 P166 Q2113 in t1 with qualifiers P585.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P2241"
+        ],
+        "rank": "deprecated",
+        "subject": "Q1336181",
+        "value": "Q20872"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t1:2",
+      "text": "Q1336181 P166 Q20872 in t1 with qualifiers P2241.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585",
+          "P7452"
+        ],
+        "rank": "preferred",
+        "subject": "Q1336181",
+        "value": "Q18601721"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t1:3",
+      "text": "Q1336181 P166 Q18601721 in t1 with qualifiers P585,P7452.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585"
+        ],
+        "rank": "normal",
+        "subject": "Q1336181",
+        "value": "Q10639464"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t1:4",
+      "text": "Q1336181 P166 Q10639464 in t1 with qualifiers P585.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585"
+        ],
+        "rank": "normal",
+        "subject": "Q28792860",
+        "value": "Q2113"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t2:1",
+      "text": "Q28792860 P166 Q2113 in t2 with qualifiers P585.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P2241"
+        ],
+        "rank": "deprecated",
+        "subject": "Q1336181",
+        "value": "Q20872"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t2:2",
+      "text": "Q1336181 P166 Q20872 in t2 with qualifiers P2241.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585",
+          "P7452"
+        ],
+        "rank": "preferred",
+        "subject": "Q1336181",
+        "value": "Q18601721"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t2:3",
+      "text": "Q1336181 P166 Q18601721 in t2 with qualifiers P585,P7452.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_keys": [
+          "P585"
+        ],
+        "rank": "normal",
+        "subject": "Q1336181",
+        "value": "Q10639464"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:dense:qualifier_baseline:t2:4",
+      "text": "Q1336181 P166 Q10639464 in t2 with qualifiers P585.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_property_set_t1": [
+          "P585"
+        ],
+        "qualifier_property_set_t2": [
+          "P585"
+        ],
+        "qualifier_signatures_t1": [
+          "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]"
+        ],
+        "qualifier_signatures_t2": [
+          "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+          "[]"
+        ]
+      },
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_status": "review_required",
+      "source_kind": "qualifier_drift_summary",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "source_row_id": "source:dense:qualifier_drift:Q100104196|P166",
+      "text": "Q100104196|P166 drift from t1 to t2 at severity=medium.",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_payload": {
+        "candidate_cluster_families": [
+          "edge_yes",
+          "edge_inv",
+          "hierarchy"
+        ],
+        "focus_qids": [
+          "Q9779",
+          "Q8192",
+          "Q21169592",
+          "Q7187"
+        ],
+        "hold_reason": "fixture_backed",
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_pack:mixed_order_live_pack_v1",
+      "text": "mixed_order_live_pack_v1 focuses on Q9779,Q8192,Q21169592,Q7187.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q9779"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:1",
+      "text": "Focus QID Q9779",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q8192"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:2",
+      "text": "Focus QID Q8192",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q21169592"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:3",
+      "text": "Focus QID Q21169592",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q7187"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:mixed_order_live_pack_v1:4",
+      "text": "Focus QID Q7187",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_yes"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:1",
+      "text": "edge_yes",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_inv"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:2",
+      "text": "edge_inv",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "hierarchy"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:mixed_order_live_pack_v1:3",
+      "text": "hierarchy",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "candidate_cluster_families": [
+          "edge_yes",
+          "edge_inv",
+          "hierarchy",
+          "closure_conflict"
+        ],
+        "focus_qids": [
+          "Q22652",
+          "Q22698",
+          "Q52040",
+          "Q188"
+        ],
+        "hold_reason": "fixture_backed",
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_pack:p279_scc_live_pack_v1",
+      "text": "p279_scc_live_pack_v1 focuses on Q22652,Q22698,Q52040,Q188.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q22652"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:1",
+      "text": "Focus QID Q22652",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q22698"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:2",
+      "text": "Focus QID Q22698",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q52040"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:3",
+      "text": "Focus QID Q52040",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q188"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:p279_scc_live_pack_v1:4",
+      "text": "Focus QID Q188",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_yes"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:1",
+      "text": "edge_yes",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_inv"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:2",
+      "text": "edge_inv",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "hierarchy"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:3",
+      "text": "hierarchy",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "closure_conflict"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:p279_scc_live_pack_v1:4",
+      "text": "closure_conflict",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "candidate_cluster_families": [
+          "temporalized_statement",
+          "revision_pair_agreement",
+          "property_inheritance"
+        ],
+        "focus_qids": [
+          "Q100104196"
+        ],
+        "hold_reason": "report_backed",
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "text": "qualifier_drift_p166_live_pack_v1 focuses on Q100104196.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q100104196"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:qualifier_drift_p166_live_pack_v1:1",
+      "text": "Focus QID Q100104196",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "temporalized_statement"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:1",
+      "text": "temporalized_statement",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "revision_pair_agreement"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:2",
+      "text": "revision_pair_agreement",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "property_inheritance"
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:qualifier_drift_p166_live_pack_v1:3",
+      "text": "property_inheritance",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "candidate_cluster_families": [
+          "edge_yes",
+          "edge_inv",
+          "kind_disambiguation",
+          "property_inheritance"
+        ],
+        "focus_qids": [
+          "Q44571",
+          "Q7598"
+        ],
+        "hold_reason": "awaiting_manifest_promotion",
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json"
+        ]
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "text": "software_entity_kind_collapse_pack_v0 focuses on Q44571,Q7598.",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q44571"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:1",
+      "text": "Focus QID Q44571",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "focus_qid": "Q7598"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_focus_qid",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_focus:software_entity_kind_collapse_pack_v0:2",
+      "text": "Focus QID Q7598",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_yes"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:1",
+      "text": "edge_yes",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "edge_inv"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:2",
+      "text": "edge_inv",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "kind_disambiguation"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:3",
+      "text": "kind_disambiguation",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "cluster_family": "property_inheritance"
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_cluster_family",
+      "source_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+      "source_row_id": "source:dense:hotspot_cluster_family:software_entity_kind_collapse_pack_v0:4",
+      "text": "property_inheritance",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "property": "P2738",
+        "qualifier_keys": [
+          "P11260"
+        ],
+        "subject": "Q102165",
+        "value": "Q23766486"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_status": "baseline",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:1",
+      "text": "nucleon (Q102165) P2738 list of values as qualifiers (Q23766486)",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q2294",
+        "value": "Q102165"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_status": "baseline",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:2",
+      "text": "proton (Q2294) P279 nucleon (Q102165)",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q2348",
+        "value": "Q102165"
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_status": "baseline",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:nucleon_baseline:3",
+      "text": "neutron (Q2348) P279 nucleon (Q102165)",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "property": "P2738",
+        "qualifier_keys": [
+          "P11260"
+        ],
+        "subject": "Q53617489",
+        "value": "Q23766486"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:1",
+      "text": "independent continuant (Q53617489) P2738 list of values as qualifiers (Q23766486)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q123349660",
+        "value": "Q53617407"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:2",
+      "text": "geolocatable entity (Q123349660) P279 material entity (Q53617407)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q124711484",
+        "value": "Q124711467"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:3",
+      "text": "spatial region (Q124711484) P279 immaterial entity (Q124711467)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q26713767",
+        "value": "Q124711484"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:4",
+      "text": "region of space (Q26713767) P279 spatial region (Q124711484)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q27096213",
+        "value": "Q123349660"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:5",
+      "text": "geographic entity (Q27096213) P279 geolocatable entity (Q123349660)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q27096213",
+        "value": "Q26713767"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:6",
+      "text": "geographic entity (Q27096213) P279 region of space (Q26713767)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q618123",
+        "value": "Q27096213"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:7",
+      "text": "geographical feature (Q618123) P279 geographic entity (Q27096213)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q811430",
+        "value": "Q618123"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:8",
+      "text": "fixed construction (Q811430) P279 geographical feature (Q618123)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P279",
+        "qualifier_keys": [],
+        "subject": "Q2131593",
+        "value": "Q811430"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:fixed_construction_contradiction:9",
+      "text": "framing (Q2131593) P279 fixed construction (Q811430)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P2738",
+        "qualifier_keys": [
+          "P11260"
+        ],
+        "subject": "Q102205",
+        "value": "Q23766486"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:1",
+      "text": "fluid (Q102205) P2738 list of values as qualifiers (Q23766486)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P31",
+        "qualifier_keys": [],
+        "subject": "Q217236",
+        "value": "Q11432"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:2",
+      "text": "working fluid (Q217236) P31 gas (Q11432)",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "property": "P31",
+        "qualifier_keys": [],
+        "subject": "Q217236",
+        "value": "Q11435"
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_statement_bundle",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json",
+      "source_row_id": "source:dense:disjointness:working_fluid_contradiction:3",
+      "text": "working fluid (Q217236) P31 liquid (Q11435)",
+      "workload_class": "structural_contradiction"
+    }
+  ],
+  "summary": {
+    "baseline_confirmation_count": 11,
+    "candidate_structural_cue_count": 88,
+    "cluster_promotion_gap_count": 22,
+    "governance_gap_count": 7,
+    "provisional_review_bundle_count": 9,
+    "provisional_review_row_count": 88,
+    "qualifier_drift_gap_count": 1,
+    "related_review_cluster_count": 4,
+    "review_item_count": 9,
+    "review_required_item_count": 4,
+    "source_review_row_count": 53,
+    "structural_contradiction_count": 12
+  },
+  "version": "wikidata_dense_structural_review_v1"
+}

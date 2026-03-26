@@ -1,0 +1,396 @@
+{
+  "affidavit_input": {
+    "character_count": 210,
+    "path": "SensibLaw/tests/fixtures/zelph/au_affidavit_coverage_review_v1/au_affidavit_draft_v1.txt"
+  },
+  "affidavit_rows": [
+    {
+      "best_match_basis": "row",
+      "best_match_excerpt": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "best_match_score": 1.0,
+      "best_source_row_id": "fact:44e3b170c347a29b",
+      "coverage_status": "covered",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+          "review_status": "review_queue",
+          "score": 1.0,
+          "source_row_id": "fact:44e3b170c347a29b"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "The High Court ruled on the challenge and ordered the matter to proceed.",
+          "review_status": "review_queue",
+          "score": 0.4,
+          "source_row_id": "fact:9d43035cc83c0c08"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+          "review_status": "review_queue",
+          "score": 0.210526,
+          "source_row_id": "fact:33bf5d1e2fbd3c36"
+        }
+      ],
+      "paragraph_id": "p1",
+      "paragraph_order": 1,
+      "proposition_id": "aff-prop:p1-s1",
+      "sentence_order": 1,
+      "text": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "tokens": [
+        "appealed",
+        "appellant",
+        "court",
+        "heard",
+        "high",
+        "house",
+        "king",
+        "matter"
+      ]
+    },
+    {
+      "best_match_basis": "row",
+      "best_match_excerpt": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+      "best_match_score": 0.266667,
+      "best_source_row_id": "fact:33bf5d1e2fbd3c36",
+      "coverage_status": "unsupported_affidavit",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+          "review_status": "review_queue",
+          "score": 0.266667,
+          "source_row_id": "fact:33bf5d1e2fbd3c36"
+        }
+      ],
+      "paragraph_id": "p2",
+      "paragraph_order": 2,
+      "proposition_id": "aff-prop:p2-s1",
+      "sentence_order": 1,
+      "text": "The plaintiff said review was blocked.",
+      "tokens": [
+        "blocked",
+        "plaintiff",
+        "review",
+        "said"
+      ]
+    },
+    {
+      "best_match_basis": "row",
+      "best_match_excerpt": "The High Court ruled on the challenge and ordered the matter to proceed.",
+      "best_match_score": 0.125,
+      "best_source_row_id": "fact:9d43035cc83c0c08",
+      "coverage_status": "unsupported_affidavit",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "The High Court ruled on the challenge and ordered the matter to proceed.",
+          "review_status": "review_queue",
+          "score": 0.125,
+          "source_row_id": "fact:9d43035cc83c0c08"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+          "review_status": "review_queue",
+          "score": 0.117647,
+          "source_row_id": "fact:44e3b170c347a29b"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "row",
+          "match_excerpt": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+          "review_status": "review_queue",
+          "score": 0.1,
+          "source_row_id": "fact:33bf5d1e2fbd3c36"
+        }
+      ],
+      "paragraph_id": "p3",
+      "paragraph_order": 3,
+      "proposition_id": "aff-prop:p3-s1",
+      "sentence_order": 1,
+      "text": "The affidavit also says the Court awarded indemnity costs against the respondent.",
+      "tokens": [
+        "affidavit",
+        "against",
+        "also",
+        "awarded",
+        "costs",
+        "court",
+        "indemnity",
+        "respondent",
+        "says"
+      ]
+    }
+  ],
+  "fixture_kind": "affidavit_coverage_review",
+  "provisional_anchor_bundles": [
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "ordered",
+          "anchor_value": [
+            "ordered"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:9d43035cc83c0c08::procedural_event_keywords::ordered",
+          "primary_workload_class": "review_queue_only",
+          "priority_rank": 1,
+          "priority_score": 55,
+          "provisional_anchor_id": "fact:9d43035cc83c0c08#anchor:1",
+          "recommended_next_action": "advance review queue triage",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:9d43035cc83c0c08"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 1,
+      "primary_workload_class": "review_queue_only",
+      "recommended_next_action": "advance review queue triage",
+      "source_row_id": "fact:9d43035cc83c0c08",
+      "top_priority_rank": 1,
+      "top_priority_score": 55
+    }
+  ],
+  "provisional_structured_anchors": [
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "ordered",
+      "anchor_value": [
+        "ordered"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:9d43035cc83c0c08::procedural_event_keywords::ordered",
+      "primary_workload_class": "review_queue_only",
+      "priority_rank": 1,
+      "priority_score": 55,
+      "provisional_anchor_id": "fact:9d43035cc83c0c08#anchor:1",
+      "recommended_next_action": "advance review queue triage",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:9d43035cc83c0c08"
+    }
+  ],
+  "related_review_clusters": [
+    {
+      "candidate_anchor_rollup": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "count": 1
+        }
+      ],
+      "candidate_source_count": 1,
+      "candidate_source_rows": [
+        {
+          "best_match_basis": "row",
+          "best_match_excerpt": "The High Court ruled on the challenge and ordered the matter to proceed.",
+          "best_match_score": 0.4,
+          "calendar_reference_mentions": [],
+          "candidate_anchors": [
+            {
+              "anchor_kind": "procedural_event_keywords",
+              "anchor_value": [
+                "ordered"
+              ],
+              "label": "ordered"
+            }
+          ],
+          "excerpt_ids": [],
+          "has_calendar_reference_hint": false,
+          "has_procedural_event_cue": true,
+          "has_transcript_timestamp_hint": false,
+          "primary_workload_class": "review_queue_only",
+          "procedural_event_keywords": [
+            "ordered"
+          ],
+          "reason_codes": [
+            "review_queue"
+          ],
+          "recommended_next_action": "advance review queue triage",
+          "source_ids": [],
+          "source_kind": "au_checked_handoff_fact",
+          "source_row_id": "fact:9d43035cc83c0c08",
+          "statement_ids": [],
+          "transcript_timestamp_windows": [],
+          "workload_classes": [
+            "review_queue_only"
+          ]
+        }
+      ],
+      "coverage_status": "covered",
+      "dominant_workload_class": "review_queue_only",
+      "extraction_hint_rollup": [
+        {
+          "count": 1,
+          "hint_kind": "procedural_event_cue"
+        }
+      ],
+      "proposition_id": "aff-prop:p1-s1",
+      "reason_code_rollup": [
+        {
+          "count": 1,
+          "reason_code": "review_queue"
+        }
+      ],
+      "recommended_next_action": "advance review queue triage",
+      "text": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "workload_class_rollup": [
+        {
+          "count": 1,
+          "workload_class": "review_queue_only"
+        }
+      ]
+    }
+  ],
+  "source_input": {
+    "path": "SensibLaw/tests/fixtures/zelph/au_public_handoff_v1/au_public_handoff_v1.slice.json",
+    "source_contract": "au_public_handoff_v1",
+    "source_kind": "au_checked_handoff_slice",
+    "source_label": "wave1:real_au_procedural_v1",
+    "source_row_count": 3
+  },
+  "source_review_rows": [
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "best_match_score": 1.0,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [],
+      "candidate_status": "candidate",
+      "excerpt_ids": [],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [
+        "aff-prop:p1-s1"
+      ],
+      "primary_workload_class": "review_queue_only",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "review_queue"
+      ],
+      "recommended_next_action": "advance review queue triage",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "covered",
+      "source_ids": [],
+      "source_kind": "au_checked_handoff_fact",
+      "source_row_id": "fact:44e3b170c347a29b",
+      "statement_ids": [],
+      "text": "In House v The King the appellant appealed and the matter was heard by the High Court.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "review_queue_only"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+      "best_match_score": 0.266667,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [],
+      "candidate_status": "candidate",
+      "excerpt_ids": [],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "review_queue_only",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "review_queue"
+      ],
+      "recommended_next_action": "advance review queue triage",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [],
+      "source_kind": "au_checked_handoff_fact",
+      "source_row_id": "fact:33bf5d1e2fbd3c36",
+      "statement_ids": [],
+      "text": "The plaintiff claimed the privative clause denied review, and the Commonwealth denied that challenge before the High Court.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "review_queue_only"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "The High Court ruled on the challenge and ordered the matter to proceed.",
+      "best_match_score": 0.4,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "ordered"
+          ],
+          "label": "ordered"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "review_queue_only",
+      "procedural_event_keywords": [
+        "ordered"
+      ],
+      "reason_codes": [
+        "review_queue"
+      ],
+      "recommended_next_action": "advance review queue triage",
+      "related_affidavit_proposition_ids": [
+        "aff-prop:p1-s1"
+      ],
+      "review_status": "missing_review",
+      "source_ids": [],
+      "source_kind": "au_checked_handoff_fact",
+      "source_row_id": "fact:9d43035cc83c0c08",
+      "statement_ids": [],
+      "text": "The High Court ruled on the challenge and ordered the matter to proceed.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "review_queue_only"
+      ]
+    }
+  ],
+  "summary": {
+    "abstained_affidavit_count": 0,
+    "abstained_source_count": 0,
+    "affidavit_proposition_count": 3,
+    "affidavit_supported_ratio": 0.333333,
+    "calendar_reference_hint_count": 0,
+    "candidate_anchor_count": 1,
+    "chronology_gap_count": 0,
+    "contested_affidavit_count": 0,
+    "contested_source_count": 0,
+    "covered_count": 1,
+    "event_extraction_gap_count": 0,
+    "evidence_gap_count": 0,
+    "missing_review_count": 2,
+    "normalization_gap_count": 0,
+    "partial_count": 0,
+    "procedural_event_cue_count": 1,
+    "provisional_anchor_bundle_count": 1,
+    "provisional_structured_anchor_count": 1,
+    "related_review_cluster_count": 1,
+    "related_source_count": 1,
+    "review_queue_only_count": 2,
+    "source_row_count": 3,
+    "transcript_timestamp_hint_count": 0,
+    "unsupported_affidavit_count": 2
+  },
+  "version": "affidavit_coverage_review_v1"
+}

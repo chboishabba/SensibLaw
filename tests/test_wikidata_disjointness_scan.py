@@ -10,8 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
+import scripts.run_wikidata_disjointness_candidate_scan as scan_mod  # noqa: E402
 from scripts.run_wikidata_disjointness_candidate_scan import (  # noqa: E402
     PAIR_SEED_SCHEMA_VERSION,
+    PROFILE_BOUNDED_SCHEMA_VERSION,
+    PROFILE_EXACT_SCHEMA_VERSION,
+    PROFILE_SCHEMA_VERSION,
+    PROFILE_WIDE_SCHEMA_VERSION,
     SCAN_SCHEMA_VERSION,
     _load_pair_seed,
     _normalize_binding,
@@ -255,6 +260,36 @@ def test_scan_candidates_zelph_seedless_local_bin(tmp_path) -> None:
         assert row["right_qid"].startswith("Q")
 
 
+def test_scan_profile_zelph_aggregates_flat_profile_triples(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_stdout = "\n".join(
+        [
+            "Q100  sl/profile-dual-instance  Q1",
+            "Q100  sl/profile-dual-instance  Q2",
+            "Q200  sl/profile-dual-subclass  Q3",
+            "Q200  sl/profile-dual-subclass  Q4",
+            "Q300  sl/profile-mixed-instance  Q5",
+            "Q300  sl/profile-mixed-subclass  Q6",
+            "Q400  sl/profile-cycle-peer  Q401",
+            "Q401  sl/profile-cycle-peer  Q400",
+        ]
+    )
+
+    monkeypatch.setattr(scan_mod, "_run_zelph_bundle", lambda bundle_text, *, zelph_command: fake_stdout)
+    payload = scan_mod._scan_profile_zelph(
+        zelph_command="zelph",
+        zelph_load_path=Path("/tmp/fake.bin"),
+        limit=10,
+    )
+
+    assert payload["schema_version"] == PROFILE_SCHEMA_VERSION
+    assert payload["counts"]["dual_p31_subject_count"] == 1
+    assert payload["counts"]["dual_p279_subject_count"] == 1
+    assert payload["counts"]["mixed_order_subject_count"] == 1
+    assert payload["counts"]["two_cycle_pair_count"] == 1
+    assert payload["examples"]["dual_p31"][0]["subject_qid"] == "Q100"
+    assert payload["examples"]["mixed_order"][0]["subject_qid"] == "Q300"
+
+
 def test_machine_readable_indexes_have_promotion_metadata() -> None:
     disjointness_index = json.loads(
         (ROOT.parent / "docs" / "planning" / "wikidata_disjointness_case_index_v1.json").read_text(
@@ -274,3 +309,79 @@ def test_machine_readable_indexes_have_promotion_metadata() -> None:
             assert entry["promotion_status"]
             if entry["promotion_status"] != "promoted":
                 assert entry["hold_reason"]
+
+
+def test_scan_profile_wide_zelph_reports_nonzero_properties(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_stdout = "\n".join(
+        [
+            "Q1  wikidata P31  Q2",
+            "Q3  wikidata P31  Q4",
+            "Q5  wikidata P31  Q6",
+            "Q10  wikidata P2738  Q20",
+        ]
+    )
+
+    monkeypatch.setattr(scan_mod, "_run_zelph_bundle", lambda bundle_text, *, zelph_command: fake_stdout)
+    payload = scan_mod._scan_profile_wide_zelph(
+        zelph_command="zelph",
+        zelph_load_path=Path("/tmp/fake.bin"),
+        limit=5,
+        count_cap=100,
+    )
+
+    assert payload["schema_version"] == PROFILE_WIDE_SCHEMA_VERSION
+    assert payload["summary"]["nonzero_property_count"] == 2
+    assert payload["summary"]["nonzero_pids"] == ["P31", "P2738"]
+    row_lookup = {row["pid"]: row for row in payload["property_rows"]}
+    assert row_lookup["P31"]["observed_count"] == 3
+    assert row_lookup["P2738"]["examples"][0]["subject_qid"] == "Q10"
+
+
+def test_scan_profile_bounded_zelph_reports_nonzero_probes(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_stdout = "\n".join(
+        [
+            "Q1  wikidata P31  Q11432",
+            "Q2  wikidata P31  Q11432",
+            "Q3  wikidata P2738  Q102165",
+        ]
+    )
+
+    monkeypatch.setattr(scan_mod, "_run_zelph_bundle", lambda bundle_text, *, zelph_command: fake_stdout)
+    payload = scan_mod._scan_profile_bounded_zelph(
+        zelph_command="zelph",
+        zelph_load_path=Path("/tmp/fake.bin"),
+        limit=5,
+        count_cap=100,
+    )
+
+    assert payload["schema_version"] == PROFILE_BOUNDED_SCHEMA_VERSION
+    assert payload["summary"]["nonzero_probe_count"] == 2
+    row_lookup = {(row["pid"], row["object_qid"]): row for row in payload["probe_rows"]}
+    assert row_lookup[("P31", "Q11432")]["observed_count"] == 2
+    assert row_lookup[("P2738", "Q102165")]["examples"][0]["subject_qid"] == "Q3"
+
+
+def test_scan_profile_exact_zelph_reports_qid_and_edge_presence(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_stdout = "\n".join(
+        [
+            "Q217236  wikidata P31  Q11432",
+            "Q102205  wikidata P2738  Q999999",
+            "Q2294  wikidata P279  Q102165",
+        ]
+    )
+
+    monkeypatch.setattr(scan_mod, "_run_zelph_bundle", lambda bundle_text, *, zelph_command: fake_stdout)
+    payload = scan_mod._scan_profile_exact_zelph(
+        zelph_command="zelph",
+        zelph_load_path=Path("/tmp/fake.bin"),
+    )
+
+    assert payload["schema_version"] == PROFILE_EXACT_SCHEMA_VERSION
+    family_lookup = {row["family_id"]: row for row in payload["families"]}
+    working_fluid = family_lookup["working_fluid"]
+    wf_qids = {row["qid"]: row["present"] for row in working_fluid["qid_rows"]}
+    assert wf_qids["Q217236"] is True
+    wf_probe_lookup = {(row["subject_qid"], row["pid"], row["object_qid"]): row["present"] for row in working_fluid["probe_rows"]}
+    assert wf_probe_lookup[("Q217236", "P31", "Q11432")] is True
+    assert wf_probe_lookup[("Q217236", "P31", "Q11435")] is False
+    assert wf_probe_lookup[("Q102205", "P2738", None)] is True

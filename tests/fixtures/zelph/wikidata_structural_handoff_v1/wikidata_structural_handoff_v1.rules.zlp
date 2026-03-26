@@ -1,0 +1,12 @@
+# Wikidata structural handoff rules
+
+(X "promotion_status" "promoted") => (X "structural_case_ready_for_handoff" "true")
+(X "case_status" "contradiction") => (X "needs_review_due_to_structure" "true")
+(X "hold_reason" Y) => (X "needs_review_due_to_governance" "true")
+(X "kind" "qualifier_baseline") => (X "demonstrates_import_preservation" "true")
+(X "kind" "qualifier_drift_case") => (X "structural_case_ready_for_handoff" "true")
+
+X "structural_case_ready_for_handoff" "true"
+X "needs_review_due_to_structure" "true"
+X "needs_review_due_to_governance" "true"
+X "demonstrates_import_preservation" "true"

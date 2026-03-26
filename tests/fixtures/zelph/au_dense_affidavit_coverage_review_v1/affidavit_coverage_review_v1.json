@@ -1,0 +1,3303 @@
+{
+  "affidavit_input": {
+    "character_count": 360,
+    "path": "SensibLaw/tests/fixtures/zelph/au_dense_affidavit_coverage_review_v1/au_dense_affidavit_draft_v1.txt"
+  },
+  "affidavit_rows": [
+    {
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Starting with the duty of care, may we emphasise at once the significant effect of the Civil Liability Act on that question.",
+      "best_match_score": 1.0,
+      "best_source_row_id": "fact:fdeb563e9b256cf1",
+      "coverage_status": "covered",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "Starting with the duty of care, may we emphasise at once the significant effect of the Civil Liability Act on that question.",
+          "review_status": null,
+          "score": 1.0,
+          "source_row_id": "fact:fdeb563e9b256cf1"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "May we emphasize at once the significant effect of the Civil Liability Act on that question.",
+          "review_status": null,
+          "score": 0.869565,
+          "source_row_id": "fact:3242bff0b91f464a"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "So in relation to the duty of care at issue here, would your honors turn back to the statement of claim, please, at page 15 of this volume, Are you coming Back to the Civil Liability Act at any stage?",
+          "review_status": null,
+          "score": 0.285714,
+          "source_row_id": "fact:f63e1bba64e0aa03"
+        }
+      ],
+      "paragraph_id": "p1",
+      "paragraph_order": 1,
+      "proposition_id": "aff-prop:p1-s1",
+      "sentence_order": 1,
+      "text": "Starting with the duty of care, may we emphasize at once the significant effect of the Civil Liability Act on that question.",
+      "tokens": [
+        "act",
+        "care",
+        "civil",
+        "duty",
+        "effect",
+        "emphasize",
+        "liability",
+        "may",
+        "once",
+        "question",
+        "significant",
+        "starting",
+        "we"
+      ]
+    },
+    {
+      "best_match_basis": "segment",
+      "best_match_excerpt": "One of the critical features of the original Civil Liability Act , Part 1A, which was introduced in 2002, was that it sharpened any doubt there may have been about the distinction between intentional wrongs and negligence.",
+      "best_match_score": 0.789474,
+      "best_source_row_id": "fact:75cc3e4aace85a5b",
+      "coverage_status": "covered",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "One of the critical features of the original Civil Liability Act , Part 1A, which was introduced in 2002, was that it sharpened any doubt there may have been about the distinction between intentional wrongs and negligence.",
+          "review_status": null,
+          "score": 0.789474,
+          "source_row_id": "fact:75cc3e4aace85a5b"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "Can I ask your honors to go to the next part of the Civil Liability Act?",
+          "review_status": null,
+          "score": 0.333333,
+          "source_row_id": "fact:70d7cdc9317e1dd1"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "Can I ask your Honour to go to the next part of the Civil Liability Act .",
+          "review_status": null,
+          "score": 0.333333,
+          "source_row_id": "fact:fae42de94d163cc8"
+        }
+      ],
+      "paragraph_id": "p2",
+      "paragraph_order": 2,
+      "proposition_id": "aff-prop:p2-s1",
+      "sentence_order": 1,
+      "text": "One of the critical features of the original Civil Liability Act, Part 1A, was that it sharpened the distinction between intentional wrongs and negligence.",
+      "tokens": [
+        "1a",
+        "act",
+        "between",
+        "civil",
+        "critical",
+        "distinction",
+        "features",
+        "intentional",
+        "liability",
+        "negligence",
+        "one",
+        "original",
+        "part",
+        "sharpened",
+        "wrongs"
+      ]
+    },
+    {
+      "best_match_basis": "segment",
+      "best_match_excerpt": "The Court of Appeal really did not engage with these issues because they could not.",
+      "best_match_score": 0.222222,
+      "best_source_row_id": "fact:cab21ef741df8dea",
+      "coverage_status": "unsupported_affidavit",
+      "matched_source_rows": [
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "The Court of Appeal really did not engage with these issues because they could not.",
+          "review_status": null,
+          "score": 0.222222,
+          "source_row_id": "fact:cab21ef741df8dea"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "Now, the only thing I want to say on the question of parish priest or not parish priest is, in our submission, it was neither determinative of the Court of Appeal\u2019s judgment and is not determinative of this appeal.",
+          "review_status": null,
+          "score": 0.166667,
+          "source_row_id": "fact:6ca8a3c43a139f2b"
+        },
+        {
+          "candidate_status": "candidate",
+          "match_basis": "segment",
+          "match_excerpt": "This Court should be very slow to retrospectively state the law 55 years ago, inconsistent with the choice the Parliament has made.",
+          "review_status": null,
+          "score": 0.090909,
+          "source_row_id": "fact:fae42de94d163cc8"
+        }
+      ],
+      "paragraph_id": "p3",
+      "paragraph_order": 3,
+      "proposition_id": "aff-prop:p3-s1",
+      "sentence_order": 1,
+      "text": "The affidavit also says the Court dismissed the appeal with indemnity costs.",
+      "tokens": [
+        "affidavit",
+        "also",
+        "appeal",
+        "costs",
+        "court",
+        "dismissed",
+        "indemnity",
+        "says"
+      ]
+    }
+  ],
+  "fixture_kind": "affidavit_coverage_review",
+  "provisional_anchor_bundles": [
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2018",
+          "anchor_value": "2018",
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:fae42de94d163cc8::calendar_reference::2018",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 1,
+          "priority_score": 68,
+          "provisional_anchor_id": "fact:fae42de94d163cc8#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:fae42de94d163cc8"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:fae42de94d163cc8::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 12,
+          "priority_score": 48,
+          "provisional_anchor_id": "fact:fae42de94d163cc8#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:fae42de94d163cc8"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 1,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:fae42de94d163cc8",
+      "top_priority_rank": 1,
+      "top_priority_score": 68
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2014",
+          "anchor_value": "2014",
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:bbd1fda3545c8f7e::calendar_reference::2014",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 2,
+          "priority_score": 62,
+          "provisional_anchor_id": "fact:bbd1fda3545c8f7e#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:bbd1fda3545c8f7e"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:bbd1fda3545c8f7e::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 18,
+          "priority_score": 42,
+          "provisional_anchor_id": "fact:bbd1fda3545c8f7e#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:bbd1fda3545c8f7e"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 2,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:bbd1fda3545c8f7e",
+      "top_priority_rank": 2,
+      "top_priority_score": 62
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1965",
+          "anchor_value": "1965",
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:f642530dfd879730::calendar_reference::1965",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 3,
+          "priority_score": 62,
+          "provisional_anchor_id": "fact:f642530dfd879730#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:f642530dfd879730"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:f642530dfd879730::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 20,
+          "priority_score": 42,
+          "provisional_anchor_id": "fact:f642530dfd879730#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:f642530dfd879730"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 3,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:f642530dfd879730",
+      "top_priority_rank": 3,
+      "top_priority_score": 62
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:05:11.805 -> 04:05:28.755",
+          "anchor_value": {
+            "end": "04:05:28.755",
+            "start": "04:05:11.805"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:70d7cdc9317e1dd1::transcript_timestamp_window::04:05:11.805 -> 04:05:28.755",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 4,
+          "priority_score": 58,
+          "provisional_anchor_id": "fact:70d7cdc9317e1dd1#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:70d7cdc9317e1dd1"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 4,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:70d7cdc9317e1dd1",
+      "top_priority_rank": 4,
+      "top_priority_score": 58
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:27:55.095 -> 04:28:12.775",
+          "anchor_value": {
+            "end": "04:28:12.775",
+            "start": "04:27:55.095"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:8fe28381242afe12::transcript_timestamp_window::04:27:55.095 -> 04:28:12.775",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 5,
+          "priority_score": 56,
+          "provisional_anchor_id": "fact:8fe28381242afe12#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:8fe28381242afe12"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 5,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:8fe28381242afe12",
+      "top_priority_rank": 5,
+      "top_priority_score": 56
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1969",
+          "anchor_value": "1969",
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:6bd9ca5bb9fe66dd::calendar_reference::1969",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 6,
+          "priority_score": 55,
+          "provisional_anchor_id": "fact:6bd9ca5bb9fe66dd#anchor:2",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:6bd9ca5bb9fe66dd"
+        },
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "01:21:16.505 -> 01:21:37.685",
+          "anchor_value": {
+            "end": "01:21:37.685",
+            "start": "01:21:16.505"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:6bd9ca5bb9fe66dd::transcript_timestamp_window::01:21:16.505 -> 01:21:37.685",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 14,
+          "priority_score": 45,
+          "provisional_anchor_id": "fact:6bd9ca5bb9fe66dd#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:6bd9ca5bb9fe66dd"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 6,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:6bd9ca5bb9fe66dd",
+      "top_priority_rank": 6,
+      "top_priority_score": 55
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "00:11:29.215 -> 00:11:54.725",
+          "anchor_value": {
+            "end": "00:11:54.725",
+            "start": "00:11:29.215"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:f63e1bba64e0aa03::transcript_timestamp_window::00:11:29.215 -> 00:11:54.725",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 7,
+          "priority_score": 54,
+          "provisional_anchor_id": "fact:f63e1bba64e0aa03#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:f63e1bba64e0aa03"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:f63e1bba64e0aa03::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 15,
+          "priority_score": 44,
+          "provisional_anchor_id": "fact:f63e1bba64e0aa03#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:f63e1bba64e0aa03"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 7,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:f63e1bba64e0aa03",
+      "top_priority_rank": 7,
+      "top_priority_score": 54
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "02:21:43.085 -> 02:22:15.365",
+          "anchor_value": {
+            "end": "02:22:15.365",
+            "start": "02:21:43.085"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:481c2b082edf71c4::transcript_timestamp_window::02:21:43.085 -> 02:22:15.365",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 8,
+          "priority_score": 53,
+          "provisional_anchor_id": "fact:481c2b082edf71c4#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:481c2b082edf71c4"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:481c2b082edf71c4::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 16,
+          "priority_score": 43,
+          "provisional_anchor_id": "fact:481c2b082edf71c4#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:481c2b082edf71c4"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 8,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:481c2b082edf71c4",
+      "top_priority_rank": 8,
+      "top_priority_score": 53
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:44:51.385 -> 04:45:12.525",
+          "anchor_value": {
+            "end": "04:45:12.525",
+            "start": "04:44:51.385"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:26d3f8064b2550bf::transcript_timestamp_window::04:44:51.385 -> 04:45:12.525",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 9,
+          "priority_score": 50,
+          "provisional_anchor_id": "fact:26d3f8064b2550bf#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:26d3f8064b2550bf"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 9,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:26d3f8064b2550bf",
+      "top_priority_rank": 9,
+      "top_priority_score": 50
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "03:06:06.475 -> 03:06:22.495",
+          "anchor_value": {
+            "end": "03:06:22.495",
+            "start": "03:06:06.475"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:0ad0782de084f48d::transcript_timestamp_window::03:06:06.475 -> 03:06:22.495",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 10,
+          "priority_score": 48,
+          "provisional_anchor_id": "fact:0ad0782de084f48d#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:0ad0782de084f48d"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 10,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:0ad0782de084f48d",
+      "top_priority_rank": 10,
+      "top_priority_score": 48
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "01:18:57.015 -> 01:19:15.855",
+          "anchor_value": {
+            "end": "01:19:15.855",
+            "start": "01:18:57.015"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:ccda765b3be7eadd::transcript_timestamp_window::01:18:57.015 -> 01:19:15.855",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 11,
+          "priority_score": 48,
+          "provisional_anchor_id": "fact:ccda765b3be7eadd#anchor:1",
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:ccda765b3be7eadd"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 11,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "source_row_id": "fact:ccda765b3be7eadd",
+      "top_priority_rank": 11,
+      "top_priority_score": 48
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "00:00:54.095 -> 00:01:10.155",
+          "anchor_value": {
+            "end": "00:01:10.155",
+            "start": "00:00:54.095"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:0fac7356da9652c3::transcript_timestamp_window::00:00:54.095 -> 00:01:10.155",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 13,
+          "priority_score": 46,
+          "provisional_anchor_id": "fact:0fac7356da9652c3#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:0fac7356da9652c3"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty, submissions",
+          "anchor_value": [
+            "duty",
+            "submissions"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:0fac7356da9652c3::procedural_event_keywords::duty, submissions",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 25,
+          "priority_score": 36,
+          "provisional_anchor_id": "fact:0fac7356da9652c3#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:0fac7356da9652c3"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 12,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:0fac7356da9652c3",
+      "top_priority_rank": 13,
+      "top_priority_score": 46
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1969",
+          "anchor_value": "1969",
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:57f737c453a65f7c::calendar_reference::1969",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 17,
+          "priority_score": 42,
+          "provisional_anchor_id": "fact:57f737c453a65f7c#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:57f737c453a65f7c"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:57f737c453a65f7c::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 33,
+          "priority_score": 22,
+          "provisional_anchor_id": "fact:57f737c453a65f7c#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:57f737c453a65f7c"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 13,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:57f737c453a65f7c",
+      "top_priority_rank": 17,
+      "top_priority_score": 42
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "12 August",
+          "anchor_value": "12 August",
+          "best_affidavit_proposition_id": "aff-prop:p3-s1",
+          "dedupe_key": "fact:ed6d46a2e363fbef::calendar_reference::12 August",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 19,
+          "priority_score": 42,
+          "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:ed6d46a2e363fbef"
+        },
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:54:25.555 -> 04:54:45.525",
+          "anchor_value": {
+            "end": "04:54:45.525",
+            "start": "04:54:25.555"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p3-s1",
+          "dedupe_key": "fact:ed6d46a2e363fbef::transcript_timestamp_window::04:54:25.555 -> 04:54:45.525",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 28,
+          "priority_score": 32,
+          "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:ed6d46a2e363fbef"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "adjourn, adjourned, consider, decision",
+          "anchor_value": [
+            "adjourn",
+            "adjourned",
+            "consider",
+            "decision"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p3-s1",
+          "dedupe_key": "fact:ed6d46a2e363fbef::procedural_event_keywords::adjourn, adjourned, consider, decision",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 34,
+          "priority_score": 22,
+          "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:3",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:ed6d46a2e363fbef"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "bundle_rank": 14,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:ed6d46a2e363fbef",
+      "top_priority_rank": 19,
+      "top_priority_score": 42
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:50:19.645 -> 04:50:55.125",
+          "anchor_value": {
+            "end": "04:50:55.125",
+            "start": "04:50:19.645"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:1e2840056d63cd55::transcript_timestamp_window::04:50:19.645 -> 04:50:55.125",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 21,
+          "priority_score": 40,
+          "provisional_anchor_id": "fact:1e2840056d63cd55#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:1e2840056d63cd55"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:1e2840056d63cd55::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 29,
+          "priority_score": 30,
+          "provisional_anchor_id": "fact:1e2840056d63cd55#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:1e2840056d63cd55"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 15,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:1e2840056d63cd55",
+      "top_priority_rank": 21,
+      "top_priority_score": 40
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p2-s1",
+          "dedupe_key": "fact:1ccc81698d17cedb::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 22,
+          "priority_score": 39,
+          "provisional_anchor_id": "fact:1ccc81698d17cedb#anchor:1",
+          "recommended_next_action": "extract structured event/date support",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:1ccc81698d17cedb"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "bundle_rank": 16,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "extract structured event/date support",
+      "source_row_id": "fact:1ccc81698d17cedb",
+      "top_priority_rank": 22,
+      "top_priority_score": 39
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "04:46:31.065 -> 04:47:00.805",
+          "anchor_value": {
+            "end": "04:47:00.805",
+            "start": "04:46:31.065"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:8173d240e9a95bd9::transcript_timestamp_window::04:46:31.065 -> 04:47:00.805",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 23,
+          "priority_score": 37,
+          "provisional_anchor_id": "fact:8173d240e9a95bd9#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:8173d240e9a95bd9"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty",
+          "anchor_value": [
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:8173d240e9a95bd9::procedural_event_keywords::duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 31,
+          "priority_score": 27,
+          "provisional_anchor_id": "fact:8173d240e9a95bd9#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:8173d240e9a95bd9"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 17,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:8173d240e9a95bd9",
+      "top_priority_rank": 23,
+      "top_priority_score": 37
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "appeal, duty",
+          "anchor_value": [
+            "appeal",
+            "duty"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p3-s1",
+          "dedupe_key": "fact:cab21ef741df8dea::procedural_event_keywords::appeal, duty",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 24,
+          "priority_score": 37,
+          "provisional_anchor_id": "fact:cab21ef741df8dea#anchor:1",
+          "recommended_next_action": "extract structured event/date support",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:cab21ef741df8dea"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "bundle_rank": 18,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "extract structured event/date support",
+      "source_row_id": "fact:cab21ef741df8dea",
+      "top_priority_rank": 24,
+      "top_priority_score": 37
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_label": "00:04:27.945 -> 00:05:03.115",
+          "anchor_value": {
+            "end": "00:05:03.115",
+            "start": "00:04:27.945"
+          },
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:141f54d67f46b195::transcript_timestamp_window::00:04:27.945 -> 00:05:03.115",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 26,
+          "priority_score": 33,
+          "provisional_anchor_id": "fact:141f54d67f46b195#anchor:1",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:141f54d67f46b195"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "proceedings",
+          "anchor_value": [
+            "proceedings"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:141f54d67f46b195::procedural_event_keywords::proceedings",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 32,
+          "priority_score": 23,
+          "provisional_anchor_id": "fact:141f54d67f46b195#anchor:2",
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:141f54d67f46b195"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 19,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "source_row_id": "fact:141f54d67f46b195",
+      "top_priority_rank": 26,
+      "top_priority_score": 33
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "appeal, duty, judgment",
+          "anchor_value": [
+            "appeal",
+            "duty",
+            "judgment"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p3-s1",
+          "dedupe_key": "fact:6ca8a3c43a139f2b::procedural_event_keywords::appeal, duty, judgment",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 27,
+          "priority_score": 32,
+          "provisional_anchor_id": "fact:6ca8a3c43a139f2b#anchor:1",
+          "recommended_next_action": "extract structured event/date support",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:6ca8a3c43a139f2b"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "bundle_rank": 20,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "extract structured event/date support",
+      "source_row_id": "fact:6ca8a3c43a139f2b",
+      "top_priority_rank": 27,
+      "top_priority_score": 32
+    },
+    {
+      "anchor_count": 1,
+      "anchor_rows": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_label": "duty, notice, proceedings",
+          "anchor_value": [
+            "duty",
+            "notice",
+            "proceedings"
+          ],
+          "best_affidavit_proposition_id": "aff-prop:p1-s1",
+          "dedupe_key": "fact:67f084ec10ace889::procedural_event_keywords::duty, notice, proceedings",
+          "primary_workload_class": "chronology_gap",
+          "priority_rank": 30,
+          "priority_score": 27,
+          "provisional_anchor_id": "fact:67f084ec10ace889#anchor:1",
+          "recommended_next_action": "extract structured event/date support",
+          "review_disposition": "provisional_anchor_candidate",
+          "source_row_id": "fact:67f084ec10ace889"
+        }
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "bundle_rank": 21,
+      "primary_workload_class": "chronology_gap",
+      "recommended_next_action": "extract structured event/date support",
+      "source_row_id": "fact:67f084ec10ace889",
+      "top_priority_rank": 30,
+      "top_priority_score": 27
+    }
+  ],
+  "provisional_structured_anchors": [
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2018",
+      "anchor_value": "2018",
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:fae42de94d163cc8::calendar_reference::2018",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 1,
+      "priority_score": 68,
+      "provisional_anchor_id": "fact:fae42de94d163cc8#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:fae42de94d163cc8"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2014",
+      "anchor_value": "2014",
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:bbd1fda3545c8f7e::calendar_reference::2014",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 2,
+      "priority_score": 62,
+      "provisional_anchor_id": "fact:bbd1fda3545c8f7e#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:bbd1fda3545c8f7e"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1965",
+      "anchor_value": "1965",
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:f642530dfd879730::calendar_reference::1965",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 3,
+      "priority_score": 62,
+      "provisional_anchor_id": "fact:f642530dfd879730#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:f642530dfd879730"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:05:11.805 -> 04:05:28.755",
+      "anchor_value": {
+        "end": "04:05:28.755",
+        "start": "04:05:11.805"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:70d7cdc9317e1dd1::transcript_timestamp_window::04:05:11.805 -> 04:05:28.755",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 4,
+      "priority_score": 58,
+      "provisional_anchor_id": "fact:70d7cdc9317e1dd1#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:70d7cdc9317e1dd1"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:27:55.095 -> 04:28:12.775",
+      "anchor_value": {
+        "end": "04:28:12.775",
+        "start": "04:27:55.095"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:8fe28381242afe12::transcript_timestamp_window::04:27:55.095 -> 04:28:12.775",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 5,
+      "priority_score": 56,
+      "provisional_anchor_id": "fact:8fe28381242afe12#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:8fe28381242afe12"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1969",
+      "anchor_value": "1969",
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:6bd9ca5bb9fe66dd::calendar_reference::1969",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 6,
+      "priority_score": 55,
+      "provisional_anchor_id": "fact:6bd9ca5bb9fe66dd#anchor:2",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:6bd9ca5bb9fe66dd"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "00:11:29.215 -> 00:11:54.725",
+      "anchor_value": {
+        "end": "00:11:54.725",
+        "start": "00:11:29.215"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:f63e1bba64e0aa03::transcript_timestamp_window::00:11:29.215 -> 00:11:54.725",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 7,
+      "priority_score": 54,
+      "provisional_anchor_id": "fact:f63e1bba64e0aa03#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:f63e1bba64e0aa03"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "02:21:43.085 -> 02:22:15.365",
+      "anchor_value": {
+        "end": "02:22:15.365",
+        "start": "02:21:43.085"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:481c2b082edf71c4::transcript_timestamp_window::02:21:43.085 -> 02:22:15.365",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 8,
+      "priority_score": 53,
+      "provisional_anchor_id": "fact:481c2b082edf71c4#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:481c2b082edf71c4"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:44:51.385 -> 04:45:12.525",
+      "anchor_value": {
+        "end": "04:45:12.525",
+        "start": "04:44:51.385"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:26d3f8064b2550bf::transcript_timestamp_window::04:44:51.385 -> 04:45:12.525",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 9,
+      "priority_score": 50,
+      "provisional_anchor_id": "fact:26d3f8064b2550bf#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:26d3f8064b2550bf"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "03:06:06.475 -> 03:06:22.495",
+      "anchor_value": {
+        "end": "03:06:22.495",
+        "start": "03:06:06.475"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:0ad0782de084f48d::transcript_timestamp_window::03:06:06.475 -> 03:06:22.495",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 10,
+      "priority_score": 48,
+      "provisional_anchor_id": "fact:0ad0782de084f48d#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:0ad0782de084f48d"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "01:18:57.015 -> 01:19:15.855",
+      "anchor_value": {
+        "end": "01:19:15.855",
+        "start": "01:18:57.015"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:ccda765b3be7eadd::transcript_timestamp_window::01:18:57.015 -> 01:19:15.855",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 11,
+      "priority_score": 48,
+      "provisional_anchor_id": "fact:ccda765b3be7eadd#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:ccda765b3be7eadd"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:fae42de94d163cc8::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 12,
+      "priority_score": 48,
+      "provisional_anchor_id": "fact:fae42de94d163cc8#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:fae42de94d163cc8"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "00:00:54.095 -> 00:01:10.155",
+      "anchor_value": {
+        "end": "00:01:10.155",
+        "start": "00:00:54.095"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:0fac7356da9652c3::transcript_timestamp_window::00:00:54.095 -> 00:01:10.155",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 13,
+      "priority_score": 46,
+      "provisional_anchor_id": "fact:0fac7356da9652c3#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:0fac7356da9652c3"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "01:21:16.505 -> 01:21:37.685",
+      "anchor_value": {
+        "end": "01:21:37.685",
+        "start": "01:21:16.505"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:6bd9ca5bb9fe66dd::transcript_timestamp_window::01:21:16.505 -> 01:21:37.685",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 14,
+      "priority_score": 45,
+      "provisional_anchor_id": "fact:6bd9ca5bb9fe66dd#anchor:1",
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:6bd9ca5bb9fe66dd"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:f63e1bba64e0aa03::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 15,
+      "priority_score": 44,
+      "provisional_anchor_id": "fact:f63e1bba64e0aa03#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:f63e1bba64e0aa03"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:481c2b082edf71c4::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 16,
+      "priority_score": 43,
+      "provisional_anchor_id": "fact:481c2b082edf71c4#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:481c2b082edf71c4"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1969",
+      "anchor_value": "1969",
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:57f737c453a65f7c::calendar_reference::1969",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 17,
+      "priority_score": 42,
+      "provisional_anchor_id": "fact:57f737c453a65f7c#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:57f737c453a65f7c"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:bbd1fda3545c8f7e::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 18,
+      "priority_score": 42,
+      "provisional_anchor_id": "fact:bbd1fda3545c8f7e#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:bbd1fda3545c8f7e"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "12 August",
+      "anchor_value": "12 August",
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "dedupe_key": "fact:ed6d46a2e363fbef::calendar_reference::12 August",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 19,
+      "priority_score": 42,
+      "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:ed6d46a2e363fbef"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:f642530dfd879730::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 20,
+      "priority_score": 42,
+      "provisional_anchor_id": "fact:f642530dfd879730#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:f642530dfd879730"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:50:19.645 -> 04:50:55.125",
+      "anchor_value": {
+        "end": "04:50:55.125",
+        "start": "04:50:19.645"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:1e2840056d63cd55::transcript_timestamp_window::04:50:19.645 -> 04:50:55.125",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 21,
+      "priority_score": 40,
+      "provisional_anchor_id": "fact:1e2840056d63cd55#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:1e2840056d63cd55"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:1ccc81698d17cedb::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 22,
+      "priority_score": 39,
+      "provisional_anchor_id": "fact:1ccc81698d17cedb#anchor:1",
+      "recommended_next_action": "extract structured event/date support",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:1ccc81698d17cedb"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:46:31.065 -> 04:47:00.805",
+      "anchor_value": {
+        "end": "04:47:00.805",
+        "start": "04:46:31.065"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:8173d240e9a95bd9::transcript_timestamp_window::04:46:31.065 -> 04:47:00.805",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 23,
+      "priority_score": 37,
+      "provisional_anchor_id": "fact:8173d240e9a95bd9#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:8173d240e9a95bd9"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "appeal, duty",
+      "anchor_value": [
+        "appeal",
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "dedupe_key": "fact:cab21ef741df8dea::procedural_event_keywords::appeal, duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 24,
+      "priority_score": 37,
+      "provisional_anchor_id": "fact:cab21ef741df8dea#anchor:1",
+      "recommended_next_action": "extract structured event/date support",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:cab21ef741df8dea"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty, submissions",
+      "anchor_value": [
+        "duty",
+        "submissions"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:0fac7356da9652c3::procedural_event_keywords::duty, submissions",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 25,
+      "priority_score": 36,
+      "provisional_anchor_id": "fact:0fac7356da9652c3#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:0fac7356da9652c3"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "00:04:27.945 -> 00:05:03.115",
+      "anchor_value": {
+        "end": "00:05:03.115",
+        "start": "00:04:27.945"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:141f54d67f46b195::transcript_timestamp_window::00:04:27.945 -> 00:05:03.115",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 26,
+      "priority_score": 33,
+      "provisional_anchor_id": "fact:141f54d67f46b195#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:141f54d67f46b195"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "appeal, duty, judgment",
+      "anchor_value": [
+        "appeal",
+        "duty",
+        "judgment"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "dedupe_key": "fact:6ca8a3c43a139f2b::procedural_event_keywords::appeal, duty, judgment",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 27,
+      "priority_score": 32,
+      "provisional_anchor_id": "fact:6ca8a3c43a139f2b#anchor:1",
+      "recommended_next_action": "extract structured event/date support",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:6ca8a3c43a139f2b"
+    },
+    {
+      "anchor_kind": "transcript_timestamp_window",
+      "anchor_label": "04:54:25.555 -> 04:54:45.525",
+      "anchor_value": {
+        "end": "04:54:45.525",
+        "start": "04:54:25.555"
+      },
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "dedupe_key": "fact:ed6d46a2e363fbef::transcript_timestamp_window::04:54:25.555 -> 04:54:45.525",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 28,
+      "priority_score": 32,
+      "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:1",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:ed6d46a2e363fbef"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:1e2840056d63cd55::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 29,
+      "priority_score": 30,
+      "provisional_anchor_id": "fact:1e2840056d63cd55#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:1e2840056d63cd55"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty, notice, proceedings",
+      "anchor_value": [
+        "duty",
+        "notice",
+        "proceedings"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:67f084ec10ace889::procedural_event_keywords::duty, notice, proceedings",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 30,
+      "priority_score": 27,
+      "provisional_anchor_id": "fact:67f084ec10ace889#anchor:1",
+      "recommended_next_action": "extract structured event/date support",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:67f084ec10ace889"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:8173d240e9a95bd9::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 31,
+      "priority_score": 27,
+      "provisional_anchor_id": "fact:8173d240e9a95bd9#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:8173d240e9a95bd9"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "proceedings",
+      "anchor_value": [
+        "proceedings"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "dedupe_key": "fact:141f54d67f46b195::procedural_event_keywords::proceedings",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 32,
+      "priority_score": 23,
+      "provisional_anchor_id": "fact:141f54d67f46b195#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:141f54d67f46b195"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "duty",
+      "anchor_value": [
+        "duty"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "dedupe_key": "fact:57f737c453a65f7c::procedural_event_keywords::duty",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 33,
+      "priority_score": 22,
+      "provisional_anchor_id": "fact:57f737c453a65f7c#anchor:2",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:57f737c453a65f7c"
+    },
+    {
+      "anchor_kind": "procedural_event_keywords",
+      "anchor_label": "adjourn, adjourned, consider, decision",
+      "anchor_value": [
+        "adjourn",
+        "adjourned",
+        "consider",
+        "decision"
+      ],
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "dedupe_key": "fact:ed6d46a2e363fbef::procedural_event_keywords::adjourn, adjourned, consider, decision",
+      "primary_workload_class": "chronology_gap",
+      "priority_rank": 34,
+      "priority_score": 22,
+      "provisional_anchor_id": "fact:ed6d46a2e363fbef#anchor:3",
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "review_disposition": "provisional_anchor_candidate",
+      "source_row_id": "fact:ed6d46a2e363fbef"
+    }
+  ],
+  "related_review_clusters": [
+    {
+      "candidate_anchor_rollup": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "count": 2
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "count": 1
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "count": 1
+        }
+      ],
+      "candidate_source_count": 3,
+      "candidate_source_rows": [
+        {
+          "best_match_basis": "segment",
+          "best_match_excerpt": "Can I ask your honors to go to the next part of the Civil Liability Act?",
+          "best_match_score": 0.333333,
+          "calendar_reference_mentions": [],
+          "candidate_anchors": [
+            {
+              "anchor_kind": "transcript_timestamp_window",
+              "anchor_value": {
+                "end": "04:05:28.755",
+                "start": "04:05:11.805"
+              },
+              "label": "04:05:11.805 -> 04:05:28.755"
+            }
+          ],
+          "excerpt_ids": [
+            "excerpt:d86accd44418064c"
+          ],
+          "has_calendar_reference_hint": false,
+          "has_procedural_event_cue": false,
+          "has_transcript_timestamp_hint": true,
+          "primary_workload_class": "chronology_gap",
+          "procedural_event_keywords": [],
+          "reason_codes": [
+            "unreviewed",
+            "event_missing",
+            "chronology_undated",
+            "missing_date",
+            "statement_only_fact"
+          ],
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "source_ids": [
+            "src:3b4d0b108212de26"
+          ],
+          "source_kind": "au_dense_overlay_fact",
+          "source_row_id": "fact:70d7cdc9317e1dd1",
+          "statement_ids": [
+            "statement:bb9548a2b711d6b1"
+          ],
+          "transcript_timestamp_windows": [
+            {
+              "end": "04:05:28.755",
+              "start": "04:05:11.805"
+            }
+          ],
+          "workload_classes": [
+            "chronology_gap",
+            "event_extraction_gap",
+            "evidence_gap"
+          ]
+        },
+        {
+          "best_match_basis": "segment",
+          "best_match_excerpt": "Can I ask your Honour to go to the next part of the Civil Liability Act .",
+          "best_match_score": 0.333333,
+          "calendar_reference_mentions": [
+            "2018"
+          ],
+          "candidate_anchors": [
+            {
+              "anchor_kind": "calendar_reference",
+              "anchor_value": "2018",
+              "label": "2018"
+            },
+            {
+              "anchor_kind": "procedural_event_keywords",
+              "anchor_value": [
+                "duty"
+              ],
+              "label": "duty"
+            }
+          ],
+          "excerpt_ids": [
+            "excerpt:0cbd8cc5917679fa"
+          ],
+          "has_calendar_reference_hint": true,
+          "has_procedural_event_cue": true,
+          "has_transcript_timestamp_hint": false,
+          "primary_workload_class": "chronology_gap",
+          "procedural_event_keywords": [
+            "duty"
+          ],
+          "reason_codes": [
+            "unreviewed",
+            "event_missing",
+            "chronology_undated",
+            "missing_date",
+            "statement_only_fact"
+          ],
+          "recommended_next_action": "promote existing event/date cues into structured anchors",
+          "source_ids": [
+            "src:12132fb2a77cd187"
+          ],
+          "source_kind": "au_dense_overlay_fact",
+          "source_row_id": "fact:fae42de94d163cc8",
+          "statement_ids": [
+            "statement:b7eae7302b6cc941"
+          ],
+          "transcript_timestamp_windows": [],
+          "workload_classes": [
+            "chronology_gap",
+            "event_extraction_gap",
+            "evidence_gap"
+          ]
+        },
+        {
+          "best_match_basis": "segment",
+          "best_match_excerpt": "[04:27:55.095 -> 04:28:12.775] That is, it's a civil liability of a person in respect of an intentional act so that it, it's it's not covered by part one of the Civil Liability Act, but is by part one B or is that, that's not part of your case one way or another.",
+          "best_match_score": 0.307692,
+          "calendar_reference_mentions": [],
+          "candidate_anchors": [
+            {
+              "anchor_kind": "transcript_timestamp_window",
+              "anchor_value": {
+                "end": "04:28:12.775",
+                "start": "04:27:55.095"
+              },
+              "label": "04:27:55.095 -> 04:28:12.775"
+            }
+          ],
+          "excerpt_ids": [
+            "excerpt:74b7af26cfaeadbf"
+          ],
+          "has_calendar_reference_hint": false,
+          "has_procedural_event_cue": false,
+          "has_transcript_timestamp_hint": true,
+          "primary_workload_class": "chronology_gap",
+          "procedural_event_keywords": [],
+          "reason_codes": [
+            "unreviewed",
+            "event_missing",
+            "chronology_undated",
+            "missing_date",
+            "statement_only_fact"
+          ],
+          "recommended_next_action": "promote existing temporal cues into structured anchors",
+          "source_ids": [
+            "src:3b4d0b108212de26"
+          ],
+          "source_kind": "au_dense_overlay_fact",
+          "source_row_id": "fact:8fe28381242afe12",
+          "statement_ids": [
+            "statement:06e4d6fdaa7ccbf0"
+          ],
+          "transcript_timestamp_windows": [
+            {
+              "end": "04:28:12.775",
+              "start": "04:27:55.095"
+            }
+          ],
+          "workload_classes": [
+            "chronology_gap",
+            "event_extraction_gap",
+            "evidence_gap"
+          ]
+        }
+      ],
+      "coverage_status": "covered",
+      "dominant_workload_class": "chronology_gap",
+      "extraction_hint_rollup": [
+        {
+          "count": 2,
+          "hint_kind": "transcript_timestamp_hint"
+        },
+        {
+          "count": 1,
+          "hint_kind": "calendar_reference_hint"
+        },
+        {
+          "count": 1,
+          "hint_kind": "procedural_event_cue"
+        }
+      ],
+      "proposition_id": "aff-prop:p2-s1",
+      "reason_code_rollup": [
+        {
+          "count": 3,
+          "reason_code": "chronology_undated"
+        },
+        {
+          "count": 3,
+          "reason_code": "event_missing"
+        },
+        {
+          "count": 3,
+          "reason_code": "missing_date"
+        },
+        {
+          "count": 3,
+          "reason_code": "statement_only_fact"
+        },
+        {
+          "count": 3,
+          "reason_code": "unreviewed"
+        }
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "text": "One of the critical features of the original Civil Liability Act, Part 1A, was that it sharpened the distinction between intentional wrongs and negligence.",
+      "workload_class_rollup": [
+        {
+          "count": 3,
+          "workload_class": "chronology_gap"
+        },
+        {
+          "count": 3,
+          "workload_class": "event_extraction_gap"
+        },
+        {
+          "count": 3,
+          "workload_class": "evidence_gap"
+        }
+      ]
+    }
+  ],
+  "source_input": {
+    "path": "SensibLaw/tests/fixtures/zelph/au_real_transcript_dense_substrate_v1/au_real_transcript_dense_substrate_v1.json",
+    "source_contract": "au_real_transcript_dense_substrate_v1",
+    "source_kind": "au_dense_overlay_slice",
+    "source_label": "wave6:real_au_transcript_hearing_v1",
+    "source_row_count": 24
+  },
+  "source_review_rows": [
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Starting with the duty of care, may we emphasise at once the significant effect of the Civil Liability Act on that question.",
+      "best_match_score": 1.0,
+      "calendar_reference_mentions": [
+        "1 August",
+        "5 August"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "1 August",
+          "label": "1 August"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "5 August",
+          "label": "5 August"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "commenced",
+            "duty",
+            "filed",
+            "notice",
+            "proceedings",
+            "submissions"
+          ],
+          "label": "commenced, duty, filed, notice, proceedings, submissions"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:fd1d6ddc419710a8"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [
+        "aff-prop:p1-s1"
+      ],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "commenced",
+        "duty",
+        "filed",
+        "notice",
+        "proceedings",
+        "submissions"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "covered",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:fdeb563e9b256cf1",
+      "statement_ids": [
+        "statement:b5457eb772cd40ea"
+      ],
+      "text": "MR HERZFELD:\nThank you, your Honour. May we structure our oral submissions in this way.\nI will deal first with the question of whether the Diocese\n\u2013 and I\nwill come back to that word \u2013 owed a relevant duty of care to the\nappellant. I will then deal with the question\nof whether, if so, that was a\nnon-delegable duty and whether that can be breached by intentional conduct.\nMr McComish will then\ndeal with the notice of contention. As I go, I will\nat appropriate points locate my submissions by reference to the disputed facts\ndocument which was filed on 1 August, and I will also, as I go, deal with\nthe respondent\u2019s status of facts document filed on\n5 August.\nStarting with the duty of care, may we emphasise at once\nthe significant effect of the Civil Liability Act on that question.\nWould your Honours take up, please. If your Honours turn in the\nCivil Liability Act to section 6I, your Honours will see the\nobjects of Division 4 of the relevant Part. And in section 6J, may we\ndraw attention to\nthe definitions of \u201cchild abuse proceedings\u201d,\n\u201clegal personality\u201d, and then \u201cunincorporated\norganisation\u201d.\nYour Honours will see that section 6K\nallows:\nChild abuse proceedings \u2013\nto:\nbe commenced or continue against an unincorporated",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "One of the critical features of the original Civil Liability Act , Part 1A, which was introduced in 2002, was that it sharpened any doubt there may have been about the distinction between intentional wrongs and negligence.",
+      "best_match_score": 0.789474,
+      "calendar_reference_mentions": [
+        "2002",
+        "2018",
+        "2002"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "2002",
+          "label": "2002"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "2018",
+          "label": "2018"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "2002",
+          "label": "2002"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:8bf0ba7308dfe7b6"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [
+        "aff-prop:p2-s1"
+      ],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "covered",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:75cc3e4aace85a5b",
+      "statement_ids": [
+        "statement:3a371e2e889898b4"
+      ],
+      "text": "MR GLEESON: Your Honours, that is one of the\nfundamental problems that has not been addressed this morning about the Civil\nLiability Act . I will mention the point now, but develop it this afternoon.\nOne of the critical features of the original Civil Liability Act ,\nPart 1A, which was introduced in 2002, was that it sharpened any doubt\nthere may have been about the distinction between intentional\nwrongs and\nnegligence. The whole of Part 1A is about negligence;\n\u201cnegligence\u201d is defined in section 5 as:\nfailure to exercise reasonable care and skill.\nPerhaps I will ask\nyour Honours to go to it now, but section 3B made perfectly clear that\nthe Act does not apply to civil liability\nin certain areas, the first one,\nparagraph (a), being:\nof a person in respect of an intentional act that is done by the person with\nintent to cause injury or death or that is sexual assault\nor other\nsexual \u2013\nassault. The whole Act does not apply other than\nPart 1B. Part 1B came in as part of the 2018 amendments. So, what\nwas there from\n2002 was the sharp distinction between intentional wrongs,\nwhich are not regulated, and then Part 1A, which is about \u2013 the\nheading is \u201cNegligence\u201d, and it is about negligence in the sense of",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "May we emphasize at once the significant effect of the Civil Liability Act on that question.",
+      "best_match_score": 0.869565,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "00:02:15.515",
+            "start": "00:01:46.095"
+          },
+          "label": "00:01:46.095 -> 00:02:15.515"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:3d520a51c4ee4777"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [
+        "aff-prop:p1-s1"
+      ],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "covered",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:3242bff0b91f464a",
+      "statement_ids": [
+        "statement:64734e5d193c6bc7"
+      ],
+      "text": "[00:01:46.095 -> 00:02:15.515] Um, starting with the duty of care. May we emphasize at once the significant effect of the Civil Liability Act on that question. Would your honors take that up please? If your honor's turn in the Civil Liability Act to Section six, capital I, your honors will see the objects of Division four of the relevant part.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "00:02:15.515",
+          "start": "00:01:46.095"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "So, if a non-delegable duty is an aspect of the tort of negligence, which we say it is, the Civil Liability Act requires that the analysis of that tort be done through the prism of Part 1A, where the negligence stage of the analysis will be done under the section 5B principles, and everything else in this Part would apply, including, for example, 5Q.",
+      "best_match_score": 0.24,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:bf0948ba3910bddd"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "extract structured event/date support",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:1ccc81698d17cedb",
+      "statement_ids": [
+        "statement:f6e70ec04bad623a"
+      ],
+      "text": "MR GLEESON: the:\nfailure to exercise reasonable care and skill.\nAnd section 5A makes clear it applies to claims in negligence,\nhowever framed, and then section 5B, which is headed \u201cDuty of\ncare\u201d \u2013 this Court has pointed out that is a misnomer, this is\nabout breach:\nA person is not negligent . . . unless \u2013\nAnd then we have the formulation of Wyong Shire Council v Shirt.\nSo, if a non-delegable duty is an aspect of the tort of negligence, which we\nsay it is, the Civil Liability Act requires that the analysis of that\ntort be done through the prism of Part 1A, where the negligence stage of\nthe analysis will be\ndone under the section 5B principles, and everything\nelse in this Part would apply, including, for\nexample, 5Q.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "The Court of Appeal really did not engage with these issues because they could not.",
+      "best_match_score": 0.222222,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "appeal",
+            "duty"
+          ],
+          "label": "appeal, duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:f0a89440e3c29baa"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "appeal",
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "extract structured event/date support",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:cab21ef741df8dea",
+      "statement_ids": [
+        "statement:c023974e41de3573"
+      ],
+      "text": "MR HERZFELD: It is, it is\nparagraph 51. The Court of Appeal really did not engage with these issues\nbecause they could not. Their real point\nonly was that non\u2011delegable duty\nis academically controversial. That may be so, but while it is part of our law,\nit should\nbe principled. If it is principled, it extends to intentional torts.\nThe other point the Court of Appeal made was about section 6F of\nthe Civil Liability Act , which is the last point that I want to make.\nWould your Honours take up section 6F, please. Your Honours will see\nthat it imposes\na duty of care, and the content of the duty is for an\norganisation responsible for a child to:\ntake reasonable precautions to prevent an individual associated with the\norganisation from perpetrating child abuse \u2013\nAnd then there is\na defence in subsection (3), if:\nthe organisation establishes that it took reasonable precautions \u2013\nThis statute does not cover the field. Your Honours will see that\nthere are definitions in section 6D and 6E which limit its ambit.\nWhat is\neven more limited is that, of course, it says only about:\nOrganisations that are responsible for a child \u2013\nit\nis not about non\u2011delegable duties generally. So, this section creates a",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Can I ask your Honour to go to the next part of the Civil Liability Act .",
+      "best_match_score": 0.333333,
+      "calendar_reference_mentions": [
+        "2018"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "2018",
+          "label": "2018"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:0cbd8cc5917679fa"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [
+        "aff-prop:p2-s1"
+      ],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:fae42de94d163cc8",
+      "statement_ids": [
+        "statement:b7eae7302b6cc941"
+      ],
+      "text": "MR GLEESON: the\nproblem of non-delegable duties, and they have chosen to solve it in a\nparticular fashion. This Court should be very slow to\nretrospectively state the\nlaw 55 years ago, inconsistent with the choice the Parliament has\nmade.\nNow, I am jumping ahead, but time is short. Can I ask\nyour Honour to go to the next part of the Civil Liability Act . This\nis really important to what happened in 2018. A couple of things happened,\napart from 6O and the like. If you go to 6D to\n6F \u2013 and this\nprovision is replicated in the Victorian Act \u2013 what happened was in\n6D, the Parliament created a statutory\nconcept of responsibility.\nSo, it\nprovided a definition of what it means to be responsible, which has elements of\neither exercising care, et cetera, which is\na factual inquiry, purporting to\nexercise care, that is a factual inquiry:\nor is obliged by law to do so \u2013\nThat is a legal inquiry \u2013 \u201claw\u201d, of course,\nmeaning Australian law, not canon law \u2013 and if you then delegate\nany\npart of that responsibility, you remain responsible. Then 6E extends the\nindividuals associated with you to a range of people,\nand what 6F does\nis:\nimposes a duty of care that forms part of a cause of action in\nnegligence.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "So in relation to the duty of care at issue here, would your honors turn back to the statement of claim, please, at page 15 of this volume, Are you coming Back to the Civil Liability Act at any stage?",
+      "best_match_score": 0.285714,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "00:11:54.725",
+            "start": "00:11:29.215"
+          },
+          "label": "00:11:29.215 -> 00:11:54.725"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:c03e9dfecc601007"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:f63e1bba64e0aa03",
+      "statement_ids": [
+        "statement:b9f80844b5fc3390"
+      ],
+      "text": "[00:11:29.215 -> 00:11:54.725] Yes. And that aspect of attribution we don't think is in controversy. Some other aspects of attribution are in controversy, and I'll come to those. So in relation to the duty of care at issue here, would your honors turn back to the statement of claim, please, at page 15 of this volume, Are you coming Back to the Civil Liability Act at any stage?",
+      "transcript_timestamp_windows": [
+        {
+          "end": "00:11:54.725",
+          "start": "00:11:29.215"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "[04:46:31.065 -> 04:47:00.805] In addition, appellant's book of further materials, volume two pages 5 0 5 to six in relation to duty of care, there was an attack by Mr.",
+      "best_match_score": 0.117647,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:47:00.805",
+            "start": "04:46:31.065"
+          },
+          "label": "04:46:31.065 -> 04:47:00.805"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:c89daacd308f3898"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:8173d240e9a95bd9",
+      "statement_ids": [
+        "statement:52755643f9c7e9d2"
+      ],
+      "text": "[04:46:31.065 -> 04:47:00.805] In addition, appellant's book of further materials, volume two pages 5 0 5 to six in relation to duty of care, there was an attack by Mr. Gleason on the weight to be given to Father Di, to be given to Father Dylan's evidence that evidence was unchallenged and uncontradicted by any competing evidence from the party best able to lead it, namely the respondent, either on the question of the role of a parish priest or on the knowledge of, uh, bishops",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:47:00.805",
+          "start": "04:46:31.065"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Um, the court will consider its decision in this matter and will adjourn until 10:00 AM Next Tuesday in Perth All Stand, the High Court of Australia stands adjourned to 10:00 AM on Tuesday, 12 August in Perth.",
+      "best_match_score": 0.066667,
+      "calendar_reference_mentions": [
+        "12 August"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:54:45.525",
+            "start": "04:54:25.555"
+          },
+          "label": "04:54:25.555 -> 04:54:45.525"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "12 August",
+          "label": "12 August"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "adjourn",
+            "adjourned",
+            "consider",
+            "decision"
+          ],
+          "label": "adjourn, adjourned, consider, decision"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:e7562f1ab88765ff"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "adjourn",
+        "adjourned",
+        "consider",
+        "decision"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:ed6d46a2e363fbef",
+      "statement_ids": [
+        "statement:0212d5acb808e736"
+      ],
+      "text": "[04:54:25.555 -> 04:54:45.525] Feld, you have a week after That. Thank you, your Honor. Thank you. Um, the court will consider its decision in this matter and will adjourn until 10:00 AM Next Tuesday in Perth All Stand, the High Court of Australia stands adjourned to 10:00 AM on Tuesday, 12 August in Perth.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:54:45.525",
+          "start": "04:54:25.555"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "[04:50:19.645 -> 04:50:55.125] We now recognize that duty as a nondelegable one, and if it were otherwise, an employer who leaves the safety of their workplace to a contractor will escape if one employee while Sky Laking intentionally and unlawfully injures another, um, in relation to the Civil Liability Act reforms as a suggestion that, uh, your Honor should not correct the error in Lapore as your Honor, justice Bee Jones pointed out, um, they are not on the same topic as was submitted by Mr.",
+      "best_match_score": 0.151515,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:50:55.125",
+            "start": "04:50:19.645"
+          },
+          "label": "04:50:19.645 -> 04:50:55.125"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:5b6dd70d4380ec8c"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:1e2840056d63cd55",
+      "statement_ids": [
+        "statement:0c50e631a1b7abee"
+      ],
+      "text": "[04:50:19.645 -> 04:50:55.125] We now recognize that duty as a nondelegable one, and if it were otherwise, an employer who leaves the safety of their workplace to a contractor will escape if one employee while Sky Laking intentionally and unlawfully injures another, um, in relation to the Civil Liability Act reforms as a suggestion that, uh, your Honor should not correct the error in Lapore as your Honor, justice Bee Jones pointed out, um, they are not on the same topic as was submitted by Mr.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:50:55.125",
+          "start": "04:50:19.645"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "The critical thing now is the Civil Liability Act has explained those distinctions are even clearer than they might previously have been.",
+      "best_match_score": 0.266667,
+      "calendar_reference_mentions": [
+        "1965"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "1965",
+          "label": "1965"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:9297e6a1b9a965c5"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:f642530dfd879730",
+      "statement_ids": [
+        "statement:d0e7cace58955f98"
+      ],
+      "text": "MR GLEESON:\nYour Honour, when we read Fleming, in 1965, he made that point that you\nwould expect the NDD to be narrower in that way, but it\nmay also be broader,\ndepending on how the facts of the case occur. Our main point is that you are\ncreating the potential for a jarring\nwith that vicarious\nliability.\nTheir Honours\u2019 final point is\nWilliams v Milotin , and this is where they differ from\nJustice McHugh, but on our reading of Williams v Milotin ,\neven under the old forms of action, it does not authorise pleading a trespass as\nnegligence although it may authorise the reverse.\nThe critical thing now is the\nCivil Liability Act has explained those distinctions are even clearer\nthan they might previously have been.\nYour Honours, my final\nsubmission is paragraph 9 of the outline, which is that even if\nLepore was overturned based on the factual matters I have been to, you\nwould not find that there was a relevant entrustment and a relevant\nassumption\nof responsibility so as to give rise to a non\u2011delegable duty.\nYour Honours, can I hand over to Mr Sheller\nto \u2011\n\u2011 \u2011",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "So if a nondelegable duty is an aspect of, uh, the tort of negligence, which we say it is, the Civil Liability Act requires that the analysis of that tort be done through the prism of part one A, where the negligence stage of the analysis will be done under the section five B principles.",
+      "best_match_score": 0.27907,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "02:22:15.365",
+            "start": "02:21:43.085"
+          },
+          "label": "02:21:43.085 -> 02:22:15.365"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:2c1b95d74a0f9a10"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:481c2b082edf71c4",
+      "statement_ids": [
+        "statement:4f82433bb0e7629d"
+      ],
+      "text": "[02:21:43.085 -> 02:22:15.365] This is about breach A person is not negligent unless, and then we have the statutory formulation of Yang Shire Council and shirt. So if a nondelegable duty is an aspect of, uh, the tort of negligence, which we say it is, the Civil Liability Act requires that the analysis of that tort be done through the prism of part one A, where the negligence stage of the analysis will be done under the section five B principles.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "02:22:15.365",
+          "start": "02:21:43.085"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "responsibility \u2013 Then what the Parliament has done \u2013 this is the first of the two critical choices in subsection (3) \u2013 is there is a reverse onus.",
+      "best_match_score": 0.074074,
+      "calendar_reference_mentions": [
+        "1969"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "1969",
+          "label": "1969"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:0e0c257c0ae24083"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:57f737c453a65f7c",
+      "statement_ids": [
+        "statement:fa6466d0b35c7d89"
+      ],
+      "text": "MR GLEESON: So, functionally it is the same thing as a\nnon\u2011delegable duty because the scope of the primary duty now includes this\nstatutory\nduty, and subsection (2) gives you a responsibility \u2013\nif you have:\nresponsibility for a child \u2013\nyou:\nmust take reasonable precautions to prevent an\nindividual . . . from perpetrating child\nabuse . . . in connection with . . .\nresponsibility\n\u2013\nThen what the Parliament has\ndone \u2013 this is the first of the two critical choices in\nsubsection (3) \u2013 is there is a reverse\nonus. There is a\npresumption of breach unless the organisation can establish:\nit took reasonable precautions to prevent the child abuse.\nNow, as\nJustice Leeming recognised at paragraph 168, if you restate the law\nin 1969, as the appellant seeks, you will be doing so\ninconsistently\nwith 6F because, instead of the organisation having the chance to raise the\ndefence and defeat the presumption, it\nwill be liable anyway.\nNow,\nParliament in New South Wales and Victoria made that choice, and they combined\nwith it a choice for which they are responsible\nto the people, which you will\nsee in Schedule 1, clause 43, that it is:\nonly in respect of child abuse \u2013\ngoing forward. In an\narea where the Parliament has grappled with the very problem, has chosen to do",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "That is then given effect by paragraph (d):",
+      "best_match_score": 0.117647,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty",
+            "notice",
+            "proceedings"
+          ],
+          "label": "duty, notice, proceedings"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:e3a30581e72a912f"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty",
+        "notice",
+        "proceedings"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "extract structured event/date support",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:67f084ec10ace889",
+      "statement_ids": [
+        "statement:e9d3c479f25fe617"
+      ],
+      "text": "MR HERZFELD: organisation \u2013\nand, as I will show your Honours in a\nmoment, that provision ultimately was not needed here. Section 6L permits\nan unincorporated\norganisation to \u201cappoint\u201d an:\nentity as a proper defendant \u2013\nand again, as I will show\nyour Honours in a moment, that is, in substance, what appears to have\nhappened here. Turning over to section\n6N, that empowers the Court to\nappoint a proper defendant if one is not otherwise appointed, and that was not\nrequired here. Then\nsection 6O is a most substantive provision.\nYour Honours will see that, by paragraph (a):\nthe proper defendant is taken to be the\ndefendant . . . on behalf of \u2013\nthe\nunincorporated organisation. Then, paragraph (b) makes clear two things,\nthat:\nanything done by the unincorporated organisation is taken to have been done\nby the proper defendant and \u2013\nimportantly, that:\na duty or obligation of the unincorporated organisation in relation to the\nproceedings is \u2013\ntaken to be:\na duty or obligation owed by the proper defendant \u2013\nAnd\nyour Honours will notice that both paragraphs (a) and (b) assume\nthat acts can be done and duties can be owed by the unincorporated\norganisation.\nThat is then given effect by paragraph (d):",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Hertzel, Does this involve treating the organization for the purposes of the Civil Liability Act as extending to the bishop and then the priests There?",
+      "best_match_score": 0.230769,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "01:19:15.855",
+            "start": "01:18:57.015"
+          },
+          "label": "01:18:57.015 -> 01:19:15.855"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:d18077dba9142894"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:ccda765b3be7eadd",
+      "statement_ids": [
+        "statement:683a52738cc0f371"
+      ],
+      "text": "[01:18:57.015 -> 01:19:15.855] That's not, um, correct insofar as it suggests that attribution was not, uh, in play. Mr. Hertzel, Does this involve treating the organization for the purposes of the Civil Liability Act as extending to the bishop and then the priests There? There's two different ways of viewing it.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "01:19:15.855",
+          "start": "01:18:57.015"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Uh, I'll deal first with the question of whether the diocese, and I'll come back to that word, uh, owed a relevant duty of care to the appellant.",
+      "best_match_score": 0.214286,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "00:01:10.155",
+            "start": "00:00:54.095"
+          },
+          "label": "00:00:54.095 -> 00:01:10.155"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty",
+            "submissions"
+          ],
+          "label": "duty, submissions"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:0db329562789ce39"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty",
+        "submissions"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:0fac7356da9652c3",
+      "statement_ids": [
+        "statement:a12e7a751dc5ea71"
+      ],
+      "text": "[00:00:54.095 -> 00:01:10.155] Yes. Thank you, Mr. Gleason. Mr. Hertz. Uh, thank you, your Honor. May we structure our oral submissions in this way? Uh, I'll deal first with the question of whether the diocese, and I'll come back to that word, uh, owed a relevant duty of care to the appellant.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "00:01:10.155",
+          "start": "00:00:54.095"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p3-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Now, the only thing I want to say on the question of parish priest or not parish priest is, in our submission, it was neither determinative of the Court of Appeal\u2019s judgment and is not determinative of this appeal.",
+      "best_match_score": 0.166667,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "appeal",
+            "duty",
+            "judgment"
+          ],
+          "label": "appeal, duty, judgment"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:a7cd3c6b1e5da7b4"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "appeal",
+        "duty",
+        "judgment"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "extract structured event/date support",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:6ca8a3c43a139f2b",
+      "statement_ids": [
+        "statement:77ab901198afac36"
+      ],
+      "text": "MR GLEESON: Yes. So, this is the point at\nwhich \u2013 although I am trying to keep them separate \u2013 the\nordinary duty of care starts\nto blend into some of the discussion under the\nnon\u2011delegable duty. What we have effectively got is we have the findings\nof\nnot a church event, no religious instruction; we have the analysis of\nFather Dillon that I have been to, and I will not repeat.\nThe appellant\ndoes not have the findings it would need on this topic, and for that reason,\nyour Honours would confirm the conclusion\nof the Court of Appeal that the\nordinary duty of care was not established.\nNow, the only thing I want\nto say on the question of parish priest or not parish priest is, in our\nsubmission, it was neither determinative\nof the Court of Appeal\u2019s judgment\nand is not determinative of this appeal. Justice Leeming made clear that\nhis observations\nwere not determinative of the outcome of\nlitigation \u2013 that is at\nparagraph 80.",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "For that reason, we will start, as the appellant has this morning, with the ordinary duty of care.",
+      "best_match_score": 0.272727,
+      "calendar_reference_mentions": [
+        "2014"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "2014",
+          "label": "2014"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "duty"
+          ],
+          "label": "duty"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:a86c00c4f2d3097e"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": false,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "duty"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:12132fb2a77cd187"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:bbd1fda3545c8f7e",
+      "statement_ids": [
+        "statement:fbf3410d91b0b17f"
+      ],
+      "text": "MR GLEESON: defendant if the defendant had been fulfilling the duty of care.\nFor that\nreason, we will start, as the appellant has this morning, with the ordinary duty\nof care. Our starting point is to take\nup some observations of the Court this\nmorning, consistently with a matter which your Honour Justice Jagot\nraised in Bird , around paragraphs [255] to [256] in relation to\nthe non\u2011delegable duty, but it is critical to define with precision a\nnumber\nof aspects of the duty.\nCould we take your Honours to\nBrookfield Multiplex [2014] HCA 36 ; 254 CLR 185 , which is in our\nsupplementary materials, case 1, at paragraph 19, where\nChief Justice French is picking up what the Court said in\nSullivan v Moody . And, perhaps, more clearly, what\nyour Honour the Chief Justice said at paragraph 169, that\nthe:\nduty of care at common law is a duty of a specified person, or a person\nwithin a specified class, to exercise reasonable care within\na specified area of\nresponsibility to avoid specified loss to another specified person, or to a\nperson within another specified class.\nIf one applies that test firstly to the pleading and to the duty that has\nbeen found, and then secondly to this morning\u2019s reformulated",
+      "transcript_timestamp_windows": [],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "[03:06:06.475 -> 03:06:22.495] And to say that we will grapple with an intentional assault and treat it as if it were just a failure to exercise due care within the Civil Liability Act, we submit, as Chief Justice Gleason said, is not to grapple with the wrong, that is before you.",
+      "best_match_score": 0.232558,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "03:06:22.495",
+            "start": "03:06:06.475"
+          },
+          "label": "03:06:06.475 -> 03:06:22.495"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:de0462603797cba5"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:0ad0782de084f48d",
+      "statement_ids": [
+        "statement:a549c77bbfd1615c"
+      ],
+      "text": "[03:06:06.475 -> 03:06:22.495] And to say that we will grapple with an intentional assault and treat it as if it were just a failure to exercise due care within the Civil Liability Act, we submit, as Chief Justice Gleason said, is not to grapple with the wrong, that is before you.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "03:06:22.495",
+          "start": "03:06:06.475"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "The restrictions under the Civil Liability Act were held to apply because, uh, three B does not click in because the diocese is not the perpetrator of the intentional tort.",
+      "best_match_score": 0.25,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:45:12.525",
+            "start": "04:44:51.385"
+          },
+          "label": "04:44:51.385 -> 04:45:12.525"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:2dae6c7174e4c0c0"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:26d3f8064b2550bf",
+      "statement_ids": [
+        "statement:1541b29c5e47aea7"
+      ],
+      "text": "[04:44:51.385 -> 04:45:12.525] Uh, one was predicated on vicarious liability, so that can be put to one side. The other was on no vicarious liability. The restrictions under the Civil Liability Act were held to apply because, uh, three B does not click in because the diocese is not the perpetrator of the intentional tort.",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:45:12.525",
+          "start": "04:44:51.385"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Herzfeld, uh, I can understand how your reliance on the Civil Liability Act would apply prospectively, but how does it apply to fact finding in 1969?",
+      "best_match_score": 0.2,
+      "calendar_reference_mentions": [
+        "1969"
+      ],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "01:21:37.685",
+            "start": "01:21:16.505"
+          },
+          "label": "01:21:16.505 -> 01:21:37.685"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_value": "1969",
+          "label": "1969"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:55c268d2fad7dfab"
+      ],
+      "has_calendar_reference_hint": true,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:6bd9ca5bb9fe66dd",
+      "statement_ids": [
+        "statement:ea67c77857bdad3b"
+      ],
+      "text": "[01:21:16.505 -> 01:21:37.685] Yes. Although, as I said, I I, I've resisted the need given this statutory structure to do that task. But yes. Can I ask you a question? Um, sorry, Mr. Herzfeld, uh, I can understand how your reliance on the Civil Liability Act would apply prospectively, but how does it apply to fact finding in 1969?",
+      "transcript_timestamp_windows": [
+        {
+          "end": "01:21:37.685",
+          "start": "01:21:16.505"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "Can I ask your honors to go to the next part of the Civil Liability Act?",
+      "best_match_score": 0.333333,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:05:28.755",
+            "start": "04:05:11.805"
+          },
+          "label": "04:05:11.805 -> 04:05:28.755"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:d86accd44418064c"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [
+        "aff-prop:p2-s1"
+      ],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:70d7cdc9317e1dd1",
+      "statement_ids": [
+        "statement:bb9548a2b711d6b1"
+      ],
+      "text": "[04:05:11.805 -> 04:05:28.755] And this court should be very slow to retrospectively state the law 55 years ago, inconsistent with the choice the parliament has made. Now I'm jumping ahead, but time is short. Can I ask your honors to go to the next part of the Civil Liability Act?",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:05:28.755",
+          "start": "04:05:11.805"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p2-s1",
+      "best_match_basis": "segment",
+      "best_match_excerpt": "[04:27:55.095 -> 04:28:12.775] That is, it's a civil liability of a person in respect of an intentional act so that it, it's it's not covered by part one of the Civil Liability Act, but is by part one B or is that, that's not part of your case one way or another.",
+      "best_match_score": 0.307692,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "04:28:12.775",
+            "start": "04:27:55.095"
+          },
+          "label": "04:27:55.095 -> 04:28:12.775"
+        }
+      ],
+      "candidate_status": "candidate",
+      "excerpt_ids": [
+        "excerpt:74b7af26cfaeadbf"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": false,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing temporal cues into structured anchors",
+      "related_affidavit_proposition_ids": [
+        "aff-prop:p2-s1"
+      ],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:8fe28381242afe12",
+      "statement_ids": [
+        "statement:06e4d6fdaa7ccbf0"
+      ],
+      "text": "[04:27:55.095 -> 04:28:12.775] That is, it's a civil liability of a person in respect of an intentional act so that it, it's it's not covered by part one of the Civil Liability Act, but is by part one B or is that, that's not part of your case one way or another. Could Could you just give me a moment so I can be accurate on that?",
+      "transcript_timestamp_windows": [
+        {
+          "end": "04:28:12.775",
+          "start": "04:27:55.095"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    },
+    {
+      "best_affidavit_proposition_id": "aff-prop:p1-s1",
+      "best_match_basis": "row",
+      "best_match_excerpt": "[00:04:27.945 -> 00:05:03.115] A court may make substantive findings in the child abuse proceedings against an unincorporated association as if the organization had legal personality. And then paragraph E, uh, again, assumes that, uh, or proceeds on the basis that if the unincorporated organization had legal personality, which this provision effectively deems it to have, uh, and would've incurred a liability, that liability is to be born by the proper defendant,",
+      "best_match_score": 0.076923,
+      "calendar_reference_mentions": [],
+      "candidate_anchors": [
+        {
+          "anchor_kind": "transcript_timestamp_window",
+          "anchor_value": {
+            "end": "00:05:03.115",
+            "start": "00:04:27.945"
+          },
+          "label": "00:04:27.945 -> 00:05:03.115"
+        },
+        {
+          "anchor_kind": "procedural_event_keywords",
+          "anchor_value": [
+            "proceedings"
+          ],
+          "label": "proceedings"
+        }
+      ],
+      "candidate_status": "no_fact",
+      "excerpt_ids": [
+        "excerpt:28ac0ffafaa36374"
+      ],
+      "has_calendar_reference_hint": false,
+      "has_procedural_event_cue": true,
+      "has_transcript_timestamp_hint": true,
+      "matched_affidavit_proposition_ids": [],
+      "primary_workload_class": "chronology_gap",
+      "procedural_event_keywords": [
+        "proceedings"
+      ],
+      "reason_codes": [
+        "unreviewed",
+        "event_missing",
+        "chronology_undated",
+        "missing_actor",
+        "missing_date",
+        "statement_only_fact"
+      ],
+      "recommended_next_action": "promote existing event/date cues into structured anchors",
+      "related_affidavit_proposition_ids": [],
+      "review_status": "missing_review",
+      "source_ids": [
+        "src:3b4d0b108212de26"
+      ],
+      "source_kind": "au_dense_overlay_fact",
+      "source_row_id": "fact:141f54d67f46b195",
+      "statement_ids": [
+        "statement:215540aa73c76320"
+      ],
+      "text": "[00:04:27.945 -> 00:05:03.115] A court may make substantive findings in the child abuse proceedings against an unincorporated association as if the organization had legal personality. And then paragraph E, uh, again, assumes that, uh, or proceeds on the basis that if the unincorporated organization had legal personality, which this provision effectively deems it to have, uh, and would've incurred a liability, that liability is to be born by the proper defendant,",
+      "transcript_timestamp_windows": [
+        {
+          "end": "00:05:03.115",
+          "start": "00:04:27.945"
+        }
+      ],
+      "workload_classes": [
+        "chronology_gap",
+        "event_extraction_gap",
+        "evidence_gap"
+      ]
+    }
+  ],
+  "summary": {
+    "abstained_affidavit_count": 0,
+    "abstained_source_count": 0,
+    "affidavit_proposition_count": 3,
+    "affidavit_supported_ratio": 0.666667,
+    "calendar_reference_hint_count": 6,
+    "candidate_anchor_count": 34,
+    "chronology_gap_count": 21,
+    "contested_affidavit_count": 0,
+    "contested_source_count": 0,
+    "covered_count": 2,
+    "event_extraction_gap_count": 21,
+    "evidence_gap_count": 21,
+    "missing_review_count": 21,
+    "normalization_gap_count": 0,
+    "partial_count": 0,
+    "procedural_event_cue_count": 15,
+    "provisional_anchor_bundle_count": 21,
+    "provisional_structured_anchor_count": 34,
+    "related_review_cluster_count": 1,
+    "related_source_count": 3,
+    "review_queue_only_count": 0,
+    "source_row_count": 24,
+    "transcript_timestamp_hint_count": 13,
+    "unsupported_affidavit_count": 1
+  },
+  "version": "affidavit_coverage_review_v1"
+}

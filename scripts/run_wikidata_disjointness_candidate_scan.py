@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from itertools import islice
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -24,6 +25,7 @@ from src.zelph_bridge import parse_zelph_inference
 
 
 SCAN_SCHEMA_VERSION = "wikidata_disjointness_scan_candidates/v1"
+PROFILE_SCHEMA_VERSION = "wikidata_disjointness_local_profile/v1"
 PAIR_SEED_SCHEMA_VERSION = "wikidata_disjointness_pair_seed/v1"
 WDQS_ENDPOINT = "https://query.wikidata.org/sparql"
 REQUEST_HEADERS = {
@@ -33,6 +35,84 @@ REQUEST_HEADERS = {
 ZELPH_INSTANCE_CANDIDATE_PREDICATE = "sl/disjoint-instance-candidate"
 WIKIDATA_INSTANCE_RELATION = "wikidata P31"
 QID_RE = re.compile(r"\bQ\d+\b")
+PROFILE_DUAL_INSTANCE_PREDICATE = "sl/profile-dual-instance"
+PROFILE_DUAL_SUBCLASS_PREDICATE = "sl/profile-dual-subclass"
+PROFILE_MIXED_INSTANCE_PREDICATE = "sl/profile-mixed-instance"
+PROFILE_MIXED_SUBCLASS_PREDICATE = "sl/profile-mixed-subclass"
+PROFILE_CYCLE_PREDICATE = "sl/profile-cycle-peer"
+PROFILE_WIDE_SCHEMA_VERSION = "wikidata_disjointness_local_profile_wide/v1"
+PROFILE_BOUNDED_SCHEMA_VERSION = "wikidata_disjointness_local_profile_bounded/v1"
+PROFILE_EXACT_SCHEMA_VERSION = "wikidata_disjointness_local_profile_exact_qids/v1"
+WIDE_PROFILE_PROPERTIES = (
+    "P31",
+    "P279",
+    "P361",
+    "P527",
+    "P1552",
+    "P461",
+    "P1696",
+    "P2738",
+)
+BOUNDED_PROFILE_PROBES: dict[str, list[dict[str, str]]] = {
+    "P31": [
+        {"object_qid": "Q11432", "label": "gas"},
+        {"object_qid": "Q11435", "label": "liquid"},
+        {"object_qid": "Q2294", "label": "proton"},
+        {"object_qid": "Q2348", "label": "neutron"},
+    ],
+    "P279": [
+        {"object_qid": "Q102165", "label": "nucleon"},
+        {"object_qid": "Q53617407", "label": "material entity"},
+        {"object_qid": "Q124711467", "label": "immaterial entity"},
+    ],
+    "P361": [
+        {"object_qid": "Q102165", "label": "nucleon"},
+        {"object_qid": "Q217236", "label": "working fluid"},
+    ],
+    "P527": [
+        {"object_qid": "Q2294", "label": "proton"},
+        {"object_qid": "Q2348", "label": "neutron"},
+    ],
+    "P1552": [
+        {"object_qid": "Q11432", "label": "gas"},
+    ],
+    "P461": [
+        {"object_qid": "Q11432", "label": "gas"},
+    ],
+    "P1696": [
+        {"object_qid": "Q11435", "label": "liquid"},
+    ],
+    "P2738": [
+        {"object_qid": "Q102165", "label": "nucleon"},
+        {"object_qid": "Q53617489", "label": "independent continuant"},
+    ],
+}
+EXACT_QID_FAMILIES: dict[str, dict[str, Any]] = {
+    "working_fluid": {
+        "focus_qids": ["Q102205", "Q11432", "Q11435", "Q217236"],
+        "probes": [
+            {"subject_qid": "Q217236", "pid": "P31", "object_qid": "Q11432", "label": "working fluid instance of gas"},
+            {"subject_qid": "Q217236", "pid": "P31", "object_qid": "Q11435", "label": "working fluid instance of liquid"},
+            {"subject_qid": "Q102205", "pid": "P2738", "object_qid": None, "label": "fluid disjoint-union statement presence"},
+        ],
+    },
+    "nucleon": {
+        "focus_qids": ["Q102165", "Q2294", "Q2348"],
+        "probes": [
+            {"subject_qid": "Q2294", "pid": "P279", "object_qid": "Q102165", "label": "proton subclass of nucleon"},
+            {"subject_qid": "Q2348", "pid": "P279", "object_qid": "Q102165", "label": "neutron subclass of nucleon"},
+            {"subject_qid": "Q102165", "pid": "P2738", "object_qid": None, "label": "nucleon disjoint-union statement presence"},
+        ],
+    },
+    "independent_continuant": {
+        "focus_qids": ["Q53617489", "Q53617407", "Q124711467", "Q27096213"],
+        "probes": [
+            {"subject_qid": "Q27096213", "pid": "P279", "object_qid": "Q53617407", "label": "geographic entity subclass of material entity"},
+            {"subject_qid": "Q27096213", "pid": "P279", "object_qid": "Q124711467", "label": "geographic entity subclass of immaterial entity"},
+            {"subject_qid": "Q53617489", "pid": "P2738", "object_qid": None, "label": "independent continuant disjoint-union statement presence"},
+        ],
+    },
+}
 
 SUBCLASS_QUERY = """
 SELECT ?holder ?holderLabel ?left ?leftLabel ?right ?rightLabel ?violator ?violatorLabel WHERE {
@@ -68,7 +148,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--backend",
-        choices=("wdqs", "zelph", "zelph-seedless"),
+        choices=("wdqs", "zelph", "zelph-seedless", "zelph-profile", "zelph-profile-wide", "zelph-profile-bounded", "zelph-profile-exact"),
         default="wdqs",
         help="Candidate discovery backend.",
     )
@@ -131,6 +211,12 @@ def _parse_args() -> argparse.Namespace:
         choices=("p31", "p279", "both"),
         default="both",
         help="For --backend zelph-seedless: which dual-relations to search.",
+    )
+    parser.add_argument(
+        "--wide-count-cap",
+        type=int,
+        default=500,
+        help="For --backend zelph-profile-wide: maximum rows counted per property before truncating.",
     )
     return parser.parse_args()
 
@@ -306,6 +392,66 @@ def _run_zelph_bundle(bundle_text: str, *, zelph_command: str) -> str:
     return result.stdout
 
 
+def _run_zelph_query_sample(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+    query_line: str,
+    example_limit: int,
+    count_cap: int,
+) -> dict[str, Any]:
+    bundle_path = Path("/tmp/wikidata_disjointness_zelph_query.zlp")
+    bundle_path.write_text(
+        ".lang zelph\n" f".load {zelph_load_path}\n" f"{query_line}\n",
+        encoding="utf-8",
+    )
+    try:
+        proc = subprocess.Popen(
+            [zelph_command, str(bundle_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"zelph backend unavailable: command not found: {zelph_command}") from exc
+
+    observed_count = 0
+    truncated = False
+    examples: list[dict[str, str]] = []
+    assert proc.stdout is not None
+    try:
+        for raw_line in proc.stdout:
+            triples = parse_zelph_inference(raw_line)
+            if not triples:
+                continue
+            for triple in triples:
+                subject_qid = _qid_from_zelph_node(triple.get("subject"))
+                object_qid = _qid_from_zelph_node(triple.get("object"))
+                if not subject_qid or not object_qid:
+                    continue
+                observed_count += 1
+                if len(examples) < example_limit:
+                    examples.append({"subject_qid": subject_qid, "object_qid": object_qid})
+                if observed_count >= count_cap:
+                    truncated = True
+                    proc.kill()
+                    break
+            if truncated:
+                break
+    finally:
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+
+    return {
+        "observed_count": observed_count,
+        "count_exact": not truncated,
+        "examples": examples,
+    }
+
+
 def _scan_candidates_zelph(
     *,
     query_kind: str,
@@ -369,60 +515,69 @@ def _scan_candidates_zelph_seedless(
     zelph_load_path: Path,
     seedless_topn: int,
     seedless_mode: str,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     # Build a tiny Zelph script that finds items/classes with two distinct P31 or P279 values.
     # We do not import wikidata.zph to keep startup fast.
     bundle_lines = [".lang zelph", f".load {zelph_load_path}"]
     if seedless_mode in ("p31", "both"):
         bundle_lines.append(
-            '(X "wikidata P31" A, X "wikidata P31" B, A != B) => (X "sl/dual-instance" (A B))'
+            f'(X "wikidata P31" A, X "wikidata P31" B) => (X "{PROFILE_DUAL_INSTANCE_PREDICATE}" A)'
         )
     if seedless_mode in ("p279", "both"):
         bundle_lines.append(
-            '(X "wikidata P279" A, X "wikidata P279" B, A != B) => (X "sl/dual-subclass" (A B))'
+            f'(X "wikidata P279" A, X "wikidata P279" B) => (X "{PROFILE_DUAL_SUBCLASS_PREDICATE}" A)'
         )
     bundle_lines.extend(
         [
             ".run",
-            'X "sl/dual-instance" META',
-            'X "sl/dual-subclass" META',
+            f'X "{PROFILE_DUAL_INSTANCE_PREDICATE}" META',
+            f'X "{PROFILE_DUAL_SUBCLASS_PREDICATE}" META',
         ]
     )
     bundle_text = "\n".join(bundle_lines) + "\n"
     stdout = _run_zelph_bundle(bundle_text, zelph_command=zelph_command)
-    rows: list[dict[str, Any]] = []
-    pair_counts: dict[str, int] = {}
+    subject_buckets: dict[tuple[str, str], set[str]] = {}
     for triple in parse_zelph_inference(stdout):
         predicate = triple.get("predicate")
-        if predicate not in {"sl/dual-instance", "sl/dual-subclass"}:
+        if predicate not in {PROFILE_DUAL_INSTANCE_PREDICATE, PROFILE_DUAL_SUBCLASS_PREDICATE}:
             continue
         subject_qid = _qid_from_zelph_node(triple.get("subject"))
-        obj_text = str(triple.get("object") or "")
-        # crude parse: expect "(Q1 Q2)" style; fall back to splitting on space
-        parts = QID_RE.findall(obj_text)
-        if subject_qid and len(parts) >= 2:
-            left_qid, right_qid = parts[:2]
-            pair_key = "|".join(sorted((left_qid, right_qid)))
-            pair_counts[pair_key] = pair_counts.get(pair_key, 0) + 1
-            rows.append(
-                {
-                    "holder_qid": "seedless",
-                    "holder_label": "seedless",
-                    "left_qid": left_qid,
-                    "left_label": left_qid,
-                    "right_qid": right_qid,
-                    "right_label": right_qid,
-                    "violator_qid": subject_qid,
-                    "violator_label": subject_qid,
-                    "violation_kind": "instance"
-                    if predicate == "sl/dual-instance"
-                    else "subclass",
-                    "rank_score": 30 if predicate == "sl/dual-instance" else 25,
-                    "selection_reason": "seedless local dual-P31 candidate"
-                    if predicate == "sl/dual-instance"
-                    else "seedless local dual-P279 candidate",
-                }
-            )
+        object_qid = _qid_from_zelph_node(triple.get("object"))
+        if subject_qid and object_qid:
+            subject_buckets.setdefault((predicate, subject_qid), set()).add(object_qid)
+    rows: list[dict[str, Any]] = []
+    pair_counts: dict[str, int] = {}
+    for (predicate, subject_qid), object_qids in subject_buckets.items():
+        sorted_qids = sorted(object_qids)
+        for idx, left_qid in enumerate(sorted_qids):
+            for right_qid in sorted_qids[idx + 1 :]:
+                pair_key = "|".join((left_qid, right_qid))
+                pair_counts[pair_key] = pair_counts.get(pair_key, 0) + 1
+                if left_qid == right_qid:
+                    continue
+                if predicate == PROFILE_DUAL_INSTANCE_PREDICATE:
+                    violation_kind = "instance"
+                    rank_score = 30
+                    reason = "seedless local dual-P31 candidate"
+                else:
+                    violation_kind = "subclass"
+                    rank_score = 25
+                    reason = "seedless local dual-P279 candidate"
+                rows.append(
+                    {
+                        "holder_qid": "seedless",
+                        "holder_label": "seedless",
+                        "left_qid": left_qid,
+                        "left_label": left_qid,
+                        "right_qid": right_qid,
+                        "right_label": right_qid,
+                        "violator_qid": subject_qid,
+                        "violator_label": subject_qid,
+                        "violation_kind": violation_kind,
+                        "rank_score": rank_score,
+                        "selection_reason": reason,
+                    }
+                )
     rows.sort(
         key=lambda row: (
             str(row["left_qid"] or ""),
@@ -434,6 +589,281 @@ def _scan_candidates_zelph_seedless(
         {"pair_key": key, "count": count} for key, count in sorted(pair_counts.items(), key=lambda kv: -kv[1])
     ][: seedless_topn]
     return rows[:seedless_topn], pair_suggestions
+
+
+def _build_profile_rows(
+    *,
+    triple_rows: list[dict[str, str]],
+    predicate: str,
+) -> dict[str, set[str]]:
+    buckets: dict[str, set[str]] = {}
+    for triple in triple_rows:
+        if triple.get("predicate") != predicate:
+            continue
+        subject_qid = _qid_from_zelph_node(triple.get("subject"))
+        object_qid = _qid_from_zelph_node(triple.get("object"))
+        if subject_qid and object_qid:
+            buckets.setdefault(subject_qid, set()).add(object_qid)
+    return buckets
+
+
+def _scan_profile_zelph(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+    limit: int,
+) -> dict[str, Any]:
+    bundle_lines = [
+        ".lang zelph",
+        f".load {zelph_load_path}",
+        f'(X "wikidata P31" A, X "wikidata P31" B) => (X "{PROFILE_DUAL_INSTANCE_PREDICATE}" A)',
+        f'(X "wikidata P279" A, X "wikidata P279" B) => (X "{PROFILE_DUAL_SUBCLASS_PREDICATE}" A)',
+        f'(X "wikidata P31" A, X "wikidata P279" B) => (X "{PROFILE_MIXED_INSTANCE_PREDICATE}" A)',
+        f'(X "wikidata P31" A, X "wikidata P279" B) => (X "{PROFILE_MIXED_SUBCLASS_PREDICATE}" B)',
+        f'(A "wikidata P279" B, B "wikidata P279" A) => (A "{PROFILE_CYCLE_PREDICATE}" B)',
+        ".run",
+        f'X "{PROFILE_DUAL_INSTANCE_PREDICATE}" META',
+        f'X "{PROFILE_DUAL_SUBCLASS_PREDICATE}" META',
+        f'X "{PROFILE_MIXED_INSTANCE_PREDICATE}" META',
+        f'X "{PROFILE_MIXED_SUBCLASS_PREDICATE}" META',
+        f'X "{PROFILE_CYCLE_PREDICATE}" META',
+    ]
+    stdout = _run_zelph_bundle("\n".join(bundle_lines) + "\n", zelph_command=zelph_command)
+    triples = parse_zelph_inference(stdout)
+
+    dual_instance = _build_profile_rows(triple_rows=triples, predicate=PROFILE_DUAL_INSTANCE_PREDICATE)
+    dual_subclass = _build_profile_rows(triple_rows=triples, predicate=PROFILE_DUAL_SUBCLASS_PREDICATE)
+    mixed_instance = _build_profile_rows(triple_rows=triples, predicate=PROFILE_MIXED_INSTANCE_PREDICATE)
+    mixed_subclass = _build_profile_rows(triple_rows=triples, predicate=PROFILE_MIXED_SUBCLASS_PREDICATE)
+    cycle_peers = _build_profile_rows(triple_rows=triples, predicate=PROFILE_CYCLE_PREDICATE)
+
+    def _top_examples(buckets: dict[str, set[str]]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for subject_qid, object_qids in buckets.items():
+            rows.append({"subject_qid": subject_qid, "related_qids": sorted(object_qids)})
+        rows.sort(key=lambda row: (-len(row["related_qids"]), row["subject_qid"]))
+        return rows[:limit]
+
+    cycle_pairs = set()
+    for subject_qid, peers in cycle_peers.items():
+        for peer_qid in peers:
+            if subject_qid != peer_qid:
+                cycle_pairs.add(tuple(sorted((subject_qid, peer_qid))))
+
+    return {
+        "schema_version": PROFILE_SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "profile_limit": limit,
+        "source": {"backend": "zelph-profile", "load_path": str(zelph_load_path)},
+        "counts": {
+            "dual_p31_subject_count": sum(1 for qids in dual_instance.values() if len(qids) >= 2),
+            "dual_p279_subject_count": sum(1 for qids in dual_subclass.values() if len(qids) >= 2),
+            "mixed_order_subject_count": len(set(mixed_instance) | set(mixed_subclass)),
+            "two_cycle_subject_count": len(cycle_peers),
+            "two_cycle_pair_count": len(cycle_pairs),
+        },
+        "examples": {
+            "dual_p31": _top_examples({k: v for k, v in dual_instance.items() if len(v) >= 2}),
+            "dual_p279": _top_examples({k: v for k, v in dual_subclass.items() if len(v) >= 2}),
+            "mixed_order": [
+                {
+                    "subject_qid": subject_qid,
+                    "p31_qids": sorted(mixed_instance.get(subject_qid, set())),
+                    "p279_qids": sorted(mixed_subclass.get(subject_qid, set())),
+                }
+                for subject_qid in sorted(set(mixed_instance) | set(mixed_subclass))
+            ][:limit],
+            "two_cycle_pairs": [
+                {"left_qid": left_qid, "right_qid": right_qid} for left_qid, right_qid in sorted(cycle_pairs)[:limit]
+            ],
+        },
+    }
+
+
+def _scan_profile_wide_zelph(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+    limit: int,
+    count_cap: int,
+) -> dict[str, Any]:
+    bundle_lines = [".lang zelph", f".load {zelph_load_path}"]
+    for pid in WIDE_PROFILE_PROPERTIES:
+        bundle_lines.append(f'X "wikidata {pid}" Y')
+    stdout = _run_zelph_bundle("\n".join(bundle_lines) + "\n", zelph_command=zelph_command)
+    property_state: dict[str, dict[str, Any]] = {
+        pid: {"observed_count": 0, "count_exact": True, "examples": []} for pid in WIDE_PROFILE_PROPERTIES
+    }
+    for triple in parse_zelph_inference(stdout):
+        predicate = str(triple.get("predicate") or "")
+        if not predicate.startswith("wikidata P"):
+            continue
+        pid = predicate.removeprefix("wikidata ").strip()
+        state = property_state.get(pid)
+        if state is None:
+            continue
+        subject_qid = _qid_from_zelph_node(triple.get("subject"))
+        object_qid = _qid_from_zelph_node(triple.get("object"))
+        if not subject_qid or not object_qid:
+            continue
+        if state["observed_count"] < count_cap:
+            state["observed_count"] += 1
+            if len(state["examples"]) < limit:
+                state["examples"].append({"subject_qid": subject_qid, "object_qid": object_qid})
+        else:
+            state["count_exact"] = False
+    property_rows = [
+        {
+            "pid": pid,
+            "observed_count": state["observed_count"],
+            "count_exact": state["count_exact"],
+            "examples": state["examples"],
+        }
+        for pid, state in property_state.items()
+    ]
+    nonzero_rows = [row for row in property_rows if int(row["observed_count"]) > 0]
+    return {
+        "schema_version": PROFILE_WIDE_SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "profile_limit": limit,
+        "count_cap": count_cap,
+        "source": {"backend": "zelph-profile-wide", "load_path": str(zelph_load_path)},
+        "property_rows": property_rows,
+        "summary": {
+            "nonzero_property_count": len(nonzero_rows),
+            "zero_property_count": len(property_rows) - len(nonzero_rows),
+            "nonzero_pids": [row["pid"] for row in nonzero_rows],
+        },
+    }
+
+
+def _scan_profile_bounded_zelph(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+    limit: int,
+    count_cap: int,
+) -> dict[str, Any]:
+    bundle_lines = [".lang zelph", f".load {zelph_load_path}"]
+    for pid, probes in BOUNDED_PROFILE_PROBES.items():
+        for probe in probes:
+            bundle_lines.append(f'X "wikidata {pid}" "wikidata {probe["object_qid"]}"')
+    stdout = _run_zelph_bundle("\n".join(bundle_lines) + "\n", zelph_command=zelph_command)
+    probe_state: dict[tuple[str, str], dict[str, Any]] = {}
+    for pid, probes in BOUNDED_PROFILE_PROBES.items():
+        for probe in probes:
+            probe_state[(pid, probe["object_qid"])] = {
+                "pid": pid,
+                "object_qid": probe["object_qid"],
+                "object_label": probe["label"],
+                "observed_count": 0,
+                "count_exact": True,
+                "examples": [],
+            }
+    for triple in parse_zelph_inference(stdout):
+        predicate = str(triple.get("predicate") or "")
+        if not predicate.startswith("wikidata P"):
+            continue
+        pid = predicate.removeprefix("wikidata ").strip()
+        object_qid = _qid_from_zelph_node(triple.get("object"))
+        subject_qid = _qid_from_zelph_node(triple.get("subject"))
+        if not pid or not object_qid or not subject_qid:
+            continue
+        state = probe_state.get((pid, object_qid))
+        if state is None:
+            continue
+        if state["observed_count"] < count_cap:
+            state["observed_count"] += 1
+            if len(state["examples"]) < limit:
+                state["examples"].append({"subject_qid": subject_qid})
+        else:
+            state["count_exact"] = False
+    probe_rows = list(probe_state.values())
+    nonzero_rows = [row for row in probe_rows if int(row["observed_count"]) > 0]
+    return {
+        "schema_version": PROFILE_BOUNDED_SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "profile_limit": limit,
+        "count_cap": count_cap,
+        "source": {"backend": "zelph-profile-bounded", "load_path": str(zelph_load_path)},
+        "probe_rows": probe_rows,
+        "summary": {
+            "nonzero_probe_count": len(nonzero_rows),
+            "zero_probe_count": len(probe_rows) - len(nonzero_rows),
+            "nonzero_probes": [
+                {"pid": row["pid"], "object_qid": row["object_qid"]} for row in nonzero_rows
+            ],
+        },
+    }
+
+
+def _scan_profile_exact_zelph(
+    *,
+    zelph_command: str,
+    zelph_load_path: Path,
+) -> dict[str, Any]:
+    bundle_lines = [".lang zelph", f".load {zelph_load_path}"]
+    for family in EXACT_QID_FAMILIES.values():
+        for qid in family["focus_qids"]:
+            bundle_lines.append(f'"wikidata {qid}" P')
+        for probe in family["probes"]:
+            subject = probe["subject_qid"]
+            pid = probe["pid"]
+            object_qid = probe["object_qid"]
+            if object_qid:
+                bundle_lines.append(f'"wikidata {subject}" "wikidata {pid}" "wikidata {object_qid}"')
+            else:
+                bundle_lines.append(f'"wikidata {subject}" "wikidata {pid}" O')
+    stdout = _run_zelph_bundle("\n".join(bundle_lines) + "\n", zelph_command=zelph_command)
+    triples = parse_zelph_inference(stdout)
+    subject_presence: dict[str, bool] = {}
+    direct_edges: set[tuple[str, str, str]] = set()
+    property_presence: set[tuple[str, str]] = set()
+    for triple in triples:
+        subject_qid = _qid_from_zelph_node(triple.get("subject"))
+        predicate = str(triple.get("predicate") or "")
+        object_qid = _qid_from_zelph_node(triple.get("object"))
+        if subject_qid:
+            subject_presence[subject_qid] = True
+        if predicate.startswith("wikidata P"):
+            pid = predicate.removeprefix("wikidata ").strip()
+            if subject_qid and object_qid:
+                direct_edges.add((subject_qid, pid, object_qid))
+                property_presence.add((subject_qid, pid))
+    family_rows: list[dict[str, Any]] = []
+    for family_id, family in EXACT_QID_FAMILIES.items():
+        qid_rows = [{"qid": qid, "present": bool(subject_presence.get(qid))} for qid in family["focus_qids"]]
+        probe_rows = []
+        for probe in family["probes"]:
+            subject_qid = probe["subject_qid"]
+            pid = probe["pid"]
+            object_qid = probe["object_qid"]
+            if object_qid is None:
+                present = (subject_qid, pid) in property_presence
+            else:
+                present = (subject_qid, pid, object_qid) in direct_edges
+            probe_rows.append(
+                {
+                    "label": probe["label"],
+                    "subject_qid": subject_qid,
+                    "pid": pid,
+                    "object_qid": object_qid,
+                    "present": present,
+                }
+            )
+        family_rows.append(
+            {
+                "family_id": family_id,
+                "qid_rows": qid_rows,
+                "probe_rows": probe_rows,
+            }
+        )
+    return {
+        "schema_version": PROFILE_EXACT_SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": {"backend": "zelph-profile-exact", "load_path": str(zelph_load_path)},
+        "families": family_rows,
+    }
 
 
 def scan_candidates(
@@ -449,8 +879,42 @@ def scan_candidates(
     zelph_prelude_path: Path | None = None,
     seedless_topn: int = 50,
     seedless_mode: str = "both",
+    wide_count_cap: int = 500,
 ) -> dict[str, Any]:
     pair_suggestions: list[dict[str, Any]] = []
+    if backend == "zelph-profile":
+        if not zelph_load_path:
+            raise ValueError("zelph-profile backend requires --zelph-load-path")
+        return _scan_profile_zelph(
+            zelph_command=zelph_command,
+            zelph_load_path=zelph_load_path,
+            limit=limit,
+        )
+    if backend == "zelph-profile-wide":
+        if not zelph_load_path:
+            raise ValueError("zelph-profile-wide backend requires --zelph-load-path")
+        return _scan_profile_wide_zelph(
+            zelph_command=zelph_command,
+            zelph_load_path=zelph_load_path,
+            limit=limit,
+            count_cap=wide_count_cap,
+        )
+    if backend == "zelph-profile-bounded":
+        if not zelph_load_path:
+            raise ValueError("zelph-profile-bounded backend requires --zelph-load-path")
+        return _scan_profile_bounded_zelph(
+            zelph_command=zelph_command,
+            zelph_load_path=zelph_load_path,
+            limit=limit,
+            count_cap=wide_count_cap,
+        )
+    if backend == "zelph-profile-exact":
+        if not zelph_load_path:
+            raise ValueError("zelph-profile-exact backend requires --zelph-load-path")
+        return _scan_profile_exact_zelph(
+            zelph_command=zelph_command,
+            zelph_load_path=zelph_load_path,
+        )
     if backend == "wdqs":
         candidates = _scan_candidates_wdqs(limit=limit, query_kind=query_kind, timeout=timeout)
     elif backend == "zelph":
@@ -508,6 +972,7 @@ def main() -> None:
             zelph_prelude_path=args.zelph_prelude_path,
             seedless_topn=args.seedless_topn,
             seedless_mode=args.seedless_mode,
+            wide_count_cap=args.wide_count_cap,
         )
     except requests.RequestException as exc:
         raise SystemExit(f"live WDQS disjointness scan failed: {exc}") from exc

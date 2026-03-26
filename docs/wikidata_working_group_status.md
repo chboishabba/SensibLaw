@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -49,8 +49,23 @@ shared handoff.
     - a callable live scan script for WDQS-backed candidate discovery
     - a callable local `zelph` scan mode for instance contradictions from
       explicit disjoint-pair seeds
+- local pruned-bin posture is now explicit:
+  - `wikidata-20171227-pruned.bin` and `wikidata-20260309-all-pruned.bin`
+    load successfully but remain runtime-only negative controls for the current
+    disjointness families
+  - both bins are still retained locally for now and are materially large
+    (`~1.4 GiB` and `~5.6 GiB` respectively)
+  - baseline profile, wide profile, bounded profile, exact-QID presence checks,
+    and a seedless contradiction scan on the newer pruned bin all returned zero
+    useful local signal
+  - productive contradiction discovery remains live-first via WDQS/current
+    Wikidata rather than local pruned-bin retention
 
 ## Current artifacts
+- Checked structural handoff:
+  - `tests/fixtures/zelph/wikidata_structural_handoff_v1/`
+- Checked structural handoff note:
+  - `../../docs/planning/wikidata_structural_handoff_v1_20260325.md`
 - Hotspot benchmark roadmap:
   - `../../docs/planning/wikidata_hotspot_benchmark_lane_20260325.md`
 - Hotspot pack contract:
@@ -161,6 +176,10 @@ shared handoff.
     - current scan backends are explicit:
       - `wdqs`: live subclass/instance discovery
       - `zelph`: local instance-only discovery from explicit pair seeds
+    - local pruned bins are now classified narrowly:
+      - keep them for loader/runtime repro and negative-control checks
+      - do not treat them as practical contradiction-source artifacts for the
+        current lane
 
 ## Current phase-2 qualifier pack
 - Real imported baseline slice:

@@ -1,0 +1,282 @@
+{
+  "status": "ok",
+  "stderr": "Importing file /tmp/tmpqenjp4vn/bundle.zlp...\n",
+  "stdout": " qualifier_import_baseline   kind   qualifier_baseline \n qualifier_import_baseline   statement_count   8 \n qualifier_import_baseline   window_count   2 \n qualifier_import_baseline   property_pid   P166 \n qualifier_drift_q100104196_p166   kind   qualifier_drift_case \n qualifier_drift_q100104196_p166   slot_id   Q100104196|P166 \n qualifier_drift_q100104196_p166   severity   medium \n qualifier_drift_q100104196_p166   qualifier_drift   true \n pack_mixed_order_live_pack_v1   kind   hotspot_pack \n pack_mixed_order_live_pack_v1   hotspot_family   mixed_order \n pack_mixed_order_live_pack_v1   promotion_status   promoted \n pack_mixed_order_live_pack_v1   cluster_count   6 \n pack_p279_scc_live_pack_v1   kind   hotspot_pack \n pack_p279_scc_live_pack_v1   hotspot_family   p279_scc \n pack_p279_scc_live_pack_v1   promotion_status   promoted \n pack_p279_scc_live_pack_v1   cluster_count   4 \n pack_qualifier_drift_p166_live_pack_v1   kind   hotspot_pack \n pack_qualifier_drift_p166_live_pack_v1   hotspot_family   qualifier_drift \n pack_qualifier_drift_p166_live_pack_v1   promotion_status   promoted \n pack_qualifier_drift_p166_live_pack_v1   cluster_count   1 \n pack_software_entity_kind_collapse_pack_v0   kind   hotspot_pack \n pack_software_entity_kind_collapse_pack_v0   hotspot_family   entity_kind_collapse \n pack_software_entity_kind_collapse_pack_v0   promotion_status   promotable \n pack_software_entity_kind_collapse_pack_v0   cluster_count   8 \n pack_software_entity_kind_collapse_pack_v0   hold_reason   awaiting_manifest_promotion \n case_nucleon_baseline   kind   disjointness_case \n case_nucleon_baseline   case_status   baseline \n case_nucleon_baseline   subclass_violation_count   0 \n case_nucleon_baseline   instance_violation_count   0 \n case_nucleon_baseline   culprit_class_count   0 \n case_nucleon_baseline   culprit_item_count   0 \n case_fixed_construction_contradiction   kind   disjointness_case \n case_fixed_construction_contradiction   case_status   contradiction \n case_fixed_construction_contradiction   subclass_violation_count   4 \n case_fixed_construction_contradiction   instance_violation_count   0 \n case_fixed_construction_contradiction   culprit_class_count   1 \n case_fixed_construction_contradiction   culprit_item_count   0 \n case_working_fluid_contradiction   kind   disjointness_case \n case_working_fluid_contradiction   case_status   contradiction \n case_working_fluid_contradiction   subclass_violation_count   0 \n case_working_fluid_contradiction   instance_violation_count   1 \n case_working_fluid_contradiction   culprit_class_count   0 \n case_working_fluid_contradiction   culprit_item_count   1 \n(X  promotion_status   promoted ) => (X  structural_case_ready_for_handoff   true )\n(X  case_status   contradiction ) => (X  needs_review_due_to_structure   true )\n(X  hold_reason  Y) => (X  needs_review_due_to_governance   true )\n(X  kind   qualifier_baseline ) => (X  demonstrates_import_preservation   true )\n(X  kind   qualifier_drift_case ) => (X  structural_case_ready_for_handoff   true )\nX  structural_case_ready_for_handoff   true \nX  needs_review_due_to_structure   true \nX  needs_review_due_to_governance   true \nX  demonstrates_import_preservation   true \n( qualifier_import_baseline   demonstrates_import_preservation   true ) \u21d0 ( qualifier_import_baseline   kind   qualifier_baseline )\n( pack_software_entity_kind_collapse_pack_v0   needs_review_due_to_governance   true ) \u21d0 ( pack_software_entity_kind_collapse_pack_v0   hold_reason   awaiting_manifest_promotion )\n( case_working_fluid_contradiction   needs_review_due_to_structure   true ) \u21d0 ( case_working_fluid_contradiction   case_status   contradiction )\n( case_fixed_construction_contradiction   needs_review_due_to_structure   true ) \u21d0 ( case_fixed_construction_contradiction   case_status   contradiction )\n( qualifier_drift_q100104196_p166   structural_case_ready_for_handoff   true ) \u21d0 ( qualifier_drift_q100104196_p166   kind   qualifier_drift_case )\n( pack_qualifier_drift_p166_live_pack_v1   structural_case_ready_for_handoff   true ) \u21d0 ( pack_qualifier_drift_p166_live_pack_v1   promotion_status   promoted )\n( pack_p279_scc_live_pack_v1   structural_case_ready_for_handoff   true ) \u21d0 ( pack_p279_scc_live_pack_v1   promotion_status   promoted )\n( pack_mixed_order_live_pack_v1   structural_case_ready_for_handoff   true ) \u21d0 ( pack_mixed_order_live_pack_v1   promotion_status   promoted )\n",
+  "triples": [
+    {
+      "object": "qualifier_baseline",
+      "predicate": "kind",
+      "subject": "qualifier_import_baseline"
+    },
+    {
+      "object": "8",
+      "predicate": "statement_count",
+      "subject": "qualifier_import_baseline"
+    },
+    {
+      "object": "2",
+      "predicate": "window_count",
+      "subject": "qualifier_import_baseline"
+    },
+    {
+      "object": "P166",
+      "predicate": "property_pid",
+      "subject": "qualifier_import_baseline"
+    },
+    {
+      "object": "qualifier_drift_case",
+      "predicate": "kind",
+      "subject": "qualifier_drift_q100104196_p166"
+    },
+    {
+      "object": "Q100104196|P166",
+      "predicate": "slot_id",
+      "subject": "qualifier_drift_q100104196_p166"
+    },
+    {
+      "object": "medium",
+      "predicate": "severity",
+      "subject": "qualifier_drift_q100104196_p166"
+    },
+    {
+      "object": "true",
+      "predicate": "qualifier_drift",
+      "subject": "qualifier_drift_q100104196_p166"
+    },
+    {
+      "object": "hotspot_pack",
+      "predicate": "kind",
+      "subject": "pack_mixed_order_live_pack_v1"
+    },
+    {
+      "object": "mixed_order",
+      "predicate": "hotspot_family",
+      "subject": "pack_mixed_order_live_pack_v1"
+    },
+    {
+      "object": "promoted",
+      "predicate": "promotion_status",
+      "subject": "pack_mixed_order_live_pack_v1"
+    },
+    {
+      "object": "6",
+      "predicate": "cluster_count",
+      "subject": "pack_mixed_order_live_pack_v1"
+    },
+    {
+      "object": "hotspot_pack",
+      "predicate": "kind",
+      "subject": "pack_p279_scc_live_pack_v1"
+    },
+    {
+      "object": "p279_scc",
+      "predicate": "hotspot_family",
+      "subject": "pack_p279_scc_live_pack_v1"
+    },
+    {
+      "object": "promoted",
+      "predicate": "promotion_status",
+      "subject": "pack_p279_scc_live_pack_v1"
+    },
+    {
+      "object": "4",
+      "predicate": "cluster_count",
+      "subject": "pack_p279_scc_live_pack_v1"
+    },
+    {
+      "object": "hotspot_pack",
+      "predicate": "kind",
+      "subject": "pack_qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "object": "qualifier_drift",
+      "predicate": "hotspot_family",
+      "subject": "pack_qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "object": "promoted",
+      "predicate": "promotion_status",
+      "subject": "pack_qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "object": "1",
+      "predicate": "cluster_count",
+      "subject": "pack_qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "object": "hotspot_pack",
+      "predicate": "kind",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "entity_kind_collapse",
+      "predicate": "hotspot_family",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "promotable",
+      "predicate": "promotion_status",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "8",
+      "predicate": "cluster_count",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "awaiting_manifest_promotion",
+      "predicate": "hold_reason",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "disjointness_case",
+      "predicate": "kind",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "baseline",
+      "predicate": "case_status",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "0",
+      "predicate": "subclass_violation_count",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "0",
+      "predicate": "instance_violation_count",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "0",
+      "predicate": "culprit_class_count",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "0",
+      "predicate": "culprit_item_count",
+      "subject": "case_nucleon_baseline"
+    },
+    {
+      "object": "disjointness_case",
+      "predicate": "kind",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "contradiction",
+      "predicate": "case_status",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "4",
+      "predicate": "subclass_violation_count",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "0",
+      "predicate": "instance_violation_count",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "1",
+      "predicate": "culprit_class_count",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "0",
+      "predicate": "culprit_item_count",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "disjointness_case",
+      "predicate": "kind",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "contradiction",
+      "predicate": "case_status",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "0",
+      "predicate": "subclass_violation_count",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "1",
+      "predicate": "instance_violation_count",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "0",
+      "predicate": "culprit_class_count",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "1",
+      "predicate": "culprit_item_count",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "true",
+      "predicate": "structural_case_ready_for_handoff",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_structure",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_governance",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "demonstrates_import_preservation",
+      "subject": "X"
+    },
+    {
+      "object": "true",
+      "predicate": "demonstrates_import_preservation",
+      "subject": "qualifier_import_baseline"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_governance",
+      "subject": "pack_software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_structure",
+      "subject": "case_working_fluid_contradiction"
+    },
+    {
+      "object": "true",
+      "predicate": "needs_review_due_to_structure",
+      "subject": "case_fixed_construction_contradiction"
+    },
+    {
+      "object": "true",
+      "predicate": "structural_case_ready_for_handoff",
+      "subject": "qualifier_drift_q100104196_p166"
+    },
+    {
+      "object": "true",
+      "predicate": "structural_case_ready_for_handoff",
+      "subject": "pack_qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "object": "true",
+      "predicate": "structural_case_ready_for_handoff",
+      "subject": "pack_p279_scc_live_pack_v1"
+    },
+    {
+      "object": "true",
+      "predicate": "structural_case_ready_for_handoff",
+      "subject": "pack_mixed_order_live_pack_v1"
+    }
+  ]
+}

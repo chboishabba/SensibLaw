@@ -1,6 +1,60 @@
 # Changelog
 
 ## Unreleased
+- Checked AU dense affidavit-coverage artifact:
+  - Added `scripts/build_au_dense_affidavit_coverage_review.py` plus
+    `tests/test_au_dense_affidavit_coverage_review.py` and the checked fixture
+    directory `tests/fixtures/zelph/au_dense_affidavit_coverage_review_v1/`.
+  - The first dense AU artifact compares an affidavit-style draft against the
+    24-row dense overlay projection from
+    `au_real_transcript_dense_substrate_v1`, making corpus-side omission review
+    pressure visible beyond the 3-fact AU checked handoff slice.
+  - Current checked dense reading is conservative but useful:
+    `2` partial propositions, `1` unsupported affidavit proposition, and `22`
+    missing-review source rows.
+- Checked AU affidavit-coverage artifact:
+  - Added `scripts/build_au_affidavit_coverage_review.py` plus
+    `tests/test_au_affidavit_coverage_review.py` and the checked fixture
+    directory `tests/fixtures/zelph/au_affidavit_coverage_review_v1/`.
+  - The first AU-specific artifact compares the checked `au_public_handoff_v1`
+    slice against a bounded affidavit-style draft and emits explicit
+    coverage statuses under the shared affidavit-review contract.
+  - Current checked AU reading is intentionally conservative:
+    `1` covered proposition, `2` unsupported affidavit propositions, and `2`
+    missing-review source rows.
+- First affidavit-coverage review builder:
+  - Added `scripts/build_affidavit_coverage_review.py` to build a bounded
+    corpus-to-affidavit comparison artifact from an existing
+    `fact.review.bundle.v1` payload or AU checked handoff slice plus an
+    affidavit/declaration draft.
+  - The first contract emits explicit affidavit-side and source-side statuses,
+    including `covered`, `partial`, `missing_review`, `contested_source`,
+    `abstained_source`, and `unsupported_affidavit`.
+  - Added focused regression coverage in
+    `tests/test_affidavit_coverage_review.py`.
+- Mary/AU affidavit-coverage planning alignment:
+  - Added `docs/planning/affidavit_coverage_review_lane_20260325.md` to define
+    the first bounded corpus-to-affidavit coverage review lane over the
+    existing dense substrate and fact-review surfaces.
+  - Added `SL-US-31` to `docs/user_stories.md` so the repo now treats
+    corpus-to-affidavit coverage as an explicit legal-operator story rather
+    than an implied future use case.
+  - Updated the Mary-parity acceptance matrix, status audit, AU completeness
+    scorecard, `TODO.md`, and `COMPACTIFIED_CONTEXT.md` so the next AU/Mary
+    step is framed as coverage accounting and omission review, not just more
+    extraction density.
+- Wikidata checked handoff parity:
+  - Added `scripts/build_wikidata_structural_handoff.py` plus
+    `tests/test_wikidata_structural_handoff.py` and generated
+    `tests/fixtures/zelph/wikidata_structural_handoff_v1/` so the wiki/Wikidata
+    lane now has a checked summary/JSON/ZLP/scorecard artifact parallel to GWB
+    and AU.
+  - The new handoff uses the repo-pinned qualifier baseline and live drift
+    case as its core, the hotspot pilot manifest as the governance/exemplar
+    layer, and the real disjointness packs as the secondary contradiction lane.
+  - Updated shared handoff docs and the working-group status note so the new
+    artifact is described as a real bounded handoff rather than a docs-first
+    target.
 - GWB broader-source corpus expansion:
   - Fixed `scripts/build_gwb_public_bios_rich_timeline.py` so malformed HTML
     paragraph transitions no longer drop strong public-bios sentences; explicit
@@ -1636,6 +1690,22 @@
 - Isolated chat sample ingest now persists operational/discourse `_ref` occurrences alongside legal refs via the existing atom tables.
 - Tightened the operational/discourse lane to avoid date-like and all-caps slash false positives, and added WhatsApp-style transcript turn detection for speaker/timestamp lines.
 - Collapsed duplicate WhatsApp-style transcript timestamps to a single canonical timestamp atom per line and added side-by-side per-source corpus comparison reporting.
+## 2026-03-26
+
+- Wikidata disjointness lane: formalized the current live-first discovery
+  posture after local `zelph` scans showed no useful contradiction signal from
+  either retained pruned Wikidata bin.
+- Ops/docs: recorded that `wikidata-20171227-pruned.bin` (`~1.4 GiB`) and
+  `wikidata-20260309-all-pruned.bin` (`~5.6 GiB`) are still retained locally
+  for runtime/loader repro and negative-control use, not as practical
+  contradiction-source artifacts.
+- Evidence: baseline profile, wide profile, bounded profile, exact-QID
+  presence checks, and a seedless contradiction scan on the newer pruned bin
+  all returned zero useful local signal for the current target families.
+- Planning: added a follow-up question for the Zelph developer about whether
+  the Wikidata `.bin` format can support sharding or remote/range-readable
+  access without full local materialization.
+
 ## 2026-03-07
 
 - added `au_semantic` reviewed seed import/report lane mirroring the current

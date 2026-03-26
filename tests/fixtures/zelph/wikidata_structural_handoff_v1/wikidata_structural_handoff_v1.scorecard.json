@@ -1,0 +1,13 @@
+{
+  "contradiction_case_count": 2,
+  "current_stage": "checked_structural_handoff_checkpoint",
+  "destination": "checked_wikidata_structural_understanding",
+  "disjointness_case_count": 3,
+  "held_hotspot_pack_count": 1,
+  "hotspot_cluster_count": 19,
+  "promoted_hotspot_pack_count": 3,
+  "qualifier_baseline_statement_count": 8,
+  "qualifier_drift_case_count": 1,
+  "zelph_engine_status": "ok",
+  "zero_violation_baseline_case_count": 1
+}

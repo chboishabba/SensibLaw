@@ -1,0 +1,168 @@
+{
+  "disjointness_cases": [
+    {
+      "case_id": "nucleon_baseline",
+      "case_status": "baseline",
+      "culprit_class_count": 0,
+      "culprit_item_count": 0,
+      "disjoint_pair_count": 1,
+      "instance_violation_count": 0,
+      "pair_labels": [
+        "proton vs neutron"
+      ],
+      "source_note": "Repo-pinned real Wikidata-backed baseline built from the visible statements on Q102165, Q2294, and Q2348 as reviewed on 2026-03-25.",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json",
+      "subclass_violation_count": 0
+    },
+    {
+      "case_id": "fixed_construction_contradiction",
+      "case_status": "contradiction",
+      "culprit_class_count": 1,
+      "culprit_item_count": 0,
+      "disjoint_pair_count": 1,
+      "instance_violation_count": 0,
+      "pair_labels": [
+        "immaterial entity vs material entity"
+      ],
+      "source_note": "Repo-pinned real contradiction pack assembled from current Wikidata page review and classification-tree review around independent continuant, geographic entity, fixed construction, and framing on 2026-03-25.",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "subclass_violation_count": 4
+    },
+    {
+      "case_id": "working_fluid_contradiction",
+      "case_status": "contradiction",
+      "culprit_class_count": 0,
+      "culprit_item_count": 1,
+      "disjoint_pair_count": 1,
+      "instance_violation_count": 1,
+      "pair_labels": [
+        "gas vs liquid"
+      ],
+      "source_note": "Repo-pinned real contradiction pack based on live WDQS scan output from 2026-03-25 identifying working fluid as an instance of both gas and liquid.",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json",
+      "subclass_violation_count": 0
+    }
+  ],
+  "fixture_kind": "checked_structural_review_handoff",
+  "hotspot_governance": {
+    "cluster_count": 19,
+    "manifest_path": "docs/planning/wikidata_hotspot_pilot_pack_v1.manifest.json",
+    "pack_count": 4,
+    "packs": [
+      {
+        "cluster_count": 6,
+        "hold_reason": null,
+        "hotspot_family": "mixed_order",
+        "pack_id": "mixed_order_live_pack_v1",
+        "primary_story": "Bounded live mixed-order cases already exist and are the cleanest benchmark seed for class/instance confusion.",
+        "promotion_status": "promoted",
+        "sample_questions": [
+          "Is 'Q21169592' an instance of 'Q7187'?",
+          "Is 'Q21169592' a subtype of 'Q7187'?"
+        ],
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      {
+        "cluster_count": 4,
+        "hold_reason": null,
+        "hotspot_family": "p279_scc",
+        "pack_id": "p279_scc_live_pack_v1",
+        "primary_story": "Reciprocal subclass loops should generate contradiction-sensitive hierarchy clusters.",
+        "promotion_status": "promoted",
+        "sample_questions": [
+          "Is 'Q188' a subtype of 'Q52040'?",
+          "Is 'Q52040' a subtype of 'Q188'?"
+        ],
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      {
+        "cluster_count": 1,
+        "hold_reason": null,
+        "hotspot_family": "qualifier_drift",
+        "pack_id": "qualifier_drift_p166_live_pack_v1",
+        "primary_story": "Pinned revision-pair qualifier drift is the clearest temporal hotspot family already materialized in-repo.",
+        "promotion_status": "promoted",
+        "sample_questions": [
+          "In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?"
+        ],
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+        ]
+      },
+      {
+        "cluster_count": 8,
+        "hold_reason": "awaiting_manifest_promotion",
+        "hotspot_family": "entity_kind_collapse",
+        "pack_id": "software_entity_kind_collapse_pack_v0",
+        "primary_story": "GNU and GNU Project demonstrate artifact/project/community collapse in a highly legible domain.",
+        "promotion_status": "promotable",
+        "sample_questions": [
+          "Is 'GNU' an instance of 'operating system'?",
+          "Is 'GNU' a subtype of 'Unix-like operating system'?"
+        ],
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json"
+        ]
+      }
+    ],
+    "selected_pack_ids": [
+      "mixed_order_live_pack_v1",
+      "p279_scc_live_pack_v1",
+      "qualifier_drift_p166_live_pack_v1",
+      "software_entity_kind_collapse_pack_v0"
+    ]
+  },
+  "qualifier_core": {
+    "baseline": {
+      "interpretation": "real importer-backed qualifier-bearing baseline with zero detected drift",
+      "property_pids": [
+        "P166"
+      ],
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "statement_count": 8,
+      "window_count": 2
+    },
+    "drift_case": {
+      "from_window": "t1",
+      "interpretation": "repo-pinned real drift case with persisted projection and medium severity",
+      "projection_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "property_pid": "P166",
+      "qualifier_property_set_t1": [
+        "P585"
+      ],
+      "qualifier_property_set_t2": [
+        "P585"
+      ],
+      "qualifier_signatures_t1": [
+        "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]"
+      ],
+      "qualifier_signatures_t2": [
+        "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+        "[]"
+      ],
+      "severity": "medium",
+      "slot_id": "Q100104196|P166",
+      "source_slice_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "subject_qid": "Q100104196",
+      "to_window": "t2"
+    }
+  },
+  "summary": {
+    "contradiction_case_count": 2,
+    "disjointness_case_count": 3,
+    "held_hotspot_pack_count": 1,
+    "hotspot_cluster_count": 19,
+    "promoted_hotspot_pack_count": 3,
+    "qualifier_baseline_statement_count": 8,
+    "qualifier_drift_case_count": 1,
+    "zero_violation_baseline_case_count": 1
+  },
+  "version": "wikidata_structural_handoff_v1"
+}

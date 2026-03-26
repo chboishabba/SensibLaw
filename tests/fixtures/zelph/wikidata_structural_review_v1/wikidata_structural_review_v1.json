@@ -1,0 +1,1104 @@
+{
+  "candidate_structural_cues": [
+    {
+      "cue_id": "source:qualifier_baseline:P166:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P166",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:qualifier_baseline:P166"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:signature:2",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:signature:3",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[]",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:property_set",
+      "cue_kind": "qualifier_property_set",
+      "cue_value": "P585 -> P585",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166"
+    },
+    {
+      "cue_id": "source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:5",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:6",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/test_wikidata_projection.py",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:mixed_order_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q21169592' an instance of 'Q7187'?",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q21169592' a subtype of 'Q7187'?",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:9",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:10",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/test_wikidata_projection.py",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:p279_scc_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q188' a subtype of 'Q52040'?",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q52040' a subtype of 'Q188'?",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:2"
+    },
+    {
+      "cue_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:13",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:14",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1"
+    },
+    {
+      "cue_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0:hold_reason",
+      "cue_kind": "hold_reason",
+      "cue_value": "awaiting_manifest_promotion",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0:source_artifact:17",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'GNU' an instance of 'operating system'?",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'GNU' a subtype of 'Unix-like operating system'?",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2"
+    },
+    {
+      "cue_id": "source:disjointness_case:nucleon_baseline:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "proton vs neutron",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:disjointness_case:nucleon_baseline:1"
+    },
+    {
+      "cue_id": "source:disjointness_case:nucleon_baseline:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=0, instance=0",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:disjointness_case:nucleon_baseline:1"
+    },
+    {
+      "cue_id": "source:disjointness_case:fixed_construction_contradiction:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "immaterial entity vs material entity",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:disjointness_case:fixed_construction_contradiction:1"
+    },
+    {
+      "cue_id": "source:disjointness_case:fixed_construction_contradiction:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=4, instance=0",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:disjointness_case:fixed_construction_contradiction:1"
+    },
+    {
+      "cue_id": "source:disjointness_case:working_fluid_contradiction:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "gas vs liquid",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:disjointness_case:working_fluid_contradiction:1"
+    },
+    {
+      "cue_id": "source:disjointness_case:working_fluid_contradiction:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=0, instance=1",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:disjointness_case:working_fluid_contradiction:1"
+    }
+  ],
+  "provisional_review_bundles": [
+    {
+      "anchor_count": 2,
+      "bundle_id": "bundle:review:disjointness_case:fixed_construction_contradiction",
+      "bundle_rank": 1,
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_ids": [
+        "source:disjointness_case:fixed_construction_contradiction:1"
+      ],
+      "source_texts": [
+        "immaterial entity vs material entity"
+      ],
+      "top_priority_score": 108
+    },
+    {
+      "anchor_count": 2,
+      "bundle_id": "bundle:review:disjointness_case:working_fluid_contradiction",
+      "bundle_rank": 2,
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_ids": [
+        "source:disjointness_case:working_fluid_contradiction:1"
+      ],
+      "source_texts": [
+        "gas vs liquid"
+      ],
+      "top_priority_score": 108
+    },
+    {
+      "anchor_count": 4,
+      "bundle_id": "bundle:review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "bundle_rank": 3,
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_ids": [
+        "source:hotspot_pack:software_entity_kind_collapse_pack_v0",
+        "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1",
+        "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2"
+      ],
+      "source_texts": [
+        "software_entity_kind_collapse_pack_v0 (entity_kind_collapse) has 8 clusters and promotion_status=promotable.",
+        "Is 'GNU' an instance of 'operating system'?",
+        "Is 'GNU' a subtype of 'Unix-like operating system'?"
+      ],
+      "top_priority_score": 91
+    },
+    {
+      "anchor_count": 3,
+      "bundle_id": "bundle:review:qualifier_drift:Q100104196|P166",
+      "bundle_rank": 4,
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_ids": [
+        "source:qualifier_drift:Q100104196|P166"
+      ],
+      "source_texts": [
+        "Qualifier drift for Q100104196|P166 at severity=medium from t1 to t2."
+      ],
+      "top_priority_score": 84
+    },
+    {
+      "anchor_count": 4,
+      "bundle_id": "bundle:review:hotspot_pack:mixed_order_live_pack_v1",
+      "bundle_rank": 5,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_ids": [
+        "source:hotspot_pack:mixed_order_live_pack_v1",
+        "source:hotspot_pack_question:mixed_order_live_pack_v1:1",
+        "source:hotspot_pack_question:mixed_order_live_pack_v1:2"
+      ],
+      "source_texts": [
+        "mixed_order_live_pack_v1 (mixed_order) has 6 clusters and promotion_status=promoted.",
+        "Is 'Q21169592' an instance of 'Q7187'?",
+        "Is 'Q21169592' a subtype of 'Q7187'?"
+      ],
+      "top_priority_score": 70
+    },
+    {
+      "anchor_count": 4,
+      "bundle_id": "bundle:review:hotspot_pack:p279_scc_live_pack_v1",
+      "bundle_rank": 6,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_ids": [
+        "source:hotspot_pack:p279_scc_live_pack_v1",
+        "source:hotspot_pack_question:p279_scc_live_pack_v1:1",
+        "source:hotspot_pack_question:p279_scc_live_pack_v1:2"
+      ],
+      "source_texts": [
+        "p279_scc_live_pack_v1 (p279_scc) has 4 clusters and promotion_status=promoted.",
+        "Is 'Q188' a subtype of 'Q52040'?",
+        "Is 'Q52040' a subtype of 'Q188'?"
+      ],
+      "top_priority_score": 70
+    },
+    {
+      "anchor_count": 3,
+      "bundle_id": "bundle:review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "bundle_rank": 7,
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_ids": [
+        "source:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+        "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1"
+      ],
+      "source_texts": [
+        "qualifier_drift_p166_live_pack_v1 (qualifier_drift) has 1 clusters and promotion_status=promoted.",
+        "In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?"
+      ],
+      "top_priority_score": 70
+    },
+    {
+      "anchor_count": 2,
+      "bundle_id": "bundle:review:disjointness_case:nucleon_baseline",
+      "bundle_rank": 8,
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_ids": [
+        "source:disjointness_case:nucleon_baseline:1"
+      ],
+      "source_texts": [
+        "proton vs neutron"
+      ],
+      "top_priority_score": 43
+    },
+    {
+      "anchor_count": 1,
+      "bundle_id": "bundle:review:qualifier_baseline",
+      "bundle_rank": 9,
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_ids": [
+        "source:qualifier_baseline:P166"
+      ],
+      "source_texts": [
+        "Property P166 preserved across importer baseline windows."
+      ],
+      "top_priority_score": 29
+    }
+  ],
+  "provisional_review_rows": [
+    {
+      "cue_id": "source:disjointness_case:fixed_construction_contradiction:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=4, instance=0",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|violation_counts|subclass=4, instance=0",
+      "priority_rank": 1,
+      "priority_score": 108,
+      "provisional_review_id": "prov:source:disjointness_case:fixed_construction_contradiction:1:violations",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:disjointness_case:fixed_construction_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:disjointness_case:working_fluid_contradiction:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=0, instance=1",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|violation_counts|subclass=0, instance=1",
+      "priority_rank": 2,
+      "priority_score": 108,
+      "provisional_review_id": "prov:source:disjointness_case:working_fluid_contradiction:1:violations",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:disjointness_case:working_fluid_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:disjointness_case:fixed_construction_contradiction:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "immaterial entity vs material entity",
+      "dedupe_key": "review:disjointness_case:fixed_construction_contradiction|pair_label|immaterial entity vs material entity",
+      "priority_rank": 3,
+      "priority_score": 104,
+      "provisional_review_id": "prov:source:disjointness_case:fixed_construction_contradiction:1:pair",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "source_row_id": "source:disjointness_case:fixed_construction_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:disjointness_case:working_fluid_contradiction:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "gas vs liquid",
+      "dedupe_key": "review:disjointness_case:working_fluid_contradiction|pair_label|gas vs liquid",
+      "priority_rank": 4,
+      "priority_score": 104,
+      "provisional_review_id": "prov:source:disjointness_case:working_fluid_contradiction:1:pair",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "source_row_id": "source:disjointness_case:working_fluid_contradiction:1",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0:hold_reason",
+      "cue_kind": "hold_reason",
+      "cue_value": "awaiting_manifest_promotion",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|hold_reason|awaiting_manifest_promotion",
+      "priority_rank": 5,
+      "priority_score": 91,
+      "provisional_review_id": "prov:source:hotspot_pack:software_entity_kind_collapse_pack_v0:hold_reason",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'GNU' an instance of 'operating system'?",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|sample_question|Is 'GNU' an instance of 'operating system'?",
+      "priority_rank": 6,
+      "priority_score": 88,
+      "provisional_review_id": "prov:source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1:sample_question",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'GNU' a subtype of 'Unix-like operating system'?",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|sample_question|Is 'GNU' a subtype of 'Unix-like operating system'?",
+      "priority_rank": 7,
+      "priority_score": 88,
+      "provisional_review_id": "prov:source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2:sample_question",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:signature:2",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "dedupe_key": "review:qualifier_drift:Q100104196|P166|qualifier_signature_delta|[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+      "priority_rank": 8,
+      "priority_score": 84,
+      "provisional_review_id": "prov:source:qualifier_drift:Q100104196|P166:signature:2",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:signature:3",
+      "cue_kind": "qualifier_signature_delta",
+      "cue_value": "[]",
+      "dedupe_key": "review:qualifier_drift:Q100104196|P166|qualifier_signature_delta|[]",
+      "priority_rank": 9,
+      "priority_score": 84,
+      "provisional_review_id": "prov:source:qualifier_drift:Q100104196|P166:signature:3",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0:source_artifact:17",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "dedupe_key": "review:hotspot_pack:software_entity_kind_collapse_pack_v0|source_artifact|SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "priority_rank": 10,
+      "priority_score": 83,
+      "provisional_review_id": "prov:source:hotspot_pack:software_entity_kind_collapse_pack_v0:source_artifact:17",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "source_row_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_id": "source:qualifier_drift:Q100104196|P166:property_set",
+      "cue_kind": "qualifier_property_set",
+      "cue_value": "P585 -> P585",
+      "dedupe_key": "review:qualifier_drift:Q100104196|P166|qualifier_property_set|P585 -> P585",
+      "priority_rank": 11,
+      "priority_score": 80,
+      "provisional_review_id": "prov:source:qualifier_drift:Q100104196|P166:property_set",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q21169592' an instance of 'Q7187'?",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|sample_question|Is 'Q21169592' an instance of 'Q7187'?",
+      "priority_rank": 12,
+      "priority_score": 70,
+      "provisional_review_id": "prov:source:hotspot_pack_question:mixed_order_live_pack_v1:1:sample_question",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q21169592' a subtype of 'Q7187'?",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|sample_question|Is 'Q21169592' a subtype of 'Q7187'?",
+      "priority_rank": 13,
+      "priority_score": 70,
+      "provisional_review_id": "prov:source:hotspot_pack_question:mixed_order_live_pack_v1:2:sample_question",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q188' a subtype of 'Q52040'?",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|sample_question|Is 'Q188' a subtype of 'Q52040'?",
+      "priority_rank": 14,
+      "priority_score": 70,
+      "provisional_review_id": "prov:source:hotspot_pack_question:p279_scc_live_pack_v1:1:sample_question",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:2:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "Is 'Q52040' a subtype of 'Q188'?",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|sample_question|Is 'Q52040' a subtype of 'Q188'?",
+      "priority_rank": 15,
+      "priority_score": 70,
+      "provisional_review_id": "prov:source:hotspot_pack_question:p279_scc_live_pack_v1:2:sample_question",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:2",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1:sample_question",
+      "cue_kind": "sample_question",
+      "cue_value": "In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|sample_question|In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?",
+      "priority_rank": 16,
+      "priority_score": 70,
+      "provisional_review_id": "prov:source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1:sample_question",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:5",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|source_artifact|SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "priority_rank": 17,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:5",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:6",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/test_wikidata_projection.py",
+      "dedupe_key": "review:hotspot_pack:mixed_order_live_pack_v1|source_artifact|SensibLaw/tests/test_wikidata_projection.py",
+      "priority_rank": 18,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:mixed_order_live_pack_v1:source_artifact:6",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:9",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|source_artifact|SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "priority_rank": 19,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:9",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:10",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/test_wikidata_projection.py",
+      "dedupe_key": "review:hotspot_pack:p279_scc_live_pack_v1|source_artifact|SensibLaw/tests/test_wikidata_projection.py",
+      "priority_rank": 20,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:p279_scc_live_pack_v1:source_artifact:10",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:14",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|source_artifact|SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "priority_rank": 21,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:14",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:13",
+      "cue_kind": "source_artifact",
+      "cue_value": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "dedupe_key": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1|source_artifact|SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "priority_rank": 22,
+      "priority_score": 65,
+      "provisional_review_id": "prov:source:hotspot_pack:qualifier_drift_p166_live_pack_v1:source_artifact:13",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "source_row_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_id": "source:disjointness_case:nucleon_baseline:1:violations",
+      "cue_kind": "violation_counts",
+      "cue_value": "subclass=0, instance=0",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|violation_counts|subclass=0, instance=0",
+      "priority_rank": 23,
+      "priority_score": 43,
+      "provisional_review_id": "prov:source:disjointness_case:nucleon_baseline:1:violations",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:disjointness_case:nucleon_baseline:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:disjointness_case:nucleon_baseline:1:pair",
+      "cue_kind": "pair_label",
+      "cue_value": "proton vs neutron",
+      "dedupe_key": "review:disjointness_case:nucleon_baseline|pair_label|proton vs neutron",
+      "priority_rank": 24,
+      "priority_score": 39,
+      "provisional_review_id": "prov:source:disjointness_case:nucleon_baseline:1:pair",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "source_row_id": "source:disjointness_case:nucleon_baseline:1",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_id": "source:qualifier_baseline:P166:property",
+      "cue_kind": "property_pid",
+      "cue_value": "P166",
+      "dedupe_key": "review:qualifier_baseline|property_pid|P166",
+      "priority_rank": 25,
+      "priority_score": 29,
+      "provisional_review_id": "prov:source:qualifier_baseline:P166:property",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "source_row_id": "source:qualifier_baseline:P166",
+      "workload_class": "baseline_confirmation"
+    }
+  ],
+  "related_review_clusters": [
+    {
+      "candidate_cue_count": 4,
+      "candidate_cue_rollup": {
+        "hold_reason": 1,
+        "sample_question": 2,
+        "source_artifact": 1
+      },
+      "cluster_id": "cluster:review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "dominant_workload_class": "governance_gap",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_row_count": 3,
+      "source_row_ids": [
+        "source:hotspot_pack:software_entity_kind_collapse_pack_v0",
+        "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1",
+        "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2"
+      ],
+      "title": "Hotspot pack software_entity_kind_collapse_pack_v0",
+      "workload_class_rollup": {
+        "governance_gap": 3
+      }
+    },
+    {
+      "candidate_cue_count": 2,
+      "candidate_cue_rollup": {
+        "pair_label": 1,
+        "violation_counts": 1
+      },
+      "cluster_id": "cluster:review:disjointness_case:fixed_construction_contradiction",
+      "dominant_workload_class": "structural_contradiction",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_row_count": 1,
+      "source_row_ids": [
+        "source:disjointness_case:fixed_construction_contradiction:1"
+      ],
+      "title": "Disjointness case fixed_construction_contradiction",
+      "workload_class_rollup": {
+        "structural_contradiction": 1
+      }
+    },
+    {
+      "candidate_cue_count": 2,
+      "candidate_cue_rollup": {
+        "pair_label": 1,
+        "violation_counts": 1
+      },
+      "cluster_id": "cluster:review:disjointness_case:working_fluid_contradiction",
+      "dominant_workload_class": "structural_contradiction",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_row_count": 1,
+      "source_row_ids": [
+        "source:disjointness_case:working_fluid_contradiction:1"
+      ],
+      "title": "Disjointness case working_fluid_contradiction",
+      "workload_class_rollup": {
+        "structural_contradiction": 1
+      }
+    },
+    {
+      "candidate_cue_count": 3,
+      "candidate_cue_rollup": {
+        "qualifier_property_set": 1,
+        "qualifier_signature_delta": 2
+      },
+      "cluster_id": "cluster:review:qualifier_drift:Q100104196|P166",
+      "dominant_workload_class": "qualifier_drift_gap",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_row_count": 1,
+      "source_row_ids": [
+        "source:qualifier_drift:Q100104196|P166"
+      ],
+      "title": "Qualifier drift case Q100104196|P166",
+      "workload_class_rollup": {
+        "qualifier_drift_gap": 1
+      }
+    }
+  ],
+  "review_item_rows": [
+    {
+      "evidence_summary": "8 statements across 2 windows for P166",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_kind": "qualifier_baseline",
+      "review_status": "baseline",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json"
+      ],
+      "title": "Qualifier-bearing import baseline",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "evidence_summary": "severity=medium from t1 to t2",
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_kind": "qualifier_drift_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+      ],
+      "title": "Qualifier drift case Q100104196|P166",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "evidence_summary": "mixed_order with 6 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+        "SensibLaw/tests/test_wikidata_projection.py"
+      ],
+      "title": "Hotspot pack mixed_order_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "p279_scc with 4 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+        "SensibLaw/tests/test_wikidata_projection.py"
+      ],
+      "title": "Hotspot pack p279_scc_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "qualifier_drift with 1 generated clusters",
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_kind": "hotspot_pack",
+      "review_status": "promoted",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+        "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+      ],
+      "title": "Hotspot pack qualifier_drift_p166_live_pack_v1",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "evidence_summary": "entity_kind_collapse with 8 generated clusters",
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_kind": "hotspot_pack",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json"
+      ],
+      "title": "Hotspot pack software_entity_kind_collapse_pack_v0",
+      "workload_class": "governance_gap"
+    },
+    {
+      "evidence_summary": "proton vs neutron",
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_kind": "disjointness_case",
+      "review_status": "baseline",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case nucleon_baseline",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "evidence_summary": "immaterial entity vs material entity",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_kind": "disjointness_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case fixed_construction_contradiction",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "evidence_summary": "gas vs liquid",
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_kind": "disjointness_case",
+      "review_status": "review_required",
+      "source_paths": [
+        "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json"
+      ],
+      "title": "Disjointness case working_fluid_contradiction",
+      "workload_class": "structural_contradiction"
+    }
+  ],
+  "source_handoff_version": "wikidata_structural_handoff_v1",
+  "source_review_rows": [
+    {
+      "cue_payload": {
+        "property_pid": "P166",
+        "statement_count": 8,
+        "window_count": 2
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:qualifier_baseline",
+      "review_status": "baseline",
+      "source_kind": "qualifier_baseline_property",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/real_qualifier_imported_slice_20260307.json",
+      "source_row_id": "source:qualifier_baseline:P166",
+      "text": "Property P166 preserved across importer baseline windows.",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "qualifier_property_set_t1": [
+          "P585"
+        ],
+        "qualifier_property_set_t2": [
+          "P585"
+        ],
+        "qualifier_signatures_t1": [
+          "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]"
+        ],
+        "qualifier_signatures_t2": [
+          "[[\"P585\",[\"+1838-10-05T00:00:00Z\"]]]",
+          "[]"
+        ]
+      },
+      "recommended_next_action": "inspect qualifier signature drift across revision windows",
+      "review_item_id": "review:qualifier_drift:Q100104196|P166",
+      "review_status": "review_required",
+      "source_kind": "qualifier_drift_projection",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json",
+      "source_row_id": "source:qualifier_drift:Q100104196|P166",
+      "text": "Qualifier drift for Q100104196|P166 at severity=medium from t1 to t2.",
+      "workload_class": "qualifier_drift_gap"
+    },
+    {
+      "cue_payload": {
+        "hold_reason": null,
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack:mixed_order_live_pack_v1",
+      "text": "mixed_order_live_pack_v1 (mixed_order) has 6 clusters and promotion_status=promoted.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 1
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:1",
+      "text": "Is 'Q21169592' an instance of 'Q7187'?",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 2
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:mixed_order_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack_question:mixed_order_live_pack_v1:2",
+      "text": "Is 'Q21169592' a subtype of 'Q7187'?",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "hold_reason": null,
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+          "SensibLaw/tests/test_wikidata_projection.py"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack:p279_scc_live_pack_v1",
+      "text": "p279_scc_live_pack_v1 (p279_scc) has 4 clusters and promotion_status=promoted.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 1
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:1",
+      "text": "Is 'Q188' a subtype of 'Q52040'?",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 2
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:p279_scc_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/live_p31_p279_slice_20260307.json",
+      "source_row_id": "source:hotspot_pack_question:p279_scc_live_pack_v1:2",
+      "text": "Is 'Q52040' a subtype of 'Q188'?",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "hold_reason": null,
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+          "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/projection.json"
+        ]
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "source_row_id": "source:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "text": "qualifier_drift_p166_live_pack_v1 (qualifier_drift) has 1 clusters and promotion_status=promoted.",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 1
+      },
+      "recommended_next_action": "preserve as promoted structural exemplar",
+      "review_item_id": "review:hotspot_pack:qualifier_drift_p166_live_pack_v1",
+      "review_status": "promoted",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/q100104196_p166_2277985537_2277985693/slice.json",
+      "source_row_id": "source:hotspot_pack_question:qualifier_drift_p166_live_pack_v1:1",
+      "text": "In the older window, is 'Q100104196' linked by 'P166 qualifier pattern' to 'P166'?",
+      "workload_class": "cluster_promotion_gap"
+    },
+    {
+      "cue_payload": {
+        "hold_reason": "awaiting_manifest_promotion",
+        "source_artifacts": [
+          "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json"
+        ]
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_pack_summary",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "source_row_id": "source:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "text": "software_entity_kind_collapse_pack_v0 (entity_kind_collapse) has 8 clusters and promotion_status=promotable.",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 1
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:1",
+      "text": "Is 'GNU' an instance of 'operating system'?",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "question_index": 2
+      },
+      "recommended_next_action": "promote held hotspot pack through manifest governance",
+      "review_item_id": "review:hotspot_pack:software_entity_kind_collapse_pack_v0",
+      "review_status": "review_required",
+      "source_kind": "hotspot_sample_question",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/software_entity_kind_collapse_pack_v0/slice.json",
+      "source_row_id": "source:hotspot_pack_question:software_entity_kind_collapse_pack_v0:2",
+      "text": "Is 'GNU' a subtype of 'Unix-like operating system'?",
+      "workload_class": "governance_gap"
+    },
+    {
+      "cue_payload": {
+        "instance_violation_count": 0,
+        "pair_label": "proton vs neutron",
+        "subclass_violation_count": 0
+      },
+      "recommended_next_action": "retain as checked baseline",
+      "review_item_id": "review:disjointness_case:nucleon_baseline",
+      "review_status": "baseline",
+      "source_kind": "disjointness_pair",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_nucleon_real_pack_v1/slice.json",
+      "source_row_id": "source:disjointness_case:nucleon_baseline:1",
+      "text": "proton vs neutron",
+      "workload_class": "baseline_confirmation"
+    },
+    {
+      "cue_payload": {
+        "instance_violation_count": 0,
+        "pair_label": "immaterial entity vs material entity",
+        "subclass_violation_count": 4
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:fixed_construction_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_pair",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_fixed_construction_real_pack_v1/slice.json",
+      "source_row_id": "source:disjointness_case:fixed_construction_contradiction:1",
+      "text": "immaterial entity vs material entity",
+      "workload_class": "structural_contradiction"
+    },
+    {
+      "cue_payload": {
+        "instance_violation_count": 1,
+        "pair_label": "gas vs liquid",
+        "subclass_violation_count": 0
+      },
+      "recommended_next_action": "review contradiction culprits and preserve disjointness evidence",
+      "review_item_id": "review:disjointness_case:working_fluid_contradiction",
+      "review_status": "review_required",
+      "source_kind": "disjointness_pair",
+      "source_path": "SensibLaw/tests/fixtures/wikidata/disjointness_p2738_working_fluid_real_pack_v1/slice.json",
+      "source_row_id": "source:disjointness_case:working_fluid_contradiction:1",
+      "text": "gas vs liquid",
+      "workload_class": "structural_contradiction"
+    }
+  ],
+  "summary": {
+    "baseline_confirmation_count": 2,
+    "candidate_structural_cue_count": 25,
+    "cluster_promotion_gap_count": 8,
+    "governance_gap_count": 3,
+    "provisional_review_bundle_count": 9,
+    "provisional_review_row_count": 25,
+    "qualifier_drift_gap_count": 1,
+    "related_review_cluster_count": 4,
+    "review_item_count": 9,
+    "review_required_item_count": 4,
+    "source_review_row_count": 16,
+    "structural_contradiction_count": 2
+  },
+  "version": "wikidata_structural_review_v1"
+}

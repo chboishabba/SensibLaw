@@ -1,0 +1,5141 @@
+{
+  "fixture_kind": "gwb_public_review",
+  "provisional_anchor_bundles": [
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "priority_rank": 1,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 44,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020"
+        }
+      ],
+      "bundle_rank": 1,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 2,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress filed a federal lawsuit",
+          "priority_rank": 45,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052"
+        }
+      ],
+      "bundle_rank": 2,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "priority_rank": 3,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 4,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p3",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "priority_rank": 46,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+        }
+      ],
+      "bundle_rank": 3,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "priority_rank": 5,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 6,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p3",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "priority_rank": 47,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+        }
+      ],
+      "bundle_rank": 4,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 7,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 48,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082"
+        }
+      ],
+      "bundle_rank": 5,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 8,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 49,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096"
+        }
+      ],
+      "bundle_rank": 6,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "priority_rank": 9,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p2",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 10,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p3",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 50,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p1",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+        }
+      ],
+      "bundle_rank": 7,
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1968",
+          "priority_rank": 11,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:defense_executive_operations:ev:0014#p2",
+          "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Texas Air National Guard",
+          "priority_rank": 51,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:defense_executive_operations:ev:0014#p1",
+          "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014"
+        }
+      ],
+      "bundle_rank": 8,
+      "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 12,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040#p2",
+          "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "health insurance",
+          "priority_rank": 52,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040#p1",
+          "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040"
+        }
+      ],
+      "bundle_rank": 9,
+      "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "priority_rank": 13,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p3",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 53,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 54,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+        }
+      ],
+      "bundle_rank": 10,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 14,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0040#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 55,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0040#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040"
+        }
+      ],
+      "bundle_rank": 11,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "priority_rank": 15,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0048#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 56,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0048#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048"
+        }
+      ],
+      "bundle_rank": 12,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 16,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0052#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 57,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0052#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052"
+        }
+      ],
+      "bundle_rank": 13,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 17,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0053#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 58,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0053#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053"
+        }
+      ],
+      "bundle_rank": 14,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 18,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0075#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "priority_rank": 59,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0075#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075"
+        }
+      ],
+      "bundle_rank": 15,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 19,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0082#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 60,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0082#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082"
+        }
+      ],
+      "bundle_rank": 16,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 20,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0096#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 61,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0096#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096"
+        }
+      ],
+      "bundle_rank": 17,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "priority_rank": 21,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p2",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 22,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p3",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 62,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p1",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+        }
+      ],
+      "bundle_rank": 18,
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "priority_rank": 23,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p3",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "priority_rank": 63,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p1",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 64,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p2",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+        }
+      ],
+      "bundle_rank": 19,
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 24,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p3",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court of the United States",
+          "priority_rank": 65,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p1",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 66,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p2",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+        }
+      ],
+      "bundle_rank": 20,
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 25,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0096#p2",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 67,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0096#p1",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096"
+        }
+      ],
+      "bundle_rank": 21,
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 26,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0097#p2",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 68,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0097#p1",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097"
+        }
+      ],
+      "bundle_rank": 22,
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "priority_rank": 27,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p3",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "US Supreme Court",
+          "priority_rank": 69,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p1",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 70,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p2",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+        }
+      ],
+      "bundle_rank": 23,
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 28,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p3",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States district court",
+          "priority_rank": 71,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p1",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "district court",
+          "priority_rank": 72,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p2",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+        }
+      ],
+      "bundle_rank": 24,
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 29,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0082#p2",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "surveillance",
+          "priority_rank": 73,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0082#p1",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082"
+        }
+      ],
+      "bundle_rank": 25,
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "priority_rank": 30,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p3",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 74,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 75,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+        }
+      ],
+      "bundle_rank": 26,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0020",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "priority_rank": 31,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0048#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0048"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 76,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0048#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0048"
+        }
+      ],
+      "bundle_rank": 27,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0048",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 32,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0052#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0052"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 77,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0052#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0052"
+        }
+      ],
+      "bundle_rank": 28,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0052",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 33,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0053#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0053"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "priority_rank": 78,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0053#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0053"
+        }
+      ],
+      "bundle_rank": 29,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0053",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 34,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0082#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0082"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 79,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0082#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0082"
+        }
+      ],
+      "bundle_rank": 30,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0082",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 35,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0096#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0096"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 80,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0096#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0096"
+        }
+      ],
+      "bundle_rank": 31,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0096",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "priority_rank": 36,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p2",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "priority_rank": 37,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p3",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "priority_rank": 81,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p1",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+        }
+      ],
+      "bundle_rank": 32,
+      "source_row_id": "gwb_us_law:schip_veto:ev:0102",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 38,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040#p2",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "priority_rank": 82,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040#p1",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040"
+        }
+      ],
+      "bundle_rank": 33,
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 39,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075#p2",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "priority_rank": 83,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075#p1",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075"
+        }
+      ],
+      "bundle_rank": 34,
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 4,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "priority_rank": 40,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p4",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "priority_rank": 84,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p1",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "priority_rank": 85,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p2",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 86,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p3",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+        }
+      ],
+      "bundle_rank": 35,
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "priority_rank": 41,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0082#p2",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "priority_rank": 87,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0082#p1",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082"
+        }
+      ],
+      "bundle_rank": 36,
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 42,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p3",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court of the United States",
+          "priority_rank": 88,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p1",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 89,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p2",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+        }
+      ],
+      "bundle_rank": 37,
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "priority_rank": 43,
+          "priority_score": 30,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0097#p2",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "priority_rank": 90,
+          "priority_score": 20,
+          "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0097#p1",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097"
+        }
+      ],
+      "bundle_rank": 38,
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097",
+      "top_priority_score": 30
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "Bush administration",
+          "priority_rank": 91,
+          "priority_score": 10,
+          "provisional_review_id": "surface:Bush administration#p1",
+          "source_row_id": "surface:Bush administration"
+        },
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "Bush administration",
+          "priority_rank": 92,
+          "priority_score": 10,
+          "provisional_review_id": "surface:Bush administration#p1",
+          "source_row_id": "surface:Bush administration"
+        }
+      ],
+      "bundle_rank": 39,
+      "source_row_id": "surface:Bush administration",
+      "top_priority_score": 10
+    },
+    {
+      "anchor_count": 3,
+      "anchor_rows": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "priority_rank": 93,
+          "priority_score": 10,
+          "provisional_review_id": "surface:White House#p1",
+          "source_row_id": "surface:White House"
+        },
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "priority_rank": 94,
+          "priority_score": 10,
+          "provisional_review_id": "surface:White House#p1",
+          "source_row_id": "surface:White House"
+        },
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "priority_rank": 95,
+          "priority_score": 10,
+          "provisional_review_id": "surface:White House#p1",
+          "source_row_id": "surface:White House"
+        }
+      ],
+      "bundle_rank": 40,
+      "source_row_id": "surface:White House",
+      "top_priority_score": 10
+    },
+    {
+      "anchor_count": 2,
+      "anchor_rows": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "the President",
+          "priority_rank": 96,
+          "priority_score": 10,
+          "provisional_review_id": "surface:the President#p1",
+          "source_row_id": "surface:the President"
+        },
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "the President",
+          "priority_rank": 97,
+          "priority_score": 10,
+          "provisional_review_id": "surface:the President#p1",
+          "source_row_id": "surface:the President"
+        }
+      ],
+      "bundle_rank": 41,
+      "source_row_id": "surface:the President",
+      "top_priority_score": 10
+    }
+  ],
+  "provisional_structured_anchors": [
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1978",
+      "priority_rank": 1,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 2,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2006",
+      "priority_rank": 3,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 4,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p3",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2006",
+      "priority_rank": 5,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 6,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p3",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 7,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 8,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2004",
+      "priority_rank": 9,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p2",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 10,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p3",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1968",
+      "priority_rank": 11,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:defense_executive_operations:ev:0014#p2",
+      "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 12,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040#p2",
+      "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1978",
+      "priority_rank": 13,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p3",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 14,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0040#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2006",
+      "priority_rank": 15,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0048#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 16,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0052#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 17,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0053#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 18,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0075#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 19,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0082#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 20,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0096#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2004",
+      "priority_rank": 21,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 22,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p3",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2010",
+      "priority_rank": 23,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p3",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 24,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p3",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 25,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0096#p2",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 26,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0097#p2",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2006",
+      "priority_rank": 27,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p3",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 28,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p3",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 29,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0082#p2",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "1978",
+      "priority_rank": 30,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p3",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2006",
+      "priority_rank": 31,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0048#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0048"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 32,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0052#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0052"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 33,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0053#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0053"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 34,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0082#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0082"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 35,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0096#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0096"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2004",
+      "priority_rank": 36,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2008",
+      "priority_rank": 37,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p3",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 38,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040#p2",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 39,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075#p2",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2010",
+      "priority_rank": 40,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p4",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2007",
+      "priority_rank": 41,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0082#p2",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 42,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p3",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+    },
+    {
+      "anchor_kind": "calendar_reference",
+      "anchor_label": "2005",
+      "priority_rank": 43,
+      "priority_score": 30,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0097#p2",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 44,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress filed a federal lawsuit",
+      "priority_rank": 45,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. district court",
+      "priority_rank": 46,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. district court",
+      "priority_rank": 47,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 48,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 49,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 50,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102#p1",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Texas Air National Guard",
+      "priority_rank": 51,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:defense_executive_operations:ev:0014#p1",
+      "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "health insurance",
+      "priority_rank": 52,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040#p1",
+      "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 53,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 54,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0020#p2",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 55,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0040#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 56,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0048#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 57,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0052#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 58,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0053#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Iraq",
+      "priority_rank": 59,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0075#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 60,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0082#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 61,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0096#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 62,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:iraq_2002_authorization:ev:0102#p1",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Supreme Court",
+      "priority_rank": 63,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p1",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 64,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0027#p2",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court of the United States",
+      "priority_rank": 65,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p1",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 66,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0095#p2",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 67,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0096#p1",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 68,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0097#p1",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "US Supreme Court",
+      "priority_rank": 69,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p1",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 70,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:military_commissions_2006:ev:0098#p2",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States district court",
+      "priority_rank": 71,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p1",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "district court",
+      "priority_rank": 72,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0053#p2",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "surveillance",
+      "priority_rank": 73,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:nsa_surveillance_review:ev:0082#p1",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 74,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 75,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0020#p2",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 76,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0048#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0048"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 77,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0052#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0052"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Congress",
+      "priority_rank": 78,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0053#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0053"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 79,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0082#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0082"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 80,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0096#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0096"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "United States House of Representatives",
+      "priority_rank": 81,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:schip_veto:ev:0102#p1",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "veto",
+      "priority_rank": 82,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040#p1",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "veto",
+      "priority_rank": 83,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075#p1",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Supreme Court",
+      "priority_rank": 84,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p1",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Supreme Court",
+      "priority_rank": 85,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p2",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 86,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0027#p3",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "U.S. Senate",
+      "priority_rank": 87,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0082#p1",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court of the United States",
+      "priority_rank": 88,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p1",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 89,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0095#p2",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+    },
+    {
+      "anchor_kind": "receipt",
+      "anchor_label": "Supreme Court",
+      "priority_rank": 90,
+      "priority_score": 20,
+      "provisional_review_id": "gwb_us_law:supreme_court_appointments:ev:0097#p1",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "Bush administration",
+      "priority_rank": 91,
+      "priority_score": 10,
+      "provisional_review_id": "surface:Bush administration#p1",
+      "source_row_id": "surface:Bush administration"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "Bush administration",
+      "priority_rank": 92,
+      "priority_score": 10,
+      "provisional_review_id": "surface:Bush administration#p1",
+      "source_row_id": "surface:Bush administration"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "White House",
+      "priority_rank": 93,
+      "priority_score": 10,
+      "provisional_review_id": "surface:White House#p1",
+      "source_row_id": "surface:White House"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "White House",
+      "priority_rank": 94,
+      "priority_score": 10,
+      "provisional_review_id": "surface:White House#p1",
+      "source_row_id": "surface:White House"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "White House",
+      "priority_rank": 95,
+      "priority_score": 10,
+      "provisional_review_id": "surface:White House#p1",
+      "source_row_id": "surface:White House"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "the President",
+      "priority_rank": 96,
+      "priority_score": 10,
+      "provisional_review_id": "surface:the President#p1",
+      "source_row_id": "surface:the President"
+    },
+    {
+      "anchor_kind": "surface",
+      "anchor_label": "the President",
+      "priority_rank": 97,
+      "priority_score": 10,
+      "provisional_review_id": "surface:the President#p1",
+      "source_row_id": "surface:the President"
+    }
+  ],
+  "related_review_clusters": [
+    {
+      "candidate_source_count": 7,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:congressional_subpoena_litigation",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "workload_class_rollup": [
+        {
+          "count": 7,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 1,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:defense_executive_operations",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "workload_class_rollup": [
+        {
+          "count": 1,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 1,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:genetic_information_nondiscrimination_act",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "workload_class_rollup": [
+        {
+          "count": 1,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 9,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:iraq_2002_authorization",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "workload_class_rollup": [
+        {
+          "count": 9,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 5,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:military_commissions_2006",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "workload_class_rollup": [
+        {
+          "count": 5,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 2,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:nsa_surveillance_review",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "workload_class_rollup": [
+        {
+          "count": 2,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 7,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0020"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0082"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0096"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0102"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:ev:0048"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:schip_veto",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:schip_veto",
+      "workload_class_rollup": [
+        {
+          "count": 7,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 2,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:stem_cell_research_enhancement_act",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "workload_class_rollup": [
+        {
+          "count": 2,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    },
+    {
+      "candidate_source_count": 4,
+      "candidate_source_rows": [
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082"
+        },
+        {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097"
+        }
+      ],
+      "cluster_id": "cluster:gwb_us_law:supreme_court_appointments",
+      "coverage_status": "partial",
+      "reason_code_rollup": [],
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "workload_class_rollup": [
+        {
+          "count": 4,
+          "workload_class": "linkage_gap"
+        }
+      ]
+    }
+  ],
+  "review_item_rows": [
+    {
+      "action_summary": "Clear Skies legislative and Clean Air amendment lane",
+      "candidate_event_count": 1,
+      "coverage_status": "covered",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:clear_skies_2003",
+      "seed_id": "gwb_us_law:clear_skies_2003",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Congressional subpoena and immunity litigation lane",
+      "candidate_event_count": 8,
+      "coverage_status": "partial",
+      "linkage_kind": "litigation_and_subpoena",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:congressional_subpoena_litigation",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Department of Defense institutional review lane",
+      "candidate_event_count": 2,
+      "coverage_status": "partial",
+      "linkage_kind": "institutional_anchor",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:defense_executive_operations",
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Genetic discrimination legislation lane",
+      "candidate_event_count": 2,
+      "coverage_status": "partial",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:genetic_information_nondiscrimination_act",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "Iraq war authorization and related executive decision path",
+      "candidate_event_count": 27,
+      "coverage_status": "partial",
+      "linkage_kind": "congressional_authority",
+      "matched_event_count": 18,
+      "review_item_id": "seed:gwb_us_law:iraq_2002_authorization",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Military commissions and detainee-review lane",
+      "candidate_event_count": 6,
+      "coverage_status": "partial",
+      "linkage_kind": "statute_and_litigation",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:military_commissions_2006",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "NSA surveillance and review/litigation lane",
+      "candidate_event_count": 4,
+      "coverage_status": "partial",
+      "linkage_kind": "statute_and_litigation",
+      "matched_event_count": 2,
+      "review_item_id": "seed:gwb_us_law:nsa_surveillance_review",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "support_kind": "direct"
+    },
+    {
+      "action_summary": "SCHIP veto and congressional funding lane",
+      "candidate_event_count": 8,
+      "coverage_status": "partial",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:schip_veto",
+      "seed_id": "gwb_us_law:schip_veto",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Stem cell veto and bioethics legislation lane",
+      "candidate_event_count": 5,
+      "coverage_status": "partial",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 3,
+      "review_item_id": "seed:gwb_us_law:stem_cell_research_enhancement_act",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Supreme Court nominations and legitimacy lane",
+      "candidate_event_count": 6,
+      "coverage_status": "partial",
+      "linkage_kind": "court_and_confirmation",
+      "matched_event_count": 2,
+      "review_item_id": "seed:gwb_us_law:supreme_court_appointments",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "support_kind": "broad_cue"
+    },
+    {
+      "action_summary": "Syria sanctions legislation lane",
+      "candidate_event_count": 1,
+      "coverage_status": "covered",
+      "linkage_kind": "domestic_statute",
+      "matched_event_count": 1,
+      "review_item_id": "seed:gwb_us_law:syria_accountability_act",
+      "seed_id": "gwb_us_law:syria_accountability_act",
+      "support_kind": "direct"
+    }
+  ],
+  "source_input": {
+    "path": "SensibLaw/tests/fixtures/zelph/gwb_public_handoff_v1/gwb_public_handoff_v1.slice.json",
+    "source_row_count": 77
+  },
+  "source_review_rows": [
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Clear Skies Act of 2003",
+          "anchor_value": "Clear Skies Act of 2003"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Clear Skies Act",
+          "anchor_value": "Clear Skies Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Clean Air Act",
+          "anchor_value": "Clean Air Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Clear Skies",
+          "anchor_value": "Clear Skies"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Clean Air Act",
+          "anchor_value": "Clean Air Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "emissions trading",
+          "anchor_value": "emissions trading"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2002",
+          "anchor_value": "2002"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0044",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "Clear Skies Act of 2003"
+        },
+        {
+          "kind": "authority_title",
+          "value": "Clear Skies Act"
+        },
+        {
+          "kind": "authority_title",
+          "value": "Clean Air Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Clear Skies"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Clean Air Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "emissions trading"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:clear_skies_2003",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:clear_skies_2003:ev:0044",
+      "text": "In 2002, Bush proposed the Clear Skies Act of 2003, which aimed at amending the Clean Air Act to reduce air pollution through the use of emissions trading programs.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States district court",
+          "anchor_value": "United States district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "congressional subpoenas",
+          "anchor_value": "congressional subpoenas"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States district court",
+          "anchor_value": "United States district court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0053",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "United States district court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "congressional subpoenas"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "United States district court"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0053",
+      "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "anchor_value": "1978"
+        }
+      ],
+      "event_id": "ev:0020",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0020",
+      "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "anchor_value": "U.S. district court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0080",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. district court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0080",
+      "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "anchor_value": "U.S. district court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0081",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. district court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0081",
+      "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0082",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0082",
+      "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0096",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0096",
+      "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "anchor_value": "2004"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0102",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0102",
+      "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress filed a federal lawsuit",
+          "anchor_value": "Congress filed a federal lawsuit"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0052",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue",
+          "value": "Congress filed a federal lawsuit"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:congressional_subpoena_litigation:ev:0052",
+      "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States Department of Defense",
+          "anchor_value": "United States Department of Defense"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Department of Defense",
+          "anchor_value": "Department of Defense"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Texas Air National Guard",
+          "anchor_value": "Texas Air National Guard"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0015",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States Department of Defense"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Department of Defense"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Texas Air National Guard"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:defense_executive_operations:ev:0015",
+      "text": "In June 2005, the Department of Defense released all the records of Bush's Texas Air National Guard service, which remain in its official archives.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Texas Air National Guard",
+          "anchor_value": "Texas Air National Guard"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1968",
+          "anchor_value": "1968"
+        }
+      ],
+      "event_id": "ev:0014",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue",
+          "value": "Texas Air National Guard"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:defense_executive_operations",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:defense_executive_operations:ev:0014",
+      "text": "In May 1968, Bush joined the United States Air Force and was commissioned into the Texas Air National Guard.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Genetic Information Nondiscrimination Act",
+          "anchor_value": "Genetic Information Nondiscrimination Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Genetic Information Nondiscrimination Act",
+          "anchor_value": "Genetic Information Nondiscrimination Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "employment discrimination",
+          "anchor_value": "employment discrimination"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "health insurance",
+          "anchor_value": "health insurance"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0041",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "Genetic Information Nondiscrimination Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Genetic Information Nondiscrimination Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "employment discrimination"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "health insurance"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0041",
+      "text": "On May 21, 2008, Bush signed into law the Genetic Information Nondiscrimination Act, aimed to protect Americans against health insurance and employment discrimination based on a person's genetic information.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "health insurance",
+          "anchor_value": "health insurance"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0040",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue",
+          "value": "health insurance"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:ev:0040",
+      "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0004",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0004",
+      "text": "In January 2007, Bush launched a surge of troops in Iraq.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0051",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0051",
+      "text": "Leaders attacked Bush for having appointed incompetent leaders to positions of power at FEMA, notably Michael D. Brown; federal resources to respond were also limited as a result of being allocated to the Iraq War, and Bush himself did not act upon warnings of floods.\"I don't think anybody anticipated the breach of the levees.\" George W. Bush to Diane Sawyer, Good Morning America, September 1, 2005.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2002",
+          "anchor_value": "2002"
+        }
+      ],
+      "event_id": "ev:0061",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0061",
+      "text": "In Bush's September 20 speech, he declared that \"our war on terror begins with Al Qaeda, but it does not end there.\" In his January 29, 2002 State of the Union Address, he asserted that an \"axis of evil\" consisting of North Korea, Iran, and Ba'athist Iraq was \"arming to threaten the peace of the world\" and \"pose[d] a grave and growing danger\".",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0063",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0063",
+      "text": "Dissent and criticism of Bush's leadership in the war on terror increased as the war in Iraq continued. Lopez, George E., \"Perils of Bush's Pre-emptive War Doctrine\", The Indianapolis Star, October 3, 2003.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0064",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0064",
+      "text": "In 2006, a National Intelligence Estimate concluded that the Iraq War had become the \"cause c\u00e9l\u00e8bre for jihadists\".",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "weapons of mass destruction",
+          "anchor_value": "weapons of mass destruction"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2002",
+          "anchor_value": "2002"
+        }
+      ],
+      "event_id": "ev:0068",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "weapons of mass destruction"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0068",
+      "text": "Beginning with his January 29, 2002 State of the Union address, Bush began publicly focusing attention on Iraq, which he labeled as part of an \"axis of evil\" allied with terrorists and posing \"a grave and growing danger\" to U.S. interests through possession of weapons of mass destruction.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "weapons of mass destruction",
+          "anchor_value": "weapons of mass destruction"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0069",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "weapons of mass destruction"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0069",
+      "text": "Contentions that the Bush Administration manipulated or exaggerated the threat and evidence of Iraq's weapons of mass destruction capabilities would eventually become a major point of criticism for the president. Hersh, Seymour M., \"The Stovepipe\", The New Yorker, October 27, 2003.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2002",
+          "anchor_value": "2002"
+        }
+      ],
+      "event_id": "ev:0070",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0070",
+      "text": "In November 2002, Hans Blix and Mohamed ElBaradei led UN weapons inspectors in Iraq, but were advised by the U.S. to depart the country four days prior to the U.S. invasion, despite their requests for more time to complete their tasks.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0071",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0071",
+      "text": "They launched the invasion on March 20, 2003.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0072",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0072",
+      "text": "The capital, Baghdad, fell on April 9, 2003.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0073",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0073",
+      "text": "In January 2005, elections recognized by the West as free and fair were held in Iraq for the first time in 50 years.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0074",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0074",
+      "text": "On January 10, 2007, Bush launched a surge of 21,500 more troops for Iraq, as well as a job program for Iraqis, more reconstruction proposals, and $1.2billion (equivalent to $billion in ) for these programs.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0076",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0076",
+      "text": "In March 2008, Bush praised the Iraqi government's \"bold decision\" to launch the Battle of Basra against the Mahdi Army, calling it \"a defining moment in the history of a free Iraq\".",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0077",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0077",
+      "text": "During Bush's last visit to Iraq in December 2008, Iraqi journalist Muntadhar al-Zaidi threw both of his shoes at him during an official press conference with Iraqi Prime Minister Nouri al-Maliki. Bush shoe-ing worst Arab insult, BBC, December 16, 2008.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "anchor_value": "2010"
+        }
+      ],
+      "event_id": "ev:0078",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0078",
+      "text": "In March 2010, Center for Public Integrity released a report that President Bush's administration had made more than 900 false pretenses in a two-year period about the alleged threat of Iraq against the United States, as his rationale to engage in war in Iraq.\"Study: Bush led U.S. to war on 'false pretenses'\".",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "anchor_value": "2010"
+        }
+      ],
+      "event_id": "ev:0079",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0079",
+      "text": "Retrieved March 22, 2010.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2015",
+          "anchor_value": "2015"
+        }
+      ],
+      "event_id": "ev:0113",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0113",
+      "text": "In an interview published by Israel Hayom magazine on June 12, 2015, Bush said that \"boots on the ground\" would be needed to defeat the Islamic State of Iraq and the Levant (ISIS).",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0137",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0137",
+      "text": "Ben Ferencz, former chief prosecutor for the United States Army at the Nuremberg Trials, stated that Bush likely committed war crimes in relation to the Iraq War. Glantz, A.: \"Bush and Saddam Should Both Stand Trial, Says Nuremberg Prosecutor \", OneWorld U.S., August 25, 2006.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "anchor_value": "1978"
+        }
+      ],
+      "event_id": "ev:0020",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0020",
+      "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0082",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0082",
+      "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0096",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0096",
+      "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "anchor_value": "2004"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0102",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0102",
+      "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0040",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0040",
+      "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0048",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0048",
+      "text": "In 2006, Bush urged Congress to allow more than twelve million illegal immigrants to work in the United States with the creation of a \"temporary guest-worker program\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0052",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0052",
+      "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0053",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0053",
+      "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Iraq",
+          "anchor_value": "Iraq"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0075",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Iraq"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:iraq_2002_authorization",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:iraq_2002_authorization:ev:0075",
+      "text": "On May 1, 2007, Bush used his second-ever veto to reject a bill setting a deadline for the withdrawal of U.S. troops, saying the debate over the conflict was \"understandable\" but insisting that a continued U.S. presence there was crucial.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Military Commissions Act of 2006",
+          "anchor_value": "Military Commissions Act of 2006"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Military Commissions Act",
+          "anchor_value": "Military Commissions Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Military Commissions Act of 2006",
+          "anchor_value": "Military Commissions Act of 2006"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Military Commissions Act",
+          "anchor_value": "Military Commissions Act"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0083",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "Military Commissions Act of 2006"
+        },
+        {
+          "kind": "authority_title",
+          "value": "Military Commissions Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Military Commissions Act of 2006"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Military Commissions Act"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0083",
+      "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "anchor_value": "U.S. Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "anchor_value": "2010"
+        }
+      ],
+      "event_id": "ev:0027",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. Supreme Court"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0027",
+      "text": "The initial recount also went to Bush, but the outcome was tied up in lower courts for a month until eventually reaching the U.S. Supreme Court. Retrieved February 12, 2010.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court of the United States",
+          "anchor_value": "Supreme Court of the United States"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0095",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "Supreme Court of the United States"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0095",
+      "text": "On July 19, 2005, following the retirement of Associate Justice Sandra Day O'Connor on July 1, Bush nominated federal appellate judge John Roberts as her replacement; however, following the death of Chief Justice William Rehnquist on September 3, the still-pending nomination was withdrawn on September 5, with Bush instead nominating Roberts to be the next Chief Justice of the United States.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "US Supreme Court",
+          "anchor_value": "US Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0098",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "US Supreme Court"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0098",
+      "text": "Finally, on October 31, Bush nominated federal appellate judge Samuel Alito, who was confirmed by the Senate to replace O'Connor on January 31, 2006. James L. Gibson, and Gregory A. Caldeira, \"Confirmation politics and the legitimacy of the US Supreme Court: Institutional loyalty, positivity bias, and the Alito nomination\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0096",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0096",
+      "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0097",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:military_commissions_2006",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:military_commissions_2006:ev:0097",
+      "text": "On October 3, 2005, Bush nominated White House Counsel Harriet Miers to succeed O'Connor; however, Miers withdrew her nomination on October 27 after encountering significant opposition from both parties, who found her to be ill-prepared and uninformed on the law.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "anchor_value": "U.S. district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States Court of Appeals for the Sixth Circuit",
+          "anchor_value": "United States Court of Appeals for the Sixth Circuit"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "surveillance",
+          "anchor_value": "surveillance"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "NSA",
+          "anchor_value": "NSA"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "district court",
+          "anchor_value": "district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Sixth Circuit",
+          "anchor_value": "Sixth Circuit"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "electronic surveillance program",
+          "anchor_value": "electronic surveillance program"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0080",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. district court"
+        },
+        {
+          "kind": "court_ref",
+          "value": "United States Court of Appeals for the Sixth Circuit"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "surveillance"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "NSA"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "district court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Sixth Circuit"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "electronic surveillance program"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0080",
+      "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. district court",
+          "anchor_value": "U.S. district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States Court of Appeals for the Sixth Circuit",
+          "anchor_value": "United States Court of Appeals for the Sixth Circuit"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "surveillance",
+          "anchor_value": "surveillance"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "NSA",
+          "anchor_value": "NSA"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "district court",
+          "anchor_value": "district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Sixth Circuit",
+          "anchor_value": "Sixth Circuit"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "electronic surveillance program",
+          "anchor_value": "electronic surveillance program"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0081",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. district court"
+        },
+        {
+          "kind": "court_ref",
+          "value": "United States Court of Appeals for the Sixth Circuit"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "surveillance"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "NSA"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "district court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Sixth Circuit"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "electronic surveillance program"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0081",
+      "text": "In August 2006, a U.S. district court judge ruled that the NSA electronic surveillance program was unconstitutional, but on July 6, 2007, the ruling was vacated by the United States Court of Appeals for the Sixth Circuit on the grounds that the plaintiffs lacked standing.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States district court",
+          "anchor_value": "United States district court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "district court",
+          "anchor_value": "district court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0053",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "United States district court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "district court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0053",
+      "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "surveillance",
+          "anchor_value": "surveillance"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0082",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue",
+          "value": "surveillance"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:nsa_surveillance_review",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:nsa_surveillance_review:ev:0082",
+      "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "State Children's Health Insurance Program",
+          "anchor_value": "State Children's Health Insurance Program"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "SCHIP",
+          "anchor_value": "SCHIP"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "SCHIP",
+          "anchor_value": "SCHIP"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "State Children's Health Insurance Program",
+          "anchor_value": "State Children's Health Insurance Program"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "war funding bill",
+          "anchor_value": "war funding bill"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0040",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "State Children's Health Insurance Program"
+        },
+        {
+          "kind": "authority_title",
+          "value": "SCHIP"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "SCHIP"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "State Children's Health Insurance Program"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "war funding bill"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0040",
+      "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "1978",
+          "anchor_value": "1978"
+        }
+      ],
+      "event_id": "ev:0020",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0020",
+      "text": "In 1978, Bush ran for the U.S. House of Representatives from Texas's 19th congressional district.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0082",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0082",
+      "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0096",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0096",
+      "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "United States House of Representatives",
+          "anchor_value": "United States House of Representatives"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2004",
+          "anchor_value": "2004"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0102",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "United States House of Representatives"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0102",
+      "text": "Representative Dennis Kucinich (D-OH), who had run against Bush during the 2004 presidential campaign, introduced 35 articles of impeachment on the floor of the House of Representatives against Bush on June 9, 2008, but Speaker Nancy Pelosi (D-CA) declared that impeachment was \"off the table\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0048",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0048",
+      "text": "In 2006, Bush urged Congress to allow more than twelve million illegal immigrants to work in the United States with the creation of a \"temporary guest-worker program\".",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0052",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0052",
+      "text": "On March 10, 2008, the Congress filed a federal lawsuit to enforce their issued subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Congress",
+          "anchor_value": "Congress"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0053",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Congress"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:schip_veto",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:schip_veto:ev:0053",
+      "text": "On July 31, 2008, a United States district court judge ruled that Bush's top advisers were not immune from congressional subpoenas.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Stem Cell Research Enhancement Act",
+          "anchor_value": "Stem Cell Research Enhancement Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Stem Cell Research Enhancement Act",
+          "anchor_value": "Stem Cell Research Enhancement Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "anchor_value": "veto"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0046",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "Stem Cell Research Enhancement Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Stem Cell Research Enhancement Act"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "veto"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0046",
+      "text": "On July 19, 2006, Bush used his veto power for the first time in his presidency to veto the Stem Cell Research Enhancement Act.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "anchor_value": "veto"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2001",
+          "anchor_value": "2001"
+        }
+      ],
+      "event_id": "ev:0045",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "veto"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0045",
+      "text": "On August 9, 2001, Bush signed an executive order lifting the ban on federal funding for the 71 existing \"lines\" of stem cells, but the ability of these existing lines to provide an adequate medium for testing has been questioned.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "anchor_value": "veto"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2008",
+          "anchor_value": "2008"
+        }
+      ],
+      "event_id": "ev:0084",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "veto"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0084",
+      "text": "On March 8, 2008, Bush vetoed H.R.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "anchor_value": "veto"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0040",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "veto"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0040",
+      "text": "In 2007, Bush opposed and vetoed State Children's Health Insurance Program (SCHIP) legislation, which was added by the Democrats onto a war funding bill and passed by Congress.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "veto",
+          "anchor_value": "veto"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0075",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "veto"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:ev:0075",
+      "text": "On May 1, 2007, Bush used his second-ever veto to reject a bill setting a deadline for the withdrawal of U.S. troops, saying the debate over the conflict was \"understandable\" but insisting that a continued U.S. presence there was crucial.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "US Supreme Court",
+          "anchor_value": "US Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "US Supreme Court",
+          "anchor_value": "US Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "confirmed by the Senate",
+          "anchor_value": "confirmed by the Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2006",
+          "anchor_value": "2006"
+        }
+      ],
+      "event_id": "ev:0098",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "US Supreme Court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "US Supreme Court"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "confirmed by the Senate"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0098",
+      "text": "Finally, on October 31, Bush nominated federal appellate judge Samuel Alito, who was confirmed by the Senate to replace O'Connor on January 31, 2006. James L. Gibson, and Gregory A. Caldeira, \"Confirmation politics and the legitimacy of the US Supreme Court: Institutional loyalty, positivity bias, and the Alito nomination\".",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "confirmed by the Senate",
+          "anchor_value": "confirmed by the Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0096",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "confirmed by the Senate"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0096",
+      "text": "He was confirmed by the Senate on September 29, 2005. U.S. Senate Roll Call Votes \u2013 Nomination of John Roberts, senate.gov.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "anchor_value": "U.S. Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Supreme Court",
+          "anchor_value": "U.S. Supreme Court"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2010",
+          "anchor_value": "2010"
+        }
+      ],
+      "event_id": "ev:0027",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "U.S. Supreme Court"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "U.S. Supreme Court"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0027",
+      "text": "The initial recount also went to Bush, but the outcome was tied up in lower courts for a month until eventually reaching the U.S. Supreme Court. Retrieved February 12, 2010.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court of the United States",
+          "anchor_value": "Supreme Court of the United States"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0095",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "court_ref",
+          "value": "Supreme Court of the United States"
+        },
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0095",
+      "text": "On July 19, 2005, following the retirement of Associate Justice Sandra Day O'Connor on July 1, Bush nominated federal appellate judge John Roberts as her replacement; however, following the death of Chief Justice William Rehnquist on September 3, the still-pending nomination was withdrawn on September 5, with Bush instead nominating Roberts to be the next Chief Justice of the United States.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "U.S. Senate",
+          "anchor_value": "U.S. Senate"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2007",
+          "anchor_value": "2007"
+        }
+      ],
+      "event_id": "ev:0082",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "institution_ref",
+          "value": "U.S. Senate"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0082",
+      "text": "On January 17, 2007, Attorney General Alberto Gonzales informed U.S. Senate leaders that the program would not be reauthorized by the President, but would be subjected to judicial oversight.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Supreme Court",
+          "anchor_value": "Supreme Court"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2005",
+          "anchor_value": "2005"
+        }
+      ],
+      "event_id": "ev:0097",
+      "matched": false,
+      "primary_workload_class": "linkage_gap",
+      "receipts": [
+        {
+          "kind": "provenance_cue_broad",
+          "value": "Supreme Court"
+        }
+      ],
+      "review_status": "missing_review",
+      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:supreme_court_appointments:ev:0097",
+      "text": "On October 3, 2005, Bush nominated White House Counsel Harriet Miers to succeed O'Connor; however, Miers withdrew her nomination on October 27 after encountering significant opposition from both parties, who found her to be ill-prepared and uninformed on the law.",
+      "workload_classes": [
+        "linkage_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Syria Accountability Act",
+          "anchor_value": "Syria Accountability Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "Syria Accountability Act",
+          "anchor_value": "Syria Accountability Act"
+        },
+        {
+          "anchor_kind": "receipt",
+          "anchor_label": "sanctions on Syria",
+          "anchor_value": "sanctions on Syria"
+        },
+        {
+          "anchor_kind": "calendar_reference",
+          "anchor_label": "2003",
+          "anchor_value": "2003"
+        }
+      ],
+      "event_id": "ev:0090",
+      "matched": true,
+      "primary_workload_class": "covered",
+      "receipts": [
+        {
+          "kind": "authority_title",
+          "value": "Syria Accountability Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "Syria Accountability Act"
+        },
+        {
+          "kind": "provenance_cue",
+          "value": "sanctions on Syria"
+        }
+      ],
+      "review_status": "covered",
+      "seed_id": "gwb_us_law:syria_accountability_act",
+      "source_kind": "gwb_seed_event",
+      "source_row_id": "gwb_us_law:syria_accountability_act:ev:0090",
+      "text": "In 2003, Bush signed the Syria Accountability Act, which expanded sanctions on Syria.",
+      "workload_classes": [
+        "covered"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "anchor_value": "White House"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:White House",
+      "text": "White House",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "Bush administration",
+          "anchor_value": "Bush administration"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:Bush administration",
+      "text": "Bush administration",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "the President",
+          "anchor_value": "the President"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:the President",
+      "text": "the President",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "the President",
+          "anchor_value": "the President"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:the President",
+      "text": "the President",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "Bush administration",
+          "anchor_value": "Bush administration"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:Bush administration",
+      "text": "Bush administration",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "anchor_value": "White House"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:White House",
+      "text": "White House",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    },
+    {
+      "candidate_anchors": [
+        {
+          "anchor_kind": "surface",
+          "anchor_label": "White House",
+          "anchor_value": "White House"
+        }
+      ],
+      "event_id": null,
+      "matched": false,
+      "primary_workload_class": "surface_resolution_gap",
+      "receipts": [],
+      "review_status": "missing_review",
+      "seed_id": null,
+      "source_kind": "unresolved_surface",
+      "source_row_id": "surface:White House",
+      "text": "White House",
+      "workload_classes": [
+        "surface_resolution_gap"
+      ]
+    }
+  ],
+  "summary": {
+    "ambiguous_event_count": 9,
+    "candidate_anchor_count": 209,
+    "covered_count": 32,
+    "missing_review_count": 45,
+    "provisional_anchor_bundle_count": 41,
+    "provisional_structured_anchor_count": 97,
+    "related_review_cluster_count": 9,
+    "review_item_count": 11,
+    "selected_seed_lane_count": 11,
+    "source_row_count": 77,
+    "unresolved_surface_count": 7
+  },
+  "version": "gwb_public_review_v1"
+}
