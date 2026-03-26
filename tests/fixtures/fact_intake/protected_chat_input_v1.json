@@ -1,0 +1,56 @@
+{
+  "mode": "protected_disclosure_envelope",
+  "source_label": "fixture:protected_chat_input_v1",
+  "recipient_profile": "lawyer",
+  "source_type": "chat_archive_sample",
+  "source_id": "chat-thread-protected",
+  "notes": "Protected chat import fixture for workplace integrity handoff.",
+  "handoff": {
+    "mode": "protected_disclosure_envelope_v1",
+    "export_boundary": "metadata_only",
+    "retaliation_risk_level": "high",
+    "local_case_ref": "case-local-chat-4",
+    "protected_disclosure": {
+      "enabled": true,
+      "disclosure_level": "workplace_integrity_v1",
+      "envelope_policy": "protected_disclosure_local_only_v1",
+      "handling_notice": "Protected workplace-integrity material must remain local-only and scoped to legal or regulatory recipients.",
+      "allowed_recipient_profiles": ["lawyer", "regulator"]
+    }
+  },
+  "messages": [
+    {
+      "message_id": "pc1",
+      "ts": "2026-03-18T08:45:00Z",
+      "speaker": "Me",
+      "text": "I noted the sequence immediately after the meeting.",
+      "share_with": ["lawyer", "regulator"],
+      "envelope_export_policy": "metadata_only"
+    },
+    {
+      "message_id": "pc2",
+      "ts": "2026-03-18T08:47:00Z",
+      "speaker": "Me",
+      "text": "I believe the procurement direction may have been improper.",
+      "share_with": ["lawyer", "advocate", "regulator"],
+      "protected_disclosure_only": true,
+      "protected_disclosure_reason": "potential workplace retaliation risk",
+      "envelope_export_policy": "metadata_only"
+    }
+  ],
+  "observations": [
+    {
+      "unit_id": "pc2",
+      "predicate_key": "event_date",
+      "object_text": "2026-03-18",
+      "object_type": "date"
+    }
+  ],
+  "reviews": [
+    {
+      "unit_id": "pc2",
+      "review_status": "needs_followup",
+      "note": "Keep provisional until documentary support is assembled."
+    }
+  ]
+}

@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.build_affidavit_coverage_review import build_affidavit_coverage_review, write_affidavit_coverage_review
+from scripts.build_affidavit_coverage_review import (
+    _classify_argumentative_role,
+    _infer_response_packet,
+    build_affidavit_coverage_review,
+    write_affidavit_coverage_review,
+)
 
 
 def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path) -> None:
@@ -291,3 +296,137 @@ def test_build_affidavit_coverage_review_groups_related_uncovered_rows_by_propos
     assert payload["summary"]["provisional_structured_anchor_count"] == 1
     assert payload["summary"]["provisional_anchor_bundle_count"] == 1
     assert payload["provisional_structured_anchors"][0]["priority_rank"] == 1
+
+
+def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covered() -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "au_semantic:restatement", "comparison_mode": "contested_narrative"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The respondent cut off my internet in November 2024.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s1"],
+                "excerpt_ids": ["excerpt:e1"],
+                "source_ids": ["src:1"],
+            }
+        ],
+        "review_queue": [
+            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+        ],
+    }
+
+    payload = build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="The respondent cut off my internet in November 2024.",
+    )
+
+    affidavit_row = payload["affidavit_rows"][0]
+    assert affidavit_row["coverage_status"] == "partial"
+    assert affidavit_row["best_response_role"] == "restatement_only"
+    assert affidavit_row["best_adjusted_match_score"] < 0.6
+    assert affidavit_row["matched_source_rows"][0]["response_role"] == "restatement_only"
+
+    source_row = payload["source_review_rows"][0]
+    assert source_row["review_status"] == "missing_review"
+    assert source_row["best_response_role"] == "restatement_only"
+
+
+def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response() -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "au_semantic:dispute", "comparison_mode": "contested_narrative"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "I dispute that I cut off the internet in November 2024 because it was a router outage.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s1"],
+                "excerpt_ids": ["excerpt:e1"],
+                "source_ids": ["src:1"],
+            }
+        ],
+        "review_queue": [
+            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+        ],
+    }
+
+    payload = build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="The respondent cut off my internet in November 2024.",
+    )
+
+    affidavit_row = payload["affidavit_rows"][0]
+    assert affidavit_row["coverage_status"] == "covered"
+    assert affidavit_row["best_response_role"] == "dispute"
+    assert "i dispute" in affidavit_row["best_response_cues"]
+    assert affidavit_row["best_adjusted_match_score"] >= affidavit_row["best_match_score"]
+
+    source_row = payload["source_review_rows"][0]
+    assert source_row["review_status"] == "covered"
+    assert source_row["best_response_role"] == "dispute"
+
+
+def test_hedged_denial_is_not_treated_as_admission() -> None:
+    proposition = (
+        "During that period, I feel that Johl engaged in behaviours that were coercive, "
+        "controlling, intimidating, and on one occasion physically abusive."
+    )
+    excerpt = "I do not feel I did such in a controlling, coercive, or other similar manner that could intimidate or likewise."
+
+    role = _classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
+    packet = _infer_response_packet(
+        proposition_text=proposition,
+        best_match_excerpt=excerpt,
+        duplicate_match_excerpt=None,
+        response_role=role["response_role"],
+        response_cues=role["response_cues"],
+        coverage_status="partial",
+    )
+
+    assert role["response_role"] == "hedged_denial"
+    assert "hedged_denial" in packet["response_acts"]
+    assert "deny_characterisation" in packet["response_acts"]
+    assert "hedged_denial_signal" in packet["legal_significance_signals"]
+    assert "characterization_dispute" in packet["legal_significance_signals"]
+    response = build_affidavit_coverage_review(
+        source_payload={
+            "version": "fact.review.bundle.v1",
+            "run": {"source_label": "au_semantic:hedged", "comparison_mode": "contested_narrative"},
+            "facts": [{"fact_id": "fact:f1", "fact_text": excerpt, "candidate_status": "candidate", "statement_ids": [], "excerpt_ids": [], "source_ids": []}],
+            "review_queue": [{"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"}],
+        },
+        affidavit_text=proposition,
+    )["affidavit_rows"][0]["response"]
+    assert response["speech_act"] == "deny"
+    assert "hedged" in response["modifiers"]
+
+
+def test_low_overlap_explanation_cue_becomes_non_response() -> None:
+    proposition = "I had no privacy at all while he had an expectation of privacy around some of his own communication."
+    excerpt = "While some greater degree of urgency may have motivated my actions at some time."
+
+    role = _classify_argumentative_role(proposition, excerpt, excerpt, use_row_fallback=False)
+    packet = _infer_response_packet(
+        proposition_text=proposition,
+        best_match_excerpt=excerpt,
+        duplicate_match_excerpt=None,
+        response_role=role["response_role"],
+        response_cues=role["response_cues"],
+        coverage_status="partial",
+    )
+
+    assert role["response_role"] == "non_response"
+    assert packet["response_acts"] == ["non_response"]
+    response = build_affidavit_coverage_review(
+        source_payload={
+            "version": "fact.review.bundle.v1",
+            "run": {"source_label": "au_semantic:non-response", "comparison_mode": "contested_narrative"},
+            "facts": [{"fact_id": "fact:f1", "fact_text": excerpt, "candidate_status": "candidate", "statement_ids": [], "excerpt_ids": [], "source_ids": []}],
+            "review_queue": [{"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"}],
+        },
+        affidavit_text=proposition,
+    )["affidavit_rows"][0]["response"]
+    assert response["speech_act"] == "other"
+    assert "non_responsive" in response["modifiers"]

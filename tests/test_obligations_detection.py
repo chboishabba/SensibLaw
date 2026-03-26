@@ -104,6 +104,21 @@ def test_actor_fixture_variants(tmp_path):
     assert noisy_obs[0].actor is not None
     assert noisy_obs[0].actor.normalized == "the ope rator"
 
+    stopword_noise = (fixtures / "lexical_noise_stopwords.txt").read_text().strip()
+    stopword_obs = extract_obligations_from_text(stopword_noise, references=[], source_id="doc")
+    assert len(stopword_obs) == 1
+    assert stopword_obs[0].actor is None
+
+    number_noise = (fixtures / "lexical_noise_numbers.txt").read_text().strip()
+    number_noise_obs = extract_obligations_from_text(number_noise, references=[], source_id="doc")
+    assert len(number_noise_obs) == 1
+    assert number_noise_obs[0].actor is None
+
+    citation_noise = (fixtures / "lexical_noise_citations.txt").read_text().strip()
+    citation_noise_obs = extract_obligations_from_text(citation_noise, references=[], source_id="doc")
+    assert len(citation_noise_obs) == 1
+    assert citation_noise_obs[0].actor is None
+
     multi = (fixtures / "multi_actor_conjunction.txt").read_text().strip()
     multi_obs = extract_obligations_from_text(multi, references=[], source_id="doc")
     assert len(multi_obs) == 1

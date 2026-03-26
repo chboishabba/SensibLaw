@@ -1,0 +1,34 @@
+{
+  "participants": [
+    {"name": "Alex Example"},
+    {"name": "Jordan Example"}
+  ],
+  "title": "Alex and Jordan",
+  "thread_path": "inbox/alex_and_jordan/message_1.json",
+  "messages": [
+    {
+      "sender_name": "Jordan Example",
+      "timestamp_ms": 1774062120000,
+      "content": "Call started: 3 participants",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Jordan Example",
+      "timestamp_ms": 1774062000000,
+      "content": "Please keep the appointment notes and export only what counsel needs.",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alex Example",
+      "timestamp_ms": 1774062060000,
+      "content": "I wrote down the sequence after the meeting and kept the names provisional.",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Jordan Example",
+      "timestamp_ms": 1774062180000,
+      "content": "ok",
+      "type": "Generic"
+    }
+  ]
+}

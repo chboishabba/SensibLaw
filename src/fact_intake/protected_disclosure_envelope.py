@@ -10,6 +10,36 @@ PROTECTED_DISCLOSURE_ENVELOPE_VERSION = "protected.disclosure.envelope.v1"
 _RECIPIENT_PROFILES = {"lawyer", "doctor", "advocate", "regulator"}
 _ENVELOPE_EXPORT_POLICIES = {"metadata_only", "redact", "omit"}
 _IDENTITY_POLICIES = {"named", "pseudonymous", "withheld"}
+_RETALIATION_RISK_LEVELS = {"unspecified", "low", "moderate", "high", "extreme"}
+_DISCLOSURE_ROUTES = {
+    "counsel_or_regulator_first",
+    "regulator_only",
+    "support_or_counsel_first",
+    "care_or_counsel_first",
+}
+_MINIMIZATION_MODES = {
+    "standard_metadata_only",
+    "pseudonymous_or_withheld_only",
+    "withheld_identity_only",
+}
+_RECIPIENT_CLASS_BY_PROFILE = {
+    "lawyer": "legal_counsel",
+    "regulator": "external_oversight",
+    "advocate": "support_advocacy",
+    "doctor": "care_support",
+}
+_ROUTE_ALLOWED_CLASSES = {
+    "counsel_or_regulator_first": {"legal_counsel", "external_oversight"},
+    "regulator_only": {"external_oversight"},
+    "support_or_counsel_first": {"legal_counsel", "support_advocacy"},
+    "care_or_counsel_first": {"legal_counsel", "care_support"},
+}
+_IDENTITY_EXPOSURE_ORDER = {"withheld": 0, "pseudonymous": 1, "named": 2}
+_MINIMIZATION_MAX_EXPOSURE = {
+    "standard_metadata_only": 2,
+    "pseudonymous_or_withheld_only": 1,
+    "withheld_identity_only": 0,
+}
 
 
 def _stable_json(payload: object) -> str:
@@ -48,6 +78,31 @@ def _normalize_allowed_recipients(protected: Mapping[str, Any]) -> list[str]:
     return out
 
 
+def _normalize_retaliation_risk_level(value: Any) -> str:
+    level = str(value or "unspecified").strip().casefold()
+    if level not in _RETALIATION_RISK_LEVELS:
+        raise ValueError(f"unsupported retaliation_risk_level: {value}")
+    return level
+
+
+def _normalize_disclosure_route(protected: Mapping[str, Any]) -> str:
+    route = str(protected.get("disclosure_route") or "counsel_or_regulator_first").strip().casefold()
+    if route not in _DISCLOSURE_ROUTES:
+        raise ValueError(f"unsupported disclosure_route: {route}")
+    return route
+
+
+def _normalize_minimization_mode(protected: Mapping[str, Any], retaliation_risk_level: str) -> str:
+    explicit = str(protected.get("minimization_mode") or "").strip().casefold()
+    if explicit:
+        if explicit not in _MINIMIZATION_MODES:
+            raise ValueError(f"unsupported minimization_mode: {explicit}")
+        return explicit
+    if retaliation_risk_level == "extreme":
+        return "withheld_identity_only"
+    return "standard_metadata_only"
+
+
 def _normalize_envelope_export_policy(entry: Mapping[str, Any]) -> str:
     policy = str(entry.get("envelope_export_policy") or "metadata_only").strip().casefold()
     if policy not in _ENVELOPE_EXPORT_POLICIES:
@@ -72,11 +127,21 @@ def _normalize_share_with(entry: Mapping[str, Any]) -> list[str]:
     return out
 
 
+def _normalize_retaliation_risk_tags(entry: Mapping[str, Any]) -> list[str]:
+    raw = entry.get("retaliation_risk_tags")
+    if not isinstance(raw, list):
+        return []
+    out = [str(value).strip() for value in raw if str(value).strip()]
+    return sorted(dict.fromkeys(out))
+
+
 def _build_sealed_item(
     *,
     entry: Mapping[str, Any],
     recipient_profile: str,
     allowed_recipient_profiles: list[str],
+    disclosure_route: str,
+    minimization_mode: str,
     source_label: str,
     run_id: str,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
@@ -92,8 +157,10 @@ def _build_sealed_item(
     share_with = _normalize_share_with(entry)
     export_policy = _normalize_envelope_export_policy(entry)
     identity_policy = _normalize_identity_policy(entry)
+    retaliation_risk_tags = _normalize_retaliation_risk_tags(entry)
     protected_only = bool(entry.get("protected_disclosure_only"))
     protected_reason = str(entry.get("protected_disclosure_reason") or "").strip() or None
+    recipient_class = _RECIPIENT_CLASS_BY_PROFILE[recipient_profile]
     item_id = "envitem:" + _sha256_payload(
         {
             "run_id": run_id,
@@ -113,18 +180,24 @@ def _build_sealed_item(
         "identity_policy": identity_policy,
         "envelope_summary": envelope_summary,
         "share_with": share_with,
+        "recipient_class": recipient_class,
         "export_policy": export_policy,
+        "retaliation_risk_tags": retaliation_risk_tags,
         "protected_disclosure_only": protected_only,
         "protected_disclosure_reason": protected_reason,
     }
     if not share_with:
         return None, {**base_row, "exclusion_reason": "recipient_not_permitted"}
+    if recipient_class not in _ROUTE_ALLOWED_CLASSES[disclosure_route]:
+        return None, {**base_row, "exclusion_reason": "disclosure_route_mismatch"}
     if protected_only and recipient_profile not in allowed_recipient_profiles:
         return None, {**base_row, "exclusion_reason": "protected_disclosure_scope_mismatch"}
     if recipient_profile not in share_with:
         return None, {**base_row, "exclusion_reason": "recipient_not_permitted"}
     if export_policy == "omit":
         return None, {**base_row, "exclusion_reason": "envelope_export_policy_omit"}
+    if _IDENTITY_EXPOSURE_ORDER[identity_policy] > _MINIMIZATION_MAX_EXPOSURE[minimization_mode]:
+        return None, {**base_row, "exclusion_reason": "identity_policy_too_exposed"}
     return base_row, None
 
 
@@ -137,6 +210,9 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
     handoff = input_payload.get("handoff") if isinstance(input_payload.get("handoff"), Mapping) else {}
     protected = _require_protected_disclosure(handoff)
     allowed_recipient_profiles = _normalize_allowed_recipients(protected)
+    retaliation_risk_level = _normalize_retaliation_risk_level(handoff.get("retaliation_risk_level"))
+    disclosure_route = _normalize_disclosure_route(protected)
+    minimization_mode = _normalize_minimization_mode(protected, retaliation_risk_level)
     run_id = "pdoenv:" + _sha256_payload(
         {
             "source_label": source_label,
@@ -155,6 +231,8 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
             entry=raw_entry,
             recipient_profile=recipient_profile,
             allowed_recipient_profiles=allowed_recipient_profiles,
+            disclosure_route=disclosure_route,
+            minimization_mode=minimization_mode,
             source_label=source_label,
             run_id=run_id,
         )
@@ -199,7 +277,7 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
             "notes_present": notes is not None,
             "mode": str(handoff.get("mode") or "protected_disclosure_envelope_v1"),
             "export_boundary": str(handoff.get("export_boundary") or "metadata_only"),
-            "retaliation_risk_level": str(handoff.get("retaliation_risk_level") or "unspecified"),
+            "retaliation_risk_level": retaliation_risk_level,
             "local_case_ref": str(handoff.get("local_case_ref") or ""),
             "local_only": True,
             "do_not_sync": True,
@@ -208,12 +286,21 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
             "enabled": True,
             "disclosure_level": str(protected.get("disclosure_level") or "protected_disclosure_v1"),
             "envelope_policy": str(protected.get("envelope_policy") or "protected_disclosure_local_only_v1"),
+            "disclosure_route": disclosure_route,
+            "minimization_mode": minimization_mode,
             "handling_notice": str(
                 protected.get("handling_notice")
                 or "Protected-disclosure material must remain local-only and do-not-sync."
             ),
             "allowed_recipient_profiles": allowed_recipient_profiles,
-            "active_restrictions": ["force_local_only", "force_do_not_sync", "metadata_only_export", "deny_by_default"],
+            "active_restrictions": [
+                "force_local_only",
+                "force_do_not_sync",
+                "metadata_only_export",
+                "deny_by_default",
+                f"route:{disclosure_route}",
+                f"minimization:{minimization_mode}",
+            ],
         },
         "sealed_items": sealed_items,
         "exclusions": exclusions,
@@ -247,6 +334,8 @@ def render_protected_disclosure_summary(report: Mapping[str, Any]) -> str:
         "",
         f"- Disclosure level: {protected.get('disclosure_level')}",
         f"- Envelope policy: {protected.get('envelope_policy')}",
+        f"- Disclosure route: {protected.get('disclosure_route')}",
+        f"- Minimization mode: {protected.get('minimization_mode')}",
         f"- Handling notice: {protected.get('handling_notice')}",
         f"- Allowed recipients: {', '.join(protected.get('allowed_recipient_profiles', []))}",
         "",

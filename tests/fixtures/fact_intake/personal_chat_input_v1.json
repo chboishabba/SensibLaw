@@ -1,0 +1,55 @@
+{
+  "mode": "personal_handoff",
+  "source_label": "fixture:personal_chat_input_v1",
+  "recipient_profile": "lawyer",
+  "source_type": "chat_archive_sample",
+  "source_id": "chat-thread-1",
+  "notes": "Bounded chat import fixture for personal handoff.",
+  "handoff": {
+    "local_only": true,
+    "do_not_sync": false,
+    "retention_policy": "personal_local_only_v1",
+    "redaction_policy": "scoped_export_v1"
+  },
+  "messages": [
+    {
+      "message_id": "c1",
+      "ts": "2026-03-20T09:15:00Z",
+      "speaker": "Me",
+      "text": "I wrote down the sequence after the appointment because I was worried I would forget it.",
+      "share_with": ["lawyer", "advocate"],
+      "text_export_policy": "full"
+    },
+    {
+      "message_id": "c2",
+      "ts": "2026-03-20T09:17:00Z",
+      "speaker": "Clinic",
+      "text": "The discharge paper confirms the medication change and date.",
+      "share_with": ["lawyer", "doctor", "regulator"],
+      "text_export_policy": "full"
+    },
+    {
+      "message_id": "c3",
+      "ts": "2026-03-20T09:18:00Z",
+      "speaker": "Therapist",
+      "text": "Keep the chronology provisional until the clinic letter is attached.",
+      "share_with": ["lawyer", "doctor"],
+      "text_export_policy": "redact"
+    }
+  ],
+  "observations": [
+    {
+      "unit_id": "c2",
+      "predicate_key": "event_date",
+      "object_text": "2026-03-19",
+      "object_type": "date"
+    }
+  ],
+  "reviews": [
+    {
+      "unit_id": "c3",
+      "review_status": "needs_followup",
+      "note": "Therapist note should remain distinct from user-authored chronology."
+    }
+  ]
+}

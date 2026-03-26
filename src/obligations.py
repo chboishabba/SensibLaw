@@ -215,6 +215,93 @@ def _find_conditions(tokens: List[str]) -> List[str]:
     return conditions
 
 
+_ACTOR_NOISE_PREFIX_TOKENS = {
+    "and",
+    "article",
+    "by",
+    "clause",
+    "for",
+    "from",
+    "in",
+    "of",
+    "on",
+    "or",
+    "page",
+    "pages",
+    "paragraph",
+    "paragraphs",
+    "part",
+    "parts",
+    "section",
+    "sections",
+    "subsection",
+    "subsections",
+    "that",
+    "this",
+    "to",
+    "within",
+}
+
+_ACTOR_NOISE_TOKENS = {
+    *(_ACTOR_NOISE_PREFIX_TOKENS | {"is", "it", "may", "must", "not", "shall", "with", "without"}),
+    "according",
+    "amending",
+    "amended",
+    "apply",
+    "applies",
+    "as",
+    "pursuant",
+    "unless",
+    "a",
+    "an",
+    "the",
+}
+
+
+def _trim_leading_actor_noise(actor_tokens: List[str]) -> List[str]:
+    start = 0
+    while start < len(actor_tokens):
+        token = _normalise_token_text(actor_tokens[start])
+        if not token:
+            start += 1
+            continue
+        if token.isdigit():
+            start += 1
+            continue
+        if token in _ACTOR_NOISE_PREFIX_TOKENS:
+            start += 1
+            continue
+        if re.fullmatch(r"\([a-z]\)", token):
+            start += 1
+            continue
+        if re.fullmatch(r"\d+\.\d+", token):
+            start += 1
+            continue
+        if all(ch in {"(", ")", ".", ",", ";", ":", "[", "]"} for ch in token):
+            start += 1
+            continue
+        break
+    return actor_tokens[start:]
+
+
+def _actor_is_noise_only(normalized_tokens: List[str]) -> bool:
+    found_meaningful = False
+    for token in normalized_tokens:
+        norm = token.strip()
+        if not norm:
+            continue
+        if re.fullmatch(r"[a-z]", norm):
+            continue
+        if not any(ch.isalpha() for ch in norm):
+            continue
+        if norm in _ACTOR_NOISE_TOKENS:
+            continue
+        if len(norm) >= 2:
+            found_meaningful = True
+            break
+    return not found_meaningful
+
+
 def _condition_atoms(
     tokens: List[str], span: Tuple[int, int] | None, clause_id: str
 ) -> List[ConditionAtom]:
@@ -246,11 +333,16 @@ def _extract_actor(
         if re.fullmatch(r"[a-z]|\([a-z]\)", norm):
             continue
         cleaned.append(tok)
-    actor_tokens = cleaned or actor_tokens
+    actor_tokens = _trim_leading_actor_noise(cleaned)
+    actor_tokens = actor_tokens or cleaned
+    if not actor_tokens:
+        return None
     actor_text = " ".join(actor_tokens).strip()
     if not actor_text:
         return None
     normalized_tokens = [_normalise_token_text(t) for t in actor_tokens]
+    if _actor_is_noise_only(normalized_tokens):
+        return None
     normalized = " ".join(t for t in normalized_tokens if t)
     if not normalized:
         return None

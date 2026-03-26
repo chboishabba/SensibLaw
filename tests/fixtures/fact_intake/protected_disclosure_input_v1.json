@@ -11,6 +11,7 @@
       "enabled": true,
       "disclosure_level": "workplace_integrity_v1",
       "envelope_policy": "protected_disclosure_local_only_v1",
+      "disclosure_route": "counsel_or_regulator_first",
       "handling_notice": "Protected workplace-integrity material must remain local-only and scoped to legal or regulatory recipients.",
       "allowed_recipient_profiles": ["lawyer", "regulator"]
     }
@@ -37,6 +38,7 @@
       "identity_policy": "pseudonymous",
       "share_with": ["lawyer", "advocate", "regulator"],
       "envelope_export_policy": "metadata_only",
+      "retaliation_risk_tags": ["workplace_retaliation", "manager_visibility"],
       "protected_disclosure_only": true,
       "protected_disclosure_reason": "potential workplace retaliation risk"
     },

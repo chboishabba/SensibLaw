@@ -22,6 +22,8 @@ def test_protected_disclosure_envelope_is_metadata_only_and_deny_by_default(monk
     assert report["version"] == "protected.disclosure.envelope.v1"
     assert report["run"]["local_only"] is True
     assert report["run"]["do_not_sync"] is True
+    assert report["protected_disclosure"]["disclosure_route"] == "counsel_or_regulator_first"
+    assert report["protected_disclosure"]["minimization_mode"] == "standard_metadata_only"
     assert report["integrity"]["sealed_item_count"] == 3
     assert report["integrity"]["exclusion_count"] == 1
     assert "I wrote the full account immediately after the meeting." not in serialized
@@ -30,6 +32,8 @@ def test_protected_disclosure_envelope_is_metadata_only_and_deny_by_default(monk
     assert "Keep provisional until documentary corroboration is assembled." not in serialized
     excluded = {item["unit_id"]: item for item in report["exclusions"]}
     assert excluded["pd4"]["exclusion_reason"] == "recipient_not_permitted"
+    exported = {item["unit_id"]: item for item in report["sealed_items"]}
+    assert exported["pd2"]["retaliation_risk_tags"] == ["manager_visibility", "workplace_retaliation"]
 
 
 def test_protected_disclosure_scope_blocks_protected_only_item_for_advocate() -> None:
@@ -38,11 +42,27 @@ def test_protected_disclosure_scope_blocks_protected_only_item_for_advocate() ->
 
     report = build_protected_disclosure_envelope(payload)
 
+    excluded = {item["unit_id"]: item for item in report["exclusions"]}
+    assert report["integrity"]["sealed_item_count"] == 0
+    assert excluded["pd1"]["exclusion_reason"] == "disclosure_route_mismatch"
+    assert excluded["pd2"]["exclusion_reason"] == "disclosure_route_mismatch"
+    assert excluded["pd2"]["protected_disclosure_reason"] == "potential workplace retaliation risk"
+
+
+def test_protected_disclosure_minimization_can_exclude_named_identity_items() -> None:
+    payload = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload["handoff"]["retaliation_risk_level"] = "extreme"
+    payload["handoff"]["protected_disclosure"]["minimization_mode"] = "withheld_identity_only"
+
+    report = build_protected_disclosure_envelope(payload)
+
     exported = {item["unit_id"]: item for item in report["sealed_items"]}
     excluded = {item["unit_id"]: item for item in report["exclusions"]}
+    assert "pd1" in exported
     assert "pd2" not in exported
-    assert excluded["pd2"]["exclusion_reason"] == "protected_disclosure_scope_mismatch"
-    assert excluded["pd2"]["protected_disclosure_reason"] == "potential workplace retaliation risk"
+    assert "pd3" not in exported
+    assert excluded["pd2"]["exclusion_reason"] == "identity_policy_too_exposed"
+    assert excluded["pd3"]["exclusion_reason"] == "identity_policy_too_exposed"
 
 
 def test_protected_disclosure_script_writes_artifact_and_summary(tmp_path, capsys) -> None:
@@ -58,6 +78,8 @@ def test_protected_disclosure_script_writes_artifact_and_summary(tmp_path, capsy
     assert report["integrity"]["sealed_item_count"] == 3
     assert "## Envelope" in summary
     assert "Protected workplace-integrity material must remain local-only" in summary
+    assert "- Disclosure route: counsel_or_regulator_first" in summary
+    assert "- Minimization mode: standard_metadata_only" in summary
     assert "Keep provisional until documentary corroboration is assembled." not in summary
     assert "I wrote the full account immediately after the meeting." not in summary
 

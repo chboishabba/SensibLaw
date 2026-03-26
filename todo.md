@@ -119,15 +119,24 @@
   first bounded
   CLI/artifact contract in
   `docs/planning/personal_handoff_bundle_contract_20260326.md`:
-  add direct chat/day ingest adapters plus stronger selective redaction/scoped
-  export for legal, clinical, advocacy, or regulatory handoff.
+  add richer live/export-backed chat/day ingest adapters plus stronger
+  selective redaction/scoped export for legal, clinical, advocacy, or
+  regulatory handoff beyond the current bounded JSON, repo-local sample-DB,
+  direct Messenger-export, anonymous Google public-source, and first
+  OpenRecall-backed adapters.
 - [ ] Extend the first metadata-only protected-disclosure envelope mode:
-  add richer retaliation-aware export flavors, live intake/import adapters,
-  and dedicated workflow/UI surfaces beyond the current metadata-only
-  recipient-allowlist contract.
+  add whistleblower-specific live intake/import adapters and dedicated
+  workflow/UI surfaces beyond the current metadata-only contract, which now
+  includes recipient allowlisting, disclosure-route gating, and identity-
+  minimization controls.
 - [ ] Publish an explicit provenance-only integrator contract:
   SDK/API-oriented JSON/export contract docs and at least one fixture-backed
   consumer path, rather than relying on implicit review-artifact stability.
+- [ ] Extend the contested-narrative response packet beyond sentence-role heuristics:
+  add proposition-component decomposition for actor/action/object/time plus
+  scoped response binding for denial, admission, qualification, consent,
+  authority, necessity, and characterization dispute on top of
+  `docs/planning/contested_narrative_response_packet_contract_20260326.md`.
 - [ ] Add a community/disability support intake surface:
   bounded intake schema plus role-scoped export/view contracts above the
   current generic bundle/summary artifacts.

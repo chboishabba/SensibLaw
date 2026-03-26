@@ -45,13 +45,50 @@ design pressure only.
   recipient-scoped lawyer/doctor/advocate/regulator export with explicit
   exclusions, redaction markers, local-only/do-not-sync flags, and preserved
   review/operator views.
+- First bounded chat/day ingest adapter now exists:
+  `scripts/build_personal_handoff_from_chat_json.py`,
+  `src/fact_intake/personal_chat_import.py`,
+  `tests/test_personal_chat_import.py`
+  normalize bounded chat/day JSON into either the personal handoff input
+  contract or the metadata-only protected-disclosure envelope contract.
+- First repo-local DB-backed ingest adapter now exists:
+  `scripts/build_personal_handoff_from_message_db.py`,
+  `tests/test_personal_message_db_import.py`
+  reuse `chat_test_db` / `messenger_test_db` loaders to feed the same
+  handoff/envelope contracts without hand-authoring entry rows.
+- First real export-backed ingest seam now exists:
+  `scripts/build_personal_handoff_from_openrecall.py`,
+  `tests/test_personal_openrecall_import.py`
+  reuse imported `openrecall_capture` units from the ITIR/OpenRecall bridge to
+  feed the same handoff/envelope contracts.
+- First direct Messenger/Facebook export-backed ingest adapter now exists:
+  `scripts/build_personal_handoff_from_messenger_export.py`,
+  `src/fact_intake/messenger_export_import.py`,
+  `tests/test_personal_messenger_export_import.py`
+  accept bounded `message_1.json`-style Messenger export inputs directly,
+  filter obvious system/noise rows, preserve the current privacy boundary, and
+  feed the same handoff/envelope contracts without routing through an
+  intermediate sample DB.
+- First anonymous Google public-source adapters now exist:
+  `scripts/build_personal_handoff_from_google_public.py`,
+  `src/fact_intake/google_public_import.py`,
+  `tests/test_google_public_import.py`
+  accept public Google Docs and Sheets links anonymously, normalize them into
+  `TextUnit` rows, and feed the same handoff/envelope contracts.
+- First contested-narrative Google Docs comparison surface now exists:
+  `scripts/build_google_docs_contested_narrative_review.py`,
+  `tests/test_google_docs_contested_narrative_review.py`
+  extract affidavit text from one public Google Doc, normalize the responding
+  Google Doc into `fact.intake` rows, and compare them through the existing
+  affidavit-coverage review surface.
 - First bounded protected-disclosure envelope support now exists:
   `scripts/build_protected_disclosure_envelope.py`,
   `src/fact_intake/protected_disclosure_envelope.py`,
   `tests/test_protected_disclosure_envelope.py`
   implement a metadata-only protected-disclosure artifact with forced
-  local-only/do-not-sync handling, deny-by-default recipient behavior, and
-  no fact-intake persistence/read-model sidecars.
+  local-only/do-not-sync handling, deny-by-default recipient behavior,
+  disclosure-route gating, identity-minimization controls, and no fact-intake
+  persistence/read-model sidecars.
 - Provenance/receipt-bearing exports are real:
   review artifacts carry stable ids, bundle rows, source references, and
   normalized summaries suitable for downstream consumption.
@@ -65,22 +102,28 @@ design pressure only.
 ## Story families that are still aspirational or only partially covered
 
 ### Personal/private escalation
-- No dedicated chat-log/day-ingest pipeline for private users.
-- No broad import adapter layer beyond the first bounded JSON/TextUnit-style
-  handoff contract.
+- No broad live chat-log/day-ingest pipeline for private users.
+- A first bounded chat/day JSON adapter and a repo-local sample-DB adapter now
+  exist, and the first real export-backed sources are now wired through
+  OpenRecall, a bounded direct Messenger export adapter, and first anonymous
+  Google public-source adapters; broader live/export-backed ingest is still
+  missing beyond those seams.
 - No UI surface for redaction-first selective export.
 - No full end-to-end path from live personal capture to scoped legal/clinical/
-  advocacy/regulatory handoff; only the first fixture-backed artifact path
-  exists.
+  advocacy/regulatory handoff; the current path is still bounded and
+  fixture-first.
 - The first bounded target is now documented in:
   `docs/planning/personal_handoff_bundle_contract_20260326.md`
 
 ### Protected disclosure / workplace integrity
 - A first metadata-only protected-disclosure envelope now exists.
+- The envelope now includes a first retaliation-aware control layer:
+  disclosure-route gating and identity-minimization modes above the original
+  recipient allowlist.
 - Still missing:
-  - richer retaliation-aware export flavors beyond recipient allowlisting
   - whistleblower-specific live intake/import adapters
   - dedicated workflow/UI surfaces for workplace integrity cases
+  - broader workflow semantics beyond the current route/minimization controls
 
 ### Community / disability / advocacy workflows
 - No tailored intake schema for support organizations.
@@ -115,8 +158,17 @@ The repo can honestly claim:
 - deterministic artifact generation with normalized cross-lane metrics
 - a first bounded personal handoff artifact path with scoped export and
   explicit exclusions/redactions
+- a first bounded chat/day JSON adapter into the personal handoff and
+  protected-envelope artifact lanes
+- a first repo-local DB-backed ingest seam into the same lanes
+- first export-backed ingest seams through imported OpenRecall captures and a
+  bounded direct Messenger/Facebook export adapter
+- first anonymous Google Docs/Sheets public-source adapters into the same
+  lanes
+- a first contested-narrative Google Docs comparison surface over the existing
+  affidavit-coverage review lane
 - a first metadata-only protected-disclosure envelope artifact with no
-  fact-intake persistence sidecar
+  fact-intake persistence sidecar and a first retaliation-aware control layer
 - bounded partner/integrator support through stable exports
 
 The repo should not yet claim:
@@ -130,7 +182,9 @@ The repo should not yet claim:
 
 ## Priority order if implementation should follow the stories
 
-1. Personal/private day-to-escalation import plus scoped export.
+1. Richer live/export-backed chat/day ingest adapters beyond the current
+   bounded JSON, repo-local sample-DB, direct Messenger-export, anonymous
+   Google public-source, and first OpenRecall-backed seams.
 2. SDK/API contract packaging for provenance-only integrators.
 3. Community/disability intake and role-scoped service views.
 4. Annotation/QA workbench over existing review queues.

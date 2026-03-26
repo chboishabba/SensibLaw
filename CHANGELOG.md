@@ -1,6 +1,129 @@
 # Changelog
 
 ## Unreleased
+- Contested-narrative response packet compression:
+  - Compressed `response.speech_act` in
+    `scripts/build_affidavit_coverage_review.py` to a small fixed basis
+    (`deny`, `admit`, `explain`, `other`) and moved nuance into
+    `response.modifiers`.
+  - Extended the flat Zelph bridge with `response_modifiers` so downstream
+    consumers can recover hedging, repetition, qualification, and
+    non-responsiveness without exploding the enum surface.
+  - Updated tests and the contested packet contract note to pin the compressed
+    response-act basis plus additive modifiers.
+- Contested-narrative response-act refinement:
+  - Tightened `scripts/build_affidavit_coverage_review.py` so hedged phrases
+    like `I do not feel...` are no longer treated as admissions, and low-overlap
+    explanation cues can now downgrade to `non_response` instead of being
+    over-promoted as substantive context.
+  - Added coverage in `tests/test_affidavit_coverage_review.py` for
+    `hedged_denial` and `non_response` classification.
+  - Updated the contested packet contract note to document the additive
+    `hedged_denial`, `non_response`, and `hedged_denial_signal` surfaces.
+- Contested-narrative component packet extension:
+  - Extended `scripts/build_affidavit_coverage_review.py` so contested claim
+    packets now carry conservative component spans from existing structure:
+    optional claim time spans, optional characterization spans, response
+    component bindings/targets, and bound justification metadata.
+  - Extended the flat `zelph_claim_state_facts` rows with additive component
+    fields (`claim_time_spans`, `claim_characterization_spans`,
+    `response_component_targets`, `justification_bindings`) without changing
+    the existing claim-state axes.
+  - Tightened
+    `tests/test_google_docs_contested_narrative_review.py` to pin the new
+    component-level fields and updated the contested packet contract note to
+    document the additive component layer.
+- Contested-narrative claim-state/Zelph bridge cleanup:
+  - Removed the stale duplicate claim-state bridge helpers from
+    `scripts/build_affidavit_coverage_review.py` so the flat
+    `zelph_claim_state_facts` rows are the only live downstream contract.
+  - Tightened `tests/test_google_docs_contested_narrative_review.py` to pin the
+    flat fact shape (`best_source_row_id`, speech-act/polarity fields, and
+    justification types) instead of only checking `fact_kind`.
+  - Expanded
+    `docs/planning/contested_narrative_response_packet_contract_20260326.md`
+    with an explicit `Zelph Bridge` section describing the frozen flat bridge
+    contract and its boundary relative to nested SensibLaw row packets.
+- First anonymous Google public-source adapters:
+  - Added `src/fact_intake/google_public_import.py`,
+    `scripts/build_personal_handoff_from_google_public.py`, and
+    `tests/test_google_public_import.py` to accept public Google Docs/Sheets
+    links anonymously and normalize them into the existing handoff/envelope
+    contracts.
+  - Added `scripts/build_google_docs_contested_narrative_review.py` and
+    `tests/test_google_docs_contested_narrative_review.py` to compare a public
+    Google affidavit-style document against a public Google response document
+    through the existing affidavit-coverage review surface.
+  - Extended `scripts/build_affidavit_coverage_review.py` so plain
+    `fact.intake.bundle.v1` payloads can be used as source surfaces in this
+    review lane.
+  - Updated the implementation-coverage audit and TODO wording so the new
+    Google public-source seams are reflected in the current honest claim
+    boundary.
+- Added deterministic lexical-noise actor guards in `src/obligations.py` so
+  stopword-only, number-heavy, and citation-only preambles do not create false
+  actor anchors before `must/shall/may` modalities.
+- Added fixtures and detection coverage under
+  `tests/fixtures/actors/` and `tests/test_obligations_detection.py` so
+  `A7` lexical-noise fixtures in
+  `docs/planning/assumption_controls_registry.json` are now implemented.
+- Stronger protected-disclosure envelope semantics:
+  - Extended `src/fact_intake/protected_disclosure_envelope.py` with
+    disclosure-route gating, identity-minimization modes, and per-item
+    retaliation-risk tags while keeping the envelope metadata-only.
+  - Added fixture-backed coverage in
+    `tests/test_protected_disclosure_envelope.py` for route mismatch and
+    identity-minimization exclusions.
+  - Updated the implementation-coverage audit and TODO wording so the
+    remaining protected-disclosure gap is now live intake/workflow depth, not
+    the absence of any retaliation-aware control layer.
+- First direct Messenger/Facebook export-backed ingest adapter:
+  - Added `scripts/build_personal_handoff_from_messenger_export.py`,
+    `src/fact_intake/messenger_export_import.py`, and
+    `tests/test_personal_messenger_export_import.py` to feed the personal
+    handoff and metadata-only protected-disclosure envelope lanes directly from
+    bounded `message_1.json`-style Messenger export inputs.
+  - The new adapter filters obvious system/noise rows, preserves the current
+    privacy boundary, and reuses the same handoff/envelope contracts instead of
+    routing through a sample DB.
+  - Updated the implementation-coverage audit, contract note, and TODO wording
+    so the remaining ingest gap is now broader multi-source live/export-backed
+    coverage rather than the absence of any direct export-backed Messenger
+    seam.
+- First real export-backed ingest seam:
+  - Added `scripts/build_personal_handoff_from_openrecall.py` plus
+    `tests/test_personal_openrecall_import.py` to feed the personal handoff and
+    metadata-only protected-disclosure envelope lanes from imported
+    `openrecall_capture` units.
+  - This reuses the existing ITIR/OpenRecall bridge instead of introducing
+    another parser or ad hoc import contract, so the private-user lane now has
+    one real export-backed source in addition to the bounded JSON and
+    sample-DB adapters.
+  - Updated the implementation-coverage audit and TODO wording so the
+    remaining ingest gap is now broader multi-source live/export-backed
+    coverage rather than the absence of any real export-backed seam.
+- First repo-local DB-backed ingest seam:
+  - Added `scripts/build_personal_handoff_from_message_db.py` plus
+    `tests/test_personal_message_db_import.py` to feed the personal handoff and
+    metadata-only protected-disclosure envelope lanes directly from
+    `chat_test_db` and `messenger_test_db` sample databases.
+  - Reused the existing `load_chat_units` / `load_messenger_units` loaders so
+    this step extends the ingest surface without introducing another parser or
+    contract family.
+  - Updated the implementation-coverage audit and TODO wording so the remaining
+    ingest gap is now clearly the broader live/export-backed path, not the
+    absence of any DB-backed seam.
+- First bounded chat/day ingest adapter:
+  - Added `src/fact_intake/personal_chat_import.py` and
+    `scripts/build_personal_handoff_from_chat_json.py` to normalize bounded
+    chat/day JSON into either the full-text personal handoff report or the
+    metadata-only protected-disclosure envelope.
+  - Added fixtures and coverage in `tests/test_personal_chat_import.py` so the
+    repo now has a tested import seam instead of requiring hand-authored entry
+    rows for these lanes.
+  - Updated the implementation-coverage audit and TODO wording so the docs now
+    distinguish the current bounded chat/day adapter from the still-missing
+    richer live/import-backed ingest path.
 - First metadata-only protected-disclosure envelope:
   - Added `src/fact_intake/protected_disclosure_envelope.py` and
     `scripts/build_protected_disclosure_envelope.py` to implement a separate

@@ -96,8 +96,8 @@ Promotion criteria for this slice:
 
 ## Explicitly deferred
 
-- direct chat archive ingestion into this lane
-- messenger/openrecall import adapters into this lane
+- broad live/private archive ingestion beyond the bounded JSON, sample-DB,
+  direct Messenger-export, and first OpenRecall-backed seams
 - any claim that this full-text handoff report is itself a whistleblower-safe
   artifact
 - multi-user collaboration or cloud sync

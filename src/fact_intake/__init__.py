@@ -64,6 +64,24 @@ from .protected_disclosure_envelope import (
     build_protected_disclosure_envelope,
     render_protected_disclosure_summary,
 )
+from .personal_chat_import import (
+    build_handoff_input_from_chat_json,
+    build_handoff_input_from_units,
+    build_handoff_report_from_chat_json,
+    render_chat_input_debug_payload,
+)
+from .messenger_export_import import load_messenger_export_units
+from .google_public_import import (
+    build_google_public_export_url,
+    extract_affidavit_text_from_doc_text,
+    fetch_google_public_export_text,
+    load_google_doc_units_from_text,
+    load_google_doc_units_from_url,
+    load_google_public_units,
+    load_google_sheet_units_from_csv_text,
+    load_google_sheet_units_from_url,
+    parse_google_public_url,
+)
 
 __all__ = [
     "EVENT_ASSEMBLER_VERSION",
@@ -102,8 +120,22 @@ __all__ = [
     "PERSONAL_HANDOFF_REPORT_VERSION",
     "PROTECTED_DISCLOSURE_ENVELOPE_VERSION",
     "build_personal_handoff_report",
+    "build_handoff_input_from_chat_json",
+    "build_handoff_input_from_units",
+    "build_handoff_report_from_chat_json",
     "build_protected_disclosure_envelope",
+    "build_google_public_export_url",
+    "extract_affidavit_text_from_doc_text",
+    "fetch_google_public_export_text",
+    "load_google_doc_units_from_text",
+    "load_google_doc_units_from_url",
+    "load_google_public_units",
+    "load_google_sheet_units_from_csv_text",
+    "load_google_sheet_units_from_url",
+    "load_messenger_export_units",
+    "parse_google_public_url",
     "render_personal_handoff_summary",
+    "render_chat_input_debug_payload",
     "render_protected_disclosure_summary",
     "default_fact_review_fixture_manifest_path",
     "default_wave1_fixture_manifest_path",

@@ -108,6 +108,100 @@ _PROCEDURAL_EVENT_KEYWORDS = {
     "submissions",
 }
 
+_DISPUTE_CUES = (
+    "dispute",
+    "disputes",
+    "i dispute",
+    "i deny",
+    "did not",
+    "not true",
+    "incorrect",
+    "i reject",
+    "i do not agree",
+    "i disagree",
+)
+
+_HEDGED_DENIAL_CUES = (
+    "i do not feel",
+    "i don't feel",
+    "i do not believe",
+    "i don't believe",
+    "i do not recall",
+    "i don't recall",
+)
+
+_EXPLANATION_CUES = (
+    "because",
+    "so that",
+    "in order to",
+    "to facilitate",
+    "context",
+    "at the time",
+    "while",
+    "due to",
+)
+
+_ADMISSION_CUES = (
+    "i acknowledge",
+    "i admit",
+    "i accept",
+    "i did",
+    "on multiple occasions",
+)
+
+_SUPPORT_CUES = (
+    "confirmed",
+    "record",
+    "email",
+    "letter",
+    "with consent",
+    "consent",
+    "documented",
+    "attached",
+    "witnessed",
+)
+
+_CHARACTERIZATION_TERMS = {
+    "abusive",
+    "coercive",
+    "controlling",
+    "intimidating",
+    "unsafe",
+    "privacy",
+    "distressing",
+    "undermine",
+    "improper",
+}
+
+_CONSENT_TERMS = (
+    "consent",
+    "with consent",
+    "knowledge and consent",
+    "permission",
+)
+
+_AUTHORITY_TERMS = (
+    "epoa",
+    "duty",
+    "duties",
+    "authority",
+    "legal matters",
+    "care",
+)
+
+_LIMITATION_TERMS = (
+    "specific purposes",
+    "only to",
+    "limited",
+    "minimally",
+    "no further than necessary",
+)
+
+_JUSTIFICATION_TERM_MAP = {
+    "consent": _CONSENT_TERMS,
+    "authority_or_necessity": _AUTHORITY_TERMS,
+    "scope_limitation": _LIMITATION_TERMS,
+}
 
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -123,6 +217,10 @@ def _tokenize(text: str) -> set[str]:
         if len(token) >= 2 and token not in _STOPWORDS
     }
     return tokens
+
+
+def _explanation_discourse_tokens() -> set[str]:
+    return _tokenize(" ".join(_EXPLANATION_CUES)) | {"some"}
 
 
 def _split_source_text_segments(text: str) -> list[str]:
@@ -411,7 +509,74 @@ def _classify_workload_with_hints(reason_codes: list[str], review_status: str, e
 
 def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     version = str(source_payload.get("version") or "").strip()
+    if not version and isinstance(source_payload.get("run"), Mapping):
+        version = str((source_payload.get("run") or {}).get("contract_version") or "").strip()
     fixture_kind = str(source_payload.get("fixture_kind") or "").strip()
+    comparison_mode = str((source_payload.get("run") or {}).get("comparison_mode") or "").strip() if isinstance(source_payload.get("run"), Mapping) else ""
+
+    if version == "fact.intake.bundle.v1":
+        source_lookup = {
+            str(row.get("source_id") or "").strip(): row
+            for row in source_payload.get("sources", [])
+            if isinstance(row, Mapping) and str(row.get("source_id") or "").strip()
+        }
+        excerpt_lookup = {
+            str(row.get("excerpt_id") or "").strip(): row
+            for row in source_payload.get("excerpts", [])
+            if isinstance(row, Mapping) and str(row.get("excerpt_id") or "").strip()
+        }
+        statement_lookup = {
+            str(row.get("statement_id") or "").strip(): row
+            for row in source_payload.get("statements", [])
+            if isinstance(row, Mapping) and str(row.get("statement_id") or "").strip()
+        }
+        rows: list[dict[str, Any]] = []
+        for fact in source_payload.get("fact_candidates", []):
+            if not isinstance(fact, Mapping):
+                continue
+            fact_id = str(fact.get("fact_id") or "").strip()
+            fact_text = str(fact.get("fact_text") or "").strip()
+            if not fact_id or not fact_text:
+                continue
+            statement_ids = list(fact.get("statement_ids", [])) if isinstance(fact.get("statement_ids"), list) else []
+            excerpt_ids = sorted(
+                {
+                    str(statement_lookup.get(statement_id, {}).get("excerpt_id") or "").strip()
+                    for statement_id in statement_ids
+                    if str(statement_lookup.get(statement_id, {}).get("excerpt_id") or "").strip()
+                }
+            )
+            source_ids = sorted(
+                {
+                    str(excerpt_lookup.get(excerpt_id, {}).get("source_id") or "").strip()
+                    for excerpt_id in excerpt_ids
+                    if str(excerpt_lookup.get(excerpt_id, {}).get("source_id") or "").strip()
+                }
+            )
+            rows.append(
+                {
+                    "source_row_id": fact_id,
+                    "source_kind": "fact_intake_fact",
+                    "text": fact_text,
+                    "tokens": sorted(_tokenize(fact_text)),
+                    "candidate_status": str(fact.get("candidate_status") or "candidate").strip() or "candidate",
+                    "review_status": None,
+                    "reason_codes": [],
+                    "is_contested": False,
+                    "is_abstained": False,
+                    "statement_ids": statement_ids,
+                    "excerpt_ids": excerpt_ids,
+                    "source_ids": source_ids,
+                    "review_row": {},
+                    "comparison_mode": comparison_mode,
+                }
+            )
+        return rows, {
+            "source_contract": version,
+            "source_kind": "fact_intake_bundle",
+            "source_label": ((source_payload.get("run") or {}).get("source_label") if isinstance(source_payload.get("run"), Mapping) else None),
+            "source_row_count": len(rows),
+        }
 
     if version == "fact.review.bundle.v1":
         review_by_fact_id = {
@@ -444,6 +609,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "excerpt_ids": list(fact.get("excerpt_ids", [])) if isinstance(fact.get("excerpt_ids"), list) else [],
                     "source_ids": list(fact.get("source_ids", [])) if isinstance(fact.get("source_ids"), list) else [],
                     "review_row": dict(review_row) if isinstance(review_row, Mapping) else {},
+                    "comparison_mode": comparison_mode,
                 }
             )
         return rows, {
@@ -478,6 +644,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "excerpt_ids": [],
                     "source_ids": [],
                     "review_row": {},
+                    "comparison_mode": comparison_mode,
                 }
             )
         return rows, {
@@ -514,6 +681,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "excerpt_ids": list(fact.get("excerpt_ids", [])) if isinstance(fact.get("excerpt_ids"), list) else [],
                     "source_ids": list(fact.get("source_ids", [])) if isinstance(fact.get("source_ids"), list) else [],
                     "review_row": dict(review_row),
+                    "comparison_mode": comparison_mode,
                 }
             )
         return rows, {
@@ -524,7 +692,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
         }
 
     raise ValueError(
-        "Unsupported source payload. Expected fact.review.bundle.v1, au_public_handoff_v1-style slice, or au_real_transcript_dense_substrate."
+        "Unsupported source payload. Expected fact.intake.bundle.v1, fact.review.bundle.v1, au_public_handoff_v1-style slice, or au_real_transcript_dense_substrate."
     )
 
 
@@ -539,36 +707,616 @@ def _similarity_score(left_tokens: Iterable[str], right_tokens: Iterable[str]) -
     return round((2.0 * len(shared)) / (len(left) + len(right)), 6)
 
 
-def _score_proposition_against_source_row(proposition: Mapping[str, Any], source_row: Mapping[str, Any]) -> dict[str, Any]:
-    proposition_tokens = proposition.get("tokens", [])
-    row_text = str(source_row.get("text") or "")
-    best_score = _similarity_score(proposition_tokens, source_row.get("tokens", []))
-    best_basis = "row"
-    best_excerpt = row_text.strip()
+def _find_argumentative_cues(text: str) -> dict[str, list[str]]:
+    lowered = text.casefold()
+    cues = {
+        "hedged_denial": [cue for cue in _HEDGED_DENIAL_CUES if cue in lowered],
+        "dispute": [cue for cue in _DISPUTE_CUES if cue in lowered],
+        "explanation": [cue for cue in _EXPLANATION_CUES if cue in lowered],
+        "admission": [cue for cue in _ADMISSION_CUES if cue in lowered],
+        "support_or_corroboration": [cue for cue in _SUPPORT_CUES if cue in lowered],
+    }
+    return cues
 
-    for segment in _split_source_text_segments(row_text):
-        segment_tokens = sorted(_tokenize(segment))
-        score = _similarity_score(proposition_tokens, segment_tokens)
-        if score > best_score or (score == best_score and segment and len(segment) < len(best_excerpt)):
-            best_score = score
-            best_basis = "segment"
-            best_excerpt = segment
 
+def _classify_argumentative_role(
+    proposition_text: str,
+    excerpt_text: str,
+    row_text: str,
+    *,
+    use_row_fallback: bool = True,
+) -> dict[str, Any]:
+    excerpt = excerpt_text.strip()
+    row = row_text.strip()
+    excerpt_cues = _find_argumentative_cues(excerpt)
+    row_cues = _find_argumentative_cues(row) if use_row_fallback else {
+        "hedged_denial": [],
+        "dispute": [],
+        "explanation": [],
+        "admission": [],
+        "support_or_corroboration": [],
+    }
+    proposition_tokens = _tokenize(proposition_text)
+    excerpt_tokens = _tokenize(excerpt)
+    shared_ratio = 0.0
+    substantive_shared_tokens = proposition_tokens & excerpt_tokens
+    if proposition_tokens:
+        shared_ratio = len(substantive_shared_tokens) / len(proposition_tokens)
+    role_priority = [
+        "hedged_denial",
+        "dispute",
+        "admission",
+        "explanation",
+        "support_or_corroboration",
+    ]
+    for role in role_priority:
+        cues = excerpt_cues[role] or row_cues[role]
+        if cues:
+            if role == "explanation" and not (substantive_shared_tokens - _explanation_discourse_tokens()):
+                return {
+                    "response_role": "non_response",
+                    "response_cues": cues,
+                }
+            return {
+                "response_role": role,
+                "response_cues": cues,
+            }
+    if shared_ratio >= 0.5:
+        role = "restatement_only"
+    else:
+        role = "procedural_frame"
     return {
-        "score": best_score,
-        "match_basis": best_basis,
-        "match_excerpt": best_excerpt,
+        "response_role": role,
+        "response_cues": [],
     }
 
 
-def _classify_affidavit_match(score: float, source_row: Mapping[str, Any] | None) -> str:
+def _is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> bool:
+    proposition_tokens = _tokenize(proposition_text)
+    excerpt_tokens = _tokenize(excerpt_text)
+    if not proposition_tokens or not excerpt_tokens:
+        return False
+    shared_ratio = len(proposition_tokens & excerpt_tokens) / len(proposition_tokens)
+    return shared_ratio >= 0.85
+
+
+def _infer_response_packet(
+    *,
+    proposition_text: str,
+    best_match_excerpt: str,
+    duplicate_match_excerpt: str | None,
+    response_role: str | None,
+    response_cues: list[str] | None,
+    coverage_status: str,
+) -> dict[str, Any]:
+    role = str(response_role or "").strip()
+    excerpt = str(best_match_excerpt or "").strip()
+    duplicate_excerpt = str(duplicate_match_excerpt or "").strip() or None
+    proposition_lower = proposition_text.casefold()
+    excerpt_lower = excerpt.casefold()
+    response_acts: list[str] = []
+    legal_significance_signals: list[str] = []
+
+    if duplicate_excerpt:
+        response_acts.append("repetition_only")
+    characterization_overlap = any(term in proposition_lower and term in excerpt_lower for term in _CHARACTERIZATION_TERMS)
+    characterization_dispute = characterization_overlap or "characterization" in excerpt_lower
+    if role in {"dispute", "hedged_denial"}:
+        if characterization_dispute:
+            response_acts.append("deny_characterisation")
+            legal_significance_signals.append("characterization_dispute")
+        else:
+            response_acts.append("deny_fact")
+            legal_significance_signals.append("factual_denial")
+        if role == "hedged_denial":
+            response_acts.append("hedged_denial")
+            legal_significance_signals.append("hedged_denial_signal")
+    elif role == "admission":
+        response_acts.append("admit_fact")
+        legal_significance_signals.append("factual_admission")
+    elif role == "explanation":
+        response_acts.append("explain_context")
+        legal_significance_signals.append("context_explanation")
+    elif role == "support_or_corroboration":
+        response_acts.append("corroborate_or_ground")
+        legal_significance_signals.append("evidentiary_grounding_signal")
+    elif role == "non_response":
+        response_acts.append("non_response")
+    elif role == "restatement_only":
+        response_acts.append("repetition_only")
+    elif role == "procedural_frame":
+        response_acts.append("procedural_or_nonresponsive_frame")
+
+    if any(term in excerpt_lower for term in _CONSENT_TERMS):
+        response_acts.append("justify")
+        legal_significance_signals.append("consent_signal")
+    if any(term in excerpt_lower for term in _AUTHORITY_TERMS):
+        legal_significance_signals.append("authority_or_necessity_signal")
+    if any(term in excerpt_lower for term in _LIMITATION_TERMS):
+        response_acts.append("scope_limitation")
+        legal_significance_signals.append("scope_limitation")
+
+    if coverage_status == "covered" and response_acts and all(act != "repetition_only" for act in response_acts):
+        support_status = "substantively_addressed"
+    elif coverage_status == "partial" and duplicate_excerpt:
+        support_status = "textually_addressed"
+    elif coverage_status == "partial" and response_acts:
+        support_status = "responsive_but_non_substantive"
+    elif coverage_status in {"unsupported_affidavit", "contested_source", "abstained_source"}:
+        support_status = "unresolved"
+    else:
+        support_status = "textually_addressed"
+
+    if "evidentiary_grounding_signal" in legal_significance_signals and support_status in {
+        "substantively_addressed",
+        "responsive_but_non_substantive",
+    }:
+        support_status = "evidentially_grounded_response"
+
+    return {
+        "response_acts": sorted(dict.fromkeys(response_acts)),
+        "legal_significance_signals": sorted(dict.fromkeys(legal_significance_signals)),
+        "support_status": support_status,
+    }
+
+
+def _derive_claim_state(
+    *,
+    response_acts: list[str],
+    legal_significance_signals: list[str],
+    support_status: str,
+    duplicate_match_excerpt: str | None,
+) -> dict[str, str]:
+    acts = set(response_acts)
+    signals = set(legal_significance_signals)
+    has_for = bool(
+        {"admit_fact", "corroborate_or_ground", "justify", "scope_limitation"} & acts
+        or {"factual_admission", "evidentiary_grounding_signal", "consent_signal", "authority_or_necessity_signal"} & signals
+    )
+    has_against = bool(
+        {"deny_fact", "deny_characterisation", "hedged_denial"} & acts
+        or {"factual_denial", "characterization_dispute", "hedged_denial_signal"} & signals
+    )
+    if has_for and has_against:
+        support_direction = "mixed"
+    elif has_for:
+        support_direction = "for"
+    elif has_against:
+        support_direction = "against"
+    else:
+        support_direction = "none"
+
+    if support_status == "unresolved" and support_direction == "none":
+        conflict_state = "unanswered"
+    elif support_direction == "mixed":
+        conflict_state = "partially_reconciled"
+    elif support_direction == "against":
+        conflict_state = "disputed"
+    elif support_direction == "for":
+        conflict_state = "undisputed"
+    elif duplicate_match_excerpt:
+        conflict_state = "unresolved"
+    else:
+        conflict_state = "unanswered"
+
+    if support_status == "evidentially_grounded_response":
+        evidentiary_state = "supported"
+    elif support_status == "substantively_addressed" and support_direction in {"for", "mixed"}:
+        evidentiary_state = "weakly_supported"
+    elif support_direction == "against":
+        evidentiary_state = "unproven"
+    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "unresolved"}:
+        evidentiary_state = "unproven"
+    else:
+        evidentiary_state = "unassessed"
+
+    if support_direction == "none" and support_status == "unresolved":
+        operational_status = "claim_only"
+    elif support_direction == "for" and conflict_state == "undisputed" and evidentiary_state in {"unproven", "weakly_supported"}:
+        operational_status = "claim_with_support"
+    elif support_direction == "against":
+        operational_status = "claim_with_opposition" if conflict_state == "unanswered" else "disputed_claim"
+    elif support_direction == "mixed" and conflict_state == "partially_reconciled":
+        operational_status = "partially_reconciled_claim"
+    elif support_direction == "for" and evidentiary_state in {"supported", "strongly_supported"}:
+        operational_status = "resolved_but_unproven"
+    else:
+        operational_status = "disputed_claim" if conflict_state == "disputed" else "claim_only"
+
+    return {
+        "support_direction": support_direction,
+        "conflict_state": conflict_state,
+        "evidentiary_state": evidentiary_state,
+        "operational_status": operational_status,
+    }
+
+
+def _build_zelph_claim_state_fact(
+    proposition_id: str,
+    best_source_row_id: str | None,
+    claim: Mapping[str, Any],
+    response: Mapping[str, Any],
+    justifications: list[dict[str, Any]],
+    claim_state: Mapping[str, Any],
+    response_acts: list[str],
+    legal_significance_signals: list[str],
+    support_status: str,
+    coverage_status: str,
+) -> dict[str, Any]:
+    claim_components = claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
+    response_component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
+    return {
+        "fact_id": f"zelph_claim_state:{proposition_id}",
+        "fact_kind": "contested_claim_state",
+        "proposition_id": proposition_id,
+        "best_source_row_id": best_source_row_id,
+        "claim_text_span": claim.get("text_span"),
+        "claim_actor_span": claim_components.get("actor") if isinstance(claim_components, Mapping) else None,
+        "claim_time_spans": claim_components.get("time") if isinstance(claim_components, Mapping) else [],
+        "claim_characterization_spans": claim_components.get("characterization") if isinstance(claim_components, Mapping) else [],
+        "response_text_span": response.get("text_span"),
+        "target_span": response.get("target_span"),
+        "duplicate_text_span": response.get("duplicate_text_span"),
+        "response_speech_act": response.get("speech_act"),
+        "response_polarity": response.get("polarity"),
+        "response_modifiers": list(response.get("modifiers") or []),
+        "response_component_targets": list(response_component_targets),
+        "support_direction": claim_state.get("support_direction"),
+        "conflict_state": claim_state.get("conflict_state"),
+        "evidentiary_state": claim_state.get("evidentiary_state"),
+        "operational_status": claim_state.get("operational_status"),
+        "response_acts": list(response_acts),
+        "justification_types": sorted(
+            {
+                str(packet.get("type") or "").strip()
+                for packet in justifications
+                if isinstance(packet, Mapping) and str(packet.get("type") or "").strip()
+            }
+        ),
+        "justification_bindings": [
+            {
+                "type": str(packet.get("type") or "").strip(),
+                "target_component": str(packet.get("target_component") or "").strip() or "predicate_text",
+            }
+            for packet in justifications
+            if isinstance(packet, Mapping) and str(packet.get("type") or "").strip()
+        ],
+        "legal_significance_signals": list(legal_significance_signals),
+        "support_status": support_status,
+        "coverage_status": coverage_status,
+    }
+
+
+def _span_ref(container_text: str, span_text: str) -> dict[str, Any] | None:
+    container = str(container_text or "")
+    span = str(span_text or "").strip()
+    if not span:
+        return None
+    idx = container.find(span)
+    if idx == -1:
+        idx = 0
+        end = len(span)
+    else:
+        end = idx + len(span)
+    return {
+        "text": span,
+        "start": idx,
+        "end": end,
+    }
+
+
+def _extract_time_spans(text: str) -> list[dict[str, Any]]:
+    hints = _extract_extraction_hints(text)
+    mentions = hints.get("calendar_reference_mentions", [])
+    if not isinstance(mentions, list):
+        return []
+    spans: list[dict[str, Any]] = []
+    for mention in mentions:
+        span = _span_ref(text, str(mention))
+        if span is not None and span not in spans:
+            spans.append(span)
+    return spans
+
+
+def _extract_characterization_spans(text: str) -> list[dict[str, Any]]:
+    spans: list[dict[str, Any]] = []
+    lowered = text.casefold()
+    for term in sorted(_CHARACTERIZATION_TERMS):
+        start = lowered.find(term)
+        if start == -1:
+            continue
+        span = {
+            "text": text[start:start + len(term)],
+            "start": start,
+            "end": start + len(term),
+        }
+        spans.append(span)
+    return spans
+
+
+def _extract_claim_components(proposition_text: str) -> dict[str, Any]:
+    claim_text = str(proposition_text or "").strip()
+    predicate_span = _span_ref(claim_text, claim_text)
+    actor = None
+    for candidate in ("The respondent", "The applicant", "Johl", "John", "I", "He", "She", "We"):
+        if claim_text.startswith(candidate + " ") or claim_text == candidate:
+            actor = _span_ref(claim_text, candidate)
+            break
+    components: dict[str, Any] = {
+        "predicate_text": predicate_span,
+    }
+    if actor is not None:
+        components["actor"] = actor
+    time_spans = _extract_time_spans(claim_text)
+    if time_spans:
+        components["time"] = time_spans
+    characterization_spans = _extract_characterization_spans(claim_text)
+    if characterization_spans:
+        components["characterization"] = characterization_spans
+    return components
+
+
+def _build_claim_packet(proposition_text: str) -> dict[str, Any]:
+    claim_text = str(proposition_text or "").strip()
+    return {
+        "text_span": _span_ref(claim_text, claim_text),
+        "components": _extract_claim_components(claim_text),
+    }
+
+
+def _build_response_packet(
+    *,
+    proposition_text: str,
+    best_match_excerpt: str,
+    duplicate_match_excerpt: str | None,
+    response_role: str | None,
+    response_acts: list[str],
+) -> dict[str, Any]:
+    role = str(response_role or "").strip()
+    modifiers: list[str] = []
+    if role == "dispute":
+        speech_act = "deny"
+        polarity = "negative"
+    elif role == "hedged_denial":
+        speech_act = "deny"
+        polarity = "negative"
+        modifiers.append("hedged")
+    elif role == "admission":
+        speech_act = "admit"
+        polarity = "positive"
+    elif role == "explanation":
+        speech_act = "explain"
+        polarity = "qualified"
+    elif role == "support_or_corroboration":
+        speech_act = "other"
+        polarity = "positive"
+    elif role == "non_response":
+        speech_act = "other"
+        polarity = "neutral"
+        modifiers.append("non_responsive")
+    elif role == "restatement_only":
+        speech_act = "other"
+        polarity = "neutral"
+        modifiers.append("repetition")
+    else:
+        speech_act = "other"
+        polarity = "neutral"
+    if duplicate_match_excerpt:
+        modifiers.append("repetition")
+    if any(act in {"justify", "scope_limitation"} for act in response_acts):
+        modifiers.append("qualified")
+    return {
+        "speech_act": speech_act,
+        "polarity": polarity,
+        "target_span": _span_ref(proposition_text, proposition_text),
+        "text_span": _span_ref(best_match_excerpt, best_match_excerpt),
+        "duplicate_text_span": _span_ref(duplicate_match_excerpt or "", duplicate_match_excerpt or ""),
+        "acts": list(response_acts),
+        "modifiers": sorted(dict.fromkeys(modifiers)),
+    }
+
+
+def _build_justification_packets(excerpt_text: str) -> list[dict[str, Any]]:
+    excerpt = str(excerpt_text or "")
+    lowered = excerpt.casefold()
+    packets: list[dict[str, Any]] = []
+    for justification_type, terms in _JUSTIFICATION_TERM_MAP.items():
+        for term in terms:
+            idx = lowered.find(term)
+            if idx == -1:
+                continue
+            packets.append(
+                {
+                    "type": justification_type,
+                    "span": {
+                        "text": excerpt[idx:idx + len(term)],
+                        "start": idx,
+                        "end": idx + len(term),
+                    },
+                    "target_component": "predicate_text",
+                    "bound_response_span": {
+                        "text": excerpt[idx:idx + len(term)],
+                        "start": idx,
+                        "end": idx + len(term),
+                    },
+                }
+            )
+            break
+    return packets
+
+
+def _build_response_component_bindings(
+    *,
+    claim: Mapping[str, Any],
+    response: Mapping[str, Any],
+    justifications: list[dict[str, Any]],
+    response_acts: list[str],
+) -> list[dict[str, Any]]:
+    bindings: list[dict[str, Any]] = []
+    claim_components = claim.get("components") if isinstance(claim.get("components"), Mapping) else {}
+    predicate_span = claim_components.get("predicate_text") if isinstance(claim_components, Mapping) else None
+    response_span = response.get("text_span") if isinstance(response.get("text_span"), Mapping) else None
+    target_span = response.get("target_span") if isinstance(response.get("target_span"), Mapping) else None
+    speech_act = str(response.get("speech_act") or "").strip()
+
+    if predicate_span and response_span and speech_act and speech_act not in {"repeat", "frame"}:
+        bindings.append(
+            {
+                "component": "predicate_text",
+                "binding_kind": speech_act,
+                "claim_span": predicate_span,
+                "response_span": response_span,
+                "target_span": target_span,
+            }
+        )
+
+    characterization_spans = claim_components.get("characterization") if isinstance(claim_components, Mapping) else None
+    if isinstance(characterization_spans, list) and "deny_characterisation" in response_acts and response_span:
+        for span in characterization_spans:
+            if isinstance(span, Mapping):
+                bindings.append(
+                    {
+                        "component": "characterization",
+                        "binding_kind": "deny_characterisation",
+                        "claim_span": span,
+                        "response_span": response_span,
+                    }
+                )
+
+    time_spans = claim_components.get("time") if isinstance(claim_components, Mapping) else None
+    if isinstance(time_spans, list) and response_span:
+        response_text = str(response_span.get("text") or "")
+        response_hints = _extract_extraction_hints(response_text)
+        response_times = response_hints.get("calendar_reference_mentions", [])
+        if isinstance(response_times, list):
+            response_time_set = {str(value).strip() for value in response_times if str(value).strip()}
+            for span in time_spans:
+                if not isinstance(span, Mapping):
+                    continue
+                if str(span.get("text") or "").strip() in response_time_set:
+                    bindings.append(
+                        {
+                            "component": "time",
+                            "binding_kind": "time_alignment",
+                            "claim_span": span,
+                            "response_span": _span_ref(response_text, str(span.get("text") or "")),
+                        }
+                    )
+
+    for packet in justifications:
+        if not isinstance(packet, Mapping):
+            continue
+        justification_type = str(packet.get("type") or "").strip()
+        span = packet.get("span")
+        if not justification_type or not isinstance(span, Mapping):
+            continue
+        bindings.append(
+            {
+                "component": "predicate_text",
+                "binding_kind": justification_type,
+                "claim_span": predicate_span,
+                "response_span": span,
+            }
+        )
+
+    return bindings
+
+
+def _score_proposition_against_source_row(proposition: Mapping[str, Any], source_row: Mapping[str, Any]) -> dict[str, Any]:
+    proposition_tokens = proposition.get("tokens", [])
+    row_text = str(source_row.get("text") or "")
+    comparison_mode = str(source_row.get("comparison_mode") or "").strip()
+    row_score = _similarity_score(proposition_tokens, source_row.get("tokens", []))
+    row_entry = {
+        "score": row_score,
+        "match_basis": "row",
+        "match_excerpt": row_text.strip(),
+    }
+    segments = []
+    for segment in _split_source_text_segments(row_text):
+        segment_tokens = sorted(_tokenize(segment))
+        score = _similarity_score(proposition_tokens, segment_tokens)
+        segments.append(
+            {
+                "score": score,
+                "match_basis": "segment",
+                "match_excerpt": segment,
+            }
+        )
+    candidates = segments if comparison_mode == "contested_narrative" else [row_entry, *segments]
+    for candidate in candidates:
+        role_data = _classify_argumentative_role(
+            str(proposition.get("text") or ""),
+            str(candidate["match_excerpt"] or ""),
+            row_text,
+            use_row_fallback=comparison_mode != "contested_narrative",
+        )
+        candidate["response_role"] = str(role_data["response_role"])
+        candidate["response_cues"] = role_data["response_cues"]
+        candidate["is_duplicate_excerpt"] = _is_duplicate_response_excerpt(
+            str(proposition.get("text") or ""),
+            str(candidate["match_excerpt"] or ""),
+        )
+        adjusted = float(candidate["score"])
+        if comparison_mode == "contested_narrative" and (
+            candidate["response_role"] == "restatement_only" or candidate["is_duplicate_excerpt"]
+        ):
+            adjusted = min(adjusted, max(_PARTIAL_MATCH_THRESHOLD, _COVERED_MATCH_THRESHOLD - 0.01))
+        elif comparison_mode == "contested_narrative" and candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"} and adjusted >= _PARTIAL_MATCH_THRESHOLD:
+            adjusted = min(1.0, round(adjusted + 0.05, 6))
+        candidate["adjusted_score"] = adjusted
+
+    best_candidate = max(
+        candidates,
+        key=lambda item: (float(item["adjusted_score"]), float(item["score"]), -len(str(item["match_excerpt"] or ""))),
+    )
+    duplicate_match_excerpt = None
+    if comparison_mode == "contested_narrative" and (
+        best_candidate["response_role"] == "restatement_only" or best_candidate["is_duplicate_excerpt"]
+    ):
+        substantive_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"}
+            and not candidate["is_duplicate_excerpt"]
+        ]
+        if substantive_candidates:
+            alternate_candidate = max(
+                substantive_candidates,
+                key=lambda item: (float(item["adjusted_score"]), float(item["score"]), -len(str(item["match_excerpt"] or ""))),
+            )
+            duplicate_match_excerpt = str(best_candidate["match_excerpt"] or "").strip()
+            best_candidate = alternate_candidate
+
+    best_score = float(best_candidate["score"])
+    adjusted_score = float(best_candidate["adjusted_score"])
+    best_basis = str(best_candidate["match_basis"])
+    best_excerpt = str(best_candidate["match_excerpt"] or "").strip()
+    response_role = str(best_candidate["response_role"])
+    response_cues = best_candidate["response_cues"]
+
+    return {
+        "score": best_score,
+        "adjusted_score": adjusted_score,
+        "match_basis": best_basis,
+        "match_excerpt": best_excerpt,
+        "duplicate_match_excerpt": duplicate_match_excerpt,
+        "response_role": response_role,
+        "response_cues": response_cues,
+    }
+
+
+def _classify_affidavit_match(score: float, source_row: Mapping[str, Any] | None, response_role: str | None = None) -> str:
     if not isinstance(source_row, Mapping) or score < _PARTIAL_MATCH_THRESHOLD:
         return "unsupported_affidavit"
     if bool(source_row.get("is_abstained")):
         return "abstained_source"
     if bool(source_row.get("is_contested")):
         return "contested_source"
-    if score >= _COVERED_MATCH_THRESHOLD:
+    comparison_mode = str(source_row.get("comparison_mode") or "").strip()
+    if score >= _COVERED_MATCH_THRESHOLD and not (
+        comparison_mode == "contested_narrative" and response_role == "restatement_only"
+    ):
         return "covered"
     return "partial"
 
@@ -713,28 +1461,75 @@ def build_affidavit_coverage_review(
     source_rows_by_id = {row["source_row_id"]: dict(row) for row in source_rows}
 
     affidavit_rows: list[dict[str, Any]] = []
+    zelph_claim_state_facts: list[dict[str, Any]] = []
     for proposition in propositions:
         scored_rows = []
         for row in source_rows:
             score_row = _score_proposition_against_source_row(proposition, row)
-            score = float(score_row["score"])
-            if score <= 0:
+            raw_score = float(score_row["score"])
+            adjusted_score = float(score_row.get("adjusted_score") or raw_score)
+            if raw_score <= 0:
                 continue
-            scored_rows.append((score, row, score_row))
-        scored_rows.sort(key=lambda item: (-item[0], item[1]["source_row_id"]))
-        best_score, best_row, best_score_row = scored_rows[0] if scored_rows else (0.0, None, {})
-        status = _classify_affidavit_match(best_score, best_row)
+            scored_rows.append((adjusted_score, raw_score, row, score_row))
+        scored_rows.sort(key=lambda item: (-item[0], -item[1], item[2]["source_row_id"]))
+        best_adjusted_score, best_score, best_row, best_score_row = scored_rows[0] if scored_rows else (0.0, 0.0, None, {})
+        status = _classify_affidavit_match(
+            best_adjusted_score,
+            best_row,
+            str(best_score_row.get("response_role") or ""),
+        )
         matched_rows = [
             {
                 "source_row_id": row["source_row_id"],
-                "score": score,
+                "score": raw_score,
+                "adjusted_score": adjusted_score,
                 "candidate_status": row["candidate_status"],
                 "review_status": row["review_status"],
                 "match_basis": score_row["match_basis"],
                 "match_excerpt": score_row["match_excerpt"],
+                "duplicate_match_excerpt": score_row.get("duplicate_match_excerpt"),
+                "response_role": score_row.get("response_role"),
+                "response_cues": score_row.get("response_cues", []),
             }
-            for score, row, score_row in scored_rows[:3]
+            for adjusted_score, raw_score, row, score_row in scored_rows[:3]
         ]
+        response_packet = _infer_response_packet(
+            proposition_text=str(proposition["text"]),
+            best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
+            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+            response_role=best_score_row.get("response_role"),
+            response_cues=list(best_score_row.get("response_cues", [])),
+            coverage_status=status,
+        )
+        claim_packet = _build_claim_packet(str(proposition["text"]))
+        response_object = _build_response_packet(
+            proposition_text=str(proposition["text"]),
+            best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
+            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+            response_role=best_score_row.get("response_role"),
+            response_acts=response_packet["response_acts"],
+        )
+        justification_packets = _build_justification_packets(str(best_score_row.get("match_excerpt") or ""))
+        response_component_bindings = _build_response_component_bindings(
+            claim=claim_packet,
+            response=response_object,
+            justifications=justification_packets,
+            response_acts=response_packet["response_acts"],
+        )
+        response_object["component_bindings"] = response_component_bindings
+        response_object["component_targets"] = sorted(
+            {
+                str(binding.get("component") or "").strip()
+                for binding in response_component_bindings
+                if isinstance(binding, Mapping) and str(binding.get("component") or "").strip()
+            }
+        )
+        claim_state = _derive_claim_state(
+            response_acts=response_packet["response_acts"],
+            legal_significance_signals=response_packet["legal_significance_signals"],
+            support_status=response_packet["support_status"],
+            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+        )
         affidavit_rows.append(
             {
                 "proposition_id": proposition["proposition_id"],
@@ -745,22 +1540,57 @@ def build_affidavit_coverage_review(
                 "tokens": proposition["tokens"],
                 "coverage_status": status,
                 "best_match_score": best_score,
+                "best_adjusted_match_score": best_adjusted_score,
                 "best_source_row_id": best_row["source_row_id"] if isinstance(best_row, Mapping) else None,
                 "best_match_basis": best_score_row.get("match_basis"),
                 "best_match_excerpt": best_score_row.get("match_excerpt"),
+                "duplicate_match_excerpt": best_score_row.get("duplicate_match_excerpt"),
+                "best_response_role": best_score_row.get("response_role"),
+                "best_response_cues": best_score_row.get("response_cues", []),
+                "response_acts": response_packet["response_acts"],
+                "legal_significance_signals": response_packet["legal_significance_signals"],
+                "support_status": response_packet["support_status"],
+                "support_direction": claim_state["support_direction"],
+                "conflict_state": claim_state["conflict_state"],
+                "evidentiary_state": claim_state["evidentiary_state"],
+                "operational_status": claim_state["operational_status"],
+                "claim": claim_packet,
+                "response": response_object,
+                "justifications": justification_packets,
                 "matched_source_rows": matched_rows,
             }
         )
-        for score, row, score_row in scored_rows:
+        zelph_claim_state_facts.append(
+            _build_zelph_claim_state_fact(
+                proposition_id=str(proposition["proposition_id"]),
+                best_source_row_id=(best_row["source_row_id"] if isinstance(best_row, Mapping) else None),
+                claim=claim_packet,
+                response=response_object,
+                justifications=justification_packets,
+                claim_state=claim_state,
+                response_acts=response_packet["response_acts"],
+                legal_significance_signals=response_packet["legal_significance_signals"],
+                support_status=response_packet["support_status"],
+                coverage_status=status,
+            )
+        )
+        for adjusted_score, raw_score, row, score_row in scored_rows:
             source_row = source_rows_by_id[row["source_row_id"]]
-            if score > float(source_row.get("best_match_score") or 0.0):
-                source_row["best_match_score"] = score
+            if adjusted_score > float(source_row.get("best_adjusted_match_score") or 0.0):
+                source_row["best_adjusted_match_score"] = adjusted_score
+                source_row["best_match_score"] = raw_score
                 source_row["best_affidavit_proposition_id"] = proposition["proposition_id"]
                 source_row["best_match_basis"] = score_row["match_basis"]
                 source_row["best_match_excerpt"] = score_row["match_excerpt"]
-            if score >= _COVERED_MATCH_THRESHOLD:
+                source_row["duplicate_match_excerpt"] = score_row.get("duplicate_match_excerpt")
+                source_row["best_response_role"] = score_row.get("response_role")
+                source_row["best_response_cues"] = list(score_row.get("response_cues", []))
+            is_contested_narrative = str(row.get("comparison_mode") or "").strip() == "contested_narrative"
+            if adjusted_score >= _COVERED_MATCH_THRESHOLD and not (
+                is_contested_narrative and score_row.get("response_role") == "restatement_only"
+            ):
                 source_row.setdefault("matched_affidavit_proposition_ids", []).append(proposition["proposition_id"])
-            elif score >= _PARTIAL_MATCH_THRESHOLD:
+            elif adjusted_score >= _PARTIAL_MATCH_THRESHOLD:
                 source_row.setdefault("related_affidavit_proposition_ids", []).append(proposition["proposition_id"])
 
     source_review_rows: list[dict[str, Any]] = []
@@ -795,8 +1625,12 @@ def build_affidavit_coverage_review(
                 "related_affidavit_proposition_ids": related_ids,
                 "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
                 "best_match_score": round(float(row.get("best_match_score") or 0.0), 6),
+                "best_adjusted_match_score": round(float(row.get("best_adjusted_match_score") or 0.0), 6),
                 "best_match_basis": row.get("best_match_basis"),
                 "best_match_excerpt": row.get("best_match_excerpt"),
+                "duplicate_match_excerpt": row.get("duplicate_match_excerpt"),
+                "best_response_role": row.get("best_response_role"),
+                "best_response_cues": row.get("best_response_cues", []),
                 "reason_codes": row["reason_codes"],
                 "workload_classes": workload_profile["workload_classes"],
                 "primary_workload_class": workload_profile["primary_workload_class"],
@@ -859,6 +1693,41 @@ def build_affidavit_coverage_review(
     summary["affidavit_supported_ratio"] = round(
         coveredish / summary["affidavit_proposition_count"], 6
     ) if summary["affidavit_proposition_count"] else 0.0
+    response_role_counter: Counter[str] = Counter(
+        str(row.get("best_response_role") or "unknown").strip() or "unknown"
+        for row in affidavit_rows
+    )
+    substantive_roles = {"dispute", "admission", "explanation", "support_or_corroboration"}
+    substantive_response_count = sum(
+        1
+        for row in affidavit_rows
+        if str(row.get("best_response_role") or "").strip() in substantive_roles
+    )
+    summary["best_response_role_counts"] = {
+        role: count
+        for role, count in sorted(response_role_counter.items(), key=lambda item: item[0])
+    }
+    summary["substantive_response_count"] = substantive_response_count
+    summary["substantive_response_ratio"] = round(
+        substantive_response_count / summary["affidavit_proposition_count"], 6
+    ) if summary["affidavit_proposition_count"] else 0.0
+    support_status_counter: Counter[str] = Counter(
+        str(row.get("support_status") or "unknown").strip() or "unknown"
+        for row in affidavit_rows
+    )
+    summary["support_status_counts"] = {
+        status: count
+        for status, count in sorted(support_status_counter.items(), key=lambda item: item[0])
+    }
+    for field in ("support_direction", "conflict_state", "evidentiary_state", "operational_status"):
+        counter: Counter[str] = Counter(
+            str(row.get(field) or "unknown").strip() or "unknown"
+            for row in affidavit_rows
+        )
+        summary[f"{field}_counts"] = {
+            key: count
+            for key, count in sorted(counter.items(), key=lambda item: item[0])
+        }
 
     source_kind = str(source_meta.get("source_kind") or "").strip()
     lane_variant = "review"
@@ -903,6 +1772,7 @@ def build_affidavit_coverage_review(
         "related_review_clusters": related_review_clusters,
         "provisional_structured_anchors": provisional_structured_anchors,
         "provisional_anchor_bundles": provisional_anchor_bundles,
+        "zelph_claim_state_facts": zelph_claim_state_facts,
         "normalized_metrics_v1": normalized_metrics_v1,
     }
 
@@ -936,14 +1806,37 @@ def build_summary_markdown(payload: Mapping[str, Any]) -> str:
         f"- Provisional anchor bundles: `{summary.get('provisional_anchor_bundle_count', 0)}`",
         f"- Contested source rows: `{summary.get('contested_source_count', 0)}`",
         f"- Abstained source rows: `{summary.get('abstained_source_count', 0)}`",
-        f"- Supported-affidavit ratio: `{summary.get('affidavit_supported_ratio', 0.0)}`",
+        f"- Textually-addressed ratio: `{summary.get('affidavit_supported_ratio', 0.0)}`",
+        f"- Substantive-response ratio: `{summary.get('substantive_response_ratio', 0.0)}`",
         "",
         "## Reading",
         "",
         "- This is a provenance-first comparison surface, not a legal sufficiency verdict.",
-        "- `covered` and `partial` describe segment-aware lexical/source alignment only in this bounded lane.",
+        "- `covered` means strong segment-aware alignment that is not pure allegation restatement in contested-narrative mode.",
+        "- `partial` often means either weaker alignment or allegation restatement without a clear reply move.",
         "- `missing_review`, `contested_source`, and `abstained_source` remain operator-review statuses rather than automatic filing conclusions.",
     ]
+    response_role_counts = summary.get("best_response_role_counts", {})
+    if isinstance(response_role_counts, Mapping) and response_role_counts:
+        lines.extend(["", "## Argumentative Read", ""])
+        for role, count in sorted(response_role_counts.items()):
+            lines.append(f"- `{role}`: `{count}`")
+    support_status_counts = summary.get("support_status_counts", {})
+    if isinstance(support_status_counts, Mapping) and support_status_counts:
+        lines.extend(["", "## Support Status", ""])
+        for status, count in sorted(support_status_counts.items()):
+            lines.append(f"- `{status}`: `{count}`")
+    for field, title in (
+        ("support_direction_counts", "Support Direction"),
+        ("conflict_state_counts", "Conflict State"),
+        ("evidentiary_state_counts", "Evidentiary State"),
+        ("operational_status_counts", "Operational Status"),
+    ):
+        counts = summary.get(field, {})
+        if isinstance(counts, Mapping) and counts:
+            lines.extend(["", f"## {title}", ""])
+            for key, count in sorted(counts.items()):
+                lines.append(f"- `{key}`: `{count}`")
     normalized_metrics = (
         payload.get("normalized_metrics_v1", {})
         if isinstance(payload.get("normalized_metrics_v1"), Mapping)
