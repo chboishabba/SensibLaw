@@ -4,6 +4,24 @@
 Compact snapshot of intent while aligning the new Zelph review-geometry parity
 work with docs, TODOs, and changelog state.
 
+## Current phase (2026-03-27)
+Semantic-promotion parity is now the active cross-lane governance lane.
+
+Current status:
+- contested claims use the central semantic candidate + tetralemma promotion gate
+- GWB and AU semantic relation lanes emit the shared relation candidate contract
+- transcript/SB semantic relation rows now emit the same central candidate and
+  canonical promotion metadata
+- Wikidata hotspot packs now emit a distinct hotspot-pack candidate contract
+- mission observer overlays remain operational-state only and are explicitly
+  not truth-bearing semantic promotion outputs
+
+Current closure check:
+- broader semantic parity validation should pass from the `SensibLaw/` cwd
+  without relying on repo-root `PYTHONPATH` injection for mission-lens tests
+- the remaining next-step class is repo-wide CI/static enforcement that only
+  the central promotion gate may assign truth-bearing semantic fields
+
 ## Objective
 Keep the new AU/Wikidata/GWB review artifacts documented in the same terms the
 repo now implements, and make the next cross-lane normalization step explicit.
