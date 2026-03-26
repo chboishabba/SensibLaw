@@ -31,6 +31,26 @@ def test_build_wikidata_dense_structural_review_artifact(tmp_path: Path) -> None
     assert summary["governance_gap_count"] >= 5
     assert summary["qualifier_drift_gap_count"] == 1
     assert summary["structural_contradiction_count"] >= 10
+    normalized = artifact["normalized_metrics_v1"]
+    assert normalized["artifact_id"] == "wikidata_dense_structural_review_v1"
+    assert normalized["review_item_status_counts"] == {
+        "accepted": 5,
+        "review_required": 4,
+        "held": 0,
+    }
+    assert normalized["source_status_counts"] == {
+        "accepted": 33,
+        "review_required": 20,
+        "held": 0,
+    }
+    assert normalized["dominant_primary_workload"] == "structural_pressure"
+    assert normalized["primary_workload_counts"]["structural_pressure"] == 13
+    assert normalized["primary_workload_counts"]["governance_pressure"] == 7
+    assert normalized["candidate_signal_count"] == 28
+    assert normalized["review_required_source_ratio"] == 0.377358
+    assert normalized["candidate_signal_density"] == 1.4
+    assert normalized["provisional_row_density"] == 4.4
+    assert normalized["provisional_bundle_density"] == 0.45
 
     assert any(
         row["source_kind"] == "qualifier_statement_bundle"
@@ -49,4 +69,5 @@ def test_build_wikidata_dense_structural_review_artifact(tmp_path: Path) -> None
 
     summary_text = summary_path.read_text(encoding="utf-8")
     assert "Wikidata Dense Structural Review Summary" in summary_text
+    assert "Normalized Metrics" in summary_text
     assert "Top Provisional Review Bundles" in summary_text

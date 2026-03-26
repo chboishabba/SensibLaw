@@ -16,6 +16,35 @@
 - qualifier_drift_gap: 1
 - structural_contradiction: 12
 
+## Normalized Metrics
+
+- Review-item statuses: accepted `5`, review_required `4`, held `0`
+- Source statuses: accepted `33`, review_required `20`, held `0`
+- Dominant primary workload: `structural_pressure`
+- Primary workload counts:
+  - `structural_pressure` `13`
+  - `governance_pressure` `7`
+  - `linkage_pressure` `0`
+  - `event_or_time_pressure` `0`
+  - `evidence_pressure` `0`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Workload presence counts:
+  - `structural_pressure` `13`
+  - `governance_pressure` `7`
+  - `linkage_pressure` `0`
+  - `event_or_time_pressure` `0`
+  - `evidence_pressure` `0`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Review-required source ratio: `0.377358`
+- Candidate signal count: `28`
+- Candidate signal density: `1.400000`
+- Provisional queue rows: `88`
+- Provisional row density: `4.400000`
+- Provisional bundles: `9`
+- Provisional bundle density: `0.450000`
+
 ## Top Provisional Review Bundles
 
 - #1 review:disjointness_case:fixed_construction_contradiction with 10 cues, top score 94.

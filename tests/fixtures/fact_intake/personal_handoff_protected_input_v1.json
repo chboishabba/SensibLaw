@@ -1,0 +1,61 @@
+{
+  "source_label": "fixture:personal_handoff_protected_input_v1",
+  "notes": "Bounded protected-disclosure fixture for workplace integrity handoff.",
+  "recipient_profile": "lawyer",
+  "handoff": {
+    "local_only": false,
+    "do_not_sync": false,
+    "retention_policy": "personal_local_only_v1",
+    "redaction_policy": "scoped_export_v1",
+    "protected_disclosure": {
+      "enabled": true,
+      "disclosure_level": "workplace_integrity_v1",
+      "envelope_policy": "protected_disclosure_local_only_v1",
+      "handling_notice": "Protected workplace-integrity material must remain local-only and scoped to legal or regulatory recipients.",
+      "allowed_recipient_profiles": ["lawyer", "regulator"]
+    }
+  },
+  "entries": [
+    {
+      "unit_id": "w1",
+      "source_id": "personal_note",
+      "source_type": "personal_note",
+      "text": "I recorded the sequence immediately after the meeting because I was worried about later retaliation.",
+      "share_with": ["lawyer", "advocate", "regulator"],
+      "text_export_policy": "full"
+    },
+    {
+      "unit_id": "w2",
+      "source_id": "incident_note",
+      "source_type": "personal_note",
+      "text": "I believe the procurement direction may have been improper, but I am not ready to circulate this beyond protected recipients.",
+      "share_with": ["lawyer", "advocate", "regulator"],
+      "text_export_policy": "redact",
+      "protected_disclosure_only": true,
+      "protected_disclosure_reason": "potential workplace retaliation risk"
+    },
+    {
+      "unit_id": "w3",
+      "source_id": "documentary_record",
+      "source_type": "documentary_record",
+      "text": "The email chain confirms the date and attendees for the procurement meeting.",
+      "share_with": ["lawyer", "regulator"],
+      "text_export_policy": "full"
+    }
+  ],
+  "observations": [
+    {
+      "unit_id": "w3",
+      "predicate_key": "event_date",
+      "object_text": "2026-02-14",
+      "object_type": "date"
+    }
+  ],
+  "reviews": [
+    {
+      "unit_id": "w2",
+      "review_status": "needs_followup",
+      "note": "Protected allegation should remain provisional until documentary support is assembled."
+    }
+  ]
+}

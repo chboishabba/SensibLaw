@@ -1,0 +1,80 @@
+{
+  "source_label": "fixture:protected_disclosure_input_v1",
+  "notes": "Protected disclosure fixture for workplace integrity handoff.",
+  "recipient_profile": "lawyer",
+  "handoff": {
+    "mode": "protected_disclosure_envelope_v1",
+    "export_boundary": "metadata_only",
+    "retaliation_risk_level": "high",
+    "local_case_ref": "case-local-17",
+    "protected_disclosure": {
+      "enabled": true,
+      "disclosure_level": "workplace_integrity_v1",
+      "envelope_policy": "protected_disclosure_local_only_v1",
+      "handling_notice": "Protected workplace-integrity material must remain local-only and scoped to legal or regulatory recipients.",
+      "allowed_recipient_profiles": ["lawyer", "regulator"]
+    }
+  },
+  "entries": [
+    {
+      "unit_id": "pd1",
+      "source_id": "source-a",
+      "source_type": "personal_note",
+      "text": "I wrote the full account immediately after the meeting.",
+      "local_handle": "note://pd1",
+      "envelope_summary": "Personal chronology note created immediately after meeting",
+      "identity_policy": "withheld",
+      "share_with": ["lawyer", "regulator"],
+      "envelope_export_policy": "metadata_only"
+    },
+    {
+      "unit_id": "pd2",
+      "source_id": "source-a",
+      "source_type": "personal_note",
+      "text": "I believe the procurement direction may have been improper.",
+      "local_handle": "note://pd2",
+      "envelope_summary": "Potential procurement impropriety allegation requiring document corroboration",
+      "identity_policy": "pseudonymous",
+      "share_with": ["lawyer", "advocate", "regulator"],
+      "envelope_export_policy": "metadata_only",
+      "protected_disclosure_only": true,
+      "protected_disclosure_reason": "potential workplace retaliation risk"
+    },
+    {
+      "unit_id": "pd3",
+      "source_id": "source-b",
+      "source_type": "documentary_record",
+      "text": "The email thread confirms the meeting date and attendees.",
+      "local_handle": "record://pd3",
+      "envelope_summary": "Documentary record confirming meeting date and attendees",
+      "identity_policy": "named",
+      "share_with": ["lawyer", "regulator"],
+      "envelope_export_policy": "metadata_only"
+    },
+    {
+      "unit_id": "pd4",
+      "source_id": "source-c",
+      "source_type": "personal_note",
+      "text": "This note omits a share_with list and should stay deny-by-default.",
+      "local_handle": "note://pd4",
+      "envelope_summary": "Personal note withheld pending explicit recipient scope",
+      "identity_policy": "withheld",
+      "envelope_export_policy": "metadata_only"
+    }
+  ],
+  "observations": [
+    {
+      "unit_id": "pd3",
+      "predicate_key": "event_date",
+      "object_text": "2026-02-14",
+      "object_type": "date"
+    }
+  ],
+  "reviews": [
+    {
+      "unit_id": "pd2",
+      "review_status": "needs_followup",
+      "note": "Keep provisional until documentary corroboration is assembled."
+    }
+  ]
+}

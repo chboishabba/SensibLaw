@@ -31,7 +31,7 @@ def test_transcript_fact_review_script_bundle_emits_review_bundle(tmp_path, caps
     assert exit_code == 0
     assert payload["version"] == "fact.review.bundle.v1"
     assert payload["run"]["workflow_link"]["workflow_kind"] == "transcript_semantic"
-    assert payload["summary"]["fact_count"] == 3
+    assert payload["summary"]["fact_count"] == 2
     assert payload["summary"]["event_count"] >= 1
     assert "operator_views" in payload
     assert any(row["event_type"] == "communication" for row in payload["events"])

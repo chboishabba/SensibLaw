@@ -9,6 +9,35 @@
 - Provisional review rows: `38`
 - Provisional review bundles: `11`
 
+## Normalized Metrics
+
+- Review-item statuses: accepted `7`, review_required `6`, held `0`
+- Source statuses: accepted `37`, review_required `11`, held `0`
+- Dominant primary workload: `linkage_pressure`
+- Primary workload counts:
+  - `structural_pressure` `0`
+  - `governance_pressure` `0`
+  - `linkage_pressure` `8`
+  - `event_or_time_pressure` `3`
+  - `evidence_pressure` `0`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Workload presence counts:
+  - `structural_pressure` `0`
+  - `governance_pressure` `0`
+  - `linkage_pressure` `8`
+  - `event_or_time_pressure` `3`
+  - `evidence_pressure` `0`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Review-required source ratio: `0.229167`
+- Candidate signal count: `38`
+- Candidate signal density: `3.454545`
+- Provisional queue rows: `38`
+- Provisional row density: `3.454545`
+- Provisional bundles: `11`
+- Provisional bundle density: `1.000000`
+
 ## Top Provisional Review Bundles
 
 - `#1` `family_summary:checked_handoff` anchors `2` top-score `16`

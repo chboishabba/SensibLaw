@@ -1,6 +1,300 @@
 # Changelog
 
 ## Unreleased
+- First metadata-only protected-disclosure envelope:
+  - Added `src/fact_intake/protected_disclosure_envelope.py` and
+    `scripts/build_protected_disclosure_envelope.py` to implement a separate
+    protected-disclosure artifact that does not persist or rehydrate the
+    `fact_intake` read-model surfaces.
+  - Added fixture-backed coverage in
+    `tests/test_protected_disclosure_envelope.py` plus
+    `tests/fixtures/fact_intake/protected_disclosure_input_v1.json` to assert
+    deny-by-default scoping, scope-mismatch exclusions, and non-leakage of raw
+    entry/review/observation text.
+  - Updated the planning note, implementation-coverage audit, and TODO wording
+    so the repo now distinguishes the full-text personal handoff report from
+    the safer metadata-only protected-disclosure envelope.
+- First bounded personal handoff implementation:
+  - Added `src/fact_intake/personal_handoff_bundle.py` and
+    `scripts/build_personal_handoff_bundle.py` to implement the first
+    CLI/artifact-first private day-to-escalation lane over the existing
+    `fact_intake` substrate.
+  - The new path supports recipient-scoped lawyer/doctor/advocate/regulator
+    exports, explicit exclusions, text redaction markers, and local-only /
+    do-not-sync metadata while preserving fact/review/operator-view outputs.
+  - Added fixture-backed coverage in `tests/test_personal_handoff_bundle.py`
+    plus a bounded input fixture under `tests/fixtures/fact_intake/`.
+  - Updated the planning note, implementation-coverage audit, and TODO wording
+    so docs now reflect that the first bounded contract is implemented rather
+    than merely planned.
+- Wikimedia prior-work and originality note:
+  - Added `docs/planning/wikimedia_prior_work_and_originality_note_20260326.md`
+    to govern how the Wikimedia grant/demo lane should describe prior work,
+    novelty, method overlap, and forbidden wording.
+  - The note explicitly separates:
+    - Rosario/IBM benchmark framing
+    - Ege Doğan / Peter Patel-Schneider disjointness method context
+    - Shixiong Zhao / Hideaki Takeda hierarchy-inconsistency context
+    - bounded repo-original contribution claims
+  - Updated the grant framing note, Rapid Fund draft, bounded demo spec,
+    attribution matrix, `COMPACTIFIED_CONTEXT.md`, and `todo.md` so final
+    submission wording now has one explicit originality rule surface.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Wikimedia submission-safe re-ranking:
+  - Re-ranked the grant demo so the foreground story now rides on the safest
+    repo-owned structural packs:
+    mixed-order, `P279` SCC, pinned qualifier drift, and bounded disjointness.
+  - Demoted the `GNU` / `GNU Project` and finance entity-kind-collapse cases to
+    attributed secondary appendix examples rather than lead evidence.
+  - Locked the foreground demo inputs to exact fixture/revision artifacts in
+    `docs/planning/wikimedia_bounded_demo_spec_20260326.md`.
+  - Chose and documented a reviewer route:
+    preferred `1-2` Wikidata/ontology-adjacent reviewers, fallback `1-2`
+    technically adjacent reviewers.
+  - Updated the Rapid Fund draft, framing note, `COMPACTIFIED_CONTEXT.md`, and
+    `todo.md` so the remaining grant work is now mostly confirmation/final-entry
+    work rather than proposal-structure work.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- User-story implementation coverage audit:
+  - Added
+    `docs/planning/user_story_implementation_coverage_20260326.md` to record
+    which story families already have repo-backed code/fixtures/tests and
+    which remain aspirational or only partially covered.
+  - Updated `docs/user_stories.md` so it explicitly points readers to the
+    implementation-coverage note rather than implying all stories are already
+    implemented.
+  - Added TODOs for the main unimplemented lanes surfaced by the audit:
+    private day-to-escalation tooling, whistleblower-safe envelopes,
+    provenance-only integrator contracts, community/disability intake,
+    annotation/QA workbench, field inspection offline capture, and
+    research/publication adapters.
+  - Updated `COMPACTIFIED_CONTEXT.md` to preserve the honest claim boundary.
+  - No code paths changed; this was a docs/TODO/changelog alignment pass.
+- Wikimedia attribution matrix:
+  - Added `docs/planning/wikimedia_demo_attribution_matrix_20260326.md` to
+    separate case/example lineage from repo contribution for the Wikimedia
+    grant/demo lane.
+  - The matrix records the safest current reading that the clearest GNU-adjacent
+    case in the same hotspot/page-review wave is
+    `finance_entity_kind_collapse_pack_v0`, and that both should be treated
+    cautiously as attributed examples rather than as repo-original discoveries
+    unless stronger provenance later says otherwise.
+  - Updated the grant framing note, bounded demo spec, Rapid Fund draft,
+    `COMPACTIFIED_CONTEXT.md`, and `todo.md` so attribution guidance now points
+    to one explicit repo-local matrix.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Public-servant and community-advocacy crossover expansion:
+  - Extended `docs/user_stories.md` with explicit stories for public servants
+    witnessing suspected wrongdoing, disability/advocacy organizations, private
+    individuals handing off to community/disability supports, private workers
+    moving toward integrity processes, and community organizations translating
+    bounded evidence to lawyers/regulators/media.
+  - This fills a real gap left by the earlier generic government and NGO
+    stories: protected disclosure, advocacy intake, and institutional handoff
+    are now first-class boundary-sensitive use cases.
+  - No code paths changed; this was a docs-only expansion.
+- Additional crossovers and single-journey stories:
+  - Added to `docs/user_stories.md` a personal day→escalation journey, data
+    labeling/annotation team stories, education/research capture→publication,
+    SDK/API integrator provenance-only use, and field safety/inspection
+    offline-first use.
+  - These tighten coverage for partial-stack adopters (provenance-only, offline
+    capture) and review-heavy teams (labeling/QA) while preserving the same
+    provenance/abstention doctrine.
+  - No code paths changed; docs-only.
+- Private ↔ institutional crossover user stories:
+  - Extended `docs/user_stories.md` with crossover stories for selective
+    handoff from private users to lawyers/advocates, care teams,
+    journalists/watchdogs, regulators/ombuds, insurers/claims handlers,
+    employers/HR/unions, trusted circles, and institutional counterparties.
+  - This closes the main gap between the private-user map and the existing
+    institutional/professional personas by making boundary-preserving export
+    and translation explicit.
+  - No code paths changed; this was a docs-only expansion.
+- Wikimedia attribution hardening:
+  - Tightened the grant/demo surfaces so the `GNU` / `GNU Project` example is
+    treated as an attributed reviewed case rather than a repo-original
+    discovery.
+  - Tightened the disjointness wording so the broader `P2738` method/problem
+    context is explicitly credited to Ege Doğan and Peter Patel-Schneider,
+    while repo claims stay on the narrower fixture-backed implementation and
+    review surfaces.
+  - Updated `COMPACTIFIED_CONTEXT.md` and `todo.md` so attribution discipline is
+    now a first-class pre-submission requirement for the Wikimedia proposal
+    lane.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Personal/private user-story expansion:
+  - Extended `docs/user_stories.md` with a `Personal/private client map`
+    covering personal capture, timeline/reconstruction, bounded
+    obligations/reference, reporting/export, provenance/receipts, local-first,
+    and private-to-professional boundary use.
+  - Updated `COMPACTIFIED_CONTEXT.md` to make the associated documentation rule
+    explicit: private users are first-class, but repo-facing examples stay
+    generalized and should not be collapsed into institutional-style
+    compliance/reporting language.
+  - Added a TODO to keep future packaging and UX notes explicit about the
+    difference between private-user surfaces and institutional reporting
+    surfaces.
+  - No code paths changed; this was a docs/TODO/changelog alignment pass.
+- Partial-stack client map:
+  - Added a new `Partial-stack client map` section to
+    `docs/user_stories.md` so the docs now cover who might use capture,
+    timeline/reconstruction, obligations/reference, review-queue, reporting,
+    provenance, or local-first layers independently.
+  - This makes the commercial/user-story surface less suite-bound and more
+    realistic about single-layer adoption paths.
+  - No code paths changed; this was a docs-only packaging and positioning
+    refinement.
+- Delivery / assurance user-story expansion:
+  - Extended `docs/user_stories.md` with the missing operational personas that
+    sit between product fit and deployment reality: sales/BD, customer
+    success/implementation, data/integration engineering, external counsel, and
+    regulator/auditor as primary users.
+  - The added stories keep the same doctrine as the rest of the file: explicit
+    statuses, visible absences, no silent promotion, and no conversion of
+    bounded review surfaces into hidden authority.
+  - No code paths changed; this was a documentation coverage expansion.
+- Aptos thread user-story extraction:
+  - Expanded `docs/user_stories.md` with the thread-backed operator stories that
+    were implicit in the `Aptos cryptocurrency overview` discussion.
+  - Added crypto founder/product, crypto diligence analyst, compliance/regtech
+    analyst, exchange/wallet risk operator, real-time alert reviewer,
+    institutional buyer/integration lead, Mirror-like partner platform, NGO
+    campaign coordinator, and community legal/casework stories.
+  - Added a second synthesis pass for institutional-token/compliance use cases:
+    institutional investor, token classification analyst, regulatory
+    applicability mapper, market stress/bad-day reviewer, and executive/client
+    report consumer.
+  - The new stories keep the existing doctrine intact: explicit status, visible
+    absences, no silent promotion, and no black-box escalation from candidate
+    pattern to accepted truth.
+  - No code paths changed; this was a documentation extraction pass from the
+    archived thread.
+- Mirror / Glasslane positioning context refresh:
+  - Re-read the archived `Aptos cryptocurrency overview` thread from the local
+    chat DB and tightened the repo context/TODO wording around the existing
+    Mirror packaging slice.
+  - Added the thread-backed market/stage read that Mirror / Glasslane currently
+    presents as tiny, founder-led, pre-PMF, and Discord/chatbot-first, with a
+    visible audience mix that is looser than the stated professional target.
+  - Recorded the thread's NFT/token monetization discussion as part of the
+    packaging context so future drafts keep the provenance/governance layer
+    differentiation explicit.
+  - No code paths changed; this was a docs/TODO/changelog alignment pass.
+- Cross-lane normalized review metrics:
+  - Added `scripts/review_geometry_normalization.py` and threaded
+    `normalized_metrics_v1` into the AU affidavit coverage review, checked/dense
+    Wikidata structural review, and checked/broader GWB review artifacts.
+  - Added
+    `tests/fixtures/zelph/review_geometry_normalized_summary_v1/review_geometry_normalized_summary_v1.{json,summary.md}`
+    as the first generated cross-lane comparison surface over AU, Wikidata,
+    and GWB review checkpoints.
+  - The new normalized layer is additive: existing lane-local counts and
+    ranking scores remain intact, while comparable status/workload/density
+    metrics now sit beside them.
+  - Added fixture-backed tests for the normalized metric layer and the new
+    comparison artifact.
+- Wikimedia bounded-demo collapse:
+  - Added `docs/planning/wikimedia_bounded_demo_spec_20260326.md` to choose the
+    concrete grant-demo subset, target properties, review-class definitions,
+    and evaluation baseline from existing repo-backed Wikidata artifacts.
+  - The chosen proposal story is now a hybrid of:
+    - article-backed entity-kind review on `GNU` / `GNU Project`
+      (`Q44571` / `Q7598`) for `P31` / `P279` / `P527`
+    - pinned structural validation on `Q100104196|P166`,
+      `Q100152461|P54`, `fixed_construction_contradiction`, and
+      `working_fluid_contradiction`
+  - Updated the Rapid Fund draft so it now cites the exact bounded demo scope,
+    uses manual bounded review plus the current repo checked-review process as
+    its baseline, and names concrete reviewer-facing pain points instead of
+    generic Wikidata quality language.
+  - Added a Wikimedia/Wikidata contributor user story to
+    `docs/user_stories.md` so the grant story stays governed by the same
+    provenance/no-silent-promotion doctrine as the rest of the repo.
+  - Updated `README.md`, `docs/wikidata_working_group_status.md`,
+    `COMPACTIFIED_CONTEXT.md`, and `todo.md` to reflect that demo-scope and
+    baseline selection are now done at the draft level.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Wikimedia submission-hardening pass:
+  - Upgraded `docs/planning/wikimedia_rapid_fund_draft_20260326.md` from a
+    generic Rapid Fund draft into a Wikimedia-style application artifact with
+    explicit project-summary/problem/solution/support/users/activities/outputs
+    fields.
+  - Added reviewer-facing evaluation metrics, acceptance criteria, evaluation
+    plan, and a short risk/mitigation section so the draft is closer to
+    submission-ready and less dependent on ad hoc later rewriting.
+  - Updated the framing note, `README.md`, `COMPACTIFIED_CONTEXT.md`, and
+    `todo.md` so the repo now treats evaluation-metric design as done at the
+    draft level and the next steps as subset/baseline selection plus exact
+    submission-field translation.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Wikimedia proposal draft formalization:
+  - Added `docs/planning/wikimedia_rapid_fund_draft_20260326.md` as the first
+    concrete repo-local Rapid Fund-ready draft for the bounded Wikidata lane.
+  - The draft includes a full proposal skeleton plus a ZKP
+    (`O,R,C,S,L,P,G,F`) formalization so the external Wikimedia-facing pitch
+    and the internal system model stay aligned.
+  - Updated the grant framing note, `README.md`,
+    `docs/wikidata_working_group_status.md`, `COMPACTIFIED_CONTEXT.md`, and
+    `todo.md` so the repo now points to one explicit draft artifact and treats
+    Meta/Fluxx field translation plus evaluation metrics as the next proposal
+    step.
+  - No code paths changed; this was a documentation/TODO/changelog alignment
+    pass.
+- Wikimedia grant framing alignment:
+  - Added `docs/planning/wikimedia_grant_framing_20260326.md` to separate
+    external Wikimedia funding/program framing from the repo's internal
+    Wikidata review-surface status.
+  - Documented the current outward-facing recommendation as a bounded
+    provenance-aware Wikidata validation/ingestion tool, with Rapid Fund as the
+    first practical proposal shape and Research Fund as the more
+    methodology-heavy alternative.
+  - Updated `README.md`, `docs/wikidata_working_group_status.md`,
+    `COMPACTIFIED_CONTEXT.md`, and `todo.md` so funding/proposal discussion now
+    points at one explicit note instead of being implied through the internal
+    status docs.
+  - No code paths changed; this was a docs/TODO/changelog consistency update.
+- Cross-lane review-geometry parity documentation:
+  - Added `../docs/planning/review_geometry_parity_20260326.md` to capture the
+    current operator-facing review geometry across AU, Wikidata, and GWB,
+    including a plain-language reading of the new checked/dense Wikidata review
+    artifacts and the checked/broader GWB review artifacts.
+  - Updated `docs/wikidata_working_group_status.md`, `COMPACTIFIED_CONTEXT.md`,
+    and `todo.md` so the repo now records the active Wikidata review surfaces
+    explicitly and treats normalized cross-lane workload/ranking metrics as the
+    next step rather than jumping straight to shared-core extraction.
+  - Clarified after an online funding check that external Wikimedia grant state
+    is separate from the repo's internal review-surface status: current docs no
+    longer imply there is one simple repo-local list of "active Wikidata
+    grants", and instead distinguish open movement funding paths from active
+    diagnostics/review surfaces.
+- Wikidata structural review parity:
+  - Added `scripts/build_wikidata_structural_review.py` plus
+    `tests/test_wikidata_structural_review.py` and generated
+    `tests/fixtures/zelph/wikidata_structural_review_v1/`.
+  - Added `scripts/build_wikidata_dense_structural_review.py` plus
+    `tests/test_wikidata_dense_structural_review.py` and generated
+    `tests/fixtures/zelph/wikidata_dense_structural_review_v1/`.
+  - The checked review turns the bounded handoff into a compact queue of named
+    structural disputes and governance-held hotspot review, while the dense
+    review expands that same queue into a larger raw structural evidence
+    surface.
+- GWB review parity:
+  - Added `scripts/build_gwb_public_review.py` plus
+    `tests/test_gwb_public_review.py` and generated
+    `tests/fixtures/zelph/gwb_public_review_v1/`.
+  - Added `scripts/build_gwb_broader_review.py` plus
+    `tests/test_gwb_broader_review.py` and generated
+    `tests/fixtures/zelph/gwb_broader_review_v1/`.
+  - The checked GWB review now makes topical bleed and linkage pressure visible
+    as row-level review work, while the broader review surfaces cross-family
+    workload pressure above the existing broader corpus checkpoint.
 - Checked AU dense affidavit-coverage artifact:
   - Added `scripts/build_au_dense_affidavit_coverage_review.py` plus
     `tests/test_au_dense_affidavit_coverage_review.py` and the checked fixture

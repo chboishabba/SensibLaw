@@ -8,6 +8,19 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+try:
+    from scripts.review_geometry_profiles import get_normalized_profile
+    from scripts.review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+except (ModuleNotFoundError, ImportError):
+    from review_geometry_profiles import get_normalized_profile
+    from review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+
 
 ARTIFACT_VERSION = "affidavit_coverage_review_v1"
 _PARTIAL_MATCH_THRESHOLD = 0.3
@@ -847,6 +860,32 @@ def build_affidavit_coverage_review(
         coveredish / summary["affidavit_proposition_count"], 6
     ) if summary["affidavit_proposition_count"] else 0.0
 
+    source_kind = str(source_meta.get("source_kind") or "").strip()
+    lane_variant = "review"
+    artifact_id = f"au_review_{ARTIFACT_VERSION}"
+    if source_kind == "au_checked_handoff_slice":
+        lane_variant = "narrow"
+        artifact_id = f"au_narrow_{ARTIFACT_VERSION}"
+    elif source_kind == "au_dense_overlay_slice":
+        lane_variant = "dense"
+        artifact_id = f"au_dense_{ARTIFACT_VERSION}"
+
+    normalized_metrics_v1 = compute_normalized_metrics_from_profile(
+        profile=get_normalized_profile("au"),
+        artifact_id=artifact_id,
+        lane_family="au",
+        lane_variant=lane_variant,
+        review_item_rows=affidavit_rows,
+        source_review_rows=source_review_rows,
+        candidate_signal_count=sum(
+            len(row["candidate_anchors"])
+            for row in source_review_rows
+            if row["review_status"] == "missing_review"
+        ),
+        provisional_queue_row_count=len(provisional_structured_anchors),
+        provisional_bundle_count=len(provisional_anchor_bundles),
+    )
+
     return {
         "version": ARTIFACT_VERSION,
         "fixture_kind": "affidavit_coverage_review",
@@ -864,6 +903,7 @@ def build_affidavit_coverage_review(
         "related_review_clusters": related_review_clusters,
         "provisional_structured_anchors": provisional_structured_anchors,
         "provisional_anchor_bundles": provisional_anchor_bundles,
+        "normalized_metrics_v1": normalized_metrics_v1,
     }
 
 
@@ -904,6 +944,13 @@ def build_summary_markdown(payload: Mapping[str, Any]) -> str:
         "- `covered` and `partial` describe segment-aware lexical/source alignment only in this bounded lane.",
         "- `missing_review`, `contested_source`, and `abstained_source` remain operator-review statuses rather than automatic filing conclusions.",
     ]
+    normalized_metrics = (
+        payload.get("normalized_metrics_v1", {})
+        if isinstance(payload.get("normalized_metrics_v1"), Mapping)
+        else {}
+    )
+    if normalized_metrics:
+        lines.extend(["", *render_normalized_metrics_markdown(normalized_metrics)])
     clusters = payload.get("related_review_clusters", [])
     if isinstance(clusters, list) and clusters:
         lines.extend(

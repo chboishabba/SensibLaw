@@ -14,6 +14,11 @@ if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
 from scripts.build_wikidata_structural_handoff import _build_slice
+from scripts.review_geometry_profiles import get_normalized_profile
+from scripts.review_geometry_normalization import (
+    compute_normalized_metrics_from_profile,
+    render_normalized_metrics_markdown,
+)
 
 
 ARTIFACT_VERSION = "wikidata_structural_review_v1"
@@ -473,6 +478,11 @@ def build_review_artifact(output_dir: Path) -> dict[str, Any]:
     provisional_review_bundles = _make_bundles(provisional_review_rows, source_review_rows)
 
     workload_counts = Counter(row["workload_class"] for row in source_review_rows)
+    review_required_source_ids = {
+        row["source_row_id"]
+        for row in source_review_rows
+        if row["review_status"] == "review_required"
+    }
     payload = {
         "version": ARTIFACT_VERSION,
         "source_handoff_version": slice_payload["version"],
@@ -501,6 +511,21 @@ def build_review_artifact(output_dir: Path) -> dict[str, Any]:
             ),
         },
     }
+    payload["normalized_metrics_v1"] = compute_normalized_metrics_from_profile(
+        profile=get_normalized_profile("wikidata"),
+        artifact_id="wikidata_checked_structural_review_v1",
+        lane_family="wikidata",
+        lane_variant="checked",
+        review_item_rows=review_item_rows,
+        source_review_rows=source_review_rows,
+        candidate_signal_count=sum(
+            1
+            for cue in candidate_structural_cues
+            if cue["source_row_id"] in review_required_source_ids
+        ),
+        provisional_queue_row_count=len(provisional_review_rows),
+        provisional_bundle_count=len(provisional_review_bundles),
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
@@ -530,10 +555,11 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
         f"- governance_gap: {summary['governance_gap_count']}",
         f"- qualifier_drift_gap: {summary['qualifier_drift_gap_count']}",
         f"- structural_contradiction: {summary['structural_contradiction_count']}",
-        "",
-        "## Related Review Clusters",
-        "",
     ]
+    normalized_metrics = payload.get("normalized_metrics_v1", {})
+    if isinstance(normalized_metrics, dict) and normalized_metrics:
+        lines.extend(["", *render_normalized_metrics_markdown(normalized_metrics)])
+    lines.extend(["", "## Related Review Clusters", ""])
     for cluster in payload["related_review_clusters"]:
         rollup_text = ", ".join(
             f"{key} ({value})" for key, value in sorted(cluster["candidate_cue_rollup"].items())

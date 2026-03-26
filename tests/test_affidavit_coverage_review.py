@@ -115,6 +115,24 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert all("priority_rank" in row and "priority_score" in row for row in payload["provisional_structured_anchors"])
     assert payload["provisional_anchor_bundles"][0]["source_row_id"] == "fact:f4"
     assert payload["provisional_anchor_bundles"][0]["anchor_count"] == 2
+    normalized = payload["normalized_metrics_v1"]
+    assert normalized["lane_family"] == "au"
+    assert normalized["review_item_status_counts"] == {
+        "accepted": 1,
+        "review_required": 1,
+        "held": 1,
+    }
+    assert normalized["source_status_counts"] == {
+        "accepted": 1,
+        "review_required": 1,
+        "held": 2,
+    }
+    assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 1
+    assert normalized["workload_presence_counts"]["event_or_time_pressure"] == 1
+    assert normalized["candidate_signal_count"] == 2
+    assert normalized["provisional_queue_row_count"] == 2
+    assert normalized["provisional_bundle_count"] == 1
+    assert normalized["review_required_source_ratio"] == 0.25
 
 
 def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
@@ -157,7 +175,9 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     payload = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert payload["version"] == "affidavit_coverage_review_v1"
     assert payload["summary"]["covered_count"] == 1
+    assert payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
     assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
+    assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")
 
 
 def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_source_rows() -> None:

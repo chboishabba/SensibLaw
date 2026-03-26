@@ -16,11 +16,21 @@ shared handoff.
 ## Current focus
 - bounded slice now includes structural `P31` / `P279` review plus phase-2
   qualifier drift on bounded qualifier-bearing properties
+- checked and dense review-geometry surfaces now exist above the structural
+  handoff:
+  - checked review:
+    `tests/fixtures/zelph/wikidata_structural_review_v1/`
+  - dense review:
+    `tests/fixtures/zelph/wikidata_dense_structural_review_v1/`
 - parthood pilot pack (`P361`/`P527`) now has a pinned fixture + expected
   projection under `tests/fixtures/wikidata/parthood_pilot_pack_20260308`
 - importer-backed parthood/mereology pack now also exists under
   `tests/fixtures/wikidata/parthood_imported_pack_20260308`
 - goal is deterministic diagnostics and review support, not ontology fixes
+- external grant/proposal framing is now documented separately from internal
+  lane status:
+  - if funding work becomes active, frame this as a provenance-aware Wikidata
+    validation/ingestion tool, not as funding for the abstract SL/ITIR stack
 - qualifier drift is now active in bounded form
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
@@ -64,8 +74,20 @@ shared handoff.
 ## Current artifacts
 - Checked structural handoff:
   - `tests/fixtures/zelph/wikidata_structural_handoff_v1/`
+- Checked structural review:
+  - `tests/fixtures/zelph/wikidata_structural_review_v1/`
+- Dense structural review:
+  - `tests/fixtures/zelph/wikidata_dense_structural_review_v1/`
 - Checked structural handoff note:
   - `../../docs/planning/wikidata_structural_handoff_v1_20260325.md`
+- Cross-lane review parity note:
+  - `../../docs/planning/review_geometry_parity_20260326.md`
+- Wikimedia grant framing note:
+  - `docs/planning/wikimedia_grant_framing_20260326.md`
+- Wikimedia Rapid Fund draft:
+  - `docs/planning/wikimedia_rapid_fund_draft_20260326.md`
+- Wikimedia bounded demo spec:
+  - `docs/planning/wikimedia_bounded_demo_spec_20260326.md`
 - Hotspot benchmark roadmap:
   - `../../docs/planning/wikidata_hotspot_benchmark_lane_20260325.md`
 - Hotspot pack contract:
@@ -283,6 +305,15 @@ The report now exposes:
   - `medium`: qualifier signature change without property-set change
   - `low`: entropy-only change
 - `review_summary` for working-group triage
+- checked review geometry:
+  - `review_item_rows`
+  - `source_review_rows`
+  - `related_review_clusters`
+  - `candidate_structural_cues`
+  - `provisional_review_rows`
+  - `provisional_review_bundles`
+- dense review geometry:
+  - same operator surfaces over a larger raw structural source-row substrate
 - 2026-03-08 live validation note (outside sandbox): the latest full scan run
   reproduced `Q1000498|P166` (`2457306419 -> 2457306429`) as the first
   confirmed medium candidate from a fresh candidate run.
@@ -290,6 +321,20 @@ The report now exposes:
 ## Current decisions
 - `P31` / `P279` efficacy is proven at medium gate.
 - Qualifier drift is the active next phase.
+- Active Wikidata diagnostics/review surfaces are now:
+  - qualifier drift
+  - hotspot governance / held-pack review
+  - `P2738` disjointness contradiction review
+  - checked structural review
+  - dense structural review
+- Current checked-review reading is compact and legible:
+  - `fixed_construction_contradiction`
+  - `working_fluid_contradiction`
+  - held hotspot pack `software_entity_kind_collapse_pack_v0`
+  - qualifier drift case `Q100104196|P166`
+- Current dense-review reading keeps the same focus items but expands them into
+  a larger structural evidence queue rather than flattening them back into a
+  status-only note.
 - Pinned live pack stays on `Q100104196|P166` + `Q100152461|P54` for now for
   reproducibility, while fresh live candidates are tracked separately.
 - Current review assumption for active Wikidata diagnostics: use the newest pinned
@@ -297,6 +342,24 @@ The report now exposes:
   running explicit historical backtracking on every pass; historical review is
   still available when it materially helps to disambiguate stability versus
   reversion.
+- External grant/funding check note (online, 2026-03-26):
+  - do not collapse external Wikimedia funding into one implied repo-local list
+    of "active Wikidata grants"; the online grant surface is broader and more
+    fragmented than that
+  - confirmed current open/active funding surfaces that can support Wikidata
+    work include:
+    - Wikimedia Research Fund 2026 call on Meta-Wiki
+    - Wikimedia CEE Hub microgrants, open since 2026-02-02
+  - confirmed recent Wikidata-specific grant pages reviewed online:
+    - `Wikidata Ontology Course` was funded, but its funded period ran in 2025
+      and its final report is already accepted
+    - `Wikidata for the People of Africa` was funded, but its listed dates end
+      on 2025-06-30
+    - `Wikidata Mereology Task Force` reviewed page is not funded
+  - practical reading:
+    - current repo planning should treat external funding as an adjacent
+      coordination surface, not as an already-materialized active grant lane
+      inside SensibLaw
 - Historical rewind is now a trigger-based follow-up, not a default mode:
   - confirmed case from previous run disappears in a newer confirmed run,
   - severity for a focus pair changes materially between runs, or

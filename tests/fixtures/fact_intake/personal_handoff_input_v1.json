@@ -1,0 +1,68 @@
+{
+  "source_label": "fixture:personal_handoff_input_v1",
+  "notes": "Bounded private day-to-escalation fixture for lawyer handoff.",
+  "recipient_profile": "lawyer",
+  "handoff": {
+    "local_only": true,
+    "do_not_sync": false,
+    "retention_policy": "personal_local_only_v1",
+    "redaction_policy": "scoped_export_v1"
+  },
+  "entries": [
+    {
+      "unit_id": "p1",
+      "source_id": "day_log",
+      "source_type": "personal_note",
+      "text": "I wrote down the sequence as I remembered it after the appointment.",
+      "share_with": ["lawyer", "advocate"],
+      "text_export_policy": "full"
+    },
+    {
+      "unit_id": "p2",
+      "source_id": "records",
+      "source_type": "documentary_record",
+      "text": "The discharge paper confirms the date and medication change.",
+      "share_with": ["lawyer", "doctor", "regulator"],
+      "text_export_policy": "full"
+    },
+    {
+      "unit_id": "p3",
+      "source_id": "therapist",
+      "source_type": "professional_note",
+      "text": "Therapist note keeps the account provisional and records unresolved gaps.",
+      "share_with": ["lawyer", "doctor"],
+      "text_export_policy": "redact"
+    },
+    {
+      "unit_id": "p4",
+      "source_id": "private_journal",
+      "source_type": "personal_note",
+      "text": "Private journal entry not yet ready for legal export.",
+      "share_with": ["doctor"],
+      "text_export_policy": "full"
+    }
+  ],
+  "observations": [
+    {
+      "unit_id": "p2",
+      "predicate_key": "event_date",
+      "object_text": "2025-07-04",
+      "object_type": "date"
+    },
+    {
+      "unit_id": "p3",
+      "predicate_key": "sequence_marker",
+      "object_text": "timeline still incomplete",
+      "object_type": "note",
+      "observation_status": "abstained",
+      "signal_classes": ["uncertainty_preserved", "not_enough_evidence"]
+    }
+  ],
+  "reviews": [
+    {
+      "unit_id": "p3",
+      "review_status": "needs_followup",
+      "note": "Professional note should stay distinct from the original user-authored chronology."
+    }
+  ]
+}

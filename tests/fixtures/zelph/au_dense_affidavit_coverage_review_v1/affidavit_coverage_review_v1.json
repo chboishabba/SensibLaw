@@ -162,6 +162,47 @@
     }
   ],
   "fixture_kind": "affidavit_coverage_review",
+  "normalized_metrics_v1": {
+    "artifact_id": "au_dense_affidavit_coverage_review_v1",
+    "candidate_signal_count": 34,
+    "candidate_signal_density": 1.619048,
+    "dominant_primary_workload": "event_or_time_pressure",
+    "lane_family": "au",
+    "lane_variant": "dense",
+    "primary_workload_counts": {
+      "event_or_time_pressure": 21,
+      "evidence_pressure": 0,
+      "governance_pressure": 0,
+      "linkage_pressure": 0,
+      "normalization_pressure": 0,
+      "queue_pressure": 0,
+      "structural_pressure": 0
+    },
+    "provisional_bundle_count": 21,
+    "provisional_bundle_density": 1.0,
+    "provisional_queue_row_count": 34,
+    "provisional_row_density": 1.619048,
+    "review_item_status_counts": {
+      "accepted": 2,
+      "held": 0,
+      "review_required": 1
+    },
+    "review_required_source_ratio": 0.875,
+    "source_status_counts": {
+      "accepted": 3,
+      "held": 0,
+      "review_required": 21
+    },
+    "workload_presence_counts": {
+      "event_or_time_pressure": 42,
+      "evidence_pressure": 21,
+      "governance_pressure": 0,
+      "linkage_pressure": 0,
+      "normalization_pressure": 0,
+      "queue_pressure": 0,
+      "structural_pressure": 0
+    }
+  },
   "provisional_anchor_bundles": [
     {
       "anchor_count": 2,

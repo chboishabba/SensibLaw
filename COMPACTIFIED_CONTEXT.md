@@ -1,14 +1,105 @@
 # COMPACTIFIED_CONTEXT
 
 ## Purpose
-Compact snapshot of intent while applying the get-shit-done and update-docs-todo-implement workflows for S7–S9 execution.
+Compact snapshot of intent while aligning the new Zelph review-geometry parity
+work with docs, TODOs, and changelog state.
 
 ## Objective
-Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with docs/TODO sequencing and deterministic tests.
+Keep the new AU/Wikidata/GWB review artifacts documented in the same terms the
+repo now implements, and make the next cross-lane normalization step explicit.
 
 ## Near-term intent
-- Preserve span authority and read-only surfaces; do not add reasoning or compliance logic.
-- Keep Layer 3 regeneration deterministic and promotion gates auditable.
+- Preserve additive review builders above the existing handoff/checkpoint
+  artifacts; do not rewrite the old contracts.
+- Treat review-geometry parity as achieved, but shared metric vocabulary as the
+  next unresolved step.
+
+## Recent decisions (2026-03-26)
+- The repo now has review-geometry parity across AU, Wikidata, and GWB:
+  - review items
+  - source review rows
+  - unresolved clusters
+  - cues / anchors
+  - ranked provisional rows
+  - bundled review queues
+- Wikidata now has:
+  - checked structural review:
+    `tests/fixtures/zelph/wikidata_structural_review_v1/`
+  - dense structural review:
+    `tests/fixtures/zelph/wikidata_dense_structural_review_v1/`
+- GWB now has:
+  - checked public review:
+    `tests/fixtures/zelph/gwb_public_review_v1/`
+  - broader review:
+    `tests/fixtures/zelph/gwb_broader_review_v1/`
+- Current lane readings are now explicit in
+  `docs/planning/review_geometry_parity_20260326.md`.
+- The next architectural step is not immediate shared-code extraction.
+- The next architectural step is a normalized cross-lane summary block so AU,
+  Wikidata, and GWB metrics become directly comparable rather than only
+  shape-compatible.
+- External Wikimedia grant/funding state was checked online on 2026-03-26:
+  - there are active/open movement funding paths relevant to Wikidata work
+  - there is not one simple official "all active Wikidata grants" list
+  - repo docs should therefore separate external funding state from internal
+    review-surface status
+  - external grant framing should follow existing Wikimedia proposal patterns
+    rather than pitching the repo as an abstract SL/ITIR system
+  - the current bounded lane maps most naturally to:
+    - a provenance-aware Wikidata validation and ingestion tool
+    - Rapid Fund if scoped as a bounded tool/demo
+    - Research Fund if scoped as a methodology/evaluation project
+  - the next repo-facing artifact for this is
+    `docs/planning/wikimedia_grant_framing_20260326.md`
+  - a concrete repo-local Rapid Fund-ready draft plus ZKP formalization now
+    exists in:
+    `docs/planning/wikimedia_rapid_fund_draft_20260326.md`
+  - that draft has now been tightened into Wikimedia-style application fields
+    with explicit evaluation metrics, acceptance criteria, and risk/mitigation
+    notes so the next step is submission translation, not first-pass proposal
+    invention
+  - the bounded demo/evaluation collapse is now explicit in:
+    `docs/planning/wikimedia_bounded_demo_spec_20260326.md`
+  - chosen demo shape now uses:
+    - foreground repo-owned structural packs:
+      - mixed-order
+      - `P279` SCC
+      - pinned qualifier drift
+      - bounded disjointness
+    - secondary attributed appendix examples:
+      - `GNU` / `GNU Project`
+      - finance entity-kind-collapse
+  - chosen baseline is:
+    - primary: manual bounded review
+    - secondary: current repo checked-review process
+  - chosen reviewer route is:
+    - preferred: `1-2` Wikidata/ontology-adjacent reviewers
+    - fallback: `1-2` technically adjacent reviewers
+  - reviewer story should explicitly name:
+    - mixed-order class/instance confusion
+    - SCC/circular-subclass pressure
+    - qualifier drift
+    - structural contradiction review
+    - secondary appendix only: entity-kind collapse
+  - attribution discipline now needs to stay explicit in grant/demo docs:
+    - `GNU` / `GNU Project` should not be framed as a repo-original discovery
+    - broader `P2738` disjointness-method context should credit Ege Doğan and
+      Peter Patel-Schneider
+    - repo claims should stay on bounded fixture-backed implementation and
+      review surfaces
+  - attribution/case-lineage matrix for the Wikimedia demo lane now lives in:
+    `docs/planning/wikimedia_demo_attribution_matrix_20260326.md`
+  - the clearest explicit GNU-adjacent case to treat cautiously in the same
+    Rosario-shaped hotspot/page-review wave is:
+    `finance_entity_kind_collapse_pack_v0`
+  - prior-work/originality rule surface for the Wikimedia lane now lives in:
+    `docs/planning/wikimedia_prior_work_and_originality_note_20260326.md`
+  - current safe originality claim is bounded:
+    - prior work informs the benchmark/disjointness/hierarchy framing
+    - repo contribution is the provenance-aware, fixture-backed review/reporting
+      surface
+    - do not claim reproduction, parity, or first discovery without stronger
+      repo evidence
 
 ## Completed prior milestones
 - Sprint S5: actors, actions/objects, scopes, lifecycle, graph projection, stability hardening — shipped and flag-gated.
@@ -500,6 +591,12 @@ Close S7–S9 (TextSpan authority, cross-doc topology v2, read-only UI) with doc
 - Privacy rule for repo-facing docs: public-figure/public-media examples may be
   named, but private/family-style archive-derived examples should stay
   generalized or local-only even when they inform local planning.
+- Packaging/user-story rule layered on top of that privacy rule: personal and
+  private users should be treated as first-class consumers of partial stack
+  layers (capture, timeline/reconstruction, bounded reference, safe export,
+  provenance, local-first storage), but repo-facing docs should describe those
+  users in generalized terms and should not collapse private use into
+  institutional-style compliance/reporting language.
 - Relevant local/web archive anchors for this decision:
   - `Climate Change Politics AU`
     (`69ac40e0-0cfc-839b-b2a8-0de3019379a9`, source used: `web`):
@@ -822,6 +919,16 @@ Intersections with roadmap/todo/readme (2026-02-03):
   - the joint pitch is: Mirror explains the crypto system; SensibLaw explains
     how crypto events affect actual people, obligations, and regulator/auditor
     workflows
+  - additional thread-backed market read:
+    - Mirror / Glasslane was being discussed as a tiny founder-led,
+      early-stage, pre-PMF operation with a Discord/chatbot-first surface
+      rather than as a mature institutional platform
+    - the stated audience included investors, advisers, and accountants, but
+      the visible community/community-growth posture looked closer to mixed
+      retail + KOL + crypto-native participants
+    - monetization ideas in the thread included NFT-gated access first and a
+      token/community runway later, which reinforces the need to pitch
+      SensibLaw/TiRC as the higher-trust provenance/governance layer
 - Concrete product / feature concepts extracted from that thread:
   - `Crypto Consumer Harm Observatory (CCHO)`: distress/sentiment shifts,
     money-flow changes, harm-class triggers, obligation violations, and

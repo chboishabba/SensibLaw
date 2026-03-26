@@ -68,6 +68,78 @@
   bodies/courts not yet present in the live bridge slice after the current sync
   (district-court lane variants now imported; additional executive/judicial
   additions remain review-gated).
+- [x] Add checked and dense Wikidata review artifacts above the structural
+  handoff so the lane exposes review items, source review rows, unresolved
+  clusters, cues, provisional rows, and bundle queues rather than only a
+  status/handoff slice.
+- [x] Add checked and broader GWB review artifacts above the existing checked
+  public handoff and broader corpus checkpoint so the lane exposes the same
+  operator-facing review geometry as AU/Wikidata.
+- [x] Add a normalized cross-lane summary block for AU, Wikidata, and GWB so
+  workload and ranking metrics become directly comparable rather than only
+  shape-compatible.
+- [ ] If external Wikimedia funding becomes operationally relevant for the
+  Wikidata lane, keep a small maintained funding/watchlist note sourced from
+  official online grant pages rather than treating "active Wikidata grants" as
+  an implicit stable repo-local list. Current framing/spec note:
+  `docs/planning/wikimedia_grant_framing_20260326.md`.
+- [ ] If external Wikimedia funding becomes active, sample 2-3 funded and 2-3
+  rejected Wikimedia proposal pages and compare the final wording against the
+  current bounded Rapid Fund surfaces:
+  `docs/planning/wikimedia_rapid_fund_draft_20260326.md` and
+  `docs/planning/wikimedia_bounded_demo_spec_20260326.md`.
+- [ ] If Wikimedia proposal work becomes active, translate
+  `docs/planning/wikimedia_rapid_fund_draft_20260326.md` into the actual
+  Wikimedia Meta/Fluxx field structure, preserving its documented evaluation
+  metrics, acceptance criteria, and reviewer-facing bounded demo scope.
+- [ ] If Wikimedia proposal work becomes active, confirm the named people used
+  for the already-chosen reviewer route:
+  preferred `1-2` Wikidata/ontology-adjacent reviewers, fallback `1-2`
+  technically adjacent reviewers.
+- [ ] If the attributed entity-kind appendix is kept in the submission pack,
+  lock the exact revision-locked article snapshots used for that appendix
+  before submission.
+- [ ] Before any Wikimedia submission, run one attribution pass over the
+  bounded demo pack so each foregrounded case is classified as:
+  repo-built surface, attributed example, or method-lineage credit. Current
+  matrix:
+  `docs/planning/wikimedia_demo_attribution_matrix_20260326.md`.
+- [ ] Before any Wikimedia submission, run one final wording pass against
+  `docs/planning/wikimedia_prior_work_and_originality_note_20260326.md` so no
+  sentence implies reproduction, parity, or first discovery beyond what the
+  repo docs actually support.
+- [ ] Only after the normalized metric block is stable, extract shared
+  ranking/workload primitives and a shared review-core layer from the current
+  AU/Wikidata/GWB adapter-local builders.
+- [ ] Add one packaging/UX note that distinguishes private-user surfaces from
+  institutional reporting surfaces so future Mirror/commercial drafts do not
+  silently default to institution-only language or overstate authoritative
+  outputs for personal users.
+- [ ] Extend the implemented private-user day-to-escalation lane beyond the
+  first bounded
+  CLI/artifact contract in
+  `docs/planning/personal_handoff_bundle_contract_20260326.md`:
+  add direct chat/day ingest adapters plus stronger selective redaction/scoped
+  export for legal, clinical, advocacy, or regulatory handoff.
+- [ ] Extend the first metadata-only protected-disclosure envelope mode:
+  add richer retaliation-aware export flavors, live intake/import adapters,
+  and dedicated workflow/UI surfaces beyond the current metadata-only
+  recipient-allowlist contract.
+- [ ] Publish an explicit provenance-only integrator contract:
+  SDK/API-oriented JSON/export contract docs and at least one fixture-backed
+  consumer path, rather than relying on implicit review-artifact stability.
+- [ ] Add a community/disability support intake surface:
+  bounded intake schema plus role-scoped export/view contracts above the
+  current generic bundle/summary artifacts.
+- [ ] Add an annotation/QA workbench layer over the existing review queues:
+  abstain/inter-rater handling, disagreement visibility, and deterministic
+  export semantics.
+- [ ] Add a field inspection/offline-capture lane:
+  photo/checklist capture, sync-gap metadata, and regulator/insurer export
+  fixtures.
+- [ ] Add a research/publication adapter lane:
+  lab-note/research import plus publication-safe export with exclusions and
+  provenance preserved.
 
 ## Medium-Term Targets
 - [x] Adopt `sensiblaw.interfaces.shared_reducer` as the explicit supported

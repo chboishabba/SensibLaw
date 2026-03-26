@@ -1,5 +1,46 @@
 {
   "fixture_kind": "gwb_public_review",
+  "normalized_metrics_v1": {
+    "artifact_id": "gwb_checked_public_review_v1",
+    "candidate_signal_count": 97,
+    "candidate_signal_density": 2.155556,
+    "dominant_primary_workload": "linkage_pressure",
+    "lane_family": "gwb",
+    "lane_variant": "checked",
+    "primary_workload_counts": {
+      "event_or_time_pressure": 0,
+      "evidence_pressure": 0,
+      "governance_pressure": 0,
+      "linkage_pressure": 45,
+      "normalization_pressure": 0,
+      "queue_pressure": 0,
+      "structural_pressure": 0
+    },
+    "provisional_bundle_count": 41,
+    "provisional_bundle_density": 0.911111,
+    "provisional_queue_row_count": 97,
+    "provisional_row_density": 2.155556,
+    "review_item_status_counts": {
+      "accepted": 2,
+      "held": 0,
+      "review_required": 9
+    },
+    "review_required_source_ratio": 0.584416,
+    "source_status_counts": {
+      "accepted": 32,
+      "held": 0,
+      "review_required": 45
+    },
+    "workload_presence_counts": {
+      "event_or_time_pressure": 0,
+      "evidence_pressure": 0,
+      "governance_pressure": 0,
+      "linkage_pressure": 45,
+      "normalization_pressure": 0,
+      "queue_pressure": 0,
+      "structural_pressure": 0
+    }
+  },
   "provisional_anchor_bundles": [
     {
       "anchor_count": 2,

@@ -30,6 +30,27 @@ def test_build_gwb_public_review(tmp_path: Path) -> None:
     assert summary["related_review_cluster_count"] == 9
     assert summary["unresolved_surface_count"] == 7
     assert summary["ambiguous_event_count"] == 9
+    normalized = payload["normalized_metrics_v1"]
+    assert normalized["artifact_id"] == "gwb_checked_public_review_v1"
+    assert normalized["review_item_status_counts"] == {
+        "accepted": 2,
+        "review_required": 9,
+        "held": 0,
+    }
+    assert normalized["source_status_counts"] == {
+        "accepted": 32,
+        "review_required": 45,
+        "held": 0,
+    }
+    assert normalized["dominant_primary_workload"] == "linkage_pressure"
+    assert normalized["primary_workload_counts"]["linkage_pressure"] == 45
+    assert normalized["candidate_signal_count"] == 97
+    assert normalized["provisional_queue_row_count"] == 97
+    assert normalized["provisional_bundle_count"] == 41
+    assert normalized["review_required_source_ratio"] == 0.584416
+    assert normalized["candidate_signal_density"] == 2.155556
+    assert normalized["provisional_row_density"] == 2.155556
+    assert normalized["provisional_bundle_density"] == 0.911111
 
     assert any(row["review_status"] == "covered" for row in payload["source_review_rows"])
     assert any(row["review_status"] == "missing_review" for row in payload["source_review_rows"])
@@ -41,4 +62,5 @@ def test_build_gwb_public_review(tmp_path: Path) -> None:
 
     summary_text = summary_path.read_text(encoding="utf-8")
     assert "GWB Public Review" in summary_text
+    assert "Normalized Metrics" in summary_text
     assert "Provisional Anchor Bundles" in summary_text

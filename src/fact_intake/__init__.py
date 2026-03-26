@@ -54,6 +54,16 @@ from .transcript_review_bundle import (
     build_fact_intake_payload_from_transcript_report,
     build_transcript_fact_review_bundle,
 )
+from .personal_handoff_bundle import (
+    PERSONAL_HANDOFF_REPORT_VERSION,
+    build_personal_handoff_report,
+    render_personal_handoff_summary,
+)
+from .protected_disclosure_envelope import (
+    PROTECTED_DISCLOSURE_ENVELOPE_VERSION,
+    build_protected_disclosure_envelope,
+    render_protected_disclosure_summary,
+)
 
 __all__ = [
     "EVENT_ASSEMBLER_VERSION",
@@ -89,6 +99,12 @@ __all__ = [
     "build_fact_semantic_status_report",
     "build_mary_fact_workflow_projection",
     "build_transcript_fact_review_bundle",
+    "PERSONAL_HANDOFF_REPORT_VERSION",
+    "PROTECTED_DISCLOSURE_ENVELOPE_VERSION",
+    "build_personal_handoff_report",
+    "build_protected_disclosure_envelope",
+    "render_personal_handoff_summary",
+    "render_protected_disclosure_summary",
     "default_fact_review_fixture_manifest_path",
     "default_wave1_fixture_manifest_path",
     "find_latest_fact_workflow_link",

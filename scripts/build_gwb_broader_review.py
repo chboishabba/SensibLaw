@@ -7,6 +7,19 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.review_geometry_profiles import get_normalized_profile
+    from scripts.review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+except ModuleNotFoundError:
+    from review_geometry_profiles import get_normalized_profile
+    from review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 
@@ -277,6 +290,21 @@ def build_gwb_broader_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str,
         "provisional_review_rows": provisional_review_rows,
         "provisional_review_bundles": provisional_review_bundles,
     }
+    payload["normalized_metrics_v1"] = compute_normalized_metrics_from_profile(
+        profile=get_normalized_profile("gwb"),
+        artifact_id="gwb_broader_review_v1",
+        lane_family="gwb",
+        lane_variant="broader",
+        review_item_rows=review_item_rows,
+        source_review_rows=source_review_rows,
+        candidate_signal_count=sum(
+            len(row.get("candidate_anchors", []))
+            for row in source_review_rows
+            if row.get("review_status") == "missing_review"
+        ),
+        provisional_queue_row_count=len(provisional_review_rows),
+        provisional_bundle_count=len(provisional_review_bundles),
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
@@ -299,10 +327,11 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
         f"- Candidate anchors: `{summary['candidate_anchor_count']}`",
         f"- Provisional review rows: `{summary['provisional_review_row_count']}`",
         f"- Provisional review bundles: `{summary['provisional_review_bundle_count']}`",
-        "",
-        "## Top Provisional Review Bundles",
-        "",
     ]
+    normalized_metrics = payload.get("normalized_metrics_v1", {})
+    if isinstance(normalized_metrics, dict) and normalized_metrics:
+        lines.extend(["", *render_normalized_metrics_markdown(normalized_metrics)])
+    lines.extend(["", "## Top Provisional Review Bundles", ""])
     for bundle in payload["provisional_review_bundles"][:10]:
         lines.append(
             f"- `#{bundle['bundle_rank']}` `{bundle['source_row_id']}` anchors `{bundle['anchor_count']}` top-score `{bundle['top_priority_score']}`"

@@ -55,7 +55,31 @@ def test_build_au_dense_affidavit_coverage_review(tmp_path: Path) -> None:
     assert payload["provisional_anchor_bundles"][0]["bundle_rank"] == 1
     assert payload["provisional_structured_anchors"][0]["priority_rank"] == 1
     assert payload["provisional_structured_anchors"][0]["priority_score"] >= payload["provisional_structured_anchors"][-1]["priority_score"]
+    normalized = payload["normalized_metrics_v1"]
+    assert normalized["artifact_id"] == "au_dense_affidavit_coverage_review_v1"
+    assert normalized["review_item_status_counts"] == {
+        "accepted": 2,
+        "review_required": 1,
+        "held": 0,
+    }
+    assert normalized["source_status_counts"] == {
+        "accepted": 3,
+        "review_required": 21,
+        "held": 0,
+    }
+    assert normalized["dominant_primary_workload"] == "event_or_time_pressure"
+    assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 21
+    assert normalized["workload_presence_counts"]["event_or_time_pressure"] == 42
+    assert normalized["workload_presence_counts"]["evidence_pressure"] == 21
+    assert normalized["candidate_signal_count"] == 34
+    assert normalized["provisional_queue_row_count"] == 34
+    assert normalized["provisional_bundle_count"] == 21
+    assert normalized["review_required_source_ratio"] == 0.875
+    assert normalized["candidate_signal_density"] == 1.619048
+    assert normalized["provisional_row_density"] == 1.619048
+    assert normalized["provisional_bundle_density"] == 1.0
     summary_text = summary_path.read_text(encoding="utf-8")
+    assert "Normalized Metrics" in summary_text
     assert "Related Review Clusters" in summary_text
     assert "Top reasons:" in summary_text
     assert "Top workload classes:" in summary_text

@@ -7,6 +7,19 @@ import re
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.review_geometry_profiles import get_normalized_profile
+    from scripts.review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+except ModuleNotFoundError:
+    from review_geometry_profiles import get_normalized_profile
+    from review_geometry_normalization import (
+        compute_normalized_metrics_from_profile,
+        render_normalized_metrics_markdown,
+    )
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 
@@ -272,6 +285,21 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
         "provisional_anchor_bundles": provisional_anchor_bundles,
     }
     payload["summary"] = _build_summary(payload | {"summary": slice_payload.get("summary", {})})
+    payload["normalized_metrics_v1"] = compute_normalized_metrics_from_profile(
+        profile=get_normalized_profile("gwb"),
+        artifact_id="gwb_checked_public_review_v1",
+        lane_family="gwb",
+        lane_variant="checked",
+        review_item_rows=review_item_rows,
+        source_review_rows=source_review_rows,
+        candidate_signal_count=sum(
+            len(row.get("candidate_anchors", []))
+            for row in source_review_rows
+            if row.get("review_status") == "missing_review"
+        ),
+        provisional_queue_row_count=len(provisional_structured_anchors),
+        provisional_bundle_count=len(provisional_anchor_bundles),
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
@@ -296,6 +324,9 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
         f"- Provisional structured anchors: `{summary.get('provisional_structured_anchor_count', 0)}`",
         f"- Provisional anchor bundles: `{summary.get('provisional_anchor_bundle_count', 0)}`",
     ]
+    normalized_metrics = payload.get("normalized_metrics_v1", {})
+    if isinstance(normalized_metrics, dict) and normalized_metrics:
+        lines.extend(["", *render_normalized_metrics_markdown(normalized_metrics)])
     lines.extend(
         [
             "",

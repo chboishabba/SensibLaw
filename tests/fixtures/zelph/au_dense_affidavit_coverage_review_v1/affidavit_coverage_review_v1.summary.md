@@ -31,6 +31,35 @@
 - `covered` and `partial` describe segment-aware lexical/source alignment only in this bounded lane.
 - `missing_review`, `contested_source`, and `abstained_source` remain operator-review statuses rather than automatic filing conclusions.
 
+## Normalized Metrics
+
+- Review-item statuses: accepted `2`, review_required `1`, held `0`
+- Source statuses: accepted `3`, review_required `21`, held `0`
+- Dominant primary workload: `event_or_time_pressure`
+- Primary workload counts:
+  - `structural_pressure` `0`
+  - `governance_pressure` `0`
+  - `linkage_pressure` `0`
+  - `event_or_time_pressure` `21`
+  - `evidence_pressure` `0`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Workload presence counts:
+  - `structural_pressure` `0`
+  - `governance_pressure` `0`
+  - `linkage_pressure` `0`
+  - `event_or_time_pressure` `42`
+  - `evidence_pressure` `21`
+  - `normalization_pressure` `0`
+  - `queue_pressure` `0`
+- Review-required source ratio: `0.875000`
+- Candidate signal count: `34`
+- Candidate signal density: `1.619048`
+- Provisional queue rows: `34`
+- Provisional row density: `1.619048`
+- Provisional bundles: `21`
+- Provisional bundle density: `1.000000`
+
 ## Related Review Clusters
 
 - `aff-prop:p2-s1`: 3 related source rows
