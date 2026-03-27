@@ -45,7 +45,7 @@ def test_read_model_migration_list_sync():
     # Check if any new 005+ files exist in the directory that are NOT in _FACT_INTAKE_MIGRATION_FILES
     missing_in_code = [
         f for f in all_migration_files 
-        if f.startswith(("005", "006", "007", "008", "009", "010", "011")) 
+        if f.startswith(("005", "006", "007", "008", "009", "010", "011", "012", "013", "014")) 
         and f not in actual_files
     ]
     

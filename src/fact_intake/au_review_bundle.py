@@ -557,6 +557,9 @@ def build_au_fact_review_bundle(
             "au_linkage": dict(semantic_report.get("au_linkage", {}))
             if isinstance(semantic_report.get("au_linkage"), Mapping)
             else {},
+            "authority_receipts": dict(semantic_report.get("authority_receipts", {}))
+            if isinstance(semantic_report.get("authority_receipts"), Mapping)
+            else {},
             "legal_procedural_summary": {
                 "observation_count": len(legal_procedural_observations),
                 "predicates": legal_procedural_predicates,

@@ -7,7 +7,14 @@ from typing import Callable, Iterable, List, Optional, Set, Tuple
 import json
 from pathlib import Path
 
-from src.citations.normalize import CitationKey, jade_content_ext_url, normalize_mnc
+from src.sources.austlii_sino import AustLiiSearchAdapter, SinoQuery
+from src.sources.austlii_sino_parse import AustLiiSearchHit, parse_sino_search_html
+from src.citations.normalize import (
+    CitationKey,
+    austlii_case_url_from_mnc,
+    jade_content_ext_url,
+    normalize_mnc,
+)
 
 
 @dataclass(frozen=True)
@@ -19,7 +26,7 @@ class CitationRef:
 
 @dataclass(frozen=True)
 class FetchPlan:
-    source: str  # "jade" | "austlii_guess" | "austlii_search"
+    source: str  # "jade" | "austlii" | "austlii_search"
     url: Optional[str] = None
     query: Optional[str] = None
     vc: Optional[str] = None
@@ -57,7 +64,71 @@ def resolve_citation(
     if prefer_jade:
         return FetchPlan(source="jade", url=jade_content_ext_url(ref.key), citation=ref.key)
 
-    # future: add austlii guess/search; keep minimal and deterministic for now
+    return FetchPlan(
+        source="austlii",
+        url=austlii_case_url_from_mnc(ref.key, state=austlii_state),
+        citation=ref.key,
+    )
+
+
+def resolve_citation_candidates(
+    ref: CitationRef,
+    *,
+    store_has: Callable[[CitationKey], bool],
+    prefer_jade: bool = True,
+    austlii_state: str = "cth",
+) -> List[FetchPlan]:
+    if ref.key is None:
+        return []
+    if store_has(ref.key):
+        return []
+
+    candidates: List[FetchPlan] = []
+    if prefer_jade:
+        candidates.append(FetchPlan(source="jade", url=jade_content_ext_url(ref.key), citation=ref.key))
+    candidates.append(
+        FetchPlan(
+            source="austlii",
+            url=austlii_case_url_from_mnc(ref.key, state=austlii_state),
+            citation=ref.key,
+        )
+    )
+    return candidates
+
+
+def _hit_matches_citation(ref: CitationRef, hit: AustLiiSearchHit) -> bool:
+    if ref.key is None:
+        return False
+    for candidate in (hit.citation, hit.title, hit.url):
+        key = normalize_mnc(candidate or "")
+        if key == ref.key:
+            return True
+    return False
+
+
+def resolve_austlii_search_plan(
+    ref: CitationRef,
+    *,
+    search_adapter: AustLiiSearchAdapter | None = None,
+    vc: str = "/au",
+    results: int = 10,
+    method: str = "phrase",
+) -> Optional[FetchPlan]:
+    if ref.key is None:
+        return None
+
+    adapter = search_adapter or AustLiiSearchAdapter()
+    html = adapter.search(SinoQuery(meta=vc, query=ref.raw_text, results=results, method=method))
+    hits = parse_sino_search_html(html)
+    for hit in hits:
+        if _hit_matches_citation(ref, hit):
+            return FetchPlan(
+                source="austlii_search",
+                url=hit.url,
+                query=ref.raw_text,
+                vc=vc,
+                citation=ref.key,
+            )
     return None
 
 
@@ -71,6 +142,9 @@ def follow_citations_bounded(
     max_new_docs: int = 5,
     unresolved: Optional[List[dict]] = None,
     unresolved_path: Optional[Path] = None,
+    prefer_jade: bool = True,
+    austlii_state: str = "cth",
+    resolve_search: Optional[Callable[[CitationRef], Optional[FetchPlan]]] = None,
 ) -> Set[int]:
     """Bounded citation-following ingestion.
 
@@ -94,8 +168,13 @@ def follow_citations_bounded(
             if len(ingested) >= max_new_docs:
                 break
 
-            plan = resolve_citation(ref, store_has=store_has)
-            if not plan:
+            candidates = resolve_citation_candidates(
+                ref,
+                store_has=store_has,
+                prefer_jade=prefer_jade,
+                austlii_state=austlii_state,
+            )
+            if not candidates:
                 reason = "already_ingested" if ref.key and store_has(ref.key) else "unresolved"
                 if unresolved is not None or unresolved_path:
                     unresolved_list.append(
@@ -108,8 +187,51 @@ def follow_citations_bounded(
                     )
                 continue
 
-            cited_bytes = fetch(plan)
-            doc_id, cited_text = ingest(cited_bytes, plan.citation, parent_id)
+            cited_bytes = None
+            chosen_plan: Optional[FetchPlan] = None
+            last_error: Optional[Exception] = None
+            for plan in candidates:
+                try:
+                    cited_bytes = fetch(plan)
+                    chosen_plan = plan
+                    break
+                except Exception as exc:
+                    last_error = exc
+
+            if cited_bytes is None or chosen_plan is None:
+                search_resolver = resolve_search or resolve_austlii_search_plan
+                search_plan = search_resolver(ref)
+                if search_plan is None:
+                    if unresolved is not None or unresolved_path:
+                        unresolved_list.append(
+                            {
+                                "citation": ref.raw_text,
+                                "offset": ref.offset,
+                                "reason": "fetch_failed",
+                                "citing_doc": parent_id,
+                                "attempted_sources": [plan.source for plan in candidates],
+                                "error": str(last_error) if last_error else None,
+                            }
+                        )
+                    continue
+                try:
+                    cited_bytes = fetch(search_plan)
+                    chosen_plan = search_plan
+                except Exception as exc:
+                    if unresolved is not None or unresolved_path:
+                        unresolved_list.append(
+                            {
+                                "citation": ref.raw_text,
+                                "offset": ref.offset,
+                                "reason": "search_fetch_failed",
+                                "citing_doc": parent_id,
+                                "attempted_sources": [plan.source for plan in candidates] + [search_plan.source],
+                                "error": str(exc),
+                            }
+                        )
+                    continue
+
+            doc_id, cited_text = ingest(cited_bytes, chosen_plan.citation, parent_id)
             if doc_id in ingested:
                 continue
             ingested.add(doc_id)

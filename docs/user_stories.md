@@ -21,7 +21,19 @@ Morning case preparation:
 - Reviews provisions/principles in SensibLaw.
 - SB records review activity and tool envelopes (search, extract, annotate).
 - ITIR ingests references only; no summaries, no semantic rewriting.
+- When a known authority must be checked, retrieval stays inside repo-owned
+  authority seams (`AustLII` explicit URL or deterministic neutral-citation
+  resolution for known cases, `JADE` exact MNC when authorized, bounded
+  `AustLII SINO` only when discovery is still required), and paragraph work
+  happens locally on the fetched artifact.
+- If the operator starts from free text instead of a concrete URL/citation,
+  `jade-search` is a secondary best-effort selection seam; exact `jade-fetch`
+  and explicit AustLII fetch remain the stable core.
 - Invariant: SB never claims meaning or strength of argument.
+- Forbidden: ad hoc site probing or repeated live retries outside the bounded
+  source contracts.
+- Failure prevented: unreproducible authority lookup, source-policy drift, and
+  hidden overuse of public legal-host endpoints.
 
 Midday drafting:
 - Dictates/edits arguments.
@@ -38,6 +50,50 @@ End-of-day review:
 - Daily brief shows timeline, unresolved threads, absences.
 - No “progress” judgments or prioritization.
 - Invariant: “what happened” only.
+
+### Authority Follow from Cited Material
+As a lawyer or legal operator working from a pleading, judgment extract,
+benchbook paragraph, or transcript that mentions a concrete legal authority, I
+want the system to follow that cited authority through repo-owned source seams,
+ingest the fetched authority as a bounded source receipt, and keep the follow
+chain visible so I can move from cited section to primary material without
+copy-paste searching or hidden authority drift.
+
+Typical flow:
+- Operator starts from material already in the corpus that contains a concrete
+  authority cue such as a neutral citation, explicit AustLII URL, or known
+  JADE citation.
+- The system resolves that authority through the bounded repo-owned order:
+  known local/already-ingested artifact if present, direct known-authority
+  fetch when citation/URL is concrete, then bounded discovery only when needed.
+- The fetched authority is ingested with provenance, selected paragraph windows
+  remain inspectable locally, and any unresolved follow remains explicit.
+
+Preferences:
+- One obvious path from cited authority mention to fetched source receipt.
+- Bounded follow behavior with visible abstention instead of repeated silent
+  retries.
+- Clear distinction between a cited authority hint, a fetched authority
+  artifact, and any later semantic use of that authority.
+
+Requirements:
+- Citation-like text must not silently become authority unless it passes
+  through the repo-owned follow/ingest seams.
+- The follow chain must preserve provenance, bounded source selection, and
+  unresolved status.
+- Discovery/follow behavior must remain citation-driven and source-contract
+  bounded, not open-ended crawling.
+
+Acceptance criteria:
+- A concrete legal citation can be turned into a bounded authority fetch/ingest
+  receipt through repo-owned seams.
+- Followed authority material is queryable as an ingested source/receipt rather
+  than only a transient operator fetch.
+- Unresolved or non-exact matches remain explicit and do not silently promote
+  into authority.
+- Normal semantic/runtime lanes may consume these receipts only through an
+  explicit documented path; a parser seeing cite-like text alone is not enough
+  to auto-promote authority.
 
 ### At Home (evening/weekend)
 - No SensibLaw corpus access.

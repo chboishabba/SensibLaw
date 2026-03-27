@@ -1,5 +1,6 @@
 from src.citations.normalize import (
     CitationKey,
+    austlii_case_url_from_mnc,
     austlii_case_url_guess,
     jade_content_ext_url,
     jade_mnc_url,
@@ -26,3 +27,8 @@ def test_austlii_guess_url():
     url = austlii_case_url_guess(key)
     assert "austlii.edu.au" in url
     assert url.endswith("/1992/23.html")
+
+
+def test_austlii_url_from_mnc_alias():
+    key = CitationKey(2010, "FAMCAFC", 13)
+    assert austlii_case_url_from_mnc(key) == austlii_case_url_guess(key)

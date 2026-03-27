@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from pathlib import Path
 
 from scripts.query_fact_review import main
+from scripts.build_affidavit_coverage_review import write_affidavit_coverage_review
 from src.fact_intake import (
     OBSERVATION_PREDICATE_TO_FAMILY,
+    AUTHORITY_INGEST_VERSION,
+    FEEDBACK_RECEIPT_VERSION,
     build_fact_intake_payload_from_text_units,
     persist_fact_intake_payload,
+    persist_authority_ingest_receipt,
+    persist_feedback_receipt,
     record_fact_workflow_link,
 )
 from src.fact_intake.acceptance import STORY_WAVES
@@ -111,6 +117,62 @@ def _seed_fact_review_run(db_path) -> str:
     return payload["run"]["run_id"]
 
 
+def _seed_authority_ingest_run(db_path) -> str:
+    conn = sqlite3.connect(str(db_path))
+    receipt = persist_authority_ingest_receipt(
+        conn,
+        {
+            "version": AUTHORITY_INGEST_VERSION,
+            "authority_kind": "jade",
+            "ingest_mode": "fetch",
+            "citation": "[2021] FamCA 83",
+            "selection_reason": "explicit_citation",
+            "resolved_url": "https://jade.example/content/ext/mnc/2021/famca/83",
+            "content_type": "text/plain",
+            "content_length": 1234,
+            "content_sha256": "abc123",
+            "paragraph_request": [120],
+            "paragraph_window": 1,
+            "body_preview_text": "Paragraph 119 ... Paragraph 120 ... Paragraph 121 ...",
+            "fetch_metadata": {"source": "pytest"},
+            "segments": [
+                {"segment_kind": "paragraph", "paragraph_number": 119, "segment_text": "Paragraph 119"},
+                {"segment_kind": "paragraph", "paragraph_number": 120, "segment_text": "Paragraph 120"},
+                {"segment_kind": "paragraph", "paragraph_number": 121, "segment_text": "Paragraph 121"},
+            ],
+        },
+    )
+    conn.close()
+    return receipt["ingest_run_id"]
+
+
+def _seed_feedback_receipt(db_path) -> str:
+    conn = sqlite3.connect(str(db_path))
+    receipt = persist_feedback_receipt(
+        conn,
+        {
+            "schema_version": FEEDBACK_RECEIPT_VERSION,
+            "feedback_class": "suite_frustration",
+            "role_label": "lawyer",
+            "task_label": "browse_corpus",
+            "target_product": "itir-svelte",
+            "target_surface": "/corpora/processed/personal",
+            "workflow_label": "personal_results_review",
+            "source_kind": "interview",
+            "summary": "The user could see results but not the next action.",
+            "quote_text": "I can see the results, but I still don't know what I'm supposed to do next.",
+            "severity": "high",
+            "desired_outcome": "One obvious next step from the results page.",
+            "sentiment": "negative",
+            "captured_at": "2026-03-27T14:00:00Z",
+            "tags": ["navigation", "workflow", "ui"],
+            "provenance": {"collector": "pytest", "source_ref": "feedback:1"},
+        },
+    )
+    conn.close()
+    return receipt["receipt_id"]
+
+
 def test_query_fact_review_script_lists_runs_and_summaries(tmp_path, capsys) -> None:
     db_path = tmp_path / "itir.sqlite"
     run_id = _seed_fact_review_run(db_path)
@@ -193,6 +255,155 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert exit_code == 0
     assert feedback_payload["feedback"]["summary"]["constrained_fact_count"] >= 1
     assert any("review" in msg.casefold() for msg in feedback_payload["feedback"]["global_messages"])
+
+
+def test_query_fact_review_script_reports_authority_ingest_runs(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    ingest_run_id = _seed_authority_ingest_run(db_path)
+
+    exit_code = main(["--db-path", str(db_path), "authority-runs", "--limit", "5"])
+    runs_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert runs_payload["runs"][0]["ingest_run_id"] == ingest_run_id
+    assert runs_payload["runs"][0]["authority_kind"] == "jade"
+    assert runs_payload["runs"][0]["segment_count"] == 3
+
+    exit_code = main(["--db-path", str(db_path), "authority-summary", "--ingest-run-id", ingest_run_id])
+    summary_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert summary_payload["summary"]["run"]["resolved_url"].endswith("/83")
+    assert [row["paragraph_number"] for row in summary_payload["summary"]["segments"]] == [119, 120, 121]
+
+
+def test_query_fact_review_script_reports_feedback_receipts(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    receipt_id = _seed_feedback_receipt(db_path)
+
+    exit_code = main(["--db-path", str(db_path), "feedback-receipts", "--limit", "5"])
+    receipts_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert receipts_payload["receipts"][0]["receipt_id"] == receipt_id
+    assert receipts_payload["receipts"][0]["feedback_class"] == "suite_frustration"
+    assert receipts_payload["receipts"][0]["role_label"] == "lawyer"
+    assert receipts_payload["receipts"][0]["provenance"]["source_ref"] == "feedback:1"
+
+    exit_code = main(["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id])
+    summary_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert summary_payload["summary"]["receipt"]["target_product"] == "itir-svelte"
+    assert summary_payload["summary"]["receipt"]["source_kind"] == "interview"
+    assert "don't know what I'm supposed to do next" in summary_payload["summary"]["receipt"]["quote_text"]
+
+
+def test_query_fact_review_script_adds_feedback_receipt(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "feedback-add",
+            "--feedback-class",
+            "competitor_frustration",
+            "--role-label",
+            "lawyer",
+            "--task-label",
+            "prepare_case",
+            "--source-kind",
+            "interview",
+            "--summary",
+            "The user cannot trace where the answer came from.",
+            "--quote-text",
+            "It gives me an answer, but I cannot see where it came from.",
+            "--severity",
+            "high",
+            "--target-product",
+            "competitor-x",
+            "--target-surface",
+            "answer_panel",
+            "--workflow-label",
+            "case_prep",
+            "--desired-outcome",
+            "Visible provenance and source trail.",
+            "--sentiment",
+            "negative",
+            "--tag",
+            "provenance",
+            "--tag",
+            "trust",
+            "--provenance-collector",
+            "manual_note",
+            "--provenance-source-ref",
+            "interview:1",
+        ]
+    )
+    add_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert add_payload["receipt"]["feedback_class"] == "competitor_frustration"
+
+    receipt_id = add_payload["receipt"]["receipt_id"]
+    exit_code = main(["--db-path", str(db_path), "feedback-summary", "--receipt-id", receipt_id])
+    summary_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert summary_payload["summary"]["receipt"]["target_product"] == "competitor-x"
+    assert summary_payload["summary"]["receipt"]["tags"] == ["provenance", "trust"]
+    assert summary_payload["summary"]["receipt"]["provenance"]["collector"] == "manual_note"
+    assert summary_payload["summary"]["receipt"]["provenance"]["source_ref"] == "interview:1"
+
+
+def test_query_fact_review_script_imports_feedback_receipts(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    input_path = tmp_path / "feedback.jsonl"
+    input_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "feedback_class": "suite_frustration",
+                        "role_label": "builder",
+                        "task_label": "browse_corpus",
+                        "source_kind": "operator_note",
+                        "summary": "The route exists but the next action is unclear.",
+                        "quote_text": "I can see the page, but I still do not know the next step.",
+                        "severity": "medium",
+                        "target_product": "itir-svelte",
+                        "tags": ["workflow"],
+                        "provenance": {"collector": "pytest"},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "schema_version": FEEDBACK_RECEIPT_VERSION,
+                        "feedback_class": "delight_signal",
+                        "role_label": "lawyer",
+                        "task_label": "review_sources",
+                        "source_kind": "chat_thread",
+                        "summary": "The user values visible disagreement and abstention.",
+                        "quote_text": "I like that it shows disagreement instead of flattening it away.",
+                        "severity": "low",
+                        "captured_at": "2026-03-27T18:00:00Z",
+                        "target_product": "SensibLaw",
+                    }
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["--db-path", str(db_path), "feedback-import", "--input", str(input_path)])
+    import_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert import_payload["imported_count"] == 2
+
+    exit_code = main(["--db-path", str(db_path), "feedback-receipts", "--limit", "10"])
+    receipts_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert len(receipts_payload["receipts"]) == 2
+    assert {row["feedback_class"] for row in receipts_payload["receipts"]} == {"suite_frustration", "delight_signal"}
+    imported_suite = next(row for row in receipts_payload["receipts"] if row["feedback_class"] == "suite_frustration")
+    assert imported_suite["target_product"] == "itir-svelte"
+    assert imported_suite["tags"] == ["workflow"]
+    assert imported_suite["provenance"]["collector"] == "pytest"
 
 
 def test_query_fact_review_script_resolves_and_reopens_by_workflow_link(tmp_path, capsys) -> None:
@@ -385,3 +596,52 @@ def test_query_fact_review_script_shows_full_report(tmp_path, capsys) -> None:
     assert "report" in report_payload
     assert report_payload["report"]["run"]["run_id"] == run_id
     assert "statements" in report_payload["report"]
+
+
+def test_query_fact_review_script_lists_persisted_contested_review_runs(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "query_contested_demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            }
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            }
+        ],
+    }
+    result = write_affidavit_coverage_review(
+        output_dir=tmp_path / "artifact",
+        source_payload=source_payload,
+        affidavit_text="The witness attended the meeting on Tuesday.",
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=Path(db_path),
+    )
+    review_run_id = result["persist_summary"]["review_run_id"]
+
+    exit_code = main(["--db-path", str(db_path), "contested-runs", "--limit", "5"])
+    runs_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert runs_payload["runs"][0]["review_run_id"] == review_run_id
+    assert runs_payload["runs"][0]["source_label"] == "query_contested_demo"
+    assert runs_payload["runs"][0]["covered_count"] == 1
+
+    exit_code = main(["--db-path", str(db_path), "contested-summary", "--review-run-id", review_run_id])
+    summary_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert summary_payload["review"]["run"]["review_run_id"] == review_run_id
+    assert summary_payload["review"]["summary"]["covered_count"] == 1
+    assert summary_payload["review"]["affidavit_rows"][0]["proposition_id"] == "aff-prop:p1-s1"

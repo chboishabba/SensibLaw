@@ -58,6 +58,8 @@ def _build_bundle_payload(
     seed_path: Path | None,
     source_label: str | None,
     notes: str | None,
+    include_authority_receipts: bool = False,
+    authority_receipt_limit: int = 20,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     if seed_path is not None:
@@ -77,7 +79,12 @@ def _build_bundle_payload(
     source_events = source_payload.get("events") if isinstance(source_payload.get("events"), list) else []
     _emit_progress(progress_callback, "timeline_load_finished", source_event_count=len(source_events))
     _emit_progress(progress_callback, "semantic_report_started", semantic_run_id=semantic_run_id)
-    semantic_report = build_au_semantic_report(conn, run_id=semantic_run_id)
+    semantic_report = build_au_semantic_report(
+        conn,
+        run_id=semantic_run_id,
+        include_authority_receipts=include_authority_receipts,
+        authority_receipt_limit=authority_receipt_limit,
+    )
     _emit_progress(progress_callback, "semantic_report_finished", semantic_run_id=semantic_run_id)
     _emit_progress(progress_callback, "fact_payload_started", semantic_run_id=semantic_run_id)
     fact_payload = build_fact_intake_payload_from_au_semantic_report(
@@ -127,6 +134,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed-path", type=Path, default=None, help="Optional AU linkage seed payload to import first")
     parser.add_argument("--source-label", default=None, help="Optional source label override for the fact-intake run")
     parser.add_argument("--notes", default=None, help="Optional notes for the fact-intake run")
+    parser.add_argument(
+        "--include-authority-receipts",
+        action="store_true",
+        help="Reuse persisted authority-ingest receipts in semantic context without performing live follow.",
+    )
+    parser.add_argument(
+        "--authority-receipt-limit",
+        type=int,
+        default=20,
+        help="Maximum number of persisted authority receipts to inspect when authority receipt reuse is enabled.",
+    )
     parser.add_argument("--progress", action="store_true", help="Emit progress to stderr.")
     parser.add_argument("--progress-format", choices=("human", "json"), default="human", help="Progress renderer for stderr output.")
     parser.add_argument("--log-level", default="INFO", help="stderr logging level (default: %(default)s).")
@@ -149,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
             seed_path=args.seed_path,
             source_label=args.source_label,
             notes=args.notes,
+            include_authority_receipts=bool(args.include_authority_receipts),
+            authority_receipt_limit=int(args.authority_receipt_limit),
             progress_callback=progress_callback,
         )
     if args.command == "bundle":

@@ -17,6 +17,8 @@ FACT_INTAKE_CONTRACT_VERSION = "fact.intake.bundle.v1"
 MARY_FACT_WORKFLOW_VERSION = "mary.fact_workflow.v1"
 EVENT_ASSEMBLER_VERSION = "fact_event_assembler_v1"
 FACT_WORKFLOW_LINK_VERSION = "fact_workflow_link_v1"
+AUTHORITY_INGEST_VERSION = "authority.ingest.v1"
+FEEDBACK_RECEIPT_VERSION = "feedback.receipt.v1"
 
 OBSERVATION_PREDICATE_FAMILIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("actor_identification", ("actor", "co_actor", "actor_role", "actor_attribute", "organization")),
@@ -89,6 +91,9 @@ _FACT_INTAKE_MIGRATION_FILES = (
     "009_fact_semantic_layer.sql",
     "010_fact_semantic_materialization.sql",
     "011_fact_semantic_refresh_progress.sql",
+    "012_contested_affidavit_review.sql",
+    "013_authority_ingest.sql",
+    "014_feedback_receipts.sql",
 )
 
 REVIEW_REASON_LABELS: dict[str, str] = {
@@ -399,6 +404,10 @@ def _delete_run(conn: sqlite3.Connection, run_id: str) -> None:
     conn.execute("DELETE FROM fact_intake_runs WHERE run_id = ?", (run_id,))
 
 
+def _delete_contested_review_run(conn: sqlite3.Connection, review_run_id: str) -> None:
+    conn.execute("DELETE FROM contested_review_runs WHERE review_run_id = ?", (review_run_id,))
+
+
 def _ensure_fact_intake_tables(conn: sqlite3.Connection) -> None:
     existing = {
         str(row[0])
@@ -433,6 +442,13 @@ def _ensure_fact_intake_tables(conn: sqlite3.Connection) -> None:
         "entity_relations",
         "policy_outcomes",
         "semantic_refresh_runs",
+        "contested_review_runs",
+        "contested_review_affidavit_rows",
+        "contested_review_source_rows",
+        "contested_review_zelph_facts",
+        "authority_ingest_runs",
+        "authority_ingest_segments",
+        "feedback_receipts",
     }
     if required <= existing:
         _ensure_semantic_refresh_progress_columns(conn)
@@ -1271,6 +1287,462 @@ def _json_or_empty(text: str | None) -> Any:
     if not text:
         return {}
     return json.loads(text)
+
+
+def _json_or_list(text: str | None) -> list[Any]:
+    if not text:
+        return []
+    loaded = json.loads(text)
+    return loaded if isinstance(loaded, list) else []
+
+
+def _json_or_dict(text: str | None) -> dict[str, Any]:
+    if not text:
+        return {}
+    loaded = json.loads(text)
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _build_contested_review_run_id(payload: Mapping[str, Any]) -> str:
+    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
+    affidavit_input = payload.get("affidavit_input") if isinstance(payload.get("affidavit_input"), Mapping) else {}
+    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
+    source_review_rows = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
+    identity = {
+        "version": payload.get("version"),
+        "fixture_kind": payload.get("fixture_kind"),
+        "source_input": {
+            "path": source_input.get("path"),
+            "source_kind": source_input.get("source_kind"),
+            "source_label": source_input.get("source_label"),
+        },
+        "affidavit_input": {
+            "path": affidavit_input.get("path"),
+            "character_count": affidavit_input.get("character_count"),
+        },
+        "affidavit_rows": [
+            {
+                "proposition_id": row.get("proposition_id"),
+                "text": row.get("text"),
+                "coverage_status": row.get("coverage_status"),
+                "best_source_row_id": row.get("best_source_row_id"),
+                "promotion_status": row.get("promotion_status"),
+                "support_direction": row.get("support_direction"),
+                "conflict_state": row.get("conflict_state"),
+                "evidentiary_state": row.get("evidentiary_state"),
+                "operational_status": row.get("operational_status"),
+            }
+            for row in affidavit_rows
+            if isinstance(row, Mapping)
+        ],
+        "source_review_rows": [
+            {
+                "source_row_id": row.get("source_row_id"),
+                "review_status": row.get("review_status"),
+                "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
+            }
+            for row in source_review_rows
+            if isinstance(row, Mapping)
+        ],
+    }
+    return _stable_id("contested_review", identity)
+
+
+def persist_contested_affidavit_review(
+    conn: sqlite3.Connection,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+
+    version = str(payload.get("version") or "").strip()
+    if not version:
+        raise ValueError("payload.version is required")
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
+    affidavit_input = payload.get("affidavit_input") if isinstance(payload.get("affidavit_input"), Mapping) else {}
+    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
+    source_review_rows = payload.get("source_review_rows") if isinstance(payload.get("source_review_rows"), list) else []
+    zelph_facts = payload.get("zelph_claim_state_facts") if isinstance(payload.get("zelph_claim_state_facts"), list) else []
+
+    review_run_id = _build_contested_review_run_id(payload)
+    payload_sha256 = _sha256_payload(payload)
+    _delete_contested_review_run(conn, review_run_id)
+    conn.execute(
+        """
+        INSERT INTO contested_review_runs(
+          review_run_id, artifact_version, fixture_kind, source_kind, source_label,
+          source_input_path, affidavit_input_path, source_row_count, affidavit_proposition_count,
+          covered_count, partial_count, contested_affidavit_count, unsupported_affidavit_count,
+          missing_review_count, contested_source_count, abstained_source_count,
+          semantic_basis_counts_json, promotion_status_counts_json, support_direction_counts_json,
+          conflict_state_counts_json, evidentiary_state_counts_json, operational_status_counts_json,
+          payload_sha256
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            review_run_id,
+            version,
+            _normalize_opt_text(payload.get("fixture_kind")),
+            _normalize_opt_text(source_input.get("source_kind")),
+            _normalize_opt_text(source_input.get("source_label")),
+            _normalize_opt_text(source_input.get("path")),
+            _normalize_opt_text(affidavit_input.get("path")),
+            int(summary.get("source_row_count") or 0),
+            int(summary.get("affidavit_proposition_count") or 0),
+            int(summary.get("covered_count") or 0),
+            int(summary.get("partial_count") or 0),
+            int(summary.get("contested_affidavit_count") or 0),
+            int(summary.get("unsupported_affidavit_count") or 0),
+            int(summary.get("missing_review_count") or 0),
+            int(summary.get("contested_source_count") or 0),
+            int(summary.get("abstained_source_count") or 0),
+            _normalize_json(summary.get("semantic_basis_counts")),
+            _normalize_json(summary.get("promotion_status_counts")),
+            _normalize_json(summary.get("support_direction_counts")),
+            _normalize_json(summary.get("conflict_state_counts")),
+            _normalize_json(summary.get("evidentiary_state_counts")),
+            _normalize_json(summary.get("operational_status_counts")),
+            payload_sha256,
+        ),
+    )
+
+    for row in affidavit_rows:
+        if not isinstance(row, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT INTO contested_review_affidavit_rows(
+              review_run_id, proposition_id, paragraph_id, paragraph_order, sentence_order,
+              proposition_text, coverage_status, best_source_row_id, best_match_score,
+              best_adjusted_match_score, best_match_basis, best_match_excerpt,
+              duplicate_match_excerpt, best_response_role, support_status, semantic_basis,
+              promotion_status, promotion_basis, promotion_reason, support_direction,
+              conflict_state, evidentiary_state, operational_status, semantic_candidate_json,
+              claim_json, response_json, justifications_json, matched_source_rows_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                review_run_id,
+                str(row.get("proposition_id") or "").strip(),
+                _normalize_opt_text(row.get("paragraph_id")),
+                int(row.get("paragraph_order") or 0),
+                int(row.get("sentence_order") or 0),
+                str(row.get("text") or ""),
+                _normalize_opt_text(row.get("coverage_status")),
+                _normalize_opt_text(row.get("best_source_row_id")),
+                row.get("best_match_score"),
+                row.get("best_adjusted_match_score"),
+                _normalize_opt_text(row.get("best_match_basis")),
+                _normalize_opt_text(row.get("best_match_excerpt")),
+                _normalize_opt_text(row.get("duplicate_match_excerpt")),
+                _normalize_opt_text(row.get("best_response_role")),
+                _normalize_opt_text(row.get("support_status")),
+                _normalize_opt_text(row.get("semantic_basis")),
+                _normalize_opt_text(row.get("promotion_status")),
+                _normalize_opt_text(row.get("promotion_basis")),
+                _normalize_opt_text(row.get("promotion_reason")),
+                _normalize_opt_text(row.get("support_direction")),
+                _normalize_opt_text(row.get("conflict_state")),
+                _normalize_opt_text(row.get("evidentiary_state")),
+                _normalize_opt_text(row.get("operational_status")),
+                _normalize_json(row.get("semantic_candidate")),
+                _normalize_json(row.get("claim")),
+                _normalize_json(row.get("response")),
+                _normalize_json(row.get("justifications")),
+                _normalize_json(row.get("matched_source_rows")),
+            ),
+        )
+
+    for row in source_review_rows:
+        if not isinstance(row, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT INTO contested_review_source_rows(
+              review_run_id, source_row_id, source_kind, source_text, candidate_status, review_status,
+              best_affidavit_proposition_id, best_match_score, best_adjusted_match_score,
+              best_match_basis, best_match_excerpt, best_response_role,
+              matched_affidavit_proposition_ids_json, related_affidavit_proposition_ids_json,
+              reason_codes_json, workload_classes_json, candidate_anchors_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                review_run_id,
+                str(row.get("source_row_id") or "").strip(),
+                _normalize_opt_text(row.get("source_kind")),
+                str(row.get("text") or ""),
+                _normalize_opt_text(row.get("candidate_status")),
+                _normalize_opt_text(row.get("review_status")),
+                _normalize_opt_text(row.get("best_affidavit_proposition_id")),
+                row.get("best_match_score"),
+                row.get("best_adjusted_match_score"),
+                _normalize_opt_text(row.get("best_match_basis")),
+                _normalize_opt_text(row.get("best_match_excerpt")),
+                _normalize_opt_text(row.get("best_response_role")),
+                _normalize_json(row.get("matched_affidavit_proposition_ids")),
+                _normalize_json(row.get("related_affidavit_proposition_ids")),
+                _normalize_json(row.get("reason_codes")),
+                _normalize_json(row.get("workload_classes")),
+                _normalize_json(row.get("candidate_anchors")),
+            ),
+        )
+
+    for row in zelph_facts:
+        if not isinstance(row, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT INTO contested_review_zelph_facts(
+              review_run_id, fact_id, proposition_id, best_source_row_id, fact_kind,
+              semantic_basis, promotion_status, promotion_basis, support_direction,
+              conflict_state, evidentiary_state, operational_status, fact_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                review_run_id,
+                str(row.get("fact_id") or "").strip(),
+                _normalize_opt_text(row.get("proposition_id")),
+                _normalize_opt_text(row.get("best_source_row_id")),
+                _normalize_opt_text(row.get("fact_kind")),
+                _normalize_opt_text(row.get("semantic_basis")),
+                _normalize_opt_text(row.get("promotion_status")),
+                _normalize_opt_text(row.get("promotion_basis")),
+                _normalize_opt_text(row.get("support_direction")),
+                _normalize_opt_text(row.get("conflict_state")),
+                _normalize_opt_text(row.get("evidentiary_state")),
+                _normalize_opt_text(row.get("operational_status")),
+                _normalize_json(row),
+            ),
+        )
+
+    conn.commit()
+    return {
+        "review_run_id": review_run_id,
+        "artifact_version": version,
+        "affidavit_row_count": len([row for row in affidavit_rows if isinstance(row, Mapping)]),
+        "source_row_count": len([row for row in source_review_rows if isinstance(row, Mapping)]),
+        "zelph_fact_count": len([row for row in zelph_facts if isinstance(row, Mapping)]),
+        "payload_sha256": payload_sha256,
+    }
+
+
+def list_contested_affidavit_review_runs(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 20,
+    source_kind: str | None = None,
+    source_label: str | None = None,
+) -> list[dict[str, Any]]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    where: list[str] = []
+    params: list[Any] = []
+    if source_kind:
+        where.append("source_kind = ?")
+        params.append(str(source_kind))
+    if source_label:
+        where.append("source_label = ?")
+        params.append(str(source_label))
+    sql = """
+        SELECT review_run_id, artifact_version, fixture_kind, source_kind, source_label,
+               source_input_path, affidavit_input_path, source_row_count, affidavit_proposition_count,
+               covered_count, partial_count, contested_affidavit_count, unsupported_affidavit_count,
+               missing_review_count, contested_source_count, abstained_source_count,
+               semantic_basis_counts_json, promotion_status_counts_json, created_at
+        FROM contested_review_runs
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY created_at DESC, review_run_id DESC LIMIT ?"
+    params.append(int(limit))
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    return [
+        {
+            "review_run_id": str(row["review_run_id"]),
+            "artifact_version": str(row["artifact_version"]),
+            "fixture_kind": _normalize_opt_text(row["fixture_kind"]),
+            "source_kind": _normalize_opt_text(row["source_kind"]),
+            "source_label": _normalize_opt_text(row["source_label"]),
+            "source_input_path": _normalize_opt_text(row["source_input_path"]),
+            "affidavit_input_path": _normalize_opt_text(row["affidavit_input_path"]),
+            "source_row_count": int(row["source_row_count"] or 0),
+            "affidavit_proposition_count": int(row["affidavit_proposition_count"] or 0),
+            "covered_count": int(row["covered_count"] or 0),
+            "partial_count": int(row["partial_count"] or 0),
+            "contested_affidavit_count": int(row["contested_affidavit_count"] or 0),
+            "unsupported_affidavit_count": int(row["unsupported_affidavit_count"] or 0),
+            "missing_review_count": int(row["missing_review_count"] or 0),
+            "contested_source_count": int(row["contested_source_count"] or 0),
+            "abstained_source_count": int(row["abstained_source_count"] or 0),
+            "semantic_basis_counts": _json_or_dict(row["semantic_basis_counts_json"]),
+            "promotion_status_counts": _json_or_dict(row["promotion_status_counts_json"]),
+            "created_at": str(row["created_at"]),
+        }
+        for row in rows
+    ]
+
+
+def build_contested_affidavit_review_summary(
+    conn: sqlite3.Connection,
+    *,
+    review_run_id: str,
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    run_row = conn.execute(
+        """
+        SELECT *
+        FROM contested_review_runs
+        WHERE review_run_id = ?
+        """,
+        (str(review_run_id or "").strip(),),
+    ).fetchone()
+    if run_row is None:
+        raise ValueError(f"Unknown contested review run: {review_run_id}")
+    affidavit_rows = conn.execute(
+        """
+        SELECT proposition_id, paragraph_id, paragraph_order, sentence_order, proposition_text,
+               coverage_status, best_source_row_id, best_match_score, best_adjusted_match_score,
+               best_match_basis, best_match_excerpt, duplicate_match_excerpt, best_response_role,
+               support_status, semantic_basis, promotion_status, promotion_basis, promotion_reason,
+               support_direction, conflict_state, evidentiary_state, operational_status,
+               semantic_candidate_json, claim_json, response_json, justifications_json,
+               matched_source_rows_json
+        FROM contested_review_affidavit_rows
+        WHERE review_run_id = ?
+        ORDER BY paragraph_order ASC, sentence_order ASC, proposition_id ASC
+        """,
+        (review_run_id,),
+    ).fetchall()
+    source_rows = conn.execute(
+        """
+        SELECT source_row_id, source_kind, source_text, candidate_status, review_status,
+               best_affidavit_proposition_id, best_match_score, best_adjusted_match_score,
+               best_match_basis, best_match_excerpt, best_response_role,
+               matched_affidavit_proposition_ids_json, related_affidavit_proposition_ids_json,
+               reason_codes_json, workload_classes_json, candidate_anchors_json
+        FROM contested_review_source_rows
+        WHERE review_run_id = ?
+        ORDER BY source_row_id ASC
+        """,
+        (review_run_id,),
+    ).fetchall()
+    zelph_rows = conn.execute(
+        """
+        SELECT fact_id, proposition_id, best_source_row_id, fact_kind, semantic_basis,
+               promotion_status, promotion_basis, support_direction, conflict_state,
+               evidentiary_state, operational_status, fact_json
+        FROM contested_review_zelph_facts
+        WHERE review_run_id = ?
+        ORDER BY fact_id ASC
+        """,
+        (review_run_id,),
+    ).fetchall()
+    run = {
+        "review_run_id": str(run_row["review_run_id"]),
+        "artifact_version": str(run_row["artifact_version"]),
+        "fixture_kind": _normalize_opt_text(run_row["fixture_kind"]),
+        "source_kind": _normalize_opt_text(run_row["source_kind"]),
+        "source_label": _normalize_opt_text(run_row["source_label"]),
+        "source_input_path": _normalize_opt_text(run_row["source_input_path"]),
+        "affidavit_input_path": _normalize_opt_text(run_row["affidavit_input_path"]),
+        "created_at": str(run_row["created_at"]),
+    }
+    summary = {
+        "source_row_count": int(run_row["source_row_count"] or 0),
+        "affidavit_proposition_count": int(run_row["affidavit_proposition_count"] or 0),
+        "covered_count": int(run_row["covered_count"] or 0),
+        "partial_count": int(run_row["partial_count"] or 0),
+        "contested_affidavit_count": int(run_row["contested_affidavit_count"] or 0),
+        "unsupported_affidavit_count": int(run_row["unsupported_affidavit_count"] or 0),
+        "missing_review_count": int(run_row["missing_review_count"] or 0),
+        "contested_source_count": int(run_row["contested_source_count"] or 0),
+        "abstained_source_count": int(run_row["abstained_source_count"] or 0),
+        "semantic_basis_counts": _json_or_dict(run_row["semantic_basis_counts_json"]),
+        "promotion_status_counts": _json_or_dict(run_row["promotion_status_counts_json"]),
+        "support_direction_counts": _json_or_dict(run_row["support_direction_counts_json"]),
+        "conflict_state_counts": _json_or_dict(run_row["conflict_state_counts_json"]),
+        "evidentiary_state_counts": _json_or_dict(run_row["evidentiary_state_counts_json"]),
+        "operational_status_counts": _json_or_dict(run_row["operational_status_counts_json"]),
+    }
+    return {
+        "run": run,
+        "summary": summary,
+        "affidavit_rows": [
+            {
+                "proposition_id": str(row["proposition_id"]),
+                "paragraph_id": _normalize_opt_text(row["paragraph_id"]),
+                "paragraph_order": int(row["paragraph_order"] or 0),
+                "sentence_order": int(row["sentence_order"] or 0),
+                "text": str(row["proposition_text"] or ""),
+                "coverage_status": _normalize_opt_text(row["coverage_status"]),
+                "best_source_row_id": _normalize_opt_text(row["best_source_row_id"]),
+                "best_match_score": row["best_match_score"],
+                "best_adjusted_match_score": row["best_adjusted_match_score"],
+                "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
+                "best_match_excerpt": _normalize_opt_text(row["best_match_excerpt"]),
+                "duplicate_match_excerpt": _normalize_opt_text(row["duplicate_match_excerpt"]),
+                "best_response_role": _normalize_opt_text(row["best_response_role"]),
+                "support_status": _normalize_opt_text(row["support_status"]),
+                "semantic_basis": _normalize_opt_text(row["semantic_basis"]),
+                "promotion_status": _normalize_opt_text(row["promotion_status"]),
+                "promotion_basis": _normalize_opt_text(row["promotion_basis"]),
+                "promotion_reason": _normalize_opt_text(row["promotion_reason"]),
+                "support_direction": _normalize_opt_text(row["support_direction"]),
+                "conflict_state": _normalize_opt_text(row["conflict_state"]),
+                "evidentiary_state": _normalize_opt_text(row["evidentiary_state"]),
+                "operational_status": _normalize_opt_text(row["operational_status"]),
+                "semantic_candidate": _json_or_dict(row["semantic_candidate_json"]),
+                "claim": _json_or_dict(row["claim_json"]),
+                "response": _json_or_dict(row["response_json"]),
+                "justifications": _json_or_list(row["justifications_json"]),
+                "matched_source_rows": _json_or_list(row["matched_source_rows_json"]),
+            }
+            for row in affidavit_rows
+        ],
+        "source_review_rows": [
+            {
+                "source_row_id": str(row["source_row_id"]),
+                "source_kind": _normalize_opt_text(row["source_kind"]),
+                "text": str(row["source_text"] or ""),
+                "candidate_status": _normalize_opt_text(row["candidate_status"]),
+                "review_status": _normalize_opt_text(row["review_status"]),
+                "best_affidavit_proposition_id": _normalize_opt_text(row["best_affidavit_proposition_id"]),
+                "best_match_score": row["best_match_score"],
+                "best_adjusted_match_score": row["best_adjusted_match_score"],
+                "best_match_basis": _normalize_opt_text(row["best_match_basis"]),
+                "best_match_excerpt": _normalize_opt_text(row["best_match_excerpt"]),
+                "best_response_role": _normalize_opt_text(row["best_response_role"]),
+                "matched_affidavit_proposition_ids": _json_or_list(row["matched_affidavit_proposition_ids_json"]),
+                "related_affidavit_proposition_ids": _json_or_list(row["related_affidavit_proposition_ids_json"]),
+                "reason_codes": _json_or_list(row["reason_codes_json"]),
+                "workload_classes": _json_or_list(row["workload_classes_json"]),
+                "candidate_anchors": _json_or_list(row["candidate_anchors_json"]),
+            }
+            for row in source_rows
+        ],
+        "zelph_claim_state_facts": [
+            {
+                **_json_or_dict(row["fact_json"]),
+                "fact_id": str(row["fact_id"]),
+                "proposition_id": _normalize_opt_text(row["proposition_id"]),
+                "best_source_row_id": _normalize_opt_text(row["best_source_row_id"]),
+                "fact_kind": _normalize_opt_text(row["fact_kind"]),
+                "semantic_basis": _normalize_opt_text(row["semantic_basis"]),
+                "promotion_status": _normalize_opt_text(row["promotion_status"]),
+                "promotion_basis": _normalize_opt_text(row["promotion_basis"]),
+                "support_direction": _normalize_opt_text(row["support_direction"]),
+                "conflict_state": _normalize_opt_text(row["conflict_state"]),
+                "evidentiary_state": _normalize_opt_text(row["evidentiary_state"]),
+                "operational_status": _normalize_opt_text(row["operational_status"]),
+            }
+            for row in zelph_rows
+        ],
+    }
 
 
 def _workflow_link_row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -2823,6 +3295,423 @@ def _build_fact_review_workbench_payload_legacy(
     if not include_zelph:
         return workbench
     return enrich_workbench_with_zelph(workbench, rules=_fact_review_zelph_rules())
+
+
+def persist_authority_ingest_receipt(
+    conn: sqlite3.Connection,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+
+    version = str(payload.get("version") or "").strip()
+    if not version:
+        raise ValueError("payload.version is required")
+    authority_kind = str(payload.get("authority_kind") or "").strip()
+    if not authority_kind:
+        raise ValueError("payload.authority_kind is required")
+    ingest_mode = str(payload.get("ingest_mode") or "").strip()
+    if not ingest_mode:
+        raise ValueError("payload.ingest_mode is required")
+    resolved_url = _normalize_opt_text(payload.get("resolved_url"))
+    if not resolved_url:
+        raise ValueError("payload.resolved_url is required")
+
+    segments = payload.get("segments") if isinstance(payload.get("segments"), list) else []
+    normalized_segments = [segment for segment in segments if isinstance(segment, Mapping)]
+    content_sha256 = _normalize_opt_text(payload.get("content_sha256"))
+    if not content_sha256:
+        raise ValueError("payload.content_sha256 is required")
+
+    ingest_run_id = _stable_id(
+        "authingest",
+        {
+            "authority_kind": authority_kind,
+            "ingest_mode": ingest_mode,
+            "citation": _normalize_opt_text(payload.get("citation")),
+            "query_text": _normalize_opt_text(payload.get("query_text")),
+            "selection_reason": _normalize_opt_text(payload.get("selection_reason")),
+            "resolved_url": resolved_url,
+            "content_sha256": content_sha256,
+            "paragraph_request": payload.get("paragraph_request") if isinstance(payload.get("paragraph_request"), list) else [],
+            "paragraph_window": int(payload.get("paragraph_window") or 0),
+            "segments": [
+                {
+                    "paragraph_number": segment.get("paragraph_number"),
+                    "segment_kind": _normalize_opt_text(segment.get("segment_kind")) or "paragraph",
+                    "segment_text": str(segment.get("segment_text") or ""),
+                }
+                for segment in normalized_segments
+            ],
+        },
+    )
+    payload_sha256 = _sha256_payload(payload)
+
+    conn.execute("DELETE FROM authority_ingest_runs WHERE ingest_run_id = ?", (ingest_run_id,))
+    conn.execute(
+        """
+        INSERT INTO authority_ingest_runs(
+          ingest_run_id, ingest_version, authority_kind, ingest_mode, citation, query_text,
+          selection_reason, resolved_url, content_type, content_length, content_sha256,
+          paragraph_request_json, paragraph_window, segment_count, body_preview_text,
+          fetch_metadata_json, payload_sha256
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            ingest_run_id,
+            version,
+            authority_kind,
+            ingest_mode,
+            _normalize_opt_text(payload.get("citation")),
+            _normalize_opt_text(payload.get("query_text")),
+            _normalize_opt_text(payload.get("selection_reason")),
+            resolved_url,
+            _normalize_opt_text(payload.get("content_type")),
+            int(payload.get("content_length") or 0),
+            content_sha256,
+            _normalize_json(payload.get("paragraph_request")),
+            int(payload.get("paragraph_window") or 0),
+            len(normalized_segments),
+            _normalize_opt_text(payload.get("body_preview_text")),
+            _normalize_json(payload.get("fetch_metadata")),
+            payload_sha256,
+        ),
+    )
+
+    for order, segment in enumerate(normalized_segments, start=1):
+        segment_text = str(segment.get("segment_text") or "")
+        paragraph_number = segment.get("paragraph_number")
+        conn.execute(
+            """
+            INSERT INTO authority_ingest_segments(
+              ingest_run_id, segment_id, segment_order, segment_kind, paragraph_number, segment_text, char_count
+            ) VALUES (?,?,?,?,?,?,?)
+            """,
+            (
+                ingest_run_id,
+                _stable_id("authseg", {"ingest_run_id": ingest_run_id, "order": order, "paragraph_number": paragraph_number, "segment_text": segment_text}),
+                order,
+                _normalize_opt_text(segment.get("segment_kind")) or "paragraph",
+                int(paragraph_number) if paragraph_number is not None else None,
+                segment_text,
+                len(segment_text),
+            ),
+        )
+
+    conn.commit()
+    return {
+        "ingest_run_id": ingest_run_id,
+        "authority_kind": authority_kind,
+        "ingest_mode": ingest_mode,
+        "segment_count": len(normalized_segments),
+        "payload_sha256": payload_sha256,
+    }
+
+
+def list_authority_ingest_runs(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 20,
+    authority_kind: str | None = None,
+) -> list[dict[str, Any]]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    where: list[str] = []
+    params: list[Any] = []
+    if authority_kind:
+        where.append("authority_kind = ?")
+        params.append(str(authority_kind))
+    sql = """
+        SELECT ingest_run_id, ingest_version, authority_kind, ingest_mode, citation, query_text,
+               selection_reason, resolved_url, content_type, content_length, paragraph_request_json,
+               paragraph_window, segment_count, body_preview_text, created_at
+        FROM authority_ingest_runs
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY created_at DESC, ingest_run_id DESC LIMIT ?"
+    params.append(int(limit))
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    return [
+        {
+            "ingest_run_id": str(row["ingest_run_id"]),
+            "ingest_version": str(row["ingest_version"]),
+            "authority_kind": str(row["authority_kind"]),
+            "ingest_mode": str(row["ingest_mode"]),
+            "citation": _normalize_opt_text(row["citation"]),
+            "query_text": _normalize_opt_text(row["query_text"]),
+            "selection_reason": _normalize_opt_text(row["selection_reason"]),
+            "resolved_url": str(row["resolved_url"]),
+            "content_type": _normalize_opt_text(row["content_type"]),
+            "content_length": int(row["content_length"] or 0),
+            "paragraph_request": _json_or_list(row["paragraph_request_json"]),
+            "paragraph_window": int(row["paragraph_window"] or 0),
+            "segment_count": int(row["segment_count"] or 0),
+            "body_preview_text": _normalize_opt_text(row["body_preview_text"]),
+            "created_at": str(row["created_at"]),
+        }
+        for row in rows
+    ]
+
+
+def build_authority_ingest_summary(
+    conn: sqlite3.Connection,
+    *,
+    ingest_run_id: str,
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    run_row = conn.execute(
+        """
+        SELECT *
+        FROM authority_ingest_runs
+        WHERE ingest_run_id = ?
+        """,
+        (str(ingest_run_id or "").strip(),),
+    ).fetchone()
+    if run_row is None:
+        raise ValueError(f"Unknown authority ingest run: {ingest_run_id}")
+    segment_rows = conn.execute(
+        """
+        SELECT segment_id, segment_order, segment_kind, paragraph_number, segment_text, char_count
+        FROM authority_ingest_segments
+        WHERE ingest_run_id = ?
+        ORDER BY segment_order ASC, segment_id ASC
+        """,
+        (str(ingest_run_id),),
+    ).fetchall()
+    return {
+        "run": {
+            "ingest_run_id": str(run_row["ingest_run_id"]),
+            "ingest_version": str(run_row["ingest_version"]),
+            "authority_kind": str(run_row["authority_kind"]),
+            "ingest_mode": str(run_row["ingest_mode"]),
+            "citation": _normalize_opt_text(run_row["citation"]),
+            "query_text": _normalize_opt_text(run_row["query_text"]),
+            "selection_reason": _normalize_opt_text(run_row["selection_reason"]),
+            "resolved_url": str(run_row["resolved_url"]),
+            "content_type": _normalize_opt_text(run_row["content_type"]),
+            "content_length": int(run_row["content_length"] or 0),
+            "content_sha256": str(run_row["content_sha256"]),
+            "paragraph_request": _json_or_list(run_row["paragraph_request_json"]),
+            "paragraph_window": int(run_row["paragraph_window"] or 0),
+            "segment_count": int(run_row["segment_count"] or 0),
+            "body_preview_text": _normalize_opt_text(run_row["body_preview_text"]),
+            "fetch_metadata": _json_or_dict(run_row["fetch_metadata_json"]),
+            "created_at": str(run_row["created_at"]),
+        },
+        "segments": [
+            {
+                "segment_id": str(row["segment_id"]),
+                "segment_order": int(row["segment_order"] or 0),
+                "segment_kind": str(row["segment_kind"]),
+                "paragraph_number": int(row["paragraph_number"]) if row["paragraph_number"] is not None else None,
+                "segment_text": str(row["segment_text"]),
+                "char_count": int(row["char_count"] or 0),
+            }
+            for row in segment_rows
+        ],
+    }
+
+
+def persist_feedback_receipt(
+    conn: sqlite3.Connection,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+
+    schema_version = str(payload.get("schema_version") or "").strip()
+    if not schema_version:
+        raise ValueError("payload.schema_version is required")
+    feedback_class = str(payload.get("feedback_class") or "").strip()
+    if not feedback_class:
+        raise ValueError("payload.feedback_class is required")
+    role_label = str(payload.get("role_label") or "").strip()
+    if not role_label:
+        raise ValueError("payload.role_label is required")
+    task_label = str(payload.get("task_label") or "").strip()
+    if not task_label:
+        raise ValueError("payload.task_label is required")
+    source_kind = str(payload.get("source_kind") or "").strip()
+    if not source_kind:
+        raise ValueError("payload.source_kind is required")
+    summary = str(payload.get("summary") or "").strip()
+    if not summary:
+        raise ValueError("payload.summary is required")
+    quote_text = str(payload.get("quote_text") or "").strip()
+    if not quote_text:
+        raise ValueError("payload.quote_text is required")
+    severity = str(payload.get("severity") or "").strip()
+    if not severity:
+        raise ValueError("payload.severity is required")
+    captured_at = str(payload.get("captured_at") or "").strip()
+    if not captured_at:
+        raise ValueError("payload.captured_at is required")
+
+    receipt_id = _stable_id(
+        "feedback",
+        {
+            "schema_version": schema_version,
+            "feedback_class": feedback_class,
+            "role_label": role_label,
+            "task_label": task_label,
+            "target_product": _normalize_opt_text(payload.get("target_product")),
+            "target_surface": _normalize_opt_text(payload.get("target_surface")),
+            "workflow_label": _normalize_opt_text(payload.get("workflow_label")),
+            "source_kind": source_kind,
+            "summary": summary,
+            "quote_text": quote_text,
+            "severity": severity,
+            "desired_outcome": _normalize_opt_text(payload.get("desired_outcome")),
+            "captured_at": captured_at,
+        },
+    )
+    payload_sha256 = _sha256_payload(payload)
+    conn.execute("DELETE FROM feedback_receipts WHERE receipt_id = ?", (receipt_id,))
+    conn.execute(
+        """
+        INSERT INTO feedback_receipts(
+          receipt_id, schema_version, feedback_class, role_label, task_label,
+          target_product, target_surface, workflow_label, source_kind, summary,
+          quote_text, severity, desired_outcome, sentiment, captured_at,
+          tags_json, provenance_json, payload_sha256
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            receipt_id,
+            schema_version,
+            feedback_class,
+            role_label,
+            task_label,
+            _normalize_opt_text(payload.get("target_product")),
+            _normalize_opt_text(payload.get("target_surface")),
+            _normalize_opt_text(payload.get("workflow_label")),
+            source_kind,
+            summary,
+            quote_text,
+            severity,
+            _normalize_opt_text(payload.get("desired_outcome")),
+            _normalize_opt_text(payload.get("sentiment")),
+            captured_at,
+            _normalize_json(payload.get("tags")),
+            _normalize_json(payload.get("provenance")),
+            payload_sha256,
+        ),
+    )
+    conn.commit()
+    return {
+        "receipt_id": receipt_id,
+        "schema_version": schema_version,
+        "feedback_class": feedback_class,
+        "source_kind": source_kind,
+        "payload_sha256": payload_sha256,
+    }
+
+
+def list_feedback_receipts(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 20,
+    feedback_class: str | None = None,
+    source_kind: str | None = None,
+    target_product: str | None = None,
+) -> list[dict[str, Any]]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    where: list[str] = []
+    params: list[Any] = []
+    if feedback_class:
+        where.append("feedback_class = ?")
+        params.append(str(feedback_class))
+    if source_kind:
+        where.append("source_kind = ?")
+        params.append(str(source_kind))
+    if target_product:
+        where.append("target_product = ?")
+        params.append(str(target_product))
+    sql = """
+        SELECT receipt_id, schema_version, feedback_class, role_label, task_label,
+               target_product, target_surface, workflow_label, source_kind, summary,
+               quote_text, severity, desired_outcome, sentiment, captured_at,
+               tags_json, provenance_json, created_at
+        FROM feedback_receipts
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY captured_at DESC, receipt_id DESC LIMIT ?"
+    params.append(int(limit))
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    return [
+        {
+            "receipt_id": str(row["receipt_id"]),
+            "schema_version": str(row["schema_version"]),
+            "feedback_class": str(row["feedback_class"]),
+            "role_label": str(row["role_label"]),
+            "task_label": str(row["task_label"]),
+            "target_product": _normalize_opt_text(row["target_product"]),
+            "target_surface": _normalize_opt_text(row["target_surface"]),
+            "workflow_label": _normalize_opt_text(row["workflow_label"]),
+            "source_kind": str(row["source_kind"]),
+            "summary": str(row["summary"]),
+            "quote_text": str(row["quote_text"]),
+            "severity": str(row["severity"]),
+            "desired_outcome": _normalize_opt_text(row["desired_outcome"]),
+            "sentiment": _normalize_opt_text(row["sentiment"]),
+            "captured_at": str(row["captured_at"]),
+            "tags": _json_or_list(row["tags_json"]),
+            "provenance": _json_or_dict(row["provenance_json"]),
+            "created_at": str(row["created_at"]),
+        }
+        for row in rows
+    ]
+
+
+def build_feedback_receipt_summary(
+    conn: sqlite3.Connection,
+    *,
+    receipt_id: str,
+) -> dict[str, Any]:
+    ensure_database(conn)
+    _ensure_fact_intake_tables(conn)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        """
+        SELECT *
+        FROM feedback_receipts
+        WHERE receipt_id = ?
+        """,
+        (str(receipt_id or "").strip(),),
+    ).fetchone()
+    if row is None:
+        raise ValueError(f"Unknown feedback receipt: {receipt_id}")
+    return {
+        "receipt": {
+            "receipt_id": str(row["receipt_id"]),
+            "schema_version": str(row["schema_version"]),
+            "feedback_class": str(row["feedback_class"]),
+            "role_label": str(row["role_label"]),
+            "task_label": str(row["task_label"]),
+            "target_product": _normalize_opt_text(row["target_product"]),
+            "target_surface": _normalize_opt_text(row["target_surface"]),
+            "workflow_label": _normalize_opt_text(row["workflow_label"]),
+            "source_kind": str(row["source_kind"]),
+            "summary": str(row["summary"]),
+            "quote_text": str(row["quote_text"]),
+            "severity": str(row["severity"]),
+            "desired_outcome": _normalize_opt_text(row["desired_outcome"]),
+            "sentiment": _normalize_opt_text(row["sentiment"]),
+            "captured_at": str(row["captured_at"]),
+            "tags": _json_or_list(row["tags_json"]),
+            "provenance": _json_or_dict(row["provenance_json"]),
+            "created_at": str(row["created_at"]),
+        }
+    }
 
 
 def persist_fact_semantic_materialization(

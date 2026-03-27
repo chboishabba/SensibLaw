@@ -1,6 +1,165 @@
 # Changelog
 
 ## Unreleased
+- AU semantic/fact-review can now reuse persisted authority receipts
+  - Extended `src/au_semantic/semantic.py` with an opt-in
+    `authority_receipts` semantic-context lane that links persisted
+    `authority_ingest` receipts back to AU linkage/event authority hints
+    without performing live follow.
+  - That lane now emits a lightweight authority substrate summary per receipt
+    (source identity, selected paragraphs, linked authority signals) plus
+    explicit follow-needed conjectures when AU events reference authority
+    material that still lacks a persisted receipt.
+  - Extended `scripts/au_fact_review.py` with
+    `--include-authority-receipts` and `--authority-receipt-limit`.
+  - Extended `src/fact_intake/au_review_bundle.py` so AU review bundles carry
+    the new authority-receipt semantic context when enabled.
+  - Added regression coverage in `tests/test_au_semantic.py`,
+    `tests/test_au_fact_review_bundle.py`, and
+    `tests/test_au_fact_review_script.py`.
+- Docs: explicit citation-driven authority follow/ingest user story
+  - Added a standalone user story to `docs/user_stories.md` for the
+    citation-driven authority flow: cited material -> repo-owned follow seam ->
+    bounded authority ingest receipt -> later explicit downstream use.
+  - Synced `docs/planning/user_story_implementation_coverage_20260326.md`,
+    `todo.md`, and `COMPACTIFIED_CONTEXT.md` so the current boundary is
+    explicit: source-pack/HCA/operator lanes can do bounded follow/ingest, but
+    ordinary AU semantic runtime still does not auto-follow cite-like text by
+    itself.
+- Feedback receipt capture ergonomics:
+  - Extended `scripts/query_fact_review.py` with `feedback-add` and
+    `feedback-import` so bounded `feedback.receipt.v1` rows can be added from
+    CLI flags or imported from local JSONL/JSON batches.
+  - Added end-to-end coverage for the new capture path in
+    `tests/test_query_fact_review_script.py`.
+- Docs promotion for AustLII known-authority resolution:
+  - Promoted deterministic `MNC -> AustLII case URL` derivation into the
+    documented AustLII operator and citation-follow path for known case
+    authorities.
+  - Updated docs/TODO so AustLII no longer depends on SINO when the neutral
+    citation is already known; SINO remains the bounded discovery seam.
+  - Added `sensiblaw austlii-case-fetch` so known neutral citations or explicit
+    AustLII case URLs can be fetched directly, with local paragraph inspection
+    and optional persisted authority-ingest receipts.
+  - Added `austlii_case_url_from_mnc(...)` as the promoted deterministic helper
+    while retaining `austlii_case_url_guess(...)` as a compatibility alias.
+  - Extended `src/ingestion/citation_follow.py` so bounded citation-follow no
+    longer stops at JADE: it now falls back to deterministic AustLII case URLs
+    when JADE fetch fails or is not preferred, then uses strict AustLII SINO
+    exact-citation matching as the final bounded discovery step.
+  - Tightened AustLII pacing/timeouts to the documented conservative defaults:
+    search now defaults to `0.25 rps` with a longer bounded timeout, and fetch
+    now defaults to `0.25 rps`.
+  - Added regression coverage in `tests/cli/test_authority_cli.py`,
+    `tests/test_citation_follow.py`, and
+    `tests/test_citation_normalization.py`.
+- Feedback receipt contract + first persisted receiver:
+  - Added `database/migrations/014_feedback_receipts.sql` plus canonical
+    sqlite storage for bounded `feedback.receipt.v1` rows.
+  - Extended `src/fact_intake/read_model.py` and
+    `src/fact_intake/__init__.py` with
+    `persist_feedback_receipt(...)`,
+    `list_feedback_receipts(...)`, and
+    `build_feedback_receipt_summary(...)`.
+  - Extended `scripts/query_fact_review.py` with `feedback-receipts` and
+    `feedback-summary`.
+  - Added coverage in `tests/test_query_fact_review_script.py` and
+    `tests/test_migration_integrity.py`.
+- Docs/state clarification for AU/HCA authority ingest:
+  - Clarified repo memory/TODO that broader AU/HCA authority-ingest lanes
+    already exist (`source_pack_manifest_pull.py` ->
+    `source_pack_authority_follow.py`, `hca_case_demo_ingest.py`), producing
+    bounded ingest/timeline/graph artifacts.
+  - Clarified the narrower remaining gap: the normal AU semantic/fact-review
+    runtime still does not auto-follow AustLII/JADE authorities or reuse the
+    persisted authority receipts.
+- JADE best-effort search parity + operator cleanup:
+  - Added `src/sources/jade_search.py` plus a bounded public `/search/{term}`
+    adapter/parser and exact-MNC fallback hit synthesis for operator use.
+  - Added `sensiblaw jade-search` with selection, fetch, local paragraph
+    inspection, and optional persisted authority-ingest receipts.
+  - Moved paragraph-window selection into `src/sources/paragraphs.py` and
+    generalized search-hit selection into `src/sources/search_selection.py` so
+    JADE no longer depends on AustLII-named helpers for generic behavior.
+  - Split mixed coverage into `tests/cli/test_authority_cli.py` and
+    `tests/test_jade_live_optin.py`, and added fixture-backed JADE search
+    coverage in `tests/test_jade_search.py`.
+  - Updated docs and helper scripts so `jade-search` is explicitly secondary
+    best-effort, `jade-fetch` remains the stable exact-authority lane, and
+    the demo ingest hints use the public `/search/{term}` route.
+- Persisted bounded authority-ingest receiver for AU/HCA operator workflows:
+  - Added `database/migrations/013_authority_ingest.sql` plus canonical sqlite
+    tables for `authority_ingest_runs` and `authority_ingest_segments`.
+  - Extended `src/fact_intake/read_model.py` and `src/fact_intake/__init__.py`
+    with `persist_authority_ingest_receipt(...)`,
+    `list_authority_ingest_runs(...)`, and
+    `build_authority_ingest_summary(...)`.
+  - Extended `sensiblaw austlii-search` and `sensiblaw jade-fetch` with
+    optional `--db-path` persistence so operator-selected authorities can store
+    whole-fetch provenance plus bounded paragraph windows without auto-wiring
+    authority follow into AU semantic runtime.
+  - Extended `scripts/query_fact_review.py` with `authority-runs` and
+    `authority-summary`.
+  - Added regression coverage in `tests/cli/test_austlii_cli.py`,
+    `tests/test_query_fact_review_script.py`, and
+    `tests/test_migration_integrity.py`.
+- Contested affidavit review persisted receiver:
+  - Added `database/migrations/012_contested_affidavit_review.sql` plus
+    normalized read-model tables for contested review runs, affidavit rows,
+    source-review rows, and persisted Zelph claim-state facts.
+  - Extended `src/fact_intake/read_model.py` and `src/fact_intake/__init__.py`
+    with `persist_contested_affidavit_review(...)`,
+    `list_contested_affidavit_review_runs(...)`, and
+    `build_contested_affidavit_review_summary(...)`.
+  - Updated `scripts/build_affidavit_coverage_review.py` to accept optional
+    `--db-path` persistence while keeping JSON/markdown outputs as derived
+    projections.
+  - Extended `scripts/query_fact_review.py` with `contested-runs` and
+    `contested-summary` for the new persisted receiver.
+  - Added regression coverage in `tests/test_affidavit_coverage_review.py`,
+    `tests/test_query_fact_review_script.py`, and
+    `tests/test_migration_integrity.py`.
+- Docs/TODO: clarify bounded authority retrieval workflow:
+  - Updated `docs/sources_contract.md` to add the operator workflow for known
+    authority retrieval:
+    already-ingested/local artifact -> JADE exact MNC when authorized ->
+    AustLII SINO search -> explicit AustLII fetch -> local paragraph work.
+  - Updated `docs/cli_examples.md` with a concrete `sensiblaw austlii-search`
+    example for bounded case lookup/fetch plus local paragraph inspection.
+  - Updated `docs/user_stories.md` and root `TODO.md` so the lawyer/case-prep
+    lane and remaining gap now explicitly forbid ad hoc site probing outside
+    repo-owned source contracts.
+- AustLII known-authority local paragraph inspection:
+  - Added `src/sources/austlii_paragraphs.py` to index numbered paragraphs
+    locally from fetched AustLII HTML artifacts.
+  - Extended `sensiblaw austlii-search` with `--paragraph` and
+    `--paragraph-window` so known-authority search/fetch can emit local
+    paragraph excerpts without a second live retrieval pass.
+  - Added fixture-backed coverage in `tests/test_austlii_paragraphs.py` and
+    `tests/cli/test_austlii_cli.py`, plus a live opt-in fetch/parse canary in
+    `tests/test_austlii_live_optin.py`.
+- JADE known-authority local paragraph inspection:
+  - Aligned `src/sources/jade.py` with the repo citation contract so neutral
+    citations resolve to `content/ext/mnc/...` URLs while explicit JADE URLs
+    remain allowed.
+  - Added `src/sources/jade_paragraphs.py` to recover numbered paragraphs from
+    fetched JADE plain-text or HTML artifacts.
+  - Added `sensiblaw jade-fetch` with `--paragraph` and
+    `--paragraph-window` so known JADE authorities can be fetched once and then
+    inspected locally without a second live retrieval pass.
+  - Added fixture-backed coverage in `tests/test_jade_paragraphs.py`,
+    `tests/test_jade_adapter_rate_limit.py`, and
+    `tests/cli/test_authority_cli.py`, plus an opt-in live JADE fetch/parse
+    canary in `tests/test_jade_live_optin.py`.
+- JSON artifact boundary + personal-results DB-first correction:
+  - Added `docs/planning/json_artifact_boundary_20260327.md` to classify the
+    repo's JSON families and make the canonical sqlite/read-model doctrine
+    precise.
+  - Corrected `itir-svelte /corpora/processed/personal` so persisted `:real_`
+    fact-review runs hydrate from the canonical sqlite/workbench path rather
+    than checked-in demo-bundle JSON.
+  - Kept affidavit review explicit as an artifact-backed surface until that
+    lane has a canonical persisted receiver.
 - Transcript / observer / Wikidata parity lift:
   - Extended `src/transcript_semantic/semantic.py` so transcript relation rows
     now emit the same relation-candidate metadata as `GWB/AU`:

@@ -35,7 +35,13 @@ def jade_content_ext_url(key: CitationKey, *, base: str = "https://jade.barnet.c
     return f"{base}/content/ext/mnc/{key.year}/{key.court.lower()}/{key.number}"
 
 
-def austlii_case_url_guess(
+def austlii_case_url_from_mnc(
     key: CitationKey, *, base: str = "https://www.austlii.edu.au", state: str = "cth"
 ) -> str:
     return f"{base}/au/cases/{state}/{key.court}/{key.year}/{key.number}.html"
+
+
+def austlii_case_url_guess(
+    key: CitationKey, *, base: str = "https://www.austlii.edu.au", state: str = "cth"
+) -> str:
+    return austlii_case_url_from_mnc(key, base=base, state=state)

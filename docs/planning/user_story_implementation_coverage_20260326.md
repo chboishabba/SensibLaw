@@ -50,6 +50,33 @@ design pressure only.
   promotion family.
 
 ### Partial-stack support that exists but is narrower than the stories
+- First bounded citation-driven authority follow/ingest seam now exists:
+  `src/ingestion/citation_follow.py`,
+  `src/ingestion/austlii_pipeline.py`,
+  `scripts/source_pack_authority_follow.py`,
+  `scripts/hca_case_demo_ingest.py`,
+  `tests/test_citation_follow.py`
+  plus the authority operator seams now provide repo-owned fetch/follow entry
+  points and persisted receipt storage for known/bounded authority work.
+  Normal AU semantic/fact-review runtime can now also consume persisted
+  authority receipts as an explicit opt-in semantic-context lane, reusing
+  existing bounded receipts without performing live follow, and derives a
+  lightweight authority substrate summary plus follow-needed conjectures from
+  those receipts. This is still not a claim that ordinary AU runtime
+  auto-follows cite-like material during normal runs.
+- First persisted user-feedback evidence receiver now exists:
+  `src/fact_intake/read_model.py`,
+  `scripts/query_fact_review.py`,
+  `tests/test_query_fact_review_script.py`
+  now provide a bounded `feedback.receipt.v1` receiver/query path in
+  `itir.sqlite` for competitor frustrations, frustrations with our suite, and
+  delight signals, while preserving the distinction between direct user
+  evidence and `story_proxy` notes.
+- First bounded feedback capture ergonomics now exist:
+  `scripts/query_fact_review.py`
+  now supports `feedback-add` and `feedback-import`, so receipts can be added
+  directly from CLI flags or imported from local JSONL/JSON batches without
+  manual sqlite seeding.
 - First bounded personal/private handoff support now exists:
   `scripts/build_personal_handoff_bundle.py`,
   `src/fact_intake/personal_handoff_bundle.py`,
@@ -167,6 +194,13 @@ design pressure only.
 - Mission observer is now in bounded SB/mission-lens scope operationally, but
   there is no separate SL-reducer-backed promotion model that would justify
   upgrading it into canonical truth-bearing semantics.
+- JSON artifact boundary is now explicit in:
+  `docs/planning/json_artifact_boundary_20260327.md`
+  The current repo-wide JSON count is dominated by fixtures, demos,
+  source/data seeds, and caches. Runtime consequence: personal fact-review
+  result views should hydrate from sqlite first. Affidavit review now has a
+  persisted receiver for normalized runs/rows/facts, while its JSON/markdown
+  artifact remains a derived projection/export surface.
 
 ### Education / research capture to publication
 - No research/lab-note importer.

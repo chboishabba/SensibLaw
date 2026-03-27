@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sqlite3
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -30,6 +31,11 @@ try:
     from src.policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
+
+try:
+    from src.fact_intake import persist_contested_affidavit_review
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from fact_intake import persist_contested_affidavit_review
 
 
 ARTIFACT_VERSION = "affidavit_coverage_review_v1"
@@ -2037,7 +2043,8 @@ def write_affidavit_coverage_review(
     affidavit_text: str,
     source_path: str | None = None,
     affidavit_path: str | None = None,
-) -> dict[str, str]:
+    db_path: Path | None = None,
+) -> dict[str, Any]:
     payload = build_affidavit_coverage_review(
         source_payload=source_payload,
         affidavit_text=affidavit_text,
@@ -2049,7 +2056,11 @@ def write_affidavit_coverage_review(
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
     artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
-    return {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+    result: dict[str, Any] = {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+    if db_path is not None:
+        with sqlite3.connect(str(db_path)) as conn:
+            result["persist_summary"] = persist_contested_affidavit_review(conn, payload)
+    return result
 
 
 def main() -> None:
@@ -2057,6 +2068,7 @@ def main() -> None:
     parser.add_argument("--source-json", required=True, help="Path to a fact.review.bundle.v1 JSON or AU checked handoff slice JSON.")
     parser.add_argument("--affidavit-text", required=True, help="Path to the affidavit/declaration draft text file.")
     parser.add_argument("--output-dir", required=True, help="Directory where JSON and summary outputs will be written.")
+    parser.add_argument("--db-path", default=None, help="Optional sqlite path for persisting a normalized contested-review receiver.")
     args = parser.parse_args()
 
     source_path = Path(args.source_json)
@@ -2069,6 +2081,7 @@ def main() -> None:
         affidavit_text=affidavit_text,
         source_path=str(source_path),
         affidavit_path=str(affidavit_path),
+        db_path=Path(args.db_path) if args.db_path else None,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 

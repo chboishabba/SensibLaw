@@ -7,6 +7,7 @@ from typing import Callable, Tuple
 from src.sources.austlii_sino import SinoQuery
 from src.sources.austlii_sino_parse import AustLiiSearchHit, parse_sino_search_html
 from src.sources.base import FetchResult
+from src.sources.search_selection import select_search_hit
 from src.pdf_ingest import process_pdf
 
 
@@ -18,34 +19,13 @@ def _select_hit(
     index: int = 0,
     path_contains: str | None = None,
 ) -> tuple[AustLiiSearchHit, str]:
-    if not hits:
-        raise RuntimeError("No search hits returned")
-
-    if strategy == "first":
-        return hits[0], "first"
-
-    if strategy == "by_index":
-        if index < 0 or index >= len(hits):
-            raise IndexError("Index outside search results range")
-        return hits[index], f"by_index:{index}"
-
-    if strategy == "by_mnc":
-        if not mnc:
-            raise ValueError("mnc must be provided for strategy=by_mnc")
-        for hit in hits:
-            if hit.citation and hit.citation.lower() == mnc.lower():
-                return hit, f"by_mnc:{mnc}"
-        raise RuntimeError("No hit matched requested MNC")
-
-    if strategy == "by_path":
-        if not path_contains:
-            raise ValueError("path_contains must be provided for strategy=by_path")
-        for hit in hits:
-            if path_contains in hit.url:
-                return hit, f"by_path:{path_contains}"
-        raise RuntimeError("No hit matched requested path substring")
-
-    raise ValueError(f"Unknown selection strategy {strategy!r}")
+    return select_search_hit(
+        hits,
+        strategy=strategy,
+        mnc=mnc,
+        index=index,
+        path_contains=path_contains,
+    )
 
 
 def search_and_fetch(

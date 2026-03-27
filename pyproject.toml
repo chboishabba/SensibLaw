@@ -72,6 +72,7 @@ fail_under = 80
 [tool.pytest.ini_options]
 markers = [
     "redflag: non-negotiable guardrail tests that must stay green (no reasoning, no compliance, no identity drift)",
+    "live: opt-in tests that touch live external services and should normally be skipped",
 ]
 pythonpath = [
     "src",

@@ -83,6 +83,55 @@
   official online grant pages rather than treating "active Wikidata grants" as
   an implicit stable repo-local list. Current framing/spec note:
   `docs/planning/wikimedia_grant_framing_20260326.md`.
+
+## Semantic / artifact boundary
+- [x] Add a canonical persisted receiver for affidavit coverage / contested
+  narrative review in `itir.sqlite`, while keeping the JSON/markdown artifact
+  as a derived projection/export surface.
+- [ ] Update UI/runtime surfaces that still read affidavit review artifacts
+  directly so they prefer the persisted contested-review receiver when it is
+  available.
+- [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
+  resolver matches the documented authority order (`already-ingested/local ->
+  JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search
+  -> unresolved`). The bounded resolver now uses strict SINO exact-citation
+  matching as the final fallback and abstains when no exact match is found.
+- [x] Add a direct AustLII authority CLI seam for known case citations/URLs so
+  known-authority retrieval does not depend on SINO when discovery is not
+  needed.
+- [x] Add an explicit persisted bounded-part authority receiver for AU/HCA
+  operator-selected authorities. `sensiblaw austlii-search --db-path ...` and
+  `sensiblaw jade-fetch --db-path ...` now persist whole-fetch provenance plus
+  bounded selected paragraph segments into `itir.sqlite`.
+- [x] Add a bounded persisted-authority receipt consumption path into normal AU
+  semantic/fact-review runtime. `build_au_semantic_report(...)` and
+  `scripts/au_fact_review.py --include-authority-receipts` can now reuse
+  persisted `authority_ingest` receipts as semantic context without performing
+  live authority follow.
+- [x] Make the citation-driven authority follow/ingest expectation explicit as
+  a user story in `docs/user_stories.md`, including the current boundary that
+  source-pack/HCA/operator lanes can follow/ingest bounded authorities while
+  normal AU semantic runtime does not auto-follow cite-like text by itself.
+- [x] Bring JADE up to operator-search parity without breaking the bounded
+  source contract:
+  `sensiblaw jade-search` now provides a secondary best-effort search -> fetch
+  -> local paragraph-inspection lane, while exact `jade-fetch` remains the
+  stable known-authority path.
+- [x] Keep source-agnostic helpers/tests honest:
+  paragraph-window selection now lives in a neutral source helper, mixed CLI
+  authority coverage no longer sits in an AustLII-named test file, and the
+  JADE live canary has its own test module.
+- [ ] Decide whether AU/HCA authority-follow should remain operator-triggered
+  only, or whether the current opt-in persisted-authority receipt lane should
+  later become a default semantic/fact-review ingestion path. Current AU
+  semantic runtime still does not auto-invoke live authority follow from
+  parser-seen cite-like text.
+- [ ] Lift the current AU persisted-authority receipt lane from receipt reuse
+  into a small authority substrate summary:
+  paragraph spans, source identity, linked authority signals, and
+  follow-needed conjectures should be stable enough that runtime can decide
+  whether deeper bounded follow is warranted without rebuilding the full
+  authority tree each time.
 - [ ] If external Wikimedia funding becomes active, sample 2-3 funded and 2-3
   rejected Wikimedia proposal pages and compare the final wording against the
   current bounded Rapid Fund surfaces:

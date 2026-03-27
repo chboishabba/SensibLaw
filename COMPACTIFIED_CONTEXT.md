@@ -8,6 +8,14 @@ work with docs, TODOs, and changelog state.
 Semantic-promotion parity is now the active cross-lane governance lane.
 
 Current status:
+- first bounded feedback receipt receiver now exists in `itir.sqlite` via the
+  fact-intake/read-model layer, with explicit separation between direct user
+  evidence and `story_proxy` receipts through `feedback.receipt.v1`
+- direct CLI receipt capture/import now exists over the same receiver via
+  `scripts/query_fact_review.py`:
+  `feedback-add` and `feedback-import`
+- the remaining gap is better collector/operator ergonomics beyond raw CLI
+  flags or hand-authored JSONL
 - contested claims use the central semantic candidate + tetralemma promotion gate
 - GWB and AU semantic relation lanes emit the shared relation candidate contract
 - transcript/SB semantic relation rows now emit the same central candidate and
@@ -37,6 +45,81 @@ Current closure check:
 - mission observer is now clearly SB/mission-lens scoped operationally, but it
   still requires a separate SL-reducer-backed candidate/promotion design
   before it should enter the canonical truth-bearing semantic family
+- the repo's large JSON footprint is now explicitly classified in
+  `docs/planning/json_artifact_boundary_20260327.md`:
+  dominant JSON families are fixtures, demos, source/data seeds, and local
+  caches rather than canonical runtime fact state
+- `itir-svelte /corpora/processed/personal` is now DB-first for persisted
+  `:real_` fact-review runs; checked-in demo-bundle JSON is no longer used to
+  hydrate those runtime summaries
+- affidavit review now has a narrow canonical persisted receiver in
+  `itir.sqlite` for normalized runs/rows/facts via
+  `persist_contested_affidavit_review(...)`
+- JSON/markdown affidavit review artifacts remain derived projections; UI
+  surfaces still need a follow-up pass to prefer the persisted lane
+- authority retrieval workflow is now explicitly frozen as a docs-level rule:
+  operator use must stay inside repo-owned seams
+  (already-ingested/local artifact -> explicit AustLII URL if known ->
+  JADE exact MNC when authorized -> deterministic `MNC -> AustLII case URL`
+  derivation -> AustLII SINO -> local paragraph work), and ad hoc
+  live probing outside that path is now treated as policy drift rather than a
+  valid convenience shortcut
+- deterministic AustLII URL derivation is now a promoted part of the known
+  authority path:
+  `austlii_case_url_guess(...)` is treated as a direct canonical case-URL
+  construction step for known neutral citations, not as a heuristic search
+- the repo now has a direct AustLII known-authority CLI seam:
+  `sensiblaw austlii-case-fetch` accepts either a neutral citation or an
+  explicit AustLII case URL, then performs local paragraph work and optional
+  persisted authority-ingest receipt storage without using SINO
+- bounded citation-follow now completes the documented AustLII chain:
+  after JADE exact MNC and deterministic AustLII case-URL derivation, it uses
+  SINO as the final bounded discovery step with strict exact-citation matching
+  and abstains if no exact result is returned
+- AU semantic/fact-review itself remains seed/linkage driven over normalized
+  timeline payloads; it does not currently auto-invoke the AustLII/JADE
+  fetch/follow seam during normal pipeline runs
+- the first repo-owned operator seam for that workflow now exists:
+  `sensiblaw austlii-search` can emit local paragraph-indexed excerpts from the
+  fetched authority HTML via `--paragraph` / `--paragraph-window`, with
+  fixture-backed tests and a live opt-in AustLII fetch/parse canary
+- JADE is now at operator-path parity for the known-authority case:
+  `sensiblaw jade-fetch` accepts a neutral citation or explicit JADE URL,
+  resolves MNCs through the repo-owned `content/ext/mnc/...` contract, and can
+  emit local paragraph-indexed excerpts via `--paragraph` /
+  `--paragraph-window`, with fixture-backed tests and an opt-in live canary
+- JADE now also has a secondary best-effort operator search seam:
+  `sensiblaw jade-search` uses the public `/search/{term}` shell for one
+  bounded search request, parses any visible server-rendered hits, appends a
+  deterministic `/mnc/...` fallback hit when the query contains a neutral
+  citation, and then performs fetch + local paragraph work through the same
+  bounded receipt path
+- the operator authority seam now also has a canonical persisted bounded
+  receiver in `itir.sqlite`:
+  `sensiblaw austlii-search --db-path ...`, `sensiblaw jade-fetch --db-path ...`,
+  and `sensiblaw jade-search --db-path ...` persist an authority-ingest run
+  header plus selected paragraph segments, with query access via
+  `scripts/query_fact_review.py authority-runs` and `authority-summary`
+- repo scope distinction:
+  source-pack/HCA demo lanes already do bounded authority ingest/follow into
+  downstream timeline/graph artifacts (`source_pack_manifest_pull.py` ->
+  `source_pack_authority_follow.py`, plus `hca_case_demo_ingest.py`)
+- the narrower statement is now:
+  AU fact-review/semantic runtime remains seed/linkage-driven and does not
+  auto-follow AustLII/JADE authorities during normal runs, even though
+  adjacent AU/HCA ingest/demo lanes do; however, AU runtime can now opt in to
+  reuse persisted `authority_ingest` receipts as a semantic-context lane
+  carrying a lightweight authority substrate summary and follow-needed
+  conjectures
+- the intended next layering is now explicit in docs:
+  cite-like hint -> persisted authority receipt -> lightweight authority
+  substrate summary -> explicit deeper bounded follow only when a concrete
+  unresolved conjecture remains
+- that runtime split is now explicit in `docs/user_stories.md`:
+  citation-driven authority follow/ingest is a real story the repo claims at
+  the source-pack/HCA/operator seam level, while ordinary AU semantic runtime
+  now uses an explicit documented receipt-consumption path; parser-seen
+  cite-like text alone is still not enough to trigger live authority ingest
 
 ## Objective
 Keep the new AU/Wikidata/GWB review artifacts documented in the same terms the

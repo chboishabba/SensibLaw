@@ -1390,12 +1390,17 @@ def _handle_austlii_fetch(args: argparse.Namespace) -> None:
 
 
 def _handle_austlii_search(args: argparse.Namespace) -> None:
-    """Search AustLII SINO and fetch a single selected hit (no ingestion)."""
+    """Search AustLII SINO, fetch a single selected hit, and optionally persist a bounded receipt."""
+    import hashlib
     import json
+    import sqlite3
     from src.sources.austlii_sino import AustLiiSearchAdapter, SinoQuery
     from src.sources.austlii_sino_parse import parse_sino_search_html
     from src.sources.austlii_fetch import AustLiiFetchAdapter
+    from src.sources.austlii_paragraphs import parse_austlii_paragraphs
+    from src.fact_intake import AUTHORITY_INGEST_VERSION, persist_authority_ingest_receipt
     from src.ingestion.austlii_pipeline import _select_hit
+    from src.sources.paragraphs import select_paragraphs
 
     searcher = AustLiiSearchAdapter()
     fetcher = AustLiiFetchAdapter()
@@ -1434,6 +1439,330 @@ def _handle_austlii_search(args: argparse.Namespace) -> None:
         "content_type": fetched.content_type,
         "bytes": len(fetched.content),
     }
+    selected_paragraphs: list[dict[str, object]] = []
+
+    if args.paragraph:
+        content_type = (fetched.content_type or "").lower()
+        if "html" not in content_type and not fetched.url.lower().endswith(".html"):
+            raise SystemExit("Paragraph inspection currently requires fetched HTML content.")
+
+        paragraphs = parse_austlii_paragraphs(fetched.content.decode("utf-8", errors="replace"))
+        selected = select_paragraphs(
+            paragraphs,
+            requested=list(args.paragraph),
+            window=args.paragraph_window,
+        )
+        selected_paragraphs = [
+            {"number": paragraph.number, "text": paragraph.text} for paragraph in selected
+        ]
+        summary["paragraph_count"] = len(paragraphs)
+        summary["paragraphs"] = selected_paragraphs
+
+    if args.db_path:
+        preview_text = (
+            "\n\n".join(str(row["text"]) for row in selected_paragraphs)
+            if selected_paragraphs
+            else fetched.content.decode("utf-8", errors="replace")[:1200]
+        )
+        payload = {
+            "version": AUTHORITY_INGEST_VERSION,
+            "authority_kind": "austlii",
+            "ingest_mode": "search",
+            "citation": hit.citation,
+            "query_text": args.query,
+            "selection_reason": reason,
+            "resolved_url": fetched.url,
+            "content_type": fetched.content_type,
+            "content_length": len(fetched.content),
+            "content_sha256": hashlib.sha256(fetched.content).hexdigest(),
+            "paragraph_request": list(args.paragraph or []),
+            "paragraph_window": int(args.paragraph_window or 0),
+            "body_preview_text": preview_text,
+            "fetch_metadata": fetched.metadata,
+            "segments": [
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": row["number"],
+                    "segment_text": row["text"],
+                }
+                for row in selected_paragraphs
+            ],
+        }
+        with sqlite3.connect(str(args.db_path)) as conn:
+            summary["persistence"] = persist_authority_ingest_receipt(conn, payload)
+
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+    if args.out:
+        Path(args.out).write_bytes(fetched.content)
+        print(f"Saved content to {args.out}")
+
+
+def _handle_austlii_case_fetch(args: argparse.Namespace) -> None:
+    import hashlib
+    import json
+    import sqlite3
+
+    from src.citations.normalize import austlii_case_url_from_mnc, normalize_mnc
+    from src.fact_intake import AUTHORITY_INGEST_VERSION, persist_authority_ingest_receipt
+    from src.sources.austlii_fetch import AustLiiFetchAdapter
+    from src.sources.austlii_paragraphs import parse_austlii_paragraphs
+    from src.sources.paragraphs import select_paragraphs
+
+    if bool(args.citation) == bool(args.url):
+        raise SystemExit("Provide exactly one of --citation or --url.")
+
+    citation = args.citation
+    selection_reason = "explicit_url"
+    target_url = args.url
+    if citation:
+        key = normalize_mnc(citation)
+        if key is None:
+            raise SystemExit("Citation must be a neutral citation like [2010] FamCAFC 13.")
+        target_url = austlii_case_url_from_mnc(key, state=args.state)
+        selection_reason = f"by_citation:{citation}"
+
+    fetcher = AustLiiFetchAdapter()
+    fetched = fetcher.fetch(str(target_url))
+    summary = {
+        "citation": citation,
+        "url": fetched.url,
+        "content_type": fetched.content_type,
+        "bytes": len(fetched.content),
+        "selection_reason": selection_reason,
+    }
+    selected_paragraphs: list[dict[str, object]] = []
+
+    if args.paragraph:
+        content_type = (fetched.content_type or "").lower()
+        if "html" not in content_type and not fetched.url.lower().endswith(".html"):
+            raise SystemExit("Paragraph inspection currently requires fetched HTML content.")
+
+        paragraphs = parse_austlii_paragraphs(fetched.content.decode("utf-8", errors="replace"))
+        selected = select_paragraphs(
+            paragraphs,
+            requested=list(args.paragraph),
+            window=args.paragraph_window,
+        )
+        selected_paragraphs = [
+            {"number": paragraph.number, "text": paragraph.text} for paragraph in selected
+        ]
+        summary["paragraph_count"] = len(paragraphs)
+        summary["paragraphs"] = selected_paragraphs
+
+    if args.db_path:
+        preview_text = (
+            "\n\n".join(str(row["text"]) for row in selected_paragraphs)
+            if selected_paragraphs
+            else fetched.content.decode("utf-8", errors="replace")[:1200]
+        )
+        payload = {
+            "version": AUTHORITY_INGEST_VERSION,
+            "authority_kind": "austlii",
+            "ingest_mode": "fetch",
+            "citation": citation,
+            "selection_reason": selection_reason,
+            "resolved_url": fetched.url,
+            "content_type": fetched.content_type,
+            "content_length": len(fetched.content),
+            "content_sha256": hashlib.sha256(fetched.content).hexdigest(),
+            "paragraph_request": list(args.paragraph or []),
+            "paragraph_window": int(args.paragraph_window or 0),
+            "body_preview_text": preview_text,
+            "fetch_metadata": fetched.metadata,
+            "segments": [
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": row["number"],
+                    "segment_text": row["text"],
+                }
+                for row in selected_paragraphs
+            ],
+        }
+        with sqlite3.connect(str(args.db_path)) as conn:
+            summary["persistence"] = persist_authority_ingest_receipt(conn, payload)
+
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+    if args.out:
+        Path(args.out).write_bytes(fetched.content)
+        print(f"Saved content to {args.out}")
+
+
+def _handle_jade_fetch(args: argparse.Namespace) -> None:
+    import hashlib
+    import json
+    import sqlite3
+
+    from src.fact_intake import AUTHORITY_INGEST_VERSION, persist_authority_ingest_receipt
+    from src.sources.jade import JadeAdapter
+    from src.sources.jade_paragraphs import parse_jade_paragraphs
+    from src.sources.paragraphs import select_paragraphs
+
+    fetcher = JadeAdapter()
+    fetched = fetcher.fetch(args.citation)
+    summary = {
+        "citation": args.citation,
+        "url": fetched.url,
+        "content_type": fetched.content_type,
+        "bytes": len(fetched.content),
+    }
+    selected_paragraphs: list[dict[str, object]] = []
+
+    if args.paragraph:
+        paragraphs = parse_jade_paragraphs(fetched.content, content_type=fetched.content_type)
+        selected = select_paragraphs(
+            paragraphs,
+            requested=list(args.paragraph),
+            window=args.paragraph_window,
+        )
+        selected_paragraphs = [
+            {"number": paragraph.number, "text": paragraph.text} for paragraph in selected
+        ]
+        summary["paragraph_count"] = len(paragraphs)
+        summary["paragraphs"] = selected_paragraphs
+
+    if args.db_path:
+        preview_text = (
+            "\n\n".join(str(row["text"]) for row in selected_paragraphs)
+            if selected_paragraphs
+            else fetched.content.decode("utf-8", errors="replace")[:1200]
+        )
+        payload = {
+            "version": AUTHORITY_INGEST_VERSION,
+            "authority_kind": "jade",
+            "ingest_mode": "fetch",
+            "citation": args.citation,
+            "selection_reason": "explicit_citation",
+            "resolved_url": fetched.url,
+            "content_type": fetched.content_type,
+            "content_length": len(fetched.content),
+            "content_sha256": hashlib.sha256(fetched.content).hexdigest(),
+            "paragraph_request": list(args.paragraph or []),
+            "paragraph_window": int(args.paragraph_window or 0),
+            "body_preview_text": preview_text,
+            "fetch_metadata": fetched.metadata,
+            "segments": [
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": row["number"],
+                    "segment_text": row["text"],
+                }
+                for row in selected_paragraphs
+            ],
+        }
+        with sqlite3.connect(str(args.db_path)) as conn:
+            summary["persistence"] = persist_authority_ingest_receipt(conn, payload)
+
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+    if args.out:
+        Path(args.out).write_bytes(fetched.content)
+        print(f"Saved content to {args.out}")
+
+
+def _handle_jade_search(args: argparse.Namespace) -> None:
+    import hashlib
+    import json
+    import sqlite3
+
+    from src.fact_intake import AUTHORITY_INGEST_VERSION, persist_authority_ingest_receipt
+    from src.sources.jade import JadeAdapter
+    from src.sources.jade_paragraphs import parse_jade_paragraphs
+    from src.sources.jade_search import (
+        JadeSearchAdapter,
+        build_jade_search_url,
+        fallback_hit_for_query,
+        parse_jade_search_html,
+    )
+    from src.sources.paragraphs import select_paragraphs
+    from src.sources.search_selection import select_search_hit
+
+    searcher = JadeSearchAdapter()
+    fetcher = JadeAdapter()
+
+    html = searcher.search(args.query)
+    parsed_hits = parse_jade_search_html(html)
+    fallback_hit = fallback_hit_for_query(args.query, base_url=fetcher.api_base)
+    if fallback_hit and not any(hit.url == fallback_hit.url for hit in parsed_hits):
+        parsed_hits.append(fallback_hit)
+
+    offset = max(0, int(args.offset))
+    results = max(1, int(args.results))
+    hits = parsed_hits[offset : offset + results]
+    hit, reason = select_search_hit(
+        hits,
+        strategy=args.pick,
+        mnc=args.mnc,
+        index=args.index,
+        path_contains=args.path_contains,
+    )
+
+    fetched = fetcher.fetch(hit.url)
+    summary = {
+        "query": args.query,
+        "search_url": build_jade_search_url(searcher.endpoint, args.query),
+        "strategy": args.pick,
+        "selection_reason": reason,
+        "search_mode": "best_effort",
+        "result_window": {"offset": offset, "results": results, "hit_count": len(hits)},
+        "fallback_hit_used": fallback_hit is not None and hit.url == fallback_hit.url,
+        "hit": {
+            "title": hit.title,
+            "url": hit.url,
+            "citation": hit.citation,
+        },
+        "content_type": fetched.content_type,
+        "bytes": len(fetched.content),
+    }
+    selected_paragraphs: list[dict[str, object]] = []
+
+    if args.paragraph:
+        paragraphs = parse_jade_paragraphs(fetched.content, content_type=fetched.content_type)
+        selected = select_paragraphs(
+            paragraphs,
+            requested=list(args.paragraph),
+            window=args.paragraph_window,
+        )
+        selected_paragraphs = [
+            {"number": paragraph.number, "text": paragraph.text} for paragraph in selected
+        ]
+        summary["paragraph_count"] = len(paragraphs)
+        summary["paragraphs"] = selected_paragraphs
+
+    if args.db_path:
+        preview_text = (
+            "\n\n".join(str(row["text"]) for row in selected_paragraphs)
+            if selected_paragraphs
+            else fetched.content.decode("utf-8", errors="replace")[:1200]
+        )
+        payload = {
+            "version": AUTHORITY_INGEST_VERSION,
+            "authority_kind": "jade",
+            "ingest_mode": "search",
+            "citation": hit.citation,
+            "query_text": args.query,
+            "selection_reason": reason,
+            "resolved_url": fetched.url,
+            "content_type": fetched.content_type,
+            "content_length": len(fetched.content),
+            "content_sha256": hashlib.sha256(fetched.content).hexdigest(),
+            "paragraph_request": list(args.paragraph or []),
+            "paragraph_window": int(args.paragraph_window or 0),
+            "body_preview_text": preview_text,
+            "fetch_metadata": fetched.metadata,
+            "segments": [
+                {
+                    "segment_kind": "paragraph",
+                    "paragraph_number": row["number"],
+                    "segment_text": row["text"],
+                }
+                for row in selected_paragraphs
+            ],
+        }
+        with sqlite3.connect(str(args.db_path)) as conn:
+            summary["persistence"] = persist_authority_ingest_receipt(conn, payload)
+
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
     if args.out:
@@ -2146,7 +2475,7 @@ def build_parser() -> argparse.ArgumentParser:
     austlii.add_argument("--sections", default="")
     austlii.set_defaults(func=_handle_austlii_fetch)
 
-    austlii_search = sub.add_parser("austlii-search", help="Search AustLII SINO and fetch one hit (no ingestion)")
+    austlii_search = sub.add_parser("austlii-search", help="Search AustLII SINO, fetch one hit, and optionally persist a bounded receipt")
     austlii_search.add_argument("--query", required=True, help="Search query")
     austlii_search.add_argument("--vc", default="/au", help="Virtual concordance (meta) scope, default /au")
     austlii_search.add_argument("--method", default="any", help="SINO method (any|all|phrase|...)")
@@ -2161,8 +2490,88 @@ def build_parser() -> argparse.ArgumentParser:
     austlii_search.add_argument("--index", type=int, default=0, help="Index for by_index strategy")
     austlii_search.add_argument("--mnc", help="Exact MNC for by_mnc strategy")
     austlii_search.add_argument("--path-contains", help="Substring match for by_path strategy")
+    austlii_search.add_argument(
+        "--paragraph",
+        action="append",
+        type=int,
+        help="Paragraph number to inspect locally after fetch (repeatable)",
+    )
+    austlii_search.add_argument(
+        "--paragraph-window",
+        type=int,
+        default=0,
+        help="Include this many surrounding paragraphs on each side",
+    )
     austlii_search.add_argument("--out", type=Path, help="Optional path to write fetched content")
+    austlii_search.add_argument("--db-path", type=Path, help="Optional sqlite path to persist a bounded authority ingest receipt")
     austlii_search.set_defaults(func=_handle_austlii_search)
+
+    austlii_case_fetch = sub.add_parser("austlii-case-fetch", help="Fetch a known AustLII case authority by citation or URL")
+    austlii_case_fetch.add_argument("--citation", help="Neutral citation to resolve deterministically to an AustLII case URL")
+    austlii_case_fetch.add_argument("--url", help="Explicit AustLII case URL")
+    austlii_case_fetch.add_argument("--state", default="cth", help="AustLII jurisdiction segment used for neutral-citation resolution")
+    austlii_case_fetch.add_argument(
+        "--paragraph",
+        action="append",
+        type=int,
+        help="Paragraph number to inspect locally after fetch (repeatable)",
+    )
+    austlii_case_fetch.add_argument(
+        "--paragraph-window",
+        type=int,
+        default=0,
+        help="Include this many surrounding paragraphs on each side",
+    )
+    austlii_case_fetch.add_argument("--out", type=Path, help="Optional path to write fetched content")
+    austlii_case_fetch.add_argument("--db-path", type=Path, help="Optional sqlite path to persist a bounded authority ingest receipt")
+    austlii_case_fetch.set_defaults(func=_handle_austlii_case_fetch)
+
+    jade_fetch = sub.add_parser("jade-fetch", help="Fetch a JADE authority by citation or URL")
+    jade_fetch.add_argument("--citation", required=True, help="Neutral citation or explicit JADE URL")
+    jade_fetch.add_argument(
+        "--paragraph",
+        action="append",
+        type=int,
+        help="Paragraph number to inspect locally after fetch (repeatable)",
+    )
+    jade_fetch.add_argument(
+        "--paragraph-window",
+        type=int,
+        default=0,
+        help="Include this many surrounding paragraphs on each side",
+    )
+    jade_fetch.add_argument("--out", type=Path, help="Optional path to write fetched content")
+    jade_fetch.add_argument("--db-path", type=Path, help="Optional sqlite path to persist a bounded authority ingest receipt")
+    jade_fetch.set_defaults(func=_handle_jade_fetch)
+
+    jade_search = sub.add_parser("jade-search", help="Best-effort JADE search, fetch one hit, and optionally persist a bounded receipt")
+    jade_search.add_argument("--query", required=True, help="Search query")
+    jade_search.add_argument("--results", type=int, default=20, help="Local result window size applied after parsing")
+    jade_search.add_argument("--offset", type=int, default=0, help="Local result offset applied after parsing")
+    jade_search.add_argument(
+        "--pick",
+        choices=["first", "by_index", "by_mnc", "by_path"],
+        default="first",
+        help="Selection strategy",
+    )
+    jade_search.add_argument("--index", type=int, default=0, help="Index for by_index strategy")
+    jade_search.add_argument("--mnc", help="Exact MNC for by_mnc strategy")
+    jade_search.add_argument("--path-contains", help="Substring match for by_path strategy")
+    jade_search.add_argument(
+        "--paragraph",
+        action="append",
+        type=int,
+        help="Paragraph number to inspect locally after fetch (repeatable)",
+    )
+    jade_search.add_argument(
+        "--paragraph-window",
+        type=int,
+        default=0,
+        help="Include this many surrounding paragraphs on each side",
+    )
+    jade_search.add_argument("--out", type=Path, help="Optional path to write fetched content")
+    jade_search.add_argument("--db-path", type=Path, help="Optional sqlite path to persist a bounded authority ingest receipt")
+    jade_search.set_defaults(func=_handle_jade_search)
 
     tools = sub.add_parser("tools", help="Miscellaneous tools")
     tools_sub = tools.add_subparsers(dest="tools_command")

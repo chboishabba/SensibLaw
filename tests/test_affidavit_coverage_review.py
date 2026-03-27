@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 from scripts.build_affidavit_coverage_review import (
@@ -186,6 +187,60 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     assert payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
     assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
     assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")
+
+
+def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: Path) -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "transcript_semantic:demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            }
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            }
+        ],
+    }
+    out_dir = tmp_path / "artifact"
+    db_path = tmp_path / "itir.sqlite"
+    result = write_affidavit_coverage_review(
+        output_dir=out_dir,
+        source_payload=source_payload,
+        affidavit_text="The witness attended the meeting on Tuesday.",
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=db_path,
+    )
+
+    persist_summary = result["persist_summary"]
+    assert persist_summary["review_run_id"].startswith("contested_review:")
+    assert persist_summary["affidavit_row_count"] == 1
+    assert persist_summary["source_row_count"] == 1
+    with sqlite3.connect(str(db_path)) as conn:
+        run_row = conn.execute(
+            "SELECT artifact_version, source_label, covered_count FROM contested_review_runs WHERE review_run_id = ?",
+            (persist_summary["review_run_id"],),
+        ).fetchone()
+        assert run_row == ("affidavit_coverage_review_v1", "transcript_semantic:demo", 1)
+        affidavit_row = conn.execute(
+            "SELECT proposition_id, coverage_status, semantic_basis, promotion_status FROM contested_review_affidavit_rows WHERE review_run_id = ?",
+            (persist_summary["review_run_id"],),
+        ).fetchone()
+        assert affidavit_row[0] == "aff-prop:p1-s1"
+        assert affidavit_row[1] == "covered"
+        assert affidavit_row[2] == "structural"
+        assert affidavit_row[3] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
 
 
 def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_source_rows() -> None:

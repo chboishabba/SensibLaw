@@ -64,12 +64,12 @@ class AustLiiSearchAdapter:
         session=None,
         user_agent: str | None = None,
         referer: str | None = None,
-        timeout_s: float = 30.0,
+        timeout_s: float = 45.0,
     ):
         import requests  # lazy import to avoid hard dependency for pure tests
 
         self.endpoint = endpoint
-        self.limiter = limiter or TokenBucketRateLimiter(RateLimit(rps=0.5, burst=1))
+        self.limiter = limiter or TokenBucketRateLimiter(RateLimit(rps=0.25, burst=1))
         self.session = session or requests.Session()
         # NOTE:
         # AustLII returns HTTP 410 to generic/bot User-Agents. We intentionally send a

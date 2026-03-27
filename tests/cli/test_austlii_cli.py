@@ -3,8 +3,6 @@ from datetime import date
 from pathlib import Path
 import sys
 
-import pytest
-
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from src import cli
@@ -67,4 +65,3 @@ def test_austlii_fetch_and_view(tmp_path, monkeypatch, capsys):
     assert data["provenance"].endswith("s1.html")
     assert data["ontology_tags"]["test"] == ["tag"]
     assert data["rules"]  # rule extracted from "must"
-

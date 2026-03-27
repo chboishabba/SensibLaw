@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+import sqlite3
 
 from scripts.au_fact_review import main
+from src.au_semantic.linkage import ensure_au_semantic_schema
+from src.fact_intake import persist_authority_ingest_receipt
+from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 
 
@@ -27,6 +32,32 @@ def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys
         },
         timeline_path=tmp_path / "wiki_timeline_hca_s942025_aoo.json",
     )
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_gwb_semantic_schema(conn)
+        ensure_au_semantic_schema(conn)
+        persist_authority_ingest_receipt(
+            conn,
+            {
+                "version": "authority.ingest.v1",
+                "authority_kind": "austlii",
+                "ingest_mode": "known_authority_fetch",
+                "citation": "[1936] HCA 40",
+                "selection_reason": "by_citation:[1936] HCA 40",
+                "resolved_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+                "content_type": "text/html",
+                "content_length": 120,
+                "content_sha256": hashlib.sha256(b"house-v-the-king").hexdigest(),
+                "body_preview_text": "House v The King judgment excerpt discussing the High Court appeal.",
+                "segments": [
+                    {
+                        "segment_kind": "paragraph",
+                        "paragraph_number": 1,
+                        "segment_text": "House v The King concerned an appeal heard by the High Court.",
+                    }
+                ],
+            },
+        )
 
     exit_code = main(
         [
@@ -34,6 +65,7 @@ def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys
             str(db_path),
             "--seed-path",
             str(seed_path),
+            "--include-authority-receipts",
             "bundle",
         ]
     )
@@ -46,6 +78,7 @@ def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys
     assert payload["summary"]["fact_count"] == 1
     assert payload["summary"]["event_count"] >= 1
     assert "operator_views" in payload
+    assert payload["semantic_context"]["authority_receipts"]["summary"]["authority_receipt_count"] >= 1
     assert any(row["event_type"] in {"appealed", "heard by"} for row in payload["events"])
 
 

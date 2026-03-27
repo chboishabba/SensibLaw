@@ -946,7 +946,7 @@ def _citation_follow_hints(citation_text: str, source_document_json: str, source
             {
                 "provider": "jade",
                 "mode": "search",
-                "url": f"https://jade.io/search?q={q}",
+                "url": f"https://jade.io/search/{q}",
             }
         )
     if source_document_json:

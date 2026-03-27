@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -15,6 +16,7 @@ from src.fact_intake import (
     build_au_fact_review_bundle,
     build_fact_intake_payload_from_au_semantic_report,
     persist_fact_intake_payload,
+    persist_authority_ingest_receipt,
     record_fact_workflow_link,
 )
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
@@ -70,7 +72,29 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
         ensure_gwb_semantic_schema(conn)
         ensure_au_semantic_schema(conn)
         result = run_au_semantic_pipeline(conn)
-        semantic_report = build_au_semantic_report(conn, run_id=result["run_id"])
+        persist_authority_ingest_receipt(
+            conn,
+            {
+                "version": "authority.ingest.v1",
+                "authority_kind": "austlii",
+                "ingest_mode": "known_authority_fetch",
+                "citation": "[1936] HCA 40",
+                "selection_reason": "by_citation:[1936] HCA 40",
+                "resolved_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+                "content_type": "text/html",
+                "content_length": 120,
+                "content_sha256": hashlib.sha256(b"house-v-the-king").hexdigest(),
+                "body_preview_text": "House v The King judgment excerpt discussing the High Court appeal.",
+                "segments": [
+                    {
+                        "segment_kind": "paragraph",
+                        "paragraph_number": 1,
+                        "segment_text": "House v The King concerned an appeal heard by the High Court.",
+                    }
+                ],
+            },
+        )
+        semantic_report = build_au_semantic_report(conn, run_id=result["run_id"], include_authority_receipts=True)
         source_payload = load_run_payload_from_normalized(conn, timeline_run_id) or {}
         source_events = source_payload.get("events") if isinstance(source_payload.get("events"), list) else []
         payload = build_fact_intake_payload_from_au_semantic_report(semantic_report, timeline_events=source_events)
@@ -125,5 +149,8 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["abstentions"]["counts"]["observation_abstentions"] >= 0
     assert bundle["semantic_context"]["summary"]["relation_candidate_count"] >= 1
     assert "au_linkage" in bundle["semantic_context"]
+    assert bundle["semantic_context"]["authority_receipts"]["summary"]["authority_receipt_count"] >= 1
+    assert bundle["semantic_context"]["authority_receipts"]["summary"]["linked_receipt_count"] >= 1
+    assert bundle["semantic_context"]["authority_receipts"]["items"][0]["structured_summary"]["selected_paragraph_numbers"] == [1]
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])

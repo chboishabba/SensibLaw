@@ -83,6 +83,25 @@ Follow outputs (gitignored) under:
 - `SensibLaw/demo/ingest/legal_principles_au_v1/follow/follow_timeline_graph.json`
 - `SensibLaw/demo/ingest/legal_principles_au_v1/follow/wiki_timeline_legal_principles_au_v1_follow.json`
 
+### Receipt reuse in normal AU runtime
+
+Normal `AU` semantic/fact-review runtime is still not a live authority crawler.
+However, it may now reuse previously persisted authority-ingest receipts as a
+bounded context lane.
+
+Current intended layering:
+
+- cited authority hint in existing AU material
+- persisted authority receipt (`authority_ingest_runs` +
+  `authority_ingest_segments`)
+- lightweight authority substrate summary for runtime use
+- explicit deeper bounded follow only when a concrete unresolved conjecture
+  remains
+
+This means normal AU runtime can read already-fetched authority receipts and
+attach them back to events/review context, but cite-like text by itself still
+does not trigger live AustLII/JADE follow.
+
 ## High Court case demo bundle (`case-s942025`)
 
 Use `SensibLaw/scripts/hca_case_demo_ingest.py` to pull a single High Court case page, download linked artifacts, ingest PDFs, and emit graph + media sidecars into a gitignored demo folder:

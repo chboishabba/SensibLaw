@@ -18,7 +18,7 @@ class AustLiiFetchAdapter:
     ):
         import requests  # lazy import
 
-        self.limiter = limiter or TokenBucketRateLimiter(RateLimit(rps=1.0, burst=1))
+        self.limiter = limiter or TokenBucketRateLimiter(RateLimit(rps=0.25, burst=1))
         self.session = session or requests.Session()
         self.user_agent = user_agent or "SensibLaw/0.1 (+https://sensiblaw.local)"
         self.timeout_s = timeout_s

@@ -45,3 +45,17 @@ def test_jade_adapter_respects_rate_limit():
 
     assert session.calls == 2
     assert len(c.sleeps) == 1  # second call waited
+
+
+def test_jade_adapter_normalizes_mnc_to_content_ext_url():
+    session = FakeSession()
+    adapter = JadeAdapter(api_base="https://jade.barnet.com.au", session=session)
+    result = adapter.fetch("[2011] HCA 1")
+    assert result.url.endswith("/content/ext/mnc/2011/hca/1")
+
+
+def test_jade_adapter_allows_explicit_jade_url():
+    session = FakeSession()
+    adapter = JadeAdapter(session=session)
+    result = adapter.fetch("https://jade.barnet.com.au/content/ext/mnc/2011/hca/1")
+    assert result.url == "https://jade.barnet.com.au/content/ext/mnc/2011/hca/1"

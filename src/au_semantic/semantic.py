@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -199,6 +199,10 @@ def _load_au_legal_representation_cues() -> tuple[dict[str, str], ...]:
                 }
             )
     return tuple(expanded)
+
+
+def _normalize_authority_text(text: str | None) -> str:
+    return " ".join(str(text or "").casefold().split())
 
 
 def _au_doc_actor_key(run_id: str, surface: str) -> str:
@@ -870,7 +874,194 @@ def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_
     }
 
 
-def build_au_semantic_report(conn, *, run_id: str) -> dict[str, Any]:
+def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, Any]]) -> dict[str, Any]:
+    authority_titles: set[str] = set()
+    legal_refs: set[str] = set()
+    for match in matches:
+        if not isinstance(match, Mapping):
+            continue
+        for receipt in match.get("receipts", []):
+            if not isinstance(receipt, Mapping):
+                continue
+            reason_kind = str(receipt.get("reason_kind") or "")
+            reason_value = str(receipt.get("reason_value") or "").strip()
+            if not reason_value:
+                continue
+            if reason_kind == "authority_title":
+                authority_titles.add(reason_value)
+            elif reason_kind:
+                legal_refs.add(reason_value)
+    parts = [str(event.get("text") or "").strip(), str(event.get("section") or "").strip()]
+    return {
+        "text": "\n".join(part for part in parts if part),
+        "authority_titles": sorted(authority_titles),
+        "legal_refs": sorted(legal_refs),
+    }
+
+
+def build_au_authority_receipt_context(
+    conn,
+    *,
+    run_id: str,
+    limit: int = 20,
+) -> dict[str, Any]:
+    from src.fact_intake.read_model import build_authority_ingest_summary, list_authority_ingest_runs
+
+    payload = load_run_payload_from_normalized(conn, run_id) or {}
+    events = payload.get("events") if isinstance(payload.get("events"), list) else []
+    linkage_report = __import__("src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]).build_au_semantic_linkage_report(conn, run_id=run_id)
+    per_event_matches = {
+        str(event.get("event_id") or ""): list(event.get("matches") or [])
+        for event in linkage_report.get("per_event", [])
+        if isinstance(event, Mapping) and event.get("event_id")
+    }
+    event_map = {
+        str(event.get("event_id") or ""): event
+        for event in events
+        if isinstance(event, Mapping) and event.get("event_id")
+    }
+    event_hints = {
+        event_id: _event_authority_hints(event_map[event_id], matches)
+        for event_id, matches in per_event_matches.items()
+        if event_id in event_map
+    }
+
+    authority_runs = list_authority_ingest_runs(conn, limit=max(int(limit or 0), 0))
+    items: list[dict[str, Any]] = []
+    linked_event_ids_seen: set[str] = set()
+    authority_kind_counts: Counter[str] = Counter()
+    for run in authority_runs:
+        summary = build_authority_ingest_summary(conn, ingest_run_id=str(run["ingest_run_id"]))
+        run_payload = summary.get("run") if isinstance(summary.get("run"), Mapping) else {}
+        segments = [segment for segment in summary.get("segments", []) if isinstance(segment, Mapping)]
+        searchable_parts = [
+            str(run_payload.get("citation") or ""),
+            str(run_payload.get("query_text") or ""),
+            str(run_payload.get("selection_reason") or ""),
+            str(run_payload.get("resolved_url") or ""),
+            str(run_payload.get("body_preview_text") or ""),
+        ]
+        for segment in segments:
+            searchable_parts.append(str(segment.get("segment_text") or ""))
+        searchable_text = _normalize_authority_text("\n".join(part for part in searchable_parts if part))
+
+        linked_event_ids: list[str] = []
+        matched_titles: set[str] = set()
+        matched_refs: set[str] = set()
+        for event_id, hints in event_hints.items():
+            event_text = _normalize_authority_text(str(hints.get("text") or ""))
+            titles = [str(title) for title in hints.get("authority_titles", [])]
+            refs = [str(ref) for ref in hints.get("legal_refs", [])]
+            title_hit = any(
+                _normalize_authority_text(title) and _normalize_authority_text(title) in searchable_text
+                for title in titles
+            )
+            ref_hit = any(
+                (_normalize_authority_text(ref.split(":", 1)[-1].replace("_", " "))) in searchable_text
+                for ref in refs
+                if _normalize_authority_text(ref.split(":", 1)[-1].replace("_", " "))
+            )
+            citation_hit = bool(run_payload.get("citation")) and _normalize_authority_text(str(run_payload.get("citation"))) in event_text
+            if title_hit or ref_hit or citation_hit:
+                linked_event_ids.append(event_id)
+                matched_titles.update(title for title in titles if _normalize_authority_text(title) in searchable_text)
+                matched_refs.update(
+                    ref
+                    for ref in refs
+                    if _normalize_authority_text(ref.split(":", 1)[-1].replace("_", " ")) in searchable_text
+                )
+        linked_event_ids = sorted(set(linked_event_ids))
+        linked_event_ids_seen.update(linked_event_ids)
+        authority_kind = str(run_payload.get("authority_kind") or "")
+        if authority_kind:
+            authority_kind_counts[authority_kind] += 1
+        paragraph_numbers = [
+            int(segment["paragraph_number"])
+            for segment in segments
+            if segment.get("paragraph_number") is not None
+        ]
+        structured_summary = {
+            "source_identity": {
+                "authority_kind": authority_kind,
+                "citation": run_payload.get("citation"),
+                "resolved_url": str(run_payload.get("resolved_url") or ""),
+                "ingest_mode": str(run_payload.get("ingest_mode") or ""),
+            },
+            "selected_paragraph_numbers": paragraph_numbers,
+            "selected_paragraph_count": len(paragraph_numbers),
+            "segment_count": len(segments),
+            "linked_authority_signals": {
+                "authority_titles": sorted(matched_titles),
+                "legal_refs": sorted(matched_refs),
+            },
+            "body_preview_text": run_payload.get("body_preview_text"),
+        }
+        items.append(
+            {
+                "ingest_run_id": str(run_payload.get("ingest_run_id") or run["ingest_run_id"]),
+                "authority_kind": authority_kind,
+                "ingest_mode": str(run_payload.get("ingest_mode") or ""),
+                "citation": run_payload.get("citation"),
+                "query_text": run_payload.get("query_text"),
+                "selection_reason": run_payload.get("selection_reason"),
+                "resolved_url": str(run_payload.get("resolved_url") or ""),
+                "segment_count": int(run_payload.get("segment_count") or 0),
+                "linked_event_ids": linked_event_ids,
+                "matched_authority_titles": sorted(matched_titles),
+                "matched_legal_refs": sorted(matched_refs),
+                "link_status": "linked" if linked_event_ids else "unlinked",
+                "storage_basis": "sqlite",
+                "created_at": str(run_payload.get("created_at") or ""),
+                "structured_summary": structured_summary,
+            }
+        )
+
+    follow_needed_events = [
+        {
+            "event_id": event_id,
+            "authority_titles": list(hints.get("authority_titles") or []),
+            "legal_refs": list(hints.get("legal_refs") or []),
+        }
+        for event_id, hints in event_hints.items()
+        if (hints.get("authority_titles") or hints.get("legal_refs")) and event_id not in linked_event_ids_seen
+    ]
+    follow_needed_conjectures = [
+        {
+            "conjecture_kind": "missing_authority_receipt_for_event",
+            "event_id": row["event_id"],
+            "authority_titles": row["authority_titles"],
+            "legal_refs": row["legal_refs"],
+            "resolution_hint": "persist_or_link_authority_receipt",
+        }
+        for row in follow_needed_events
+    ]
+    return {
+        "summary": {
+            "authority_receipt_count": len(items),
+            "linked_receipt_count": sum(1 for item in items if item["linked_event_ids"]),
+            "follow_needed_event_count": len(follow_needed_events),
+            "conjecture_count": len(follow_needed_conjectures),
+            "authority_kind_counts": dict(authority_kind_counts),
+        },
+        "items": items,
+        "follow_needed_events": follow_needed_events,
+        "follow_needed_conjectures": follow_needed_conjectures,
+    }
+
+
+def build_au_semantic_report(
+    conn,
+    *,
+    run_id: str,
+    include_authority_receipts: bool = False,
+    authority_receipt_limit: int = 20,
+) -> dict[str, Any]:
     report = build_gwb_semantic_report(conn, run_id=run_id)
     report["au_linkage"] = __import__("src.au_semantic.linkage", fromlist=["build_au_semantic_linkage_report"]).build_au_semantic_linkage_report(conn, run_id=run_id)
+    if include_authority_receipts:
+        report["authority_receipts"] = build_au_authority_receipt_context(
+            conn,
+            run_id=run_id,
+            limit=authority_receipt_limit,
+        )
     return report
