@@ -36,6 +36,19 @@ design pressure only.
   candidate/provisional rows, bundles, normalized metrics, and replayable
   fixture outputs exist across AU, Wikidata, and GWB review lanes.
 
+### Semantic-governance / promotion layer
+- Central semantic promotion gate plus bounded candidate contracts now exist:
+  `src/policy/semantic_promotion.py`,
+  `tests/policy/test_semantic_promotion.py`,
+  `docs/planning/no_surface_semantic_mapping_policy_20260326.md`,
+  `docs/planning/contested_semantic_candidate_schema_20260327.md`
+- Covered truth-bearing lanes now emit central candidate/promotion metadata:
+  contested claims, GWB, AU, transcript/SB semantic relations, and Wikidata
+  hotspot packs.
+- Mission observer / actual-mapping / mission-lens overlays are explicitly
+  operational-state only and are not currently part of the truth-bearing
+  promotion family.
+
 ### Partial-stack support that exists but is narrower than the stories
 - First bounded personal/private handoff support now exists:
   `scripts/build_personal_handoff_bundle.py`,
@@ -135,6 +148,25 @@ design pressure only.
 - No explicit abstain/inter-rater workflow UI.
 - Only the lower-level review queue primitives exist.
 
+### Semantic-governance completeness
+- A repo-wide static guard now exists for the currently covered truth-bearing
+  lanes:
+  `tests/policy/test_semantic_gate_enforcement.py`
+  asserts that contested, relation, and hotspot promotion fields are sourced
+  from the central gate/claim-state path and that mission-observer overlays do
+  not emit truth-bearing promotion fields.
+- Parser-backed structural depth is still uneven across covered lanes, so some
+  candidates remain `mixed` or `heuristic` where a stronger structural basis
+  would be preferable. Current first refinement is live in the relation lanes:
+  basis now requires a real subject/object/predicate receipt spine, and the
+  transcript lane now emits explicit object/predicate receipts for
+  `felt_state` and `replied_to`. The contested lane also now treats explicit
+  predicate/component bindings as `structural`, while lexical justification
+  hints remain the reason a row stays `mixed`.
+- Mission observer is now in bounded SB/mission-lens scope operationally, but
+  there is no separate SL-reducer-backed promotion model that would justify
+  upgrading it into canonical truth-bearing semantics.
+
 ### Education / research capture to publication
 - No research/lab-note importer.
 - No publication-safe export layer tuned for citations/exclusions.
@@ -190,3 +222,5 @@ The repo should not yet claim:
 4. Annotation/QA workbench over existing review queues.
 5. Field inspection offline-first capture.
 6. Research/lab-note adapters and publication export.
+7. Repo-wide semantic-promotion CI/static enforcement plus deeper structural
+   basis in already-covered lanes before widening new truth-bearing surfaces.

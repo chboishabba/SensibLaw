@@ -19,8 +19,21 @@ Current status:
 Current closure check:
 - broader semantic parity validation should pass from the `SensibLaw/` cwd
   without relying on repo-root `PYTHONPATH` injection for mission-lens tests
-- the remaining next-step class is repo-wide CI/static enforcement that only
-  the central promotion gate may assign truth-bearing semantic fields
+- covered-lane CI/static enforcement now exists for the central promotion gate
+  via `tests/policy/test_semantic_gate_enforcement.py`
+- the remaining next-step class is deeper parser-backed structural basis in
+  already-covered semantic lanes
+- first follow-through on that basis work is now in place for relation lanes:
+  relation basis requires an explicit subject/object/predicate spine, and the
+  transcript lane now emits object/predicate receipts for `felt_state` and
+  `replied_to` so those rows can stay structurally grounded without relying on
+  weaker fallback cues
+- contested semantic basis is also now less blunt:
+  explicit predicate/component bindings can promote rows to `structural`, while
+  lexical justifications remain the reason a row stays `mixed`
+- mission observer is now clearly SB/mission-lens scoped operationally, but it
+  still requires a separate SL-reducer-backed candidate/promotion design
+  before it should enter the canonical truth-bearing semantic family
 
 ## Objective
 Keep the new AU/Wikidata/GWB review artifacts documented in the same terms the

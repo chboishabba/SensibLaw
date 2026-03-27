@@ -374,6 +374,11 @@
 - [ ] Tighten automatic actual-to-mission mapping beyond the current reviewed +
   lexical bridge before treating mission drift as a stronger accounting
   surface.
+- [ ] If mission observer is pushed further into SB-facing accounting, keep it
+  operational-state only until there is a separate SL-reducer-backed candidate
+  and promotion model for observer/mapping truth. Do not let mission-lens
+  `status`/recommendation fields collapse into canonical semantic truth by
+  drift.
 - [ ] Bring the wiki revision monitor lane up to the same functional standard
   as the stronger suite pipelines before prioritizing GUI integration:
   - add query-first helpers/read models over latest runs, changed articles,
@@ -484,6 +489,15 @@
 - [ ] Extend the operational/discourse lane beyond the current regex-level v1:
   reduce false positives further, add better shell/session segmentation, and
   expand transcript/hearing-specific markers against real corpus files.
+- [x] Add a repo-wide CI/static enforcement pass for semantic promotion:
+  covered truth-bearing lanes now have a static policy guard in
+  `tests/policy/test_semantic_gate_enforcement.py` that proves canonical
+  promotion fields are sourced from the central gate/claim-state path and that
+  mission-observer overlays remain outside the truth-bearing family.
+- [ ] Improve parser-backed structural basis in already-covered semantic lanes
+  before widening new truth-bearing surfaces: reduce `mixed`/`heuristic`
+  candidates where dependency/entity structure can support a stronger
+  structural basis.
 - [ ] Add a deterministic speaker-inference layer for transcript/message corpora
   only when there is reliable extra evidence (known participant set, coalesced
   disagreement structure, or reviewed entropy/disagreement heuristics). Do not

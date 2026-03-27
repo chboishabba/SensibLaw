@@ -879,12 +879,13 @@ def _derive_semantic_basis(
     structural_binding_components = {
         str(binding.get("component") or "").strip()
         for binding in response_component_bindings
-        if isinstance(binding, Mapping) and str(binding.get("component") or "").strip() in {"characterization", "time"}
+        if isinstance(binding, Mapping)
+        and str(binding.get("component") or "").strip() in {"predicate_text", "characterization", "time"}
     }
     if structural_binding_components and justifications:
         return "mixed"
     if structural_binding_components:
-        return "mixed"
+        return "structural"
     if justifications:
         return "heuristic"
     speech_act = str(response.get("speech_act") or "").strip()

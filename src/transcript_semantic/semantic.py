@@ -39,11 +39,15 @@ def _derive_relation_semantic_basis(
     object_: dict[str, Any] | None,
 ) -> str:
     has_participants = bool(subject) and bool(object_)
-    has_structural_receipt = any(
-        str(receipt.get("kind") or "") in {"subject", "object", "verb", "rule_type", "promotion_status"}
-        for receipt in receipts
-    )
-    return "structural" if has_participants and has_structural_receipt else "heuristic"
+    kinds = {str(receipt.get("kind") or "").strip() for receipt in receipts if str(receipt.get("kind") or "").strip()}
+    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
+    has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
+    has_predicate = "verb" in kinds or "predicate" in kinds
+    if has_participants and has_subject and has_object and has_predicate:
+        return "structural"
+    if has_participants and (has_subject or has_object or has_predicate):
+        return "mixed"
+    return "heuristic"
 
 _TRANSCRIPT_PREDICATES = (
     ("felt_state", "felt state", "affect_state"),
@@ -1037,6 +1041,7 @@ def run_transcript_semantic_pipeline(
                         predicate_key="felt_state",
                         receipts=[
                             ("subject_actor", str(subject_entity_id)),
+                            ("object_state", str(state_entity_id)),
                             ("state_surface", state_label),
                             ("predicate", "felt_state"),
                             *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
@@ -1045,6 +1050,7 @@ def run_transcript_semantic_pipeline(
                     ),
                     receipts=[
                         ("subject_actor", str(subject_entity_id)),
+                        ("object_state", str(state_entity_id)),
                         ("state_surface", state_label),
                         ("predicate", "felt_state"),
                         *([("theme_concept", str(theme_entity_ids[0]))] if theme_entity_ids else []),
@@ -1135,6 +1141,7 @@ def run_transcript_semantic_pipeline(
             receipts_payload = [
                 ("subject_actor", str(current_actor)),
                 ("object_actor", str(previous_actor)),
+                ("predicate", "replied_to"),
                 ("turn_signal", "qa_marker" if q_to_a else "question_turn"),
                 ("source_type", current_unit.source_type),
             ]

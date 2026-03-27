@@ -2219,3 +2219,41 @@
   - document-local actor creation
   - abstention on `the Court`
   - promoted appeal/review relations without schema changes
+# 2026-03-27
+- Parser-basis refinement for covered semantic relation lanes:
+  - Tightened GWB/transcript relation `semantic_basis` derivation so
+    `structural` now requires an explicit subject/object/predicate receipt
+    spine, with `mixed` reserved for partial relation structure instead of
+    policy/meta receipts.
+  - Added explicit transcript relation receipts for `felt_state`
+    (`object_state`) and `replied_to` (`predicate`) so those candidate rows
+    remain structurally grounded under the stricter basis rule.
+  - Added coverage in `tests/test_gwb_semantic.py` and
+    `tests/test_transcript_semantic.py` to pin the stricter basis semantics.
+- Contested semantic-basis refinement:
+  - Tightened `scripts/build_affidavit_coverage_review.py` so explicit
+    `predicate_text` / component bindings now count as `structural` basis,
+    while lexical justification hints remain the reason a row stays `mixed`.
+  - Added focused coverage in `tests/test_affidavit_coverage_review.py` to pin
+    the new contested basis boundary.
+- Semantic-promotion gate enforcement:
+  - Added `tests/policy/test_semantic_gate_enforcement.py` to assert that the
+    currently covered truth-bearing lanes route canonical promotion fields
+    through the central promotion gate / claim-state path, and that
+    mission-observer overlays remain outside the truth-bearing family.
+  - Updated semantic-governance coverage docs/TODO/context to reflect that
+    covered-lane static enforcement is now implemented and the remaining next
+    gap is deeper parser-backed structural basis in those lanes.
+- Story/progress alignment for semantic-promotion follow-through:
+  - Updated `docs/user_stories.md` to add explicit semantic-governance /
+    promotion-integrity and mission accounting crossover client stories.
+  - Updated
+    `docs/planning/user_story_implementation_coverage_20260326.md` to record
+    the current semantic-governance layer as implemented enough to claim,
+    while naming the remaining completeness gaps: repo-wide promotion-gate
+    enforcement, deeper parser-backed structural basis, and the still-
+    operational mission-observer boundary.
+  - Updated `todo.md` and `COMPACTIFIED_CONTEXT.md` so the next-step posture is
+    explicit: central promotion-gate CI/static enforcement first, structural-
+    basis improvement second, and no mission-observer truth promotion without a
+    dedicated SL-reducer-backed model.

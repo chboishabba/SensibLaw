@@ -7,6 +7,7 @@ from pathlib import Path
 from src.gwb_us_law.linkage import ensure_gwb_us_law_schema, import_gwb_us_law_seed_payload
 from src.gwb_us_law.semantic import (
     EntitySeed,
+    _derive_relation_semantic_basis,
     _ensure_predicates,
     _insert_event_role,
     _policy_adjusted_confidence,
@@ -18,6 +19,29 @@ from src.gwb_us_law.semantic import (
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
+
+
+def test_gwb_relation_semantic_basis_requires_subject_object_and_predicate_receipts() -> None:
+    structural = _derive_relation_semantic_basis(
+        receipts=[
+            {"kind": "subject", "value": "George W. Bush"},
+            {"kind": "verb", "value": "signed"},
+            {"kind": "object_legal_ref", "value": "legal_ref:military_commissions_act_of_2006"},
+        ],
+        subject={"canonical_key": "actor:george_w_bush"},
+        object={"canonical_key": "legal_ref:military_commissions_act_of_2006"},
+    )
+    mixed = _derive_relation_semantic_basis(
+        receipts=[
+            {"kind": "subject", "value": "George W. Bush"},
+            {"kind": "verb", "value": "signed"},
+        ],
+        subject={"canonical_key": "actor:george_w_bush"},
+        object={"canonical_key": "legal_ref:military_commissions_act_of_2006"},
+    )
+
+    assert structural == "structural"
+    assert mixed == "mixed"
 
 
 def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) -> None:

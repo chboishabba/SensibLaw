@@ -27,11 +27,15 @@ def _derive_relation_semantic_basis(
     object: Mapping[str, Any] | None,
 ) -> str:
     has_participants = bool(subject) and bool(object)
-    has_structural_receipt = any(
-        str(receipt.get("kind") or "") in {"subject", "object", "verb", "rule_type", "promotion_status"}
-        for receipt in receipts
-    )
-    return "structural" if has_participants and has_structural_receipt else "heuristic"
+    kinds = {str(receipt.get("kind") or "").strip() for receipt in receipts if str(receipt.get("kind") or "").strip()}
+    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
+    has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
+    has_predicate = "verb" in kinds or "predicate" in kinds
+    if has_participants and has_subject and has_object and has_predicate:
+        return "structural"
+    if has_participants and (has_subject or has_object or has_predicate):
+        return "mixed"
+    return "heuristic"
 
 _EVENT_ROLE_VOCAB: tuple[tuple[str, str, str], ...] = (
     ("agent", "Agent", "core_participant"),

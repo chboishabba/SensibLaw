@@ -20,6 +20,7 @@ from src.gwb_us_law.semantic import (
 from src.reporting.structure_report import TextUnit
 from scripts.transcript_semantic import build_transcript_semantic_cli_payload
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
+from src.transcript_semantic.semantic import _derive_relation_semantic_basis
 
 
 def test_transcript_semantic_pipeline_persists_speakers_and_candidate_reply_relations() -> None:
@@ -160,9 +161,30 @@ def test_transcript_semantic_pipeline_extracts_general_freeform_entities_without
     assert "felt_state" in candidate_predicates
     felt_state_row = next(row for row in report["candidate_only_relations"] if row["predicate_key"] == "felt_state")
     assert felt_state_row["confidence_tier"] == "low"
+    assert felt_state_row["semantic_basis"] == "structural"
     all_predicates = {row["predicate_key"] for row in report["relation_candidates"]}
     assert all_predicates <= {"felt_state", "replied_to"}
     assert result["promoted_relation_count"] == 0
+
+
+def test_transcript_relation_semantic_basis_marks_partial_receipt_spines_as_mixed() -> None:
+    assert _derive_relation_semantic_basis(
+        receipts=[
+            {"kind": "subject_actor", "value": "1"},
+            {"kind": "predicate", "value": "felt_state"},
+            {"kind": "object_state", "value": "2"},
+        ],
+        subject={"canonical_key": "actor:a"},
+        object_={"canonical_key": "state:sad"},
+    ) == "structural"
+    assert _derive_relation_semantic_basis(
+        receipts=[
+            {"kind": "subject_actor", "value": "1"},
+            {"kind": "predicate", "value": "felt_state"},
+        ],
+        subject={"canonical_key": "actor:a"},
+        object_={"canonical_key": "state:sad"},
+    ) == "mixed"
 
 
 def test_transcript_semantic_pipeline_abstains_on_obvious_titlecase_noise() -> None:

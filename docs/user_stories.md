@@ -789,6 +789,28 @@ not the full suite story.
 - Failure prevented: silent promotion, reviewer overload, and context-free flag
   spam.
 
+### Semantic-governance / promotion-integrity clients
+- Typical users: maintainers, ontology/review pipeline owners, CI/release
+  stewards, partner teams consuming truth-bearing semantic fields.
+- They buy: explicit candidate schemas, central promotion gates,
+  truth-bearing/non-truth-bearing boundaries, and auditability over which code
+  paths may promote canonical semantic truth.
+- They do not need: lane-local shortcuts that silently assign semantic truth
+  from extraction code or surface heuristics.
+- Failure prevented: ontology drift, lexical-to-semantic creep, and downstream
+  systems treating review hints or operational state as canonical truth.
+
+### Mission accounting / planning crossover clients
+- Typical users: SB/ITIR operators using mission-lens artifacts to compare
+  actual activity against intended planning nodes and deadlines.
+- They buy: reviewed actual-to-mission mapping, operational overlays, and
+  bounded planning/accounting surfaces that stay replayable and reviewable.
+- They do not need: premature promotion of observer overlays into canonical
+  semantic truth before a separate reducer/promotion model exists.
+- Failure prevented: workflow/accounting state being misread as factual or
+  legal truth, and mission drift being overclaimed from lexical or weakly
+  grounded mappings alone.
+
 ### Reporting / export clients
 - Typical users: investor-relations/legal ops, audit committees, watchdogs,
   grant-reporting teams, board reporting teams, regulator-facing admins.

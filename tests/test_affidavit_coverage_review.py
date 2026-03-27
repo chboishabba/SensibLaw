@@ -511,3 +511,20 @@ def test_semantic_basis_becomes_mixed_for_structured_binding_plus_heuristic_just
         justifications=[{"type": "consent"}],
     )
     assert basis == "mixed"
+
+
+def test_semantic_basis_becomes_structural_for_predicate_binding_without_heuristics() -> None:
+    basis = _derive_semantic_basis(
+        response_cues=[],
+        response={"speech_act": "deny"},
+        response_component_bindings=[
+            {
+                "component": "predicate_text",
+                "binding_kind": "predicate_overlap",
+                "claim_span": {"text": "cut off my internet"},
+                "response_span": {"text": "cut off my access to the internet"},
+            }
+        ],
+        justifications=[],
+    )
+    assert basis == "structural"
