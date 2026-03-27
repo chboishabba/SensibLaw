@@ -1,0 +1,140 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.cross_system_phi_meta.v1
+type: object
+additionalProperties: false
+required:
+  - meta_mapping_id
+  - left_system
+  - right_system
+  - version
+  - type_alignments
+  - role_alignments
+  - authority_alignments
+  - constraint_compatibility
+  - scope_rules
+  - forbidden_pairs
+  - thresholds
+  - witness_policy
+properties:
+  meta_mapping_id:
+    type: string
+    minLength: 1
+  left_system:
+    type: string
+    minLength: 1
+  right_system:
+    type: string
+    minLength: 1
+  version:
+    type: string
+    const: sl.cross_system_phi_meta.v1
+  type_alignments:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [left_type, right_type, relation, score]
+      properties:
+        left_type: {type: string, minLength: 1}
+        right_type: {type: string, minLength: 1}
+        relation:
+          type: string
+          enum: [exact, refinement, abstraction, analogue, incompatible, none]
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+  role_alignments:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [left_role, right_role, relation, score]
+      properties:
+        left_role: {type: string, minLength: 1}
+        right_role: {type: string, minLength: 1}
+        relation:
+          type: string
+          enum: [exact, refinement, abstraction, analogue, incompatible, none]
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+  authority_alignments:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [left_authority, right_authority, relation, score]
+      properties:
+        left_authority: {type: string, minLength: 1}
+        right_authority: {type: string, minLength: 1}
+        relation:
+          type: string
+          enum: [exact, refinement, abstraction, analogue, incompatible, none]
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+  constraint_compatibility:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [left_constraint, right_constraint, status]
+      properties:
+        left_constraint: {type: string, minLength: 1}
+        right_constraint: {type: string, minLength: 1}
+        status:
+          type: string
+          enum: [compatible, incompatible, unknown, conditional]
+  scope_rules:
+    type: object
+    additionalProperties: false
+    required:
+      - temporal_overlap_required
+      - jurisdiction_overlap_required
+      - domain_whitelist
+    properties:
+      temporal_overlap_required: {type: boolean}
+      jurisdiction_overlap_required: {type: boolean}
+      domain_whitelist:
+        type: array
+        items: {type: string, minLength: 1}
+  forbidden_pairs:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [left_type, right_type, reason]
+      properties:
+        left_type: {type: string, minLength: 1}
+        right_type: {type: string, minLength: 1}
+        reason: {type: string, minLength: 1}
+  thresholds:
+    type: object
+    additionalProperties: false
+    required:
+      - min_type_score
+      - min_role_score
+      - min_authority_score
+      - min_total_score
+    properties:
+      min_type_score: {type: number, minimum: 0, maximum: 1}
+      min_role_score: {type: number, minimum: 0, maximum: 1}
+      min_authority_score: {type: number, minimum: 0, maximum: 1}
+      min_total_score: {type: number, minimum: 0, maximum: 1}
+  witness_policy:
+    type: object
+    additionalProperties: false
+    required:
+      - require_anchor_trace_on_both_sides
+      - require_promoted_inputs_only
+      - require_constraint_check
+    properties:
+      require_anchor_trace_on_both_sides: {type: boolean}
+      require_promoted_inputs_only: {type: boolean}
+      require_constraint_check: {type: boolean}

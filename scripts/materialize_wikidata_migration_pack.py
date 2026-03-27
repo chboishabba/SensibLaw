@@ -16,8 +16,10 @@ from src.ontology.wikidata import (  # noqa: E402
     ENTITY_EXPORT_TEMPLATE,
     MEDIAWIKI_API_ENDPOINT,
     REQUEST_HEADERS,
+    SPARQL_ENDPOINT,
     build_slice_from_entity_exports,
     build_wikidata_migration_pack,
+    export_migration_pack_openrefine_csv,
 )
 
 
@@ -25,7 +27,23 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Materialize a bounded revision-locked Wikidata migration pack."
     )
-    parser.add_argument("--qid", action="append", required=True, help="Repeatable Wikidata QID.")
+    parser.add_argument("--qid", action="append", help="Repeatable Wikidata QID.")
+    parser.add_argument(
+        "--qid-file",
+        type=Path,
+        help="Optional text or JSON file containing QIDs.",
+    )
+    parser.add_argument(
+        "--discover-qids",
+        action="store_true",
+        help="Discover a bounded live QID sample from the source property.",
+    )
+    parser.add_argument(
+        "--candidate-limit",
+        type=int,
+        default=10,
+        help="Maximum discovered QIDs to use when --discover-qids is enabled.",
+    )
     parser.add_argument("--source-property", required=True, help="Source property PID.")
     parser.add_argument("--target-property", required=True, help="Target property PID.")
     parser.add_argument(
@@ -52,6 +70,11 @@ def _parse_args() -> argparse.Namespace:
         default=1,
         help="Evidence threshold for admissible rank projection.",
     )
+    parser.add_argument(
+        "--openrefine-csv",
+        type=Path,
+        help="Optional path to also write a flat OpenRefine review CSV.",
+    )
     return parser.parse_args()
 
 
@@ -70,6 +93,106 @@ def _fetch_json(url: str, *, params: dict[str, object] | None = None, timeout_se
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object from {url}")
     return payload
+
+
+def _extract_qid(value: str) -> str:
+    return value.rsplit("/", 1)[-1]
+
+
+def _load_qids_from_file(path: Path) -> list[str]:
+    raw = path.read_text(encoding="utf-8").strip()
+    if not raw:
+        return []
+    if raw.startswith("["):
+        payload = json.loads(raw)
+        if not isinstance(payload, list):
+            raise ValueError(f"{path} must contain a JSON array when using JSON mode")
+        return [str(item).strip() for item in payload if str(item).strip()]
+    qids: list[str] = []
+    for line in raw.splitlines():
+        cleaned = line.strip()
+        if not cleaned or cleaned.startswith("#"):
+            continue
+        qids.extend(part for part in cleaned.replace(",", " ").split() if part)
+    return qids
+
+
+def _discover_qid_rows(
+    *,
+    source_property: str,
+    candidate_limit: int,
+    timeout_seconds: int,
+) -> list[dict[str, object]]:
+    query = f"""
+SELECT ?item ?itemLabel
+       (COUNT(DISTINCT ?statement) AS ?statementCount)
+       (COUNT(DISTINCT ?qualifier_pid) AS ?qualifierCount)
+WHERE {{
+  ?item p:{source_property} ?statement .
+  OPTIONAL {{
+    ?statement ?pq ?qv .
+    FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+    BIND(STRAFTER(STR(?pq), "http://www.wikidata.org/prop/qualifier/") AS ?qualifier_pid)
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+GROUP BY ?item ?itemLabel
+ORDER BY DESC(?qualifierCount) DESC(?statementCount) ?item
+LIMIT {max(1, int(candidate_limit))}
+""".strip()
+    payload = _fetch_json(
+        SPARQL_ENDPOINT,
+        params={"format": "json", "query": query},
+        timeout_seconds=timeout_seconds,
+    )
+    bindings = payload.get("results", {}).get("bindings", [])
+    if not isinstance(bindings, list):
+        return []
+    rows: list[dict[str, object]] = []
+    for row in bindings:
+        if not isinstance(row, dict):
+            continue
+        item_uri = row.get("item", {}).get("value")
+        if not item_uri:
+            continue
+        rows.append(
+            {
+                "qid": _extract_qid(str(item_uri)),
+                "label": str(row.get("itemLabel", {}).get("value") or _extract_qid(str(item_uri))),
+                "statement_count": int(row.get("statementCount", {}).get("value") or 0),
+                "qualifier_count": int(row.get("qualifierCount", {}).get("value") or 0),
+                "source": "discovered",
+            }
+        )
+    return rows
+
+
+def _resolve_qid_rows(args: argparse.Namespace) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for qid in args.qid or []:
+        cleaned = str(qid).strip()
+        if cleaned:
+            rows.append({"qid": cleaned, "label": cleaned, "source": "explicit"})
+    if args.qid_file:
+        for qid in _load_qids_from_file(args.qid_file):
+            rows.append({"qid": qid, "label": qid, "source": "file"})
+    if args.discover_qids:
+        rows.extend(
+            _discover_qid_rows(
+                source_property=args.source_property,
+                candidate_limit=args.candidate_limit,
+                timeout_seconds=args.query_timeout,
+            )
+        )
+    deduped: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for row in rows:
+        qid = str(row["qid"])
+        if qid in seen:
+            continue
+        deduped.append(row)
+        seen.add(qid)
+    return deduped
 
 
 def _fetch_recent_revisions(qid: str, *, revision_limit: int, timeout_seconds: int) -> list[dict[str, object]]:
@@ -111,7 +234,10 @@ def _fetch_entity_export(qid: str, revid: int, *, timeout_seconds: int) -> dict:
 
 def main() -> None:
     args = _parse_args()
-    qids = tuple(dict.fromkeys(args.qid))
+    qid_rows = _resolve_qid_rows(args)
+    if not qid_rows:
+        raise SystemExit("provide --qid, --qid-file, and/or --discover-qids")
+    qids = tuple(str(row["qid"]) for row in qid_rows)
     out_dir = args.out_dir
     raw_dir = out_dir / "entity_exports"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -120,6 +246,7 @@ def main() -> None:
     newer_payloads: list[dict] = []
     revision_manifest: list[dict[str, object]] = []
 
+    row_by_qid = {str(row["qid"]): row for row in qid_rows}
     for qid in qids:
         revisions = _fetch_recent_revisions(
             qid,
@@ -145,6 +272,8 @@ def main() -> None:
         revision_manifest.append(
             {
                 "qid": qid,
+                "label": row_by_qid.get(qid, {}).get("label", qid),
+                "qid_source": row_by_qid.get(qid, {}).get("source", "unknown"),
                 "older_revision": older,
                 "newer_revision": newer,
                 "older_entity_export": str(older_path),
@@ -168,36 +297,43 @@ def main() -> None:
     manifest_path = out_dir / "manifest.json"
     _write_json(slice_path, slice_payload)
     _write_json(pack_path, migration_pack)
+    openrefine_report = None
+    if args.openrefine_csv:
+        openrefine_report = export_migration_pack_openrefine_csv(
+            migration_pack,
+            output_path=str(args.openrefine_csv),
+        )
     _write_json(
         manifest_path,
         {
             "schema_version": "sl.wikidata_migration_pack.materialization.v0",
             "qids": list(qids),
+            "qid_rows": qid_rows,
             "source_property": args.source_property,
             "target_property": args.target_property,
             "revision_pairs": revision_manifest,
             "slice": str(slice_path),
             "migration_pack": str(pack_path),
             "summary": migration_pack["summary"],
+            "openrefine_csv": str(args.openrefine_csv) if args.openrefine_csv else None,
         },
     )
 
-    print(
-        json.dumps(
-            {
-                "out_dir": str(out_dir),
-                "manifest": str(manifest_path),
-                "slice": str(slice_path),
-                "migration_pack": str(pack_path),
-                "candidate_count": migration_pack["summary"]["candidate_count"],
-                "checked_safe_subset_count": len(migration_pack["summary"]["checked_safe_subset"]),
-                "requires_review_count": migration_pack["summary"]["requires_review_count"],
-                "counts_by_bucket": migration_pack["summary"]["counts_by_bucket"],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    output = {
+        "out_dir": str(out_dir),
+        "manifest": str(manifest_path),
+        "slice": str(slice_path),
+        "migration_pack": str(pack_path),
+        "qids": list(qids),
+        "candidate_count": migration_pack["summary"]["candidate_count"],
+        "checked_safe_subset_count": len(migration_pack["summary"]["checked_safe_subset"]),
+        "requires_review_count": migration_pack["summary"]["requires_review_count"],
+        "counts_by_bucket": migration_pack["summary"]["counts_by_bucket"],
+    }
+    if openrefine_report is not None:
+        output["openrefine_csv"] = openrefine_report["output"]
+        output["openrefine_row_count"] = openrefine_report["row_count"]
+    print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

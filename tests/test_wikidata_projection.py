@@ -1,12 +1,38 @@
 import json
 from pathlib import Path
+import csv
+
+import jsonschema
+import yaml
 
 from src.ontology.wikidata import (
     MIGRATION_PACK_SCHEMA_VERSION,
     SCHEMA_VERSION,
+    SPLIT_PLAN_SCHEMA_VERSION,
+    WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION,
+    attach_wikidata_phi_text_bridge,
+    attach_wikidata_phi_text_bridge_from_observation_claim,
+    build_wikidata_split_plan,
+    build_wikidata_phi_text_bridge_case,
     build_wikidata_migration_pack,
+    extract_phi_text_observations_from_observation_claim_payload,
+    export_migration_pack_checked_safe_csv,
+    export_migration_pack_openrefine_csv,
     project_wikidata_payload,
+    verify_migration_pack_against_after_state,
 )
+
+
+def _load_migration_pack_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.wikidata_migration_pack.v1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _load_bridge_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _load_split_plan_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.wikidata_split_plan.v0_1.schema.yaml").read_text(encoding="utf-8"))
 
 
 def test_project_wikidata_payload_reports_sccs_and_mixed_order() -> None:
@@ -395,6 +421,703 @@ def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists()
         report["candidates"][0]["candidate_id"]
     ]
     assert report["candidates"][0]["classification"] == "safe_with_reference_transfer"
+    assert report["candidates"][0]["action"] == "migrate_with_refs"
+    assert report["candidates"][0]["split_axes"] == []
+
+
+def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_split_required() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {"P585": "2023"},
+                        "references": [{"P248": "Qsrc"}],
+                    }
+                ],
+            },
+            {
+                "id": "t2",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {"P585": "2023"},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "120",
+                        "rank": "normal",
+                        "qualifiers": {"P585": "2024"},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                ],
+            },
+        ]
+    }
+
+    report = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    assert report["summary"]["counts_by_bucket"] == {"split_required": 2}
+    for candidate in report["candidates"]:
+        assert candidate["classification"] == "split_required"
+        assert candidate["action"] == "split"
+        assert "multi_value_slot" in candidate["reasons"]
+        assert {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"} in candidate["split_axes"]
+        assert {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"} in candidate["split_axes"]
+        assert candidate["text_evidence_refs"] == []
+        assert candidate["bridge_case_ref"] is None
+        assert candidate["pressure"] is None
+        assert candidate["pressure_confidence"] is None
+        assert candidate["pressure_summary"] is None
+    assert report["bridge_cases"] == []
+    jsonschema.validate(report, _load_migration_pack_schema())
+
+
+def test_build_wikidata_phi_text_bridge_case_emits_split_pressure_for_temporal_text_slices() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "qualifiers": {},
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    candidate = migration_pack["candidates"][0]
+
+    bridge_case = build_wikidata_phi_text_bridge_case(
+        candidate,
+        text_observations=[
+            {
+                "observation_ref": "obs:1",
+                "source_ref": "source:doc1",
+                "anchors": [{"start": 0, "end": 10, "text": "2018 40"}],
+                "subject": "Q1",
+                "predicate": "annual_emissions",
+                "object": "100",
+                "qualifiers": {"P585": "2018"},
+                "promotion_status": "promoted_true",
+            },
+            {
+                "observation_ref": "obs:2",
+                "source_ref": "source:doc1",
+                "anchors": [{"start": 20, "end": 30, "text": "2019 60"}],
+                "subject": "Q1",
+                "predicate": "annual_emissions",
+                "object": "100",
+                "qualifiers": {"P585": "2019"},
+                "promotion_status": "promoted_true",
+            },
+        ],
+    )
+
+    assert bridge_case["schema_version"] == WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION
+    assert bridge_case["pressure"] == "split_pressure"
+    assert bridge_case["comparison"]["missing_dimensions"]
+    jsonschema.validate(bridge_case, _load_bridge_schema())
+
+
+def test_attach_wikidata_phi_text_bridge_enriches_migration_pack_additively() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "qualifiers": {},
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate_id = migration_pack["candidates"][0]["candidate_id"]
+    enriched = attach_wikidata_phi_text_bridge(
+        migration_pack,
+        observations_by_candidate={
+            candidate_id: [
+                {
+                    "observation_ref": "obs:contradiction",
+                    "source_ref": "source:doc1",
+                    "anchors": [{"start": 0, "end": 12, "text": "emissions 220"}],
+                    "subject": "Q1",
+                    "predicate": "annual_emissions",
+                    "object": "220",
+                    "qualifiers": {"P585": "2024"},
+                    "promotion_status": "promoted_true",
+                }
+            ]
+        },
+    )
+
+    candidate = enriched["candidates"][0]
+    assert candidate["bridge_case_ref"] == "bridge://wikidata/Q1|P5991|1"
+    assert candidate["text_evidence_refs"] == ["obs:contradiction"]
+    assert candidate["pressure"] == "contradiction"
+    assert candidate["pressure_confidence"] == 0.78
+    assert "conflict" in candidate["pressure_summary"].lower()
+    assert len(enriched["bridge_cases"]) == 1
+    jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_contract_shape() -> None:
+    payload = {
+        "payload_version": "sl.observation_claim.contract.v1",
+        "observations": [
+            {
+                "observation_id": "obs:1",
+                "source_unit_id": "unit:1",
+                "source_quote": "2018 emissions were 100.",
+                "source_span": {"start_char": 0, "end_char": 24},
+                "evidence_refs": [{"span_ref": "unit:1:0-24", "ref_type": "text_span"}],
+                "status": "active",
+                "canonicality": "verified",
+                "payload_version": "sl.observation_claim.contract.v1",
+                "hash": "obs-hash-1",
+                "asserted_at": "2026-03-28T00:00:00Z",
+                "observed_at": "2018",
+            },
+            {
+                "observation_id": "obs:2",
+                "source_unit_id": "unit:1",
+                "source_quote": "2019 emissions were 100.",
+                "source_span": {"start_char": 30, "end_char": 54},
+                "evidence_refs": [{"span_ref": "unit:1:30-54", "ref_type": "text_span"}],
+                "status": "active",
+                "canonicality": "adjudicated",
+                "payload_version": "sl.observation_claim.contract.v1",
+                "hash": "obs-hash-2",
+                "asserted_at": "2026-03-28T00:00:00Z",
+                "observed_at": "2019",
+            },
+        ],
+        "claims": [
+            {
+                "claim_id": "claim:1",
+                "observation_id": "obs:1",
+                "predicate": "annual_emissions",
+                "subject_id": "Q1",
+                "object_id": "100",
+                "subject_type": "entity",
+                "object_type": "quantity",
+                "norm_id": None,
+                "posture": "asserted",
+                "evidence_quality": "high",
+                "confidence": 0.92,
+                "claim_created_at": "2026-03-28T00:00:00Z",
+                "claim_updated_at": "2026-03-28T00:00:00Z",
+                "evidence_links": ["link:1"],
+                "hash": "claim-hash-1",
+            },
+            {
+                "claim_id": "claim:2",
+                "observation_id": "obs:2",
+                "predicate": "annual_emissions",
+                "subject_id": "Q1",
+                "object_id": "100",
+                "subject_type": "entity",
+                "object_type": "quantity",
+                "norm_id": None,
+                "posture": "asserted",
+                "evidence_quality": "high",
+                "confidence": 0.95,
+                "claim_created_at": "2026-03-28T00:00:00Z",
+                "claim_updated_at": "2026-03-28T00:00:00Z",
+                "evidence_links": ["link:2"],
+                "hash": "claim-hash-2",
+            },
+        ],
+        "evidence_links": [
+            {"link_id": "link:1", "claim_id": "claim:1", "link_kind": "supporting", "link_hash": "lh1"},
+            {"link_id": "link:2", "claim_id": "claim:2", "link_kind": "supporting", "link_hash": "lh2"},
+        ],
+    }
+
+    observations = extract_phi_text_observations_from_observation_claim_payload(
+        payload,
+        subject_id="Q1",
+        predicate_allowlist=("annual_emissions",),
+    )
+
+    assert len(observations) == 2
+    assert observations[0]["promotion_status"] == "promoted_true"
+    assert observations[0]["source_ref"] == "unit:1"
+    assert observations[0]["qualifiers"]["P585"] == "2018"
+
+
+def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_producer() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "qualifiers": {},
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    observation_claim_payload = {
+        "payload_version": "sl.observation_claim.contract.v1",
+        "observations": [
+            {
+                "observation_id": "obs:1",
+                "source_unit_id": "unit:1",
+                "source_quote": "2018 emissions were 100.",
+                "source_span": {"start_char": 0, "end_char": 24},
+                "evidence_refs": [{"span_ref": "unit:1:0-24", "ref_type": "text_span"}],
+                "status": "active",
+                "canonicality": "verified",
+                "payload_version": "sl.observation_claim.contract.v1",
+                "hash": "obs-hash-1",
+                "asserted_at": "2026-03-28T00:00:00Z",
+                "observed_at": "2018",
+            },
+            {
+                "observation_id": "obs:2",
+                "source_unit_id": "unit:1",
+                "source_quote": "2019 emissions were 100.",
+                "source_span": {"start_char": 30, "end_char": 54},
+                "evidence_refs": [{"span_ref": "unit:1:30-54", "ref_type": "text_span"}],
+                "status": "active",
+                "canonicality": "verified",
+                "payload_version": "sl.observation_claim.contract.v1",
+                "hash": "obs-hash-2",
+                "asserted_at": "2026-03-28T00:00:00Z",
+                "observed_at": "2019",
+            },
+        ],
+        "claims": [
+            {
+                "claim_id": "claim:1",
+                "observation_id": "obs:1",
+                "predicate": "annual_emissions",
+                "subject_id": "Q1",
+                "object_id": "100",
+                "subject_type": "entity",
+                "object_type": "quantity",
+                "norm_id": None,
+                "posture": "asserted",
+                "evidence_quality": "high",
+                "confidence": 0.92,
+                "claim_created_at": "2026-03-28T00:00:00Z",
+                "claim_updated_at": "2026-03-28T00:00:00Z",
+                "evidence_links": ["link:1"],
+                "hash": "claim-hash-1",
+            },
+            {
+                "claim_id": "claim:2",
+                "observation_id": "obs:2",
+                "predicate": "annual_emissions",
+                "subject_id": "Q1",
+                "object_id": "100",
+                "subject_type": "entity",
+                "object_type": "quantity",
+                "norm_id": None,
+                "posture": "asserted",
+                "evidence_quality": "high",
+                "confidence": 0.95,
+                "claim_created_at": "2026-03-28T00:00:00Z",
+                "claim_updated_at": "2026-03-28T00:00:00Z",
+                "evidence_links": ["link:2"],
+                "hash": "claim-hash-2",
+            },
+        ],
+        "evidence_links": [
+            {"link_id": "link:1", "claim_id": "claim:1", "link_kind": "supporting", "link_hash": "lh1"},
+            {"link_id": "link:2", "claim_id": "claim:2", "link_kind": "supporting", "link_hash": "lh2"},
+        ],
+    }
+
+    enriched = attach_wikidata_phi_text_bridge_from_observation_claim(
+        migration_pack,
+        observation_claim_payload=observation_claim_payload,
+        predicate_allowlist=("annual_emissions",),
+    )
+
+    candidate = enriched["candidates"][0]
+    assert candidate["pressure"] == "split_pressure"
+    assert candidate["text_evidence_refs"] == ["claim:1", "claim:2"]
+    assert len(enriched["bridge_cases"]) == 1
+    jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_export_migration_pack_openrefine_csv_writes_flat_review_rows(tmp_path: Path) -> None:
+    migration_pack = {
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 1,
+                "classification": "safe_with_reference_transfer",
+                "action": "migrate_with_refs",
+                "confidence": 0.9,
+                "requires_review": False,
+                "reasons": [],
+                "split_axes": [],
+                "claim_bundle_before": {
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+                "qualifier_diff": {"status": "unchanged", "severity": None},
+                "reference_diff": {"status": "unchanged", "severity": None},
+            },
+            {
+                "candidate_id": "Q2|P5991|1",
+                "entity_qid": "Q2",
+                "slot_id": "Q2|P5991",
+                "statement_index": 1,
+                "classification": "reference_drift",
+                "action": "review",
+                "confidence": 0.45,
+                "requires_review": True,
+                "reasons": ["reference_drift:high"],
+                "split_axes": [],
+                "claim_bundle_before": {
+                    "property": "P5991",
+                    "value": "200",
+                    "rank": "normal",
+                    "qualifiers": {},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+                "qualifier_diff": {"status": "unchanged", "severity": None},
+                "reference_diff": {"status": "reference_drift", "severity": "high"},
+            },
+        ],
+    }
+    out_path = tmp_path / "migration_pack_openrefine.csv"
+
+    report = export_migration_pack_openrefine_csv(migration_pack, output_path=str(out_path))
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert report["row_count"] == 2
+    assert report["counts_by_bucket"] == {
+        "safe_with_reference_transfer": 1,
+        "reference_drift": 1,
+    }
+    assert rows[0]["entity_qid"] == "Q1"
+    assert rows[0]["action"] == "migrate_with_refs"
+    assert rows[0]["suggested_action"] == "migrate_with_refs"
+    assert rows[0]["split_axis_count"] == "0"
+    assert rows[0]["qualifier_count"] == "1"
+    assert rows[1]["entity_qid"] == "Q2"
+    assert rows[1]["suggested_action"] == "review"
+    assert rows[1]["split_axis_properties"] == ""
+    assert rows[1]["reference_drift"] == "true"
+    assert rows[1]["reason_codes"] == "reference_drift:high"
+
+
+def test_export_migration_pack_checked_safe_csv_only_writes_safe_rows(tmp_path: Path) -> None:
+    migration_pack = {
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 1,
+                "classification": "safe_with_reference_transfer",
+                "action": "migrate_with_refs",
+                "claim_bundle_before": {
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+                "claim_bundle_after": {
+                    "property": "P14143",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+            },
+            {
+                "candidate_id": "Q2|P5991|1",
+                "entity_qid": "Q2",
+                "slot_id": "Q2|P5991",
+                "statement_index": 1,
+                "classification": "split_required",
+                "action": "split",
+                "claim_bundle_before": {
+                    "property": "P5991",
+                    "value": "200",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+                "claim_bundle_after": {
+                    "property": "P14143",
+                    "value": "200",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                },
+            },
+        ],
+    }
+    out_path = tmp_path / "migration_pack_checked_safe.csv"
+
+    report = export_migration_pack_checked_safe_csv(migration_pack, output_path=str(out_path))
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert report["row_count"] == 1
+    assert report["export_scope"] == "checked_safe_subset_only"
+    assert report["counts_by_bucket"] == {"safe_with_reference_transfer": 1}
+    assert rows[0]["candidate_id"] == "Q1|P5991|1"
+    assert rows[0]["action"] == "migrate_with_refs"
+    assert rows[0]["to_property"] == "P14143"
+    assert '"P585": ["2024"]' in rows[0]["qualifiers_json"]
+
+
+def test_verify_migration_pack_against_after_state_reports_verified_and_missing() -> None:
+    migration_pack = {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "classification": "safe_with_reference_transfer",
+                "action": "migrate_with_refs",
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+            {
+                "candidate_id": "Q2|P5991|1",
+                "entity_qid": "Q2",
+                "classification": "safe_equivalent",
+                "action": "migrate",
+                "claim_bundle_before": {
+                    "subject": "Q2",
+                    "property": "P5991",
+                    "value": "200",
+                    "rank": "normal",
+                    "qualifiers": {},
+                    "references": [],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q2",
+                    "property": "P14143",
+                    "value": "200",
+                    "rank": "normal",
+                    "qualifiers": {},
+                    "references": [],
+                    "window_id": "t1",
+                },
+            },
+            {
+                "candidate_id": "Q3|P5991|1",
+                "entity_qid": "Q3",
+                "classification": "split_required",
+                "action": "split",
+                "claim_bundle_before": {
+                    "subject": "Q3",
+                    "property": "P5991",
+                    "value": "300",
+                    "rank": "normal",
+                    "qualifiers": {},
+                    "references": [],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q3",
+                    "property": "P14143",
+                    "value": "300",
+                    "rank": "normal",
+                    "qualifiers": {},
+                    "references": [],
+                    "window_id": "t1",
+                },
+            },
+        ],
+    }
+    after_payload = {
+        "windows": [
+            {
+                "id": "after",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P14143",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {"P585": "2024"},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {"P585": "2024"},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                ],
+            }
+        ]
+    }
+
+    report = verify_migration_pack_against_after_state(migration_pack, after_payload)
+
+    assert report["verification_scope"] == "checked_safe_subset_only"
+    assert report["summary"]["verified_candidate_count"] == 2
+    assert report["summary"]["counts_by_status"] == {"verified": 1, "target_missing": 1}
+    by_id = {row["candidate_id"]: row for row in report["rows"]}
+    assert by_id["Q1|P5991|1"]["status"] == "verified"
+    assert by_id["Q1|P5991|1"]["source_still_present"] is True
+    assert by_id["Q2|P5991|1"]["status"] == "target_missing"
+    assert "Q3|P5991|1" not in by_id
+
+
+def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> None:
+    migration_pack = {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 1,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+            {
+                "candidate_id": "Q1|P5991|2",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 2,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+        ],
+    }
+
+    report = build_wikidata_split_plan(migration_pack)
+
+    assert report["schema_version"] == SPLIT_PLAN_SCHEMA_VERSION
+    assert report["summary"]["counts_by_status"] == {"structurally_decomposable": 1}
+    plan = report["plans"][0]
+    assert plan["status"] == "structurally_decomposable"
+    assert plan["suggested_action"] == "review_structured_split"
+    assert plan["proposed_bundle_count"] == 2
+    assert plan["reference_propagation"] == "exact"
+    assert plan["qualifier_propagation"] == "exact"
+    jsonschema.validate(report, _load_split_plan_schema())
 
 
 def test_project_wikidata_payload_reports_pilot_pack_parthood_typing() -> None:

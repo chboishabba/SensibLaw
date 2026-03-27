@@ -1,0 +1,148 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_split_plan.v0_1
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - source_property
+  - target_property
+  - plans
+  - summary
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_split_plan.v0_1
+  source_property:
+    type: string
+  target_property:
+    type: string
+  plans:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - split_plan_id
+        - entity_qid
+        - source_slot_id
+        - source_candidate_ids
+        - status
+        - review_required
+        - merged_split_axes
+        - proposed_target_bundles
+        - proposed_bundle_count
+        - reference_propagation
+        - qualifier_propagation
+        - suggested_action
+      properties:
+        split_plan_id:
+          type: string
+        entity_qid:
+          type: string
+        source_slot_id:
+          type: string
+        source_candidate_ids:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - structurally_decomposable
+            - review_only
+        review_required:
+          type: boolean
+        merged_split_axes:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - property
+              - source
+              - reason
+              - cardinality
+            properties:
+              property:
+                type: string
+              source:
+                type: string
+                enum:
+                  - bundle
+                  - slot
+              reason:
+                type: string
+              cardinality:
+                type: integer
+                minimum: 1
+        proposed_target_bundles:
+          type: array
+          items:
+            $ref: "#/definitions/claim_bundle"
+        proposed_bundle_count:
+          type: integer
+          minimum: 0
+        reference_propagation:
+          type: string
+          enum:
+            - exact
+            - review_required
+        qualifier_propagation:
+          type: string
+          enum:
+            - exact
+            - review_required
+        suggested_action:
+          type: string
+          enum:
+            - review_structured_split
+            - review_only
+  summary:
+    type: object
+    additionalProperties: false
+    required:
+      - plan_count
+      - counts_by_status
+    properties:
+      plan_count:
+        type: integer
+      counts_by_status:
+        type: object
+        additionalProperties:
+          type: integer
+definitions:
+  claim_bundle:
+    type: object
+    additionalProperties: false
+    required:
+      - subject
+      - property
+      - value
+      - rank
+      - qualifiers
+      - references
+      - window_id
+    properties:
+      subject:
+        type: string
+      property:
+        type: string
+      value: {}
+      rank:
+        type: string
+      qualifiers:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            type: string
+      references:
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      window_id:
+        type: string

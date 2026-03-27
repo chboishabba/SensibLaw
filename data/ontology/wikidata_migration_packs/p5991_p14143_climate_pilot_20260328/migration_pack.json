@@ -1,6 +1,7 @@
 {
   "candidates": [
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|1",
       "claim_bundle_after": {
         "property": "P14143",
@@ -58,8 +59,8 @@
         "value": "+852",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -134,7 +135,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -158,9 +163,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 1
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|2",
       "claim_bundle_after": {
         "property": "P14143",
@@ -218,8 +256,8 @@
         "value": "+6385",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -294,7 +332,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -318,9 +360,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 2
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|3",
       "claim_bundle_after": {
         "property": "P14143",
@@ -378,8 +453,8 @@
         "value": "+29564",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -454,7 +529,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -478,9 +557,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 3
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|4",
       "claim_bundle_after": {
         "property": "P14143",
@@ -538,8 +650,8 @@
         "value": "+24699",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -614,7 +726,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -638,9 +754,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 4
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|5",
       "claim_bundle_after": {
         "property": "P14143",
@@ -704,8 +853,8 @@
         "value": "+8030",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -780,7 +929,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -804,9 +957,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 5
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|6",
       "claim_bundle_after": {
         "property": "P14143",
@@ -870,8 +1056,8 @@
         "value": "+8942",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -946,7 +1132,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -970,9 +1160,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 6
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|7",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1036,8 +1259,8 @@
         "value": "+5635",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1112,7 +1335,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1136,9 +1363,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 7
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|8",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1202,8 +1462,8 @@
         "value": "+1274",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1278,7 +1538,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1302,9 +1566,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 8
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|9",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1368,8 +1665,8 @@
         "value": "+542",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1444,7 +1741,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1468,9 +1769,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 9
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|10",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1534,8 +1868,8 @@
         "value": "+88",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1610,7 +1944,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1634,9 +1972,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 10
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|11",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1700,8 +2071,8 @@
         "value": "+188",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1776,7 +2147,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1800,9 +2175,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 11
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|12",
       "claim_bundle_after": {
         "property": "P14143",
@@ -1854,8 +2262,8 @@
         "value": "+31936",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -1930,7 +2338,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -1954,9 +2366,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 12
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|13",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2014,8 +2459,8 @@
         "value": "+1082",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2090,7 +2535,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2114,9 +2563,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 13
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|14",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2174,8 +2656,8 @@
         "value": "+5094",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2250,7 +2732,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2274,9 +2760,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 14
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|15",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2334,8 +2853,8 @@
         "value": "+23725",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2410,7 +2929,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2434,9 +2957,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 15
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|16",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2500,8 +3056,8 @@
         "value": "+10316",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2576,7 +3132,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2600,9 +3160,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 16
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|17",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2666,8 +3259,8 @@
         "value": "+5755",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2742,7 +3335,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2766,9 +3363,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 17
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|18",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2832,8 +3462,8 @@
         "value": "+6156",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -2908,7 +3538,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -2932,9 +3566,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 18
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|19",
       "claim_bundle_after": {
         "property": "P14143",
@@ -2998,8 +3665,8 @@
         "value": "+677",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3074,7 +3741,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3098,9 +3769,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 19
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|20",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3164,8 +3868,8 @@
         "value": "+288",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3240,7 +3944,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3264,9 +3972,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 20
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|21",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3330,8 +4071,8 @@
         "value": "+145",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3406,7 +4147,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3430,9 +4175,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 21
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|22",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3496,8 +4274,8 @@
         "value": "+140",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3572,7 +4350,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3596,9 +4378,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 22
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|23",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3656,8 +4471,8 @@
         "value": "+23477",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3732,7 +4547,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3756,9 +4575,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 23
     },
     {
+      "action": "split",
       "candidate_id": "Q10403939|P5991|24",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3810,8 +4662,8 @@
         "value": "+29653",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10403939",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3886,7 +4738,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -3910,9 +4766,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10403939|P5991",
+      "split_axes": [
+        {
+          "cardinality": 24,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 7,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 24
     },
     {
+      "action": "split",
       "candidate_id": "Q10416948|P5991|1",
       "claim_bundle_after": {
         "property": "P14143",
@@ -3964,8 +4853,8 @@
         "value": "+697",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10416948",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -3990,7 +4879,9 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4016,9 +4907,24 @@
       },
       "requires_review": true,
       "slot_id": "Q10416948|P5991",
+      "split_axes": [
+        {
+          "cardinality": 2,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P585",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 1
     },
     {
+      "action": "split",
       "candidate_id": "Q10416948|P5991|2",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4070,8 +4976,8 @@
         "value": "+375.06",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10416948",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4096,7 +5002,9 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4122,9 +5030,24 @@
       },
       "requires_review": true,
       "slot_id": "Q10416948|P5991",
+      "split_axes": [
+        {
+          "cardinality": 2,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P585",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 2
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|1",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4182,8 +5105,8 @@
         "value": "+140",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4268,7 +5191,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4292,9 +5219,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 1
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|2",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4352,8 +5312,8 @@
         "value": "+1594",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4438,7 +5398,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4462,9 +5426,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 2
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|3",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4522,8 +5519,8 @@
         "value": "+4851",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4608,7 +5605,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4632,9 +5633,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 3
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|4",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4692,8 +5726,8 @@
         "value": "+9813",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4778,7 +5812,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4802,9 +5840,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 4
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|5",
       "claim_bundle_after": {
         "property": "P14143",
@@ -4868,8 +5939,8 @@
         "value": "+4815",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -4954,7 +6025,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -4978,9 +6053,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 5
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|6",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5044,8 +6152,8 @@
         "value": "+2437",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -5130,7 +6238,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -5154,9 +6266,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 6
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|7",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5220,8 +6365,8 @@
         "value": "+853",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -5306,7 +6451,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -5330,9 +6479,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 7
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|8",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5396,8 +6578,8 @@
         "value": "+57",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -5482,7 +6664,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -5506,9 +6692,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 8
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|9",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5572,8 +6791,8 @@
         "value": "+162",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -5658,7 +6877,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -5682,9 +6905,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 9
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|10",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5748,8 +7004,8 @@
         "value": "+34",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -5834,7 +7090,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -5858,9 +7118,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 10
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|11",
       "claim_bundle_after": {
         "property": "P14143",
@@ -5924,8 +7217,8 @@
         "value": "+54",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6010,7 +7303,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6034,9 +7331,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 11
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|12",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6100,8 +7430,8 @@
         "value": "+1401",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6186,7 +7516,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6210,9 +7544,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 12
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|13",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6264,8 +7631,8 @@
         "value": "+11547",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6350,7 +7717,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6374,9 +7745,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 13
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|14",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6434,8 +7838,8 @@
         "value": "+297",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6520,7 +7924,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6544,9 +7952,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 14
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|15",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6604,8 +8045,8 @@
         "value": "+1632",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6690,7 +8131,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6714,9 +8159,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 15
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|16",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6774,8 +8252,8 @@
         "value": "+3677",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -6860,7 +8338,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -6884,9 +8366,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 16
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|17",
       "claim_bundle_after": {
         "property": "P14143",
@@ -6950,8 +8465,8 @@
         "value": "+5707",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7036,7 +8551,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7060,9 +8579,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 17
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|18",
       "claim_bundle_after": {
         "property": "P14143",
@@ -7126,8 +8678,8 @@
         "value": "+0",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7212,7 +8764,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7236,9 +8792,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 18
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|19",
       "claim_bundle_after": {
         "property": "P14143",
@@ -7302,8 +8891,8 @@
         "value": "+962",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7388,7 +8977,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7412,9 +9005,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 19
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|20",
       "claim_bundle_after": {
         "property": "P14143",
@@ -7478,8 +9104,8 @@
         "value": "+9",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7564,7 +9190,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7588,9 +9218,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 20
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|21",
       "claim_bundle_after": {
         "property": "P14143",
@@ -7654,8 +9317,8 @@
         "value": "+93",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7740,7 +9403,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7764,9 +9431,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 21
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|22",
       "claim_bundle_after": {
         "property": "P14143",
@@ -7830,8 +9530,8 @@
         "value": "+62",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -7916,7 +9616,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -7940,9 +9644,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 22
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|23",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8006,8 +9743,8 @@
         "value": "+196",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8092,7 +9829,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8116,9 +9857,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 23
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|24",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8182,8 +9956,8 @@
         "value": "+8579",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8268,7 +10042,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8292,9 +10070,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 24
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|25",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8358,8 +10169,8 @@
         "value": "+48",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8444,7 +10255,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8468,9 +10283,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 25
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|26",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8534,8 +10382,8 @@
         "value": "+9090",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8620,7 +10468,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8644,9 +10496,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 26
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|27",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8710,8 +10595,8 @@
         "value": "+153",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8796,7 +10681,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8820,9 +10709,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 27
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|28",
       "claim_bundle_after": {
         "property": "P14143",
@@ -8880,8 +10802,8 @@
         "value": "+21044",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -8966,7 +10888,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -8990,9 +10916,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 28
     },
     {
+      "action": "split",
       "candidate_id": "Q10422059|P5991|29",
       "claim_bundle_after": {
         "property": "P14143",
@@ -9044,8 +11003,8 @@
         "value": "+22973",
         "window_id": "t2_current"
       },
-      "classification": "ambiguous_semantics",
-      "confidence": 0.35,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q10422059",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -9130,7 +11089,11 @@
         "to_window": "t2_current"
       },
       "reasons": [
-        "multi_value_slot"
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
       ],
       "reference_diff": {
         "from_window": "t1_previous",
@@ -9154,9 +11117,42 @@
       },
       "requires_review": true,
       "slot_id": "Q10422059|P5991",
+      "split_axes": [
+        {
+          "cardinality": 29,
+          "property": "__value__",
+          "reason": "multi_value_slot",
+          "source": "slot"
+        },
+        {
+          "cardinality": 4,
+          "property": "P3831",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 11,
+          "property": "P518",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P580",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        },
+        {
+          "cardinality": 2,
+          "property": "P582",
+          "reason": "multi_valued_dimension",
+          "source": "slot"
+        }
+      ],
       "statement_index": 29
     },
     {
+      "action": "migrate_with_refs",
       "candidate_id": "Q10651551|P5991|1",
       "claim_bundle_after": {
         "property": "P14143",
@@ -9254,9 +11250,11 @@
       },
       "requires_review": false,
       "slot_id": "Q10651551|P5991",
+      "split_axes": [],
       "statement_index": 1
     },
     {
+      "action": "split",
       "candidate_id": "Q56404383|P5991|1",
       "claim_bundle_after": {
         "property": "P14143",
@@ -9320,8 +11318,8 @@
         "value": "+838358",
         "window_id": "t2_current"
       },
-      "classification": "safe_with_reference_transfer",
-      "confidence": 0.9,
+      "classification": "split_required",
+      "confidence": 0.4,
       "entity_qid": "Q56404383",
       "qualifier_diff": {
         "from_window": "t1_previous",
@@ -9349,7 +11347,10 @@
         "status": "unchanged",
         "to_window": "t2_current"
       },
-      "reasons": [],
+      "reasons": [
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
+      ],
       "reference_diff": {
         "from_window": "t1_previous",
         "reference_property_set_t1": [
@@ -9368,8 +11369,9 @@
         "status": "unchanged",
         "to_window": "t2_current"
       },
-      "requires_review": false,
+      "requires_review": true,
       "slot_id": "Q56404383|P5991",
+      "split_axes": [],
       "statement_index": 1
     }
   ],
@@ -9385,73 +11387,16 @@
   },
   "summary": {
     "abstained": [],
-    "ambiguous": [
-      "Q10403939|P5991|1",
-      "Q10403939|P5991|2",
-      "Q10403939|P5991|3",
-      "Q10403939|P5991|4",
-      "Q10403939|P5991|5",
-      "Q10403939|P5991|6",
-      "Q10403939|P5991|7",
-      "Q10403939|P5991|8",
-      "Q10403939|P5991|9",
-      "Q10403939|P5991|10",
-      "Q10403939|P5991|11",
-      "Q10403939|P5991|12",
-      "Q10403939|P5991|13",
-      "Q10403939|P5991|14",
-      "Q10403939|P5991|15",
-      "Q10403939|P5991|16",
-      "Q10403939|P5991|17",
-      "Q10403939|P5991|18",
-      "Q10403939|P5991|19",
-      "Q10403939|P5991|20",
-      "Q10403939|P5991|21",
-      "Q10403939|P5991|22",
-      "Q10403939|P5991|23",
-      "Q10403939|P5991|24",
-      "Q10416948|P5991|1",
-      "Q10416948|P5991|2",
-      "Q10422059|P5991|1",
-      "Q10422059|P5991|2",
-      "Q10422059|P5991|3",
-      "Q10422059|P5991|4",
-      "Q10422059|P5991|5",
-      "Q10422059|P5991|6",
-      "Q10422059|P5991|7",
-      "Q10422059|P5991|8",
-      "Q10422059|P5991|9",
-      "Q10422059|P5991|10",
-      "Q10422059|P5991|11",
-      "Q10422059|P5991|12",
-      "Q10422059|P5991|13",
-      "Q10422059|P5991|14",
-      "Q10422059|P5991|15",
-      "Q10422059|P5991|16",
-      "Q10422059|P5991|17",
-      "Q10422059|P5991|18",
-      "Q10422059|P5991|19",
-      "Q10422059|P5991|20",
-      "Q10422059|P5991|21",
-      "Q10422059|P5991|22",
-      "Q10422059|P5991|23",
-      "Q10422059|P5991|24",
-      "Q10422059|P5991|25",
-      "Q10422059|P5991|26",
-      "Q10422059|P5991|27",
-      "Q10422059|P5991|28",
-      "Q10422059|P5991|29"
-    ],
+    "ambiguous": [],
     "candidate_count": 57,
     "checked_safe_subset": [
-      "Q10651551|P5991|1",
-      "Q56404383|P5991|1"
+      "Q10651551|P5991|1"
     ],
     "counts_by_bucket": {
-      "ambiguous_semantics": 55,
-      "safe_with_reference_transfer": 2
+      "safe_with_reference_transfer": 1,
+      "split_required": 56
     },
-    "requires_review_count": 55
+    "requires_review_count": 56
   },
   "target_property": "P14143",
   "window_basis": {

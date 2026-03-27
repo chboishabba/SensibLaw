@@ -7,6 +7,30 @@ work with docs, TODOs, and changelog state.
 ## Current phase (2026-03-27)
 Semantic-promotion parity is now the active cross-lane governance lane.
 
+Current addendum (2026-03-28):
+- refreshed online context now pins two additional doctrine boundaries:
+  - all-sources `FactBundle` / reconciliation is the broader direction above
+    current `Observation` / `Claim` contracts; Wikidata remains a downstream
+    projection/review lane rather than the canonical fact shape for all
+    sources
+  - sentiment/affect remains speaker/utterance-anchored candidate or overlay
+    material; it is not a canonical legal-truth surface and should not expand
+    into psychometric or dashboard-authority claims
+- the repo now has a bounded executable typed latent graph over promoted
+  relation records:
+  - runtime: `src/latent_promoted_graph.py`
+  - schema: `schemas/sl.latent_promoted_graph.v1.schema.yaml`
+  - focused coverage: `tests/test_latent_promoted_graph.py`
+- current cross-system `Phi` output now composes directly with that graph
+  slice:
+  - top-level `latent_graphs` summaries are emitted in
+    `sl.cross_system_phi.contract.v1`
+  - mapping-level `mapping_explanation.latent_graph_refs` point back to the
+    typed graph nodes/motifs for the mapped promoted records
+- the bounded rule remains:
+  graph structure is derived from promoted records and anchored provenance; it
+  does not create an additional truth layer above promotion
+
 Current status:
 - first bounded feedback receipt receiver now exists in `itir.sqlite` via the
   fact-intake/read-model layer, with explicit separation between direct user
@@ -280,6 +304,27 @@ repo now implements, and make the next cross-lane normalization step explicit.
 - This is aligned with earlier repo doctrine for Wikipedia ingest:
   - revision-locked article -> canonical wiki state -> projections
   - compare normalized state first, then derive reviewer-facing deltas
+- The current `Phi` prototype now emits structured explanation witnesses:
+  - type witness
+  - role witness
+  - authority witness
+  - constraint check
+  - scope check
+- `mapping_explanation` is now part of the executable contract, so the bridge
+  from `Phi_meta` admissibility to `Phi_ij` outcome is machine-readable rather
+  than only free-text rationale.
+- Cross-system mapping now has a bounded meta gate:
+  - schema:
+    `schemas/sl.cross_system_phi_meta.v1.schema.yaml`
+  - runtime:
+    `src/cross_system_phi_meta.py`
+  - current `Phi` prototype now emits:
+    - `meta_validation` receipts on admitted mappings
+    - `meta_validation_report.blocked_pairs` for inadmissible candidates
+- The current behavior split is now explicit:
+  - `Phi_meta` decides whether a candidate pair is admissible
+  - `Phi_ij` only classifies admitted pairs as
+    `exact|partial|incompatible|undefined`
 - The bounded cross-system `Phi` package now has a real promoted-record
   prototype:
   - runtime:
@@ -334,8 +379,19 @@ repo now implements, and make the next cross-lane normalization step explicit.
   - `safe_with_reference_transfer`
   - `qualifier_drift`
   - `reference_drift`
-  - `ambiguous_semantics`
+  - `split_required`
   - `abstain`
+- Candidate rows now also carry a narrow action field:
+  - `migrate`
+  - `migrate_with_refs`
+  - `split`
+  - `review`
+  - `abstain`
+- Split detection is now framed generically:
+  - detect independent axes over the statement bundle and sibling slot context
+  - emit those axes per candidate as `split_axes`
+  - treat `split_required` as a failed 1:1 lossless mapping, not as a
+    climate-only heuristic
 - A first live bounded `P5991 -> P14143` pilot pack is now pinned in:
   - `SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/`
   - materialized by:
@@ -349,16 +405,131 @@ repo now implements, and make the next cross-lane normalization step explicit.
   - observed bucket distribution:
     - `safe_with_reference_transfer`: 2
     - `ambiguous_semantics`: 55
+  - rebuilding the pinned slice under the new split heuristics now yields:
+    - `safe_with_reference_transfer`: 1
+    - `split_required`: 56
 - The first live pilot exposed and resolved one real classifier issue:
   - migration-pack review gating must be driven by evidence presence
     (`sum_e >= e0`), not by non-zero `tau`
   - otherwise normal-rank referenced statements collapse incorrectly to
     `abstain`
+- The live materializer now supports both practical operator entry modes:
+  - explicit QID input via repeatable `--qid`
+  - bounded live discovery via `--discover-qids --candidate-limit N`
+- Discovery mode returns the exact selected QIDs in the emitted manifest so the
+  bounded sample remains auditable even when the operator starts without a
+  prebuilt set
+- The first OpenRefine bridge now exists as a flat CSV exporter over
+  `MigrationPack` JSON:
+  - CLI:
+    `sensiblaw wikidata export-migration-pack-openrefine`
+  - output shape includes bucket / drift / review columns for faceting
+  - intended boundary:
+    SensibLaw classifies, OpenRefine reviews, execution remains separate
+- A first checked-safe export now also exists:
+  - CLI:
+    `sensiblaw wikidata export-migration-pack-checked-safe`
+  - output shape is a flat CSV over only `safe_equivalent` and
+    `safe_with_reference_transfer` rows
+  - intended boundary:
+    staging/export for already-safe rows only, still not a direct edit payload
+- A first bounded migration verifier now also exists:
+  - CLI:
+    `sensiblaw wikidata verify-migration-pack`
+  - verification scope:
+    checked-safe subset only
+  - current statuses:
+    `verified`, `duplicate_target`, `target_present_but_drifted`,
+    `target_missing`
+  - intended boundary:
+    prove target presence/preservation for safe rows before any broader
+    execution claim
+- A first split-row followthrough artifact now also exists:
+  - note:
+    `docs/planning/wikidata_split_plan_contract_20260328.md`
+  - schema:
+    `schemas/sl.wikidata_split_plan.v0_1.schema.yaml`
+  - CLI:
+    `sensiblaw wikidata build-split-plan`
+  - scope:
+    review-only plans for structurally decomposable `split_required` slots
+  - intended boundary:
+    propose `1 -> N` target bundles without yet emitting split edits
+- A broader docs-first `ProposalArtifact v1` layer is now explicitly recorded:
+  - note:
+    `docs/planning/proposal_artifact_contract_v1_20260328.md`
+  - `SplitPlan` is treated as the first concrete subtype
+  - decision:
+    do not refactor runtimes to a shared base type until at least one more
+    domain maps cleanly
+- The live materializer now has a one-step operator mode:
+  - discover or accept QIDs
+  - materialize the bounded pack
+  - emit the OpenRefine CSV via `--openrefine-csv`
+  - return both artifact paths in one summary JSON
+- Current operator truth for Nat/full-set use:
+  - the lane is already good enough to classify and filter a large/full set
+  - it yields:
+    - a `migration_pack.json`
+    - an OpenRefine CSV
+    - a candidate safe subset
+  - it is not yet good enough to be presented as:
+    - a final migration executor
+    - a fully trusted import sheet
+    - a complete machine decision for every statement
+- Current plain-language boundary for operator explanation:
+  - the lane is doing structured statement-bundle checks
+  - it is not yet reading source text or performing deep logic/meaning
+    analysis over prose
+  - the safest explanation is:
+    it helps separate "probably safe" from "please review this first"
+- Immediate next product/implementation goal for this lane:
+  - reduce the large temporal/multi-value `ambiguous_semantics` bucket
+  - start with `split_required` and a clearer action model for reviewer-facing
+    output
+- Current next-step bridge decision:
+  - if text-aware evidence is added to this lane, it should pass through the
+    bounded bridge contract in:
+    `docs/planning/wikidata_phi_text_bridge_contract_20260328.md`
+  - `Phi` should compare:
+    - structured migration-pack rows
+    - promoted text observations
+    - resulting pressure outputs
+  - `Phi` should not become raw text -> migration decision
+- First executable bridge scaffolding now exists:
+  - schema:
+    `schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml`
+  - runtime helpers in `src/ontology/wikidata.py`:
+    - `build_wikidata_phi_text_bridge_case(...)`
+    - `attach_wikidata_phi_text_bridge(...)`
+    - `extract_phi_text_observations_from_observation_claim_payload(...)`
+    - `attach_wikidata_phi_text_bridge_from_observation_claim(...)`
+  - additive migration-pack fields now exist:
+    - `bridge_cases`
+    - `text_evidence_refs`
+    - `bridge_case_ref`
+    - `pressure`
+    - `pressure_confidence`
+    - `pressure_summary`
+  - current limitation:
+    the bridge is runtime-real and can consume the Observation/Claim contract
+    as a real producer seam, but this migration lane still lacks a dedicated
+    climate-text producer of its own
+- The strongest literature-backed reading from the local papers is:
+  - Rosario supports benchmark/test-surface construction from ontology
+    fragments
+  - Ege/Peter support query/report/culprit-finding and community-facing repair
+    workflows
+  - Zhao/Takeda support user-facing inspection and risk-oriented diagnosis for
+    hierarchy inconsistency
+  - together they support the repo's review-support boundary, not a claim of
+    mature end-to-end migration automation
 - Still deferred:
   - `needs_human_review`
   - `non_equivalent`
   - `safe_add_target_keep_source_temporarily`
-  - `split_required`
+  - `ambiguous_semantics` as a narrower residual bucket, if still needed after
+    explicit split heuristics
   - checked-safe export
   - post-edit verification
 

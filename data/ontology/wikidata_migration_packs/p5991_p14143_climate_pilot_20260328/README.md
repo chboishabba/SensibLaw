@@ -25,11 +25,12 @@ Revision basis:
   time
 - the exact revision pairs are recorded in `manifest.json`
 
-Observed bucket distribution:
-- `safe_with_reference_transfer`: 2
-- `ambiguous_semantics`: 55
+Current bucket distribution after rebuilding the pinned slice with the
+`split_required` runtime:
+- `safe_with_reference_transfer`: 1
+- `split_required`: 56
 
 Current interpretation:
 - the first live pressure in this lane is temporal/multi-value ambiguity
-- the next policy question is whether some of these cases should graduate from
-  `ambiguous_semantics` to a more explicit `split_required` bucket
+- the current runtime now makes that pressure explicit as `split_required`
+  instead of leaving most of the slice in coarse ambiguity

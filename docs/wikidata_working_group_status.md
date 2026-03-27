@@ -47,9 +47,71 @@ shared handoff.
   - the first live pilot shows:
     - `safe_with_reference_transfer`: 2
     - `ambiguous_semantics`: 55
+  - rebuilding the pinned slice with the new split heuristics now yields:
+    - `safe_with_reference_transfer`: 1
+    - `split_required`: 56
+  - the live materializer now supports two entry modes:
+    - explicit QIDs when the editor already has a candidate set
+    - bounded live discovery from the source property when they do not
+  - the first OpenRefine bridge now exists:
+    `sensiblaw wikidata export-migration-pack-openrefine`
+    for flat CSV review surfaces over existing migration packs
+  - the first checked-safe export now also exists:
+    `sensiblaw wikidata export-migration-pack-checked-safe`
+    for flat CSV staging over only the already-safe subset
+  - the first bounded post-edit verifier now also exists:
+    `sensiblaw wikidata verify-migration-pack`
+    to compare the checked-safe subset against an after-state slice/export
+  - the first split-row followthrough artifact now also exists:
+    `sensiblaw wikidata build-split-plan`
+    for review-only `1 -> N` plans over structurally decomposable
+    `split_required` slots
+  - that split-plan lane is now explicitly treated as the first concrete
+    subtype of a broader docs-first proposal layer:
+    `docs/planning/proposal_artifact_contract_v1_20260328.md`
+  - the live materializer now also supports a one-step operator path:
+    materialize the bounded pack and emit the OpenRefine CSV in the same run
   - immediate implication:
     richer migration policy should focus first on temporal/multi-value slots
     rather than on qualifier/reference drift alone
+  - the next runtime refinement is now landed:
+    temporal/multi-value slots can graduate from coarse ambiguity into
+    `split_required`, and candidate rows now emit a narrow action field
+    (`migrate`, `migrate_with_refs`, `split`, `review`, `abstain`)
+  - split detection is now framed generically rather than climate-only:
+    the runtime looks for independent axes in the statement bundle / sibling
+    slot context, not just hardcoded time fields
+  - current operator boundary:
+    - the lane is already useful for full-set classification/filtering
+    - the lane is not yet a trustworthy full migration executor
+    - OpenRefine remains the human review surface, not just a temporary stopgap
+  - current plain-language truth:
+    - the lane is doing structured statement-bundle checks
+    - the lane is not yet doing source-text understanding or deep semantic
+      reasoning over prose
+  - immediate next assist target:
+    - reduce the large `ambiguous_semantics` bucket for temporal/multi-value
+      rows
+    - add a better action model starting with `split_required`
+    - if text-aware evidence is added later, route it through the bounded
+      bridge note:
+      `docs/planning/wikidata_phi_text_bridge_contract_20260328.md`
+      instead of letting raw text interpretation act as a direct migration
+      decision layer
+  - first additive `Phi` bridge scaffolding now exists:
+    - schema:
+      `schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml`
+    - runtime helpers:
+      `build_wikidata_phi_text_bridge_case(...)` and
+      `attach_wikidata_phi_text_bridge(...)`
+    - first real producer seam now also exists:
+      `sl.observation_claim.contract.v1` can feed the bridge through
+      `extract_phi_text_observations_from_observation_claim_payload(...)` and
+      `attach_wikidata_phi_text_bridge_from_observation_claim(...)`
+    - current limitation:
+      the bridge can now consume a real SL producer seam, but this specific
+      migration lane still does not have a dedicated climate-text producer of
+      its own
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

@@ -712,6 +712,76 @@ def _handle_wikidata_build_migration_pack(args: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _handle_wikidata_export_migration_pack_openrefine(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import export_migration_pack_openrefine_csv
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = export_migration_pack_openrefine_csv(
+        payload,
+        output_path=str(args.output),
+    )
+    _print_json(report)
+
+
+def _handle_wikidata_export_migration_pack_checked_safe(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import export_migration_pack_checked_safe_csv
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = export_migration_pack_checked_safe_csv(
+        payload,
+        output_path=str(args.output),
+    )
+    _print_json(report)
+
+
+def _handle_wikidata_verify_migration_pack(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import verify_migration_pack_against_after_state
+
+    migration_pack = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    after_payload = json.loads(Path(args.after).read_text(encoding="utf-8"))
+    report = verify_migration_pack_against_after_state(
+        migration_pack,
+        after_payload,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "verified_candidate_count": report["summary"]["verified_candidate_count"],
+                "counts_by_status": report["summary"]["counts_by_status"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_build_split_plan(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import build_wikidata_split_plan
+
+    migration_pack = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_wikidata_split_plan(migration_pack)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "plan_count": report["summary"]["plan_count"],
+                "counts_by_status": report["summary"]["counts_by_status"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_wikidata_hotspot_generate_clusters(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
 
@@ -2248,6 +2318,86 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional path to write the migration-pack JSON",
     )
     wikidata_build_migration_pack.set_defaults(func=_handle_wikidata_build_migration_pack)
+    wikidata_export_migration_pack_openrefine = wikidata_sub.add_parser(
+        "export-migration-pack-openrefine",
+        help="Export a migration-pack JSON file to flat CSV for OpenRefine review",
+    )
+    wikidata_export_migration_pack_openrefine.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the migration-pack JSON",
+    )
+    wikidata_export_migration_pack_openrefine.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Path to write the OpenRefine CSV",
+    )
+    wikidata_export_migration_pack_openrefine.set_defaults(
+        func=_handle_wikidata_export_migration_pack_openrefine
+    )
+    wikidata_export_migration_pack_checked_safe = wikidata_sub.add_parser(
+        "export-migration-pack-checked-safe",
+        help="Export only the checked-safe migration-pack subset to flat CSV",
+    )
+    wikidata_export_migration_pack_checked_safe.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the migration-pack JSON",
+    )
+    wikidata_export_migration_pack_checked_safe.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Path to write the checked-safe CSV",
+    )
+    wikidata_export_migration_pack_checked_safe.set_defaults(
+        func=_handle_wikidata_export_migration_pack_checked_safe
+    )
+    wikidata_verify_migration_pack = wikidata_sub.add_parser(
+        "verify-migration-pack",
+        help="Verify the checked-safe subset of a migration pack against an after-state slice",
+    )
+    wikidata_verify_migration_pack.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the migration-pack JSON",
+    )
+    wikidata_verify_migration_pack.add_argument(
+        "--after",
+        type=Path,
+        required=True,
+        help="Path to the after-state slice/export JSON",
+    )
+    wikidata_verify_migration_pack.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the verification JSON",
+    )
+    wikidata_verify_migration_pack.set_defaults(
+        func=_handle_wikidata_verify_migration_pack
+    )
+    wikidata_build_split_plan = wikidata_sub.add_parser(
+        "build-split-plan",
+        help="Build review-only split plans for structurally decomposable split-required rows",
+    )
+    wikidata_build_split_plan.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the migration-pack JSON",
+    )
+    wikidata_build_split_plan.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the split-plan JSON",
+    )
+    wikidata_build_split_plan.set_defaults(
+        func=_handle_wikidata_build_split_plan
+    )
     wikidata_hotspot_generate_clusters = wikidata_sub.add_parser(
         "hotspot-generate-clusters",
         help="Generate a deterministic hotspot cluster pack from the hotspot manifest",

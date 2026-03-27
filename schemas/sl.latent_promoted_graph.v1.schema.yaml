@@ -1,0 +1,301 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.latent_promoted_graph.v1
+type: object
+additionalProperties: false
+required:
+  - payload_version
+  - graph_id
+  - system_id
+  - promoted_basis_ref
+  - provenance_rule
+  - typing_rules
+  - nodes
+  - edges
+  - constraints
+  - record_index
+  - provenance_index
+  - summary
+properties:
+  payload_version:
+    type: string
+    const: sl.latent_promoted_graph.v1
+  graph_id:
+    type: string
+    minLength: 1
+  system_id:
+    type: string
+    minLength: 1
+  promoted_basis_ref:
+    type: string
+    minLength: 1
+  provenance_rule:
+    type: object
+    additionalProperties: false
+    required:
+      - rule_id
+      - description
+      - anchored_promoted_records_only
+    properties:
+      rule_id:
+        type: string
+        minLength: 1
+      description:
+        type: string
+        minLength: 1
+      anchored_promoted_records_only:
+        type: boolean
+  typing_rules:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [src_node_type, edge_type, dst_node_type]
+      properties:
+        src_node_type:
+          type: string
+          enum: [fact]
+        edge_type:
+          type: string
+          enum: [instantiated_by, refers_to, member_of, applies_to]
+        dst_node_type:
+          type: string
+          enum: [actor, legal_ref, document, motif, authority]
+  nodes:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - node_ref
+        - system_id
+        - node_type
+        - label
+        - payload
+        - provenance_refs
+        - confidence
+        - temporal_scope
+        - jurisdiction_scope
+      properties:
+        node_ref:
+          type: string
+          minLength: 1
+        system_id:
+          type: string
+          minLength: 1
+        node_type:
+          type: string
+          enum: [actor, legal_ref, fact, motif, authority, document]
+        label:
+          type: string
+          minLength: 1
+        payload:
+          type: object
+        provenance_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        temporal_scope:
+          type: [string, "null"]
+        jurisdiction_scope:
+          type: [string, "null"]
+  edges:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - edge_ref
+        - src
+        - dst
+        - edge_type
+        - payload
+        - provenance_refs
+        - confidence
+      properties:
+        edge_ref:
+          type: string
+          minLength: 1
+        src:
+          type: string
+          minLength: 1
+        dst:
+          type: string
+          minLength: 1
+        edge_type:
+          type: string
+          enum: [instantiated_by, refers_to, member_of, applies_to]
+        payload:
+          type: object
+        provenance_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+  constraints:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - constraint_id
+        - constraint_type
+        - scope
+        - expression
+        - provenance_refs
+        - severity
+      properties:
+        constraint_id:
+          type: string
+          minLength: 1
+        constraint_type:
+          type: string
+          enum: [type_constraint, consistency_constraint]
+        scope:
+          type: string
+          minLength: 1
+        expression:
+          type: string
+          minLength: 1
+        provenance_refs:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        severity:
+          type: string
+          enum: [info, warning, error]
+  record_index:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - record_ref
+        - fact_node_ref
+        - subject_node_ref
+        - object_node_ref
+        - document_node_ref
+        - authority_node_ref
+        - motif_node_refs
+      properties:
+        record_ref:
+          type: string
+          minLength: 1
+        fact_node_ref:
+          type: string
+          minLength: 1
+        subject_node_ref:
+          type: string
+          minLength: 1
+        object_node_ref:
+          type: string
+          minLength: 1
+        document_node_ref:
+          type: string
+          minLength: 1
+        authority_node_ref:
+          type: string
+          minLength: 1
+        motif_node_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+  provenance_index:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - provenance_ref
+        - system_id
+        - run_id
+        - event_id
+        - predicate_key
+        - source_document_id
+        - source_char_start
+        - source_char_end
+        - event_text
+      properties:
+        provenance_ref:
+          type: string
+          minLength: 1
+        system_id:
+          type: string
+          minLength: 1
+        run_id:
+          type: string
+          minLength: 1
+        event_id:
+          type: string
+          minLength: 1
+        predicate_key:
+          type: string
+          minLength: 1
+        source_document_id:
+          type: string
+          minLength: 1
+        source_char_start:
+          type: integer
+          minimum: 0
+        source_char_end:
+          type: integer
+          minimum: 0
+        event_text:
+          type: string
+          minLength: 1
+  summary:
+    type: object
+    additionalProperties: false
+    required:
+      - node_count
+      - edge_count
+      - constraint_count
+      - fact_node_count
+      - motif_node_count
+      - node_type_counts
+      - edge_type_counts
+    properties:
+      node_count:
+        type: integer
+        minimum: 1
+      edge_count:
+        type: integer
+        minimum: 1
+      constraint_count:
+        type: integer
+        minimum: 1
+      fact_node_count:
+        type: integer
+        minimum: 1
+      motif_node_count:
+        type: integer
+        minimum: 1
+      node_type_counts:
+        type: object
+        additionalProperties:
+          type: integer
+          minimum: 0
+      edge_type_counts:
+        type: object
+        additionalProperties:
+          type: integer
+          minimum: 0

@@ -13,6 +13,29 @@
       "authority_scope": "Local promoted truth for the bounded French civil-law sample."
     }
   ],
+  "meta_contract_ref": "schema://sl.cross_system_phi_meta.v1",
+  "latent_graphs": [
+    {
+      "system_id": "common_law_qld",
+      "graph_ref": "latent://common_law_qld/graph/demo_qld",
+      "graph_version": "sl.latent_promoted_graph.v1",
+      "promoted_basis_ref": "promoted://common_law_qld/motif/termination_for_breach",
+      "fact_node_count": 2,
+      "motif_node_count": 2,
+      "edge_count": 8,
+      "constraint_count": 3
+    },
+    {
+      "system_id": "civil_law_fr",
+      "graph_ref": "latent://civil_law_fr/graph/demo_fr",
+      "graph_version": "sl.latent_promoted_graph.v1",
+      "promoted_basis_ref": "promoted://civil_law_fr/motif/resolution_pour_inexecution",
+      "fact_node_count": 1,
+      "motif_node_count": 1,
+      "edge_count": 4,
+      "constraint_count": 3
+    }
+  ],
   "provenance_rule": {
     "rule_id": "sl.phi.provenance_dual_anchor.v1",
     "description": "Every mapping and mismatch diagnostic must resolve through provenance_index to at least one anchored promoted record in each referenced system.",
@@ -67,6 +90,109 @@
         "promoted://common_law_qld/motif/termination_for_breach",
         "promoted://civil_law_fr/motif/resolution_pour_inexecution"
       ],
+      "meta_validation": {
+        "allowed": true,
+        "meta_score": 0.82,
+        "type_score": 1.0,
+        "role_score": 0.84,
+        "authority_score": 0.73,
+        "constraint_status": "conditional",
+        "scope_status": "satisfied",
+        "violations": [],
+        "witness_requirements": [
+          "anchor_trace_left",
+          "anchor_trace_right",
+          "constraint_check"
+        ],
+        "witness": {
+          "type_alignment": {
+            "left_type": "remedy",
+            "right_type": "remedy",
+            "relation": "analogue",
+            "score": 0.82,
+            "summary": "analogue alignment"
+          },
+          "role_alignments": [
+            {
+              "left_role": "subject_actor",
+              "right_role": "subject_actor",
+              "relation": "exact",
+              "score": 1.0
+            }
+          ],
+          "authority_alignment": {
+            "left_authority": "judicial",
+            "right_authority": "judicial",
+            "relation": "exact",
+            "score": 1.0,
+            "summary": "exact alignment"
+          },
+          "constraint_check": {
+            "left_constraint": "review_relation",
+            "right_constraint": "review_relation",
+            "status": "conditional"
+          },
+          "scope_check": {
+            "status": "satisfied",
+            "left_domain": "contract",
+            "right_domain": "contract"
+          }
+        }
+      },
+      "mapping_explanation": {
+        "source_predicate": "termination_for_breach",
+        "target_predicate": "resolution_pour_inexecution",
+        "source_rule_type": "review_relation",
+        "target_rule_type": "review_relation",
+        "status_basis": "partial",
+        "rationale": "Both motifs support remedy transition after serious non-performance, but threshold tests and consequence ladders differ.",
+        "meta_summary": {
+          "type_relation": "analogue",
+          "authority_relation": "exact",
+          "constraint_status": "conditional",
+          "scope_status": "satisfied"
+        },
+        "witness": {
+          "type_alignment": {
+            "left_type": "remedy",
+            "right_type": "remedy",
+            "relation": "analogue",
+            "score": 0.82,
+            "summary": "analogue alignment"
+          },
+          "role_alignments": [
+            {
+              "left_role": "subject_actor",
+              "right_role": "subject_actor",
+              "relation": "exact",
+              "score": 1.0
+            }
+          ],
+          "authority_alignment": {
+            "left_authority": "judicial",
+            "right_authority": "judicial",
+            "relation": "exact",
+            "score": 1.0,
+            "summary": "exact alignment"
+          },
+          "constraint_check": {
+            "left_constraint": "review_relation",
+            "right_constraint": "review_relation",
+            "status": "conditional"
+          },
+          "scope_check": {
+            "status": "satisfied",
+            "left_domain": "contract",
+            "right_domain": "contract"
+          }
+        },
+        "latent_graph_refs": {
+          "source_fact_node_ref": "latent://common_law_qld/node/fact/termination_for_breach",
+          "target_fact_node_ref": "latent://civil_law_fr/node/fact/resolution_pour_inexecution",
+          "source_motif_ref": "latent://common_law_qld/node/motif/termination_for_breach",
+          "target_motif_ref": "latent://civil_law_fr/node/motif/resolution_pour_inexecution"
+        }
+      },
       "constraint_refs": [
         "constraint://target/requires_target_system_review"
       ],
@@ -85,9 +211,104 @@
       "compatibility_rationale": "No bounded target-system analogue has been checked for this overlay in the prototype table.",
       "provenance_refs": [
         "promoted://common_law_qld/motif/equitable_relief_overlay"
-      ]
+      ],
+      "meta_validation": {
+        "allowed": false,
+        "meta_score": 0.0,
+        "type_score": 0.0,
+        "role_score": 0.0,
+        "authority_score": 0.0,
+        "constraint_status": "unknown",
+        "scope_status": "not_evaluated",
+        "violations": [
+          "phi_meta_no_admissible_target"
+        ],
+        "witness_requirements": [
+          "anchor_trace_left",
+          "anchor_trace_right",
+          "constraint_check"
+        ],
+        "witness": {
+          "type_alignment": {
+            "left_type": null,
+            "right_type": null,
+            "relation": "none",
+            "score": 0.0,
+            "summary": "no alignment"
+          },
+          "role_alignments": [],
+          "authority_alignment": {
+            "left_authority": null,
+            "right_authority": null,
+            "relation": "none",
+            "score": 0.0,
+            "summary": "no alignment"
+          },
+          "constraint_check": {
+            "left_constraint": null,
+            "right_constraint": null,
+            "status": "unknown"
+          },
+          "scope_check": {
+            "status": "not_evaluated",
+            "left_domain": null,
+            "right_domain": null
+          }
+        }
+      },
+      "mapping_explanation": {
+        "source_predicate": "equitable_relief_overlay",
+        "target_predicate": null,
+        "source_rule_type": null,
+        "target_rule_type": null,
+        "status_basis": "undefined",
+        "rationale": "No bounded target-system analogue has been checked for this overlay in the prototype table.",
+        "meta_summary": {
+          "type_relation": "none",
+          "authority_relation": "none",
+          "constraint_status": "unknown",
+          "scope_status": "not_evaluated"
+        },
+        "witness": {
+          "type_alignment": {
+            "left_type": null,
+            "right_type": null,
+            "relation": "none",
+            "score": 0.0,
+            "summary": "no alignment"
+          },
+          "role_alignments": [],
+          "authority_alignment": {
+            "left_authority": null,
+            "right_authority": null,
+            "relation": "none",
+            "score": 0.0,
+            "summary": "no alignment"
+          },
+          "constraint_check": {
+            "left_constraint": null,
+            "right_constraint": null,
+            "status": "unknown"
+          },
+          "scope_check": {
+            "status": "not_evaluated",
+            "left_domain": null,
+            "right_domain": null
+          }
+        },
+        "latent_graph_refs": {
+          "source_fact_node_ref": "latent://common_law_qld/node/fact/equitable_relief_overlay",
+          "target_fact_node_ref": null,
+          "source_motif_ref": "latent://common_law_qld/node/motif/equitable_relief_overlay",
+          "target_motif_ref": null
+        }
+      }
     }
   ],
+  "meta_validation_report": {
+    "blocked_pairs": [],
+    "blocked_source_refs": []
+  },
   "mismatch_report": {
     "workflow": {
       "workflow_id": "sl.phi_mismatch_review.v1",

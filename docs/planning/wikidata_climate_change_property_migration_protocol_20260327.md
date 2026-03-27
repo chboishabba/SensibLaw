@@ -799,11 +799,25 @@ review_pack = {
    - first observed bucket distribution:
      - `safe_with_reference_transfer`: 2
      - `ambiguous_semantics`: 55
+   - rebuilding the pinned slice with the new split heuristics now yields:
+     - `safe_with_reference_transfer`: 1
+     - `split_required`: 56
    - immediate lesson: the first live pressure is temporal/multi-value
      ambiguity, not qualifier/reference drift
-5. Add richer policy-driven buckets such as `non_equivalent`,
-   `needs_human_review`, and `split_required` only after a real pinned pack
-   shows what the missing evidence actually is.
+5. The next runtime promotion is now explicit:
+   - temporal/multi-value slots should graduate from coarse ambiguity into
+     `split_required`
+   - candidate rows should emit a narrow action field:
+     `migrate`, `migrate_with_refs`, `split`, `review`, or `abstain`
+   - `split_required` should be understood generically:
+     a source statement bundle encodes more than one independent axis of
+     variation, so no lossless 1:1 target statement exists
+   - the next artifact after that is now concrete:
+     `SplitPlan v0.1` for review-only `1 -> N` decomposition over structurally
+     decomposable rows
+6. Keep richer policy-driven buckets such as `non_equivalent` and
+   `needs_human_review` deferred until a real pinned pack shows the next
+   missing evidence.
 
 ## Non-goals
 - no claim that the repo should decide Wikidata ontology governance
@@ -822,3 +836,105 @@ If answering the live discussion, the strongest repo-backed position is:
 
 That answer is materially stronger than generic caution because it matches
 methods already implemented in the repo's Wikidata lane.
+
+## Full-set operator boundary
+If an editor runs the current tooling on a full `P5991` candidate set, the
+output is already useful but not yet final-execution quality.
+
+What the current lane can already provide:
+- a full or bounded `migration_pack.json`
+- an OpenRefine-facing CSV with:
+  - migration bucket / classification
+  - action recommendation
+  - drift flags
+  - confidence
+  - suggested review action
+- a candidate checked-safe subset
+
+What it should not yet be presented as:
+- a finished migration executor
+- a final import sheet that can be trusted blindly
+- a complete machine decision for every statement bundle
+
+Current limiting factor from the pinned live pilot:
+- large temporal/multi-value `P5991` usage is the main pressure point
+- the current lane can now mark many of those rows as `split_required`
+- that is materially better than coarse ambiguity, but it is still not a full
+  migration instruction or an execution payload
+
+So the honest current claim is:
+- yes, the lane can already help classify and filter a large/full set
+- no, the lane should not yet be described as "run this and you have the final
+  migration output"
+
+## Plain-language operator explanation
+If an editor asks what the tooling actually checks today, the plain answer
+should stay narrow.
+
+It is not currently:
+- reading article/report/source text and reasoning over wording
+- proving what a statement "really means" from raw text
+- making a final trusted move/delete decision for every row
+
+It is currently:
+- inspecting the statement bundle as structured Wikidata data
+- checking the value
+- checking attached dates and other extra details
+- checking the source/reference structure
+- checking whether the same item has several `P5991` statements
+- checking whether those statements look like different years, scopes, or
+  measurement setups
+- checking whether qualifier/reference structure changed across the bounded
+  revision window
+
+So the current lane should be described as:
+- structured review and triage
+- not text understanding
+- not deep legal/semantic reasoning over source prose
+
+## Immediate assistance target
+The most useful next assistance for operators is not more generic explanation.
+It is a better machine-visible split between "unclear" cases.
+
+Current goal:
+- break out temporal/multi-value `ambiguous_semantics` rows into more precise
+  action-oriented buckets, starting with `split_required`
+- improve the suggested-action model so the output tells a reviewer whether a
+  row is:
+  - probably safe to carry over
+  - probably needs source retention plus target addition
+  - probably needs splitting by time/scope
+  - still too unclear for anything except manual review
+- if text-aware evidence is introduced for these hard cases, add it through the
+  bounded bridge contract in:
+  `docs/planning/wikidata_phi_text_bridge_contract_20260328.md`
+  so text acts as promoted evidence and pressure, not as a hidden decision
+  layer
+- the first text-aware implementation should be one bounded revision-locked
+  climate-text producer that emits `sl.observation_claim.contract.v1` rows for
+  explicit year/value climate lines, then feeds that payload into the existing
+  bridge as additive evidence only
+
+That is the path from "useful review tool" toward "migration-ready workflow"
+without pretending the current lane already does text/logic interpretation.
+
+## Prior-work alignment
+This boundary is also the strongest literature-backed position given the local
+papers already on disk:
+
+- Rosario / IBM:
+  `2405.20163v1_rosario.pdf`
+  - supports bounded ontology fragments as systematic inconsistency-test
+    surfaces
+  - does not support treating the current lane as a migration executor
+- Ege Doğan / Peter Patel-Schneider:
+  `2410.13707v2_ege.pdf`
+  - supports query/report/culprit-finding and community-facing correction
+    support
+  - keeps fixes/manual review separate from automatic execution
+- Shixiong Zhao / Hideaki Takeda:
+  `2511.04926v2(1)_shixiong_zhao.pdf`
+  - supports user-facing inspection and risk-oriented diagnosis for hierarchy
+    inconsistency
+  - reinforces the value of review-support tooling rather than blind
+    end-to-end correction

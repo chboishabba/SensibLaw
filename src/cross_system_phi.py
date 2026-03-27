@@ -3,6 +3,13 @@ from __future__ import annotations
 import hashlib
 from typing import Any, Iterable, Mapping
 
+from .cross_system_phi_meta import (
+    SL_CROSS_SYSTEM_PHI_META_VERSION,
+    build_default_phi_meta_contract,
+    validate_phi_meta,
+)
+from .latent_promoted_graph import SL_LATENT_PROMOTED_GRAPH_VERSION, build_latent_promoted_graph
+
 SL_CROSS_SYSTEM_PHI_CONTRACT_VERSION = "sl.cross_system_phi.contract.v1"
 SL_CROSS_SYSTEM_PHI_MISMATCH_WORKFLOW_VERSION = "sl.phi_mismatch_review.v1"
 SL_CROSS_SYSTEM_PHI_PROVENANCE_RULE_VERSION = "sl.phi.provenance_dual_anchor.v1"
@@ -176,11 +183,16 @@ def _extract_promoted_records(system_id: str, report: Mapping[str, Any]) -> list
                 "source_document_id": source_document_id,
                 "source_char_start": source_char_start,
                 "source_char_end": source_char_end,
+                "promotion_status": str(row.get("canonical_promotion_status") or ""),
             }
         )
     if not records:
         raise ValueError(f"report for {system_id} does not contain promoted_true relations")
     return records
+
+
+def extract_promoted_records_from_report(*, system_id: str, report: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return _extract_promoted_records(system_id, report)
 
 
 def _mapping_score(source: Mapping[str, Any], target: Mapping[str, Any]) -> float:
@@ -217,6 +229,77 @@ def _classify_mapping(source: Mapping[str, Any], target: Mapping[str, Any]) -> t
         "undefined",
         "No bounded target-system relation matches the promoted source shape in this prototype run.",
     )
+
+
+def _fallback_meta_validation() -> dict[str, Any]:
+    return {
+        "allowed": False,
+        "meta_score": 0.0,
+        "type_score": 0.0,
+        "role_score": 0.0,
+        "authority_score": 0.0,
+        "constraint_status": "unknown",
+        "scope_status": "not_evaluated",
+        "violations": ["phi_meta_no_admissible_target"],
+        "witness_requirements": ["anchor_trace_left", "anchor_trace_right", "constraint_check"],
+        "witness": {
+            "type_alignment": {"left_type": None, "right_type": None, "relation": "none", "score": 0.0, "summary": "no alignment"},
+            "role_alignments": [],
+            "authority_alignment": {"left_authority": None, "right_authority": None, "relation": "none", "score": 0.0, "summary": "no alignment"},
+            "constraint_check": {"left_constraint": None, "right_constraint": None, "status": "unknown"},
+            "scope_check": {"status": "not_evaluated", "left_domain": None, "right_domain": None},
+        },
+    }
+
+
+def _build_mapping_explanation(
+    *,
+    source: Mapping[str, Any],
+    target: Mapping[str, Any] | None,
+    status: str,
+    meta_validation: Mapping[str, Any],
+    rationale: str,
+    source_graph_refs: Mapping[str, Any] | None = None,
+    target_graph_refs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    witness = meta_validation.get("witness", {}) if isinstance(meta_validation.get("witness"), Mapping) else {}
+    type_alignment = witness.get("type_alignment", {}) if isinstance(witness.get("type_alignment"), Mapping) else {}
+    authority_alignment = (
+        witness.get("authority_alignment", {})
+        if isinstance(witness.get("authority_alignment"), Mapping)
+        else {}
+    )
+    constraint_check = witness.get("constraint_check", {}) if isinstance(witness.get("constraint_check"), Mapping) else {}
+    scope_check = witness.get("scope_check", {}) if isinstance(witness.get("scope_check"), Mapping) else {}
+    return {
+        "source_predicate": source["predicate_key"],
+        "target_predicate": target["predicate_key"] if target is not None else None,
+        "source_rule_type": source.get("rule_type"),
+        "target_rule_type": target.get("rule_type") if target is not None else None,
+        "status_basis": status,
+        "rationale": rationale,
+        "meta_summary": {
+            "type_relation": type_alignment.get("relation"),
+            "authority_relation": authority_alignment.get("relation"),
+            "constraint_status": constraint_check.get("status", meta_validation.get("constraint_status")),
+            "scope_status": scope_check.get("status", meta_validation.get("scope_status")),
+        },
+        "witness": witness,
+        "latent_graph_refs": {
+            "source_fact_node_ref": source_graph_refs.get("fact_node_ref") if isinstance(source_graph_refs, Mapping) else None,
+            "target_fact_node_ref": target_graph_refs.get("fact_node_ref") if isinstance(target_graph_refs, Mapping) else None,
+            "source_motif_ref": (
+                source_graph_refs.get("motif_node_refs", [None])[0]
+                if isinstance(source_graph_refs, Mapping) and isinstance(source_graph_refs.get("motif_node_refs"), list) and source_graph_refs.get("motif_node_refs")
+                else None
+            ),
+            "target_motif_ref": (
+                target_graph_refs.get("motif_node_refs", [None])[0]
+                if isinstance(target_graph_refs, Mapping) and isinstance(target_graph_refs.get("motif_node_refs"), list) and target_graph_refs.get("motif_node_refs")
+                else None
+            ),
+        },
+    }
 
 
 def _build_provenance_rule() -> dict[str, Any]:
@@ -285,18 +368,54 @@ def build_cross_system_phi_prototype(
     target_authority_scope: str,
     target_report: Mapping[str, Any],
 ) -> dict[str, Any]:
+    meta_contract = build_default_phi_meta_contract(left_system=source_system_id, right_system=target_system_id)
     source_records = _extract_promoted_records(source_system_id, source_report)
     target_records = _extract_promoted_records(target_system_id, target_report)
+    source_basis_ref = f"promoted://{source_system_id}/run/{_required_str(source_report, 'run_id')}"
+    target_basis_ref = f"promoted://{target_system_id}/run/{_required_str(target_report, 'run_id')}"
+    source_graph = build_latent_promoted_graph(
+        system_id=source_system_id,
+        promoted_basis_ref=source_basis_ref,
+        records=source_records,
+    )
+    target_graph = build_latent_promoted_graph(
+        system_id=target_system_id,
+        promoted_basis_ref=target_basis_ref,
+        records=target_records,
+    )
+    source_graph_index = {row["record_ref"]: row for row in source_graph["record_index"]}
+    target_graph_index = {row["record_ref"]: row for row in target_graph["record_index"]}
     provenance_index = _build_provenance_index([*source_records, *target_records])
     used_target_refs: set[str] = set()
     mappings: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
     unresolved_mapping_ids: list[str] = []
     incompatible_mapping_ids: list[str] = []
+    blocked_pairs: list[dict[str, Any]] = []
 
     for index, source_record in enumerate(source_records, start=1):
         available_targets = [row for row in target_records if row["record_ref"] not in used_target_refs]
-        target_record = _find_best_target(source_record, available_targets)
+        allowed_targets: list[Mapping[str, Any]] = []
+        for candidate_target in available_targets:
+            meta_validation = validate_phi_meta(
+                left_record=source_record,
+                right_record=candidate_target,
+                contract=meta_contract,
+            )
+            if meta_validation["allowed"]:
+                allowed_targets.append({**candidate_target, "meta_validation": meta_validation})
+                continue
+            blocked_pairs.append(
+                {
+                    "block_id": f"meta-block-{len(blocked_pairs) + 1:03d}",
+                    "source_ref": source_record["record_ref"],
+                    "candidate_target_ref": candidate_target["record_ref"],
+                    "reason_summary": "; ".join(meta_validation["violations"]) or "meta validation failed",
+                    "meta_validation": meta_validation,
+                }
+            )
+
+        target_record = _find_best_target(source_record, allowed_targets)
         status: str
         rationale: str
         mapping_id = f"phi-{index:03d}"
@@ -304,16 +423,18 @@ def build_cross_system_phi_prototype(
         mismatch_refs: list[str] = []
         constraint_refs: list[str] = []
         target_ref: str | None = None
+        chosen_meta_validation: dict[str, Any] | None = None
 
         if target_record is None:
             status, rationale = "undefined", (
-                "No bounded target-system promoted relation matched the source record shape in this prototype."
+                "No bounded target-system promoted relation passed Phi_meta admissibility for this source record."
             )
             unresolved_mapping_ids.append(mapping_id)
         else:
             used_target_refs.add(target_record["record_ref"])
             target_ref = target_record["record_ref"]
             provenance_refs.append(target_record["record_ref"])
+            chosen_meta_validation = dict(target_record.get("meta_validation") or {})
             status, rationale = _classify_mapping(source_record, target_record)
             if status in {"partial", "incompatible"}:
                 diagnostic_id = f"diag-{len(diagnostics) + 1:03d}"
@@ -352,6 +473,20 @@ def build_cross_system_phi_prototype(
                 "status": status,
                 "compatibility_rationale": rationale,
                 "provenance_refs": provenance_refs,
+                "meta_validation": chosen_meta_validation
+                if chosen_meta_validation is not None
+                else _fallback_meta_validation(),
+                "mapping_explanation": _build_mapping_explanation(
+                    source=source_record,
+                    target=target_record if target_record is not None else None,
+                    status=status,
+                    meta_validation=chosen_meta_validation
+                    if chosen_meta_validation is not None
+                    else _fallback_meta_validation(),
+                    rationale=rationale,
+                    source_graph_refs=source_graph_index.get(source_record["record_ref"]),
+                    target_graph_refs=target_graph_index.get(target_record["record_ref"]) if target_record is not None else None,
+                ),
                 **({"constraint_refs": constraint_refs} if constraint_refs else {}),
                 **({"mismatch_refs": mismatch_refs} if mismatch_refs else {}),
             }
@@ -363,18 +498,45 @@ def build_cross_system_phi_prototype(
         "systems": [
             {
                 "system_id": source_system_id,
-                "promoted_basis_ref": f"promoted://{source_system_id}/run/{_required_str(source_report, 'run_id')}",
+                "promoted_basis_ref": source_basis_ref,
                 "authority_scope": source_authority_scope,
             },
             {
                 "system_id": target_system_id,
-                "promoted_basis_ref": f"promoted://{target_system_id}/run/{_required_str(target_report, 'run_id')}",
+                "promoted_basis_ref": target_basis_ref,
                 "authority_scope": target_authority_scope,
+            },
+        ],
+        "meta_contract_ref": f"schema://{SL_CROSS_SYSTEM_PHI_META_VERSION}",
+        "latent_graphs": [
+            {
+                "system_id": source_system_id,
+                "graph_ref": source_graph["graph_id"],
+                "graph_version": SL_LATENT_PROMOTED_GRAPH_VERSION,
+                "promoted_basis_ref": source_basis_ref,
+                "fact_node_count": source_graph["summary"]["fact_node_count"],
+                "motif_node_count": source_graph["summary"]["motif_node_count"],
+                "edge_count": source_graph["summary"]["edge_count"],
+                "constraint_count": source_graph["summary"]["constraint_count"],
+            },
+            {
+                "system_id": target_system_id,
+                "graph_ref": target_graph["graph_id"],
+                "graph_version": SL_LATENT_PROMOTED_GRAPH_VERSION,
+                "promoted_basis_ref": target_basis_ref,
+                "fact_node_count": target_graph["summary"]["fact_node_count"],
+                "motif_node_count": target_graph["summary"]["motif_node_count"],
+                "edge_count": target_graph["summary"]["edge_count"],
+                "constraint_count": target_graph["summary"]["constraint_count"],
             },
         ],
         "provenance_rule": _build_provenance_rule(),
         "provenance_index": provenance_index,
         "mappings": mappings,
+        "meta_validation_report": {
+            "blocked_pairs": blocked_pairs,
+            "blocked_source_refs": sorted({row["source_ref"] for row in blocked_pairs}),
+        },
         "mismatch_report": {
             "workflow": _build_mismatch_workflow(),
             "unresolved_mapping_ids": unresolved_mapping_ids,
@@ -389,4 +551,5 @@ __all__ = [
     "SL_CROSS_SYSTEM_PHI_MISMATCH_WORKFLOW_VERSION",
     "SL_CROSS_SYSTEM_PHI_PROVENANCE_RULE_VERSION",
     "build_cross_system_phi_prototype",
+    "extract_promoted_records_from_report",
 ]

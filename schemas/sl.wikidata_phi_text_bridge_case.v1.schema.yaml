@@ -1,0 +1,165 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_phi_text_bridge_case.v1
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - bridge_case_ref
+  - candidate_id
+  - structured_bundle
+  - text_observations
+  - comparison
+  - pressure
+  - pressure_confidence
+  - pressure_summary
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_phi_text_bridge_case.v1
+  bridge_case_ref:
+    type: string
+    minLength: 1
+  candidate_id:
+    type: string
+    minLength: 1
+  structured_bundle:
+    type: object
+    additionalProperties: false
+    required:
+      - candidate_id
+      - entity_qid
+      - slot_id
+      - statement_index
+      - classification
+      - action
+      - claim_bundle_before
+      - claim_bundle_after
+    properties:
+      candidate_id:
+        type: string
+      entity_qid:
+        type: string
+      slot_id:
+        type: string
+      statement_index:
+        type: integer
+      classification:
+        type: string
+      action:
+        type: string
+      claim_bundle_before:
+        type: object
+      claim_bundle_after:
+        type: object
+  text_observations:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - observation_ref
+        - source_ref
+        - anchors
+        - subject
+        - predicate
+        - object
+        - qualifiers
+        - promotion_status
+      properties:
+        observation_ref:
+          type: string
+          minLength: 1
+        source_ref:
+          type: string
+          minLength: 1
+        anchors:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [start, end]
+            properties:
+              start:
+                type: integer
+                minimum: 0
+              end:
+                type: integer
+                minimum: 0
+              text:
+                type: string
+        subject:
+          type: string
+        predicate:
+          type: string
+        object:
+          type: string
+        qualifiers:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        promotion_status:
+          type: string
+          const: promoted_true
+  comparison:
+    type: object
+    additionalProperties: false
+    required:
+      - alignment
+      - conflicts
+      - missing_dimensions
+      - comparison_summary
+    properties:
+      alignment:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [observation_ref, checks]
+          properties:
+            observation_ref:
+              type: string
+            checks:
+              type: array
+              items:
+                type: string
+      conflicts:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [observation_ref, kind, detail]
+          properties:
+            observation_ref:
+              type: string
+            kind:
+              type: string
+            detail:
+              type: string
+      missing_dimensions:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [kind, detail]
+          properties:
+            kind:
+              type: string
+            detail:
+              type: string
+      comparison_summary:
+        type: string
+        minLength: 1
+  pressure:
+    type: string
+    enum: [reinforce, split_pressure, contradiction, abstain]
+  pressure_confidence:
+    type: number
+    minimum: 0
+    maximum: 1
+  pressure_summary:
+    type: string
+    minLength: 1

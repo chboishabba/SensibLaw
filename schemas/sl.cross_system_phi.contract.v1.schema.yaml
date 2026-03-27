@@ -6,9 +6,12 @@ required:
   - payload_version
   - motif_family
   - systems
+  - meta_contract_ref
+  - latent_graphs
   - provenance_rule
   - provenance_index
   - mappings
+  - meta_validation_report
   - mismatch_report
 properties:
   payload_version:
@@ -40,6 +43,50 @@ properties:
           minLength: 1
         notes:
           type: [string, "null"]
+  meta_contract_ref:
+    type: string
+    minLength: 1
+  latent_graphs:
+    type: array
+    minItems: 2
+    maxItems: 2
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - system_id
+        - graph_ref
+        - graph_version
+        - promoted_basis_ref
+        - fact_node_count
+        - motif_node_count
+        - edge_count
+        - constraint_count
+      properties:
+        system_id:
+          type: string
+          minLength: 1
+        graph_ref:
+          type: string
+          minLength: 1
+        graph_version:
+          type: string
+          const: sl.latent_promoted_graph.v1
+        promoted_basis_ref:
+          type: string
+          minLength: 1
+        fact_node_count:
+          type: integer
+          minimum: 1
+        motif_node_count:
+          type: integer
+          minimum: 1
+        edge_count:
+          type: integer
+          minimum: 1
+        constraint_count:
+          type: integer
+          minimum: 1
   provenance_rule:
     type: object
     additionalProperties: false
@@ -118,6 +165,8 @@ properties:
         - status
         - compatibility_rationale
         - provenance_refs
+        - meta_validation
+        - mapping_explanation
       properties:
         mapping_id:
           type: string
@@ -149,6 +198,235 @@ properties:
           items:
             type: string
             minLength: 1
+        meta_validation:
+          type: object
+          additionalProperties: false
+          required:
+            - allowed
+            - meta_score
+            - type_score
+            - role_score
+            - authority_score
+            - constraint_status
+            - scope_status
+            - violations
+            - witness_requirements
+          properties:
+            allowed:
+              type: boolean
+            meta_score:
+              type: number
+              minimum: 0
+              maximum: 1
+            type_score:
+              type: number
+              minimum: 0
+              maximum: 1
+            role_score:
+              type: number
+              minimum: 0
+              maximum: 1
+            authority_score:
+              type: number
+              minimum: 0
+              maximum: 1
+            constraint_status:
+              type: string
+              enum:
+                - compatible
+                - incompatible
+                - unknown
+                - conditional
+            scope_status:
+              type: string
+              minLength: 1
+            violations:
+              type: array
+              items:
+                type: string
+                minLength: 1
+            witness_requirements:
+              type: array
+              items:
+                type: string
+                minLength: 1
+            left_type:
+              type: string
+            right_type:
+              type: string
+            left_authority:
+              type: string
+            right_authority:
+              type: string
+            witness:
+              type: object
+              additionalProperties: false
+              required:
+                - type_alignment
+                - role_alignments
+                - authority_alignment
+                - constraint_check
+                - scope_check
+              properties:
+                type_alignment:
+                  type: object
+                  additionalProperties: false
+                  required: [left_type, right_type, relation, score, summary]
+                  properties:
+                    left_type: {type: [string, "null"]}
+                    right_type: {type: [string, "null"]}
+                    relation: {type: string, minLength: 1}
+                    score: {type: number, minimum: 0, maximum: 1}
+                    summary: {type: string, minLength: 1}
+                role_alignments:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [left_role, right_role, relation, score]
+                    properties:
+                      left_role: {type: string, minLength: 1}
+                      right_role: {type: [string, "null"]}
+                      relation: {type: string, minLength: 1}
+                      score: {type: number, minimum: 0, maximum: 1}
+                authority_alignment:
+                  type: object
+                  additionalProperties: false
+                  required: [left_authority, right_authority, relation, score, summary]
+                  properties:
+                    left_authority: {type: [string, "null"]}
+                    right_authority: {type: [string, "null"]}
+                    relation: {type: string, minLength: 1}
+                    score: {type: number, minimum: 0, maximum: 1}
+                    summary: {type: string, minLength: 1}
+                constraint_check:
+                  type: object
+                  additionalProperties: false
+                  required: [left_constraint, right_constraint, status]
+                  properties:
+                    left_constraint: {type: [string, "null"]}
+                    right_constraint: {type: [string, "null"]}
+                    status: {type: string, minLength: 1}
+                scope_check:
+                  type: object
+                  additionalProperties: false
+                  required: [status, left_domain, right_domain]
+                  properties:
+                    status: {type: string, minLength: 1}
+                    left_domain: {type: [string, "null"]}
+                    right_domain: {type: [string, "null"]}
+        mapping_explanation:
+          type: object
+          additionalProperties: false
+          required:
+            - source_predicate
+            - target_predicate
+            - source_rule_type
+            - target_rule_type
+            - status_basis
+            - rationale
+            - meta_summary
+            - witness
+            - latent_graph_refs
+          properties:
+            source_predicate:
+              type: string
+              minLength: 1
+            target_predicate:
+              type: [string, "null"]
+            source_rule_type:
+              type: [string, "null"]
+            target_rule_type:
+              type: [string, "null"]
+            status_basis:
+              type: string
+              minLength: 1
+            rationale:
+              type: string
+              minLength: 1
+            meta_summary:
+              type: object
+              additionalProperties: false
+              required:
+                - type_relation
+                - authority_relation
+                - constraint_status
+                - scope_status
+              properties:
+                type_relation: {type: [string, "null"]}
+                authority_relation: {type: [string, "null"]}
+                constraint_status: {type: string, minLength: 1}
+                scope_status: {type: string, minLength: 1}
+            witness:
+              type: object
+              additionalProperties: false
+              required:
+                - type_alignment
+                - role_alignments
+                - authority_alignment
+                - constraint_check
+                - scope_check
+              properties:
+                type_alignment:
+                  type: object
+                  additionalProperties: false
+                  required: [left_type, right_type, relation, score, summary]
+                  properties:
+                    left_type: {type: [string, "null"]}
+                    right_type: {type: [string, "null"]}
+                    relation: {type: string, minLength: 1}
+                    score: {type: number, minimum: 0, maximum: 1}
+                    summary: {type: string, minLength: 1}
+                role_alignments:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [left_role, right_role, relation, score]
+                    properties:
+                      left_role: {type: string, minLength: 1}
+                      right_role: {type: [string, "null"]}
+                      relation: {type: string, minLength: 1}
+                      score: {type: number, minimum: 0, maximum: 1}
+                authority_alignment:
+                  type: object
+                  additionalProperties: false
+                  required: [left_authority, right_authority, relation, score, summary]
+                  properties:
+                    left_authority: {type: [string, "null"]}
+                    right_authority: {type: [string, "null"]}
+                    relation: {type: string, minLength: 1}
+                    score: {type: number, minimum: 0, maximum: 1}
+                    summary: {type: string, minLength: 1}
+                constraint_check:
+                  type: object
+                  additionalProperties: false
+                  required: [left_constraint, right_constraint, status]
+                  properties:
+                    left_constraint: {type: [string, "null"]}
+                    right_constraint: {type: [string, "null"]}
+                    status: {type: string, minLength: 1}
+                scope_check:
+                  type: object
+                  additionalProperties: false
+                  required: [status, left_domain, right_domain]
+                  properties:
+                    status: {type: string, minLength: 1}
+                    left_domain: {type: [string, "null"]}
+                    right_domain: {type: [string, "null"]}
+            latent_graph_refs:
+              type: object
+              additionalProperties: false
+              required:
+                - source_fact_node_ref
+                - target_fact_node_ref
+                - source_motif_ref
+                - target_motif_ref
+              properties:
+                source_fact_node_ref: {type: [string, "null"]}
+                target_fact_node_ref: {type: [string, "null"]}
+                source_motif_ref: {type: [string, "null"]}
+                target_motif_ref: {type: [string, "null"]}
         constraint_refs:
           type: array
           items:
@@ -182,6 +460,132 @@ properties:
               target_ref:
                 type: string
                 minLength: 1
+  meta_validation_report:
+    type: object
+    additionalProperties: false
+    required:
+      - blocked_pairs
+      - blocked_source_refs
+    properties:
+      blocked_pairs:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - block_id
+            - source_ref
+            - candidate_target_ref
+            - reason_summary
+            - meta_validation
+          properties:
+            block_id:
+              type: string
+              minLength: 1
+            source_ref:
+              type: string
+              minLength: 1
+            candidate_target_ref:
+              type: string
+              minLength: 1
+            reason_summary:
+              type: string
+              minLength: 1
+            meta_validation:
+              type: object
+              additionalProperties: false
+              required:
+                - allowed
+                - meta_score
+                - type_score
+                - role_score
+                - authority_score
+                - constraint_status
+                - scope_status
+                - violations
+                - witness_requirements
+              properties:
+                allowed: {type: boolean}
+                meta_score: {type: number, minimum: 0, maximum: 1}
+                type_score: {type: number, minimum: 0, maximum: 1}
+                role_score: {type: number, minimum: 0, maximum: 1}
+                authority_score: {type: number, minimum: 0, maximum: 1}
+                constraint_status:
+                  type: string
+                  enum: [compatible, incompatible, unknown, conditional]
+                scope_status: {type: string, minLength: 1}
+                violations:
+                  type: array
+                  items: {type: string, minLength: 1}
+                witness_requirements:
+                  type: array
+                  items: {type: string, minLength: 1}
+                left_type: {type: string}
+                right_type: {type: string}
+                left_authority: {type: string}
+                right_authority: {type: string}
+                witness:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - type_alignment
+                    - role_alignments
+                    - authority_alignment
+                    - constraint_check
+                    - scope_check
+                  properties:
+                    type_alignment:
+                      type: object
+                      additionalProperties: false
+                      required: [left_type, right_type, relation, score, summary]
+                      properties:
+                        left_type: {type: [string, "null"]}
+                        right_type: {type: [string, "null"]}
+                        relation: {type: string, minLength: 1}
+                        score: {type: number, minimum: 0, maximum: 1}
+                        summary: {type: string, minLength: 1}
+                    role_alignments:
+                      type: array
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required: [left_role, right_role, relation, score]
+                        properties:
+                          left_role: {type: string, minLength: 1}
+                          right_role: {type: [string, "null"]}
+                          relation: {type: string, minLength: 1}
+                          score: {type: number, minimum: 0, maximum: 1}
+                    authority_alignment:
+                      type: object
+                      additionalProperties: false
+                      required: [left_authority, right_authority, relation, score, summary]
+                      properties:
+                        left_authority: {type: [string, "null"]}
+                        right_authority: {type: [string, "null"]}
+                        relation: {type: string, minLength: 1}
+                        score: {type: number, minimum: 0, maximum: 1}
+                        summary: {type: string, minLength: 1}
+                    constraint_check:
+                      type: object
+                      additionalProperties: false
+                      required: [left_constraint, right_constraint, status]
+                      properties:
+                        left_constraint: {type: [string, "null"]}
+                        right_constraint: {type: [string, "null"]}
+                        status: {type: string, minLength: 1}
+                    scope_check:
+                      type: object
+                      additionalProperties: false
+                      required: [status, left_domain, right_domain]
+                      properties:
+                        status: {type: string, minLength: 1}
+                        left_domain: {type: [string, "null"]}
+                        right_domain: {type: [string, "null"]}
+      blocked_source_refs:
+        type: array
+        items:
+          type: string
+          minLength: 1
   mismatch_report:
     type: object
     additionalProperties: false
