@@ -1,0 +1,49 @@
+{
+  "milestone": "Milestone N",
+  "aid": "A4",
+  "decision_linkage": "Q7",
+  "cases": [
+    {
+      "name": "customary_and_statute_claim_conflict",
+      "input": {
+        "basis": "structural",
+        "claim_span": {"text": "Elders may resolve family harm disputes through customary mediation.", "start": 0, "end": 66},
+        "response_span": {"text": "The state requires formal court mediation before any family enforcement action.", "start": 0, "end": 82},
+        "speech_act": "other",
+        "polarity": "qualified",
+        "target_component": "predicate_text",
+        "support_direction": "mixed",
+        "conflict_state": "partially_reconciled",
+        "evidentiary_state": "weakly_supported",
+        "rule_ids": ["rule:customary:family_mediation", "rule:state:court_mediation"],
+        "modifiers": ["jurisdiction:customary", "jurisdiction:state"]
+      },
+      "expectation": {
+        "status": "candidate_conflict",
+        "needs_reconciliation": "needs_reconciliation",
+        "reason": "conflicting_structural_state"
+      }
+    },
+    {
+      "name": "customary_and_treaty_conflict",
+      "input": {
+        "basis": "structural",
+        "claim_span": {"text": "Community councils can impose protective orders without police backup.", "start": 0, "end": 73},
+        "response_span": {"text": "Police deployment authority remains with state safety agencies.", "start": 0, "end": 67},
+        "speech_act": "other",
+        "polarity": "qualified",
+        "target_component": "predicate_text",
+        "support_direction": "mixed",
+        "conflict_state": "unresolved",
+        "evidentiary_state": "weakly_supported",
+        "rule_ids": ["rule:treaty:local_authority", "rule:state:police_deploy"],
+        "modifiers": ["jurisdiction:treaty", "jurisdiction:state"]
+      },
+      "expectation": {
+        "status": "candidate_conflict",
+        "needs_reconciliation": "needs_reconciliation",
+        "reason": "conflicting_structural_state"
+      }
+    }
+  ]
+}

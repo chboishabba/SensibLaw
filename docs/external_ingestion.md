@@ -86,8 +86,9 @@ Follow outputs (gitignored) under:
 ### Receipt reuse in normal AU runtime
 
 Normal `AU` semantic/fact-review runtime is still not a live authority crawler.
-However, it may now reuse previously persisted authority-ingest receipts as a
-bounded context lane.
+However, it now reuses previously persisted authority-ingest receipts by
+default as a bounded context lane, with explicit opt-out available for minimal
+runs.
 
 Current intended layering:
 
@@ -95,12 +96,22 @@ Current intended layering:
 - persisted authority receipt (`authority_ingest_runs` +
   `authority_ingest_segments`)
 - lightweight authority substrate summary for runtime use
+  (source identity, selected segment previews/kinds, linked event sections,
+  linked authority signals, extracted neutral citations / authority-term
+  tokens, typed follow-needed conjectures, explicit route targets)
 - explicit deeper bounded follow only when a concrete unresolved conjecture
   remains
 
 This means normal AU runtime can read already-fetched authority receipts and
 attach them back to events/review context, but cite-like text by itself still
 does not trigger live AustLII/JADE follow.
+
+AU fact-review bundles now also expose this routing metadata directly in the
+operator surface:
+- `operator_views.authority_follow.summary`
+- `operator_views.authority_follow.queue`
+
+so follow-needed authority work is visible without opening raw semantic JSON.
 
 ## High Court case demo bundle (`case-s942025`)
 

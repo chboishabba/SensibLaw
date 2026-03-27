@@ -223,6 +223,9 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert exit_code == 0
     assert workbench_payload["workbench"]["operator_views"]["chronology_prep"]["groups"]["dated_events"]
     assert "contradictory_chronology" in workbench_payload["workbench"]["operator_views"]["intake_triage"]["groups"]
+    assert workbench_payload["workbench"]["operator_views"]["intake_triage"]["control_plane"]["version"] == "follow.control.v1"
+    assert isinstance(workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"], list)
+    assert workbench_payload["workbench"]["operator_views"]["contested_items"]["control_plane"]["source_family"] == "fact_review"
     assert workbench_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
     assert "missing_actor" in workbench_payload["workbench"]["issue_filters"]["available_filters"]
     first_fact_id = workbench_payload["workbench"]["facts"][0]["fact_id"]

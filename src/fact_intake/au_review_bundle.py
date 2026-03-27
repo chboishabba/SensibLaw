@@ -4,6 +4,7 @@ import hashlib
 import json
 from typing import Any, Mapping
 
+from .control_plane import build_follow_control_plane, build_follow_queue_item, summarize_follow_queue
 from .read_model import build_fact_intake_report, build_fact_review_operator_views, build_fact_review_run_summary
 from .transcript_review_bundle import FACT_REVIEW_BUNDLE_VERSION
 
@@ -61,6 +62,110 @@ def _fact_status_for_statement(observations: list[dict[str, Any]]) -> str:
     if "abstained" in statuses:
         return "abstained"
     return "no_fact"
+
+
+def _build_authority_follow_operator_view(semantic_report: Mapping[str, Any]) -> dict[str, Any]:
+    authority_receipts = semantic_report.get("authority_receipts")
+    if not isinstance(authority_receipts, Mapping):
+        return {
+            "available": False,
+            "control_plane": build_follow_control_plane(
+                source_family="au_authority",
+                hint_kind="authority_hint",
+                receipt_kind="authority_ingest_receipt",
+                substrate_kind="authority_substrate_summary",
+                conjecture_kind="follow_needed_conjecture",
+                route_targets=["authority_title_resolution", "citation_follow", "known_authority_fetch", "manual_review"],
+                resolution_statuses=["open", "resolved", "reviewed"],
+            ),
+            "summary": {
+                "authority_receipt_count": 0,
+                "follow_needed_event_count": 0,
+                "conjecture_count": 0,
+                "route_target_counts": {},
+                "resolution_status_counts": {},
+            },
+            "queue": [],
+        }
+    summary = authority_receipts.get("summary") if isinstance(authority_receipts.get("summary"), Mapping) else {}
+    conjectures = [
+        row
+        for row in authority_receipts.get("follow_needed_conjectures", [])
+        if isinstance(row, Mapping)
+    ]
+    queue: list[dict[str, Any]] = []
+    for row in conjectures:
+        route_target = str(row.get("route_target") or "manual_review")
+        candidate_citations = [
+            str(value)
+            for value in row.get("candidate_citations", [])
+            if isinstance(value, str) and str(value).strip()
+        ]
+        authority_titles = [
+            str(value)
+            for value in row.get("authority_titles", [])
+            if isinstance(value, str) and str(value).strip()
+        ]
+        legal_refs = [
+            str(value)
+            for value in row.get("legal_refs", [])
+            if isinstance(value, str) and str(value).strip()
+        ]
+        authority_term_tokens = [
+            str(value)
+            for value in row.get("authority_term_tokens", [])
+            if isinstance(value, str) and str(value).strip()
+        ]
+        queue.append(
+            build_follow_queue_item(
+                item_id=str(row.get("event_id") or ""),
+                title=_normalize_opt_text(row.get("event_section")) or "Authority follow",
+                subtitle=str(row.get("conjecture_kind") or ""),
+                description=_normalize_opt_text(row.get("event_text")),
+                conjecture_kind=str(row.get("conjecture_kind") or ""),
+                route_target=route_target,
+                resolution_status="open",
+                chips=candidate_citations,
+                detail_rows=[
+                    {"label": "Resolution hint", "value": str(row.get("resolution_hint") or "")},
+                    {"label": "Titles", "value": ", ".join(authority_titles)},
+                    {"label": "Legal refs", "value": ", ".join(legal_refs)},
+                    {"label": "Terms", "value": ", ".join(authority_term_tokens)},
+                ],
+                extra={
+                    "event_id": str(row.get("event_id") or ""),
+                    "event_section": _normalize_opt_text(row.get("event_section")),
+                    "event_text": _normalize_opt_text(row.get("event_text")),
+                    "resolution_hint": str(row.get("resolution_hint") or ""),
+                    "candidate_citations": candidate_citations,
+                    "authority_titles": authority_titles,
+                    "legal_refs": legal_refs,
+                    "authority_term_tokens": authority_term_tokens,
+                },
+            )
+        )
+    queue_summary = summarize_follow_queue(queue)
+    return {
+        "available": True,
+        "control_plane": build_follow_control_plane(
+            source_family="au_authority",
+            hint_kind="authority_hint",
+            receipt_kind="authority_ingest_receipt",
+            substrate_kind="authority_substrate_summary",
+            conjecture_kind="follow_needed_conjecture",
+            route_targets=list(queue_summary["route_target_counts"].keys()),
+            resolution_statuses=list(queue_summary["resolution_status_counts"].keys()),
+        ),
+        "summary": {
+            "authority_receipt_count": int(summary.get("authority_receipt_count") or 0),
+            "follow_needed_event_count": int(summary.get("follow_needed_event_count") or 0),
+            "conjecture_count": int(summary.get("conjecture_count") or 0),
+            "route_target_counts": queue_summary["route_target_counts"],
+            "resolution_status_counts": queue_summary["resolution_status_counts"],
+            "queue_count": queue_summary["queue_count"],
+        },
+        "queue": queue,
+    }
 
 
 def build_fact_intake_payload_from_au_semantic_report(
@@ -433,6 +538,7 @@ def build_au_fact_review_bundle(
     fact_report = build_fact_intake_report(conn, run_id=fact_run_id)
     review_summary = build_fact_review_run_summary(conn, run_id=fact_run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=fact_run_id)
+    operator_views["authority_follow"] = _build_authority_follow_operator_view(semantic_report)
     events = list(fact_report.get("events", [])) if isinstance(fact_report.get("events"), list) else []
     chronology: list[dict[str, Any]] = []
     semantic_order = {
@@ -557,9 +663,13 @@ def build_au_fact_review_bundle(
             "au_linkage": dict(semantic_report.get("au_linkage", {}))
             if isinstance(semantic_report.get("au_linkage"), Mapping)
             else {},
-            "authority_receipts": dict(semantic_report.get("authority_receipts", {}))
-            if isinstance(semantic_report.get("authority_receipts"), Mapping)
-            else {},
+            **(
+                {
+                    "authority_receipts": dict(semantic_report.get("authority_receipts", {}))
+                }
+                if isinstance(semantic_report.get("authority_receipts"), Mapping)
+                else {}
+            ),
             "legal_procedural_summary": {
                 "observation_count": len(legal_procedural_observations),
                 "predicates": legal_procedural_predicates,

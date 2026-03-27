@@ -16,6 +16,16 @@ Current status:
   `feedback-add` and `feedback-import`
 - the remaining gap is better collector/operator ergonomics beyond raw CLI
   flags or hand-authored JSONL
+- `follow.control.v1` now exists as the first shared cross-source operator
+  control-plane contract in `src/fact_intake/control_plane.py`
+- first concrete adopters are:
+  - AU `operator_views.authority_follow`
+  - generic fact-review `operator_views.intake_triage`
+  - generic fact-review `operator_views.contested_items`
+- the intended parity rule is now explicit:
+  source families may differ in domain semantics, but they should converge on
+  a shared queue/control-plane grammar (`hint -> receipt -> substrate ->
+  conjecture -> operator queue`)
 - contested claims use the central semantic candidate + tetralemma promotion gate
 - GWB and AU semantic relation lanes emit the shared relation candidate contract
 - transcript/SB semantic relation rows now emit the same central candidate and
@@ -107,10 +117,19 @@ Current closure check:
 - the narrower statement is now:
   AU fact-review/semantic runtime remains seed/linkage-driven and does not
   auto-follow AustLII/JADE authorities during normal runs, even though
-  adjacent AU/HCA ingest/demo lanes do; however, AU runtime can now opt in to
-  reuse persisted `authority_ingest` receipts as a semantic-context lane
-  carrying a lightweight authority substrate summary and follow-needed
-  conjectures
+  adjacent AU/HCA ingest/demo lanes do; however, AU runtime now reuses
+  persisted `authority_ingest` receipts by default as a semantic-context lane
+  carrying a lightweight authority substrate summary and typed follow-needed
+  conjectures, with an explicit opt-out for minimal runs
+- the lightweight AU authority substrate now includes:
+  source identity, selected paragraph numbers, selected segment previews/kinds,
+  linked event sections, linked authority signals, extracted neutral citations
+  / authority-term tokens, and typed follow-needed conjectures with explicit
+  route targets for missing authority-title vs legal-ref coverage
+- AU fact-review bundles now surface that same routing metadata directly in
+  `operator_views.authority_follow`, so operator-facing review can see
+  route-target counts and a bounded follow-needed queue without opening the
+  raw semantic-context payload
 - the intended next layering is now explicit in docs:
   cite-like hint -> persisted authority receipt -> lightweight authority
   substrate summary -> explicit deeper bounded follow only when a concrete

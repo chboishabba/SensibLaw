@@ -58,7 +58,7 @@ def _build_bundle_payload(
     seed_path: Path | None,
     source_label: str | None,
     notes: str | None,
-    include_authority_receipts: bool = False,
+    include_authority_receipts: bool = True,
     authority_receipt_limit: int = 20,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
@@ -135,9 +135,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-label", default=None, help="Optional source label override for the fact-intake run")
     parser.add_argument("--notes", default=None, help="Optional notes for the fact-intake run")
     parser.add_argument(
-        "--include-authority-receipts",
+        "--no-authority-receipts",
         action="store_true",
-        help="Reuse persisted authority-ingest receipts in semantic context without performing live follow.",
+        help="Disable reuse of persisted authority-ingest receipts in semantic context.",
     )
     parser.add_argument(
         "--authority-receipt-limit",
@@ -167,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
             seed_path=args.seed_path,
             source_label=args.source_label,
             notes=args.notes,
-            include_authority_receipts=bool(args.include_authority_receipts),
+            include_authority_receipts=not bool(args.no_authority_receipts),
             authority_receipt_limit=int(args.authority_receipt_limit),
             progress_callback=progress_callback,
         )

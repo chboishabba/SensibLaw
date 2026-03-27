@@ -166,7 +166,7 @@ def test_au_semantic_report_can_reuse_persisted_authority_receipts_without_live_
             },
         )
         result = run_au_semantic_pipeline(conn)
-        report = build_au_semantic_report(conn, run_id=result["run_id"], include_authority_receipts=True)
+        report = build_au_semantic_report(conn, run_id=result["run_id"])
 
     authority_receipts = report["authority_receipts"]
     assert authority_receipts["summary"]["authority_receipt_count"] >= 1
@@ -177,6 +177,12 @@ def test_au_semantic_report_can_reuse_persisted_authority_receipts_without_live_
     assert "House v The King" in authority_receipts["items"][0]["matched_authority_titles"]
     assert authority_receipts["items"][0]["structured_summary"]["source_identity"]["citation"] == "[1936] HCA 40"
     assert authority_receipts["items"][0]["structured_summary"]["selected_paragraph_numbers"] == [1]
+    assert authority_receipts["items"][0]["structured_summary"]["selected_segment_kinds"] == ["paragraph"]
+    assert authority_receipts["items"][0]["structured_summary"]["linked_event_sections"] == ["Criminal appeal"]
+    assert authority_receipts["items"][0]["structured_summary"]["selected_segment_previews"][0]["preview_text"].startswith("House v The King")
+    assert authority_receipts["items"][0]["structured_summary"]["detected_neutral_citations"] == ["[1936] HCA 40"]
+    assert "house" in authority_receipts["items"][0]["structured_summary"]["authority_term_tokens"]
+    assert authority_receipts["items"][0]["structured_summary"]["route_targets"] == ["known_authority_fetch"]
 
 
 def test_au_semantic_report_without_persisted_receipts_keeps_follow_need_explicit(tmp_path: Path) -> None:
@@ -203,11 +209,99 @@ def test_au_semantic_report_without_persisted_receipts_keeps_follow_need_explici
         ensure_au_semantic_schema(conn)
         import_au_semantic_seed_payload(conn, seed_payload)
         result = run_au_semantic_pipeline(conn)
-        report = build_au_semantic_report(conn, run_id=result["run_id"], include_authority_receipts=True)
+        report = build_au_semantic_report(conn, run_id=result["run_id"])
 
     authority_receipts = report["authority_receipts"]
     assert authority_receipts["summary"]["authority_receipt_count"] == 0
     assert authority_receipts["summary"]["follow_needed_event_count"] >= 1
     assert authority_receipts["summary"]["conjecture_count"] >= 1
     assert authority_receipts["follow_needed_events"][0]["event_id"] == "ev1"
-    assert authority_receipts["follow_needed_conjectures"][0]["conjecture_kind"] == "missing_authority_receipt_for_event"
+    conjecture_kinds = {row["conjecture_kind"] for row in authority_receipts["follow_needed_conjectures"]}
+    assert "missing_authority_receipt_for_authority_title" in conjecture_kinds
+    assert any(row["event_section"] == "Criminal appeal" for row in authority_receipts["follow_needed_conjectures"])
+    assert any("House v The King" in row["event_text"] for row in authority_receipts["follow_needed_conjectures"])
+    assert any(row["route_target"] == "authority_title_resolution" for row in authority_receipts["follow_needed_conjectures"])
+    assert any("house" in row["authority_term_tokens"] for row in authority_receipts["follow_needed_conjectures"])
+
+
+def test_au_semantic_report_routes_conjecture_to_known_authority_fetch_when_event_has_neutral_citation(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-07T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 1936, "text": "1936"},
+                "section": "Criminal appeal",
+                "text": "House v The King [1936] HCA 40 was heard by the High Court in the appeal.",
+            }
+        ],
+    }
+    persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_hca_s942025_aoo.json")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_gwb_semantic_schema(conn)
+        ensure_au_semantic_schema(conn)
+        import_au_semantic_seed_payload(conn, seed_payload)
+        result = run_au_semantic_pipeline(conn)
+        report = build_au_semantic_report(conn, run_id=result["run_id"])
+
+    authority_receipts = report["authority_receipts"]
+    assert authority_receipts["summary"]["authority_receipt_count"] == 0
+    assert any(row["route_target"] == "known_authority_fetch" for row in authority_receipts["follow_needed_conjectures"])
+    assert any("[1936] HCA 40" in row["candidate_citations"] for row in authority_receipts["follow_needed_conjectures"])
+
+
+def test_au_semantic_report_can_opt_out_of_authority_receipt_context(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-07T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 1936, "text": "1936"},
+                "section": "Criminal appeal",
+                "text": "In House v The King the appellant brought an appeal and the matter was heard by the High Court.",
+            }
+        ],
+    }
+    persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_hca_s942025_aoo.json")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_gwb_semantic_schema(conn)
+        ensure_au_semantic_schema(conn)
+        import_au_semantic_seed_payload(conn, seed_payload)
+        persist_authority_ingest_receipt(
+            conn,
+            {
+                "version": "authority.ingest.v1",
+                "authority_kind": "austlii",
+                "ingest_mode": "known_authority_fetch",
+                "citation": "[1936] HCA 40",
+                "selection_reason": "by_citation:[1936] HCA 40",
+                "resolved_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+                "content_type": "text/html",
+                "content_length": 120,
+                "content_sha256": hashlib.sha256(b"house-v-the-king").hexdigest(),
+                "body_preview_text": "House v The King judgment excerpt discussing the High Court appeal.",
+                "segments": [
+                    {
+                        "segment_kind": "paragraph",
+                        "paragraph_number": 1,
+                        "segment_text": "House v The King concerned an appeal heard by the High Court.",
+                    }
+                ],
+            },
+        )
+        result = run_au_semantic_pipeline(conn)
+        report = build_au_semantic_report(conn, run_id=result["run_id"], include_authority_receipts=False)
+
+    assert "authority_receipts" not in report

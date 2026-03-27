@@ -14,28 +14,12 @@ from src.gwb_us_law.linkage import (
     run_gwb_us_law_linkage,
 )
 from src.policy.semantic_promotion import build_relation_candidate, promote_relation_candidate
+from src.policy.semantic_promotion import derive_relation_semantic_basis
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 
 
 PIPELINE_VERSION = "gwb_semantic_v1"
 
-
-def _derive_relation_semantic_basis(
-    *,
-    receipts: list[Mapping[str, Any]],
-    subject: Mapping[str, Any] | None,
-    object: Mapping[str, Any] | None,
-) -> str:
-    has_participants = bool(subject) and bool(object)
-    kinds = {str(receipt.get("kind") or "").strip() for receipt in receipts if str(receipt.get("kind") or "").strip()}
-    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
-    has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
-    has_predicate = "verb" in kinds or "predicate" in kinds
-    if has_participants and has_subject and has_object and has_predicate:
-        return "structural"
-    if has_participants and (has_subject or has_object or has_predicate):
-        return "mixed"
-    return "heuristic"
 
 _EVENT_ROLE_VOCAB: tuple[tuple[str, str, str], ...] = (
     ("agent", "Agent", "core_participant"),
@@ -3598,7 +3582,9 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
         ]
         subject = entities[int(row["subject_entity_id"])]
         object_ = entities[int(row["object_entity_id"])]
-        semantic_basis = _derive_relation_semantic_basis(receipts=receipts, subject=subject, object=object_)
+        semantic_basis = derive_relation_semantic_basis(
+            receipts=receipts, subject=subject, object_=object_
+        )
         semantic_candidate = build_relation_candidate(
             basis=semantic_basis,
             event_id=str(row["event_id"]),

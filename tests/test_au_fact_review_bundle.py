@@ -94,7 +94,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
                 ],
             },
         )
-        semantic_report = build_au_semantic_report(conn, run_id=result["run_id"], include_authority_receipts=True)
+        semantic_report = build_au_semantic_report(conn, run_id=result["run_id"])
         source_payload = load_run_payload_from_normalized(conn, timeline_run_id) or {}
         source_events = source_payload.get("events") if isinstance(source_payload.get("events"), list) else []
         payload = build_fact_intake_payload_from_au_semantic_report(semantic_report, timeline_events=source_events)
@@ -146,11 +146,21 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["chronology_groups"]["dated_events"] or bundle["chronology_groups"]["approximate_events"]
     assert bundle["chronology_summary"]["approximate_event_count"] >= 1
     assert "procedural_posture" in bundle["operator_views"]
+    assert "authority_follow" in bundle["operator_views"]
     assert bundle["abstentions"]["counts"]["observation_abstentions"] >= 0
     assert bundle["semantic_context"]["summary"]["relation_candidate_count"] >= 1
     assert "au_linkage" in bundle["semantic_context"]
     assert bundle["semantic_context"]["authority_receipts"]["summary"]["authority_receipt_count"] >= 1
     assert bundle["semantic_context"]["authority_receipts"]["summary"]["linked_receipt_count"] >= 1
     assert bundle["semantic_context"]["authority_receipts"]["items"][0]["structured_summary"]["selected_paragraph_numbers"] == [1]
+    assert bundle["operator_views"]["authority_follow"]["available"] is True
+    assert bundle["operator_views"]["authority_follow"]["control_plane"]["version"] == "follow.control.v1"
+    assert bundle["operator_views"]["authority_follow"]["control_plane"]["source_family"] == "au_authority"
+    assert bundle["operator_views"]["authority_follow"]["summary"]["authority_receipt_count"] >= 1
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["route_target_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["resolution_status_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["queue"], list)
+    assert bundle["operator_views"]["authority_follow"]["queue"][0]["title"]
+    assert bundle["operator_views"]["authority_follow"]["queue"][0]["resolution_status"] == "open"
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])

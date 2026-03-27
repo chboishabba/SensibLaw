@@ -66,6 +66,12 @@ No adapter tokenises, parses, deduplicates, or infers. Semantics begin only afte
   cite-like text/hint -> persisted authority receipt -> lightweight authority
   substrate summary -> optional deeper bounded follow if a concrete unresolved
   conjecture remains.
+- The lightweight authority substrate summary is expected to carry enough local
+  routing detail to avoid premature full-tree rebuilds:
+  source identity, selected paragraph numbers, selected segment previews/kinds,
+  linked event sections, linked authority signals, extracted neutral citations
+  / authority-term tokens, and typed follow-needed conjectures with explicit
+  route targets.
 - Reusing persisted receipts is allowed as default context because it does not
   perform live network follow. Parser-seen cite-like text alone must still not
   trigger fetch/follow/ingest.

@@ -17,10 +17,10 @@ from src.gwb_us_law.semantic import (
     submit_semantic_review_submission,
     upsert_mission_actual_mapping,
 )
+from src.policy.semantic_promotion import derive_relation_semantic_basis
 from src.reporting.structure_report import TextUnit
 from scripts.transcript_semantic import build_transcript_semantic_cli_payload
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
-from src.transcript_semantic.semantic import _derive_relation_semantic_basis
 
 
 def test_transcript_semantic_pipeline_persists_speakers_and_candidate_reply_relations() -> None:
@@ -169,7 +169,7 @@ def test_transcript_semantic_pipeline_extracts_general_freeform_entities_without
 
 
 def test_transcript_relation_semantic_basis_marks_partial_receipt_spines_as_mixed() -> None:
-    assert _derive_relation_semantic_basis(
+    assert derive_relation_semantic_basis(
         receipts=[
             {"kind": "subject_actor", "value": "1"},
             {"kind": "predicate", "value": "felt_state"},
@@ -178,7 +178,7 @@ def test_transcript_relation_semantic_basis_marks_partial_receipt_spines_as_mixe
         subject={"canonical_key": "actor:a"},
         object_={"canonical_key": "state:sad"},
     ) == "structural"
-    assert _derive_relation_semantic_basis(
+    assert derive_relation_semantic_basis(
         receipts=[
             {"kind": "subject_actor", "value": "1"},
             {"kind": "predicate", "value": "felt_state"},

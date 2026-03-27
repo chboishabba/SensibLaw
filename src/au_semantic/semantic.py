@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from src.au_semantic.linkage import run_au_semantic_linkage
+from src.ingestion.citation_follow import extract_citations
 from src.gwb_us_law.linkage import _pick_best_run_for_timeline_suffix
 from src.gwb_us_law.semantic import (
     PIPELINE_VERSION,
@@ -164,6 +165,18 @@ _OFFICE_SURFACES = {
 _TITLE_TOKEN_NORMALIZED = tuple(prefix.strip().replace(".", "").casefold() for prefix in _TITLE_PREFIXES)
 _LEGAL_REP_SUFFIX_NORMALIZED = tuple(suffix.strip().replace(".", "").casefold() for suffix in _LEGAL_REP_SUFFIXES)
 _CLAUSE_BREAK_TOKENS = {"and", "but", "while"}
+_AUTHORITY_TERM_STOPWORDS = {
+    "and",
+    "the",
+    "v",
+    "of",
+    "no",
+    "act",
+    "pty",
+    "ltd",
+    "state",
+    "commonwealth",
+}
 
 
 def _au_legal_representation_catalog_path() -> Path:
@@ -891,12 +904,37 @@ def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, 
                 authority_titles.add(reason_value)
             elif reason_kind:
                 legal_refs.add(reason_value)
-    parts = [str(event.get("text") or "").strip(), str(event.get("section") or "").strip()]
+    event_text = str(event.get("text") or "").strip()
+    event_section = str(event.get("section") or "").strip()
+    parts = [event_text, event_section]
     return {
         "text": "\n".join(part for part in parts if part),
+        "event_text": event_text,
+        "event_section": event_section,
         "authority_titles": sorted(authority_titles),
         "legal_refs": sorted(legal_refs),
     }
+
+
+def _authority_term_tokens(authority_titles: Iterable[str], legal_refs: Iterable[str]) -> list[str]:
+    tokens: set[str] = set()
+    for raw in list(authority_titles) + [ref.split(":", 1)[-1].replace("_", " ") for ref in legal_refs]:
+        for token in str(raw or "").replace("/", " ").replace("-", " ").split():
+            normalized = "".join(ch for ch in token.casefold() if ch.isalnum())
+            if len(normalized) < 4 or normalized in _AUTHORITY_TERM_STOPWORDS:
+                continue
+            tokens.add(normalized)
+    return sorted(tokens)
+
+
+def _conjecture_route_target(*, authority_titles: list[str], legal_refs: list[str], candidate_citations: list[str]) -> str:
+    if candidate_citations and authority_titles:
+        return "known_authority_fetch"
+    if authority_titles:
+        return "authority_title_resolution"
+    if candidate_citations or legal_refs:
+        return "citation_follow"
+    return "manual_review"
 
 
 def build_au_authority_receipt_context(
@@ -925,6 +963,13 @@ def build_au_authority_receipt_context(
         for event_id, matches in per_event_matches.items()
         if event_id in event_map
     }
+    for hints in event_hints.values():
+        hint_text = str(hints.get("text") or "")
+        hints["candidate_citations"] = [ref.raw_text for ref in extract_citations(hint_text)]
+        hints["authority_term_tokens"] = _authority_term_tokens(
+            hints.get("authority_titles", []),
+            hints.get("legal_refs", []),
+        )
 
     authority_runs = list_authority_ingest_runs(conn, limit=max(int(limit or 0), 0))
     items: list[dict[str, Any]] = []
@@ -944,6 +989,7 @@ def build_au_authority_receipt_context(
         for segment in segments:
             searchable_parts.append(str(segment.get("segment_text") or ""))
         searchable_text = _normalize_authority_text("\n".join(part for part in searchable_parts if part))
+        detected_citations = sorted({ref.raw_text for ref in extract_citations("\n".join(part for part in searchable_parts if part))})
 
         linked_event_ids: list[str] = []
         matched_titles: set[str] = set()
@@ -980,6 +1026,40 @@ def build_au_authority_receipt_context(
             for segment in segments
             if segment.get("paragraph_number") is not None
         ]
+        segment_kinds = sorted(
+            {
+                str(segment.get("segment_kind") or "").strip()
+                for segment in segments
+                if str(segment.get("segment_kind") or "").strip()
+            }
+        )
+        segment_previews = [
+            {
+                "segment_kind": str(segment.get("segment_kind") or ""),
+                "paragraph_number": segment.get("paragraph_number"),
+                "preview_text": str(segment.get("segment_text") or "")[:240],
+            }
+            for segment in segments[:3]
+        ]
+        linked_event_sections = sorted(
+            {
+                str(event_hints[event_id].get("event_section") or "").strip()
+                for event_id in linked_event_ids
+                if str(event_hints[event_id].get("event_section") or "").strip()
+            }
+        )
+        route_targets = sorted(
+            {
+                _conjecture_route_target(
+                    authority_titles=list(event_hints[event_id].get("authority_titles") or []),
+                    legal_refs=list(event_hints[event_id].get("legal_refs") or []),
+                    candidate_citations=sorted(
+                        set(list(event_hints[event_id].get("candidate_citations") or []) + list(detected_citations))
+                    ),
+                )
+                for event_id in linked_event_ids
+            }
+        )
         structured_summary = {
             "source_identity": {
                 "authority_kind": authority_kind,
@@ -990,10 +1070,16 @@ def build_au_authority_receipt_context(
             "selected_paragraph_numbers": paragraph_numbers,
             "selected_paragraph_count": len(paragraph_numbers),
             "segment_count": len(segments),
+            "selected_segment_kinds": segment_kinds,
+            "selected_segment_previews": segment_previews,
             "linked_authority_signals": {
                 "authority_titles": sorted(matched_titles),
                 "legal_refs": sorted(matched_refs),
             },
+            "linked_event_sections": linked_event_sections,
+            "detected_neutral_citations": detected_citations,
+            "authority_term_tokens": _authority_term_tokens(sorted(matched_titles), sorted(matched_refs)),
+            "route_targets": route_targets,
             "body_preview_text": run_payload.get("body_preview_text"),
         }
         items.append(
@@ -1019,22 +1105,57 @@ def build_au_authority_receipt_context(
     follow_needed_events = [
         {
             "event_id": event_id,
+            "event_section": str(hints.get("event_section") or ""),
+            "event_text": str(hints.get("event_text") or "")[:240],
             "authority_titles": list(hints.get("authority_titles") or []),
             "legal_refs": list(hints.get("legal_refs") or []),
+            "candidate_citations": list(hints.get("candidate_citations") or []),
+            "authority_term_tokens": list(hints.get("authority_term_tokens") or []),
         }
         for event_id, hints in event_hints.items()
         if (hints.get("authority_titles") or hints.get("legal_refs")) and event_id not in linked_event_ids_seen
     ]
-    follow_needed_conjectures = [
-        {
-            "conjecture_kind": "missing_authority_receipt_for_event",
-            "event_id": row["event_id"],
-            "authority_titles": row["authority_titles"],
-            "legal_refs": row["legal_refs"],
-            "resolution_hint": "persist_or_link_authority_receipt",
-        }
-        for row in follow_needed_events
-    ]
+    follow_needed_conjectures: list[dict[str, Any]] = []
+    for row in follow_needed_events:
+        route_target = _conjecture_route_target(
+            authority_titles=row["authority_titles"],
+            legal_refs=row["legal_refs"],
+            candidate_citations=row["candidate_citations"],
+        )
+        if row["authority_titles"]:
+            follow_needed_conjectures.append(
+                {
+                    "conjecture_kind": "missing_authority_receipt_for_authority_title",
+                    "event_id": row["event_id"],
+                    "event_section": row["event_section"],
+                    "event_text": row["event_text"],
+                    "authority_titles": row["authority_titles"],
+                    "legal_refs": row["legal_refs"],
+                    "candidate_citations": row["candidate_citations"],
+                    "authority_term_tokens": row["authority_term_tokens"],
+                    "route_target": route_target,
+                    "resolution_hint": (
+                        "persist_or_link_known_authority_receipt"
+                        if route_target == "known_authority_fetch"
+                        else "resolve_authority_title_then_persist_receipt"
+                    ),
+                }
+            )
+        if row["legal_refs"]:
+            follow_needed_conjectures.append(
+                {
+                    "conjecture_kind": "missing_authority_receipt_for_legal_ref",
+                    "event_id": row["event_id"],
+                    "event_section": row["event_section"],
+                    "event_text": row["event_text"],
+                    "authority_titles": row["authority_titles"],
+                    "legal_refs": row["legal_refs"],
+                    "candidate_citations": row["candidate_citations"],
+                    "authority_term_tokens": row["authority_term_tokens"],
+                    "route_target": route_target,
+                    "resolution_hint": "follow_citation_or_link_authority_receipt",
+                }
+            )
     return {
         "summary": {
             "authority_receipt_count": len(items),
@@ -1053,7 +1174,7 @@ def build_au_semantic_report(
     conn,
     *,
     run_id: str,
-    include_authority_receipts: bool = False,
+    include_authority_receipts: bool = True,
     authority_receipt_limit: int = 20,
 ) -> dict[str, Any]:
     report = build_gwb_semantic_report(conn, run_id=run_id)

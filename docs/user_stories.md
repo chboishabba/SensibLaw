@@ -95,6 +95,42 @@ Acceptance criteria:
   explicit documented path; a parser seeing cite-like text alone is not enough
   to auto-promote authority.
 
+### Cross-Source Follow / Review Parity
+As an operator moving between AU, transcript, affidavit, chat, Messenger, and
+other source families, I want the next bounded action to appear in a shared
+control-plane shape so I do not have to relearn a different queue grammar for
+every corpus.
+
+Typical flow:
+- A source family emits a hint, receipt, or structured substrate that is not
+  yet enough to close the work.
+- The system turns that into a bounded conjecture and operator queue item using
+  the same portable fields across lanes.
+- The lane may still carry source-specific detail, but the operator can always
+  read the same core questions: what is the item, what route does it suggest,
+  and what is its current resolution status.
+
+Preferences:
+- Shared queue grammar across source families.
+- Portable route-target / resolution vocabulary.
+- Extra lane-specific detail only after the portable minimum shape is visible.
+
+Requirements:
+- Cross-source parity should live at the control-plane layer, not by forcing
+  identical domain predicates or identical fetch logic.
+- `route_target` and `resolution_status` remain workflow metadata, not semantic
+  truth.
+- Portable queue fields must remain available even when a lane adds richer
+  source-specific context.
+
+Acceptance criteria:
+- At least two distinct source-family queues share one documented portable
+  contract.
+- UI/workbench surfaces can render those queues generically from the shared
+  control-plane fields.
+- Future source families can join the same contract without another lane-
+  specific UI rewrite.
+
 ### At Home (evening/weekend)
 - No SensibLaw corpus access.
 - TiRCorder captures personal speculation.

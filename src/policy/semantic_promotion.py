@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 SEMANTIC_PROMOTION_VERSION = "semantic.promotion.v1"
 CONTESTED_CANDIDATE_SCHEMA_VERSION = "contested.semantic_candidate.v1"
@@ -11,6 +11,7 @@ PROMOTED_TRUE = "promoted_true"
 PROMOTED_FALSE = "promoted_false"
 CANDIDATE_CONFLICT = "candidate_conflict"
 ABSTAINED = "abstained"
+NEEDS_RECONCILIATION = "needs_reconciliation"
 
 PROMOTION_STATUSES = {
     PROMOTED_TRUE,
@@ -20,6 +21,28 @@ PROMOTION_STATUSES = {
 }
 
 CANDIDATE_BASES = {"structural", "heuristic", "mixed"}
+
+
+def derive_relation_semantic_basis(
+    *,
+    receipts: Iterable[Mapping[str, Any]],
+    subject: Mapping[str, Any] | None,
+    object_: Mapping[str, Any] | None,
+) -> str:
+    has_participants = bool(subject) and bool(object_)
+    kinds = {
+        str(receipt.get("kind") or "").strip()
+        for receipt in receipts
+        if str(receipt.get("kind") or "").strip()
+    }
+    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
+    has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
+    has_predicate = "verb" in kinds or "predicate" in kinds
+    if has_participants and has_subject and has_object and has_predicate:
+        return "structural"
+    if has_participants and (has_subject or has_object or has_predicate):
+        return "mixed"
+    return "heuristic"
 
 TRUTH_BEARING_FIELDS = (
     "promotion_status",
@@ -304,6 +327,7 @@ def promote_contested_claim(candidate: Mapping[str, Any]) -> dict[str, Any]:
             "status": CANDIDATE_CONFLICT,
             "basis": basis,
             "reason": "conflicting_structural_state",
+            "needs_reconciliation": NEEDS_RECONCILIATION,
         }
 
     if support_direction == "against" and conflict_state == "disputed":

@@ -12,6 +12,11 @@ from typing import Any, Iterable, Mapping
 from src.reporting.structure_report import TextUnit
 from src.sensiblaw.db.dao import ensure_database
 from src.zelph_bridge import enrich_workbench_with_zelph, load_zelph_rules
+from .control_plane import FOLLOW_CONTROL_PLANE_VERSION, build_follow_control_plane, summarize_follow_queue
+from .operator_views import (
+    build_contested_control_items,
+    build_review_queue_control_items,
+)
 
 FACT_INTAKE_CONTRACT_VERSION = "fact.intake.bundle.v1"
 MARY_FACT_WORKFLOW_VERSION = "mary.fact_workflow.v1"
@@ -4001,6 +4006,10 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     review_queue = list(summary["review_queue"])
     chronology_groups = dict(summary["chronology_groups"])
     contested_summary = dict(summary["contested_summary"])
+    review_queue_control_items = build_review_queue_control_items(review_queue)
+    review_queue_control_summary = summarize_follow_queue(review_queue_control_items)
+    contested_control_items = build_contested_control_items(contested_summary["items"])
+    contested_control_summary = summarize_follow_queue(contested_control_items)
     intake_groups = {
         "missing_date": [row for row in review_queue if "missing_date" in row["reason_codes"]],
         "missing_actor": [row for row in review_queue if "missing_actor" in row["reason_codes"]],
@@ -4010,18 +4019,31 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
     return {
         "intake_triage": {
             "title": "Intake triage",
+            "control_plane": build_follow_control_plane(
+                source_family="fact_review",
+                hint_kind="fact_review_signal",
+                receipt_kind="fact_observation_record",
+                substrate_kind="fact_review_workbench",
+                conjecture_kind="review_queue_item",
+                route_targets=list(review_queue_control_summary["route_target_counts"].keys()),
+                resolution_statuses=list(review_queue_control_summary["resolution_status_counts"].keys()),
+            ),
             "summary": {
                 "review_queue_count": summary["summary"]["review_queue_count"],
                 "needs_followup_count": summary["summary"]["needs_followup_count"],
                 "missing_date_review_queue_count": summary["summary"]["missing_date_review_queue_count"],
                 "missing_actor_review_queue_count": summary["summary"]["missing_actor_review_queue_count"],
                 "statement_only_review_queue_count": summary["summary"]["statement_only_review_queue_count"],
+                "queue_count": review_queue_control_summary["queue_count"],
+                "route_target_counts": review_queue_control_summary["route_target_counts"],
+                "resolution_status_counts": review_queue_control_summary["resolution_status_counts"],
             },
             "groups": {
                 **intake_groups,
                 "chronology_conflict": list(intake_groups["contradictory_chronology"]),
             },
             "items": review_queue,
+            "queue": review_queue_control_items,
         },
         "chronology_prep": {
             "title": "Chronology prep",
@@ -4040,13 +4062,26 @@ def build_fact_review_operator_views(conn: sqlite3.Connection, *, run_id: str) -
         },
         "contested_items": {
             "title": "Contested items",
+            "control_plane": build_follow_control_plane(
+                source_family="fact_review",
+                hint_kind="contestation_signal",
+                receipt_kind="fact_contestation_record",
+                substrate_kind="fact_review_workbench",
+                conjecture_kind="contested_fact_item",
+                route_targets=list(contested_control_summary["route_target_counts"].keys()),
+                resolution_statuses=list(contested_control_summary["resolution_status_counts"].keys()),
+            ),
             "summary": {
                 "count": contested_summary["count"],
                 "needs_followup_count": contested_summary["needs_followup_count"],
                 "chronology_impacted_count": contested_summary["chronology_impacted_count"],
+                "queue_count": contested_control_summary["queue_count"],
+                "route_target_counts": contested_control_summary["route_target_counts"],
+                "resolution_status_counts": contested_control_summary["resolution_status_counts"],
             },
             "groups": {},
             "items": list(contested_summary["items"]),
+            "queue": contested_control_items,
         },
         "trauma_handoff": {
             "title": "Trauma handoff",
@@ -4194,6 +4229,7 @@ def _build_issue_filters(summary: Mapping[str, Any], operator_views: Mapping[str
             "procedural_significance_review_queue_count": summary["summary"]["legal_procedural_review_queue_count"],
         },
     }
+
 
 
 def _build_reopen_navigation(run: Mapping[str, Any], sources: list[Mapping[str, Any]]) -> dict[str, Any]:

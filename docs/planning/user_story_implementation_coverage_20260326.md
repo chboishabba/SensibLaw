@@ -58,12 +58,29 @@ design pressure only.
   `tests/test_citation_follow.py`
   plus the authority operator seams now provide repo-owned fetch/follow entry
   points and persisted receipt storage for known/bounded authority work.
-  Normal AU semantic/fact-review runtime can now also consume persisted
-  authority receipts as an explicit opt-in semantic-context lane, reusing
-  existing bounded receipts without performing live follow, and derives a
-  lightweight authority substrate summary plus follow-needed conjectures from
-  those receipts. This is still not a claim that ordinary AU runtime
-  auto-follows cite-like material during normal runs.
+  Normal AU semantic/fact-review runtime now consumes persisted authority
+  receipts by default as a bounded semantic-context lane, reusing existing
+  receipts without performing live follow, and derives a lightweight
+  authority substrate summary from those receipts: source identity, selected
+  segment previews/kinds, linked event sections, linked authority signals,
+  extracted neutral citations / authority-term tokens, and typed
+  follow-needed conjectures with route targets. AU fact-review bundles now
+  also expose this through `operator_views.authority_follow`, so the
+  follow-needed queue is visible without inspecting raw semantic context.
+  This is still not a claim that ordinary AU runtime auto-follows cite-like
+  material during normal runs.
+- First cross-source follow/review control-plane contract now exists:
+  `src/fact_intake/control_plane.py`,
+  `src/fact_intake/read_model.py`,
+  `src/fact_intake/au_review_bundle.py`,
+  `tests/test_fact_intake_read_model.py`,
+  `tests/test_au_fact_review_bundle.py`
+  now provide `follow.control.v1` as a portable operator-queue grammar over:
+  `control_plane`, `queue`, `route_target`, and `resolution_status`.
+  The first concrete users are AU `authority_follow` plus generic fact-review
+  `intake_triage` and `contested_items`, which means parity now starts at the
+  control-plane layer rather than by copying AU-specific authority semantics
+  into every source family.
 - First persisted user-feedback evidence receiver now exists:
   `src/fact_intake/read_model.py`,
   `scripts/query_fact_review.py`,

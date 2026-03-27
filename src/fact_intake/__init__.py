@@ -60,6 +60,12 @@ from .au_review_bundle import (
     build_au_fact_review_bundle,
     build_fact_intake_payload_from_au_semantic_report,
 )
+from .control_plane import (
+    FOLLOW_CONTROL_PLANE_VERSION,
+    build_follow_control_plane,
+    build_follow_queue_item,
+    summarize_follow_queue,
+)
 from .transcript_review_bundle import (
     FACT_REVIEW_BUNDLE_VERSION,
     build_fact_intake_payload_from_transcript_report,
@@ -133,6 +139,10 @@ __all__ = [
     "build_fact_semantic_status_report",
     "build_mary_fact_workflow_projection",
     "build_transcript_fact_review_bundle",
+    "FOLLOW_CONTROL_PLANE_VERSION",
+    "build_follow_control_plane",
+    "build_follow_queue_item",
+    "summarize_follow_queue",
     "PERSONAL_HANDOFF_REPORT_VERSION",
     "PROTECTED_DISCLOSURE_ENVELOPE_VERSION",
     "build_personal_handoff_report",

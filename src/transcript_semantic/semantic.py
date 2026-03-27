@@ -24,30 +24,17 @@ from src.gwb_us_law.semantic import (
     load_mission_observer,
     persist_mission_observer,
 )
-from src.policy.semantic_promotion import build_relation_candidate, promote_relation_candidate
+from src.policy.semantic_promotion import (
+    build_relation_candidate,
+    derive_relation_semantic_basis,
+    promote_relation_candidate,
+)
 from src.reporting.structure_report import TextUnit
 from src.text.speaker_inference import SpeakerInferenceReceipt, infer_speakers
 
 
 PIPELINE_VERSION = "transcript_semantic_v1"
 
-
-def _derive_relation_semantic_basis(
-    *,
-    receipts: list[dict[str, Any]],
-    subject: dict[str, Any] | None,
-    object_: dict[str, Any] | None,
-) -> str:
-    has_participants = bool(subject) and bool(object_)
-    kinds = {str(receipt.get("kind") or "").strip() for receipt in receipts if str(receipt.get("kind") or "").strip()}
-    has_subject = any(kind == "subject" or kind.startswith("subject_") for kind in kinds)
-    has_object = any(kind == "object" or kind.startswith("object_") for kind in kinds)
-    has_predicate = "verb" in kinds or "predicate" in kinds
-    if has_participants and has_subject and has_object and has_predicate:
-        return "structural"
-    if has_participants and (has_subject or has_object or has_predicate):
-        return "mixed"
-    return "heuristic"
 
 _TRANSCRIPT_PREDICATES = (
     ("felt_state", "felt state", "affect_state"),
@@ -1283,7 +1270,9 @@ def build_transcript_semantic_report(
         ]
         subject = entities[int(row["subject_entity_id"])]
         object_ = entities[int(row["object_entity_id"])]
-        semantic_basis = _derive_relation_semantic_basis(receipts=receipts, subject=subject, object_=object_)
+        semantic_basis = derive_relation_semantic_basis(
+            receipts=receipts, subject=subject, object_=object_
+        )
         semantic_candidate = build_relation_candidate(
             basis=semantic_basis,
             event_id=str(row["event_id"]),

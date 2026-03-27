@@ -1,19 +1,38 @@
 # Changelog
 
 ## Unreleased
+- Cross-source follow/review control plane:
+  - Added `src/fact_intake/control_plane.py` with the first portable
+    `follow.control.v1` contract for operator queues:
+    `control_plane`, normalized `queue` items, route-target counts, and
+    resolution-status counts.
+  - Generic fact-review workbench views now expose that control plane on
+    `operator_views.intake_triage` and `operator_views.contested_items`.
+  - AU `operator_views.authority_follow` now emits the same portable
+    control-plane metadata and normalized queue items while preserving its
+    richer authority-specific detail.
+  - Added regression coverage in `tests/test_fact_intake_read_model.py`,
+    `tests/test_query_fact_review_script.py`, and
+    `tests/test_au_fact_review_bundle.py`.
 - AU semantic/fact-review can now reuse persisted authority receipts
-  - Extended `src/au_semantic/semantic.py` with an opt-in
+  - Extended `src/au_semantic/semantic.py` with a default-on
     `authority_receipts` semantic-context lane that links persisted
     `authority_ingest` receipts back to AU linkage/event authority hints
     without performing live follow.
   - That lane now emits a lightweight authority substrate summary per receipt
-    (source identity, selected paragraphs, linked authority signals) plus
-    explicit follow-needed conjectures when AU events reference authority
-    material that still lacks a persisted receipt.
+    (source identity, selected paragraphs, selected segment previews/kinds,
+    linked event sections, linked authority signals, extracted neutral
+    citations / authority-term tokens) plus typed follow-needed conjectures
+    with route targets when AU events reference authority material that still
+    lacks a persisted receipt.
+  - AU fact-review bundles now expose that routing metadata in
+    `operator_views.authority_follow` with a bounded queue plus route-target
+    counts, so authority follow work is visible without inspecting raw
+    semantic-context JSON.
   - Extended `scripts/au_fact_review.py` with
-    `--include-authority-receipts` and `--authority-receipt-limit`.
+    `--no-authority-receipts` and `--authority-receipt-limit`.
   - Extended `src/fact_intake/au_review_bundle.py` so AU review bundles carry
-    the new authority-receipt semantic context when enabled.
+    the new authority-receipt semantic context by default.
   - Added regression coverage in `tests/test_au_semantic.py`,
     `tests/test_au_fact_review_bundle.py`, and
     `tests/test_au_fact_review_script.py`.

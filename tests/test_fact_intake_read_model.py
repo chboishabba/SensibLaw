@@ -366,9 +366,13 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert review_summary["chronology_groups"]["contested_chronology_items"]
     assert operator_views["intake_triage"]["items"][0]["fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert operator_views["intake_triage"]["groups"]["contradictory_chronology"][0]["fact_id"] == payload["fact_candidates"][0]["fact_id"]
+    assert operator_views["intake_triage"]["control_plane"]["version"] == "follow.control.v1"
+    assert operator_views["intake_triage"]["queue"][0]["route_target"] in {"chronology_review", "actor_review", "procedural_review", "manual_review"}
     assert operator_views["procedural_posture"]["items"][0]["fact_id"] == payload["fact_candidates"][1]["fact_id"]
     assert workbench["inspector_defaults"]["selected_fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert workbench["operator_views"]["contested_items"]["summary"]["count"] == 1
+    assert workbench["operator_views"]["contested_items"]["control_plane"]["version"] == "follow.control.v1"
+    assert workbench["operator_views"]["contested_items"]["queue"][0]["resolution_status"] in {"needs_followup", "reviewed", "open"}
     assert workbench["reopen_navigation"]["current"]["workflow_kind"] == "transcript_semantic"
     assert workbench["reopen_navigation"]["query"]["workflow_run_id"] == "semantic:test:1"
     assert workbench["reopen_navigation"]["recent_sources"][0]["workflow_kind"] == "transcript_semantic"
@@ -424,6 +428,10 @@ def test_bounded_operator_views_expose_contract_keys() -> None:
         assert isinstance(view.get("summary"), dict)
         assert isinstance(view.get("groups"), dict)
         assert isinstance(view.get("items"), list)
+    assert operator_views["intake_triage"]["control_plane"]["source_family"] == "fact_review"
+    assert isinstance(operator_views["intake_triage"]["queue"], list)
+    assert operator_views["contested_items"]["control_plane"]["conjecture_kind"] == "contested_fact_item"
+    assert isinstance(operator_views["contested_items"]["queue"], list)
 
 
 def test_persist_fact_intake_payload_replaces_existing_run_rows() -> None:

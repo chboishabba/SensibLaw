@@ -105,9 +105,9 @@
   bounded selected paragraph segments into `itir.sqlite`.
 - [x] Add a bounded persisted-authority receipt consumption path into normal AU
   semantic/fact-review runtime. `build_au_semantic_report(...)` and
-  `scripts/au_fact_review.py --include-authority-receipts` can now reuse
-  persisted `authority_ingest` receipts as semantic context without performing
-  live authority follow.
+  `scripts/au_fact_review.py` now reuse persisted `authority_ingest`
+  receipts as semantic context by default without performing live authority
+  follow, with `--no-authority-receipts` available for minimal runs.
 - [x] Make the citation-driven authority follow/ingest expectation explicit as
   a user story in `docs/user_stories.md`, including the current boundary that
   source-pack/HCA/operator lanes can follow/ingest bounded authorities while
@@ -121,17 +121,25 @@
   paragraph-window selection now lives in a neutral source helper, mixed CLI
   authority coverage no longer sits in an AustLII-named test file, and the
   JADE live canary has its own test module.
-- [ ] Decide whether AU/HCA authority-follow should remain operator-triggered
-  only, or whether the current opt-in persisted-authority receipt lane should
-  later become a default semantic/fact-review ingestion path. Current AU
-  semantic runtime still does not auto-invoke live authority follow from
-  parser-seen cite-like text.
-- [ ] Lift the current AU persisted-authority receipt lane from receipt reuse
-  into a small authority substrate summary:
-  paragraph spans, source identity, linked authority signals, and
-  follow-needed conjectures should be stable enough that runtime can decide
-  whether deeper bounded follow is warranted without rebuilding the full
-  authority tree each time.
+- [x] Make persisted authority-receipt reuse the default AU semantic/fact-review
+  context path while keeping live authority follow operator-triggered only.
+  Current AU semantic runtime now reuses persisted receipts and their
+  lightweight substrate summary by default, but still does not auto-invoke
+  live authority follow from parser-seen cite-like text.
+- [x] Extend the current AU lightweight authority substrate beyond receipt reuse:
+  stronger authority-term extraction and clearer conjecture-routing are now
+  present, including neutral-citation extraction, authority-term tokens, typed
+  follow-needed conjectures, and explicit route targets. AU fact-review now
+  exposes this queue in `operator_views.authority_follow`.
+- [x] Add a first cross-source follow/review control-plane contract:
+  `follow.control.v1` now exists in `src/fact_intake/control_plane.py` and is
+  used by AU `authority_follow` plus generic fact-review `intake_triage` and
+  `contested_items`, so parity starts at the operator/control-plane layer.
+- [ ] Promote the shared follow/review control-plane beyond the current first
+  users:
+  next targets should be transcript/message follow-needed queues, affidavit
+  source-review queues, and other bounded operator surfaces that already carry
+  real unresolved work but still require lane-specific UI logic.
 - [ ] If external Wikimedia funding becomes active, sample 2-3 funded and 2-3
   rejected Wikimedia proposal pages and compare the final wording against the
   current bounded Rapid Fund surfaces:

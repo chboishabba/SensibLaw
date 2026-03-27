@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from src.policy.semantic_promotion import (
     ABSTAINED,
     CONTESTED_CANDIDATE_SCHEMA_VERSION,
+    derive_relation_semantic_basis,
     CANDIDATE_CONFLICT,
+    NEEDS_RECONCILIATION,
     HOTSPOT_PACK_CANDIDATE_SCHEMA_VERSION,
     MANDATORY_CONTESTED_CANDIDATE_FIELDS,
     MANDATORY_HOTSPOT_PACK_CANDIDATE_FIELDS,
@@ -23,6 +28,41 @@ from src.policy.semantic_promotion import (
     validate_hotspot_pack_candidate,
     validate_relation_candidate,
 )
+
+
+def test_derive_relation_semantic_basis_preserves_expected_rungs() -> None:
+    full_receipts = [
+        {"kind": "subject"},
+        {"kind": "verb"},
+        {"kind": "object"},
+    ]
+    assert (
+        derive_relation_semantic_basis(
+            receipts=full_receipts,
+            subject={"canonical_key": "actor:a"},
+            object_={"canonical_key": "entity:b"},
+        )
+        == "structural"
+    )
+
+    mixed_receipts = [{"kind": "subject"}, {"kind": "verb"}]
+    assert (
+        derive_relation_semantic_basis(
+            receipts=mixed_receipts,
+            subject={"canonical_key": "actor:a"},
+            object_={"canonical_key": "entity:b"},
+        )
+        == "mixed"
+    )
+
+    assert (
+        derive_relation_semantic_basis(
+            receipts=[],
+            subject={"canonical_key": "actor:a"},
+            object_={"canonical_key": "entity:b"},
+        )
+        == "heuristic"
+    )
 
 
 def test_promote_contested_claim_abstains_for_non_structural_basis() -> None:
@@ -92,6 +132,24 @@ def test_promote_contested_claim_marks_conflict_for_mixed_state() -> None:
         )
     )
     assert result["status"] == CANDIDATE_CONFLICT
+    assert result["needs_reconciliation"] == NEEDS_RECONCILIATION
+
+
+def test_promote_contested_claim_preserves_non_reduction_with_fixture() -> None:
+    fixture_path = (
+        Path(__file__).resolve().parents[1]
+        / "fixtures"
+        / "assumption_controls"
+        / "a4_plural_law_non_reduction.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    for case in payload["cases"]:
+        result = promote_contested_claim(build_contested_claim_candidate(**case["input"]))
+        expectation = case["expectation"]
+        assert result["status"] == expectation["status"]
+        assert result["needs_reconciliation"] == NEEDS_RECONCILIATION
+        assert result["reason"] == expectation["reason"]
 
 
 def test_build_contested_claim_candidate_emits_minimal_schema() -> None:
