@@ -1,0 +1,151 @@
+{
+  "migration_pack": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json",
+  "qids": [
+    "Q56404383",
+    "Q10651551",
+    "Q10416948",
+    "Q10403939",
+    "Q10422059"
+  ],
+  "revision_pairs": [
+    {
+      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
+      "newer_revision": {
+        "revid": 2469553955,
+        "timestamp": "2026-03-05T10:00:51Z"
+      },
+      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json",
+      "older_revision": {
+        "revid": 2242857994,
+        "timestamp": "2024-09-03T16:45:41Z"
+      },
+      "qid": "Q56404383"
+    },
+    {
+      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
+      "newer_revision": {
+        "revid": 2435181075,
+        "timestamp": "2025-11-28T14:47:13Z"
+      },
+      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
+      "older_revision": {
+        "revid": 2435181070,
+        "timestamp": "2025-11-28T14:47:12Z"
+      },
+      "qid": "Q10651551"
+    },
+    {
+      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
+      "newer_revision": {
+        "revid": 2450591037,
+        "timestamp": "2026-01-02T16:40:58Z"
+      },
+      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
+      "older_revision": {
+        "revid": 2435184169,
+        "timestamp": "2025-11-28T14:52:24Z"
+      },
+      "qid": "Q10416948"
+    },
+    {
+      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
+      "newer_revision": {
+        "revid": 2419926147,
+        "timestamp": "2025-10-21T13:17:20Z"
+      },
+      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
+      "older_revision": {
+        "revid": 2413111410,
+        "timestamp": "2025-10-06T02:31:57Z"
+      },
+      "qid": "Q10403939"
+    },
+    {
+      "newer_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
+      "newer_revision": {
+        "revid": 2445808770,
+        "timestamp": "2025-12-23T01:56:05Z"
+      },
+      "older_entity_export": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
+      "older_revision": {
+        "revid": 2442261799,
+        "timestamp": "2025-12-14T10:43:07Z"
+      },
+      "qid": "Q10422059"
+    }
+  ],
+  "schema_version": "sl.wikidata_migration_pack.materialization.v0",
+  "slice": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/slice.json",
+  "source_property": "P5991",
+  "summary": {
+    "abstained": [],
+    "ambiguous": [
+      "Q10403939|P5991|1",
+      "Q10403939|P5991|2",
+      "Q10403939|P5991|3",
+      "Q10403939|P5991|4",
+      "Q10403939|P5991|5",
+      "Q10403939|P5991|6",
+      "Q10403939|P5991|7",
+      "Q10403939|P5991|8",
+      "Q10403939|P5991|9",
+      "Q10403939|P5991|10",
+      "Q10403939|P5991|11",
+      "Q10403939|P5991|12",
+      "Q10403939|P5991|13",
+      "Q10403939|P5991|14",
+      "Q10403939|P5991|15",
+      "Q10403939|P5991|16",
+      "Q10403939|P5991|17",
+      "Q10403939|P5991|18",
+      "Q10403939|P5991|19",
+      "Q10403939|P5991|20",
+      "Q10403939|P5991|21",
+      "Q10403939|P5991|22",
+      "Q10403939|P5991|23",
+      "Q10403939|P5991|24",
+      "Q10416948|P5991|1",
+      "Q10416948|P5991|2",
+      "Q10422059|P5991|1",
+      "Q10422059|P5991|2",
+      "Q10422059|P5991|3",
+      "Q10422059|P5991|4",
+      "Q10422059|P5991|5",
+      "Q10422059|P5991|6",
+      "Q10422059|P5991|7",
+      "Q10422059|P5991|8",
+      "Q10422059|P5991|9",
+      "Q10422059|P5991|10",
+      "Q10422059|P5991|11",
+      "Q10422059|P5991|12",
+      "Q10422059|P5991|13",
+      "Q10422059|P5991|14",
+      "Q10422059|P5991|15",
+      "Q10422059|P5991|16",
+      "Q10422059|P5991|17",
+      "Q10422059|P5991|18",
+      "Q10422059|P5991|19",
+      "Q10422059|P5991|20",
+      "Q10422059|P5991|21",
+      "Q10422059|P5991|22",
+      "Q10422059|P5991|23",
+      "Q10422059|P5991|24",
+      "Q10422059|P5991|25",
+      "Q10422059|P5991|26",
+      "Q10422059|P5991|27",
+      "Q10422059|P5991|28",
+      "Q10422059|P5991|29"
+    ],
+    "candidate_count": 57,
+    "checked_safe_subset": [
+      "Q10651551|P5991|1",
+      "Q56404383|P5991|1"
+    ],
+    "counts_by_bucket": {
+      "ambiguous_semantics": 55,
+      "safe_with_reference_transfer": 2
+    },
+    "requires_review_count": 55
+  },
+  "target_property": "P14143"
+}

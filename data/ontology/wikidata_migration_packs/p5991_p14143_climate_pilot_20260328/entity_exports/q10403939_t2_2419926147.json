@@ -1,0 +1,3687 @@
+{
+  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
+  "_source_qid": "Q10403939",
+  "_source_revision": 2419926147,
+  "entities": {
+    "Q10403939": {
+      "aliases": {},
+      "claims": {
+        "P1278": [
+          {
+            "id": "Q10403939$3FDDA90F-1444-42CA-A46C-6719DF99E67B",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "213800573TEIBOSTZX92"
+              },
+              "hash": "f478db1934b764988310426a29045c6396846641",
+              "property": "P1278",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P1320": [
+          {
+            "id": "Q10403939$D7709EC8-105D-4284-9297-D358E970D375",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "se/556459-9156"
+              },
+              "hash": "4502c69fcd8dfdceeefe4294442dedd075fe7601",
+              "property": "P1320",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "3967913e2472c43b92c040dcd364ece1d512e7df",
+                "snaks": {
+                  "P6460": [
+                    {
+                      "datatype": "external-id",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "556459-9156"
+                      },
+                      "hash": "f47b99abfa7ca0c6dc14afee576246dae141fa12",
+                      "property": "P6460",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P6460"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P1454": [
+          {
+            "id": "Q10403939$755A1631-E170-4701-AB0B-ED1C00C12B32",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q422007",
+                  "numeric-id": 422007
+                }
+              },
+              "hash": "70e0c8184ca2e15853ade894666659bd689f28fe",
+              "property": "P1454",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "8adfdf96101d5c32b6b769c4633401ec06e02307",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q55259097",
+                          "numeric-id": 55259097
+                        }
+                      },
+                      "hash": "88b1aea91b49e7281dc2608b867987d014c88992",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2024-09-17T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "e89ed975a583a10e83aa56ce16069435a04494bf",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P154": [
+          {
+            "id": "Q10403939$D3A8012A-D990-4EFD-B840-6AB002640051",
+            "mainsnak": {
+              "datatype": "commonsMedia",
+              "datavalue": {
+                "type": "string",
+                "value": "Akademiska hus, Campus Solna, 2019.jpg"
+              },
+              "hash": "5203d5319d31f3fd7a78b504f423de1c7fc754b3",
+              "property": "P154",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P159": [
+          {
+            "id": "Q10403939$67089314-37A9-4307-BE37-F2D4FC2477BE",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q25287",
+                  "numeric-id": 25287
+                }
+              },
+              "hash": "bfa1468affacf11e807e0ca909e9cf5d338bfd32",
+              "property": "P159",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "bd49d3e4f67bc460ce7a06b6ac3027347cf5ee55",
+                "snaks": {
+                  "P143": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q169514",
+                          "numeric-id": 169514
+                        }
+                      },
+                      "hash": "e84b0343e79e2a9aa8abadd7301051e15fba52d6",
+                      "property": "P143",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P17": [
+          {
+            "id": "Q10403939$C076220C-4F44-45A6-B625-B5C848E18D63",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q34",
+                  "numeric-id": 34
+                }
+              },
+              "hash": "c83b0e7fbdd58e611aa93b9d84b6194c20051c09",
+              "property": "P17",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P214": [
+          {
+            "id": "Q10403939$39FF463D-6DD0-4F80-8D31-A94C0BEFC9CB",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "230430932"
+              },
+              "hash": "f4a6b4d1ec6dbd822f993206f7c08f98fc2729d3",
+              "property": "P214",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P2671": [
+          {
+            "id": "Q10403939$050E6369-25CC-4531-8409-EE0F6425B134",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "/g/11dyj8nhq"
+              },
+              "hash": "d884f9e584d42e83d14249187612c33151b00f18",
+              "property": "P2671",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P31": [
+          {
+            "id": "Q10403939$396CD3E3-FE62-41A4-9C64-EAE15D3FBE83",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q4830453",
+                  "numeric-id": 4830453
+                }
+              },
+              "hash": "326e3d41d1e9c34715e880be6e1c6a1e822e4317",
+              "property": "P31",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P373": [
+          {
+            "id": "Q10403939$fb0ee87d-48ac-f545-acc8-79da77889afd",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "Akademiska hus"
+              },
+              "hash": "d8692b470c4cf291ef8233f28f098722c05a4308",
+              "property": "P373",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P571": [
+          {
+            "id": "Q10403939$DA247A4E-3A69-4DDC-A521-1A067758DF30",
+            "mainsnak": {
+              "datatype": "time",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "after": 0,
+                  "before": 0,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                  "precision": 11,
+                  "time": "+1993-10-01T00:00:00Z",
+                  "timezone": 0
+                }
+              },
+              "hash": "5c7e146a7c11ce0a7ae10b78ca6739cade1280a3",
+              "property": "P571",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "bd49d3e4f67bc460ce7a06b6ac3027347cf5ee55",
+                "snaks": {
+                  "P143": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q169514",
+                          "numeric-id": 169514
+                        }
+                      },
+                      "hash": "e84b0343e79e2a9aa8abadd7301051e15fba52d6",
+                      "property": "P143",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P5991": [
+          {
+            "id": "Q10403939$792EFDDB-0AA4-4148-9A1F-018A1FC31122",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+852",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "16dca28778289d9f3bc0b8d3be0578a88950acc9",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883250",
+                      "numeric-id": 124883250
+                    }
+                  },
+                  "hash": "f56b8e3ccc45d2407a564549a173a69f1a45942c",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$7CFDC180-EF48-4789-A719-5E07DEB73B0D",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+6385",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "4c868b3be06696e0b1caabc572ec17c645835f21",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883330",
+                      "numeric-id": 124883330
+                    }
+                  },
+                  "hash": "8b589309ecfb1d03acbc194672dd1ec5afe9232d",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$139C7728-7306-4017-8D8A-09F31F751A8F",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+29564",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "2c955d249fa16cb592877669cce9c4edb858352a",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883327",
+                      "numeric-id": 124883327
+                    }
+                  },
+                  "hash": "52ae9402e239ce90fdfd3df554e19428362f67e7",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$77889A80-F9C8-4AB3-B75E-0457F45BF7CD",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+24699",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "7cf2af226fde08a4c894b274e610da9da952c4fe",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$3A2B49B6-55AE-4066-809B-E771E5E11CD6",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+8030",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "1989a90f3bd3ba81ea2a659599f529a17f64ed1e",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883638",
+                      "numeric-id": 124883638
+                    }
+                  },
+                  "hash": "330afcade8bbd2c49a0519a3206aae243407977d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$38A94EF3-FD77-4FE5-B2DA-F3D83AAA577E",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+8942",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "3476e960e0b94d32c81989ebf6e547c89e3f1c2c",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883639",
+                      "numeric-id": 124883639
+                    }
+                  },
+                  "hash": "d64a3fb00da7313b37692228728397f058686699",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$10F5E6C1-4425-4C27-8882-B72B030598A1",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+5635",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "6cbb301cf893d1468ffeff2711b85c77874e2e09",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883640",
+                      "numeric-id": 124883640
+                    }
+                  },
+                  "hash": "87b696a3d9d89fd83224514ae6d710ecabdeb76f",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$30CBB5C2-AB67-4505-BFD5-1DE38F9DFF70",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+1274",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "ee444d41740f3909ea870dec12700aed55b43d22",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883642",
+                      "numeric-id": 124883642
+                    }
+                  },
+                  "hash": "e74f618b60beba8498e9c21374f83f9fbfb8b80d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$8F385CE2-F6B6-4538-99CF-D629BC10AFD1",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+542",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "3574dca8f5f4f2549da10a2c960cf7cd8594821f",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883643",
+                      "numeric-id": 124883643
+                    }
+                  },
+                  "hash": "73cbbf63dfdc5cd824564c8534b95af0f85e150d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$97651E37-82D1-4169-B032-3EE682D4B87B",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+88",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "69f02ac0a91b243e91b9fa5479860923d730566c",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883644",
+                      "numeric-id": 124883644
+                    }
+                  },
+                  "hash": "c1049051eed49d3c297883962264c47a21836579",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$FF694236-B4B3-4403-B932-4B600337C080",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+188",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "33ba30e07dc533dd52b2beb60326557d6abe4c08",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883646",
+                      "numeric-id": 124883646
+                    }
+                  },
+                  "hash": "aa6f4ace56ad970af5d98628a99358277ca12ae9",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$85E84410-6023-43C6-AA1C-F7D7D6F899B9",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+31936",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "aca9afceeb03530a78922e6800bb7c743a795223",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "03b6bf71bfd607243934b54941604df8a6ab7009",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+                      },
+                      "hash": "7944c126bf218b98fdff9e1fdcbba7cdea8ad7c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$4B78B37A-D3A7-417A-8F7C-129789E28D51",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+1082",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "583fae1825e919bb5dd7b69d2db7d60251c0aa45",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883250",
+                      "numeric-id": 124883250
+                    }
+                  },
+                  "hash": "f56b8e3ccc45d2407a564549a173a69f1a45942c",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$ACA83F0C-86DD-47F7-ADC6-69818EC15E84",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+5094",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "9939b35b60604051fc24a631c02187c0a6a9db0a",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883330",
+                      "numeric-id": 124883330
+                    }
+                  },
+                  "hash": "8b589309ecfb1d03acbc194672dd1ec5afe9232d",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$84C901C3-9A7B-4015-BB69-4F28EA9F4778",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+23725",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "dafc36a8eaac6ec9a595ffb0474aff43103a1830",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883327",
+                      "numeric-id": 124883327
+                    }
+                  },
+                  "hash": "52ae9402e239ce90fdfd3df554e19428362f67e7",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$EF22DFFF-3482-43C3-818D-299933A7EBDF",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+10316",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "781618a8e2855200bc444a9d7967556ff0fb4494",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883638",
+                      "numeric-id": 124883638
+                    }
+                  },
+                  "hash": "330afcade8bbd2c49a0519a3206aae243407977d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$BD334380-AD9F-4D34-9102-DAB84824C33B",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+5755",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "294daa8228b23c1421e6b9684c5894f3b174650c",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883639",
+                      "numeric-id": 124883639
+                    }
+                  },
+                  "hash": "d64a3fb00da7313b37692228728397f058686699",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$10086E7D-2424-4425-AABE-9D5A4FB98D97",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+6156",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "21fb4d9b3330624a66a41d9bc8c53d12194d748e",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883640",
+                      "numeric-id": 124883640
+                    }
+                  },
+                  "hash": "87b696a3d9d89fd83224514ae6d710ecabdeb76f",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$DFC82803-F595-4F16-9DE2-B6E499CCA4C5",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+677",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "b5743a2da1215f617958d362a8f22cd2c323955a",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883642",
+                      "numeric-id": 124883642
+                    }
+                  },
+                  "hash": "e74f618b60beba8498e9c21374f83f9fbfb8b80d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$F9751670-846C-4751-87C1-A912F90F7933",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+288",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "7975f2a99a4598979ccbfe076e1dc72c816308f3",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883643",
+                      "numeric-id": 124883643
+                    }
+                  },
+                  "hash": "73cbbf63dfdc5cd824564c8534b95af0f85e150d",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$329C01FE-26AF-4075-951C-84BBE9AD53AF",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+145",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "f6e1c76ef6c24e854a2671e9ad3aae0ecbfd1db6",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883644",
+                      "numeric-id": 124883644
+                    }
+                  },
+                  "hash": "c1049051eed49d3c297883962264c47a21836579",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$D223002F-BA32-428A-B9D2-906B34BE74D8",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+140",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "a279df3bce605216e4d2d6b19a46e866ef374f12",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883646",
+                      "numeric-id": 124883646
+                    }
+                  },
+                  "hash": "aa6f4ace56ad970af5d98628a99358277ca12ae9",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831",
+              "P518"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$87BE8973-24BC-4626-8AF3-238A334FE077",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+23477",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "214d22d1798b280b790fcb1316ff044a48f39465",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459",
+              "P3831"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$75713DBD-52FD-490C-909A-0C46B1EA29D7",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+29653",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "df04490b53b9431700891ea15251326dc712cf6b",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "67a76feb76f41b7d80e4e1c7ca5897931e52b9a6",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2024-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6e263a10a8b2bb0bd0c7abb287e01c9218104831",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580",
+              "P582",
+              "P459"
+            ],
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "a06e3aa15a6942870f3b1518bea13ab7274ca0d9",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+                      },
+                      "hash": "99513aab8a534ae3ea0dcc570877b1dc276a6422",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P6460": [
+          {
+            "id": "Q10403939$DCCCB1D9-1004-4C1C-AAEA-E147838D268E",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "556459-9156"
+              },
+              "hash": "f47b99abfa7ca0c6dc14afee576246dae141fa12",
+              "property": "P6460",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "fca5757bd8c9f360754ffa76c705c2d03ed23454",
+                "snaks": {
+                  "P143": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q169514",
+                          "numeric-id": 169514
+                        }
+                      },
+                      "hash": "e84b0343e79e2a9aa8abadd7301051e15fba52d6",
+                      "property": "P143",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P4656": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://sv.wikipedia.org/w/index.php?title=Akademiska_Hus&oldid=43376032"
+                      },
+                      "hash": "a75993af7bcfcc16045ec332197b1a61fce1fc6a",
+                      "property": "P4656",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143",
+                  "P4656"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P749": [
+          {
+            "id": "Q10403939$E20D19A0-332F-4088-A69A-0B5B79DA6BE4",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q10650489",
+                  "numeric-id": 10650489
+                }
+              },
+              "hash": "83f4071cc5438ee07922a5fc9643e2e6d1a44284",
+              "property": "P749",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "fca5757bd8c9f360754ffa76c705c2d03ed23454",
+                "snaks": {
+                  "P143": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q169514",
+                          "numeric-id": 169514
+                        }
+                      },
+                      "hash": "e84b0343e79e2a9aa8abadd7301051e15fba52d6",
+                      "property": "P143",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P4656": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://sv.wikipedia.org/w/index.php?title=Akademiska_Hus&oldid=43376032"
+                      },
+                      "hash": "a75993af7bcfcc16045ec332197b1a61fce1fc6a",
+                      "property": "P4656",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143",
+                  "P4656"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P8253": [
+          {
+            "id": "Q10403939$F5FDFA26-1E48-4992-8882-179D82B26F61",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "akademiskahus-fe9964"
+              },
+              "hash": "01b4bf1e26515534234750f2d4042c74e152ce70",
+              "property": "P8253",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "17b44e0865ba260d9e25a3eb6dd105da11a26206",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q62108705",
+                          "numeric-id": 62108705
+                        }
+                      },
+                      "hash": "bb9b2495417db83228e92ebc58dadf9e4c27c2b6",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10403939$F2CDD5BA-4D22-4884-BBCB-3794CE9AD5BB",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "akademiskahus-c9e89f"
+              },
+              "hash": "f2860737f7fe0b1a0546d12ad29291ef8537fd6b",
+              "property": "P8253",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "17b44e0865ba260d9e25a3eb6dd105da11a26206",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q62108705",
+                          "numeric-id": 62108705
+                        }
+                      },
+                      "hash": "bb9b2495417db83228e92ebc58dadf9e4c27c2b6",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P856": [
+          {
+            "id": "Q10403939$D6059536-7125-48DD-83CD-502D5496998E",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "https://www.akademiskahus.se"
+              },
+              "hash": "97c3843627a51c27955fb3430c8bab02e87ede8f",
+              "property": "P856",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P407": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q9027",
+                      "numeric-id": 9027
+                    }
+                  },
+                  "hash": "e41efcf0acaa18ea8fca63b87e2e0c24618f5664",
+                  "property": "P407",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P407"
+            ],
+            "rank": "normal",
+            "type": "statement"
+          }
+        ]
+      },
+      "descriptions": {
+        "ar": {
+          "language": "ar",
+          "value": "شركة سويدية"
+        },
+        "en": {
+          "language": "en",
+          "value": "Swedish Government enterprise"
+        },
+        "sv": {
+          "language": "sv",
+          "value": "svenskt statligt bolag som äger och förvaltar fastigheter vid landets universitet och högskolor"
+        }
+      },
+      "id": "Q10403939",
+      "labels": {
+        "ar": {
+          "language": "ar",
+          "value": "أكاديميسكا هوس"
+        },
+        "en": {
+          "language": "en",
+          "value": "Akademiska Hus"
+        },
+        "fr": {
+          "language": "fr",
+          "value": "Akademiska Hus"
+        },
+        "ja": {
+          "language": "ja",
+          "value": "アカデミスカ・フース"
+        },
+        "sv": {
+          "language": "sv",
+          "value": "Akademiska Hus"
+        }
+      },
+      "lastrevid": 2419926147,
+      "modified": "2025-10-21T13:17:20Z",
+      "ns": 0,
+      "pageid": 11707617,
+      "sitelinks": {
+        "arwiki": {
+          "badges": [],
+          "site": "arwiki",
+          "title": "أكاديميسكا هوس",
+          "url": "https://ar.wikipedia.org/wiki/%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%B3%D9%83%D8%A7_%D9%87%D9%88%D8%B3"
+        },
+        "commonswiki": {
+          "badges": [],
+          "site": "commonswiki",
+          "title": "Category:Akademiska hus",
+          "url": "https://commons.wikimedia.org/wiki/Category:Akademiska_hus"
+        },
+        "enwiki": {
+          "badges": [],
+          "site": "enwiki",
+          "title": "Akademiska Hus",
+          "url": "https://en.wikipedia.org/wiki/Akademiska_Hus"
+        },
+        "svwiki": {
+          "badges": [],
+          "site": "svwiki",
+          "title": "Akademiska Hus",
+          "url": "https://sv.wikipedia.org/wiki/Akademiska_Hus"
+        }
+      },
+      "title": "Q10403939",
+      "type": "item"
+    }
+  }
+}

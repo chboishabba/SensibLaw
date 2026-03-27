@@ -237,6 +237,131 @@ repo now implements, and make the next cross-lane normalization step explicit.
     - do not claim reproduction, parity, or first discovery without stronger
       repo evidence
 
+## Recent decisions (2026-03-27)
+- Added a bounded climate-change property-migration protocol note:
+  `docs/planning/wikidata_climate_change_property_migration_protocol_20260327.md`
+- The anchor case is the live community question around
+  `carbon footprint (P5991)` vs `annual greenhouse gas emissions (P14143)`.
+- The repo posture for this class of problem is now explicit:
+  - treat it as a bounded migration-review lane
+  - do not treat it as a property-rename or whole-property bot rewrite
+  - preserve statement-bundle shape:
+    - value
+    - rank
+    - qualifiers
+    - references
+  - reuse revision-window and qualifier-drift methods before claiming a case is
+    migration-safe
+  - generate review surfaces first and any edit/export surface only from
+    checked-safe subsets
+- The external coordination context checked on 2026-03-27 was:
+  `Wikipedia:WikiProject Climate change`
+  (`https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Climate_change`,
+  source = web)
+- The useful signals pulled from that page were:
+  - recommended-source discipline is explicit
+  - controversial-topic editing discipline is explicit
+  - visible to-do and article-alert queues are explicit
+  - article metrics/prioritization surfaces are explicit
+- The repo should therefore frame climate-change migration help as:
+  - provenance-aware review support
+  - explainable migration buckets
+  - checked sample first
+  - no opaque one-shot mass-edit recommendation
+- Added a sharper ZKP interpretation for the external coordination surface:
+  - `Wikipedia:WikiProject Climate change` is best modeled as:
+    - upstream noisy substrate
+    - proposal/candidate-generation surface
+    - public review/acceptance context
+  - it is explicitly not:
+    - the semantic truth layer
+    - the admissibility lattice
+    - the migration engine
+- This is aligned with earlier repo doctrine for Wikipedia ingest:
+  - revision-locked article -> canonical wiki state -> projections
+  - compare normalized state first, then derive reviewer-facing deltas
+- The bounded cross-system `Phi` package now has a real promoted-record
+  prototype:
+  - runtime:
+    `src/cross_system_phi.py`
+  - contract additions:
+    `provenance_rule`, `provenance_index`, `mismatch_report.workflow`
+  - validation:
+    `tests/test_cross_system_phi_prototype.py`
+- The prototype is intentionally narrow:
+  - two systems only
+  - built over existing promoted semantic-report rows
+  - one explicit partial mapping path
+  - one explicit incompatible path
+  - dual-anchor provenance required for every mapping/diagnostic ref
+- For the `P5991 -> P14143` lane, this means:
+  - public consensus can authorize/prioritize
+  - but migration safety still has to be established in a separate bounded
+    statement-bundle review surface
+- The climate-change migration note now also carries a formal cross-system
+  mapping:
+  - `Φ : W × Π × Κ → L(P)`
+  - factorized as ingest -> extract -> normalize -> bundle -> classify ->
+    promote -> graph
+- The first executable migration artifact now exists:
+  - contract note:
+    `docs/planning/wikidata_migration_pack_contract_20260328.md`
+  - schema:
+    `schemas/sl.wikidata_migration_pack.v1.schema.yaml`
+  - CLI:
+    `sensiblaw wikidata build-migration-pack`
+  - runtime:
+    `src/ontology/wikidata.py`
+- `L(P)` is now documented as a typed promoted-fact graph over:
+  - article/revision/source/task nodes
+  - claim/reference/qualifier bundles
+  - migration/review cases
+  - conflict/uncertainty/motif control nodes
+- The note now makes several climate-specific constraints explicit:
+  - provenance path required for promoted claims
+  - controversial-topic guard for climate-sensitive claims
+  - bundle integrity over main-snak-only comparisons
+  - abstention admissibility
+  - bounded-slice requirement before bulk migration
+  - no bot export before checked-safe subset
+  - revision-window consistency
+- The immediate unresolved design fork is now explicit:
+  - the `MigrationPack v0.1` path is now concrete in Python/JSON
+  - the remaining fork is whether a later formal layer should also mirror this
+    in Agda-style records/specs
+- Current `MigrationPack v0.1` runtime buckets are:
+  - `safe_equivalent`
+  - `safe_with_reference_transfer`
+  - `qualifier_drift`
+  - `reference_drift`
+  - `ambiguous_semantics`
+  - `abstain`
+- A first live bounded `P5991 -> P14143` pilot pack is now pinned in:
+  - `SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/`
+  - materialized by:
+    `SensibLaw/scripts/materialize_wikidata_migration_pack.py`
+  - selected QIDs:
+    - `Q56404383`
+    - `Q10651551`
+    - `Q10416948`
+    - `Q10403939`
+    - `Q10422059`
+  - observed bucket distribution:
+    - `safe_with_reference_transfer`: 2
+    - `ambiguous_semantics`: 55
+- The first live pilot exposed and resolved one real classifier issue:
+  - migration-pack review gating must be driven by evidence presence
+    (`sum_e >= e0`), not by non-zero `tau`
+  - otherwise normal-rank referenced statements collapse incorrectly to
+    `abstain`
+- Still deferred:
+  - `needs_human_review`
+  - `non_equivalent`
+  - `safe_add_target_keep_source_temporarily`
+  - `split_required`
+  - checked-safe export
+  - post-edit verification
+
 ## Completed prior milestones
 - Sprint S5: actors, actions/objects, scopes, lifecycle, graph projection, stability hardening — shipped and flag-gated.
 - Sprint S6: query API, explanation surfaces, projections, alignment, schema stubs, and guard review completed; no-reasoning contract enforced.

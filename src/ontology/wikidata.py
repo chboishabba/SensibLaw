@@ -10,6 +10,7 @@ import requests
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
 FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
+MIGRATION_PACK_SCHEMA_VERSION = "sl.wikidata_migration_pack.v1"
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
 DEFAULT_PROPERTY_FILTER = ("P279", "P31")
 PROPERTY_PROFILES = {
@@ -871,6 +872,18 @@ def _qualifier_signature(qualifiers: tuple[tuple[str, tuple[str, ...]], ...]) ->
     return json.dumps(qualifiers, ensure_ascii=False, separators=(",", ":"))
 
 
+def _reference_signature(
+    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+) -> str:
+    return json.dumps(references, ensure_ascii=False, separators=(",", ":"))
+
+
+def _reference_property_set(
+    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+) -> list[str]:
+    return sorted({prop for block in references for prop, _ in block})
+
+
 def _reference_metrics(
     references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
 ) -> tuple[int, int, int]:
@@ -903,6 +916,7 @@ def _project_bundle(bundle: StatementBundle, *, e0: int) -> Dict[str, Any]:
             "rule_ids": ["base", "quals", "refs", "rank"],
             "rank": bundle.rank,
             "qualifier_signature": _qualifier_signature(bundle.qualifiers),
+            "reference_signature": _reference_signature(bundle.references),
             "reference_block_count": n_refs,
             "distinct_sources": n_sources,
             "has_time_reference": bool(has_time),
@@ -927,6 +941,9 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
                 "audit": [],
                 "qualifier_signatures": [],
                 "qualifier_property_sets": [],
+                "reference_signatures": [],
+                "reference_property_sets": [],
+                "value_set": set(),
             },
         )
         qualifier_props = tuple(prop for prop, _ in bundle.qualifiers)
@@ -937,6 +954,9 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
         slot["audit"].append(projected["audit"])
         slot["qualifier_signatures"].append(projected["audit"]["qualifier_signature"])
         slot["qualifier_property_sets"].append(qualifier_props)
+        slot["reference_signatures"].append(projected["audit"]["reference_signature"])
+        slot["reference_property_sets"].append(tuple(_reference_property_set(bundle.references)))
+        slot["value_set"].add(_stringify(bundle.value))
 
     result_slots: dict[str, dict[str, Any]] = {}
     for subject, prop in sorted(slots):
@@ -953,6 +973,13 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
             {
                 prop_name
                 for prop_tuple in slot["qualifier_property_sets"]
+                for prop_name in prop_tuple
+            }
+        )
+        reference_property_set = sorted(
+            {
+                prop_name
+                for prop_tuple in slot["reference_property_sets"]
                 for prop_name in prop_tuple
             }
         )
@@ -977,8 +1004,67 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
             "qualifier_signatures": sorted(signature_counts),
             "qualifier_property_set": qualifier_property_set,
             "qualifier_entropy": round(qualifier_entropy, 6),
+            "reference_signatures": sorted(set(slot["reference_signatures"])),
+            "reference_property_set": reference_property_set,
+            "value_set": sorted(slot["value_set"]),
         }
     return result_slots
+
+
+def _compare_slot_reports_for_reference_drift(
+    left_slots: Mapping[str, Mapping[str, Any]],
+    right_slots: Mapping[str, Mapping[str, Any]],
+    *,
+    from_window: str,
+    to_window: str,
+) -> list[dict[str, Any]]:
+    all_slot_ids = sorted(set(left_slots) | set(right_slots))
+    findings: list[dict[str, Any]] = []
+    for slot_id in all_slot_ids:
+        left = left_slots.get(
+            slot_id,
+            {
+                "reference_signatures": [],
+                "reference_property_set": [],
+            },
+        )
+        right = right_slots.get(
+            slot_id,
+            {
+                "reference_signatures": [],
+                "reference_property_set": [],
+            },
+        )
+        signatures_changed = left["reference_signatures"] != right["reference_signatures"]
+        property_set_changed = left["reference_property_set"] != right["reference_property_set"]
+        if not signatures_changed and not property_set_changed:
+            continue
+        severity = "low"
+        if property_set_changed:
+            severity = "high"
+        elif signatures_changed:
+            severity = "medium"
+        findings.append(
+            {
+                "slot_id": slot_id,
+                "subject_qid": slot_id.split("|", 1)[0],
+                "property_pid": slot_id.split("|", 1)[1],
+                "from_window": from_window,
+                "to_window": to_window,
+                "reference_signatures_t1": left["reference_signatures"],
+                "reference_signatures_t2": right["reference_signatures"],
+                "reference_property_set_t1": left["reference_property_set"],
+                "reference_property_set_t2": right["reference_property_set"],
+                "severity": severity,
+            }
+        )
+    findings.sort(
+        key=lambda item: (
+            {"high": 0, "medium": 1, "low": 2}[item["severity"]],
+            item["slot_id"],
+        )
+    )
+    return findings
 
 
 def _build_edges(window: WindowSlice, prop: str) -> list[tuple[str, str]]:
@@ -1243,6 +1329,198 @@ def _build_qualifier_drift(
     )
 
 
+def _build_reference_drift(
+    slot_reports: Mapping[str, Mapping[str, Mapping[str, Any]]],
+    windows: Sequence[WindowSlice],
+) -> list[dict[str, Any]]:
+    if len(windows) < 2:
+        return []
+    first = windows[0].window_id
+    second = windows[1].window_id
+    return _compare_slot_reports_for_reference_drift(
+        slot_reports[first],
+        slot_reports[second],
+        from_window=first,
+        to_window=second,
+    )
+
+
+def _bundle_to_claim_bundle(bundle: StatementBundle, *, window_id: str, property_override: str | None = None) -> dict[str, Any]:
+    return {
+        "subject": bundle.subject,
+        "property": property_override or bundle.property,
+        "value": _stringify(bundle.value),
+        "rank": bundle.rank,
+        "qualifiers": {prop: list(values) for prop, values in bundle.qualifiers},
+        "references": [{prop: list(values) for prop, values in block} for block in bundle.references],
+        "window_id": window_id,
+    }
+
+
+def build_wikidata_migration_pack(
+    payload: Mapping[str, Any],
+    *,
+    source_property: str,
+    target_property: str,
+    e0: int = 1,
+) -> dict[str, Any]:
+    windows = load_windows(payload)
+    if not windows:
+        raise ValueError("payload requires at least one window")
+    filtered_windows = tuple(
+        WindowSlice(
+            window_id=window.window_id,
+            bundles=tuple(bundle for bundle in window.bundles if bundle.property == source_property),
+        )
+        for window in windows
+    )
+    current_window = filtered_windows[-1]
+    previous_window = filtered_windows[-2] if len(filtered_windows) >= 2 else None
+
+    slot_reports: dict[str, dict[str, Any]] = {}
+    for window in filtered_windows:
+        slot_reports[window.window_id] = _aggregate_window(window, e0=e0)
+
+    qualifier_drift = _build_qualifier_drift(slot_reports, filtered_windows)
+    reference_drift = _build_reference_drift(slot_reports, filtered_windows)
+    qualifier_drift_by_slot = {row["slot_id"]: row for row in qualifier_drift}
+    reference_drift_by_slot = {row["slot_id"]: row for row in reference_drift}
+
+    bundles_by_slot: dict[str, list[StatementBundle]] = {}
+    for bundle in current_window.bundles:
+        bundles_by_slot.setdefault(f"{bundle.subject}|{bundle.property}", []).append(bundle)
+
+    candidates: list[dict[str, Any]] = []
+    counts_by_bucket: dict[str, int] = {}
+    checked_safe_subset: list[str] = []
+    abstained: list[str] = []
+    ambiguous: list[str] = []
+
+    for slot_id in sorted(bundles_by_slot):
+        slot_bundles = bundles_by_slot[slot_id]
+        current_slot = slot_reports[current_window.window_id].get(slot_id, {})
+        previous_slot = slot_reports.get(previous_window.window_id, {}).get(slot_id, {}) if previous_window else {}
+        slot_present_in_previous = previous_window is not None and slot_id in slot_reports.get(previous_window.window_id, {})
+        qualifier_row = qualifier_drift_by_slot.get(slot_id) if slot_present_in_previous else None
+        reference_row = reference_drift_by_slot.get(slot_id) if slot_present_in_previous else None
+        distinct_values = set(current_slot.get("value_set", []))
+
+        for index, bundle in enumerate(slot_bundles, start=1):
+            classification = "safe_with_reference_transfer" if bundle.references else "safe_equivalent"
+            confidence = 0.95 if not bundle.references else 0.9
+            requires_review = False
+            reasons: list[str] = []
+            evidence_gate_met = int(current_slot.get("sum_e", 0)) >= max(int(e0), 1)
+
+            if not evidence_gate_met:
+                classification = "abstain"
+                confidence = 0.2
+                requires_review = True
+                reasons.append("evidence_gate_not_met")
+            elif len(distinct_values) > 1:
+                classification = "ambiguous_semantics"
+                confidence = 0.35
+                requires_review = True
+                reasons.append("multi_value_slot")
+            elif reference_row is not None:
+                classification = "reference_drift"
+                confidence = 0.45
+                requires_review = True
+                reasons.append(f"reference_drift:{reference_row['severity']}")
+            elif qualifier_row is not None:
+                classification = "qualifier_drift"
+                confidence = 0.45
+                requires_review = True
+                reasons.append(f"qualifier_drift:{qualifier_row['severity']}")
+
+            candidate_id = f"{slot_id}|{index}"
+            counts_by_bucket[classification] = counts_by_bucket.get(classification, 0) + 1
+            if classification in {"safe_equivalent", "safe_with_reference_transfer"}:
+                checked_safe_subset.append(candidate_id)
+            elif classification == "abstain":
+                abstained.append(candidate_id)
+            elif classification == "ambiguous_semantics":
+                ambiguous.append(candidate_id)
+
+            qualifier_diff = {
+                "status": "no_previous_window" if previous_window is None else "unchanged",
+                "from_window": previous_window.window_id if previous_window else None,
+                "to_window": current_window.window_id,
+                "severity": None,
+                "qualifier_property_set_t1": previous_slot.get("qualifier_property_set", []),
+                "qualifier_property_set_t2": current_slot.get("qualifier_property_set", []),
+                "qualifier_signatures_t1": previous_slot.get("qualifier_signatures", []),
+                "qualifier_signatures_t2": current_slot.get("qualifier_signatures", []),
+            }
+            if qualifier_row is not None:
+                qualifier_diff = {
+                    "status": "qualifier_drift",
+                    **qualifier_row,
+                }
+
+            reference_diff = {
+                "status": "no_previous_window" if previous_window is None else "unchanged",
+                "from_window": previous_window.window_id if previous_window else None,
+                "to_window": current_window.window_id,
+                "severity": None,
+                "reference_property_set_t1": previous_slot.get("reference_property_set", []),
+                "reference_property_set_t2": current_slot.get("reference_property_set", []),
+                "reference_signatures_t1": previous_slot.get("reference_signatures", []),
+                "reference_signatures_t2": current_slot.get("reference_signatures", []),
+            }
+            if reference_row is not None:
+                reference_diff = {
+                    "status": "reference_drift",
+                    **reference_row,
+                }
+
+            candidates.append(
+                {
+                    "candidate_id": candidate_id,
+                    "entity_qid": bundle.subject,
+                    "slot_id": slot_id,
+                    "statement_index": index,
+                    "classification": classification,
+                    "confidence": round(confidence, 6),
+                    "requires_review": requires_review,
+                    "reasons": reasons,
+                    "claim_bundle_before": _bundle_to_claim_bundle(bundle, window_id=current_window.window_id),
+                    "claim_bundle_after": _bundle_to_claim_bundle(
+                        bundle,
+                        window_id=current_window.window_id,
+                        property_override=target_property,
+                    ),
+                    "qualifier_diff": qualifier_diff,
+                    "reference_diff": reference_diff,
+                }
+            )
+
+    candidates.sort(key=lambda item: (item["entity_qid"], item["statement_index"], item["candidate_id"]))
+    return {
+        "schema_version": MIGRATION_PACK_SCHEMA_VERSION,
+        "source_property": source_property,
+        "target_property": target_property,
+        "window_basis": {
+            "current_window_id": current_window.window_id,
+            "previous_window_id": previous_window.window_id if previous_window else None,
+        },
+        "source_slice": {
+            "window_ids": [window.window_id for window in filtered_windows],
+            "source_property": source_property,
+            "target_property": target_property,
+        },
+        "candidates": candidates,
+        "summary": {
+            "candidate_count": len(candidates),
+            "counts_by_bucket": counts_by_bucket,
+            "checked_safe_subset": checked_safe_subset,
+            "abstained": abstained,
+            "ambiguous": ambiguous,
+            "requires_review_count": sum(1 for item in candidates if item["requires_review"]),
+        },
+    }
+
+
 def project_wikidata_payload(
     payload: Mapping[str, Any], *, e0: int = 1, profile: str | None = None, property_filter: Iterable[str] | None = None
 ) -> Dict[str, Any]:
@@ -1332,9 +1610,13 @@ def project_wikidata_payload(
     for item in unstable_slots:
         severity_counts[item["severity"]] += 1
     qualifier_drift = _build_qualifier_drift(slot_reports, filtered_windows)
+    reference_drift = _build_reference_drift(slot_reports, filtered_windows)
     qualifier_severity_counts = {"high": 0, "medium": 0, "low": 0}
     for item in qualifier_drift:
         qualifier_severity_counts[item["severity"]] += 1
+    reference_severity_counts = {"high": 0, "medium": 0, "low": 0}
+    for item in reference_drift:
+        reference_severity_counts[item["severity"]] += 1
 
     review_summary = {
         "next_bounded_slice_recommendation": "Qualifier drift is now active; expand qualifier-bearing slices and review property-set instability before wider ontology phases.",
@@ -1348,6 +1630,8 @@ def project_wikidata_payload(
         ],
         "qualifier_drift_counts": qualifier_severity_counts,
         "top_qualifier_drift_slot_ids": [item["slot_id"] for item in qualifier_drift[:5]],
+        "reference_drift_counts": reference_severity_counts,
+        "top_reference_drift_slot_ids": [item["slot_id"] for item in reference_drift[:5]],
     }
 
     return {
@@ -1365,6 +1649,7 @@ def project_wikidata_payload(
         "windows": window_reports,
         "unstable_slots": unstable_slots,
         "qualifier_drift": qualifier_drift,
+        "reference_drift": reference_drift,
         "review_summary": review_summary,
     }
 
@@ -1374,7 +1659,9 @@ __all__ = [
     "FINDER_SCHEMA_VERSION",
     "DEFAULT_PROPERTY_FILTER",
     "PROPERTY_PROFILES",
+    "MIGRATION_PACK_SCHEMA_VERSION",
     "build_slice_from_entity_exports",
+    "build_wikidata_migration_pack",
     "find_qualifier_drift_candidates",
     "load_windows",
     "project_wikidata_payload",

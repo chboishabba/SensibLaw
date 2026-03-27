@@ -1,0 +1,118 @@
+{
+  "payload_version": "sl.cross_system_phi.contract.v1",
+  "motif_family": "termination_for_breach",
+  "systems": [
+    {
+      "system_id": "common_law_qld",
+      "promoted_basis_ref": "promoted://common_law_qld/motif/termination_for_breach",
+      "authority_scope": "Local promoted truth for Queensland common-law contract doctrine."
+    },
+    {
+      "system_id": "civil_law_fr",
+      "promoted_basis_ref": "promoted://civil_law_fr/motif/resolution_pour_inexecution",
+      "authority_scope": "Local promoted truth for the bounded French civil-law sample."
+    }
+  ],
+  "provenance_rule": {
+    "rule_id": "sl.phi.provenance_dual_anchor.v1",
+    "description": "Every mapping and mismatch diagnostic must resolve through provenance_index to at least one anchored promoted record in each referenced system.",
+    "source_anchor_required": true,
+    "target_anchor_required": true
+  },
+  "provenance_index": [
+    {
+      "provenance_ref": "promoted://common_law_qld/motif/termination_for_breach",
+      "system_id": "common_law_qld",
+      "run_id": "run:common_law_qld_demo",
+      "event_id": "event:termination_for_breach",
+      "predicate_key": "termination_for_breach",
+      "source_document_id": "qld_contract_demo",
+      "source_char_start": 10,
+      "source_char_end": 120,
+      "event_text": "Serious non-performance may justify termination and damages in the bounded Queensland sample."
+    },
+    {
+      "provenance_ref": "promoted://civil_law_fr/motif/resolution_pour_inexecution",
+      "system_id": "civil_law_fr",
+      "run_id": "run:civil_law_fr_demo",
+      "event_id": "event:resolution_pour_inexecution",
+      "predicate_key": "resolution_pour_inexecution",
+      "source_document_id": "fr_civil_code_demo",
+      "source_char_start": 30,
+      "source_char_end": 160,
+      "event_text": "Resolution for non-performance remains available in the bounded French civil-law sample."
+    },
+    {
+      "provenance_ref": "promoted://common_law_qld/motif/equitable_relief_overlay",
+      "system_id": "common_law_qld",
+      "run_id": "run:common_law_qld_demo",
+      "event_id": "event:equitable_relief_overlay",
+      "predicate_key": "equitable_relief_overlay",
+      "source_document_id": "qld_contract_demo",
+      "source_char_start": 170,
+      "source_char_end": 240,
+      "event_text": "Equitable overlay is present locally but lacks a bounded target review in this prototype."
+    }
+  ],
+  "mappings": [
+    {
+      "mapping_id": "phi-001",
+      "source_system": "common_law_qld",
+      "target_system": "civil_law_fr",
+      "source_ref": "motif://common_law_qld/termination_for_breach",
+      "target_ref": "motif://civil_law_fr/resolution_pour_inexecution",
+      "status": "partial",
+      "compatibility_rationale": "Both motifs support remedy transition after serious non-performance, but threshold tests and consequence ladders differ.",
+      "provenance_refs": [
+        "promoted://common_law_qld/motif/termination_for_breach",
+        "promoted://civil_law_fr/motif/resolution_pour_inexecution"
+      ],
+      "constraint_refs": [
+        "constraint://target/requires_target_system_review"
+      ],
+      "mismatch_refs": [
+        "diag-001"
+      ],
+      "reviewed_at": "2026-03-28T09:15:00Z"
+    },
+    {
+      "mapping_id": "phi-002",
+      "source_system": "common_law_qld",
+      "target_system": "civil_law_fr",
+      "source_ref": "motif://common_law_qld/equitable_relief_overlay",
+      "target_ref": null,
+      "status": "undefined",
+      "compatibility_rationale": "No bounded target-system analogue has been checked for this overlay in the prototype table.",
+      "provenance_refs": [
+        "promoted://common_law_qld/motif/equitable_relief_overlay"
+      ]
+    }
+  ],
+  "mismatch_report": {
+    "workflow": {
+      "workflow_id": "sl.phi_mismatch_review.v1",
+      "default_status": "open",
+      "allowed_statuses": ["open", "reviewed", "waived"],
+      "triage_rule": "Partial and incompatible mappings require an anchored diagnostic before downstream transfer."
+    },
+    "unresolved_mapping_ids": [
+      "phi-002"
+    ],
+    "incompatible_mapping_ids": [],
+    "diagnostics": [
+      {
+        "diagnostic_id": "diag-001",
+        "kind": "mismatch",
+        "status": "open",
+        "mapping_ids": [
+          "phi-001"
+        ],
+        "summary": "The remedy outcome aligns only partially because target-system prerequisites are not equivalent to the source threshold test.",
+        "provenance_refs": [
+          "promoted://common_law_qld/motif/termination_for_breach",
+          "promoted://civil_law_fr/motif/resolution_pour_inexecution"
+        ]
+      }
+    ]
+  }
+}

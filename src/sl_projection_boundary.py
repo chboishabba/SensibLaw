@@ -68,6 +68,58 @@ def _coerce_posture_to_wikidata(posture: str) -> str:
             return "unknown"
 
 
+def _legal_norm_from_version(legal_version: str) -> str:
+    return legal_version.split(":", 1)[0].strip() or legal_version
+
+
+def _jurisdiction_tokens(jurisdiction: str) -> tuple[str, ...]:
+    tokens = []
+    token = []
+    for char in jurisdiction:
+        if char in {"_", "/", "-", ":"}:
+            if token:
+                tokens.append("".join(token).strip().upper())
+                token = []
+        else:
+            token.append(char)
+    if token:
+        tokens.append("".join(token).strip().upper())
+    return tuple(tokens)
+
+
+def _jurisdiction_compatible(parent: str, child: str) -> bool:
+    parent_tokens = _jurisdiction_tokens(parent)
+    child_tokens = _jurisdiction_tokens(child)
+    return parent_tokens == child_tokens[: len(parent_tokens)]
+
+
+def _transition_receipt_matches_claim_context(
+    claim_jurisdiction: str | None,
+    claim_norm_id: str | None,
+    transition_receipt: Mapping[str, Any],
+    claim_id: str,
+) -> None:
+    receipt_jurisdiction = _required_str(transition_receipt, "jurisdiction")
+    if claim_jurisdiction and not (
+        _jurisdiction_compatible(claim_jurisdiction, receipt_jurisdiction)
+        or _jurisdiction_compatible(receipt_jurisdiction, claim_jurisdiction)
+    ):
+        raise ValueError(
+            f"claim {claim_id} and transition receipt "
+            f"{_required_str(transition_receipt, 'transition_receipt_id')} have mismatched jurisdictions"
+        )
+
+    transition_legal_version = _required_str(transition_receipt, "legal_version")
+    if claim_norm_id:
+        claim_norm_id = claim_norm_id.strip()
+        legal_norm = _legal_norm_from_version(transition_legal_version)
+        if claim_norm_id != legal_norm and claim_norm_id != transition_legal_version:
+            raise ValueError(
+                f"claim {claim_id} legal norm {claim_norm_id} is inconsistent with transition receipt "
+                f"{_required_str(transition_receipt, 'transition_receipt_id')} legal_version {transition_legal_version}"
+            )
+
+
 def _evidence_refs_for_observation(observation: Mapping[str, Any]) -> list[dict[str, str]]:
     refs: list[dict[str, str]] = []
     evidence_refs = observation.get("evidence_refs", [])
@@ -109,8 +161,9 @@ def _load_observations(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any
 def _load_transition_receipts(
     payload: Mapping[str, Any],
     evidence_links_by_id: Mapping[str, Mapping[str, Any]],
+    valid_observation_ids: set[str],
 ) -> tuple[dict[str, list[str]], dict[str, Mapping[str, Any]], int, int, int]:
-    transitions_by_observation: dict[str, list[str]] = {}
+    transitions_by_observation: dict[str, list[tuple[str, datetime, datetime | None]]] = {}
     transition_receipts_by_id: dict[str, Mapping[str, Any]] = {}
     transition_receipt_count = 0
     legal_version_count = 0
@@ -147,6 +200,9 @@ def _load_transition_receipts(
                 raise ValueError(
                     "transition_receipts.effective_to must be greater than or equal to effective_from"
                 )
+            window_end = effective_to_dt
+        else:
+            window_end = None
         if _optional_str(receipt, "legal_version") is not None:
             legal_version_count += 1
         if _optional_str(receipt, "jurisdiction") is not None:
@@ -164,15 +220,42 @@ def _load_transition_receipts(
             if not isinstance(raw_observation_id, str) or not raw_observation_id.strip():
                 raise ValueError("transition_receipts.observation_ids must contain non-empty strings")
             observation_id = raw_observation_id.strip()
-            transitions_by_observation.setdefault(observation_id, []).append(receipt_id)
+            if observation_id not in valid_observation_ids:
+                raise ValueError(f"transition_receipts.observation_ids references unknown observation {observation_id}")
+            transitions_by_observation.setdefault(observation_id, []).append(
+                (receipt_id, effective_from_dt, window_end)
+            )
 
         transition_receipts_by_id[receipt_id] = receipt
 
         transition_receipt_count += 1
         seen_receipt_ids.add(receipt_id)
 
+    for observation_id, scoped_receipts in transitions_by_observation.items():
+        ordered = sorted(scoped_receipts, key=lambda row: (row[1], row[0]))
+        active_until: datetime | None = None
+        has_open_window = False
+        for _, effective_from, effective_to in ordered:
+            if has_open_window:
+                raise ValueError(
+                    f"transition_receipts temporal windows for {observation_id} must be non-overlapping"
+                )
+            if active_until is not None and effective_from < active_until:
+                raise ValueError(
+                    f"transition_receipts temporal windows for {observation_id} must be non-overlapping"
+                )
+            if effective_to is not None:
+                active_until = effective_to
+            else:
+                has_open_window = True
+
+        transitions_by_observation[observation_id] = ordered
+
     return (
-        transitions_by_observation,
+        {
+            observation_id: [receipt_id for receipt_id, _, _ in scoped_receipts]
+            for observation_id, scoped_receipts in transitions_by_observation.items()
+        },
         transition_receipts_by_id,
         transition_receipt_count,
         legal_version_count,
@@ -193,7 +276,7 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
         transition_receipt_count,
         legal_version_count,
         jurisdiction_count,
-    ) = _load_transition_receipts(payload, evidence_links_by_id)
+    ) = _load_transition_receipts(payload, evidence_links_by_id, set(observations_by_id))
     recorded_jurisdictions: set[str] = set()
     temporal_scope_count = 0
 
@@ -254,6 +337,22 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
                     raise ValueError("evidence_links.trace_refs entries must be non-empty strings")
                 evidence_refs.append({"ref_type": "trace_ref", "ref_value": trace_ref.strip()})
 
+        transition_receipt_ids = transitions_by_observation.get(observation_id, [])
+        transition_receipts_payload = []
+        for receipt_id in transition_receipt_ids:
+            receipt = transition_receipts_by_id[receipt_id]
+            _transition_receipt_matches_claim_context(jurisdiction, claim.get("norm_id"), receipt, claim_id)
+            transition_receipts_payload.append(
+                {
+                    "transition_receipt_id": receipt_id,
+                    "jurisdiction": _required_str(receipt, "jurisdiction"),
+                    "legal_version": _required_str(receipt, "legal_version"),
+                    "effective_from": _required_str(receipt, "effective_from"),
+                    "effective_to": receipt.get("effective_to"),
+                    "rule_version": _required_str(receipt, "rule_version"),
+                }
+            )
+
         records.append(
             {
                 "projection_id": f"wdp:{claim_id}",
@@ -272,18 +371,7 @@ def build_wikidata_projection_report(payload: Mapping[str, Any]) -> dict[str, An
                 "evidence_link_ids": evidence_link_ids,
                 "evidence_refs": evidence_refs,
                 "state_transition_receipt_ids": transitions_by_observation.get(observation_id, []),
-                "state_transition_receipts": [
-                    {
-                        "transition_receipt_id": receipt_id,
-                        "jurisdiction": _required_str(transition_receipts_by_id[receipt_id], "jurisdiction"),
-                        "legal_version": _required_str(transition_receipts_by_id[receipt_id], "legal_version"),
-                        "effective_from": _required_str(transition_receipts_by_id[receipt_id], "effective_from"),
-                        "effective_to": transition_receipts_by_id[receipt_id].get("effective_to"),
-                        "rule_version": _required_str(transition_receipts_by_id[receipt_id], "rule_version"),
-                    }
-                    for receipt_id in transitions_by_observation.get(observation_id, [])
-                    if receipt_id in transition_receipts_by_id
-                ],
+                "state_transition_receipts": transition_receipts_payload,
                 "temporal_scope": {
                     "observed_at": observation.get("observed_at"),
                     "asserted_at": claim.get("claim_created_at"),

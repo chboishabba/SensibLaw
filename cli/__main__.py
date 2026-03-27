@@ -684,6 +684,34 @@ def _handle_wikidata_find_qualifier_drift(args: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _handle_wikidata_build_migration_pack(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import build_wikidata_migration_pack
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_wikidata_migration_pack(
+        payload,
+        source_property=args.source_property,
+        target_property=args.target_property,
+        e0=args.e0,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "candidate_count": report["summary"]["candidate_count"],
+                "checked_safe_subset_count": len(report["summary"]["checked_safe_subset"]),
+                "requires_review_count": report["summary"]["requires_review_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_wikidata_hotspot_generate_clusters(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
 
@@ -2188,6 +2216,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional path to write the drift-finder report JSON",
     )
     wikidata_find_qualifier_drift.set_defaults(func=_handle_wikidata_find_qualifier_drift)
+    wikidata_build_migration_pack = wikidata_sub.add_parser(
+        "build-migration-pack",
+        help="Build a bounded migration-review pack for one source-to-target property mapping",
+    )
+    wikidata_build_migration_pack.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the bounded slice JSON",
+    )
+    wikidata_build_migration_pack.add_argument(
+        "--source-property",
+        required=True,
+        help="Source property PID",
+    )
+    wikidata_build_migration_pack.add_argument(
+        "--target-property",
+        required=True,
+        help="Target property PID",
+    )
+    wikidata_build_migration_pack.add_argument(
+        "--e0",
+        type=int,
+        default=1,
+        help="Evidence threshold for admissible rank projection",
+    )
+    wikidata_build_migration_pack.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the migration-pack JSON",
+    )
+    wikidata_build_migration_pack.set_defaults(func=_handle_wikidata_build_migration_pack)
     wikidata_hotspot_generate_clusters = wikidata_sub.add_parser(
         "hotspot-generate-clusters",
         help="Generate a deterministic hotspot cluster pack from the hotspot manifest",

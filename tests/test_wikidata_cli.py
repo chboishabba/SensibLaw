@@ -228,6 +228,71 @@ def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(tmp_pat
     assert file_payload["qualifier_drift"][0]["severity"] == "medium"
 
 
+def test_wikidata_build_migration_pack_cli_writes_pack(tmp_path, capsys) -> None:
+    in_path = tmp_path / "migration_slice.json"
+    out_path = tmp_path / "migration_pack.json"
+    in_path.write_text(
+        json.dumps(
+            {
+                "windows": [
+                    {
+                        "id": "t1",
+                        "statement_bundles": [
+                            {
+                                "subject": "Q1",
+                                "property": "P5991",
+                                "value": "100",
+                                "rank": "normal",
+                                "references": [{"P248": "Qsrc"}],
+                            }
+                        ],
+                    },
+                    {
+                        "id": "t2",
+                        "statement_bundles": [
+                            {
+                                "subject": "Q1",
+                                "property": "P5991",
+                                "value": "100",
+                                "rank": "normal",
+                                "references": [{"P248": "Qsrc"}],
+                            }
+                        ],
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cli_main.main(
+        [
+            "wikidata",
+            "build-migration-pack",
+            "--input",
+            str(in_path),
+            "--source-property",
+            "P5991",
+            "--target-property",
+            "P14143",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["candidate_count"] == 1
+    assert file_payload["source_property"] == "P5991"
+    assert file_payload["target_property"] == "P14143"
+    assert file_payload["candidates"][0]["claim_bundle_after"]["property"] == "P14143"
+    assert file_payload["summary"]["checked_safe_subset"] == [
+        file_payload["candidates"][0]["candidate_id"]
+    ]
+
+
 def test_wikidata_project_cli_accepts_prepopulation_core_profile(tmp_path, capsys) -> None:
     in_path = tmp_path / "prepopulation_core_slice.json"
     out_path = tmp_path / "prepopulation_core_report.json"

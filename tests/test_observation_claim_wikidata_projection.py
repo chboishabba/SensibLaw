@@ -133,3 +133,106 @@ def test_transition_receipt_rejects_effective_to_before_effective_from():
     jsonschema.validate(payload, contract_schema)
     with pytest.raises(ValueError, match="effective_to must be greater than or equal to effective_from"):
         build_wikidata_projection_report(payload)
+
+
+def test_transition_receipts_reject_temporal_overlap_for_same_observation():
+    payload, _, contract_schema = _base_payload()
+    payload["transition_receipts"].append(
+        {
+            "transition_receipt_id": "tr:2",
+            "observation_ids": ["obs:1"],
+            "current_state": "active",
+            "next_state": "active",
+            "rule_id": "rule:jurisdiction-check",
+            "rule_version": "rule-set-v1",
+            "jurisdiction": "US_CA",
+            "legal_version": "LAW-12:v20260327",
+            "effective_from": "2026-03-27T00:30:00Z",
+            "effective_to": "2026-03-27T01:30:00Z",
+            "deltas": [
+                {
+                    "kind": "jurisdiction",
+                    "before": "US_CA",
+                    "after": "US_CA",
+                }
+            ],
+        }
+    )
+    jsonschema.validate(payload, contract_schema)
+    with pytest.raises(ValueError, match="temporal windows for obs:1 must be non-overlapping"):
+        build_wikidata_projection_report(payload)
+
+
+def test_transition_receipt_rejects_jurisdiction_mismatch_with_claim():
+    payload, _, contract_schema = _base_payload()
+    payload["observations"][0]["jurisdiction"] = "US_NY"
+    jsonschema.validate(payload, contract_schema)
+    with pytest.raises(ValueError, match="have mismatched jurisdictions"):
+        build_wikidata_projection_report(payload)
+
+
+def test_transition_receipt_allows_hierarchical_jurisdiction_match():
+    payload, _, contract_schema = _base_payload()
+    payload["transition_receipts"][0]["jurisdiction"] = "US"
+    jsonschema.validate(payload, contract_schema)
+    report = build_wikidata_projection_report(payload)
+
+    assert report["projection_records"][0]["state_transition_receipts"][0]["jurisdiction"] == "US"
+
+
+def test_transition_receipt_rejects_nonhierarchical_jurisdiction_mismatch():
+    payload, _, contract_schema = _base_payload()
+    payload["transition_receipts"][0]["jurisdiction"] = "US_TX"
+    jsonschema.validate(payload, contract_schema)
+    with pytest.raises(ValueError, match="have mismatched jurisdictions"):
+        build_wikidata_projection_report(payload)
+
+
+def test_transition_receipt_rejects_legal_version_mismatch_with_claim_norm():
+    payload, _, contract_schema = _base_payload()
+    payload["claims"][0]["norm_id"] = "LAW-99"
+    jsonschema.validate(payload, contract_schema)
+    with pytest.raises(ValueError, match="inconsistent with transition receipt"):
+        build_wikidata_projection_report(payload)
+
+
+def test_transition_receipt_rejects_unknown_observation_id():
+    payload, _, contract_schema = _base_payload()
+    payload["transition_receipts"][0]["observation_ids"] = ["obs:missing"]
+    jsonschema.validate(payload, contract_schema)
+    with pytest.raises(ValueError, match="references unknown observation obs:missing"):
+        build_wikidata_projection_report(payload)
+
+
+def test_transition_receipts_are_stably_ordered_by_effective_from():
+    payload, _, contract_schema = _base_payload()
+    payload["transition_receipts"][0]["effective_from"] = "2026-03-27T01:00:00Z"
+    payload["transition_receipts"][0]["transition_receipt_id"] = "tr:late"
+    payload["transition_receipts"].append(
+        {
+            "transition_receipt_id": "tr:early",
+            "observation_ids": ["obs:1"],
+            "current_state": "active",
+            "next_state": "active",
+            "rule_id": "rule:jurisdiction-check",
+            "rule_version": "rule-set-v1",
+            "jurisdiction": "US_CA",
+            "legal_version": "LAW-12:v20260327",
+            "effective_from": "2026-03-27T00:00:00Z",
+            "effective_to": "2026-03-27T00:30:00Z",
+            "deltas": [
+                {
+                    "kind": "jurisdiction",
+                    "before": "US_CA",
+                    "after": "US_CA",
+                }
+            ],
+        }
+    )
+    jsonschema.validate(payload, contract_schema)
+    report = build_wikidata_projection_report(payload)
+
+    assert report["projection_records"][0]["state_transition_receipt_ids"] == [
+        "tr:early",
+        "tr:late",
+    ]

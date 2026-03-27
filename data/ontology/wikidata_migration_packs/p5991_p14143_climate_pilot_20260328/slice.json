@@ -1,0 +1,3274 @@
+{
+  "metadata": {
+    "generated_by": "build_slice_from_entity_exports",
+    "properties": [
+      "P5991"
+    ]
+  },
+  "windows": [
+    {
+      "id": "t1_previous",
+      "source_files": [
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t1_2413111410.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t1_2435184169.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t1_2442261799.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t1_2435181070.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t1_2242857994.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883654"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.handelsbanken.com/tron/xgpu/info/contents/v1/document/76-169033"
+              ]
+            }
+          ],
+          "subject": "Q56404383",
+          "value": "+838358"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2021-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+              ]
+            }
+          ],
+          "subject": "Q10651551",
+          "value": "+442"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2020-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-8814"
+              ]
+            }
+          ],
+          "subject": "Q10416948",
+          "value": "+697"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2021-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+              ]
+            }
+          ],
+          "subject": "Q10416948",
+          "value": "+375.06"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+852"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+6385"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+29564"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+24699"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+8030"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+8942"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5635"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+1274"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+542"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+88"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+188"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+31936"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+10316"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5755"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+6156"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+677"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+288"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+145"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+140"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+1082"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5094"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+23725"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+23477"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+29653"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+140"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1594"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+4851"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9813"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+4815"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+2437"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+853"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+57"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+162"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+34"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883651"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+54"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883652"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1401"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+11547"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+297"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1632"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+3677"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+5707"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+0"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+962"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+93"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+62"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+196"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883650"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+8579"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883651"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+48"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883652"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9090"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883654"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+153"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+21044"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+22973"
+        }
+      ]
+    },
+    {
+      "id": "t2_current",
+      "source_files": [
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10403939_t2_2419926147.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10416948_t2_2450591037.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10422059_t2_2445808770.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
+        "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json"
+      ],
+      "statement_bundles": [
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883654"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.handelsbanken.com/tron/xgpu/info/contents/v1/document/76-169033"
+              ]
+            }
+          ],
+          "subject": "Q56404383",
+          "value": "+838358"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2021-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+              ]
+            }
+          ],
+          "subject": "Q10651551",
+          "value": "+442"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2020-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-8814"
+              ]
+            }
+          ],
+          "subject": "Q10416948",
+          "value": "+697"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P585": [
+              "+2021-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+              ]
+            }
+          ],
+          "subject": "Q10416948",
+          "value": "+375.06"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+852"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+6385"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+29564"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+24699"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+8030"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+8942"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5635"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+1274"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+542"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+88"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+188"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/globalassets/dokument/ekonomi/ekonomiska-rapporter/akademiska-hus-arsredovisning-2023-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+31936"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+1082"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5094"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+23725"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+10316"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+5755"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+6156"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+677"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+288"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+145"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+140"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+23477"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/arsredovisning-2024-sve.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10403939",
+          "value": "+29653"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+140"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1594"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+4851"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9813"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+4815"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+2437"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+853"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+57"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+162"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+34"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883651"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+54"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883652"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1401"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2023-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2023-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/3939304/2641233.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+11547"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883250"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+297"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883330"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+1632"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883327"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+3677"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883638"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+5707"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883639"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+0"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883640"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+962"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883642"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883643"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+93"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883644"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+62"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883646"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+196"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883650"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+8579"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883651"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+48"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883652"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+9090"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P518": [
+              "Q124883654"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+153"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P3831": [
+              "Q124883309"
+            ],
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+21044"
+        },
+        {
+          "property": "P5991",
+          "qualifiers": {
+            "P459": [
+              "Q56296245"
+            ],
+            "P580": [
+              "+2024-01-01T00:00:00Z"
+            ],
+            "P582": [
+              "+2024-12-31T00:00:00Z"
+            ]
+          },
+          "rank": "preferred",
+          "references": [
+            {
+              "P854": [
+                "https://mb.cision.com/Main/1145/4120241/3326112.pdf"
+              ]
+            }
+          ],
+          "subject": "Q10422059",
+          "value": "+22973"
+        }
+      ]
+    }
+  ]
+}

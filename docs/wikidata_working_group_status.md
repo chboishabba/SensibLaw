@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-03-26
+Last updated: 2026-03-28
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -32,6 +32,24 @@ shared handoff.
   - if funding work becomes active, frame this as a provenance-aware Wikidata
     validation/ingestion tool, not as funding for the abstract SL/ITIR stack
 - qualifier drift is now active in bounded form
+- a bounded climate-change property-migration protocol note now exists:
+  - use it when the question is not "is this ontology clean?" but
+    "how should a community run a reviewable property migration without losing
+    qualifier/reference semantics?"
+  - the note now also makes the ZKP boundary explicit:
+    WikiProject Climate change is treated as an upstream proposal/coordination
+    layer, not as the semantic truth layer or promotion lattice
+  - a first executable migration-review surface now exists:
+    `sensiblaw wikidata build-migration-pack`
+  - the immediate next promotion gate is now concrete:
+    a bounded live `P5991 -> P14143` pilot pack is now pinned at:
+    `SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/`
+  - the first live pilot shows:
+    - `safe_with_reference_transfer`: 2
+    - `ambiguous_semantics`: 55
+  - immediate implication:
+    richer migration policy should focus first on temporal/multi-value slots
+    rather than on qualifier/reference drift alone
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review
@@ -120,6 +138,12 @@ shared handoff.
   - `docs/planning/wikidata_mereology_parthood_note_20260307.md`
 - Property/constraint pressure-test note:
   - `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`
+- Climate-change property-migration protocol note:
+  - `docs/planning/wikidata_climate_change_property_migration_protocol_20260327.md`
+- Migration-pack contract note:
+  - `docs/planning/wikidata_migration_pack_contract_20260328.md`
+- Migration-pack schema:
+  - `schemas/sl.wikidata_migration_pack.v1.schema.yaml`
 - Mereology pilot pack:
   - `tests/fixtures/wikidata/parthood_pilot_pack_20260308`
 - Import-backed mereology pack:

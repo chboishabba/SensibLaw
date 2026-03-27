@@ -1,6 +1,64 @@
 # Changelog
 
 ## Unreleased
+- Cross-system `Phi` promoted-record prototype:
+  - Added `src/cross_system_phi.py` to build the bounded
+    `sl.cross_system_phi.contract.v1` payload over real promoted relations
+    emitted by existing semantic pipelines.
+  - Extended `schemas/sl.cross_system_phi.contract.v1.schema.yaml` with an
+    explicit provenance-preservation rule, provenance index, and mismatch
+    workflow metadata.
+  - Kept `examples/cross_system_phi_minimal.json` aligned with the extended
+    contract and added real promoted-report regression coverage in
+    `tests/test_cross_system_phi_prototype.py`.
+- Docs: bounded climate-change property-migration protocol
+  - Added `docs/planning/wikidata_climate_change_property_migration_protocol_20260327.md`
+    to define how the repo's existing Wikidata review stack should be applied
+    to real property-migration questions, anchored on the current
+    `P5991 -> P14143` climate-change case.
+  - Synced `docs/wikidata_working_group_status.md`, root `TODO.md`, and
+    `COMPACTIFIED_CONTEXT.md` so the new lane is explicit:
+    bounded candidate slice first, statement-bundle comparison, revision-window
+    review, migration buckets, and no bot/export surface before a checked-safe
+    subset exists.
+  - Tightened that note with a ZKP framing of `Wikipedia:WikiProject Climate
+    change`: treat the WikiProject as an upstream proposal/coordination layer
+    and noisy substrate, not as the semantic truth layer, admissibility
+    lattice, or migration engine.
+  - Extended the note with a formal cross-system mapping
+    `Φ : W × Π × Κ → L(P)`, a factored ingest/extract/normalize/bundle/
+    classify/promote/graph pipeline, and an explicit `L(P)` climate-article
+    graph schema with constraints/invariants for provenance, controversial-topic
+    guards, abstention, bundle integrity, bounded-slice gating, and
+    bot-before-safe-subset prevention.
+- Wikidata MigrationPack v0.1:
+  - Added the first executable migration-pack contract note:
+    `docs/planning/wikidata_migration_pack_contract_20260328.md`
+    plus schema:
+    `schemas/sl.wikidata_migration_pack.v1.schema.yaml`.
+  - Extended `src/ontology/wikidata.py` with:
+    - `MIGRATION_PACK_SCHEMA_VERSION`
+    - reference-signature/property-set aggregation
+    - slot-level `reference_drift`
+    - `build_wikidata_migration_pack(...)`
+  - Extended `sensiblaw wikidata` with the new
+    `build-migration-pack` subcommand for bounded source->target property
+    review packs.
+  - Added regression coverage in
+    `tests/test_wikidata_projection.py` and
+    `tests/test_wikidata_cli.py`.
+  - Added `scripts/materialize_wikidata_migration_pack.py` to fetch a bounded
+    revision-locked live entity set, persist raw entity exports, and emit the
+    derived slice + migration pack together.
+  - Pinned the first live climate pilot pack in:
+    `data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/`
+    using Q56404383, Q10651551, Q10416948, Q10403939, and Q10422059.
+  - Corrected migration-pack evidence gating so normal-rank statements with
+    actual reference evidence are reviewable; gating now follows evidence
+    presence instead of non-zero `tau`.
+  - The first live pilot currently yields:
+    - `safe_with_reference_transfer`: 2
+    - `ambiguous_semantics`: 55
 - Milestone R temporal/jurisdiction parity for Wikidata projection:
   - Extended `src/sl_projection_boundary.py` so `build_wikidata_projection_report(...)`
     includes per-record temporal scope and transition-receipt provenance, plus
@@ -15,6 +73,9 @@
   - Expanded projection rows to include `state_transition_receipts` payload fields
     (`jurisdiction`, `legal_version`, `effective_from`, `effective_to`,
     `rule_version`) for deterministic auditability.
+  - Added projection-time validation that claim-level jurisdiction and legal
+    norm context align with attached transition receipts; mismatches now fail
+    fast before emission and are covered by regression tests.
 - Milestone R contract definition:
   - Added a bounded machine contract for Observation/Claim/evidence-link payloads:
     `schemas/sl.observation_claim.contract.v1.schema.yaml`.

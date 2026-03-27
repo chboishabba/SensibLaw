@@ -1,0 +1,1573 @@
+{
+  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q10651551_t2_2435181075.json",
+  "_source_qid": "Q10651551",
+  "_source_revision": 2435181075,
+  "entities": {
+    "Q10651551": {
+      "aliases": {
+        "sv": [
+          {
+            "language": "sv",
+            "value": "Revisorsnämnden"
+          }
+        ]
+      },
+      "claims": {
+        "P1001": [
+          {
+            "id": "Q10651551$45ADC777-1F68-4B16-A038-89C1E1EA439B",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q34",
+                  "numeric-id": 34
+                }
+              },
+              "hash": "9820ea6e3d4415c13500702a433d0ad5593ec3bc",
+              "property": "P1001",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P1329": [
+          {
+            "id": "Q10651551$FE00A5D9-D4E6-4175-B8BA-7C1EB9202650",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "+46-8-738-46-00"
+              },
+              "hash": "89997959380c27908eacb008c7661b3445c61c21",
+              "property": "P1329",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P1343": [
+          {
+            "id": "Q10651551$AAA7BE65-15E7-4C6C-BDE8-A433F1C65700",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q18649284",
+                  "numeric-id": 18649284
+                }
+              },
+              "hash": "97f8a31146f337280e0aa61becf34f42735ca2af",
+              "property": "P1343",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "6200c323673e31a559e58cd46da21df02d96d2bd",
+                "snaks": {
+                  "P1065": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://web.archive.org/web/20220927174843/https://myndighetsregistret.scb.se/"
+                      },
+                      "hash": "d387bf85a460f42e99a99a96895057394655312d",
+                      "property": "P1065",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P1476": [
+                    {
+                      "datatype": "monolingualtext",
+                      "datavalue": {
+                        "type": "monolingualtext",
+                        "value": {
+                          "language": "sv",
+                          "text": "Myndighetsregistret"
+                        }
+                      },
+                      "hash": "e5ddcc136fbcdce96dd611617823514aa952c1be",
+                      "property": "P1476",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P1683": [
+                    {
+                      "datatype": "monolingualtext",
+                      "datavalue": {
+                        "type": "monolingualtext",
+                        "value": {
+                          "language": "sv",
+                          "text": "202100-4805 - REVISORSINSPEKTIONEN"
+                        }
+                      },
+                      "hash": "863a8adb357784a3c48cd2f1ac8c98c133eb7d64",
+                      "property": "P1683",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2022-10-20T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "be7bec09eff055a47eaef8f939fe762a2c4068ec",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://myndighetsregistret.scb.se/Myndighet"
+                      },
+                      "hash": "d40b47f433fe12f7f783d920ec282c96673c4827",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813",
+                  "P1476",
+                  "P1065",
+                  "P854",
+                  "P1683"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P1454": [
+          {
+            "id": "Q10651551$67FA9DCC-C63A-483F-8DCB-DC4411F8F61A",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q108514063",
+                  "numeric-id": 108514063
+                }
+              },
+              "hash": "1c926a29dbad327b22190bb37495401be2a469bc",
+              "property": "P1454",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P17": [
+          {
+            "id": "Q10651551$64044A68-677C-4FCA-9948-170CA46E06A2",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q34",
+                  "numeric-id": 34
+                }
+              },
+              "hash": "c83b0e7fbdd58e611aa93b9d84b6194c20051c09",
+              "property": "P17",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P237": [
+          {
+            "id": "Q10651551$8b0d609c-4126-8ef4-1f27-a3c5a471410b",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q59081664",
+                  "numeric-id": 59081664
+                }
+              },
+              "hash": "69971da026ce72acc41315bc476517cf4cf449f1",
+              "property": "P237",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 9,
+                      "time": "+2016-00-00T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "ed438b46be5611a815cca53283ad10d96ab202b5",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b4b86863baa3c01061283ea28a765d731412a2f2",
+                "snaks": {
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2017-12-09T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "c16d184d69d06ca2fd57b7c464cba7e3f1ee9620",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://riksarkivet.se/nya-heraldiska-vapen-2016"
+                      },
+                      "hash": "8aaee0f3dca90599e38dd6e9840374dcac040b43",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P2388": [
+          {
+            "id": "Q10651551$2E5607C8-D493-479E-9745-79B48846E869",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q110293044",
+                  "numeric-id": 110293044
+                }
+              },
+              "hash": "7cb0137142a4b592ddcf38967bdb14d3daec329e",
+              "property": "P2388",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P2561": [
+          {
+            "id": "Q10651551$1a0e472c-4872-17ee-eca2-167d1223eb1b",
+            "mainsnak": {
+              "datatype": "monolingualtext",
+              "datavalue": {
+                "type": "monolingualtext",
+                "value": {
+                  "language": "sv",
+                  "text": "Revisorsnämnden"
+                }
+              },
+              "hash": "940d873d8414c05898beb4ee4a8c82e142bb9f59",
+              "property": "P2561",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2017-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "6de404c819e3b4ce95a9985f0d88d79e66187fc5",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P582"
+            ],
+            "rank": "normal",
+            "type": "statement"
+          },
+          {
+            "id": "Q10651551$a858bf06-4fd2-317e-5fe4-ef24fa730d9b",
+            "mainsnak": {
+              "datatype": "monolingualtext",
+              "datavalue": {
+                "type": "monolingualtext",
+                "value": {
+                  "language": "sv",
+                  "text": "Revisorsinspektionen"
+                }
+              },
+              "hash": "94f0caff85daa277094c1921db946cbb411e9b20",
+              "property": "P2561",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2017-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "247bd92e81ff71bc7eeee0eca380b90dc50e36de",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P580"
+            ],
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P2671": [
+          {
+            "id": "Q10651551$686CEF45-8883-4E4B-B06B-3D74C899BED7",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "/g/11dylv76x"
+              },
+              "hash": "c2941d2465282a1c88c27f742d33eabdb6533b26",
+              "property": "P2671",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P276": [
+          {
+            "id": "Q10651551$9DA4173A-02BE-410A-A71F-9BB83E096DD0",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q1754",
+                  "numeric-id": 1754
+                }
+              },
+              "hash": "7482b844fe9c005761a40680186f824a81c960b9",
+              "property": "P276",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P281": [
+          {
+            "id": "Q10651551$C49C4464-A472-4B97-84EE-A9544DE06B98",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "10450"
+              },
+              "hash": "ed5bcb6279635b1ace4df2b2fcb530722a099bf6",
+              "property": "P281",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q319608",
+                      "numeric-id": 319608
+                    }
+                  },
+                  "hash": "185ffc73865a0c893a52106ac5e3fb70aa513837",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          },
+          {
+            "id": "Q10651551$93782FE4-CCBB-4F4E-B21A-DD7555C5573F",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "115 26"
+              },
+              "hash": "7d3b6e7653cf16b1ed4801deec2a02607dddfb49",
+              "property": "P281",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q24574749",
+                      "numeric-id": 24574749
+                    }
+                  },
+                  "hash": "ba8d09ba35aad381b1099a99f00abdfed92fe005",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P2900": [
+          {
+            "id": "Q10651551$678F9249-4A1F-4639-8030-ABB032CBC6C3",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "+46-8-783-18-71"
+              },
+              "hash": "8cc4d3825601a9332a4b4fbe0ea6ad21cc04045e",
+              "property": "P2900",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P31": [
+          {
+            "id": "Q10651551$DEE1F0C8-7C52-474D-8CC4-FC9B43E3A6D0",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q68295960",
+                  "numeric-id": 68295960
+                }
+              },
+              "hash": "60ece906ca573231b175b0a144a244bf84454369",
+              "property": "P31",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P3793": [
+          {
+            "id": "Q10651551$6925DCD8-4339-468F-9F2C-55DA828FDCDD",
+            "mainsnak": {
+              "datatype": "string",
+              "datavalue": {
+                "type": "string",
+                "value": "2a01:2b0:3028::/48"
+              },
+              "hash": "268343fe82d0da8fc4b358ae13f323c20827c878",
+              "property": "P3793",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "1a7fe7a6a59955f3456ef28abd2de7f1f0dcd6b4",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://apps.db.ripe.net/search/lookup.html?source=ripe&key=2a01:2b0:3028::/48&type=inet6num"
+                      },
+                      "hash": "9143729a4cf9a3158573e1025557bf7a1a906f66",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P5008": [
+          {
+            "id": "Q10651551$619A384E-A656-4DAF-A018-8D463B9A44DF",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q108109790",
+                  "numeric-id": 108109790
+                }
+              },
+              "hash": "cbb1c8755f0c286bbb23bbe82ac980cff7606bd8",
+              "property": "P5008",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "9a975be82f1e0730501e9be4e871dca7ffddf826",
+                "snaks": {
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2025-06-22T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "2462e36c50dcad1b9012003f944f137351abbe84",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.govdirectory.org/sweden/"
+                      },
+                      "hash": "ceb8238783a1043607f508af78f58b4219437b46",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P571": [
+          {
+            "id": "Q10651551$59E1E5D4-969E-44D5-ACBC-763F31F97552",
+            "mainsnak": {
+              "datatype": "time",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "after": 0,
+                  "before": 0,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                  "precision": 9,
+                  "time": "+1995-01-01T00:00:00Z",
+                  "timezone": 0
+                }
+              },
+              "hash": "96b61ecc09cf8bcd6396ca323b7e63bb8876f877",
+              "property": "P571",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "bd49d3e4f67bc460ce7a06b6ac3027347cf5ee55",
+                "snaks": {
+                  "P143": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q169514",
+                          "numeric-id": 169514
+                        }
+                      },
+                      "hash": "e84b0343e79e2a9aa8abadd7301051e15fba52d6",
+                      "property": "P143",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P5991": [
+          {
+            "id": "Q10651551$C5C84B2A-21EA-4036-888B-68ABF17D70CC",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+442",
+                  "unit": "http://www.wikidata.org/entity/Q57084901"
+                }
+              },
+              "hash": "b876d2dc66d2c47256b973bd34268948d7af81bc",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P585": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 9,
+                      "time": "+2021-00-00T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "4a6fe7f861358928efef462e361b21704446d129",
+                  "property": "P585",
+                  "snaktype": "value"
+                }
+              ],
+              "P828": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q7590",
+                      "numeric-id": 7590
+                    }
+                  },
+                  "hash": "0c6ef5d8f182179310b16b6766ecaa692bd963ac",
+                  "property": "P828",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P585",
+              "P828"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "96626845334cd174d0086590a3ea8db9387b2106",
+                "snaks": {
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2022-05-18T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "783d2769a67f115c3ff5ddbe103dd5bcf3e439a2",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+                      },
+                      "hash": "7a50f52c08a02bfb9fc99fdd4ead4d0c9c18ea8b",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P6375": [
+          {
+            "id": "Q10651551$725C8760-BB7D-45BC-9FC6-B5967F83FCC3",
+            "mainsnak": {
+              "datatype": "monolingualtext",
+              "datavalue": {
+                "type": "monolingualtext",
+                "value": {
+                  "language": "sv",
+                  "text": "Karlavägen 104, 115 26 Stockholm"
+                }
+              },
+              "hash": "a423b40f53e43827c9c6dc8c4223ecd40f7d4bdd",
+              "property": "P6375",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P6460": [
+          {
+            "id": "Q10651551$527657F0-AC89-419A-8D87-537047717088",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "202100-4805"
+              },
+              "hash": "6d1b2f01dab5c398654fddbe36e85d4e246f745e",
+              "property": "P6460",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P749": [
+          {
+            "id": "Q10651551$1161D816-4693-4B19-8FF4-9A7A763FE554",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q2612011",
+                  "numeric-id": 2612011
+                }
+              },
+              "hash": "f112c455b5f29bdbb12073f497ca0a045f612d08",
+              "property": "P749",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "00f09047c712eb24a3fb0d59d8bc5745f54ee776",
+                "snaks": {
+                  "P1065": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://web.archive.org/web/20210810191757/https://www.statskontoret.se/contentassets/73dfde44d5bc4cffaace77dd47226c69/arsarbetskrafter-i-staten-oppna-data_webben.xlsx"
+                      },
+                      "hash": "681f278d6faa61bbd75fa3bc9292bb3788d739a3",
+                      "property": "P1065",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P2960": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2021-08-10T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "3a801e86d27ece65d1fe4fe8b5964093d6092a2d",
+                      "property": "P2960",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2021-08-10T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "8295afb2506e2590319aae30352f274ea685d1ba",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.statskontoret.se/contentassets/73dfde44d5bc4cffaace77dd47226c69/arsarbetskrafter-i-staten-oppna-data_webben.xlsx"
+                      },
+                      "hash": "d2595b46b8e68da9fd9e5a4a29e660515f94730b",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P813",
+                  "P854",
+                  "P1065",
+                  "P2960"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P856": [
+          {
+            "id": "Q10651551$6ECCD083-918F-4F99-8EE4-7FDC8848680A",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "https://www.revisorsinspektionen.se"
+              },
+              "hash": "eba1fab7d56eec7cf9c2d138a178a3bdb702cbe0",
+              "property": "P856",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P92": [
+          {
+            "id": "Q10651551$524F2E5F-EB1D-4B9C-A11E-2FA74093A19C",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q100589031",
+                  "numeric-id": 100589031
+                }
+              },
+              "hash": "0fb9bf65f22badbe938f6b1428bba2c9b3088726",
+              "property": "P92",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P94": [
+          {
+            "id": "Q10651551$7a88e64a-4eab-8549-9d53-b3736e9030c6",
+            "mainsnak": {
+              "datatype": "commonsMedia",
+              "datavalue": {
+                "type": "string",
+                "value": "Revisorsinspektionen vapen.svg"
+              },
+              "hash": "ccb9986f7d320b3a774cd87dd3a2970765a0fa14",
+              "property": "P94",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P968": [
+          {
+            "id": "Q10651551$0D19F635-BB4B-453A-A4E6-7CEAF281A799",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "mailto:ri@revisorsinspektionen.se"
+              },
+              "hash": "ade1d392f4655caa30a9f8fd10ea89438bf11bfb",
+              "property": "P968",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "b1370429b50742de2dca4b5919c395f80187d044",
+                "snaks": {
+                  "P248": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q18649284",
+                          "numeric-id": 18649284
+                        }
+                      },
+                      "hash": "0e39e04c3df1c5f50d07673cc5457d5a4dcc7fda",
+                      "property": "P248",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2019-12-28T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "d9cf81d79750d133ec6a9893d64f490d95eab21a",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P248",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P9798": [
+          {
+            "id": "Q10651551$C88237E6-6D23-428D-ABF6-7C56604AE865",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q108107994",
+                  "numeric-id": 108107994
+                }
+              },
+              "hash": "95b6a57f597bb751a84c4951530db9a8c56eb059",
+              "property": "P9798",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "00f09047c712eb24a3fb0d59d8bc5745f54ee776",
+                "snaks": {
+                  "P1065": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://web.archive.org/web/20210810191757/https://www.statskontoret.se/contentassets/73dfde44d5bc4cffaace77dd47226c69/arsarbetskrafter-i-staten-oppna-data_webben.xlsx"
+                      },
+                      "hash": "681f278d6faa61bbd75fa3bc9292bb3788d739a3",
+                      "property": "P1065",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P2960": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2021-08-10T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "3a801e86d27ece65d1fe4fe8b5964093d6092a2d",
+                      "property": "P2960",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2021-08-10T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "8295afb2506e2590319aae30352f274ea685d1ba",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.statskontoret.se/contentassets/73dfde44d5bc4cffaace77dd47226c69/arsarbetskrafter-i-staten-oppna-data_webben.xlsx"
+                      },
+                      "hash": "d2595b46b8e68da9fd9e5a4a29e660515f94730b",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P1065",
+                  "P2960",
+                  "P813",
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ]
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Swedish government agency"
+        },
+        "sv": {
+          "language": "sv",
+          "value": "svensk statlig förvaltningsmyndighet"
+        }
+      },
+      "id": "Q10651551",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Swedish Inspectorate of Auditors"
+        },
+        "sv": {
+          "language": "sv",
+          "value": "Revisorsinspektionen"
+        }
+      },
+      "lastrevid": 2435181075,
+      "modified": "2025-11-28T14:47:13Z",
+      "ns": 0,
+      "pageid": 11932557,
+      "sitelinks": {
+        "svwiki": {
+          "badges": [],
+          "site": "svwiki",
+          "title": "Revisorsinspektionen",
+          "url": "https://sv.wikipedia.org/wiki/Revisorsinspektionen"
+        }
+      },
+      "title": "Q10651551",
+      "type": "item"
+    }
+  }
+}

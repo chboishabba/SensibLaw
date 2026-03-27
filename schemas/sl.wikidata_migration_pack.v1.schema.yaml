@@ -1,0 +1,224 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_migration_pack.v1
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - source_property
+  - target_property
+  - window_basis
+  - source_slice
+  - candidates
+  - summary
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_migration_pack.v1
+  source_property:
+    type: string
+    minLength: 1
+  target_property:
+    type: string
+    minLength: 1
+  window_basis:
+    type: object
+    additionalProperties: false
+    required:
+      - current_window_id
+    properties:
+      current_window_id:
+        type: string
+      previous_window_id:
+        type: [string, "null"]
+  source_slice:
+    type: object
+    additionalProperties: false
+    required:
+      - window_ids
+      - source_property
+      - target_property
+    properties:
+      window_ids:
+        type: array
+        items:
+          type: string
+      source_property:
+        type: string
+      target_property:
+        type: string
+  candidates:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - candidate_id
+        - entity_qid
+        - slot_id
+        - statement_index
+        - classification
+        - confidence
+        - requires_review
+        - reasons
+        - claim_bundle_before
+        - claim_bundle_after
+        - qualifier_diff
+        - reference_diff
+      properties:
+        candidate_id:
+          type: string
+        entity_qid:
+          type: string
+        slot_id:
+          type: string
+        statement_index:
+          type: integer
+        classification:
+          type: string
+          enum:
+            - safe_equivalent
+            - safe_with_reference_transfer
+            - qualifier_drift
+            - reference_drift
+            - ambiguous_semantics
+            - abstain
+            - needs_human_review
+            - non_equivalent
+            - safe_add_target_keep_source_temporarily
+            - split_required
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        requires_review:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            type: string
+        claim_bundle_before:
+          $ref: "#/definitions/claim_bundle"
+        claim_bundle_after:
+          $ref: "#/definitions/claim_bundle"
+        qualifier_diff:
+          $ref: "#/definitions/drift_summary"
+        reference_diff:
+          $ref: "#/definitions/drift_summary"
+  summary:
+    type: object
+    additionalProperties: false
+    required:
+      - candidate_count
+      - counts_by_bucket
+      - checked_safe_subset
+      - abstained
+      - ambiguous
+      - requires_review_count
+    properties:
+      candidate_count:
+        type: integer
+      counts_by_bucket:
+        type: object
+        additionalProperties:
+          type: integer
+      checked_safe_subset:
+        type: array
+        items:
+          type: string
+      abstained:
+        type: array
+        items:
+          type: string
+      ambiguous:
+        type: array
+        items:
+          type: string
+      requires_review_count:
+        type: integer
+definitions:
+  claim_bundle:
+    type: object
+    additionalProperties: false
+    required:
+      - subject
+      - property
+      - value
+      - rank
+      - qualifiers
+      - references
+      - window_id
+    properties:
+      subject:
+        type: string
+      property:
+        type: string
+      value: {}
+      rank:
+        type: string
+      qualifiers:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            type: string
+      references:
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      window_id:
+        type: string
+  drift_summary:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+    properties:
+      status:
+        type: string
+        enum:
+          - unchanged
+          - qualifier_drift
+          - reference_drift
+          - no_previous_window
+      from_window:
+        type: [string, "null"]
+      to_window:
+        type: [string, "null"]
+      severity:
+        type: [string, "null"]
+      qualifier_property_set_t1:
+        type: array
+        items:
+          type: string
+      qualifier_property_set_t2:
+        type: array
+        items:
+          type: string
+      qualifier_signatures_t1:
+        type: array
+        items:
+          type: string
+      qualifier_signatures_t2:
+        type: array
+        items:
+          type: string
+      reference_property_set_t1:
+        type: array
+        items:
+          type: string
+      reference_property_set_t2:
+        type: array
+        items:
+          type: string
+      reference_signatures_t1:
+        type: array
+        items:
+          type: string
+      reference_signatures_t2:
+        type: array
+        items:
+          type: string

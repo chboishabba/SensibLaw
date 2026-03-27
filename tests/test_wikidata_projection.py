@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
 
-from src.ontology.wikidata import SCHEMA_VERSION, project_wikidata_payload
+from src.ontology.wikidata import (
+    MIGRATION_PACK_SCHEMA_VERSION,
+    SCHEMA_VERSION,
+    build_wikidata_migration_pack,
+    project_wikidata_payload,
+)
 
 
 def test_project_wikidata_payload_reports_sccs_and_mixed_order() -> None:
@@ -278,6 +283,118 @@ def test_project_wikidata_payload_reports_parthood_typing() -> None:
         ("QInstA", "P527", "QInstB", "instance->instance", "certain"),
         ("QInstB", "P527", "QInstA", "instance->instance", "certain"),
     }
+
+
+def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "preferred",
+                        "qualifiers": {"P585": "2024"},
+                        "references": [{"P248": "Qsrc1"}],
+                    },
+                    {
+                        "subject": "Q2",
+                        "property": "P5991",
+                        "value": "200",
+                        "rank": "preferred",
+                        "references": [{"P248": "Qsrc1"}],
+                    },
+                ],
+            },
+            {
+                "id": "t2",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "preferred",
+                        "qualifiers": {"P585": "2024", "P7452": "Qreason"},
+                        "references": [{"P248": "Qsrc1"}],
+                    },
+                    {
+                        "subject": "Q2",
+                        "property": "P5991",
+                        "value": "200",
+                        "rank": "preferred",
+                        "references": [{"P248": "Qsrc1", "P813": "2026-03-28"}],
+                    },
+                    {
+                        "subject": "Q3",
+                        "property": "P5991",
+                        "value": "300",
+                        "rank": "preferred",
+                        "references": [{"P248": "Qsrc2"}],
+                    },
+                ],
+            },
+        ]
+    }
+
+    report = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    assert report["schema_version"] == MIGRATION_PACK_SCHEMA_VERSION
+    assert report["summary"]["candidate_count"] == 3
+    by_entity = {item["entity_qid"]: item for item in report["candidates"]}
+    assert by_entity["Q1"]["classification"] == "qualifier_drift"
+    assert by_entity["Q1"]["qualifier_diff"]["status"] == "qualifier_drift"
+    assert by_entity["Q2"]["classification"] == "reference_drift"
+    assert by_entity["Q2"]["reference_diff"]["status"] == "reference_drift"
+    assert by_entity["Q3"]["classification"] == "safe_with_reference_transfer"
+    assert by_entity["Q3"]["claim_bundle_after"]["property"] == "P14143"
+
+
+def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "references": [{"P248": "Qsrc"}],
+                    }
+                ],
+            },
+            {
+                "id": "t2",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "references": [{"P248": "Qsrc"}],
+                    }
+                ],
+            },
+        ]
+    }
+
+    report = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    assert report["summary"]["checked_safe_subset"] == [
+        report["candidates"][0]["candidate_id"]
+    ]
+    assert report["candidates"][0]["classification"] == "safe_with_reference_transfer"
 
 
 def test_project_wikidata_payload_reports_pilot_pack_parthood_typing() -> None:

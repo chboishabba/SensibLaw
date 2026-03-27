@@ -1,0 +1,156 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from pathlib import Path
+
+import jsonschema
+import yaml
+
+from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
+from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
+from src.cross_system_phi import build_cross_system_phi_prototype
+from src.gwb_us_law.linkage import ensure_gwb_us_law_schema, import_gwb_us_law_seed_payload
+from src.gwb_us_law.semantic import build_gwb_semantic_report, ensure_gwb_semantic_schema, run_gwb_semantic_pipeline
+from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
+from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
+
+
+def _load_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.cross_system_phi.contract.v1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _build_au_report(tmp_path: Path) -> dict:
+    db_path = tmp_path / "phi_au.sqlite"
+    seed_payload = json.loads((Path("data/ontology/au_semantic_linkage_seed_v1.json")).read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-07T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_hca_s942025_aoo.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 1936, "text": "1936"},
+                "section": "Appeal",
+                "text": "The appellant appealed and the matter was heard by the High Court in House v The King.",
+            },
+            {
+                "event_id": "ev2",
+                "anchor": {"year": 2003, "text": "2003"},
+                "section": "Judicial review",
+                "text": "The plaintiff challenged the Native Title (NSW) Act 1994, but the Court was not separately identified.",
+            },
+        ],
+    }
+    persist_wiki_timeline_aoo_run(
+        db_path=db_path,
+        out_payload=timeline_payload,
+        timeline_path=tmp_path / "wiki_timeline_hca_s942025_aoo.json",
+    )
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_gwb_semantic_schema(conn)
+        ensure_au_semantic_schema(conn)
+        import_au_semantic_seed_payload(conn, seed_payload)
+        result = run_au_semantic_pipeline(conn)
+        return build_au_semantic_report(conn, run_id=result["run_id"])
+
+
+def _build_gwb_report(tmp_path: Path) -> dict:
+    db_path = tmp_path / "phi_gwb.sqlite"
+    seed_payload = json.loads((Path("data/ontology/gwb_us_law_linkage_seed_v1.json")).read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-03-07T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_gwb.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 2005, "text": "September 29, 2005"},
+                "section": "Confirmations",
+                "text": "John Roberts was confirmed by the Senate on September 29, 2005.",
+            },
+            {
+                "event_id": "ev2",
+                "anchor": {"year": 2006, "text": "October 17, 2006"},
+                "section": "Legislation",
+                "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law.",
+            },
+            {
+                "event_id": "ev3",
+                "anchor": {"year": 2008, "text": "July 31, 2008"},
+                "section": "Litigation",
+                "text": "On July 31, 2008, a United States district court judge ruled that the Military Commissions Act of 2006 was unconstitutional.",
+            },
+        ],
+    }
+    persist_wiki_timeline_aoo_run(
+        db_path=db_path,
+        out_payload=timeline_payload,
+        timeline_path=tmp_path / "wiki_timeline_gwb.json",
+    )
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
+        ensure_gwb_us_law_schema(conn)
+        ensure_gwb_semantic_schema(conn)
+        import_gwb_us_law_seed_payload(conn, seed_payload)
+        result = run_gwb_semantic_pipeline(conn)
+        return build_gwb_semantic_report(conn, run_id=result["run_id"])
+
+
+def test_cross_system_phi_prototype_builds_from_real_promoted_reports(tmp_path: Path) -> None:
+    au_report = _build_au_report(tmp_path)
+    gwb_report = _build_gwb_report(tmp_path)
+
+    payload = build_cross_system_phi_prototype(
+        motif_family="review_and_authority_relations",
+        source_system_id="au_hca",
+        source_authority_scope="Promoted AU appellate/review relations from the bounded High Court fixture.",
+        source_report=au_report,
+        target_system_id="us_exec_judicial",
+        target_authority_scope="Promoted US governance/review relations from the bounded GWB fixture.",
+        target_report=gwb_report,
+    )
+
+    jsonschema.validate(payload, _load_schema())
+
+    assert payload["payload_version"] == "sl.cross_system_phi.contract.v1"
+    assert payload["provenance_rule"]["rule_id"] == "sl.phi.provenance_dual_anchor.v1"
+    assert payload["provenance_rule"]["source_anchor_required"] is True
+    assert payload["provenance_rule"]["target_anchor_required"] is True
+    assert payload["mismatch_report"]["workflow"]["workflow_id"] == "sl.phi_mismatch_review.v1"
+    assert payload["mismatch_report"]["workflow"]["default_status"] == "open"
+
+    statuses = {row["status"] for row in payload["mappings"]}
+    assert "partial" in statuses
+    assert "incompatible" in statuses
+
+    partial_mapping = next(row for row in payload["mappings"] if row["status"] == "partial")
+    incompatible_mapping = next(row for row in payload["mappings"] if row["status"] == "incompatible")
+    assert partial_mapping["target_ref"] is not None
+    assert incompatible_mapping["target_ref"] is not None
+
+    provenance_index = {row["provenance_ref"]: row for row in payload["provenance_index"]}
+    for mapping in payload["mappings"]:
+        for provenance_ref in mapping["provenance_refs"]:
+            assert provenance_ref in provenance_index
+            provenance_row = provenance_index[provenance_ref]
+            assert provenance_row["source_char_end"] > provenance_row["source_char_start"]
+            assert provenance_row["event_text"]
+
+    for diagnostic in payload["mismatch_report"]["diagnostics"]:
+        assert diagnostic["status"] == "open"
+        assert len(diagnostic["provenance_refs"]) == 2
+        systems = {provenance_index[ref]["system_id"] for ref in diagnostic["provenance_refs"]}
+        assert systems == {"au_hca", "us_exec_judicial"}
+
+    assert partial_mapping["mismatch_refs"]
+    assert incompatible_mapping["mismatch_refs"]
+    assert incompatible_mapping["mapping_id"] in payload["mismatch_report"]["incompatible_mapping_ids"]
+
+
+def test_cross_system_phi_minimal_example_still_validates_under_extended_schema() -> None:
+    payload = json.loads(Path("examples/cross_system_phi_minimal.json").read_text(encoding="utf-8"))
+    jsonschema.validate(payload, _load_schema())

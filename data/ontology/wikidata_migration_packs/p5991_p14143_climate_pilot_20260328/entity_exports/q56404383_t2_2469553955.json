@@ -1,0 +1,624 @@
+{
+  "_source_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/entity_exports/q56404383_t2_2469553955.json",
+  "_source_qid": "Q56404383",
+  "_source_revision": 2469553955,
+  "entities": {
+    "Q56404383": {
+      "aliases": {},
+      "claims": {
+        "P1128": [
+          {
+            "id": "Q56404383$eb175d3e-4782-44ce-84d7-b7afdc76ab4c",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+800",
+                  "unit": "1"
+                }
+              },
+              "hash": "ae24aaca7e98174ab570d385dc5ea8c5fc11e675",
+              "property": "P1128",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P1320": [
+          {
+            "id": "Q56404383$4380754B-5E89-43D4-A9DB-1475A7C826C9",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "no/971171324"
+              },
+              "hash": "4a6ed6e8cc0f1e5a00f8dd239f7c6aa25720741a",
+              "property": "P1320",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "f1a2e8a17c875620baf5a7ae834892bf0a99fa0d",
+                "snaks": {
+                  "P2333": [
+                    {
+                      "datatype": "external-id",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "971171324"
+                      },
+                      "hash": "48e68a6789c1b441315462d1f63468fd3c9ef1ff",
+                      "property": "P2333",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P3452": [
+                    {
+                      "datatype": "wikibase-item",
+                      "datavalue": {
+                        "type": "wikibase-entityid",
+                        "value": {
+                          "entity-type": "item",
+                          "id": "Q1770101",
+                          "numeric-id": 1770101
+                        }
+                      },
+                      "hash": "699a90e175fe02763b813e2336b52b027bf532a9",
+                      "property": "P3452",
+                      "snaktype": "value"
+                    }
+                  ],
+                  "P813": [
+                    {
+                      "datatype": "time",
+                      "datavalue": {
+                        "type": "time",
+                        "value": {
+                          "after": 0,
+                          "before": 0,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                          "precision": 11,
+                          "time": "+2020-09-24T00:00:00Z",
+                          "timezone": 0
+                        }
+                      },
+                      "hash": "5d20b450b1aa6c2cd42bb1d1b137f4d841b595e1",
+                      "property": "P813",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P3452",
+                  "P2333",
+                  "P813"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P1454": [
+          {
+            "id": "Q56404383$35c721e4-420b-ff04-634b-a5c8f8b141ed",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q4571663",
+                  "numeric-id": 4571663
+                }
+              },
+              "hash": "f1b280ddbcb4fd918c92f9ca00f9b458df207fdf",
+              "property": "P1454",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P154": [
+          {
+            "id": "Q56404383$f3b5838b-4e5f-6996-b2e9-c84e844c9461",
+            "mainsnak": {
+              "datatype": "commonsMedia",
+              "datavalue": {
+                "type": "string",
+                "value": "Handelsbanken.svg"
+              },
+              "hash": "62adebcaf40b4be0160d3750c407568edcdc8538",
+              "property": "P154",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P159": [
+          {
+            "id": "Q56404383$15bd46b0-4408-3c25-621c-cba8162acd28",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q585",
+                  "numeric-id": 585
+                }
+              },
+              "hash": "09aba73b16a81800860415d8d491a2f7f3fded40",
+              "property": "P159",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P169": [
+          {
+            "id": "Q56404383$f26041ee-4292-b003-84cf-61bc4b8a5074",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q5208431",
+                  "numeric-id": 5208431
+                }
+              },
+              "hash": "5c657d41a9e89e96c6fb8caa110137042153a740",
+              "property": "P169",
+              "snaktype": "value"
+            },
+            "rank": "deprecated",
+            "type": "statement"
+          }
+        ],
+        "P17": [
+          {
+            "id": "Q56404383$82495b79-481b-e0ef-95ed-873125763990",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q20",
+                  "numeric-id": 20
+                }
+              },
+              "hash": "6b641ae447361ea7b9069dd798128243a1cdca37",
+              "property": "P17",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P214": [
+          {
+            "id": "Q56404383$C2C8D17B-1E4E-4CCC-950C-F06029E84A65",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "7986149198272074940001"
+              },
+              "hash": "e1a4004ba63dafa9f8351a5ed76f99ab092e5d69",
+              "property": "P214",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P2333": [
+          {
+            "id": "Q56404383$e1e7dba7-4bb3-6579-9557-9da85172633b",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "971171324"
+              },
+              "hash": "48e68a6789c1b441315462d1f63468fd3c9ef1ff",
+              "property": "P2333",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P2671": [
+          {
+            "id": "Q56404383$FD1590CB-8C7E-4FC1-8706-057380538A94",
+            "mainsnak": {
+              "datatype": "external-id",
+              "datavalue": {
+                "type": "string",
+                "value": "/g/123b47bs"
+              },
+              "hash": "8cf0b531be4350932c74b245ac74e9545f7a3154",
+              "property": "P2671",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P31": [
+          {
+            "id": "Q56404383$7c0816c1-4709-b912-27c8-004d492a155a",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q22687",
+                  "numeric-id": 22687
+                }
+              },
+              "hash": "6cb6a4205767ea98d196f7886598fc0e510b8fe8",
+              "property": "P31",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P452": [
+          {
+            "id": "Q56404383$d05ff3e2-4f77-b7f2-83a0-cb58989cde38",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q837171",
+                  "numeric-id": 837171
+                }
+              },
+              "hash": "b45cb29ad5b08d5faa02ff01116c670d77e94950",
+              "property": "P452",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P571": [
+          {
+            "id": "Q56404383$44ae70f5-4cda-9919-d933-8c0d85ae1537",
+            "mainsnak": {
+              "datatype": "time",
+              "datavalue": {
+                "type": "time",
+                "value": {
+                  "after": 0,
+                  "before": 0,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                  "precision": 9,
+                  "time": "+1986-00-00T00:00:00Z",
+                  "timezone": 0
+                }
+              },
+              "hash": "1ce5533a7719cce8613a3fcdfd86190bfafd31fc",
+              "property": "P571",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P5991": [
+          {
+            "id": "Q56404383$936D8D61-347B-4039-8E7B-9DE83A342A93",
+            "mainsnak": {
+              "datatype": "quantity",
+              "datavalue": {
+                "type": "quantity",
+                "value": {
+                  "amount": "+838358",
+                  "unit": "http://www.wikidata.org/entity/Q57084755"
+                }
+              },
+              "hash": "1d34225136f14418abff13d2283403237beae02c",
+              "property": "P5991",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P3831": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883309",
+                      "numeric-id": 124883309
+                    }
+                  },
+                  "hash": "6353c7865c5eef19ed18c1993fdf3fb81fcb705e",
+                  "property": "P3831",
+                  "snaktype": "value"
+                }
+              ],
+              "P459": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q56296245",
+                      "numeric-id": 56296245
+                    }
+                  },
+                  "hash": "e67d307f076d61e463c3d1cc959d0b81675ee35b",
+                  "property": "P459",
+                  "snaktype": "value"
+                }
+              ],
+              "P518": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q124883654",
+                      "numeric-id": 124883654
+                    }
+                  },
+                  "hash": "fcece16fe5e3284ee48d45f53cc609f248daae3e",
+                  "property": "P518",
+                  "snaktype": "value"
+                }
+              ],
+              "P580": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-01-01T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "8f2ee016131ab47f267cb4216bcbe8201f798159",
+                  "property": "P580",
+                  "snaktype": "value"
+                }
+              ],
+              "P582": [
+                {
+                  "datatype": "time",
+                  "datavalue": {
+                    "type": "time",
+                    "value": {
+                      "after": 0,
+                      "before": 0,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+                      "precision": 11,
+                      "time": "+2023-12-31T00:00:00Z",
+                      "timezone": 0
+                    }
+                  },
+                  "hash": "5787f1aa622566791e00838faad6f93c8c2d7954",
+                  "property": "P582",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P3831",
+              "P580",
+              "P582",
+              "P459",
+              "P518"
+            ],
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "bdce79fe32b9e614e487df0b81bf91f7ac8746ed",
+                "snaks": {
+                  "P854": [
+                    {
+                      "datatype": "url",
+                      "datavalue": {
+                        "type": "string",
+                        "value": "https://www.handelsbanken.com/tron/xgpu/info/contents/v1/document/76-169033"
+                      },
+                      "hash": "ea1b4524967154e52799061b80c8b96a861861c4",
+                      "property": "P854",
+                      "snaktype": "value"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P854"
+                ]
+              }
+            ],
+            "type": "statement"
+          }
+        ],
+        "P749": [
+          {
+            "id": "Q56404383$43f8392f-47b1-640e-4768-1c7ae9ae7208",
+            "mainsnak": {
+              "datatype": "wikibase-item",
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q1421630",
+                  "numeric-id": 1421630
+                }
+              },
+              "hash": "0276b3bc15ab272724241d801a7a42325ed586d5",
+              "property": "P749",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ],
+        "P856": [
+          {
+            "id": "Q56404383$90317150-4c1c-b630-a96f-0b4cd064471b",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "http://www.handelsbanken.no"
+              },
+              "hash": "8752df8d6e5a3322423156ff9f6136eb974776d5",
+              "property": "P856",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          },
+          {
+            "id": "Q56404383$252d363b-4a85-659e-3ace-f3eb6001a3c3",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "https://www.handelsbanken.co.uk/"
+              },
+              "hash": "1847fabce12949443c4206c2a486624c4a25947e",
+              "property": "P856",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P407": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q1860",
+                      "numeric-id": 1860
+                    }
+                  },
+                  "hash": "daf1c4fcb58181b02dff9cc89deb084004ddae4b",
+                  "property": "P407",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P407"
+            ],
+            "rank": "normal",
+            "type": "statement"
+          },
+          {
+            "id": "Q56404383$224813ec-4211-21f5-eb4a-46c6e3a24436",
+            "mainsnak": {
+              "datatype": "url",
+              "datavalue": {
+                "type": "string",
+                "value": "https://www.handelsbanken.com"
+              },
+              "hash": "7a688e5f2a57dea453c89add8590b7871fa3ecb8",
+              "property": "P856",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P407": [
+                {
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "entity-type": "item",
+                      "id": "Q1860",
+                      "numeric-id": 1860
+                    }
+                  },
+                  "hash": "daf1c4fcb58181b02dff9cc89deb084004ddae4b",
+                  "property": "P407",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "qualifiers-order": [
+              "P407"
+            ],
+            "rank": "normal",
+            "type": "statement"
+          }
+        ]
+      },
+      "descriptions": {
+        "ar": {
+          "language": "ar",
+          "value": "بنك في النرويج"
+        },
+        "da": {
+          "language": "da",
+          "value": "norsk filial af Svenska Handelsbanken"
+        },
+        "en": {
+          "language": "en",
+          "value": "Bank"
+        },
+        "nb": {
+          "language": "nb",
+          "value": "norsk filial av Svenska Handelsbanken"
+        }
+      },
+      "id": "Q56404383",
+      "labels": {
+        "da": {
+          "language": "da",
+          "value": "Handelsbanken"
+        },
+        "en": {
+          "language": "en",
+          "value": "Handelsbanken"
+        },
+        "nb": {
+          "language": "nb",
+          "value": "Handelsbanken"
+        },
+        "sv": {
+          "language": "sv",
+          "value": "Handelsbanken"
+        }
+      },
+      "lastrevid": 2469553955,
+      "modified": "2026-03-05T10:00:51Z",
+      "ns": 0,
+      "pageid": 56343569,
+      "sitelinks": {
+        "nowiki": {
+          "badges": [],
+          "site": "nowiki",
+          "title": "Handelsbanken",
+          "url": "https://no.wikipedia.org/wiki/Handelsbanken"
+        }
+      },
+      "title": "Q56404383",
+      "type": "item"
+    }
+  }
+}
