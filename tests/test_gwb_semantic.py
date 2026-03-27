@@ -125,6 +125,7 @@ def test_gwb_semantic_pipeline_promotes_actor_and_relation_rows(tmp_path: Path) 
     assert signed_row["canonical_promotion_status"] == "promoted_true"
     assert signed_row["canonical_promotion_basis"] == "structural"
     assert signed_row["canonical_promotion_reason"] == "structural_relation_promoted"
+    assert report["summary"]["semantic_basis_counts"]["structural"] == len(report["relation_candidates"])
 
     per_entity = {row["entity"]["canonical_key"]: row for row in report["per_entity"]}
     assert per_entity["actor:george_w_bush"]["promoted_relation_count"] >= 3

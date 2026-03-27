@@ -3681,6 +3681,7 @@ def build_gwb_semantic_report(conn: sqlite3.Connection, *, run_id: str) -> dict[
             "candidate_only_relation_count": len(candidate_only_relations),
             "abstained_relation_candidate_count": len(abstained_relation_candidates),
             "unresolved_mention_count": len(unresolved_mentions),
+            "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in candidate_relations)),
         },
         "promoted_relations": promoted_relations,
         "relation_candidates": candidate_relations,

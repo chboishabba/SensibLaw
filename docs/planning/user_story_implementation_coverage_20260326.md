@@ -162,7 +162,8 @@ design pressure only.
   transcript lane now emits explicit object/predicate receipts for
   `felt_state` and `replied_to`. The contested lane also now treats explicit
   predicate/component bindings as `structural`, while lexical justification
-  hints remain the reason a row stays `mixed`.
+  hints remain the reason a row stays `mixed`. Covered summaries now expose
+  `semantic_basis_counts` so remaining basis drift is measurable in artifacts.
 - Mission observer is now in bounded SB/mission-lens scope operationally, but
   there is no separate SL-reducer-backed promotion model that would justify
   upgrading it into canonical truth-bearing semantics.

@@ -31,6 +31,9 @@ Current closure check:
 - contested semantic basis is also now less blunt:
   explicit predicate/component bindings can promote rows to `structural`, while
   lexical justifications remain the reason a row stays `mixed`
+- covered semantic summaries now expose `semantic_basis_counts`, so the
+  remaining `mixed`/`heuristic` shrinkage is directly measurable in report
+  artifacts rather than only inferred from spot checks
 - mission observer is now clearly SB/mission-lens scoped operationally, but it
   still requires a separate SL-reducer-backed candidate/promotion design
   before it should enter the canonical truth-bearing semantic family

@@ -1745,6 +1745,7 @@ def build_affidavit_coverage_review(
         ),
         "contested_source_count": sum(1 for row in source_review_rows if row["review_status"] == "contested_source"),
         "abstained_source_count": sum(1 for row in source_review_rows if row["review_status"] == "abstained_source"),
+        "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in affidavit_rows)),
     }
     for workload_class in _WORKLOAD_CLASS_PRIORITY:
         summary[f"{workload_class}_count"] = sum(

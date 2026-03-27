@@ -98,6 +98,7 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert payload["summary"]["missing_review_count"] == 1
     assert payload["summary"]["contested_source_count"] == 1
     assert payload["summary"]["abstained_source_count"] == 1
+    assert payload["summary"]["semantic_basis_counts"]
 
     affidavit_rows = {row["proposition_id"]: row for row in payload["affidavit_rows"]}
     assert affidavit_rows["aff-prop:p1-s1"]["coverage_status"] == "covered"

@@ -56,6 +56,7 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
     artifact = json.loads(Path(payload["artifact_path"]).read_text(encoding="utf-8"))
     summary = Path(payload["summary_path"]).read_text(encoding="utf-8")
     assert artifact["summary"]["affidavit_proposition_count"] == 2
+    assert artifact["summary"]["semantic_basis_counts"]["structural"] == 2
     assert artifact["source_input"]["path"] == "https://docs.google.com/document/d/resp/edit?usp=sharing"
     first_row = artifact["affidavit_rows"][0]
     second_row = artifact["affidavit_rows"][1]

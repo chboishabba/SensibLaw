@@ -61,6 +61,7 @@ def test_transcript_semantic_pipeline_persists_speakers_and_candidate_reply_rela
     assert replied_row["canonical_promotion_status"] == "abstained"
     assert replied_row["canonical_promotion_basis"] == "structural"
     assert replied_row["canonical_promotion_reason"] == "relation_candidate_not_promoted"
+    assert report["summary"]["semantic_basis_counts"]["structural"] >= 1
 
     alice_entity = conn.execute(
         """

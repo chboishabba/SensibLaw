@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 import re
 import sqlite3
@@ -1366,6 +1366,7 @@ def build_transcript_semantic_report(
             "candidate_only_relation_count": len(candidate_only),
             "abstained_relation_candidate_count": len(abstained),
             "unresolved_mention_count": len(unresolved_mentions),
+            "semantic_basis_counts": dict(Counter(str(row.get("semantic_basis") or "") for row in candidate_rows)),
         },
         "promoted_relations": promoted,
         "relation_candidates": candidate_rows,

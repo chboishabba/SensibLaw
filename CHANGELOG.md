@@ -2236,6 +2236,15 @@
     while lexical justification hints remain the reason a row stays `mixed`.
   - Added focused coverage in `tests/test_affidavit_coverage_review.py` to pin
     the new contested basis boundary.
+- Semantic-basis summary instrumentation:
+  - Added `summary.semantic_basis_counts` to GWB semantic reports, transcript
+    semantic reports, and affidavit-coverage review artifacts so remaining
+    `mixed` / `heuristic` basis shrinkage is measurable directly in the output
+    surfaces.
+  - Added coverage in `tests/test_gwb_semantic.py`,
+    `tests/test_transcript_semantic.py`,
+    `tests/test_affidavit_coverage_review.py`, and
+    `tests/test_google_docs_contested_narrative_review.py`.
 - Semantic-promotion gate enforcement:
   - Added `tests/policy/test_semantic_gate_enforcement.py` to assert that the
     currently covered truth-bearing lanes route canonical promotion fields
