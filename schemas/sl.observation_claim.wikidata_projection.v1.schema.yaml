@@ -1,0 +1,165 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.observation_claim.wikidata_projection.v1
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - source_contract_version
+  - projection_mode
+  - projection_records
+  - projection_summary
+properties:
+  schema_version:
+    type: string
+    const: sl.observation_claim.wikidata_projection.v1
+  source_contract_version:
+    type: string
+    const: sl.observation_claim.contract.v1
+  projection_mode:
+    type: string
+    const: evidence_preserving_reified_triples
+  generated_at:
+    type: string
+  projection_records:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - projection_id
+        - claim_id
+        - observation_id
+        - subject_id
+        - subject_type
+        - predicate
+        - object_id
+        - object_type
+        - wikidata_epistemic_value
+        - confidence
+        - source_unit_id
+        - evidence_link_ids
+        - evidence_refs
+        - state_transition_receipt_ids
+        - temporal_scope
+        - provenance
+      properties:
+        projection_id:
+          type: string
+        claim_id:
+          type: string
+        observation_id:
+          type: string
+        subject_id:
+          type: string
+        subject_type:
+          type: string
+        predicate:
+          type: string
+        object_id:
+          type: string
+        object_type:
+          type: string
+        wikidata_epistemic_value:
+          type: string
+          enum: [supported, contradicted, abstained, unknown]
+        confidence:
+          type: [number, "null"]
+        source_unit_id:
+          type: string
+        norm_id:
+          type: [string, "null"]
+        source_quote:
+          type: [string, "null"]
+        evidence_link_ids:
+          type: array
+          items:
+            type: string
+        evidence_refs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - ref_type
+              - ref_value
+            properties:
+              ref_type:
+                type: string
+              ref_value:
+                type: string
+        provenance:
+          type: object
+          additionalProperties: false
+          required:
+            - jurisdiction
+            - observation_status
+            - canonicality
+          properties:
+            jurisdiction:
+              type: [string, "null"]
+            observation_status:
+              type: string
+            canonicality:
+              type: string
+        state_transition_receipt_ids:
+          type: array
+          items:
+            type: string
+        state_transition_receipts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - transition_receipt_id
+              - jurisdiction
+              - legal_version
+              - effective_from
+              - rule_version
+            properties:
+              transition_receipt_id:
+                type: string
+              jurisdiction:
+                type: string
+              legal_version:
+                type: string
+              effective_from:
+                type: string
+              effective_to:
+                type: [string, "null"]
+              rule_version:
+                type: string
+        temporal_scope:
+          type: object
+          additionalProperties: false
+          properties:
+            observed_at:
+              type: [string, "null"]
+            asserted_at:
+              type: [string, "null"]
+            effective_from:
+              type: [string, "null"]
+            effective_to:
+              type: [string, "null"]
+  projection_summary:
+    type: object
+    additionalProperties: false
+    required:
+      - total_records
+      - dropped_field_count
+    properties:
+      total_records:
+        type: integer
+      dropped_field_count:
+        type: integer
+      jurisdiction_count:
+        type: integer
+      temporal_scope_records:
+        type: integer
+      transition_receipt_count:
+        type: integer
+      transition_receipts_with_jurisdiction:
+        type: integer
+      transition_receipts_with_legal_version:
+        type: integer

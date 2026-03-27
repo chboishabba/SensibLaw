@@ -1,6 +1,26 @@
 # Changelog
 
 ## Unreleased
+- Milestone R temporal/jurisdiction parity for Wikidata projection:
+  - Extended `src/sl_projection_boundary.py` so `build_wikidata_projection_report(...)`
+    includes per-record temporal scope and transition-receipt provenance, plus
+    jurisdiction-aware projection summary counters.
+  - Updated `schemas/sl.observation_claim.wikidata_projection.v1.schema.yaml` to
+    make `state_transition_receipt_ids`, `temporal_scope`, and corresponding
+    summary counters schema-valid.
+  - Added assertions in
+    `tests/test_observation_claim_wikidata_projection.py` covering temporal
+    scope, transition receipts, and jurisdiction provenance in the projection
+    output.
+  - Expanded projection rows to include `state_transition_receipts` payload fields
+    (`jurisdiction`, `legal_version`, `effective_from`, `effective_to`,
+    `rule_version`) for deterministic auditability.
+- Milestone R contract definition:
+  - Added a bounded machine contract for Observation/Claim/evidence-link payloads:
+    `schemas/sl.observation_claim.contract.v1.schema.yaml`.
+  - Linked the contract from
+    `docs/planning/sl_observation_claim_contract_20260327.md` so milestone R
+    contract definition now has a runtime-validatable schema surface.
 - Cross-source follow/review control plane:
   - Added `src/fact_intake/control_plane.py` with the first portable
     `follow.control.v1` contract for operator queues:

@@ -1,0 +1,313 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.observation_claim.contract.v1
+type: object
+additionalProperties: false
+required:
+  - payload_version
+  - observations
+  - claims
+  - evidence_links
+properties:
+  payload_version:
+    type: string
+    const: sl.observation_claim.contract.v1
+  observations:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - observation_id
+        - source_unit_id
+        - source_quote
+        - evidence_refs
+        - status
+        - canonicality
+        - payload_version
+        - hash
+        - asserted_at
+      properties:
+        observation_id:
+          type: string
+        source_unit_id:
+          type: string
+        source_quote:
+          type: string
+        source_span:
+          type: object
+          required:
+            - start_char
+            - end_char
+          properties:
+            start_char:
+              type: integer
+            end_char:
+              type: integer
+            start_token:
+              type: [integer, "null"]
+            end_token:
+              type: [integer, "null"]
+        speaker_id:
+          type: [string, "null"]
+        speaker_role:
+          type: [string, "null"]
+        jurisdiction:
+          type: [string, "null"]
+        certainty:
+          type: [string, "null"]
+        observed_at:
+          type: [string, "null"]
+        asserted_at:
+          type: string
+        evidence_refs:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - span_ref
+              - ref_type
+            properties:
+              span_ref:
+                type: string
+              ref_type:
+                type: string
+        status:
+          type: string
+          enum:
+            - active
+            - revised
+            - withdrawn
+            - disputed
+        canonicality:
+          type: string
+          enum:
+            - raw
+            - verified
+            - adjudicated
+        payload_version:
+          type: string
+          const: sl.observation_claim.contract.v1
+        hash:
+          type: string
+  claims:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - claim_id
+        - observation_id
+        - predicate
+        - subject_id
+        - object_id
+        - subject_type
+        - object_type
+        - norm_id
+        - posture
+        - evidence_quality
+        - confidence
+        - claim_created_at
+        - claim_updated_at
+        - evidence_links
+        - hash
+      properties:
+        claim_id:
+          type: string
+        observation_id:
+          type: string
+        predicate:
+          type: string
+        subject_id:
+          type: string
+        object_id:
+          type: string
+        subject_type:
+          type: string
+        object_type:
+          type: string
+        norm_id:
+          type: [string, "null"]
+        posture:
+          type: string
+          enum:
+            - asserted
+            - denied
+            - abstained
+        evidence_quality:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        confidence:
+          type: [number, "null"]
+        claim_created_at:
+          type: string
+        claim_updated_at:
+          type: string
+        source_conflict_refs:
+          type: array
+          items:
+            type: string
+        evidence_links:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        evidence_conflicts:
+          type: array
+          items:
+            type: string
+        hash:
+          type: string
+  evidence_links:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - link_id
+        - claim_id
+        - link_kind
+        - link_hash
+      properties:
+        link_id:
+          type: string
+        claim_id:
+          type: string
+        observation_id:
+          type: [string, "null"]
+        source_unit_id:
+          type: [string, "null"]
+        link_kind:
+          type: string
+          enum:
+            - supporting
+            - contradicting
+            - neutral
+        span_ref:
+          type: [string, "null"]
+        trace_refs:
+          type: array
+          items:
+            type: string
+        link_hash:
+          type: string
+        transition_receipts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - transition_receipt_id
+              - current_state
+              - next_state
+              - deltas
+              - observation_ids
+              - rule_id
+              - rule_version
+              - jurisdiction
+              - legal_version
+              - effective_from
+            properties:
+              transition_receipt_id:
+                type: string
+              current_state:
+                type: string
+              next_state:
+                type: string
+              rule_version:
+                type: string
+              jurisdiction:
+                type: string
+              legal_version:
+                type: string
+              effective_from:
+                type: string
+              effective_to:
+                type: [string, "null"]
+              deltas:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - kind
+                    - before
+                    - after
+                  properties:
+                    kind:
+                      type: string
+                    before:
+                      type: string
+                    after:
+                      type: string
+              observation_ids:
+                type: array
+                items:
+                  type: string
+              rule_id:
+                type: string
+              guard_set:
+                type: object
+                additionalProperties: false
+  transition_receipts:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - transition_receipt_id
+        - current_state
+        - next_state
+        - deltas
+        - observation_ids
+        - rule_id
+        - rule_version
+        - jurisdiction
+        - legal_version
+        - effective_from
+      properties:
+        transition_receipt_id:
+          type: string
+        current_state:
+          type: string
+        next_state:
+          type: string
+        deltas:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - kind
+              - before
+              - after
+            properties:
+              kind:
+                type: string
+              before:
+                type: string
+              after:
+                type: string
+        observation_ids:
+          type: array
+          items:
+            type: string
+        rule_id:
+          type: string
+        rule_version:
+          type: string
+        jurisdiction:
+          type: string
+        legal_version:
+          type: string
+        effective_from:
+          type: string
+        effective_to:
+          type: [string, "null"]
+        guard_set:
+          type: object
+          additionalProperties: false
