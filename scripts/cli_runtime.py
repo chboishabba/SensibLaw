@@ -29,8 +29,26 @@ def build_progress_callback(*, enabled: bool, fmt: str = "human") -> ProgressCal
     return _human_progress
 
 
+def build_event_callback(
+    *,
+    enabled: bool,
+    fmt: str = "human",
+    label: str = "trace",
+) -> ProgressCallback | None:
+    if not enabled:
+        return None
+    if fmt == "json":
+        return lambda stage, details: _json_event(label, stage, details)
+    return lambda stage, details: _human_event(label, stage, details)
+
+
 def _json_progress(stage: str, details: dict[str, Any]) -> None:
     payload = {"stage": stage, **details}
+    print(json.dumps(payload, sort_keys=True), file=sys.stderr, flush=True)
+
+
+def _json_event(label: str, stage: str, details: dict[str, Any]) -> None:
+    payload = {"event_type": label, "stage": stage, **details}
     print(json.dumps(payload, sort_keys=True), file=sys.stderr, flush=True)
 
 
@@ -63,6 +81,24 @@ def _human_progress(stage: str, details: dict[str, Any]) -> None:
         parts.append(f"eta_confidence={confidence}")
     if status:
         parts.append(f"status={status}")
+    if message:
+        parts.append(f"- {message}")
+    print(" ".join(parts), file=sys.stderr, flush=True)
+
+
+def _human_event(label: str, stage: str, details: dict[str, Any]) -> None:
+    message = str(details.get("message") or "").strip()
+    parts: list[str] = [f"[{label}] {stage}"]
+    for key, value in sorted(details.items()):
+        if key == "message":
+            continue
+        if value is None:
+            continue
+        if isinstance(value, (dict, list, tuple)):
+            rendered = json.dumps(value, sort_keys=True)
+        else:
+            rendered = str(value)
+        parts.append(f"{key}={rendered}")
     if message:
         parts.append(f"- {message}")
     print(" ".join(parts), file=sys.stderr, flush=True)

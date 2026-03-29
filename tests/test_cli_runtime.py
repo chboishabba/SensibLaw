@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 from contextlib import redirect_stderr
 
-from scripts.cli_runtime import build_progress_callback
+from scripts.cli_runtime import build_event_callback, build_progress_callback
 
 
 def test_build_progress_callback_disabled_returns_none() -> None:
@@ -63,3 +63,27 @@ def test_json_progress_writes_json_line() -> None:
     output = stream.getvalue().strip()
     assert '"stage": "stage"' in output
     assert '"section": "demo"' in output
+
+
+def test_human_event_writes_trace_line() -> None:
+    callback = build_event_callback(enabled=True, fmt="human", label="trace")
+    stream = io.StringIO()
+    with redirect_stderr(stream):
+        assert callback is not None
+        callback("tokenized", {"proposition_id": "aff-prop:p1-s1", "tokens": ["internet", "november"]})
+    output = stream.getvalue()
+    assert "[trace] tokenized" in output
+    assert "proposition_id=aff-prop:p1-s1" in output
+    assert '"internet"' in output
+
+
+def test_json_event_writes_json_line() -> None:
+    callback = build_event_callback(enabled=True, fmt="json", label="trace")
+    stream = io.StringIO()
+    with redirect_stderr(stream):
+        assert callback is not None
+        callback("classified", {"status": "disputed"})
+    output = stream.getvalue().strip()
+    assert '"event_type": "trace"' in output
+    assert '"stage": "classified"' in output
+    assert '"status": "disputed"' in output

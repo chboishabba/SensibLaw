@@ -91,6 +91,14 @@
 - [ ] Update UI/runtime surfaces that still read affidavit review artifacts
   directly so they prefer the persisted contested-review receiver when it is
   available.
+- [ ] Add duplicate-root and side-local leaf reconciliation to the affidavit lane
+  so contested comparison rows can cluster materially duplicate John-side and
+  Johl-side claims under one shared root without flattening side-local wording.
+  First target:
+  use the live Johl affidavit / response pair to stop same-incident sibling
+  leaves cross-swapping into the wrong support or dispute row. Contract notes:
+  `../docs/planning/affidavit_claim_reconciliation_contract_20260329.md` and
+  `../docs/planning/affidavit_coverage_review_lane_20260325.md`.
 - [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
   resolver matches the documented authority order (`already-ingested/local ->
   JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search
@@ -217,6 +225,10 @@
   `f20d9304aae805879a1f934b71443bd2c80ac19b`) as a cross-project formalization
   boundary reference:
   - preserve the proposed `DA51 (empirical) → SL (canonical structure) → Agda (formal proof)` contract shape
+  - if later phase semantics are formalized on the Agda side, keep the current
+    reading explicit: `CLOCK ≅ Z/6`, `DASHI ≅ Z/3`, cyclic lift rather than
+    dihedral symmetry, and admissibility still governed by cone / contraction /
+    MDL rather than phase labels alone
   - preserve the `DA51Trace` fields (`da51`, `exponents`, `hot`, `cold`, `mass`, `steps`, `basin`, `j_fixed`)
   - note that this remains non-authoritative and private until JMD confirms any
     additional mapping context; do not publish private mapping details.

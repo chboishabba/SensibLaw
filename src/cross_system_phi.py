@@ -13,6 +13,11 @@ from .latent_promoted_graph import SL_LATENT_PROMOTED_GRAPH_VERSION, build_laten
 SL_CROSS_SYSTEM_PHI_CONTRACT_VERSION = "sl.cross_system_phi.contract.v1"
 SL_CROSS_SYSTEM_PHI_MISMATCH_WORKFLOW_VERSION = "sl.phi_mismatch_review.v1"
 SL_CROSS_SYSTEM_PHI_PROVENANCE_RULE_VERSION = "sl.phi.provenance_dual_anchor.v1"
+SL_CROSS_SYSTEM_PHI_VERSIONING_NOTE = (
+    "This payload is the bounded v1 transport contract: it keeps mapping status to exact, partial, incompatible, "
+    "and undefined, while future Phi v2 semantics are reserved for a separate schema that can split relation kinds, "
+    "scores, and richer latent graph structure without mutating the current transport grammar."
+)
 
 
 def _stable_hash(parts: Iterable[object]) -> str:
@@ -314,6 +319,10 @@ def _build_provenance_rule() -> dict[str, Any]:
     }
 
 
+def _build_versioning_note() -> str:
+    return SL_CROSS_SYSTEM_PHI_VERSIONING_NOTE
+
+
 def _build_mismatch_workflow() -> dict[str, Any]:
     return {
         "workflow_id": SL_CROSS_SYSTEM_PHI_MISMATCH_WORKFLOW_VERSION,
@@ -495,6 +504,7 @@ def build_cross_system_phi_prototype(
     return {
         "payload_version": SL_CROSS_SYSTEM_PHI_CONTRACT_VERSION,
         "motif_family": motif_family,
+        "versioning_note": _build_versioning_note(),
         "systems": [
             {
                 "system_id": source_system_id,

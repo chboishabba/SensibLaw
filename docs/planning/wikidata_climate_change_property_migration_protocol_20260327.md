@@ -818,6 +818,34 @@ review_pack = {
 6. Keep richer policy-driven buckets such as `non_equivalent` and
    `needs_human_review` deferred until a real pinned pack shows the next
    missing evidence.
+7. The first real text-side followthrough has now happened:
+   - a non-fixture climate text artifact exists for `Q10403939`
+     (`Akademiska Hus`) using official annual report excerpts from 2018, 2019,
+     and 2020
+   - the current bridge converts that artifact into `3` promoted observations /
+     claims and attaches it across the `Q10403939` candidates
+   - current outcome:
+     after the temporal matcher fix, all `24` candidates receive
+     `split_pressure`
+   - lesson:
+     the bridge should treat older scope-1 report text against current 2023
+     multi-scope structured data as dimensional mismatch pressure rather than
+     hard contradiction
+   - that narrow promotion is now implemented:
+     period-aware mismatch gating
+   - next runtime promotion should remain narrow:
+     add simple scope-tag carriage before broadening autonomous text ingestion
+     claims
+8. Source capture should now generalize one layer up without destabilizing the
+   bridge:
+   - treat the current PDF/report path as the first stable source-unit type,
+     not the permanent abstraction
+   - keep `sl.wikidata.climate_text_source.v1` supported for backward
+     compatibility
+   - introduce a generic revision-locked `sl.source_unit.v1` surface and a
+     `SourceUnitAdapter` runtime path that can ingest PDF snapshot text and
+     HTML snapshot text without changing downstream `ObservationClaim` or
+     bridge behavior
 
 ## Non-goals
 - no claim that the repo should decide Wikidata ontology governance

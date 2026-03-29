@@ -65,6 +65,16 @@
 - The stage-2 SL record is a typed transport boundary, not the formal proof
   authority: SL emits canonical `TraceVector` + dependency-envelope payloads,
   while Agda remains the source of proof semantics outside the SL runtime.
+- The later `CLOCK` / `DASHI` phase reading now captured in the wider ITIR docs
+  is relevant here only as an optional downstream formalization target:
+  - if this lane is ever formalized in Agda, model `CLOCK` as the cyclic
+    `Z/6` lift of `DASHI`'s `Z/3` phase, not as a dihedral construction
+  - treat the extra `CLOCK` bit as microphase / half-step refinement, not as a
+    reversal or symmetry involution
+  - keep phase kinematics separate from admissibility; cone, contraction, and
+    MDL remain the bounded gate on what can be promoted or proven
+  - do not read this as granting proposal layers (`ZOS`-style retrieval or
+    ranking) any proof or truth authority
 - Stage-3 and Stage-3b adapters support `--dry-run` and persistence modes:
   - `SensibLaw/scripts/qg_unification_to_itir_db.py`
   - `SensibLaw/scripts/qg_unification_to_tirc_capture_db.py`

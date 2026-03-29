@@ -5,6 +5,7 @@ additionalProperties: false
 required:
   - payload_version
   - motif_family
+  - versioning_note
   - systems
   - meta_contract_ref
   - latent_graphs
@@ -18,6 +19,9 @@ properties:
     type: string
     const: sl.cross_system_phi.contract.v1
   motif_family:
+    type: string
+    minLength: 1
+  versioning_note:
     type: string
     minLength: 1
   systems:

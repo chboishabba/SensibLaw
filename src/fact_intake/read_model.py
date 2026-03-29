@@ -99,6 +99,7 @@ _FACT_INTAKE_MIGRATION_FILES = (
     "012_contested_affidavit_review.sql",
     "013_authority_ingest.sql",
     "014_feedback_receipts.sql",
+    "015_contested_affidavit_relation_fields.sql",
 )
 
 REVIEW_REASON_LABELS: dict[str, str] = {
@@ -1424,9 +1425,11 @@ def persist_contested_affidavit_review(
               best_adjusted_match_score, best_match_basis, best_match_excerpt,
               duplicate_match_excerpt, best_response_role, support_status, semantic_basis,
               promotion_status, promotion_basis, promotion_reason, support_direction,
-              conflict_state, evidentiary_state, operational_status, semantic_candidate_json,
-              claim_json, response_json, justifications_json, matched_source_rows_json
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              conflict_state, evidentiary_state, operational_status, relation_root,
+              relation_leaf, primary_target_component, explanation_json,
+              missing_dimensions_json, semantic_candidate_json, claim_json,
+              response_json, justifications_json, matched_source_rows_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 review_run_id,
@@ -1452,6 +1455,11 @@ def persist_contested_affidavit_review(
                 _normalize_opt_text(row.get("conflict_state")),
                 _normalize_opt_text(row.get("evidentiary_state")),
                 _normalize_opt_text(row.get("operational_status")),
+                _normalize_opt_text(row.get("relation_root")),
+                _normalize_opt_text(row.get("relation_leaf")),
+                _normalize_opt_text(row.get("primary_target_component")),
+                _normalize_json(row.get("explanation")),
+                _normalize_json(row.get("missing_dimensions")),
                 _normalize_json(row.get("semantic_candidate")),
                 _normalize_json(row.get("claim")),
                 _normalize_json(row.get("response")),
@@ -1615,8 +1623,9 @@ def build_contested_affidavit_review_summary(
                best_match_basis, best_match_excerpt, duplicate_match_excerpt, best_response_role,
                support_status, semantic_basis, promotion_status, promotion_basis, promotion_reason,
                support_direction, conflict_state, evidentiary_state, operational_status,
-               semantic_candidate_json, claim_json, response_json, justifications_json,
-               matched_source_rows_json
+               relation_root, relation_leaf, primary_target_component, explanation_json,
+               missing_dimensions_json, semantic_candidate_json, claim_json, response_json,
+               justifications_json, matched_source_rows_json
         FROM contested_review_affidavit_rows
         WHERE review_run_id = ?
         ORDER BY paragraph_order ASC, sentence_order ASC, proposition_id ASC
@@ -1701,6 +1710,11 @@ def build_contested_affidavit_review_summary(
                 "conflict_state": _normalize_opt_text(row["conflict_state"]),
                 "evidentiary_state": _normalize_opt_text(row["evidentiary_state"]),
                 "operational_status": _normalize_opt_text(row["operational_status"]),
+                "relation_root": _normalize_opt_text(row["relation_root"]),
+                "relation_leaf": _normalize_opt_text(row["relation_leaf"]),
+                "primary_target_component": _normalize_opt_text(row["primary_target_component"]),
+                "explanation": _json_or_dict(row["explanation_json"]),
+                "missing_dimensions": _json_or_list(row["missing_dimensions_json"]),
                 "semantic_candidate": _json_or_dict(row["semantic_candidate_json"]),
                 "claim": _json_or_dict(row["claim_json"]),
                 "response": _json_or_dict(row["response_json"]),
@@ -1747,6 +1761,459 @@ def build_contested_affidavit_review_summary(
             }
             for row in zelph_rows
         ],
+    }
+
+
+_SUPPORTED_AFFIDAVIT_STATUSES = {"covered"}
+_DISPUTED_AFFIDAVIT_STATUSES = {"contested_source", "contested_affidavit"}
+_MISSING_AFFIDAVIT_STATUSES = {"unsupported_affidavit"}
+_CLARIFY_AFFIDAVIT_STATUSES = {"partial"}
+_DISPUTED_SOURCE_REVIEW_STATUSES = {"contested_source"}
+_CLARIFY_SOURCE_REVIEW_STATUSES = {"missing_review", "abstained_source"}
+_WEAKLY_ADDRESSED_SUPPORT_STATUSES = {
+    "textually_addressed",
+    "responsive_but_non_substantive",
+    "evidentially_grounded_response",
+}
+_RELATION_TOKEN_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "had",
+    "has",
+    "have",
+    "he",
+    "her",
+    "his",
+    "i",
+    "in",
+    "is",
+    "it",
+    "its",
+    "me",
+    "my",
+    "of",
+    "on",
+    "or",
+    "our",
+    "she",
+    "that",
+    "the",
+    "their",
+    "them",
+    "they",
+    "this",
+    "to",
+    "was",
+    "we",
+    "were",
+    "with",
+    "you",
+    "your",
+}
+_RELATION_SUBJECT_TOKENS = {
+    "applicant",
+    "claimant",
+    "complainant",
+    "landlord",
+    "respondent",
+    "tenant",
+    "witness",
+}
+_RELATION_BUCKET_BY_TYPE = {
+    "exact_support": "supported",
+    "equivalent_support": "supported",
+    "explicit_dispute": "disputed",
+    "implicit_dispute": "disputed",
+    "partial_overlap": "partial_support",
+    "adjacent_event": "adjacent_event",
+    "substitution": "substitution",
+    "procedural_nonanswer": "non_substantive_response",
+    "unrelated": "missing",
+}
+
+
+def _classify_contested_affidavit_proving_bucket(row: Mapping[str, Any]) -> str:
+    return _derive_contested_affidavit_relation(row)["legacy_bucket"]
+
+
+def _relation_tokens(text: str) -> set[str]:
+    normalized = (
+        str(text or "")
+        .strip()
+        .lower()
+        .replace("\n", " ")
+        .replace("\r", " ")
+        .replace(",", " ")
+        .replace(".", " ")
+        .replace(";", " ")
+        .replace(":", " ")
+        .replace("(", " ")
+        .replace(")", " ")
+        .replace("[", " ")
+        .replace("]", " ")
+        .replace("{", " ")
+        .replace("}", " ")
+        .replace("'", " ")
+        .replace('"', " ")
+    )
+    return {
+        token
+        for token in normalized.split()
+        if token and token not in _RELATION_TOKEN_STOPWORDS and len(token) > 2
+    }
+
+
+def _subject_alignment(proposition_text: str, matched_response: str) -> bool:
+    proposition_tokens = _relation_tokens(proposition_text)
+    response_tokens = _relation_tokens(matched_response)
+    if not proposition_tokens or not response_tokens:
+        return False
+    proposition_subjects = proposition_tokens & _RELATION_SUBJECT_TOKENS
+    response_subjects = response_tokens & _RELATION_SUBJECT_TOKENS
+    if proposition_subjects and response_subjects:
+        return bool(proposition_subjects & response_subjects)
+    pronoun_tokens = {"i", "me", "my", "we", "our", "he", "she", "they", "them", "their"}
+    proposition_pronouns = set(str(proposition_text or "").lower().split()) & pronoun_tokens
+    response_pronouns = set(str(matched_response or "").lower().split()) & pronoun_tokens
+    if proposition_pronouns and response_pronouns:
+        return bool(proposition_pronouns & response_pronouns)
+    return bool(proposition_tokens & response_tokens)
+
+
+def _action_alignment(proposition_text: str, matched_response: str) -> bool:
+    proposition_tokens = _relation_tokens(proposition_text)
+    response_tokens = _relation_tokens(matched_response)
+    if not proposition_tokens or not response_tokens:
+        return False
+    overlap = proposition_tokens & response_tokens
+    return len(overlap) >= 2
+
+
+def _polarity_alignment(row: Mapping[str, Any]) -> bool:
+    response = row.get("response")
+    polarity = (
+        str(response.get("polarity") or "").strip().lower()
+        if isinstance(response, Mapping)
+        else ""
+    )
+    support_direction = str(row.get("support_direction") or "").strip().lower()
+    conflict_state = str(row.get("conflict_state") or "").strip().lower()
+    best_response_role = str(row.get("best_response_role") or "").strip().lower()
+    if best_response_role in {"dispute", "hedged_denial"} or conflict_state == "disputed" or support_direction == "against":
+        return polarity in {"negative", "qualified", "neutral", ""}
+    if support_direction in {"for", "supports"}:
+        return polarity in {"positive", "qualified", "neutral", ""}
+    return polarity in {"", "neutral", "qualified", "positive"}
+
+
+def _normalize_missing_dimensions(row: Mapping[str, Any]) -> list[str]:
+    dimensions: list[str] = []
+    primary_target_component = str(row.get("primary_target_component") or "").strip()
+    support_status = str(row.get("support_status") or "").strip()
+    best_match_excerpt = _normalize_opt_text(row.get("best_match_excerpt"))
+    duplicate_match_excerpt = _normalize_opt_text(row.get("duplicate_match_excerpt"))
+    coverage_status = str(row.get("coverage_status") or "").strip()
+
+    if primary_target_component == "time":
+        dimensions.append("time")
+    elif primary_target_component == "characterization":
+        dimensions.append("direct_response")
+    elif primary_target_component == "predicate_text":
+        dimensions.append("action")
+
+    if support_status in {"responsive_but_non_substantive", "unresolved"}:
+        dimensions.append("direct_response")
+    if support_status == "textually_addressed" and not duplicate_match_excerpt:
+        dimensions.append("object")
+    if coverage_status == "unsupported_affidavit" and not best_match_excerpt:
+        dimensions.append("direct_response")
+
+    deduped: list[str] = []
+    for dimension in dimensions:
+        if dimension and dimension not in deduped:
+            deduped.append(dimension)
+    proposition_text = str(row.get("text") or "").strip()
+    matched_response = _normalize_opt_text(row.get("best_match_excerpt")) or ""
+    if not _subject_alignment(proposition_text, matched_response):
+        deduped.append("subject")
+    if not _action_alignment(proposition_text, matched_response):
+        deduped.append("action")
+    if not _polarity_alignment(row):
+        deduped.append("direct_response")
+    final_dimensions: list[str] = []
+    for dimension in deduped:
+        if dimension and dimension not in final_dimensions:
+            final_dimensions.append(dimension)
+    return final_dimensions or ["direct_response"]
+
+
+def _derive_contested_affidavit_relation(row: Mapping[str, Any]) -> dict[str, Any]:
+    coverage_status = str(row.get("coverage_status") or "").strip()
+    support_status = str(row.get("support_status") or "").strip()
+    conflict_state = str(row.get("conflict_state") or "").strip()
+    support_direction = str(row.get("support_direction") or "").strip()
+    best_response_role = str(row.get("best_response_role") or "").strip()
+    primary_target_component = str(row.get("primary_target_component") or "").strip()
+    best_match_excerpt = _normalize_opt_text(row.get("best_match_excerpt"))
+    proposition_text = str(row.get("text") or "").strip()
+    missing_dimensions = _normalize_missing_dimensions(row)
+    subject_aligned = _subject_alignment(proposition_text, best_match_excerpt or "")
+    action_aligned = _action_alignment(proposition_text, best_match_excerpt or "")
+    polarity_aligned = _polarity_alignment(row)
+
+    relation_type = "procedural_nonanswer"
+    relation_root = "non_resolving"
+    relation_leaf = "non_substantive_response"
+    bucket = _RELATION_BUCKET_BY_TYPE[relation_type]
+    reason = "The response engages the proposition, but the current match remains unresolved."
+
+    if not best_match_excerpt:
+        relation_type = "unrelated"
+        reason = "No adequately aligned response row was found for this proposition."
+    elif best_response_role in {"dispute", "hedged_denial"} and subject_aligned:
+        relation_type = "explicit_dispute"
+        reason = "The matched response explicitly disputes the proposition with aligned subject and action."
+    elif coverage_status in _DISPUTED_AFFIDAVIT_STATUSES:
+        relation_type = "implicit_dispute"
+        reason = "The proposition is marked contested and is treated as a dispute until a stronger support relation is established."
+    elif conflict_state == "disputed" or support_direction == "against":
+        relation_type = "implicit_dispute"
+        reason = "The matched response materially opposes the proposition under the current conflict/support state."
+    elif coverage_status in _SUPPORTED_AFFIDAVIT_STATUSES and subject_aligned and action_aligned:
+        relation_type = "exact_support" if support_status == "substantively_addressed" else "equivalent_support"
+        reason = "The matched response aligns on the same proposition with substantive support."
+    elif coverage_status in _MISSING_AFFIDAVIT_STATUSES:
+        relation_type = "unrelated"
+        reason = "No adequately aligned response row was found for this proposition."
+    elif primary_target_component == "time":
+        relation_type = "adjacent_event"
+        reason = "The matched response appears to concern a nearby event or timing slice rather than the exact proposition."
+    elif best_response_role in {"explanation", "procedural_frame", "restatement_only", "non_response"}:
+        relation_type = "procedural_nonanswer"
+        reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
+    elif action_aligned and subject_aligned and polarity_aligned:
+        relation_type = "partial_overlap"
+        reason = "The matched response partially overlaps the proposition but leaves key dimensions unresolved."
+    elif support_status == "textually_addressed" and action_aligned and not subject_aligned:
+        relation_type = "substitution"
+        reason = "The matched response overlaps lexically, but substitutes a different actor or incident."
+    elif support_status == "textually_addressed":
+        relation_type = "partial_overlap"
+        reason = "The matched response overlaps textually with the proposition but does not fully resolve it."
+    elif support_status in _WEAKLY_ADDRESSED_SUPPORT_STATUSES:
+        relation_type = "procedural_nonanswer"
+        reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
+    elif coverage_status in _CLARIFY_AFFIDAVIT_STATUSES:
+        relation_type = "partial_overlap"
+        reason = "The matched response partially overlaps the proposition but leaves key dimensions unresolved."
+
+    bucket = _RELATION_BUCKET_BY_TYPE[relation_type]
+    if relation_type in {"exact_support", "equivalent_support"}:
+        relation_root = "supports"
+        relation_leaf = relation_type
+    elif relation_type in {"explicit_dispute", "implicit_dispute"}:
+        relation_root = "invalidates"
+        relation_leaf = relation_type
+    elif relation_type == "unrelated":
+        relation_root = "unanswered"
+        relation_leaf = "missing"
+    elif relation_type == "partial_overlap":
+        relation_root = "supports"
+        relation_leaf = "partial_support"
+    elif relation_type == "adjacent_event":
+        relation_root = "non_resolving"
+        relation_leaf = "adjacent_event"
+    elif relation_type == "substitution":
+        relation_root = "non_resolving"
+        relation_leaf = "substitution"
+    else:
+        relation_root = "non_resolving"
+        relation_leaf = "non_substantive_response"
+
+    explanation = {
+        "classification": bucket,
+        "matched_response": best_match_excerpt,
+        "reason": reason,
+        "missing_dimension": missing_dimensions,
+    }
+    return {
+        "relation_type": relation_type,
+        "relation_root": relation_root,
+        "relation_leaf": relation_leaf,
+        "bucket": bucket,
+        "legacy_bucket": "needs_clarification" if bucket in {"partial_support", "adjacent_event", "substitution", "non_substantive_response"} else bucket,
+        "explanation": explanation,
+        "matched_response": best_match_excerpt,
+        "missing_dimensions": missing_dimensions,
+    }
+
+
+def _build_contested_affidavit_next_steps(summary: Mapping[str, Any]) -> list[dict[str, Any]]:
+    next_steps: list[dict[str, Any]] = []
+    if int(summary.get("unsupported_affidavit_count") or 0) > 0:
+        next_steps.append(
+            {
+                "step_id": "review_unsupported_affidavit",
+                "priority": "high",
+                "reason": "unsupported_affidavit_count",
+                "text": "Review unsupported affidavit propositions against source-grounded material before treating the draft as complete.",
+            }
+        )
+    if int(summary.get("missing_review_count") or 0) > 0:
+        next_steps.append(
+            {
+                "step_id": "resolve_missing_review_rows",
+                "priority": "high",
+                "reason": "missing_review_count",
+                "text": "Resolve source rows that are still absent from the affidavit and awaiting review before making omission claims.",
+            }
+        )
+    contested_total = int(summary.get("contested_source_count") or 0) + int(summary.get("contested_affidavit_count") or 0)
+    if contested_total > 0:
+        next_steps.append(
+            {
+                "step_id": "inspect_contested_material",
+                "priority": "medium",
+                "reason": "contested_material",
+                "text": "Inspect contested source or affidavit material before promoting contradiction or omission conclusions.",
+            }
+        )
+    clarification_total = int(summary.get("partial_count") or 0) + int(summary.get("abstained_source_count") or 0)
+    if clarification_total > 0:
+        next_steps.append(
+            {
+                "step_id": "clarify_partial_or_abstained_rows",
+                "priority": "medium",
+                "reason": "clarification_needed",
+                "text": "Clarify partial matches and abstained source rows with stronger anchors or narrower wording.",
+            }
+        )
+    return next_steps[:3]
+
+
+def build_contested_affidavit_proving_slice(
+    conn: sqlite3.Connection,
+    *,
+    review_run_id: str,
+) -> dict[str, Any]:
+    review = build_contested_affidavit_review_summary(conn, review_run_id=review_run_id)
+    affidavit_rows = review.get("affidavit_rows") if isinstance(review.get("affidavit_rows"), list) else []
+    source_rows = review.get("source_review_rows") if isinstance(review.get("source_review_rows"), list) else []
+    summary = review.get("summary") if isinstance(review.get("summary"), Mapping) else {}
+
+    bucketed_rows: dict[str, list[dict[str, Any]]] = {
+        "supported": [],
+        "disputed": [],
+        "partial_support": [],
+        "adjacent_event": [],
+        "substitution": [],
+        "non_substantive_response": [],
+        "non_resolving": [],
+        "missing": [],
+        "needs_clarification": [],
+    }
+    for row in affidavit_rows:
+        persisted_explanation = row.get("explanation") if isinstance(row.get("explanation"), Mapping) else None
+        persisted_classification = (
+            str(persisted_explanation.get("classification") or "").strip()
+            if isinstance(persisted_explanation, Mapping)
+            else ""
+        )
+        persisted_relation_type = _normalize_opt_text(row.get("relation_type"))
+        relation = (
+            {
+                "relation_type": persisted_relation_type,
+                "relation_root": _normalize_opt_text(row.get("relation_root")),
+                "relation_leaf": _normalize_opt_text(row.get("relation_leaf")),
+                "bucket": persisted_classification or _classify_contested_affidavit_proving_bucket(row),
+                "matched_response": _normalize_opt_text(row.get("best_match_excerpt")),
+                "explanation": persisted_explanation,
+                "missing_dimensions": row.get("missing_dimensions") if isinstance(row.get("missing_dimensions"), list) else None,
+            }
+            if (
+                _normalize_opt_text(row.get("relation_root"))
+                and _normalize_opt_text(row.get("relation_leaf"))
+                and persisted_relation_type
+            )
+            else _derive_contested_affidavit_relation(row)
+        )
+        if (
+            relation.get("explanation") is None
+            or relation.get("missing_dimensions") is None
+            or not relation.get("relation_type")
+        ):
+            relation = _derive_contested_affidavit_relation(row)
+        enriched_row = {
+            **row,
+            "relation_type": relation["relation_type"],
+            "relation_root": relation["relation_root"],
+            "relation_leaf": relation["relation_leaf"],
+            "matched_response": relation["matched_response"],
+            "explanation": relation["explanation"],
+            "missing_dimensions": relation["missing_dimensions"],
+        }
+        bucketed_rows[relation["bucket"]].append(enriched_row)
+        if relation["relation_root"] == "non_resolving":
+            bucketed_rows["non_resolving"].append(enriched_row)
+            bucketed_rows["needs_clarification"].append(enriched_row)
+
+    supported = bucketed_rows["supported"]
+    disputed = bucketed_rows["disputed"]
+    partial_support = bucketed_rows["partial_support"]
+    adjacent_event = bucketed_rows["adjacent_event"]
+    substitution = bucketed_rows["substitution"]
+    non_substantive_response = bucketed_rows["non_substantive_response"]
+    non_resolving = bucketed_rows["non_resolving"]
+    missing = bucketed_rows["missing"]
+    needs_clarification = bucketed_rows["needs_clarification"]
+
+    disputed_source_rows = [
+        row for row in source_rows if str(row.get("review_status") or "") in _DISPUTED_SOURCE_REVIEW_STATUSES
+    ]
+    clarification_source_rows = [
+        row for row in source_rows if str(row.get("review_status") or "") in _CLARIFY_SOURCE_REVIEW_STATUSES
+    ]
+
+    return {
+        "run": review.get("run"),
+        "summary": {
+            **summary,
+            "supported_affidavit_count": len(supported),
+            "disputed_affidavit_count": len(disputed),
+            "partial_support_affidavit_count": len(partial_support),
+            "adjacent_event_affidavit_count": len(adjacent_event),
+            "substitution_affidavit_count": len(substitution),
+            "non_substantive_response_affidavit_count": len(non_substantive_response),
+            "non_resolving_affidavit_count": len(non_resolving),
+            "weakly_addressed_affidavit_count": 0,
+            "missing_affidavit_count": len(missing),
+            "needs_clarification_affidavit_count": len(needs_clarification),
+            "disputed_source_row_count": len(disputed_source_rows),
+            "needs_clarification_source_row_count": len(clarification_source_rows),
+        },
+        "sections": {
+            "supported": supported,
+            "disputed": disputed,
+            "partial_support": partial_support,
+            "adjacent_event": adjacent_event,
+            "substitution": substitution,
+            "non_substantive_response": non_substantive_response,
+            "non_resolving": non_resolving,
+            "missing": missing,
+            "needs_clarification": needs_clarification,
+        },
+        "source_attention": {
+            "disputed": disputed_source_rows,
+            "needs_clarification": clarification_source_rows,
+        },
+        "next_steps": _build_contested_affidavit_next_steps(summary),
     }
 
 

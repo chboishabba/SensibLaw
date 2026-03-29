@@ -16,6 +16,218 @@ Current addendum (2026-03-28):
   - sentiment/affect remains speaker/utterance-anchored candidate or overlay
     material; it is not a canonical legal-truth surface and should not expand
     into psychometric or dashboard-authority claims
+- the Wikidata migration lane now has its first real text-side producer:
+  - source schema:
+    `schemas/sl.wikidata.climate_text_source.v1.schema.yaml`
+  - runtime:
+    `src/ontology/wikidata.py`
+  - materializer hook:
+    `scripts/materialize_wikidata_migration_pack.py`
+  - bounded rule:
+    explicit year/value climate lines only, revision-locked input only,
+    output through `sl.observation_claim.contract.v1`, then additive bridge
+    pressure only
+  - current live target-selection result:
+    `HSBC` / `Q190464` is not a valid lane target right now because it does
+    not currently expose live `P5991`
+  - next real artifact hunt should therefore pivot to already-pinned entities
+    like `Q10422059` (`Atrium Ljungberg`) and `Q10403939`
+    (`Akademiska Hus`)
+  - first non-fixture artifact now exists:
+    `data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json`
+    built from official annual report excerpts for 2018, 2019, and 2020
+  - first real bridge result:
+    the artifact validates against `sl.wikidata.climate_text_source.v1`,
+    yields `3` promoted observations / claims, and after the new temporal
+    gating pass drives `split_pressure` on all `24` current `Q10403939`
+    candidates
+  - interpretation:
+    this is the correct conservative outcome because the text slice is older
+    scope-1 evidence while the current structured bundle is 2023 multi-scope
+    data, so the bridge should surface dimensional mismatch rather than hard
+    contradiction
+  - next gap:
+    add simple scope-tag carriage / matching before using real text evidence
+    as support rather than only temporal-dimension pressure
+  - next generalization boundary:
+    source capture should become source-unit driven rather than PDF-driven
+  - runtime move is now implemented:
+    `sl.wikidata.climate_text_source.v1` remains as a backward-compatible
+    legacy subtype, and a generic revision-locked `sl.source_unit.v1` plus a
+    `SourceUnitAdapter` path now exists for PDF snapshot text and HTML
+    snapshot text
+  - broader abstraction note:
+    the next higher formalism above current boundary objects is not just
+    another shared interface; it is a typed composition system over boundary
+    artifacts and governed morphisms
+  - current decision:
+    keep that as a docs-first planning note for now rather than introducing a
+    shared runtime algebra prematurely
+  - candidate concrete next layer, if runtime pressure later justifies it:
+    `BoundaryArtifact.v1` + `Morphism.v1` + a bounded composition validator +
+    a small readable transformation DSL
+  - cross-system note:
+    `Phi_meta` is already a shipped bounded executable layer; the next useful
+    move there is a concrete `common_law <-> civil_law` example plus a bounded
+    real-data prototype, not another abstract schema rewrite
+  - track separation:
+    the Wikidata climate lane and the cross-system legal lane now have
+    different optimal next moves:
+    - climate lane: `source_capture -> SourceUnit`
+    - cross-system lane: bounded two-system prototype over promoted records
+
+- 2026-03-28 ITIR / SensibLaw receipts-first compiler spine:
+  - main decision:
+    treat ITIR/SensibLaw as a receipts-first compiler with five explicit
+    layers:
+    source substrate -> deterministic extraction -> promotion -> reasoning ->
+    public-action packaging
+  - architectural center:
+    promotion, not embeddings, graph ML, or public rendering
+  - canonical truth rule:
+    only promoted truth is canonical; graph and publish layers remain derived
+    downstream consequences
+  - downstream rule:
+    public-facing outputs must stay receipt-backed and must not outrun the
+    promoted proof base
+  - next milestone:
+    one bounded doctrine prototype emitting clause candidates with spans,
+    promoted facts with abstentions, typed graph, proof tree, and one
+    receipt-backed public-action artifact
+- 2026-03-28 identity / trust alignment refinement:
+  - main decision:
+    the suite must not be treated as only a legal compiler; it is also a
+    trust-preserving alignment layer between lived experience, evidence,
+    formal rules, and actionable next steps
+  - stronger requirement:
+    convert fragmented lived experience into trustworthy, non-gaslighting
+    legal and identity support without forcing full restatement from scratch
+  - bounded internal lane:
+    any identity/trust compiler surfaces remain user-sovereign,
+    non-diagnostic, and non-canonical relative to promoted legal truth
+  - lattice refinement:
+    success now depends on legal validity, evidential validity, and
+    trust-preserving interpretability together
+  - milestone refinement:
+    the first bounded doctrine prototype should prove both fact -> rule
+    legibility and truth -> trust usability
+- 2026-03-28 refreshed online thread sync:
+  - title: `ZKP for ITIR SensibLaw`
+  - online UUID: `69c7b950-daec-839d-89a9-8fd8e22c9136`
+  - canonical thread ID: `31a47318f53b61cac9f82705e2595b1a08f9af66`
+  - source used: `db` after direct UUID pull into `~/chat_archive.sqlite`
+  - main decision:
+    the receipts-first + trust-preserving architecture still holds, but the
+    next maturity gap is operational readiness rather than more ontology
+  - newly-sharpened gaps:
+    missing service-level definitions, incident vs problem handling,
+    measurable success criteria, and explicit system-boundary / handoff views
+- 2026-03-28 standard service application model:
+  - main decision:
+    move from case-specific framing to one repeatable service application
+    pattern for new scenarios
+  - standard flow:
+    intake -> evidence structuring -> identity/context modelling -> alignment
+    -> obligation assignment -> output -> monitoring/escalation
+  - standard control additions:
+    standardized intake fields, mandatory obligation layer, one
+    nonconformance grammar, and one comparable metric set across case families
+  - adaptation rule:
+    only rule sets, risk models, trust sensitivity, and SLA values should vary
+    by case; the service structure itself stays constant
+- 2026-03-28 everyday mode:
+  - main decision:
+    ordinary users should use the same architecture under a lighter operating
+    mode rather than a separate product
+  - mode shift:
+    crisis/adversarial mode remains strict, formal, auditable, and
+    enforceability-oriented; everyday mode becomes lighter, faster,
+    suggestive, and confidence-building
+  - output shift:
+    everyday mode should bias toward next-best-action guidance rather than
+    proof-heavy packaging
+  - next design gap:
+    add bounded switching criteria between crisis/adversarial mode and
+    everyday/navigation mode
+- 2026-03-28 case-type libraries + KPI model:
+  - main decision:
+    case handling should now be organized around fixed-shape service libraries
+    rather than topic buckets only
+  - first libraries:
+    tenancy, abuse/accountability, medical/trauma-informed care,
+    welfare/support
+  - control decision:
+    use one shared KPI language across libraries:
+    service, quality, obligation, trust/usability, plus a small
+    library-specific slice
+  - next prototype rule:
+    choose one concrete library and one minimal KPI slice rather than staying
+    fully generic
+- 2026-03-28 diagrams + mode-switching / UI / templates:
+  - main decision:
+    the suite now has repo-owned PlantUML definitions for the context,
+    containers, standard flow, four case libraries, and obligation sequence
+  - mode decision:
+    one architecture, two bounded operating modes, with switching based on
+    risk, time pressure, conflict level, evidence density,
+    trust fragility, and user intent
+  - product decision:
+    ordinary-user UX should optimize for quick capture, fast orientation, one
+    next-best action, and progressive depth rather than proof-heavy default
+    views
+  - stricter mode note:
+    strict mode is explicitly tied to actor/time/fallback obligations,
+    mandatory provenance, explicit uncertainty states, and escalation-ready
+    handling
+  - guardrails:
+    no identity assertions without evidence, no moralizing language,
+    no hidden assumptions, abstain when uncertain, local-first by default
+  - template set:
+    work/manager conversation, email/communication, tenancy friction,
+    money/bills, health/appointments, personal planning, low-to-high conflict
+  - KPI/control note:
+    mode correctness, user overrides, first-pass usefulness, 24h action rate,
+    tone-mismatch rework, retraumatization flags, escalation success,
+    strict-mode obligation completion
+  - C4 placement:
+    mode is now documented as an explicit controller surface between
+    trigger-detection input/alignment and obligation/output rendering rather
+    than a hidden presentation toggle
+  - consolidated product-spec note:
+    the mode controller now has explicit inputs, outputs, deterministic
+    selection rules, behavior profiles, and governance enforcement levels
+  - obligation primitive:
+    the documented core object is now:
+    need, responsible actor, required action, deadline, status,
+    evidence links, fallback actor, escalation rule
+  - PlantUML extension:
+    the architecture bundle now also includes explicit mode-controller
+    alignment and everyday UX-flow diagrams, plus compact context/container,
+    mode-selection, standard-flow, and obligation-lifecycle variants
+  - summary reading:
+    the suite is now documented as a controlled service that turns human
+    situations into structured, actionable, accountable outcomes
+  - next design rule:
+    widen normal-user scope only after defining a bounded switch table and a
+    small starter set of everyday templates
+- 2026-03-28 production schema / dashboard / deployment pack:
+  - main decision:
+    the next production-facing contract layer now exists for entities,
+    dashboards, and local-first deployment
+  - entity decision:
+    the first production entity set now explicitly includes case, evidence,
+    atoms, identity/trust signals, gaps, obligations, outputs, review,
+    audit, access, and mode state
+  - dashboard decision:
+    the monitoring/UI split is now:
+    user dashboard, operations dashboard, governance dashboard
+  - deployment decision:
+    default local-first single-user runtime first, optional trusted sync
+    second, restricted collaboration only as a later profile
+  - first production-validation slice:
+    validate local-first single-user case engine, truth-status states,
+    obligation object, and dashboard surfaces before attempting full
+    collaboration-platform scope
 - the repo now has a bounded executable typed latent graph over promoted
   relation records:
   - runtime: `src/latent_promoted_graph.py`
@@ -458,10 +670,13 @@ repo now implements, and make the next cross-lane normalization step explicit.
 - A broader docs-first `ProposalArtifact v1` layer is now explicitly recorded:
   - note:
     `docs/planning/proposal_artifact_contract_v1_20260328.md`
-  - `SplitPlan` is treated as the first concrete subtype
+  - `SplitPlan` and `EventCandidate` are now treated as the first two explicit
+    mapped subtypes already present in the repo
+  - the affidavit coverage/review lane is treated as the cross-domain
+    stress-test/reference case
   - decision:
-    do not refactor runtimes to a shared base type until at least one more
-    domain maps cleanly
+    do not refactor runtimes to a shared base type yet; the remaining question
+    is shared-runtime value and fit, not absence of a second subtype
 - The live materializer now has a one-step operator mode:
   - discover or accept QIDs
   - materialize the bounded pack
@@ -1393,3 +1608,177 @@ Chat-sourced statements are now referenced from the compression/ITIR overlay
 discussion (see `698218f7-9ca4-83a1-969d-0ffc3d6264e4:1-80`).
 Use `CONVERSATION_ID:line#` citing the line-numbered excerpts in
 `__CONTEXT/last_sync/`.
+
+## Context update (2026-03-28)
+- Production schema/deployment bundle refinement:
+  - added
+    `docs/planning/itir_sensiblaw_postgres_schema_and_deployment_bundle_20260328.md`
+    as the execution-oriented refinement of the current production pack
+  - current repo-facing decision:
+    - PostgreSQL is the reference production schema
+    - SQLite/local-first still remains valid for the first single-user runtime
+    - the reference bundle should stay explicit about:
+      extensions/enums, dependency-ordered core tables, trigger helpers,
+      operational views, deployment tiers, and dashboard roles
+    - the first dashboard-facing SQL surfaces are:
+      `vw_active_obligations`, `vw_sla_breaches`,
+      `vw_traceability_coverage`, `vw_open_gaps`
+    - the immediate production build order should remain bounded:
+      core schema -> intake/evidence/atoms/signals/artifacts ->
+      graph/gaps -> obligations/views -> audit/access -> optional sync/review
+    - if implementation begins, prefer one bounded next artifact:
+      migration-ready SQL in execution order or a local service/API spec over
+      the same entity set
+    - the schema/API refinement now also keeps explicit:
+      migration ordering, `/api/v1` REST surface, and local worker-service
+      split so the next implementation step can stay database-first or
+      service-first without widening into full platform rollout
+- Affidavit local-first proving slice decision:
+  - added
+    `docs/planning/affidavit_local_first_proving_slice_20260329.md`
+  - current repo-facing decision:
+    - use affidavit as the first SQLite/local-first proving slice for
+      narrative integrity and evidence structure
+    - keep tenancy as the later proving slice for obligation/SLA execution
+    - do not create a parallel affidavit runtime; reuse the existing lane:
+      `build_affidavit_coverage_review.py`,
+      `persist_contested_affidavit_review(...)`,
+      `fact_intake.read_model`, and `query_fact_review.py`
+    - the immediate implementation target is one bounded read-model/workbench
+      surface over persisted contested-review runs with grouped statuses and
+      minimal next steps
+  - implemented surface:
+    - `build_contested_affidavit_proving_slice(...)` in
+      `src/fact_intake/read_model.py`
+    - `contested-proving-slice` query surface in
+      `scripts/query_fact_review.py`
+    - focused regression coverage in:
+      `tests/test_affidavit_coverage_review.py`
+      and `tests/test_query_fact_review_script.py`
+  - proving-slice regrouping refinement:
+    - `covered` remains sacred, but proving-slice grouping now also uses
+      `best_response_role`, `support_status`, `support_direction`, and
+      `conflict_state`
+    - the grouped output now includes `weakly_addressed`
+    - on the real Google Docs affidavit/response run this shifted the top-line
+      read from:
+      `supported 1 / missing 28 / needs_clarification 17 / disputed 0`
+      to:
+      `supported 1 / disputed 7 / weakly_addressed 36 / missing 2`
+  - long-running live contested Google Docs builders now expose opt-in
+    progress over:
+    fetch, extract, grouping, proposition matching, artifact writing, and
+    persistence, so slow forward movement is visible instead of looking hung
+  - the same builders now also expose opt-in trace streaming for:
+    proposition start, tokenization, top candidate selection, response packet
+    inference, classification, semantic basis, and promotion result
+  - next quality contract is now pinned as
+    `docs/planning/affidavit_claim_reconciliation_contract_20260329.md`
+  - current affidavit grouped resolver should now be treated as a bounded
+    `v0` surface; the intended next improvement is relation-driven claim
+    reconciliation with:
+    normalized proposition/response fields, explicit relation types, dominant
+    relation precedence, and bucket mapping derived from relation type rather
+    than similarity alone
+  - `weakly_addressed` should now be read as a transitional defect bucket, not
+    a stable target class; the next classifier pass should split it into
+    `partial_support`, `adjacent_event`, `substitution`, and
+    `non_substantive_response`
+  - minimum operator-facing explanation per proposition should become:
+    classification, matched response, reason, and missing dimension
+  - cross-lane priority is now explicit:
+    affidavit claim reconciliation comes before further widening of
+    `TEMP_zos_sl_bridge_impl`; the temp bridge remains second priority until
+    it gains an explicit admissibility / acceptance boundary
+  - first implementation followthrough is now landed in the proving-slice read
+    model:
+    it emits `relation_root`, `relation_leaf`, `explanation`, and
+    `missing_dimensions`, and replaces the stable `weakly_addressed` section
+    with explicit non-resolving subclasses
+  - builder/persisted-row followthrough also landed:
+    contested comparison rows now carry `relation_root`, `relation_leaf`,
+    `primary_target_component`, `explanation`, and `missing_dimensions`
+    before query-time fallback derivation
+  - next quality boundary is now:
+    duplicate-root and same-incident sibling-leaf handling across sides,
+    with the live Johl affidavit / response pair as the primary Mary-parity
+    fixture
+  - interpretation:
+    - cluster materially duplicate or near-duplicate John-side and Johl-side
+      claims under one shared claim root or incident root
+    - preserve side-local wording beneath that root
+    - resolve support, qualification, contradiction, adjacent-event, and
+      procedural framing at the leaf level
+    - treat authority as local to the relation being shown, not one global
+      winner for the whole cluster
+- `2026-03-29` first duplicate-root affidavit followthrough:
+  - updated `scripts/build_affidavit_coverage_review.py` so the builder can
+    promote a duplicate or near-duplicate support clause ahead of a nearby
+    contextual clause and now emits:
+    - `claim_root_id`
+    - `claim_root_text`
+    - `claim_root_basis`
+    - `alternate_context_excerpt`
+  - added focused regression coverage in
+    `tests/test_affidavit_coverage_review.py`
+  - local validation passed:
+    `cd /home/c/Documents/code/ITIR-suite && .venv/bin/python -m pytest -q SensibLaw/tests/test_affidavit_coverage_review.py SensibLaw/tests/test_query_fact_review_script.py`
+    -> `35 passed`
+  - live Johl rerun after that pass shifted the relation reading to:
+    - `exact_support 1`
+    - `equivalent_support 11`
+    - `partial_support 7`
+    - `explicit_dispute 6`
+    - `adjacent_event 2`
+    - `non_substantive_response 2`
+    - `missing 22`
+  - concrete result:
+    - `p2-s38` and `p2-s39` now resolve as support via duplicate-root handling
+    - `p2-s5` and `p2-s6` remain the next same-incident sibling-leaf failure
+    - `p2-s21` still reads closer to adjacent event or substitution than true
+      support
+- `2026-03-29` notebooklm-pack boundary check:
+  - checked sibling repo `../notebooklm-pack` against the current `ZOS` /
+    `JMD` notes
+  - docs path status:
+    `/home/c/Documents/code/kant-zk-pastebin/DOCS.md` exists as a symlink, but
+    its target under `/home/mdupont/DOCS/...` is unavailable in this
+    environment
+  - main decision:
+    `../notebooklm-pack` is only a repo-text collection and NotebookLM
+    source-packing utility; it is not evidence for `ZOS <-> SL` semantics,
+    `JMD` push/pull, admissibility, or proof/receipt boundaries
+  - artifacts:
+    - `../docs/planning/notebooklm_pack_zos_jmd_boundary_20260329.md`
+    - `../README.md`
+    - `../TODO.md`
+- `2026-03-29` notebooklm-pack integration seam:
+  - checked against the existing NotebookLM interfaces and observer docs
+  - main decision:
+    `../notebooklm-pack` fits as an upstream source-pack producer for
+    NotebookLM source ingress, not as a semantic or bridge layer
+  - preferred order:
+    repo corpus -> notebooklm-pack -> notebooklm-py -> StatiBaker capture ->
+    SensibLaw reuse
+  - if implemented later, the first bounded seam should be a tiny wrapper or
+    manifest-normalizer preserving pack run id, source file hash, contributing
+    repos, and later NotebookLM notebook/source linkage
+  - artifacts:
+    - `../docs/planning/notebooklm_pack_to_notebooklm_py_interface_20260329.md`
+    - `../README.md`
+    - `../TODO.md`
+- `2026-03-29` notebooklm-pack dry-run wrapper:
+  - implemented the first bounded seam in `../scripts/notebooklm_pack_ingest.py`
+  - current wrapper supports manifest normalization, source file hashing,
+    deterministic `notebooklm` command planning, and optional live execution
+    behind `--execute`
+  - focused regression coverage landed in
+    `../tests/test_notebooklm_pack_ingest.py`
+  - live validation is now complete against the local authenticated NotebookLM
+    environment
+  - persistent validation notebook kept:
+    `ITIR notebooklm-pack integration`
+    (`ad2bbd9a-2c9c-47ee-a607-f2b735999d99`)
+  - the next gap is not NotebookLM liveness; it is freezing the minimal seam
+    object and keeping observer metadata separate from any future JMD receipt
+    reading

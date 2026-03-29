@@ -16,6 +16,7 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
 from src.fact_intake import (
     FEEDBACK_RECEIPT_VERSION,
     build_authority_ingest_summary,
+    build_contested_affidavit_proving_slice,
     build_contested_affidavit_review_summary,
     build_feedback_receipt_summary,
     build_fact_agent_feedback_payload,
@@ -215,6 +216,12 @@ def main(argv: list[str] | None = None) -> int:
     contested_summary_p = sub.add_parser("contested-summary", help="Show one persisted contested affidavit review run")
     contested_summary_p.add_argument("--review-run-id", required=True)
 
+    contested_slice_p = sub.add_parser(
+        "contested-proving-slice",
+        help="Show the bounded local-first proving-slice read model for one persisted contested affidavit review run",
+    )
+    contested_slice_p.add_argument("--review-run-id", required=True)
+
     authority_runs_p = sub.add_parser("authority-runs", help="List persisted authority ingest runs")
     authority_runs_p.add_argument("--limit", type=int, default=20)
     authority_runs_p.add_argument("--authority-kind", default=None)
@@ -402,6 +409,15 @@ def main(argv: list[str] | None = None) -> int:
                 "ok": True,
                 "dbPath": str(args.db_path.resolve()),
                 "review": build_contested_affidavit_review_summary(
+                    conn,
+                    review_run_id=getattr(args, "review_run_id", None),
+                ),
+            }
+        elif args.command == "contested-proving-slice":
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "proving_slice": build_contested_affidavit_proving_slice(
                     conn,
                     review_run_id=getattr(args, "review_run_id", None),
                 ),

@@ -648,3 +648,77 @@ def test_query_fact_review_script_lists_persisted_contested_review_runs(tmp_path
     assert summary_payload["review"]["run"]["review_run_id"] == review_run_id
     assert summary_payload["review"]["summary"]["covered_count"] == 1
     assert summary_payload["review"]["affidavit_rows"][0]["proposition_id"] == "aff-prop:p1-s1"
+
+
+def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "query_contested_slice_demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+            {
+                "fact_id": "fact:f2",
+                "fact_text": "The witness later denied attending the second meeting.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "reviewed",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 1,
+                "reason_codes": ["source_conflict"],
+                "latest_review_status": "contested",
+            },
+        ],
+    }
+    result = write_affidavit_coverage_review(
+        output_dir=tmp_path / "artifact",
+        source_payload=source_payload,
+        affidavit_text=(
+            "The witness attended the meeting on Tuesday.\n\n"
+            "The witness denied attending the second meeting.\n\n"
+            "The witness also saw the respondent leave at noon."
+        ),
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=Path(db_path),
+    )
+    review_run_id = result["persist_summary"]["review_run_id"]
+
+    exit_code = main(["--db-path", str(db_path), "contested-proving-slice", "--review-run-id", review_run_id])
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    proving_slice = payload["proving_slice"]
+    assert proving_slice["run"]["review_run_id"] == review_run_id
+    assert proving_slice["summary"]["supported_affidavit_count"] == 1
+    assert proving_slice["summary"]["disputed_affidavit_count"] == 1
+    assert proving_slice["summary"]["weakly_addressed_affidavit_count"] == 0
+    assert proving_slice["summary"]["missing_affidavit_count"] == 1
+    assert proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
+    assert proving_slice["sections"]["supported"][0]["relation_type"] in {"exact_support", "equivalent_support"}
+    assert proving_slice["sections"]["supported"][0]["relation_root"] == "supports"
+    assert proving_slice["sections"]["supported"][0]["explanation"]["classification"] == "supported"
+    assert proving_slice["sections"]["disputed"][0]["relation_type"] in {"explicit_dispute", "implicit_dispute"}
+    assert proving_slice["sections"]["disputed"][0]["explanation"]["classification"] == "disputed"
+    assert proving_slice["sections"]["missing"][0]["proposition_id"] == "aff-prop:p3-s1"
+    assert proving_slice["sections"]["missing"][0]["relation_type"] == "unrelated"
+    assert proving_slice["sections"]["missing"][0]["relation_leaf"] == "missing"
+    assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
+    assert proving_slice["next_steps"]

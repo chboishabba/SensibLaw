@@ -109,3 +109,137 @@ def test_parse_args_accepts_optional_openrefine_csv(monkeypatch, tmp_path: Path)
 
     args = _parse_args()
     assert args.openrefine_csv == csv_path
+
+
+def test_parse_args_accepts_optional_climate_text_source(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "pack"
+    source_path = tmp_path / "climate_text.json"
+    claim_out = tmp_path / "climate_observation_claim.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "materialize_wikidata_migration_pack.py",
+            "--qid",
+            "Q1",
+            "--source-property",
+            "P5991",
+            "--target-property",
+            "P14143",
+            "--out-dir",
+            str(out_dir),
+            "--climate-text-source",
+            str(source_path),
+            "--climate-observation-claim-output",
+            str(claim_out),
+        ],
+    )
+    from scripts.materialize_wikidata_migration_pack import _parse_args
+
+    args = _parse_args()
+    assert args.climate_text_source == source_path
+    assert args.climate_observation_claim_output == claim_out
+
+
+def test_materializer_writes_climate_observation_claim_and_enriched_pack(monkeypatch, tmp_path: Path) -> None:
+    from scripts import materialize_wikidata_migration_pack as script
+
+    climate_text_source = tmp_path / "climate_text_source.json"
+    climate_text_source.write_text(
+        json.dumps(
+            {
+                "schema_version": "sl.wikidata.climate_text_source.v1",
+                "sources": [
+                    {
+                        "source_id": "climate-src:1",
+                        "entity_qid": "Q1",
+                        "source_unit_id": "unit:q1:r1",
+                        "revision_id": "123",
+                        "revision_timestamp": "2026-03-28T00:00:00Z",
+                        "text": "Carbon footprint 2018: 100 tCO2e\nCarbon footprint 2019: 100 tCO2e\n",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        script,
+        "_resolve_qid_rows",
+        lambda args: [{"qid": "Q1", "label": "Q1", "source": "explicit"}],
+    )
+    monkeypatch.setattr(
+        script,
+        "_fetch_recent_revisions",
+        lambda qid, **kwargs: [
+            {"revid": 200, "timestamp": "2026-03-28T00:00:00Z"},
+            {"revid": 100, "timestamp": "2026-03-27T00:00:00Z"},
+        ],
+    )
+    monkeypatch.setattr(
+        script,
+        "_fetch_entity_export",
+        lambda qid, revid, **kwargs: {"id": qid, "entities": {qid: {"id": qid}}, "_stub": revid},
+    )
+    monkeypatch.setattr(
+        script,
+        "build_slice_from_entity_exports",
+        lambda payloads, property_filter=None: {
+            "windows": [
+                {
+                    "id": "t1_previous",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                },
+                {
+                    "id": "t2_current",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                },
+            ]
+        },
+    )
+
+    out_dir = tmp_path / "out"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "materialize_wikidata_migration_pack.py",
+            "--qid",
+            "Q1",
+            "--source-property",
+            "P5991",
+            "--target-property",
+            "P14143",
+            "--out-dir",
+            str(out_dir),
+            "--climate-text-source",
+            str(climate_text_source),
+        ],
+    )
+
+    script.main()
+
+    migration_pack = json.loads((out_dir / "migration_pack.json").read_text(encoding="utf-8"))
+    observation_claim = json.loads((out_dir / "climate_observation_claim.json").read_text(encoding="utf-8"))
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    assert migration_pack["candidates"][0]["pressure"] == "split_pressure"
+    assert len(migration_pack["bridge_cases"]) == 1
+    assert len(observation_claim["observations"]) == 2
+    assert manifest["climate_text_source"] == str(climate_text_source)
+    assert manifest["climate_observation_claim"] == str(out_dir / "climate_observation_claim.json")

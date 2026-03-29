@@ -9,9 +9,16 @@ from src.ontology.wikidata import (
     MIGRATION_PACK_SCHEMA_VERSION,
     SCHEMA_VERSION,
     SPLIT_PLAN_SCHEMA_VERSION,
+    SOURCE_UNIT_SCHEMA_VERSION,
     WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION,
+    WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
+    adapt_legacy_climate_text_source_to_source_units,
     attach_wikidata_phi_text_bridge,
     attach_wikidata_phi_text_bridge_from_observation_claim,
+    attach_wikidata_phi_text_bridge_from_source_units,
+    attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
+    build_observation_claim_payload_from_source_units,
+    build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
     build_wikidata_phi_text_bridge_case,
     build_wikidata_migration_pack,
@@ -29,6 +36,14 @@ def _load_migration_pack_schema() -> dict:
 
 def _load_bridge_schema() -> dict:
     return yaml.safe_load(Path("schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _load_climate_text_source_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.wikidata.climate_text_source.v1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _load_source_unit_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.source_unit.v1.schema.yaml").read_text(encoding="utf-8"))
 
 
 def _load_split_plan_schema() -> dict:
@@ -543,6 +558,58 @@ def test_build_wikidata_phi_text_bridge_case_emits_split_pressure_for_temporal_t
     jsonschema.validate(bridge_case, _load_bridge_schema())
 
 
+def test_build_wikidata_phi_text_bridge_case_treats_out_of_period_value_mismatch_as_split_pressure() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "852",
+                            "rank": "normal",
+                            "qualifiers": {
+                                "P580": "+2023-01-01T00:00:00Z",
+                                "P582": "+2023-12-31T00:00:00Z",
+                            },
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    candidate = migration_pack["candidates"][0]
+
+    bridge_case = build_wikidata_phi_text_bridge_case(
+        candidate,
+        text_observations=[
+            {
+                "observation_ref": "obs:2019",
+                "source_ref": "source:doc1",
+                "anchors": [{"start": 0, "end": 15, "text": "2019 scope 1 86"}],
+                "subject": "Q1",
+                "predicate": "annual_emissions",
+                "object": "86",
+                "qualifiers": {"P585": "2019"},
+                "promotion_status": "promoted_true",
+            }
+        ],
+    )
+
+    assert bridge_case["pressure"] == "split_pressure"
+    assert bridge_case["comparison"]["conflicts"] == []
+    assert {
+        "kind": "value_mismatch_outside_bundle_period",
+        "detail": "text observation obs:2019 carries year(s) ['2019'] outside bundle year(s) ['2023']",
+    } in bridge_case["comparison"]["missing_dimensions"]
+    jsonschema.validate(bridge_case, _load_bridge_schema())
+
+
 def test_attach_wikidata_phi_text_bridge_enriches_migration_pack_additively() -> None:
     migration_pack = build_wikidata_migration_pack(
         {
@@ -785,6 +852,215 @@ def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_produc
     assert candidate["pressure"] == "split_pressure"
     assert candidate["text_evidence_refs"] == ["claim:1", "claim:2"]
     assert len(enriched["bridge_cases"]) == 1
+    jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_build_observation_claim_payload_from_revision_locked_climate_text_sources_extracts_year_value_rows() -> None:
+    climate_text_payload = {
+        "schema_version": WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
+        "sources": [
+            {
+                "source_id": "climate-src:1",
+                "entity_qid": "Q1",
+                "source_unit_id": "unit:q1:r1",
+                "revision_id": "123",
+                "revision_timestamp": "2026-03-28T00:00:00Z",
+                "text": (
+                    "Carbon footprint 2018: 100 tCO2e\n"
+                    "Carbon footprint 2019: 100 tCO2e\n"
+                    "General note without a climate value\n"
+                ),
+            }
+        ],
+    }
+
+    jsonschema.validate(climate_text_payload, _load_climate_text_source_schema())
+    observation_claim_payload = build_observation_claim_payload_from_revision_locked_climate_text_sources(
+        climate_text_payload
+    )
+
+    contract_schema = yaml.safe_load(
+        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(encoding="utf-8")
+    )
+    jsonschema.validate(observation_claim_payload, contract_schema)
+
+    assert observation_claim_payload["payload_version"] == "sl.observation_claim.contract.v1"
+    assert len(observation_claim_payload["observations"]) == 2
+    assert [row["observed_at"] for row in observation_claim_payload["observations"]] == ["2018", "2019"]
+    assert [row["object_id"] for row in observation_claim_payload["claims"]] == ["100", "100"]
+
+
+def test_adapt_legacy_climate_text_source_to_source_units_is_schema_valid() -> None:
+    climate_text_payload = {
+        "schema_version": WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
+        "sources": [
+            {
+                "source_id": "climate-src:1",
+                "entity_qid": "Q1",
+                "source_unit_id": "unit:q1:r1",
+                "revision_id": "123",
+                "revision_timestamp": "2026-03-28T00:00:00Z",
+                "source_url": "https://example.test/report.pdf",
+                "title": "Report",
+                "text": "Carbon footprint 2018: 100 tCO2e\n",
+            }
+        ],
+    }
+
+    payload = adapt_legacy_climate_text_source_to_source_units(climate_text_payload)
+
+    assert payload["schema_version"] == SOURCE_UNIT_SCHEMA_VERSION
+    assert payload["source_units"][0]["revision"]["retrieval_method"] == "pdf_snapshot"
+    assert payload["source_units"][0]["origin"]["source_type"] == "pdf"
+    jsonschema.validate(payload, _load_source_unit_schema())
+
+
+def test_build_observation_claim_payload_from_source_units_extracts_html_snapshot_rows() -> None:
+    source_unit_payload = {
+        "schema_version": SOURCE_UNIT_SCHEMA_VERSION,
+        "source_units": [
+            {
+                "source_id": "html-src:1",
+                "entity_qid": "Q1",
+                "source_unit_id": "unit:q1:html1",
+                "revision": {
+                    "revision_id": "snapshot:1",
+                    "revision_timestamp": "2026-03-28T00:00:00Z",
+                    "retrieval_method": "html_snapshot",
+                },
+                "origin": {
+                    "source_type": "html",
+                    "source_url": "https://example.test/esg",
+                    "title": "ESG snapshot",
+                },
+                "content": {
+                    "format": "text",
+                    "text": "In 2018 emissions were 400 tCO2e.\nIn 2019 emissions were 600 tCO2e.\n",
+                },
+                "anchors": [],
+                "metadata": {},
+            }
+        ],
+    }
+
+    jsonschema.validate(source_unit_payload, _load_source_unit_schema())
+    observation_claim_payload = build_observation_claim_payload_from_source_units(source_unit_payload)
+
+    contract_schema = yaml.safe_load(
+        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(encoding="utf-8")
+    )
+    jsonschema.validate(observation_claim_payload, contract_schema)
+
+    assert [row["observed_at"] for row in observation_claim_payload["observations"]] == ["2018", "2019"]
+    assert [row["object_id"] for row in observation_claim_payload["claims"]] == ["400", "600"]
+
+
+def test_attach_wikidata_phi_text_bridge_from_revision_locked_climate_text_builds_observation_claim_and_bridge() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    climate_text_payload = {
+        "schema_version": WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
+        "sources": [
+            {
+                "source_id": "climate-src:1",
+                "entity_qid": "Q1",
+                "source_unit_id": "unit:q1:r1",
+                "revision_id": "123",
+                "revision_timestamp": "2026-03-28T00:00:00Z",
+                "text": "Carbon footprint 2018: 100 tCO2e\nCarbon footprint 2019: 100 tCO2e\n",
+            }
+        ],
+    }
+
+    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+        migration_pack,
+        climate_text_payload=climate_text_payload,
+    )
+
+    candidate = enriched["candidates"][0]
+    assert candidate["pressure"] == "split_pressure"
+    assert len(candidate["text_evidence_refs"]) == 2
+    assert len(enriched["bridge_cases"]) == 1
+    assert len(observation_claim_payload["observations"]) == 2
+    jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_claim_and_bridge() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    source_unit_payload = {
+        "schema_version": SOURCE_UNIT_SCHEMA_VERSION,
+        "source_units": [
+            {
+                "source_id": "html-src:1",
+                "entity_qid": "Q1",
+                "source_unit_id": "unit:q1:html1",
+                "revision": {
+                    "revision_id": "snapshot:1",
+                    "revision_timestamp": "2026-03-28T00:00:00Z",
+                    "retrieval_method": "html_snapshot",
+                },
+                "origin": {
+                    "source_type": "html",
+                    "source_url": "https://example.test/esg",
+                    "title": "ESG snapshot",
+                },
+                "content": {
+                    "format": "text",
+                    "text": "In 2018 emissions were 100 tCO2e.\nIn 2019 emissions were 100 tCO2e.\n",
+                },
+                "anchors": [],
+                "metadata": {},
+            }
+        ],
+    }
+
+    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_source_units(
+        migration_pack,
+        source_unit_payload=source_unit_payload,
+    )
+
+    candidate = enriched["candidates"][0]
+    assert candidate["pressure"] == "split_pressure"
+    assert len(candidate["text_evidence_refs"]) == 2
+    assert len(enriched["bridge_cases"]) == 1
+    assert len(observation_claim_payload["observations"]) == 2
     jsonschema.validate(enriched, _load_migration_pack_schema())
 
 

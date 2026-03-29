@@ -1,6 +1,7 @@
 {
   "payload_version": "sl.cross_system_phi.contract.v1",
   "motif_family": "termination_for_breach",
+  "versioning_note": "This payload is the bounded v1 transport contract: it keeps mapping status to exact, partial, incompatible, and undefined, while future Phi v2 semantics are reserved for a separate schema that can split relation kinds, scores, and richer latent graph structure without mutating the current transport grammar.",
   "systems": [
     {
       "system_id": "common_law_qld",

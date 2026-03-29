@@ -67,8 +67,12 @@ shared handoff.
     for review-only `1 -> N` plans over structurally decomposable
     `split_required` slots
   - that split-plan lane is now explicitly treated as the first concrete
-    subtype of a broader docs-first proposal layer:
+    Wikidata subtype of a broader docs-first proposal layer:
     `docs/planning/proposal_artifact_contract_v1_20260328.md`
+  - that broader proposal-layer note now also explicitly maps the existing
+    `EventCandidate` lane and uses the affidavit review lane as the
+    cross-domain stress test, so runtime unification is deferred for fit/value
+    reasons rather than because a second subtype is missing
   - the live materializer now also supports a one-step operator path:
     materialize the bounded pack and emit the OpenRefine CSV in the same run
   - immediate implication:
@@ -108,10 +112,36 @@ shared handoff.
       `sl.observation_claim.contract.v1` can feed the bridge through
       `extract_phi_text_observations_from_observation_claim_payload(...)` and
       `attach_wikidata_phi_text_bridge_from_observation_claim(...)`
-    - current limitation:
-      the bridge can now consume a real SL producer seam, but this specific
-      migration lane still does not have a dedicated climate-text producer of
-      its own
+    - dedicated climate-text producer now also exists:
+      - `schemas/sl.wikidata.climate_text_source.v1.schema.yaml`
+      - `build_observation_claim_payload_from_revision_locked_climate_text_sources(...)`
+      - `attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(...)`
+    - current remaining bottleneck:
+      real revision-locked climate text artifacts are still needed beyond
+      fixture-shaped inputs
+    - current live target-selection result:
+      `HSBC` / `Q190464` is not a valid target for this lane right now because
+      it does not currently expose live `P5991`
+    - next real artifact hunt should therefore pivot to already-pinned
+      entities with live `P5991`, especially:
+      - `Q10422059` (`Atrium Ljungberg`)
+      - `Q10403939` (`Akademiska Hus`)
+    - first non-fixture artifact now exists:
+      `data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json`
+      built from official Akademiska Hus annual report excerpts for 2018,
+      2019, and 2020
+    - first real bridge result:
+      the artifact yields `3` promoted observations / claims and, after the
+      new temporal gating pass, drives `split_pressure` on all `24` current
+      `Q10403939` candidates
+    - interpretation:
+      this is the correct conservative outcome because the text slice is older
+      scope-1 evidence while the current structured bundle is 2023 multi-scope
+      data, so the bridge should surface dimensional mismatch rather than hard
+      contradiction
+    - next narrowing:
+      add simple scope-tag carriage / matching so the bridge can tell
+      "different scope" apart from generic temporal split pressure
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

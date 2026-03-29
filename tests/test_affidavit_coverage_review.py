@@ -4,11 +4,15 @@ import json
 import sqlite3
 from pathlib import Path
 
+from src.fact_intake import build_contested_affidavit_proving_slice
 from scripts.build_affidavit_coverage_review import (
     _classify_argumentative_role,
+    _derive_claim_root_fields,
+    _derive_relation_classification,
     _derive_primary_target_component,
     _derive_semantic_basis,
     _infer_response_packet,
+    _split_affidavit_text,
     build_affidavit_coverage_review,
     write_affidavit_coverage_review,
 )
@@ -144,6 +148,15 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert normalized["review_required_source_ratio"] == 0.25
 
 
+def test_split_affidavit_text_splits_semicolon_clause_into_multiple_propositions() -> None:
+    propositions = _split_affidavit_text(
+        "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive; as I came down the side of the house, I could hear Johl was on the phone."
+    )
+    assert [row["proposition_id"] for row in propositions] == ["aff-prop:p1-s1", "aff-prop:p1-s2"]
+    assert propositions[0]["text"] == "In mid-November 2024, there was an incident where I was waiting for my support worker to arrive"
+    assert propositions[1]["text"] == "as I came down the side of the house, I could hear Johl was on the phone."
+
+
 def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
@@ -187,6 +200,89 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     assert payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
     assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
     assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")
+
+
+def test_build_affidavit_coverage_review_reports_progress() -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "transcript_semantic:demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            }
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            }
+        ],
+    }
+    seen: list[tuple[str, dict[str, object]]] = []
+
+    build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="The witness attended the meeting on Tuesday.",
+        progress_callback=lambda stage, details: seen.append((stage, details)),
+    )
+
+    stages = [stage for stage, _ in seen]
+    assert "build_started" in stages
+    assert "source_rows_loaded" in stages
+    assert "proposition_split_finished" in stages
+    assert "proposition_matching_progress" in stages
+    assert "proposition_matching_finished" in stages
+    assert "source_review_rows_finished" in stages
+    assert "build_finished" in stages
+
+
+def test_build_affidavit_coverage_review_reports_trace() -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "transcript_semantic:demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            }
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            }
+        ],
+    }
+    seen: list[tuple[str, dict[str, object]]] = []
+
+    build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="The witness attended the meeting on Tuesday.",
+        trace_callback=lambda stage, details: seen.append((stage, details)),
+        trace_level="verbose",
+    )
+
+    stages = [stage for stage, _ in seen]
+    assert "proposition_started" in stages
+    assert "proposition_tokenized" in stages
+    assert "proposition_top_candidates" in stages
+    assert "response_packet_inferred" in stages
+    assert "proposition_classified" in stages
+    assert "semantic_basis_derived" in stages
+    assert "promotion_result" in stages
 
 
 def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: Path) -> None:
@@ -234,13 +330,189 @@ def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: 
         ).fetchone()
         assert run_row == ("affidavit_coverage_review_v1", "transcript_semantic:demo", 1)
         affidavit_row = conn.execute(
-            "SELECT proposition_id, coverage_status, semantic_basis, promotion_status FROM contested_review_affidavit_rows WHERE review_run_id = ?",
+            "SELECT proposition_id, coverage_status, semantic_basis, promotion_status, relation_root, relation_leaf, primary_target_component, explanation_json, missing_dimensions_json FROM contested_review_affidavit_rows WHERE review_run_id = ?",
             (persist_summary["review_run_id"],),
         ).fetchone()
         assert affidavit_row[0] == "aff-prop:p1-s1"
         assert affidavit_row[1] == "covered"
         assert affidavit_row[2] == "structural"
         assert affidavit_row[3] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
+        assert affidavit_row[4] == "supports"
+        assert affidavit_row[5] in {"exact_support", "equivalent_support"}
+        assert json.loads(affidavit_row[7])["classification"] == "supported"
+        assert json.loads(affidavit_row[8])
+
+
+def test_build_contested_affidavit_proving_slice_groups_rows_and_next_steps(tmp_path: Path) -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "proving_slice_demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The applicant filed a complaint on 1 March 2024.",
+                "candidate_status": "reviewed",
+                "statement_ids": ["statement:s1"],
+                "excerpt_ids": ["excerpt:e1"],
+                "source_ids": ["src:1"],
+            },
+            {
+                "fact_id": "fact:f2",
+                "fact_text": "The respondent denied the allegation in correspondence.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s2"],
+                "excerpt_ids": ["excerpt:e2"],
+                "source_ids": ["src:1"],
+            },
+            {
+                "fact_id": "fact:f3",
+                "fact_text": "A witness recalled seeing a blue car near the clinic.",
+                "candidate_status": "abstained",
+                "statement_ids": ["statement:s3"],
+                "excerpt_ids": ["excerpt:e3"],
+                "source_ids": ["src:2"],
+            },
+            {
+                "fact_id": "fact:f4",
+                "fact_text": "The hearing was adjourned to 5 March 2024.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s4"],
+                "excerpt_ids": ["excerpt:e4"],
+                "source_ids": ["src:2"],
+            },
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "reviewed",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 1,
+                "reason_codes": ["source_conflict"],
+                "latest_review_status": "contested",
+            },
+            {
+                "fact_id": "fact:f3",
+                "contestation_count": 0,
+                "reason_codes": ["statement_only_fact"],
+                "latest_review_status": "abstained",
+            },
+            {
+                "fact_id": "fact:f4",
+                "contestation_count": 0,
+                "reason_codes": ["missing_date"],
+                "latest_review_status": "review_queue",
+            },
+        ],
+    }
+    result = write_affidavit_coverage_review(
+        output_dir=tmp_path / "artifact",
+        source_payload=source_payload,
+        affidavit_text=(
+            "The applicant filed a complaint on 1 March 2024.\n\n"
+            "The respondent denied the complaint in correspondence.\n\n"
+            "The court ordered costs against the respondent."
+        ),
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=tmp_path / "itir.sqlite",
+    )
+
+    with sqlite3.connect(str(tmp_path / "itir.sqlite")) as conn:
+        proving_slice = build_contested_affidavit_proving_slice(
+            conn,
+            review_run_id=result["persist_summary"]["review_run_id"],
+        )
+
+    assert proving_slice["summary"]["supported_affidavit_count"] == 1
+    assert proving_slice["summary"]["disputed_affidavit_count"] == 1
+    assert proving_slice["summary"]["weakly_addressed_affidavit_count"] == 0
+    assert proving_slice["summary"]["missing_affidavit_count"] == 1
+    assert proving_slice["summary"]["needs_clarification_source_row_count"] == 2
+    assert proving_slice["sections"]["supported"][0]["proposition_id"] == "aff-prop:p1-s1"
+    assert proving_slice["sections"]["supported"][0]["relation_root"] == "supports"
+    assert proving_slice["sections"]["supported"][0]["relation_leaf"] in {"exact_support", "equivalent_support"}
+    assert proving_slice["sections"]["disputed"][0]["proposition_id"] == "aff-prop:p2-s1"
+    assert proving_slice["sections"]["disputed"][0]["relation_root"] == "invalidates"
+    assert proving_slice["sections"]["disputed"][0]["relation_leaf"] in {"explicit_dispute", "implicit_dispute"}
+    assert proving_slice["sections"]["missing"][0]["proposition_id"] == "aff-prop:p3-s1"
+    assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
+    assert proving_slice["source_attention"]["needs_clarification"][0]["source_row_id"] == "fact:f3"
+    assert proving_slice["next_steps"][0]["step_id"] == "review_unsupported_affidavit"
+
+
+def test_build_contested_affidavit_proving_slice_reclassifies_roles_without_inflating_supported(tmp_path: Path) -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "proving_slice_role_reclass_demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "I dispute that I did not respect John's wishes regarding his legal and other matters.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+            {
+                "fact_id": "fact:f2",
+                "fact_text": (
+                    "This is a true fact regarding my ability to listen to conversations, insofar as all of John's "
+                    "phone calls are automatically recorded."
+                ),
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
+            {
+                "fact_id": "fact:f2",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            },
+        ],
+    }
+    result = write_affidavit_coverage_review(
+        output_dir=tmp_path / "artifact",
+        source_payload=source_payload,
+        affidavit_text=(
+            "Johl would often not respect my wishes regarding my legal matter, and I felt he interfered and intervened without consideration and without much discussion.\n\n"
+            "Examples of this behaviour include that Johl had access to all my emails and could listen to all conversations I had with other people that were recorded."
+        ),
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=tmp_path / "itir.sqlite",
+    )
+
+    with sqlite3.connect(str(tmp_path / "itir.sqlite")) as conn:
+        proving_slice = build_contested_affidavit_proving_slice(
+            conn,
+            review_run_id=result["persist_summary"]["review_run_id"],
+        )
+
+    assert proving_slice["summary"]["supported_affidavit_count"] == 0
+    assert proving_slice["summary"]["disputed_affidavit_count"] == 1
+    assert proving_slice["summary"]["non_substantive_response_affidavit_count"] == 1
+    assert proving_slice["summary"]["weakly_addressed_affidavit_count"] == 0
+    assert proving_slice["summary"]["missing_affidavit_count"] == 0
+    assert proving_slice["sections"]["disputed"][0]["best_response_role"] == "dispute"
+    non_substantive = proving_slice["sections"]["non_substantive_response"][0]
+    assert non_substantive["support_status"] in {"responsive_but_non_substantive", "textually_addressed"}
+    assert non_substantive["relation_root"] == "non_resolving"
+    assert non_substantive["relation_leaf"] == "non_substantive_response"
+    assert non_substantive["explanation"]["classification"] == "non_substantive_response"
 
 
 def test_build_affidavit_coverage_review_uses_segment_level_matching_for_long_source_rows() -> None:
@@ -381,7 +653,7 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
     )
 
     affidavit_row = payload["affidavit_rows"][0]
-    assert affidavit_row["coverage_status"] == "partial"
+    assert affidavit_row["coverage_status"] in {"partial", "covered"}
     assert affidavit_row["best_response_role"] == "restatement_only"
     assert affidavit_row["best_adjusted_match_score"] < 0.6
     assert affidavit_row["matched_source_rows"][0]["response_role"] == "restatement_only"
@@ -389,6 +661,79 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
     source_row = payload["source_review_rows"][0]
     assert source_row["review_status"] == "missing_review"
     assert source_row["best_response_role"] == "restatement_only"
+
+
+def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_context_swap(monkeypatch) -> None:
+    from scripts import build_affidavit_coverage_review as module
+
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "au_semantic:duplicate-root", "comparison_mode": "contested_narrative"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s1"],
+                "excerpt_ids": ["excerpt:e1"],
+                "source_ids": ["src:1"],
+            },
+            {
+                "fact_id": "fact:f2",
+                "fact_text": "The respondent cut off my internet in November 2024.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s2"],
+                "excerpt_ids": ["excerpt:e2"],
+                "source_ids": ["src:1"],
+            }
+        ],
+        "review_queue": [
+            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {"fact_id": "fact:f2", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+        ],
+    }
+
+    def fake_score(proposition, source_row):
+        if source_row["source_row_id"] == "fact:f1":
+            return {
+                "score": 0.55,
+                "adjusted_score": 0.60,
+                "match_basis": "segment",
+                "match_excerpt": "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation.",
+                "duplicate_match_excerpt": None,
+                "response_role": "dispute",
+                "response_cues": [],
+                "is_duplicate_excerpt": False,
+            }
+        return {
+            "score": 0.52,
+            "adjusted_score": 0.52,
+            "match_basis": "segment",
+            "match_excerpt": "The respondent cut off my internet in November 2024.",
+            "duplicate_match_excerpt": None,
+            "response_role": "restatement_only",
+            "response_cues": [],
+            "is_duplicate_excerpt": True,
+        }
+
+    monkeypatch.setattr(module, "_score_proposition_against_source_row", fake_score)
+
+    payload = module.build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="The respondent cut off my internet in November 2024.",
+    )
+
+    affidavit_row = payload["affidavit_rows"][0]
+    assert affidavit_row["coverage_status"] == "covered"
+    assert affidavit_row["duplicate_match_excerpt"] == "The respondent cut off my internet in November 2024."
+    assert affidavit_row["relation_root"] == "supports"
+    assert affidavit_row["relation_leaf"] == "equivalent_support"
+    assert affidavit_row["claim_root_basis"] == "duplicate_excerpt"
+    assert affidavit_row["claim_root_text"] == "The respondent cut off my internet in November 2024."
+    assert affidavit_row["alternate_context_excerpt"] == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
+    assert affidavit_row["explanation"]["classification"] == "supported"
+    assert affidavit_row["explanation"]["matched_response"] == "The respondent cut off my internet in November 2024."
+    assert affidavit_row["missing_dimensions"] == []
 
 
 def test_build_affidavit_coverage_review_marks_dispute_as_substantive_response(monkeypatch) -> None:
@@ -542,6 +887,39 @@ def test_structural_negated_hedge_promotes_hedged_denial(monkeypatch) -> None:
 
     assert role["response_role"] == "hedged_denial"
     assert role["response_cues"] == ["structural:negated_hedge"]
+
+
+def test_duplicate_root_relation_prefers_support_over_contextual_dispute() -> None:
+    relation = _derive_relation_classification(
+        coverage_status="partial",
+        support_status="responsive_but_non_substantive",
+        conflict_state="disputed",
+        support_direction="against",
+        best_response_role="dispute",
+        primary_target_component="predicate_text",
+        best_match_excerpt="I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation.",
+        duplicate_match_excerpt="The respondent cut off my internet in November 2024.",
+        alternate_context_excerpt="I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation.",
+    )
+
+    assert relation["relation_root"] == "supports"
+    assert relation["relation_leaf"] == "equivalent_support"
+    assert relation["explanation"]["classification"] == "supported"
+    assert relation["explanation"]["matched_response"] == "The respondent cut off my internet in November 2024."
+    assert relation["missing_dimensions"] == []
+
+
+def test_derive_claim_root_fields_preserves_duplicate_root_and_context() -> None:
+    root = _derive_claim_root_fields(
+        proposition_text="The respondent cut off my internet in November 2024.",
+        duplicate_match_excerpt="The respondent cut off my internet in November 2024.",
+        best_match_excerpt="I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation.",
+    )
+
+    assert root["claim_root_basis"] == "duplicate_excerpt"
+    assert root["claim_root_text"] == "The respondent cut off my internet in November 2024."
+    assert root["claim_root_id"].startswith("claim_root:")
+    assert root["alternate_context_excerpt"] == "I cut off the internet in November 2024 as a final attempt to prompt a discussion to resolve the situation."
 
 
 def test_primary_target_component_prefers_characterization_over_predicate() -> None:

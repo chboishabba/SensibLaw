@@ -12,6 +12,14 @@ The proposed contract defines a boundary where SensibLaw (SL) acts as a canonica
 
 - SL does **not** alter canonical proof or trace semantics.
 - SL contributes: structured representation, MDL compression, admissibility filtering, dependency graph output.
+- If later phase semantics are layered into the Agda side of this contract,
+  preserve the current ITIR reading:
+  - `DASHI ≅ Z/3`
+  - `CLOCK ≅ Z/6`
+  - `CLOCK` is the cyclic square-root lift of `DASHI`, not a dihedral action
+  - the extra `CLOCK` bit is microphase / half-step refinement
+  - admissibility still comes from cone / contraction / MDL constraints, not
+    from phase labels alone
 
 ## 2) Layered contract
 
@@ -60,6 +68,9 @@ class TraceVector:
 2. Emit deterministic, reviewable `SL` envelope payloads from normalized vectors.
 3. Keep semantic truth and semantics of trace semantics outside SL in Agda-facing surfaces.
 4. Publish dependency-graph metadata in a strict, typed envelope for later proof bridge adapters.
+5. If a future Agda-side refinement introduces `CLOCK` / `DASHI` phase terms,
+   keep them on the proof/formalization side of the boundary; they do not widen
+   SL's authority or turn retrieval/proposal layers into proof-bearing state.
 
 Current status in this PR:
 1. Added `DA51Trace` parsing/validation and canonical `TraceVector` projection in

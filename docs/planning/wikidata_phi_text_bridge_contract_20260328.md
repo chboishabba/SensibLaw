@@ -272,7 +272,62 @@ Immediate next executable followthrough:
   temporal/multi-value `P5991` cases
 - feed that payload directly into
   `attach_wikidata_phi_text_bridge_from_observation_claim(...)`
-  attempted
+
+Implemented bounded climate producer/runtime slice:
+- source schema:
+  `schemas/sl.wikidata.climate_text_source.v1.schema.yaml`
+- runtime helpers in `src/ontology/wikidata.py`:
+  - `build_observation_claim_payload_from_revision_locked_climate_text_sources(...)`
+  - `attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(...)`
+- materializer hook in:
+  `scripts/materialize_wikidata_migration_pack.py`
+  - `--climate-text-source`
+  - `--climate-observation-claim-output`
+
+Current boundary of that producer:
+- revision-locked input only
+- explicit year/value climate lines only
+- annual-emissions-style observations only
+- abstain on unmatched lines
+
+First real non-fixture artifact/result:
+- artifact:
+  `data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json`
+- source family:
+  official Akademiska Hus annual reports for 2018, 2019, and 2020
+- observed bridge outcome:
+  before the temporal matcher fix, the artifact yielded `3` promoted
+  observations / claims and drove `contradiction` pressure on all `24`
+  current `Q10403939` candidates
+- interpretation:
+  that showed the bridge was conservative, but also too coarse about explicit
+  year mismatch
+
+Implemented runtime promotion:
+- period-aware gating is now active
+- if text observations fall outside the structured bundle's temporal slice,
+  value mismatch now surfaces as temporal-dimension pressure rather than hard
+  contradiction
+- re-running the real `Q10403939` artifact now yields `split_pressure` on all
+  `24` candidates
+
+Immediate next runtime promotion:
+- optionally carry simple scope tags from the text side, but only as additive
+  diagnostic metadata until the structured side exposes a trustworthy matching
+  dimension for them
+
+Generalization boundary:
+- the system should now be understood as source-unit driven, not PDF-driven
+- `sl.wikidata.climate_text_source.v1` remains a supported climate-specific
+  legacy input surface
+- the next reusable runtime surface is a generic revision-locked
+  `sl.source_unit.v1` contract plus a `SourceUnitAdapter` path in
+  `src/ontology/wikidata.py`
+- first supported source-unit types should stay narrow:
+  - PDF snapshot text
+  - HTML snapshot text
+- this is a source-capture generalization only; it must not widen the bridge
+  semantics or weaken the current promotion/anchoring requirements
 
 Current executable status:
 - implemented adapter in:

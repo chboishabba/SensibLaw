@@ -1,0 +1,35 @@
+{
+  "schema_version": "sl.wikidata.climate_text_source.v1",
+  "sources": [
+    {
+      "source_id": "akademiska_hus:annual_report:2018:scope1",
+      "entity_qid": "Q10403939",
+      "source_unit_id": "unit:akademiska_hus:annual_report:2018:scope1",
+      "revision_id": "capture:2026-03-28:annual_report_2018_pdf:p105",
+      "revision_timestamp": "2026-03-28T00:00:00Z",
+      "source_url": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/annual_report_2018.pdf#page=105",
+      "title": "Akademiska Hus Annual Report 2018",
+      "text": "Greenhouse gas emissions. In 2018 scope 1 emissions amounted to only 1.2 tonnes CO2e."
+    },
+    {
+      "source_id": "akademiska_hus:annual_report:2019:scope1",
+      "entity_qid": "Q10403939",
+      "source_unit_id": "unit:akademiska_hus:annual_report:2019:scope1",
+      "revision_id": "capture:2026-03-28:annual_report_2019_pdf:p118",
+      "revision_timestamp": "2026-03-28T00:00:00Z",
+      "source_url": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/annual_report_2019.pdf#page=118",
+      "title": "Akademiska Hus Annual Report 2019",
+      "text": "Greenhouse gas emissions. In 2019, scope 1 emissions amounted to 86 tonnes of CO2e."
+    },
+    {
+      "source_id": "akademiska_hus:annual_report:2020:scope1",
+      "entity_qid": "Q10403939",
+      "source_unit_id": "unit:akademiska_hus:annual_report:2020:scope1",
+      "revision_id": "capture:2026-03-28:annual_report_2020_pdf:p113",
+      "revision_timestamp": "2026-03-28T00:00:00Z",
+      "source_url": "https://www.akademiskahus.se/siteassets/dokument/finansiella-dokument/arsredovisningar/annual-report-2020.pdf#page=113",
+      "title": "Akademiska Hus Annual Report 2020",
+      "text": "Greenhouse gas emissions. In 2020, Scope 1 emissions totalled 1,662 tonnes CO2."
+    }
+  ]
+}

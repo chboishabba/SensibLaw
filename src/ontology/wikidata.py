@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
@@ -15,6 +17,8 @@ FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
 MIGRATION_PACK_SCHEMA_VERSION = "sl.wikidata_migration_pack.v1"
 SPLIT_PLAN_SCHEMA_VERSION = "sl.wikidata_split_plan.v0_1"
 WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION = "sl.wikidata_phi_text_bridge_case.v1"
+WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION = "sl.wikidata.climate_text_source.v1"
+SOURCE_UNIT_SCHEMA_VERSION = "sl.source_unit.v1"
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
 DEFAULT_PROPERTY_FILTER = ("P279", "P31")
 PROPERTY_PROFILES = {
@@ -41,6 +45,23 @@ REQUEST_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "SensibLaw-Wikidata-QualifierDrift/0.1",
 }
+CLIMATE_TEXT_CUE_TERMS = (
+    "emission",
+    "emissions",
+    "carbon footprint",
+    "co2",
+    "co₂",
+    "co2e",
+    "tco2",
+    "tco2e",
+    "ghg",
+    "greenhouse",
+)
+CLIMATE_TEXT_LINE_PATTERNS = (
+    re.compile(r"(?P<year>(?:19|20)\d{2})\D{0,20}(?P<value>\d[\d,]*(?:\.\d+)?)"),
+    re.compile(r"(?P<value>\d[\d,]*(?:\.\d+)?)\D{0,20}(?P<year>(?:19|20)\d{2})"),
+)
+CLIMATE_TEXT_PREDICATE = "annual_emissions"
 
 
 def resolve_property_filter(
@@ -212,6 +233,14 @@ def _bridge_temporal_values(qualifiers: Mapping[str, Sequence[str]]) -> tuple[st
     return tuple(sorted(set(values)))
 
 
+def _bridge_temporal_years(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str, ...]:
+    years: set[str] = set()
+    for value in _bridge_temporal_values(qualifiers):
+        for match in re.findall(r"(?:19|20)\d{2}", value):
+            years.add(match)
+    return tuple(sorted(years))
+
+
 def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
     promotion_status = _stringify(raw.get("promotion_status", ""))
     if promotion_status != "promoted_true":
@@ -244,6 +273,236 @@ def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _stable_digest(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha1(encoded.encode("utf-8")).hexdigest()
+
+
+def _normalize_climate_numeric_value(raw: str) -> str:
+    cleaned = raw.replace(",", "").strip()
+    if "." in cleaned:
+        cleaned = cleaned.rstrip("0").rstrip(".")
+    return cleaned
+
+
+def _iter_climate_text_line_spans(text: str) -> Iterable[tuple[int, int, str]]:
+    cursor = 0
+    for line in text.splitlines(keepends=True):
+        line_start = cursor
+        line_end = cursor + len(line.rstrip("\n"))
+        yield line_start, line_end, line.rstrip("\n")
+        cursor += len(line)
+    if not text:
+        return
+
+
+def adapt_legacy_climate_text_source_to_source_units(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if _stringify(payload.get("schema_version", "")) != WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION:
+        raise ValueError(
+            f"climate text payload must use {WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION}"
+        )
+    sources = payload.get("sources")
+    if not isinstance(sources, list):
+        raise ValueError("climate text payload requires a sources array")
+
+    source_units: list[dict[str, Any]] = []
+    for source in sources:
+        if not isinstance(source, Mapping):
+            raise ValueError("climate text source rows must be objects")
+        source_units.append(
+            {
+                "source_id": _stringify(source.get("source_id", "")).strip(),
+                "entity_qid": _stringify(source.get("entity_qid", "")).strip(),
+                "source_unit_id": _stringify(source.get("source_unit_id", "")).strip(),
+                "revision": {
+                    "revision_id": _stringify(source.get("revision_id", "")).strip(),
+                    "revision_timestamp": _stringify(source.get("revision_timestamp", "")).strip(),
+                    "retrieval_method": "pdf_snapshot",
+                },
+                "origin": {
+                    "source_type": "pdf",
+                    "source_url": source.get("source_url"),
+                    "title": source.get("title"),
+                },
+                "content": {
+                    "format": "text",
+                    "text": _stringify(source.get("text", "")),
+                },
+                "anchors": [],
+                "metadata": {},
+            }
+        )
+    return {"schema_version": SOURCE_UNIT_SCHEMA_VERSION, "source_units": source_units}
+
+
+def _source_units_from_payload(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    schema_version = _stringify(payload.get("schema_version", ""))
+    if schema_version == WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION:
+        payload = adapt_legacy_climate_text_source_to_source_units(payload)
+        schema_version = SOURCE_UNIT_SCHEMA_VERSION
+    if schema_version != SOURCE_UNIT_SCHEMA_VERSION:
+        raise ValueError(
+            f"source payload must use {SOURCE_UNIT_SCHEMA_VERSION} or {WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION}"
+        )
+    source_units = payload.get("source_units")
+    if not isinstance(source_units, list):
+        raise ValueError("source unit payload requires a source_units array")
+    return source_units
+
+
+def _extract_climate_text_rows_from_source_unit(source: Mapping[str, Any]) -> list[dict[str, Any]]:
+    source_id = _stringify(source.get("source_id", "")).strip()
+    entity_qid = _stringify(source.get("entity_qid", "")).strip()
+    source_unit_id = _stringify(source.get("source_unit_id", "")).strip()
+    revision = source.get("revision")
+    content = source.get("content")
+    if not isinstance(revision, Mapping) or not isinstance(content, Mapping):
+        raise ValueError("source units require revision and content objects")
+    revision_id = _stringify(revision.get("revision_id", "")).strip()
+    revision_timestamp = _stringify(revision.get("revision_timestamp", "")).strip()
+    text = _stringify(content.get("text", ""))
+    if not source_id or not entity_qid or not source_unit_id or not revision_id or not revision_timestamp or not text:
+        raise ValueError(
+            "source units require source_id, entity_qid, source_unit_id, revision.revision_id, revision.revision_timestamp, and content.text"
+        )
+
+    rows: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str, str]] = set()
+    for line_start, line_end, line in _iter_climate_text_line_spans(text):
+        if not line.strip():
+            continue
+        lowered = line.lower()
+        if not any(term in lowered for term in CLIMATE_TEXT_CUE_TERMS):
+            continue
+        match = None
+        for pattern in CLIMATE_TEXT_LINE_PATTERNS:
+            match = pattern.search(line)
+            if match:
+                break
+        if match is None:
+            continue
+        year = match.group("year")
+        value = _normalize_climate_numeric_value(match.group("value"))
+        dedupe_key = (entity_qid, year, value)
+        if dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
+        rows.append(
+            {
+                "entity_qid": entity_qid,
+                "source_id": source_id,
+                "source_unit_id": source_unit_id,
+                "source_quote": line.strip(),
+                "source_span": {
+                    "start_char": line_start,
+                    "end_char": line_end,
+                },
+                "observed_at": year,
+                "object_value": value,
+                "revision_id": revision_id,
+                "revision_timestamp": revision_timestamp,
+            }
+        )
+    return rows
+
+
+def build_observation_claim_payload_from_source_units(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    source_units = _source_units_from_payload(payload)
+
+    observations: list[dict[str, Any]] = []
+    claims: list[dict[str, Any]] = []
+    evidence_links: list[dict[str, Any]] = []
+
+    for source in source_units:
+        if not isinstance(source, Mapping):
+            raise ValueError("source units must be objects")
+        for row in _extract_climate_text_rows_from_source_unit(source):
+            key = (
+                f"{row['entity_qid']}|{row['source_unit_id']}|{row['observed_at']}|"
+                f"{row['object_value']}|{row['source_span']['start_char']}-{row['source_span']['end_char']}"
+            )
+            suffix = hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+            observation_id = f"obs:climate:{suffix}"
+            claim_id = f"claim:climate:{suffix}"
+            link_id = f"link:climate:{suffix}"
+
+            observation = {
+                "observation_id": observation_id,
+                "source_unit_id": row["source_unit_id"],
+                "source_quote": row["source_quote"],
+                "source_span": row["source_span"],
+                "evidence_refs": [
+                    {
+                        "span_ref": (
+                            f"{row['source_unit_id']}:{row['source_span']['start_char']}-"
+                            f"{row['source_span']['end_char']}"
+                        ),
+                        "ref_type": "text_span",
+                    }
+                ],
+                "status": "active",
+                "canonicality": "verified",
+                "payload_version": "sl.observation_claim.contract.v1",
+                "asserted_at": row["revision_timestamp"],
+                "observed_at": row["observed_at"],
+            }
+            observation["hash"] = _stable_digest(observation)
+
+            claim = {
+                "claim_id": claim_id,
+                "observation_id": observation_id,
+                "predicate": CLIMATE_TEXT_PREDICATE,
+                "subject_id": row["entity_qid"],
+                "object_id": row["object_value"],
+                "subject_type": "entity",
+                "object_type": "quantity",
+                "norm_id": None,
+                "posture": "asserted",
+                "evidence_quality": "high",
+                "confidence": 0.9,
+                "claim_created_at": row["revision_timestamp"],
+                "claim_updated_at": row["revision_timestamp"],
+                "evidence_links": [link_id],
+            }
+            claim["hash"] = _stable_digest(claim)
+
+            evidence_link = {
+                "link_id": link_id,
+                "claim_id": claim_id,
+                "observation_id": observation_id,
+                "source_unit_id": row["source_unit_id"],
+                "link_kind": "supporting",
+                "span_ref": (
+                    f"{row['source_unit_id']}:{row['source_span']['start_char']}-"
+                    f"{row['source_span']['end_char']}"
+                ),
+                "trace_refs": [
+                    f"revision:{row['revision_id']}",
+                    f"source:{row['source_id']}",
+                ],
+            }
+            evidence_link["link_hash"] = _stable_digest(evidence_link)
+
+            observations.append(observation)
+            claims.append(claim)
+            evidence_links.append(evidence_link)
+
+    return {
+        "payload_version": "sl.observation_claim.contract.v1",
+        "observations": observations,
+        "claims": claims,
+        "evidence_links": evidence_links,
+    }
+
+
+def build_observation_claim_payload_from_revision_locked_climate_text_sources(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    return build_observation_claim_payload_from_source_units(payload)
+
+
 def build_wikidata_phi_text_bridge_case(
     candidate: Mapping[str, Any],
     *,
@@ -261,6 +520,7 @@ def build_wikidata_phi_text_bridge_case(
     bundle_value = _stringify(claim_bundle.get("value"))
     bundle_qualifiers = _normalize_bridge_qualifiers(claim_bundle.get("qualifiers"))
     bundle_temporal_values = set(_bridge_temporal_values(bundle_qualifiers))
+    bundle_temporal_years = set(_bridge_temporal_years(bundle_qualifiers))
 
     alignment: list[dict[str, Any]] = []
     conflicts: list[dict[str, Any]] = []
@@ -270,6 +530,8 @@ def build_wikidata_phi_text_bridge_case(
 
     for observation in normalized_observations:
         checks: list[str] = []
+        temporal_values = _bridge_temporal_values(_normalize_bridge_qualifiers(observation.get("qualifiers")))
+        temporal_years = set(_bridge_temporal_years(_normalize_bridge_qualifiers(observation.get("qualifiers"))))
         if observation["subject"] == bundle_subject:
             checks.append("subject_match")
         else:
@@ -284,6 +546,16 @@ def build_wikidata_phi_text_bridge_case(
         if observation["object"] == bundle_value:
             checks.append("value_match")
             aligned_objects.add(observation["object"])
+        elif bundle_temporal_years and temporal_years and bundle_temporal_years.isdisjoint(temporal_years):
+            missing_dimensions.append(
+                {
+                    "kind": "value_mismatch_outside_bundle_period",
+                    "detail": (
+                        f"text observation {observation['observation_ref']} carries year(s) "
+                        f"{sorted(temporal_years)} outside bundle year(s) {sorted(bundle_temporal_years)}"
+                    ),
+                }
+            )
         else:
             conflicts.append(
                 {
@@ -293,7 +565,6 @@ def build_wikidata_phi_text_bridge_case(
                 }
             )
 
-        temporal_values = _bridge_temporal_values(_normalize_bridge_qualifiers(observation.get("qualifiers")))
         if temporal_values:
             text_temporal_signatures.add(temporal_values)
             if bundle_temporal_values and set(temporal_values) == bundle_temporal_values:
@@ -439,6 +710,36 @@ def attach_wikidata_phi_text_bridge_from_observation_claim(
         migration_pack,
         observations_by_candidate=observations_by_candidate,
     )
+
+
+def attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+    migration_pack: Mapping[str, Any],
+    *,
+    climate_text_payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    observation_claim_payload = build_observation_claim_payload_from_revision_locked_climate_text_sources(
+        climate_text_payload
+    )
+    enriched = attach_wikidata_phi_text_bridge_from_observation_claim(
+        migration_pack,
+        observation_claim_payload=observation_claim_payload,
+        predicate_allowlist=(CLIMATE_TEXT_PREDICATE,),
+    )
+    return enriched, observation_claim_payload
+
+
+def attach_wikidata_phi_text_bridge_from_source_units(
+    migration_pack: Mapping[str, Any],
+    *,
+    source_unit_payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    observation_claim_payload = build_observation_claim_payload_from_source_units(source_unit_payload)
+    enriched = attach_wikidata_phi_text_bridge_from_observation_claim(
+        migration_pack,
+        observation_claim_payload=observation_claim_payload,
+        predicate_allowlist=(CLIMATE_TEXT_PREDICATE,),
+    )
+    return enriched, observation_claim_payload
 
 
 def _stringify(value: Any) -> str:
@@ -2525,6 +2826,13 @@ __all__ = [
     "DEFAULT_PROPERTY_FILTER",
     "PROPERTY_PROFILES",
     "MIGRATION_PACK_SCHEMA_VERSION",
+    "WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION",
+    "SOURCE_UNIT_SCHEMA_VERSION",
+    "adapt_legacy_climate_text_source_to_source_units",
+    "build_observation_claim_payload_from_source_units",
+    "build_observation_claim_payload_from_revision_locked_climate_text_sources",
+    "attach_wikidata_phi_text_bridge_from_source_units",
+    "attach_wikidata_phi_text_bridge_from_revision_locked_climate_text",
     "build_slice_from_entity_exports",
     "build_wikidata_migration_pack",
     "export_migration_pack_openrefine_csv",

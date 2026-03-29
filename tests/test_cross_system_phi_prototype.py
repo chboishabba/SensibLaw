@@ -119,6 +119,8 @@ def test_cross_system_phi_prototype_builds_from_real_promoted_reports(tmp_path: 
 
     assert payload["payload_version"] == "sl.cross_system_phi.contract.v1"
     assert payload["meta_contract_ref"] == "schema://sl.cross_system_phi_meta.v1"
+    assert "bounded v1 transport contract" in payload["versioning_note"]
+    assert "future Phi v2 semantics" in payload["versioning_note"]
     assert len(payload["latent_graphs"]) == 2
     assert all(row["graph_version"] == "sl.latent_promoted_graph.v1" for row in payload["latent_graphs"])
     assert payload["provenance_rule"]["rule_id"] == "sl.phi.provenance_dual_anchor.v1"

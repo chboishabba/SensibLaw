@@ -17,6 +17,7 @@ from src.ontology.wikidata import (  # noqa: E402
     MEDIAWIKI_API_ENDPOINT,
     REQUEST_HEADERS,
     SPARQL_ENDPOINT,
+    attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
     build_slice_from_entity_exports,
     build_wikidata_migration_pack,
     export_migration_pack_openrefine_csv,
@@ -74,6 +75,16 @@ def _parse_args() -> argparse.Namespace:
         "--openrefine-csv",
         type=Path,
         help="Optional path to also write a flat OpenRefine review CSV.",
+    )
+    parser.add_argument(
+        "--climate-text-source",
+        type=Path,
+        help="Optional revision-locked climate text-source JSON to emit Observation/Claim rows and bridge into the migration pack.",
+    )
+    parser.add_argument(
+        "--climate-observation-claim-output",
+        type=Path,
+        help="Optional path to write the derived sl.observation_claim.contract.v1 payload when --climate-text-source is used.",
     )
     return parser.parse_args()
 
@@ -291,6 +302,19 @@ def main() -> None:
         target_property=args.target_property,
         e0=args.e0,
     )
+    observation_claim_report_path = None
+    if args.climate_text_source:
+        climate_text_payload = json.loads(args.climate_text_source.read_text(encoding="utf-8"))
+        migration_pack, observation_claim_payload = attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+            migration_pack,
+            climate_text_payload=climate_text_payload,
+        )
+        observation_claim_report_path = (
+            args.climate_observation_claim_output
+            if args.climate_observation_claim_output
+            else out_dir / "climate_observation_claim.json"
+        )
+        _write_json(observation_claim_report_path, observation_claim_payload)
 
     slice_path = out_dir / "slice.json"
     pack_path = out_dir / "migration_pack.json"
@@ -316,6 +340,8 @@ def main() -> None:
             "migration_pack": str(pack_path),
             "summary": migration_pack["summary"],
             "openrefine_csv": str(args.openrefine_csv) if args.openrefine_csv else None,
+            "climate_text_source": str(args.climate_text_source) if args.climate_text_source else None,
+            "climate_observation_claim": str(observation_claim_report_path) if observation_claim_report_path else None,
         },
     )
 
@@ -333,6 +359,8 @@ def main() -> None:
     if openrefine_report is not None:
         output["openrefine_csv"] = openrefine_report["output"]
         output["openrefine_row_count"] = openrefine_report["row_count"]
+    if observation_claim_report_path is not None:
+        output["climate_observation_claim"] = str(observation_claim_report_path)
     print(json.dumps(output, ensure_ascii=False, indent=2))
 
 

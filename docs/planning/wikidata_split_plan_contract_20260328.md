@@ -4,7 +4,7 @@
 Define the first bounded `1 -> N` review artifact for `split_required`
 migration rows.
 
-This is now also the first concrete subtype of the broader docs-first
+This is now also one concrete subtype of the broader docs-first
 `ProposalArtifact v1` contract in:
 - `docs/planning/proposal_artifact_contract_v1_20260328.md`
 
@@ -117,5 +117,6 @@ CLI summary fields:
    bounded behind the existing `Phi` bridge rules.
 3. Only consider execution/export after one real split plan has been reviewed
    and validated against an after-state.
-4. Use this artifact as the proving ground for the broader
-   `ProposalArtifact v1` abstraction before any shared runtime refactor.
+4. Use this artifact together with `EventCandidate` and the affidavit review
+   lane as the proving ground set for the broader `ProposalArtifact v1`
+   abstraction before any shared runtime refactor.

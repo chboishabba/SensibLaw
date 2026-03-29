@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sqlite3
 from collections import Counter
 from pathlib import Path
+import time
 from typing import Any, Iterable, Mapping
 
 try:
@@ -36,6 +38,11 @@ try:
     from src.fact_intake import persist_contested_affidavit_review
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from fact_intake import persist_contested_affidavit_review
+
+try:
+    from scripts.cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging
 
 
 ARTIFACT_VERSION = "affidavit_coverage_review_v1"
@@ -174,6 +181,18 @@ _LEXICAL_HEURISTIC_HINT_RULES: dict[str, tuple[dict[str, Any], ...]] = {
     ),
 }
 
+
+def _emit_progress(progress_callback: Any | None, stage: str, **details: Any) -> None:
+    if not callable(progress_callback):
+        return
+    progress_callback(stage, details)
+
+
+def _emit_trace(trace_callback: Any | None, stage: str, **details: Any) -> None:
+    if not callable(trace_callback):
+        return
+    trace_callback(stage, details)
+
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -250,6 +269,14 @@ def _split_source_text_segments(text: str) -> list[str]:
     return parts or [compact]
 
 
+def _split_affidavit_sentence_clauses(text: str) -> list[str]:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if not compact:
+        return []
+    parts = [segment.strip(" -") for segment in re.split(r"\s*;\s*", compact) if segment.strip()]
+    return parts or [compact]
+
+
 def _split_affidavit_text(text: str) -> list[dict[str, Any]]:
     propositions: list[dict[str, Any]] = []
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n+", text) if part.strip()]
@@ -261,7 +288,12 @@ def _split_affidavit_text(text: str) -> list[dict[str, Any]]:
         ]
         if not sentence_parts:
             sentence_parts = [paragraph]
-        for sentence_index, sentence in enumerate(sentence_parts, start=1):
+        decomposed_parts: list[str] = []
+        for sentence in sentence_parts:
+            decomposed_parts.extend(_split_affidavit_sentence_clauses(sentence))
+        if not decomposed_parts:
+            decomposed_parts = sentence_parts
+        for sentence_index, sentence in enumerate(decomposed_parts, start=1):
             proposition_id = f"aff-prop:p{paragraph_index}-s{sentence_index}"
             propositions.append(
                 {
@@ -780,6 +812,53 @@ def _is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> 
     return shared_ratio >= 0.85
 
 
+def _normalize_claim_root_text(*, proposition_text: str, duplicate_match_excerpt: str | None, best_match_excerpt: str | None) -> str | None:
+    duplicate_excerpt = str(duplicate_match_excerpt or "").strip()
+    if duplicate_excerpt:
+        return duplicate_excerpt
+    proposition_excerpt = str(proposition_text or "").strip()
+    if proposition_excerpt:
+        return proposition_excerpt
+    best_excerpt = str(best_match_excerpt or "").strip()
+    return best_excerpt or None
+
+
+def _stable_claim_root_id(text: str) -> str:
+    digest = hashlib.sha256(text.casefold().encode("utf-8")).hexdigest()[:16]
+    return f"claim_root:{digest}"
+
+
+def _derive_claim_root_fields(
+    *,
+    proposition_text: str,
+    duplicate_match_excerpt: str | None,
+    best_match_excerpt: str | None,
+) -> dict[str, Any]:
+    claim_root_text = _normalize_claim_root_text(
+        proposition_text=proposition_text,
+        duplicate_match_excerpt=duplicate_match_excerpt,
+        best_match_excerpt=best_match_excerpt,
+    )
+    if not claim_root_text:
+        return {
+            "claim_root_text": None,
+            "claim_root_id": None,
+            "claim_root_basis": None,
+            "alternate_context_excerpt": None,
+        }
+    basis = "duplicate_excerpt" if str(duplicate_match_excerpt or "").strip() else "proposition_text"
+    alternate_context_excerpt = None
+    best_excerpt = str(best_match_excerpt or "").strip()
+    if str(duplicate_match_excerpt or "").strip() and best_excerpt and best_excerpt != str(duplicate_match_excerpt or "").strip():
+        alternate_context_excerpt = best_excerpt
+    return {
+        "claim_root_text": claim_root_text,
+        "claim_root_id": _stable_claim_root_id(claim_root_text),
+        "claim_root_basis": basis,
+        "alternate_context_excerpt": alternate_context_excerpt,
+    }
+
+
 def _infer_response_packet(
     *,
     proposition_text: str,
@@ -968,6 +1047,131 @@ def _derive_claim_state(
         "conflict_state": conflict_state,
         "evidentiary_state": evidentiary_state,
         "operational_status": operational_status,
+    }
+
+
+def _derive_missing_dimensions(
+    *,
+    coverage_status: str,
+    support_status: str,
+    primary_target_component: str | None,
+    best_match_excerpt: str | None,
+    duplicate_match_excerpt: str | None,
+) -> list[str]:
+    dimensions: list[str] = []
+    component = str(primary_target_component or "").strip()
+    if component == "time":
+        dimensions.append("time")
+    elif component == "characterization":
+        dimensions.append("direct_response")
+    elif component == "predicate_text":
+        dimensions.append("action")
+
+    if support_status in {"responsive_but_non_substantive", "unresolved"}:
+        dimensions.append("direct_response")
+    if support_status == "textually_addressed" and not str(duplicate_match_excerpt or "").strip():
+        dimensions.append("object")
+    if coverage_status == "unsupported_affidavit" and not str(best_match_excerpt or "").strip():
+        dimensions.append("direct_response")
+
+    deduped: list[str] = []
+    for dimension in dimensions:
+        if dimension and dimension not in deduped:
+            deduped.append(dimension)
+    return deduped or ["direct_response"]
+
+
+def _derive_relation_classification(
+    *,
+    coverage_status: str,
+    support_status: str,
+    conflict_state: str,
+    support_direction: str,
+    best_response_role: str | None,
+    primary_target_component: str | None,
+    best_match_excerpt: str | None,
+    duplicate_match_excerpt: str | None,
+    alternate_context_excerpt: str | None = None,
+) -> dict[str, Any]:
+    role = str(best_response_role or "").strip()
+    component = str(primary_target_component or "").strip()
+    missing_dimensions = _derive_missing_dimensions(
+        coverage_status=coverage_status,
+        support_status=support_status,
+        primary_target_component=component,
+        best_match_excerpt=best_match_excerpt,
+        duplicate_match_excerpt=duplicate_match_excerpt,
+    )
+
+    relation_root = "non_resolving"
+    relation_leaf = "non_substantive_response"
+    classification = "non_substantive_response"
+    reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
+    matched_response = str(best_match_excerpt or "").strip() or None
+
+    if str(duplicate_match_excerpt or "").strip():
+        relation_root = "supports"
+        relation_leaf = "equivalent_support"
+        classification = "supported"
+        matched_response = str(duplicate_match_excerpt or "").strip() or matched_response
+        if str(alternate_context_excerpt or "").strip():
+            reason = "A direct or near-duplicate clause supports the same claim root, while a nearby alternate clause adds context and should not replace the matching leaf."
+        else:
+            reason = "A direct or near-duplicate clause supports the same claim root."
+        missing_dimensions = []
+
+    elif coverage_status == "covered":
+        relation_root = "supports"
+        relation_leaf = "exact_support" if support_status == "substantively_addressed" else "equivalent_support"
+        classification = "supported"
+        reason = "The matched response aligns on the same proposition with substantive support."
+    elif coverage_status in {"contested_source", "contested_affidavit"} or conflict_state == "disputed" or support_direction == "against" or role == "dispute":
+        relation_root = "invalidates"
+        relation_leaf = "explicit_dispute" if role in {"dispute", "hedged_denial"} else "implicit_dispute"
+        classification = "disputed"
+        reason = "The matched response disputes or materially opposes the same proposition."
+    elif coverage_status == "unsupported_affidavit":
+        relation_root = "unanswered"
+        relation_leaf = "missing"
+        classification = "missing"
+        reason = "No adequately aligned response row was found for this proposition."
+    elif support_status == "evidentially_grounded_response" or role == "admission":
+        relation_root = "supports"
+        relation_leaf = "partial_support"
+        classification = "partial_support"
+        reason = "The matched response grounds part of the proposition, but does not fully resolve it."
+    elif component == "time":
+        relation_root = "non_resolving"
+        relation_leaf = "adjacent_event"
+        classification = "adjacent_event"
+        reason = "The matched response appears to concern a nearby event or timing slice rather than the exact proposition."
+    elif support_status == "textually_addressed":
+        relation_root = "non_resolving"
+        relation_leaf = "substitution"
+        classification = "substitution"
+        reason = "The matched response overlaps lexically, but substitutes a different act or incident."
+    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "evidentially_grounded_response"} or role in {"explanation", "procedural_frame", "restatement_only", "non_response"}:
+        relation_root = "non_resolving"
+        relation_leaf = "non_substantive_response"
+        classification = "non_substantive_response"
+        reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
+    elif coverage_status == "partial":
+        relation_root = "supports"
+        relation_leaf = "partial_support"
+        classification = "partial_support"
+        reason = "The matched response partially overlaps the proposition but leaves key dimensions unresolved."
+
+    return {
+        "relation_root": relation_root,
+        "relation_leaf": relation_leaf,
+        "classification": classification,
+        "explanation": {
+            "classification": classification,
+            "matched_response": matched_response,
+            "reason": reason,
+            "missing_dimension": missing_dimensions,
+        },
+        "missing_dimensions": missing_dimensions,
     }
 
 
@@ -1502,14 +1706,59 @@ def build_affidavit_coverage_review(
     affidavit_text: str,
     source_path: str | None = None,
     affidavit_path: str | None = None,
+    progress_callback: Any | None = None,
+    trace_callback: Any | None = None,
+    trace_level: str = "verbose",
 ) -> dict[str, Any]:
+    build_started_at = time.monotonic()
+    _emit_progress(
+        progress_callback,
+        "build_started",
+        section="affidavit_review",
+        message="Starting affidavit coverage review build.",
+    )
     source_rows, source_meta = _extract_source_rows(source_payload)
+    _emit_progress(
+        progress_callback,
+        "source_rows_loaded",
+        section="affidavit_review",
+        completed=len(source_rows),
+        total=len(source_rows),
+        message="Source review rows extracted.",
+    )
     propositions = _split_affidavit_text(affidavit_text)
+    _emit_progress(
+        progress_callback,
+        "proposition_split_finished",
+        section="affidavit_review",
+        completed=len(propositions),
+        total=len(propositions),
+        message="Affidavit propositions prepared for matching.",
+    )
     source_rows_by_id = {row["source_row_id"]: dict(row) for row in source_rows}
 
     affidavit_rows: list[dict[str, Any]] = []
     zelph_claim_state_facts: list[dict[str, Any]] = []
-    for proposition in propositions:
+    proposition_total = len(propositions)
+    proposition_started_at = time.monotonic()
+    last_progress_emit = proposition_started_at
+    for proposition_index, proposition in enumerate(propositions, start=1):
+        _emit_trace(
+            trace_callback,
+            "proposition_started",
+            proposition_id=proposition["proposition_id"],
+            paragraph_id=proposition["paragraph_id"],
+            sentence_order=proposition["sentence_order"],
+            text=proposition["text"],
+            message=f"Processing {proposition['proposition_id']}.",
+        )
+        if trace_level == "verbose":
+            _emit_trace(
+                trace_callback,
+                "proposition_tokenized",
+                proposition_id=proposition["proposition_id"],
+                tokens=proposition["tokens"],
+            )
         scored_rows = []
         for row in source_rows:
             score_row = _score_proposition_against_source_row(proposition, row)
@@ -1520,11 +1769,54 @@ def build_affidavit_coverage_review(
             scored_rows.append((adjusted_score, raw_score, row, score_row))
         scored_rows.sort(key=lambda item: (-item[0], -item[1], item[2]["source_row_id"]))
         best_adjusted_score, best_score, best_row, best_score_row = scored_rows[0] if scored_rows else (0.0, 0.0, None, {})
+        top_duplicate_adjusted_score = 0.0
+        top_duplicate_score = 0.0
+        top_duplicate_row = None
+        top_duplicate_score_row = None
+        for adjusted_score, raw_score, row, score_row in scored_rows:
+            if score_row.get("is_duplicate_excerpt") and raw_score >= _PARTIAL_MATCH_THRESHOLD:
+                top_duplicate_adjusted_score = adjusted_score
+                top_duplicate_score = raw_score
+                top_duplicate_row = row
+                top_duplicate_score_row = score_row
+                break
+        _emit_trace(
+            trace_callback,
+            "proposition_top_candidates",
+            proposition_id=proposition["proposition_id"],
+            top_candidates=[
+                {
+                    "source_row_id": row["source_row_id"],
+                    "score": round(raw_score, 6),
+                    "adjusted_score": round(adjusted_score, 6),
+                    "match_basis": score_row["match_basis"],
+                    "response_role": score_row.get("response_role"),
+                    "match_excerpt": str(score_row.get("match_excerpt") or "")[:240],
+                }
+                for adjusted_score, raw_score, row, score_row in scored_rows[:3]
+            ],
+        )
+        if trace_level == "verbose" and top_duplicate_score_row is not None:
+            _emit_trace(
+                trace_callback,
+                "duplicate_root_candidate_detected",
+                proposition_id=proposition["proposition_id"],
+                source_row_id=top_duplicate_row["source_row_id"] if isinstance(top_duplicate_row, Mapping) else None,
+                score=round(top_duplicate_score, 6),
+                adjusted_score=round(top_duplicate_adjusted_score, 6),
+                match_excerpt=str(top_duplicate_score_row.get("match_excerpt") or "")[:240],
+            )
         status = _classify_affidavit_match(
             best_adjusted_score,
             best_row,
             str(best_score_row.get("response_role") or ""),
         )
+        duplicate_root_excerpt = str(best_score_row.get("duplicate_match_excerpt") or "").strip() or None
+        if not duplicate_root_excerpt and top_duplicate_score_row is not None:
+            duplicate_candidate_excerpt = str(top_duplicate_score_row.get("match_excerpt") or "").strip()
+            best_candidate_excerpt = str(best_score_row.get("match_excerpt") or "").strip()
+            if duplicate_candidate_excerpt and duplicate_candidate_excerpt != best_candidate_excerpt:
+                duplicate_root_excerpt = duplicate_candidate_excerpt
         matched_rows = [
             {
                 "source_row_id": row["source_row_id"],
@@ -1535,6 +1827,7 @@ def build_affidavit_coverage_review(
                 "match_basis": score_row["match_basis"],
                 "match_excerpt": score_row["match_excerpt"],
                 "duplicate_match_excerpt": score_row.get("duplicate_match_excerpt"),
+                "is_duplicate_excerpt": bool(score_row.get("is_duplicate_excerpt")),
                 "response_role": score_row.get("response_role"),
                 "response_cues": score_row.get("response_cues", []),
             }
@@ -1543,16 +1836,28 @@ def build_affidavit_coverage_review(
         response_packet = _infer_response_packet(
             proposition_text=str(proposition["text"]),
             best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
-            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+            duplicate_match_excerpt=duplicate_root_excerpt,
             response_role=best_score_row.get("response_role"),
             response_cues=list(best_score_row.get("response_cues", [])),
             coverage_status=status,
         )
+        if trace_level == "verbose":
+            _emit_trace(
+                trace_callback,
+                "response_packet_inferred",
+                proposition_id=proposition["proposition_id"],
+                best_match_excerpt=str(best_score_row.get("match_excerpt") or "")[:320],
+                duplicate_match_excerpt=str(duplicate_root_excerpt or "")[:320],
+                best_response_role=best_score_row.get("response_role"),
+                response_acts=response_packet["response_acts"],
+                legal_significance_signals=response_packet["legal_significance_signals"],
+                support_status=response_packet["support_status"],
+            )
         claim_packet = _build_claim_packet(str(proposition["text"]))
         response_object = _build_response_packet(
             proposition_text=str(proposition["text"]),
             best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
-            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+            duplicate_match_excerpt=duplicate_root_excerpt,
             response_role=best_score_row.get("response_role"),
             response_acts=response_packet["response_acts"],
         )
@@ -1575,7 +1880,23 @@ def build_affidavit_coverage_review(
             response_acts=response_packet["response_acts"],
             legal_significance_signals=response_packet["legal_significance_signals"],
             support_status=response_packet["support_status"],
-            duplicate_match_excerpt=best_score_row.get("duplicate_match_excerpt"),
+            duplicate_match_excerpt=duplicate_root_excerpt,
+        )
+        _emit_trace(
+            trace_callback,
+            "proposition_classified",
+            proposition_id=proposition["proposition_id"],
+            coverage_status=status,
+            best_source_row_id=(best_row["source_row_id"] if isinstance(best_row, Mapping) else None),
+            best_match_score=round(best_score, 6),
+            best_adjusted_match_score=round(best_adjusted_score, 6),
+            best_response_role=best_score_row.get("response_role"),
+            support_status=response_packet["support_status"],
+            support_direction=claim_state["support_direction"],
+            conflict_state=claim_state["conflict_state"],
+            evidentiary_state=claim_state["evidentiary_state"],
+            operational_status=claim_state["operational_status"],
+            message=f"{proposition['proposition_id']} -> {status}",
         )
         primary_target_component = _derive_primary_target_component(
             response=response_object,
@@ -1586,6 +1907,21 @@ def build_affidavit_coverage_review(
             response=response_object,
             response_component_bindings=response_component_bindings,
             justifications=justification_packets,
+        )
+        if trace_level == "verbose":
+            _emit_trace(
+                trace_callback,
+                "semantic_basis_derived",
+                proposition_id=proposition["proposition_id"],
+                semantic_basis=semantic_basis,
+                primary_target_component=primary_target_component,
+                component_targets=response_object.get("component_targets", []),
+                justification_types=[packet.get("type") for packet in justification_packets if isinstance(packet, Mapping)],
+            )
+        claim_root = _derive_claim_root_fields(
+            proposition_text=str(proposition["text"]),
+            duplicate_match_excerpt=duplicate_root_excerpt,
+            best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
         )
         semantic_candidate = build_contested_claim_candidate(
             basis=semantic_basis,
@@ -1610,6 +1946,26 @@ def build_affidavit_coverage_review(
             rule_ids=list(best_score_row.get("response_cues", [])),
         )
         promotion = promote_contested_claim(semantic_candidate)
+        relation = _derive_relation_classification(
+            coverage_status=status,
+            support_status=response_packet["support_status"],
+            conflict_state=claim_state["conflict_state"],
+            support_direction=claim_state["support_direction"],
+            best_response_role=best_score_row.get("response_role"),
+            primary_target_component=primary_target_component,
+            best_match_excerpt=best_score_row.get("match_excerpt"),
+            duplicate_match_excerpt=duplicate_root_excerpt,
+            alternate_context_excerpt=claim_root.get("alternate_context_excerpt"),
+        )
+        if trace_level == "verbose":
+            _emit_trace(
+                trace_callback,
+                "promotion_result",
+                proposition_id=proposition["proposition_id"],
+                promotion_status=promotion["status"],
+                promotion_basis=promotion["basis"],
+                promotion_reason=promotion["reason"],
+            )
         affidavit_rows.append(
             {
                 "proposition_id": proposition["proposition_id"],
@@ -1624,7 +1980,7 @@ def build_affidavit_coverage_review(
                 "best_source_row_id": best_row["source_row_id"] if isinstance(best_row, Mapping) else None,
                 "best_match_basis": best_score_row.get("match_basis"),
                 "best_match_excerpt": best_score_row.get("match_excerpt"),
-                "duplicate_match_excerpt": best_score_row.get("duplicate_match_excerpt"),
+                "duplicate_match_excerpt": duplicate_root_excerpt,
                 "best_response_role": best_score_row.get("response_role"),
                 "best_response_cues": best_score_row.get("response_cues", []),
                 "response_acts": response_packet["response_acts"],
@@ -1635,6 +1991,15 @@ def build_affidavit_coverage_review(
                 "promotion_status": promotion["status"],
                 "promotion_basis": promotion["basis"],
                 "promotion_reason": promotion["reason"],
+                "relation_root": relation["relation_root"],
+                "relation_leaf": relation["relation_leaf"],
+                "primary_target_component": primary_target_component,
+                "claim_root_id": claim_root.get("claim_root_id"),
+                "claim_root_text": claim_root.get("claim_root_text"),
+                "claim_root_basis": claim_root.get("claim_root_basis"),
+                "alternate_context_excerpt": claim_root.get("alternate_context_excerpt"),
+                "explanation": relation["explanation"],
+                "missing_dimensions": relation["missing_dimensions"],
                 "support_direction": claim_state["support_direction"],
                 "conflict_state": claim_state["conflict_state"],
                 "evidentiary_state": claim_state["evidentiary_state"],
@@ -1679,6 +2044,39 @@ def build_affidavit_coverage_review(
                 source_row.setdefault("matched_affidavit_proposition_ids", []).append(proposition["proposition_id"])
             elif adjusted_score >= _PARTIAL_MATCH_THRESHOLD:
                 source_row.setdefault("related_affidavit_proposition_ids", []).append(proposition["proposition_id"])
+        now = time.monotonic()
+        should_emit = (
+            proposition_index == 1
+            or proposition_index == proposition_total
+            or (now - last_progress_emit) >= 1.0
+        )
+        if should_emit:
+            elapsed_seconds = round(max(now - proposition_started_at, 0.0), 3)
+            items_per_second = None
+            if elapsed_seconds > 0:
+                items_per_second = round(proposition_index / elapsed_seconds, 2)
+            _emit_progress(
+                progress_callback,
+                "proposition_matching_progress",
+                section="affidavit_matching",
+                completed=proposition_index,
+                total=proposition_total,
+                elapsed_seconds=elapsed_seconds,
+                items_per_second=items_per_second,
+                proposition_id=proposition["proposition_id"],
+                message=f"Matched proposition {proposition['proposition_id']}.",
+            )
+            last_progress_emit = now
+
+    _emit_progress(
+        progress_callback,
+        "proposition_matching_finished",
+        section="affidavit_matching",
+        completed=proposition_total,
+        total=proposition_total,
+        elapsed_seconds=round(max(time.monotonic() - proposition_started_at, 0.0), 3),
+        message="Affidavit proposition matching finished.",
+    )
 
     source_review_rows: list[dict[str, Any]] = []
     for row in source_rows_by_id.values():
@@ -1734,6 +2132,14 @@ def build_affidavit_coverage_review(
                 "source_ids": row["source_ids"],
             }
         )
+    _emit_progress(
+        progress_callback,
+        "source_review_rows_finished",
+        section="affidavit_review",
+        completed=len(source_review_rows),
+        total=len(source_review_rows),
+        message="Source review rows finalized.",
+    )
 
     summary = {
         "affidavit_proposition_count": len(affidavit_rows),
@@ -1841,6 +2247,15 @@ def build_affidavit_coverage_review(
         ),
         provisional_queue_row_count=len(provisional_structured_anchors),
         provisional_bundle_count=len(provisional_anchor_bundles),
+    )
+    _emit_progress(
+        progress_callback,
+        "build_finished",
+        section="affidavit_review",
+        completed=proposition_total,
+        total=proposition_total,
+        elapsed_seconds=round(max(time.monotonic() - build_started_at, 0.0), 3),
+        message="Affidavit coverage review build finished.",
     )
 
     return {
@@ -2044,22 +2459,65 @@ def write_affidavit_coverage_review(
     source_path: str | None = None,
     affidavit_path: str | None = None,
     db_path: Path | None = None,
+    progress_callback: Any | None = None,
+    trace_callback: Any | None = None,
+    trace_level: str = "verbose",
 ) -> dict[str, Any]:
+    _emit_progress(
+        progress_callback,
+        "artifact_build_started",
+        section="affidavit_artifact",
+        message="Building affidavit coverage review artifact.",
+    )
     payload = build_affidavit_coverage_review(
         source_payload=source_payload,
         affidavit_text=affidavit_text,
         source_path=source_path,
         affidavit_path=affidavit_path,
+        progress_callback=progress_callback,
+        trace_callback=trace_callback,
+        trace_level=trace_level,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
     summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
+    _emit_progress(
+        progress_callback,
+        "artifact_write_started",
+        section="affidavit_artifact",
+        message="Writing affidavit review files.",
+        output_dir=str(output_dir),
+    )
     artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
     result: dict[str, Any] = {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+    _emit_progress(
+        progress_callback,
+        "artifact_write_finished",
+        section="affidavit_artifact",
+        completed=2,
+        total=2,
+        message="Affidavit review files written.",
+        artifact_path=str(artifact_path),
+        summary_path=str(summary_path),
+    )
     if db_path is not None:
+        _emit_progress(
+            progress_callback,
+            "artifact_persist_started",
+            section="affidavit_artifact",
+            message="Persisting normalized contested review receiver.",
+            db_path=str(db_path),
+        )
         with sqlite3.connect(str(db_path)) as conn:
             result["persist_summary"] = persist_contested_affidavit_review(conn, payload)
+        _emit_progress(
+            progress_callback,
+            "artifact_persist_finished",
+            section="affidavit_artifact",
+            message="Persisted normalized contested review receiver.",
+            db_path=str(db_path),
+        )
     return result
 
 
@@ -2069,7 +2527,16 @@ def main() -> None:
     parser.add_argument("--affidavit-text", required=True, help="Path to the affidavit/declaration draft text file.")
     parser.add_argument("--output-dir", required=True, help="Directory where JSON and summary outputs will be written.")
     parser.add_argument("--db-path", default=None, help="Optional sqlite path for persisting a normalized contested-review receiver.")
+    parser.add_argument("--progress", action="store_true", help="Emit progress updates to stderr.")
+    parser.add_argument("--progress-format", default="human", choices=["human", "json", "bar"], help="Progress output format.")
+    parser.add_argument("--trace", action="store_true", help="Emit detailed trace events to stderr.")
+    parser.add_argument("--trace-format", default="human", choices=["human", "json"], help="Trace output format.")
+    parser.add_argument("--trace-level", default="verbose", choices=["summary", "verbose"], help="Trace verbosity level.")
+    parser.add_argument("--log-level", default="INFO", help="Logging level for stderr output.")
     args = parser.parse_args()
+    configure_cli_logging(str(args.log_level))
+    progress_callback = build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format))
+    trace_callback = build_event_callback(enabled=bool(args.trace), fmt=str(args.trace_format), label="trace")
 
     source_path = Path(args.source_json)
     affidavit_path = Path(args.affidavit_text)
@@ -2082,6 +2549,9 @@ def main() -> None:
         source_path=str(source_path),
         affidavit_path=str(affidavit_path),
         db_path=Path(args.db_path) if args.db_path else None,
+        progress_callback=progress_callback,
+        trace_callback=trace_callback,
+        trace_level=str(args.trace_level),
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 

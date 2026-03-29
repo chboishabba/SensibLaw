@@ -129,3 +129,86 @@ def test_google_docs_contested_narrative_review_builds_artifact(monkeypatch, tmp
     assert "Conflict State" in summary
     assert "Evidentiary State" in summary
     assert "Unsupported affidavit propositions" in summary
+
+
+def test_google_docs_contested_narrative_review_reports_progress(monkeypatch, tmp_path: Path) -> None:
+    from scripts import build_google_docs_contested_narrative_review as module
+    from scripts import build_affidavit_coverage_review as review_module
+
+    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    response_text = "Summary of Response\n\nI dispute that allegation."
+    lookup = {
+        "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
+        "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
+    }
+    seen: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        review_module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"] if text.casefold().startswith("i ") else [],
+            "verb_lemmas": ["dispute"] if "i dispute" in text.casefold() else [],
+            "has_negation": "i dispute" in text.casefold(),
+            "has_first_person_subject": text.casefold().startswith("i "),
+            "has_hedge_verb": False,
+        },
+    )
+
+    build_google_docs_contested_narrative_review(
+        affidavit_doc_url="https://docs.google.com/document/d/aff/edit?usp=sharing",
+        response_doc_url="https://docs.google.com/document/d/resp/edit?usp=sharing",
+        output_dir=tmp_path / "out",
+        progress_callback=lambda stage, details: seen.append((stage, details)),
+    )
+
+    stages = [stage for stage, _ in seen]
+    assert "google_affidavit_fetch_started" in stages
+    assert "google_affidavit_fetch_finished" in stages
+    assert "google_response_fetch_started" in stages
+    assert "google_response_fetch_finished" in stages
+    assert "google_doc_extract_finished" in stages
+    assert "google_response_units_grouped" in stages
+    assert "google_affidavit_review_started" in stages
+    assert "artifact_write_finished" in stages
+    assert "google_affidavit_review_finished" in stages
+
+
+def test_google_docs_contested_narrative_review_reports_trace(monkeypatch, tmp_path: Path) -> None:
+    from scripts import build_google_docs_contested_narrative_review as module
+    from scripts import build_affidavit_coverage_review as review_module
+
+    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    response_text = "Summary of Response\n\nI dispute that allegation."
+    lookup = {
+        "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
+        "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
+    }
+    seen: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        review_module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"] if text.casefold().startswith("i ") else [],
+            "verb_lemmas": ["dispute"] if "i dispute" in text.casefold() else [],
+            "has_negation": "i dispute" in text.casefold(),
+            "has_first_person_subject": text.casefold().startswith("i "),
+            "has_hedge_verb": False,
+        },
+    )
+
+    build_google_docs_contested_narrative_review(
+        affidavit_doc_url="https://docs.google.com/document/d/aff/edit?usp=sharing",
+        response_doc_url="https://docs.google.com/document/d/resp/edit?usp=sharing",
+        output_dir=tmp_path / "out",
+        trace_callback=lambda stage, details: seen.append((stage, details)),
+        trace_level="verbose",
+    )
+
+    stages = [stage for stage, _ in seen]
+    assert "google_docs_run_started" in stages
+    assert "google_docs_text_extracted" in stages
+    assert "google_docs_units_grouped" in stages
+    assert "proposition_started" in stages
+    assert "proposition_classified" in stages
