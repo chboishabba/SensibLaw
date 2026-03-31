@@ -7,6 +7,17 @@ work with docs, TODOs, and changelog state.
 ## Current phase (2026-03-27)
 Semantic-promotion parity is now the active cross-lane governance lane.
 
+## Current phase addendum (2026-03-31)
+- ontology enrichment is being forward-ported onto the normalized
+  `src/ontology` surface rather than the older `src/sensiblaw/ontology`
+  branch shape
+- `#423` is the live candidate for that forward-port; `#422` remains a
+  separate confidence-migration idea and is too stale to merge directly
+- governing rule for this lane:
+  provider-backed enrichment may add candidate lookup and interactive upsert
+  helpers, but it must not fork a parallel ontology package or duplicate the
+  current CLI architecture
+
 Current addendum (2026-03-28):
 - refreshed online context now pins two additional doctrine boundaries:
   - all-sources `FactBundle` / reconciliation is the broader direction above

@@ -26,6 +26,15 @@ from src.obligation_views import (
     explanations_to_payload,
 )
 from src.obligations import extract_obligations_from_text, obligation_to_dict
+from src.ontology.enrichment import (
+    PROVIDER_NAMES,
+    LookupCandidate,
+    batch_lookup as batch_provider_lookup,
+    fetch_rows,
+    serialise_candidates,
+    upsert_external_ref,
+    write_candidates,
+)
 from src.graph.inference import (
     PREDICTION_VERSION,
     PredictionSet,
@@ -2055,6 +2064,83 @@ def _handle_ontology_lookup_batch(args: argparse.Namespace) -> None:
     _print_json([record.asdict() for record in results])
 
 
+def _prompt_candidate_choices(
+    entity_label: str, provider: str, candidates: list[LookupCandidate]
+) -> list[int]:
+    if not candidates:
+        return []
+    print(f"\n{provider} candidates for {entity_label}:")
+    for idx, candidate in enumerate(candidates, start=1):
+        summary = f" - {candidate.description}" if candidate.description else ""
+        print(f"  [{idx}] {candidate.label} ({candidate.external_id}){summary}")
+    raw = input("Choose candidates to upsert (comma separated, blank to skip): ").strip()
+    if not raw:
+        return []
+    selections: list[int] = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            index = int(token)
+        except ValueError:
+            continue
+        if 1 <= index <= len(candidates):
+            selections.append(index - 1)
+    return selections
+
+
+def _interactive_upsert(
+    connection: sqlite3.Connection,
+    *,
+    table: str,
+    entity: Mapping[str, object],
+    candidates: Mapping[str, list[LookupCandidate]],
+) -> None:
+    label = str(entity.get("label") or entity.get("code") or entity.get("id"))
+    for provider, provider_candidates in candidates.items():
+        selected = _prompt_candidate_choices(label, provider, provider_candidates)
+        for idx in selected:
+            chosen = provider_candidates[idx]
+            upsert_external_ref(
+                connection,
+                table=table,
+                entity_id=int(entity["id"]),
+                provider=provider,
+                candidate=chosen,
+            )
+    connection.commit()
+
+
+def _enrich_table(
+    args: argparse.Namespace,
+    *,
+    table: str,
+    columns: Sequence[str],
+) -> None:
+    providers = args.providers or list(PROVIDER_NAMES)
+    with sqlite3.connect(args.db) as connection:
+        connection.row_factory = sqlite3.Row
+        entities = fetch_rows(connection, table, columns)
+        payload: list[Mapping[str, object]] = []
+        for entity in entities:
+            queries = [entity.get("code"), entity.get("label")]
+            lookup_results = batch_provider_lookup(queries, providers, limit=args.limit)
+            serialised = serialise_candidates(entity, lookup_results)
+            payload.append(serialised)
+            if args.interactive:
+                _interactive_upsert(connection, table=table, entity=entity, candidates=lookup_results)
+    write_candidates(payload, args.out)
+
+
+def _handle_ontology_concepts_enrich(args: argparse.Namespace) -> None:
+    _enrich_table(args, table="concepts", columns=["id", "code", "label"])
+
+
+def _handle_ontology_actors_enrich(args: argparse.Namespace) -> None:
+    _enrich_table(args, table="actors", columns=["id", "label"])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sensiblaw")
     sub = parser.add_subparsers(dest="command")
@@ -2182,6 +2268,48 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate and report counts but do not commit changes",
     )
     ext_refs.set_defaults(func=_handle_ontology_external_refs_upsert)
+
+    concepts_enrich = ontology_sub.add_parser(
+        "concepts-enrich",
+        help="Lookup candidate external references for concepts",
+    )
+    concepts_enrich.add_argument("--db", required=True, help="Path to SQLite database")
+    concepts_enrich.add_argument(
+        "--providers",
+        nargs="+",
+        choices=PROVIDER_NAMES,
+        default=list(PROVIDER_NAMES),
+        help="External providers to query",
+    )
+    concepts_enrich.add_argument("--limit", type=int, default=5, help="Max candidates per provider")
+    concepts_enrich.add_argument("--out", type=Path, help="Write candidate payload as JSON")
+    concepts_enrich.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Interactively select candidates to upsert",
+    )
+    concepts_enrich.set_defaults(func=_handle_ontology_concepts_enrich)
+
+    actors_enrich = ontology_sub.add_parser(
+        "actors-enrich",
+        help="Lookup candidate external references for actors",
+    )
+    actors_enrich.add_argument("--db", required=True, help="Path to SQLite database")
+    actors_enrich.add_argument(
+        "--providers",
+        nargs="+",
+        choices=PROVIDER_NAMES,
+        default=list(PROVIDER_NAMES),
+        help="External providers to query",
+    )
+    actors_enrich.add_argument("--limit", type=int, default=5, help="Max candidates per provider")
+    actors_enrich.add_argument("--out", type=Path, help="Write candidate payload as JSON")
+    actors_enrich.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Interactively select candidates to upsert",
+    )
+    actors_enrich.set_defaults(func=_handle_ontology_actors_enrich)
 
     bridge_import = ontology_sub.add_parser(
         "bridge-import",

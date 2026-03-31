@@ -63,7 +63,26 @@ Wikidata work in SL/ITIR currently has two separate surfaces:
 These surfaces must not be conflated. External-ref curation is not a reasoner,
 and diagnostic findings do not redefine internal ontology rows.
 
-### 2.3 No Metaclass Escalation During Mapping
+### 2.3 Provider-Backed Enrichment Helpers
+
+In addition to read-only lookup and curated external-ref import, the current
+ontology surface may include bounded helper commands that:
+
+* query provider APIs such as Wikidata and DBpedia
+* rank or filter candidate matches with deterministic heuristics
+* emit a reviewable candidate payload for batch curation
+* optionally upsert selected candidates into `concept_external_refs` and
+  `actor_external_refs`
+
+These helpers are still enrichment-only. They must not:
+
+* replace the internal ontology
+* infer legal truth
+* mutate tables outside the curated external-ref path
+* bypass reviewed IDs by auto-promoting provider candidates without operator
+  review
+
+### 2.4 No Metaclass Escalation During Mapping
 
 When curating external IDs, do not import Wikidata metaclass structure into the
 internal ontology as if it were canonical truth.
