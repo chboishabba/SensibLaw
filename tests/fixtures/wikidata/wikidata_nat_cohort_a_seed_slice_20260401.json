@@ -1,0 +1,25 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "seed_slice_materialized",
+  "based_on_materialization": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json",
+  "instance_of_anchor": "Q4830453",
+  "entity_qids": [
+    "Q10403939",
+    "Q10422059"
+  ],
+  "candidate_span": {
+    "first_candidate_id": "Q10403939|P5991|1",
+    "last_candidate_id": "Q10422059|P5991|29",
+    "candidate_count": 53
+  },
+  "classification_counts": {
+    "split_required": 53
+  },
+  "requires_review_count": 53,
+  "checked_safe_subset": [],
+  "notes": [
+    "Seed slice uses only revision-locked business-family entities already pinned in the climate pilot pack.",
+    "All current rows in this subset remain split_required and review-first."
+  ]
+}

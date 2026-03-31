@@ -1,0 +1,34 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "source_revision_fixture": "wiki_revision_nat_wdu_sandbox_p5991_p14143_20260401.json",
+  "source_property": "P5991",
+  "target_property": "P14143",
+  "cohort_id": "non_ghg_protocol_or_missing_p459",
+  "label": "Non-GHG protocol or missing P459",
+  "status": "branch_pinned",
+  "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+  "risk_level": "high",
+  "population": null,
+  "expected_qualifier_properties": [
+    "P459",
+    "P3831",
+    "P585",
+    "P580",
+    "P582",
+    "P518",
+    "P7452"
+  ],
+  "expected_reference_properties": [
+    "P854",
+    "P1065",
+    "P813",
+    "P1476",
+    "P2960"
+  ],
+  "parent_state": "review_only_export_20260401",
+  "next_gate": "review_first_population_scan",
+  "notes": [
+    "This branch state exists before any live population scan.",
+    "It is review-first and does not claim execution readiness."
+  ]
+}

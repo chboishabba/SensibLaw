@@ -1,0 +1,69 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "live_tranche_materialized",
+  "source_discovery_fixture": "wikidata_nat_cohort_a_live_discovery_20260401.json",
+  "out_dir": "/tmp/wikidata_nat_cohort_a_live_tranche_20260401",
+  "qids": [
+    "Q30938280",
+    "Q731938",
+    "Q1785637",
+    "Q738421"
+  ],
+  "labels": {
+    "Q1785637": "Apoteket",
+    "Q30938280": "Essity",
+    "Q731938": "AstraZeneca",
+    "Q738421": "Assa Abloy"
+  },
+  "revision_pairs": [
+    {
+      "qid": "Q30938280",
+      "older_revid": 2469144228,
+      "older_timestamp": "2026-03-03T22:03:22Z",
+      "newer_revid": 2474420124,
+      "newer_timestamp": "2026-03-22T05:44:40Z"
+    },
+    {
+      "qid": "Q731938",
+      "older_revid": 2475458700,
+      "older_timestamp": "2026-03-26T13:17:29Z",
+      "newer_revid": 2475458703,
+      "newer_timestamp": "2026-03-26T13:17:30Z"
+    },
+    {
+      "qid": "Q1785637",
+      "older_revid": 2438164838,
+      "older_timestamp": "2025-12-04T23:24:40Z",
+      "newer_revid": 2443793937,
+      "newer_timestamp": "2025-12-18T16:07:56Z"
+    },
+    {
+      "qid": "Q738421",
+      "older_revid": 2469142437,
+      "older_timestamp": "2026-03-03T21:57:36Z",
+      "newer_revid": 2474422579,
+      "newer_timestamp": "2026-03-22T05:50:33Z"
+    }
+  ],
+  "candidate_count": 188,
+  "checked_safe_subset_count": 0,
+  "requires_review_count": 188,
+  "counts_by_bucket": {
+    "split_required": 188
+  },
+  "openrefine_row_count": 188,
+  "split_plan_summary": {
+    "plan_count": 4,
+    "counts_by_status": {
+      "structurally_decomposable": 4
+    }
+  },
+  "summary": {
+    "nat_progress_count": 7,
+    "nat_total_count": 8,
+    "nat_progress_ratio": 0.875,
+    "promoted_subset_found": false,
+    "next_recommendation": "targeted_checked_safe_hunt_or_branch_to_cohort_c"
+  }
+}

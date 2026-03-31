@@ -1,0 +1,170 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "source_revision_fixture": "wiki_revision_nat_wdu_sandbox_p5991_p14143_20260401.json",
+  "source_property": "P5991",
+  "target_property": "P14143",
+  "expected_qualifier_properties": [
+    "P459",
+    "P3831",
+    "P585",
+    "P580",
+    "P582",
+    "P518",
+    "P7452"
+  ],
+  "expected_reference_properties": [
+    "P854",
+    "P1065",
+    "P813",
+    "P1476",
+    "P2960"
+  ],
+  "cohorts": [
+    {
+      "cohort_id": "business_family_reconciled",
+      "label": "Business / enterprise / public company",
+      "status": "manifest_pinned",
+      "population": 37665,
+      "selection_rule": "subject is instance of Q4830453 or Q6881511 or Q891723",
+      "risk_level": "medium",
+      "expected_qualifier_properties": [
+        "P459",
+        "P3831",
+        "P585",
+        "P580",
+        "P582",
+        "P518",
+        "P7452"
+      ],
+      "expected_reference_properties": [
+        "P854",
+        "P1065",
+        "P813",
+        "P1476",
+        "P2960"
+      ],
+      "next_gate": "materialize_migration_pack_slice"
+    },
+    {
+      "cohort_id": "other_reconciled_instance_of",
+      "label": "Other reconciled instance of",
+      "status": "manifest_pinned",
+      "population": null,
+      "selection_rule": "subject has reconciled instance of outside business-family cohort",
+      "risk_level": "high",
+      "expected_qualifier_properties": [
+        "P459",
+        "P3831",
+        "P585",
+        "P580",
+        "P582",
+        "P518",
+        "P7452"
+      ],
+      "expected_reference_properties": [
+        "P854",
+        "P1065",
+        "P813",
+        "P1476",
+        "P2960"
+      ],
+      "next_gate": "measure_population_then_materialize"
+    },
+    {
+      "cohort_id": "non_ghg_protocol_or_missing_p459",
+      "label": "Non-GHG protocol or missing P459",
+      "status": "manifest_pinned",
+      "population": null,
+      "selection_rule": "statement P459 is missing or not GHG protocol",
+      "risk_level": "high",
+      "expected_qualifier_properties": [
+        "P459",
+        "P3831",
+        "P585",
+        "P580",
+        "P582",
+        "P518",
+        "P7452"
+      ],
+      "expected_reference_properties": [
+        "P854",
+        "P1065",
+        "P813",
+        "P1476",
+        "P2960"
+      ],
+      "next_gate": "review_first_population_scan"
+    },
+    {
+      "cohort_id": "missing_instance_of",
+      "label": "Missing instance of",
+      "status": "manifest_pinned",
+      "population": 1395,
+      "selection_rule": "subject lacks instance of",
+      "risk_level": "high",
+      "expected_qualifier_properties": [
+        "P459",
+        "P3831",
+        "P585",
+        "P580",
+        "P582",
+        "P518",
+        "P7452"
+      ],
+      "expected_reference_properties": [
+        "P854",
+        "P1065",
+        "P813",
+        "P1476",
+        "P2960"
+      ],
+      "next_gate": "typing_deficit_review_manifest"
+    },
+    {
+      "cohort_id": "unreconciled_instance_of",
+      "label": "Unreconciled instance of",
+      "status": "manifest_pinned",
+      "population": 142,
+      "selection_rule": "subject has instance of that could not be reconciled",
+      "risk_level": "high",
+      "expected_qualifier_properties": [
+        "P459",
+        "P3831",
+        "P585",
+        "P580",
+        "P582",
+        "P518",
+        "P7452"
+      ],
+      "expected_reference_properties": [
+        "P854",
+        "P1065",
+        "P813",
+        "P1476",
+        "P2960"
+      ],
+      "next_gate": "reconciliation_review_manifest"
+    }
+  ],
+  "completion_model": {
+    "total_milestones": 8,
+    "completed_milestones": [
+      "proposal_page_captured",
+      "task_buckets_mapped",
+      "review_cohort_manifests_pinned",
+      "first_bounded_cohort_slice_materialized",
+      "shape_scan_completed",
+      "migration_pack_classification_completed",
+      "checked_safe_or_review_only_exports_produced"
+    ],
+    "remaining_milestones": [
+      "post_edit_verification_exercised"
+    ]
+  },
+  "summary": {
+    "current_progress_count": 7,
+    "total_progress_count": 8,
+    "current_progress_ratio": 0.875,
+    "next_priority_cohort": "business_family_reconciled"
+  }
+}

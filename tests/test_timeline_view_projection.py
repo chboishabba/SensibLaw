@@ -4,7 +4,9 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
+from src.wiki_timeline.query_runtime import resolve_query_db_path
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 from src.wiki_timeline.source_registry import resolve_source_config
 from src.wiki_timeline.timeline_view_projection import build_timeline_view_projection
@@ -166,3 +168,19 @@ def test_source_registry_supports_aoo_all_variant_for_gwb_corpus() -> None:
     assert config["source"] == "gwb_corpus_v1"
     assert config["timeline_suffix"] == "wiki_timeline_gwb_corpus_v1.json"
     assert config["rel_path"].endswith("wiki_timeline_gwb_corpus_v1.json")
+
+
+def test_query_runtime_prefers_explicit_db_path(monkeypatch: Any, tmp_path: Path) -> None:
+    explicit = tmp_path / "explicit.sqlite"
+    monkeypatch.setenv("ITIR_DB_PATH", str(tmp_path / "env.sqlite"))
+    assert resolve_query_db_path(str(explicit)) == explicit.resolve()
+
+
+def test_query_runtime_falls_back_to_modern_then_legacy_env(monkeypatch: Any, tmp_path: Path) -> None:
+    modern = tmp_path / "modern.sqlite"
+    legacy = tmp_path / "legacy.sqlite"
+    monkeypatch.setenv("ITIR_DB_PATH", str(modern))
+    monkeypatch.setenv("SL_WIKI_TIMELINE_DB", str(legacy))
+    assert resolve_query_db_path() == modern.resolve()
+    monkeypatch.delenv("ITIR_DB_PATH")
+    assert resolve_query_db_path() == legacy.resolve()

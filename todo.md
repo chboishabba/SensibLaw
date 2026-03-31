@@ -164,6 +164,16 @@
   `src/policy/wikidata_structural_geometry.py` now also owns checked
   disjointness row/cue geometry and dense disjointness row/cue geometry,
   leaving the builders closer to pure orchestration surfaces.
+- [ ] Finish the wiki revision monitor writer contraction by deciding whether
+  pair report and contested graph survive as explicit exports now that the
+  default runner path no longer uses subprocess JSON handoff for timeline/AOO
+  extraction.
+- [ ] Finish pair-report demotion in the wiki revision monitor lane so
+  `pair_report_path` is a legacy link only, not an operational state driver.
+- [x] Finish current-article state contraction in the wiki revision monitor
+  lane so timeline/AOO JSON paths are not persisted as durable continuity, and
+  remove the default subprocess JSON handoff by calling the extractors
+  in-process.
 - [ ] If external Wikimedia funding becomes operationally relevant for the
   Wikidata lane, keep a small maintained funding/watchlist note sourced from
   official online grant pages rather than treating "active Wikidata grants" as
@@ -635,6 +645,20 @@
     article-result and candidate-pair tables without the placeholder-only
     columns while preserving surviving row data. Contract note:
     `../docs/planning/wiki_revision_monitor_v0_4_in_place_migration_20260331.md`.
+  - [x] Promote the v0.5 backcompat blob drop:
+    `summary_json` and `graph_json` are now removed from both fresh schema
+    creation and old-DB in-place migration, with query fallback simplified to
+    SQLite read models plus artifacts only. Contract note:
+    `../docs/planning/wiki_revision_monitor_v0_5_backcompat_blob_drop_20260331.md`.
+  - [x] Remove JSON artifact fallback from the query lane:
+    `src/wiki_timeline/revision_monitor_query.py` is now SQLite-only for runs,
+    summaries, and selected graphs. Contract note:
+    `../docs/planning/wiki_revision_monitor_sqlite_only_query_20260331.md`.
+  - [x] Remove the first redundant runner-side JSON sidecars:
+    the runner no longer emits the run-summary JSON sidecar in `runs/` or the
+    duplicate `__latest.json` contested-graph alias, while keeping the
+    canonical graph artifact path unchanged. Contract note:
+    `../docs/planning/wiki_revision_monitor_sidecar_contraction_slice1_20260331.md`.
   - [x] Move pack triage and run-summary assembly behind one shared Python
     summary owner so `revision_pack_runner.py` stops owning reporting geometry
     inline.
@@ -646,9 +670,9 @@
   - preserve the dedicated runner/state-DB posture; this is a standards/
     interoperability task, not a demand to fold the lane into `itir-svelte`
   - next:
-    decide whether the v0.5 backcompat blobs (`summary_json`, `graph_json`)
-    should also get an in-place drop migration once their stricter consumer
-    audit is complete
+    decide the canonical replacement contract for the remaining runner working
+    artifacts (`pair_reports`, snapshots, timeline, and AOO files) before
+    removing those JSON surfaces
 - [x] Add an OpenRecall observer integration v1 lane:
   - vendored `openrecall/` SQLite captures now import into `itir.sqlite` via a
     bounded append-only importer and normalized capture tables/read models

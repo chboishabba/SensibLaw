@@ -62,6 +62,12 @@ CLIMATE_TEXT_LINE_PATTERNS = (
     re.compile(r"(?P<value>\d[\d,]*(?:\.\d+)?)\D{0,20}(?P<year>(?:19|20)\d{2})"),
 )
 CLIMATE_TEXT_PREDICATE = "annual_emissions"
+SCOPE_QUALIFIER_PROPERTY = "P518"
+SCOPE_TAG_PATTERNS = {
+    "scope_1": re.compile(r"\bscope[\s_-]*1\b", re.IGNORECASE),
+    "scope_2": re.compile(r"\bscope[\s_-]*2\b", re.IGNORECASE),
+    "scope_3": re.compile(r"\bscope[\s_-]*3\b", re.IGNORECASE),
+}
 
 
 def resolve_property_filter(
@@ -241,6 +247,10 @@ def _bridge_temporal_years(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str
     return tuple(sorted(years))
 
 
+def _bridge_scope_values(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str, ...]:
+    return tuple(sorted(set(_stringify(value) for value in qualifiers.get(SCOPE_QUALIFIER_PROPERTY, ()))))
+
+
 def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
     promotion_status = _stringify(raw.get("promotion_status", ""))
     if promotion_status != "promoted_true":
@@ -283,6 +293,30 @@ def _normalize_climate_numeric_value(raw: str) -> str:
     if "." in cleaned:
         cleaned = cleaned.rstrip("0").rstrip(".")
     return cleaned
+
+
+def _extract_scope_tags_from_text(text: str) -> tuple[str, ...]:
+    return tuple(sorted(tag for tag, pattern in SCOPE_TAG_PATTERNS.items() if pattern.search(text)))
+
+
+def _normalize_string_list(raw: Any) -> tuple[str, ...]:
+    if raw is None:
+        return tuple()
+    if isinstance(raw, (list, tuple)):
+        values = [_stringify(value).strip() for value in raw if _stringify(value).strip()]
+        return tuple(sorted(set(values)))
+    value = _stringify(raw).strip()
+    return (value,) if value else tuple()
+
+
+def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
+    tags = set(_extract_scope_tags_from_text(line_text))
+    tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_id", ""))))
+    tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_unit_id", ""))))
+    metadata = source.get("metadata")
+    if isinstance(metadata, Mapping):
+        tags.update(_normalize_string_list(metadata.get("scope_tags")))
+    return tuple(sorted(tag for tag in tags if tag))
 
 
 def _iter_climate_text_line_spans(text: str) -> Iterable[tuple[int, int, str]]:
@@ -399,6 +433,7 @@ def _extract_climate_text_rows_from_source_unit(source: Mapping[str, Any]) -> li
                 },
                 "observed_at": year,
                 "object_value": value,
+                "scope_tags": list(_source_unit_scope_tags(source, line_text=line)),
                 "revision_id": revision_id,
                 "revision_timestamp": revision_timestamp,
             }
@@ -481,7 +516,7 @@ def build_observation_claim_payload_from_source_units(
                 "trace_refs": [
                     f"revision:{row['revision_id']}",
                     f"source:{row['source_id']}",
-                ],
+                ] + [f"scope_tag:{tag}" for tag in row.get("scope_tags", [])],
             }
             evidence_link["link_hash"] = _stable_digest(evidence_link)
 
@@ -521,17 +556,21 @@ def build_wikidata_phi_text_bridge_case(
     bundle_qualifiers = _normalize_bridge_qualifiers(claim_bundle.get("qualifiers"))
     bundle_temporal_values = set(_bridge_temporal_values(bundle_qualifiers))
     bundle_temporal_years = set(_bridge_temporal_years(bundle_qualifiers))
+    bundle_scope_values = set(_bridge_scope_values(bundle_qualifiers))
 
     alignment: list[dict[str, Any]] = []
     conflicts: list[dict[str, Any]] = []
     missing_dimensions: list[dict[str, Any]] = []
     aligned_objects: set[str] = set()
     text_temporal_signatures: set[tuple[str, ...]] = set()
+    text_scope_signatures: set[tuple[str, ...]] = set()
 
     for observation in normalized_observations:
         checks: list[str] = []
-        temporal_values = _bridge_temporal_values(_normalize_bridge_qualifiers(observation.get("qualifiers")))
-        temporal_years = set(_bridge_temporal_years(_normalize_bridge_qualifiers(observation.get("qualifiers"))))
+        observation_qualifiers = _normalize_bridge_qualifiers(observation.get("qualifiers"))
+        temporal_values = _bridge_temporal_values(observation_qualifiers)
+        temporal_years = set(_bridge_temporal_years(observation_qualifiers))
+        scope_values = _bridge_scope_values(observation_qualifiers)
         if observation["subject"] == bundle_subject:
             checks.append("subject_match")
         else:
@@ -553,6 +592,16 @@ def build_wikidata_phi_text_bridge_case(
                     "detail": (
                         f"text observation {observation['observation_ref']} carries year(s) "
                         f"{sorted(temporal_years)} outside bundle year(s) {sorted(bundle_temporal_years)}"
+                    ),
+                }
+            )
+        elif bundle_scope_values and scope_values and bundle_scope_values != set(scope_values):
+            missing_dimensions.append(
+                {
+                    "kind": "value_mismatch_outside_bundle_scope",
+                    "detail": (
+                        f"text observation {observation['observation_ref']} carries scope tag(s) "
+                        f"{list(scope_values)} outside bundle scope value(s) {sorted(bundle_scope_values)}"
                     ),
                 }
             )
@@ -584,6 +633,31 @@ def build_wikidata_phi_text_bridge_case(
                     }
                 )
 
+        if scope_values:
+            text_scope_signatures.add(scope_values)
+            if bundle_scope_values and set(scope_values) == bundle_scope_values:
+                checks.append("scope_match")
+            elif not bundle_scope_values:
+                missing_dimensions.append(
+                    {
+                        "kind": "bundle_missing_scope_dimension",
+                        "detail": (
+                            f"text observation {observation['observation_ref']} carries scope tag(s) absent "
+                            "from the structured bundle"
+                        ),
+                    }
+                )
+            else:
+                missing_dimensions.append(
+                    {
+                        "kind": "scope_dimension_mismatch",
+                        "detail": (
+                            f"text scope tag(s) {list(scope_values)} do not match bundle scope value(s) "
+                            f"{sorted(bundle_scope_values)}"
+                        ),
+                    }
+                )
+
         if checks:
             alignment.append({"observation_ref": observation["observation_ref"], "checks": checks})
 
@@ -600,6 +674,14 @@ def build_wikidata_phi_text_bridge_case(
             {
                 "kind": "multiple_text_values",
                 "detail": "text observations describe more than one object value for the same structured candidate",
+            }
+        )
+
+    if len(text_scope_signatures) > 1:
+        missing_dimensions.append(
+            {
+                "kind": "multiple_text_scope_slices",
+                "detail": "text observations describe more than one scope slice for the same structured candidate",
             }
         )
 
@@ -775,13 +857,19 @@ def extract_phi_text_observations_from_observation_claim_payload(
 
     observations = payload.get("observations")
     claims = payload.get("claims")
-    if not isinstance(observations, list) or not isinstance(claims, list):
-        raise ValueError("observation claim payload requires observations and claims arrays")
+    evidence_links = payload.get("evidence_links")
+    if not isinstance(observations, list) or not isinstance(claims, list) or not isinstance(evidence_links, list):
+        raise ValueError("observation claim payload requires observations, claims, and evidence_links arrays")
 
     observation_index = {
         _stringify(row.get("observation_id", "")): row
         for row in observations
         if isinstance(row, Mapping) and _stringify(row.get("observation_id", ""))
+    }
+    evidence_link_index = {
+        _stringify(row.get("link_id", "")): row
+        for row in evidence_links
+        if isinstance(row, Mapping) and _stringify(row.get("link_id", ""))
     }
     allowed_predicates = {value.strip() for value in (predicate_allowlist or []) if value and value.strip()}
     out: list[dict[str, Any]] = []
@@ -835,6 +923,19 @@ def extract_phi_text_observations_from_observation_claim_payload(
         qualifiers: dict[str, Any] = {}
         if observed_at is not None:
             qualifiers["P585"] = _stringify(observed_at)
+        scope_tags = set(_extract_scope_tags_from_text(_stringify(observation.get("source_quote", ""))))
+        for link_id in claim.get("evidence_links", []):
+            evidence_link = evidence_link_index.get(_stringify(link_id))
+            if not isinstance(evidence_link, Mapping):
+                continue
+            for trace_ref in evidence_link.get("trace_refs", []):
+                trace_text = _stringify(trace_ref)
+                if trace_text.startswith("scope_tag:"):
+                    scope_value = trace_text.partition(":")[2].strip()
+                    if scope_value:
+                        scope_tags.add(scope_value)
+        if scope_tags:
+            qualifiers[SCOPE_QUALIFIER_PROPERTY] = sorted(scope_tags)
 
         out.append(
             {

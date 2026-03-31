@@ -85,3 +85,45 @@ def test_query_wiki_timeline_aoo_db_raw_applies_numeric_projection(tmp_path: Pat
     assert sorted(parsed["events"][0]["numeric_objects"]) == ["5 million usd", "percent"]
     assert parsed["events"][0]["steps"][0]["numeric_objects"] == ["1,000 aud"]
     assert parsed["events"][0]["numeric_mentions"][0]["key"] == "5e6|usd"
+
+
+def test_query_wiki_timeline_aoo_db_rel_path_envelope_uses_python_suffix_policy(tmp_path: Path) -> None:
+    timeline_path = tmp_path / "wiki_timeline_hca_s942025_aoo.json"
+    timeline_path.write_text(json.dumps({"snapshot": {"title": "x"}, "events": []}, sort_keys=True), encoding="utf-8")
+    db_path = tmp_path / "itir.sqlite"
+
+    payload = {
+        "generated_at": "2026-03-30T00:00:00Z",
+        "source_timeline": {"path": str(timeline_path), "snapshot": {"title": "x"}},
+        "root_actor": {"label": "Root", "surname": "Actor"},
+        "events": [],
+    }
+
+    persist_wiki_timeline_aoo_run(
+        db_path=db_path,
+        out_payload=payload,
+        timeline_path=timeline_path,
+        extractor_path=Path("SensibLaw/scripts/wiki_timeline_aoo_extract.py"),
+    )
+
+    script = Path("SensibLaw/scripts/query_wiki_timeline_aoo_db.py")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--db-path",
+            str(db_path),
+            "--rel-path",
+            "SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json",
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert proc.returncode == 0
+    parsed = json.loads(proc.stdout)
+    assert parsed["timeline_suffix"] == "wiki_timeline_hca_s942025_aoo.json"
+    assert parsed["rel_path"] == "SensibLaw/.cache_local/wiki_timeline_hca_s942025_aoo.json"
+    assert parsed["payload"]["root_actor"]["label"] == "Root"

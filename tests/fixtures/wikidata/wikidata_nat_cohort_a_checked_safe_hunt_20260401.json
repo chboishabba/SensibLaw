@@ -1,0 +1,62 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "checked_safe_hunt_completed",
+  "source": {
+    "query_mode": "live_wdqs_bounded_probe",
+    "query_constraints": {
+      "source_property": "P5991",
+      "instance_of_any": [
+        "Q4830453",
+        "Q6881511",
+        "Q891723"
+      ],
+      "max_qualifier_count": 2
+    },
+    "materialization_dir": "/tmp/wikidata_nat_cohort_a_checked_safe_hunt_20260401"
+  },
+  "qids": [
+    "Q1068745",
+    "Q1489170"
+  ],
+  "labels": {
+    "Q1068745": "Check24",
+    "Q1489170": "immowelt"
+  },
+  "revision_pairs": [
+    {
+      "qid": "Q1068745",
+      "older_revid": 2418611520,
+      "older_timestamp": "2025-10-19T15:10:25Z",
+      "newer_revid": 2421271366,
+      "newer_timestamp": "2025-10-24T13:00:03Z"
+    },
+    {
+      "qid": "Q1489170",
+      "older_revid": 2330843542,
+      "older_timestamp": "2025-03-26T21:24:06Z",
+      "newer_revid": 2432333082,
+      "newer_timestamp": "2025-11-22T01:09:22Z"
+    }
+  ],
+  "candidate_count": 2,
+  "checked_safe_subset_count": 2,
+  "requires_review_count": 0,
+  "counts_by_bucket": {
+    "safe_with_reference_transfer": 2
+  },
+  "checked_safe_subset": [
+    "Q1068745|P5991|1",
+    "Q1489170|P5991|1"
+  ],
+  "counts_by_action": {
+    "migrate_with_refs": 2
+  },
+  "summary": {
+    "nat_progress_count": 7,
+    "nat_total_count": 8,
+    "nat_progress_ratio": 0.875,
+    "promoted_subset_found": true,
+    "next_recommendation": "run_post_edit_verification_on_bounded_promoted_subset"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "checked_safe_subset": [],
+  "cohort_id": "business_family_reconciled",
+  "counts_by_bucket": {
+    "split_required": 53
+  },
+  "csv_export": "tests/fixtures/wikidata/wikidata_nat_cohort_a_review_only_export_20260401.csv",
+  "export_scope": "review_only_openrefine_rows",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "row_count": 53,
+  "source_checkpoint_fixture": "wikidata_nat_cohort_a_classification_checkpoint_20260401.json",
+  "status": "review_only_export_completed"
+}

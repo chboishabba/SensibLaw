@@ -578,34 +578,19 @@ def _looks_like_template_residue(text: str) -> bool:
     return False
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract date-anchored timeline candidates from a wiki snapshot.")
-    ap.add_argument("--snapshot", type=Path, required=True, help="Path to snapshot JSON (from wiki_pull_api.py)")
-    ap.add_argument(
-        "--out",
-        type=Path,
-        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb.json"),
-        help="Output JSON path (gitignored).",
-    )
-    ap.add_argument("--max-events", type=int, default=220, help="Max timeline candidates to emit (default: 220)")
-    ap.add_argument(
-        "--section-contains",
-        action="append",
-        default=[],
-        help="Only include paragraphs where section contains this substring (repeatable).",
-    )
-    args = ap.parse_args(argv)
-
-    snap = _load_snapshot(args.snapshot)
-    wikitext = snap.get("wikitext") or ""
-    if not isinstance(wikitext, str) or not wikitext.strip():
-        raise SystemExit("snapshot has no wikitext; re-run wiki_pull_api.py without --no-wikitext")
-
-    section_filters = [s.lower() for s in (args.section_contains or []) if s and s.strip()]
+def build_timeline_payload_from_snapshot(
+    *,
+    snap: dict,
+    snapshot_path: Path | None = None,
+    max_events: int = 220,
+    section_contains: Optional[List[str]] = None,
+) -> dict:
+    section_filters = [s.lower() for s in (section_contains or []) if s and s.strip()]
 
     events: List[dict] = []
     idx = 0
     section_heading_emitted: Dict[str, bool] = {}
+    wikitext = snap.get("wikitext") or ""
     for section, para_wt in _iter_section_paragraphs(wikitext):
         if section_filters:
             sec = section.lower()
@@ -617,10 +602,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not plain:
             continue
 
-        # Split into "sentences" conservatively; protect common abbreviations.
-        # We want a stable, curation-friendly unit, not perfect NLP.
         sentences = _split_sentences(plain)
-
         section_anchor = _parse_section_anchor(section)
         for si, s in enumerate(sentences):
             s = _cleanup_sentence_text(s)
@@ -635,10 +617,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             if anchor:
                 anchors.append(anchor)
             if not anchor and section_anchor is not None and not section_heading_emitted.get(section, False):
-                # Conservative heading fallback:
-                # only first sentence in a section paragraph stream, only when
-                # the sentence lacks its own explicit anchor, to avoid broad
-                # synthetic backfilling.
                 if si == 0:
                     anchors.append(section_anchor)
                     section_heading_emitted[section] = True
@@ -670,7 +648,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not anchors:
                 continue
 
-            # Sentence-local link capture reduces irrelevant paragraph links.
             links = _links_in_sentence(para_wt, s)
             para_links = _wikitext_links(para_wt)
             for a in anchors:
@@ -685,14 +662,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "links_para": para_links[:120],
                     }
                 )
-                if len(events) >= int(args.max_events):
+                if len(events) >= int(max_events):
                     break
-            if len(events) >= int(args.max_events):
+            if len(events) >= int(max_events):
                 break
-        if len(events) >= int(args.max_events):
+        if len(events) >= int(max_events):
             break
 
-    # Extract category-derived candidates as a lower-weight lane
     cats = snap.get("categories") or []
     if isinstance(cats, list):
         for raw_cat in cats:
@@ -701,31 +677,33 @@ def main(argv: Optional[List[str]] = None) -> int:
             cat = raw_cat.strip()
             if not cat:
                 continue
-                
+
             clean_cat = cat[9:] if cat.startswith("Category:") else cat
-            
+
             anchors: List[DateAnchor] = []
             anchors.extend(_parse_inline_year_range_anchors(clean_cat))
             if not anchors:
                 anchors.extend(_parse_inline_weak_years(clean_cat))
-                
+
             if anchors:
                 idx += 1
-                events.append({
-                    "event_id": f"ev_cat:{idx:04d}",
-                    "anchor": anchors[0].to_json(),
-                    "section": "(categories)",
-                    "text": cat,
-                    "links": [],
-                    "links_para": [],
-                    "lane": "category",
-                })
+                events.append(
+                    {
+                        "event_id": f"ev_cat:{idx:04d}",
+                        "anchor": anchors[0].to_json(),
+                        "section": "(categories)",
+                        "text": cat,
+                        "links": [],
+                        "links_para": [],
+                        "lane": "category",
+                    }
+                )
 
-    out = {
+    return {
         "ok": True,
         "generated_at": _utc_now_iso(),
         "snapshot": {
-            "path": str(args.snapshot),
+            "path": str(snapshot_path) if snapshot_path is not None else None,
             "wiki": snap.get("wiki"),
             "title": snap.get("title"),
             "revid": snap.get("revid"),
@@ -743,9 +721,39 @@ def main(argv: Optional[List[str]] = None) -> int:
         ],
     }
 
+
+def main(argv: Optional[List[str]] = None) -> int:
+    ap = argparse.ArgumentParser(description="Extract date-anchored timeline candidates from a wiki snapshot.")
+    ap.add_argument("--snapshot", type=Path, required=True, help="Path to snapshot JSON (from wiki_pull_api.py)")
+    ap.add_argument(
+        "--out",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb.json"),
+        help="Output JSON path (gitignored).",
+    )
+    ap.add_argument("--max-events", type=int, default=220, help="Max timeline candidates to emit (default: 220)")
+    ap.add_argument(
+        "--section-contains",
+        action="append",
+        default=[],
+        help="Only include paragraphs where section contains this substring (repeatable).",
+    )
+    args = ap.parse_args(argv)
+
+    snap = _load_snapshot(args.snapshot)
+    wikitext = snap.get("wikitext") or ""
+    if not isinstance(wikitext, str) or not wikitext.strip():
+        raise SystemExit("snapshot has no wikitext; re-run wiki_pull_api.py without --no-wikitext")
+    out = build_timeline_payload_from_snapshot(
+        snap=snap,
+        snapshot_path=args.snapshot,
+        max_events=int(args.max_events),
+        section_contains=list(args.section_contains or []),
+    )
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out), "events": len(events)}, indent=2, sort_keys=True))
+    print(json.dumps({"ok": True, "out": str(args.out), "events": len(out.get("events") or [])}, indent=2, sort_keys=True))
     return 0
 
 

@@ -1,0 +1,116 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "live_discovery_completed",
+  "discovery_date": "2026-04-01",
+  "source_property": "P5991",
+  "target_property": "P14143",
+  "cohort_rule": {
+    "instance_of_any": [
+      "Q4830453",
+      "Q6881511",
+      "Q891723"
+    ],
+    "ranking": [
+      "qualifier_count_desc",
+      "statement_count_desc",
+      "qid_asc"
+    ]
+  },
+  "discovered_rows": [
+    {
+      "qid": "Q30938280",
+      "label": "Essity",
+      "statement_count": 14,
+      "qualifier_count": 9,
+      "selected_for_live_tranche": true
+    },
+    {
+      "qid": "Q731938",
+      "label": "AstraZeneca",
+      "statement_count": 91,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": true
+    },
+    {
+      "qid": "Q1785637",
+      "label": "Apoteket",
+      "statement_count": 42,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": true
+    },
+    {
+      "qid": "Q738421",
+      "label": "Assa Abloy",
+      "statement_count": 41,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": true
+    },
+    {
+      "qid": "Q2084093",
+      "label": "Q2084093",
+      "statement_count": 37,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q10601765",
+      "label": "Nolato",
+      "statement_count": 36,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q47508289",
+      "label": "Inter IKEA Holding",
+      "statement_count": 36,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q10425193",
+      "label": "Balder",
+      "statement_count": 34,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q188326",
+      "label": "H&M",
+      "statement_count": 34,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q52825",
+      "label": "ABB Group",
+      "statement_count": 33,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q3356220",
+      "label": "Clas Ohlson",
+      "statement_count": 32,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    },
+    {
+      "qid": "Q862811",
+      "label": "Billerud",
+      "statement_count": 32,
+      "qualifier_count": 7,
+      "selected_for_live_tranche": false
+    }
+  ],
+  "summary": {
+    "discovered_row_count": 12,
+    "selected_live_tranche_qids": [
+      "Q30938280",
+      "Q731938",
+      "Q1785637",
+      "Q738421"
+    ],
+    "selected_live_tranche_count": 4
+  }
+}

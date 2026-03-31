@@ -3961,46 +3961,7 @@ def _extract_capitalized_surname_names(
     return out
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract AAO mini-graphs from wiki timeline candidates.")
-    ap.add_argument(
-        "--timeline",
-        type=Path,
-        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb.json"),
-        help="Input timeline JSON (default: %(default)s)",
-    )
-    ap.add_argument(
-        "--candidates",
-        type=Path,
-        default=Path("SensibLaw/.cache_local/wiki_candidates_gwb.json"),
-        help="Optional wiki candidates JSON for alias resolution (default: %(default)s)",
-    )
-    ap.add_argument(
-        "--out",
-        type=Path,
-        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb_aoo.json"),
-        help="Output AAO JSON (default: %(default)s)",
-    )
-    ap.add_argument("--root-actor", default="George W. Bush", help="Root actor label for 'Bush' mentions")
-    ap.add_argument("--root-surname", default="Bush", help="Surname token that resolves to root actor")
-    ap.add_argument("--max-events", type=int, default=260, help="Max events to process (default: 260)")
-    ap.add_argument(
-        "--profile",
-        type=Path,
-        default=Path("SensibLaw/policies/wiki_timeline_aoo_profile_v1.json"),
-        help="Extraction profile JSON (action patterns/title labels) (default: %(default)s)",
-    )
-    ap.add_argument(
-        "--db-path",
-        type=Path,
-        default=Path(".cache_local/itir.sqlite"),
-        help="SQLite persistence target for canonical storage (JSON remains an export) (default: %(default)s)",
-    )
-    ap.add_argument("--no-db", action="store_true", help="Disable SQLite persistence (export JSON only)")
-    ap.add_argument("--spacy-model", default="en_core_web_sm", help="spaCy model for deterministic role/attachment parsing")
-    ap.add_argument("--no-spacy", action="store_true", help="Disable spaCy parsing (span candidates lane will be empty)")
-    args = ap.parse_args(argv)
-
+def _build_aoo_payload_from_namespace(args: argparse.Namespace) -> dict:
     profile_payload: dict = {}
     profile_loaded = False
     profile_sha256: Optional[str] = None
@@ -4052,7 +4013,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         "error": profile_error,
     }
 
-    tl = _load_json(args.timeline)
+    tl = getattr(args, "timeline_payload", None)
+    if not isinstance(tl, dict):
+        tl = _load_json(args.timeline)
     events = tl.get("events") or []
     if not isinstance(events, list):
         raise SystemExit("invalid timeline: events[] missing")
@@ -5261,9 +5224,93 @@ def main(argv: Optional[List[str]] = None) -> int:
             "extractor_sha256": res.extractor_sha256,
         }
 
+    return out
+
+
+def build_aoo_payload_from_timeline(
+    *,
+    timeline_payload: dict,
+    timeline_path: Path | None = None,
+    candidates_path: Path | None = None,
+    root_actor: str = "George W. Bush",
+    root_surname: str = "Bush",
+    max_events: int = 260,
+    profile_path: Path | None = None,
+    db_path: Path | None = None,
+    no_db: bool = True,
+    spacy_model: str = "en_core_web_sm",
+    no_spacy: bool = False,
+) -> dict:
+    if timeline_path is None:
+        timeline_path = Path("SensibLaw/.cache_local/wiki_timeline_gwb.json")
+    if candidates_path is None:
+        candidates_path = Path("SensibLaw/.cache_local/wiki_candidates_gwb.json")
+    if profile_path is None:
+        profile_path = Path("SensibLaw/policies/wiki_timeline_aoo_profile_v1.json")
+    if db_path is None:
+        db_path = Path(".cache_local/itir.sqlite")
+    return _build_aoo_payload_from_namespace(
+        argparse.Namespace(
+            timeline=timeline_path,
+            candidates=candidates_path,
+            out=Path("SensibLaw/.cache_local/wiki_timeline_gwb_aoo.json"),
+            root_actor=root_actor,
+            root_surname=root_surname,
+            max_events=max_events,
+            profile=profile_path,
+            db_path=db_path,
+            no_db=no_db,
+            spacy_model=spacy_model,
+            no_spacy=no_spacy,
+            timeline_payload=timeline_payload,
+        )
+    )
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    ap = argparse.ArgumentParser(description="Extract AAO mini-graphs from wiki timeline candidates.")
+    ap.add_argument(
+        "--timeline",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb.json"),
+        help="Input timeline JSON (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--candidates",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_candidates_gwb.json"),
+        help="Optional wiki candidates JSON for alias resolution (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--out",
+        type=Path,
+        default=Path("SensibLaw/.cache_local/wiki_timeline_gwb_aoo.json"),
+        help="Output AAO JSON (default: %(default)s)",
+    )
+    ap.add_argument("--root-actor", default="George W. Bush", help="Root actor label for 'Bush' mentions")
+    ap.add_argument("--root-surname", default="Bush", help="Surname token that resolves to root actor")
+    ap.add_argument("--max-events", type=int, default=260, help="Max events to process (default: 260)")
+    ap.add_argument(
+        "--profile",
+        type=Path,
+        default=Path("SensibLaw/policies/wiki_timeline_aoo_profile_v1.json"),
+        help="Extraction profile JSON (action patterns/title labels) (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--db-path",
+        type=Path,
+        default=Path(".cache_local/itir.sqlite"),
+        help="SQLite persistence target for canonical storage (JSON remains an export) (default: %(default)s)",
+    )
+    ap.add_argument("--no-db", action="store_true", help="Disable SQLite persistence (export JSON only)")
+    ap.add_argument("--spacy-model", default="en_core_web_sm", help="spaCy model for deterministic role/attachment parsing")
+    ap.add_argument("--no-spacy", action="store_true", help="Disable spaCy parsing (span candidates lane will be empty)")
+    args = ap.parse_args(argv)
+
+    out = _build_aoo_payload_from_namespace(args)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"ok": True, "out": str(args.out), "events": len(out_events)}, indent=2, sort_keys=True))
+    print(json.dumps({"ok": True, "out": str(args.out), "events": len(out.get("events") or [])}, indent=2, sort_keys=True))
     return 0
 
 

@@ -1,0 +1,49 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "shape_scan_completed",
+  "measured_fixture": "wikidata_nat_cohort_a_seed_slice_20260401.json",
+  "candidate_count": 53,
+  "expected_qualifier_properties": [
+    "P459",
+    "P3831",
+    "P585",
+    "P580",
+    "P582",
+    "P518",
+    "P7452"
+  ],
+  "actual_qualifier_properties": [
+    "P3831",
+    "P459",
+    "P518",
+    "P580",
+    "P582"
+  ],
+  "unexpected_qualifier_properties": [],
+  "expected_reference_properties": [
+    "P854",
+    "P1065",
+    "P813",
+    "P1476",
+    "P2960"
+  ],
+  "actual_reference_properties": [
+    "P854"
+  ],
+  "unexpected_reference_properties": [],
+  "qualifier_occurrence_counts": {
+    "P3831": 49,
+    "P459": 53,
+    "P518": 33,
+    "P580": 53,
+    "P582": 53
+  },
+  "reference_occurrence_counts": {
+    "P854": 53
+  },
+  "summary": {
+    "shape_clean": true,
+    "next_gate": "broader_cohort_classification"
+  }
+}

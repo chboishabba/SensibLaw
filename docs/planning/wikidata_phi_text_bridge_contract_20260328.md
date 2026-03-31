@@ -311,10 +311,13 @@ Implemented runtime promotion:
 - re-running the real `Q10403939` artifact now yields `split_pressure` on all
   `24` candidates
 
-Immediate next runtime promotion:
-- optionally carry simple scope tags from the text side, but only as additive
-  diagnostic metadata until the structured side exposes a trustworthy matching
-  dimension for them
+Implemented runtime promotion:
+- simple scope-tag carriage now runs through the generic source-unit ->
+  observation-claim -> bridge path
+- bridge comparison now distinguishes temporal mismatch from explicit
+  scope-dimension mismatch while keeping the same bounded pressure grammar
+- scope tags remain additive evidence only; they do not bypass the structured
+  lane or change migration action directly
 
 Generalization boundary:
 - the system should now be understood as source-unit driven, not PDF-driven
@@ -326,6 +329,7 @@ Generalization boundary:
 - first supported source-unit types should stay narrow:
   - PDF snapshot text
   - HTML snapshot text
+  - bounded wiki revision text
 - this is a source-capture generalization only; it must not widen the bridge
   semantics or weaken the current promotion/anchoring requirements
 

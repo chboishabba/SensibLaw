@@ -1,0 +1,35 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "business_family_reconciled",
+  "status": "classification_checkpoint_completed",
+  "measured_fixture": "wikidata_nat_cohort_a_seed_slice_20260401.json",
+  "classification_scope": "materialized_bounded_cohort",
+  "entity_qids": [
+    "Q10403939",
+    "Q10422059"
+  ],
+  "candidate_count": 53,
+  "counts_by_classification": {
+    "split_required": 53
+  },
+  "counts_by_action": {
+    "split": 53
+  },
+  "requires_review": {
+    "true": 53,
+    "false": 0
+  },
+  "checked_safe_subset": [],
+  "common_reasons": [
+    "mixed_temporal_resolution",
+    "multi_value_slot",
+    "multi_valued_dimension",
+    "multiple_time_qualifiers",
+    "time_range_requires_split"
+  ],
+  "summary": {
+    "classification_ready_for_export_gate": true,
+    "migration_ready": false,
+    "next_gate": "checked_safe_or_review_only_export"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "sl.source_unit.v1",
+  "source_units": [
+    {
+      "source_id": "wikidata_user_sandbox:nat_wdu:p5991_p14143:provided_snapshot:2026-04-01",
+      "entity_qid": "Q10884",
+      "source_unit_id": "unit:wikidata_user_sandbox:nat_wdu:p5991_p14143:2026-04-01",
+      "revision": {
+        "revision_id": "provided_snapshot_2026-04-01",
+        "revision_timestamp": "2026-04-01T00:00:00+10:00",
+        "retrieval_method": "wiki_revision"
+      },
+      "origin": {
+        "source_type": "wiki",
+        "source_url": "https://www.wikidata.org/wiki/User:Nat_(WDU)/Sandbox/Fossil_fuel_industries/Migrate_from_carbon_footprint_to_GHG_emissions",
+        "title": "User:Nat (WDU)/Sandbox/Fossil fuel industries/Migrate from carbon footprint to GHG emissions"
+      },
+      "content": {
+        "format": "text",
+        "text": "Since the cretion of P14143 I have to migrate most of the P5991 statements with their references and qualifiers to use this new property (This has been discussed in the property proposal and documented in Wikiproject climate change).\n\ntasks\ndone\n\n- is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology\n- get the units wip query\n\nto do\n\n- evaluate migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)\n- capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P518), reason for preferred rank (P7452)\n- check if there really are not extra qualifiers within the items that are instances of instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera)\n- capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we found only the following reference properties: reference URL (P854), archive URL (P1065), retrieved (P813), title (P1476), archive date (P2960)\n- is it necesary to add the rank?\n- evaluate migration for all other reconciled \"instance of\"\n- look for any unexpected qualifiers\n- capture references\n- evaluate migrations of statements cuyo determination method no es GHG protocol (otro determination method o no tiene el determination method)\n- evaluate migration for 1395 statements cuyo sujeto no tiene un \"instance of\"\n- look for any unexpected qualifiers\n- capture references\n- evaluar migración para 142 declaraciones cuyo sujeto tiene un instance of que no pudo ser reconciliado\n- look for any unexpected qualifiers\n- capture references\n\nqueries\n\n- https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+      },
+      "anchors": [
+        {
+          "anchor_id": "goal",
+          "start": 0,
+          "end": 257,
+          "label": "migration_goal"
+        },
+        {
+          "anchor_id": "cohort_business_family",
+          "start": 408,
+          "end": 585,
+          "label": "cohort_business_family"
+        },
+        {
+          "anchor_id": "qualifier_family",
+          "start": 588,
+          "end": 847,
+          "label": "expected_qualifier_family"
+        },
+        {
+          "anchor_id": "reference_family",
+          "start": 1047,
+          "end": 1289,
+          "label": "expected_reference_family"
+        },
+        {
+          "anchor_id": "query_anchor",
+          "start": 1655,
+          "end": 1737,
+          "label": "query_anchor"
+        }
+      ],
+      "metadata": {
+        "page_title": "User:Nat (WDU)/Sandbox/Fossil fuel industries/Migrate from carbon footprint to GHG emissions",
+        "project_surface": "Wikidata user sandbox",
+        "capture_source": "user_provided_snapshot",
+        "migration_source_property": "P5991",
+        "migration_target_property": "P14143",
+        "proposal_scope": "migration_cohort_and_constraint_surface"
+      }
+    }
+  ]
+}

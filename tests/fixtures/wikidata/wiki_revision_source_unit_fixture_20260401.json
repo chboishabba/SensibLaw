@@ -1,0 +1,40 @@
+{
+  "schema_version": "sl.source_unit.v1",
+  "source_units": [
+    {
+      "source_id": "wikipedia:example_corp:rev:20260401",
+      "entity_qid": "Q1",
+      "source_unit_id": "unit:wikipedia:example_corp:rev:20260401:lead",
+      "revision": {
+        "revision_id": "987654321",
+        "revision_timestamp": "2026-04-01T08:30:00Z",
+        "retrieval_method": "wiki_revision"
+      },
+      "origin": {
+        "source_type": "wiki",
+        "source_url": "https://en.wikipedia.org/w/index.php?title=Example_Corp&oldid=987654321",
+        "title": "Example Corp"
+      },
+      "content": {
+        "format": "text",
+        "text": "2023 emissions: 86 tCO2e."
+      },
+      "anchors": [
+        {
+          "anchor_id": "lead-1",
+          "start": 0,
+          "end": 25,
+          "label": "lead_excerpt"
+        }
+      ],
+      "metadata": {
+        "page_title": "Example Corp",
+        "page_id": "123456",
+        "revision_origin": "wikipedia_en",
+        "scope_tags": [
+          "scope_1"
+        ]
+      }
+    }
+  ]
+}

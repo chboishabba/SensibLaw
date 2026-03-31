@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import re
+import runpy
 import sqlite3
 import subprocess
 import sys
+import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -118,6 +120,22 @@ def _rebuild_table_with_columns(
             f"INSERT INTO {table_name} ({column_list}) SELECT {column_list} FROM {temp_name}"
         )
     conn.execute(f"DROP TABLE {temp_name}")
+
+
+def _needs_rebuild(conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]) -> bool:
+    existing_columns = _table_columns(conn, table_name)
+    return bool(existing_columns) and existing_columns != set(target_columns)
+
+
+def _snapshot_rows(conn: sqlite3.Connection, *, table_name: str, columns: list[str]) -> list[tuple[Any, ...]]:
+    existing_columns = _table_columns(conn, table_name)
+    if not existing_columns:
+        return []
+    selected = [column for column in columns if column in existing_columns]
+    if not selected:
+        return []
+    column_list = ", ".join(selected)
+    return conn.execute(f"SELECT {column_list} FROM {table_name}").fetchall()
 
 
 ARTICLE_RESULTS_CREATE_SQL = """
@@ -290,70 +308,167 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    _rebuild_table_with_columns(
-        conn,
-        table_name="wiki_revision_monitor_runs",
-        create_sql=RUNS_CREATE_SQL,
-        target_columns=[
-            "run_id",
-            "pack_id",
-            "started_at",
-            "completed_at",
-            "status",
-            "out_dir",
-        ],
-    )
-    _rebuild_table_with_columns(
-        conn,
-        table_name="wiki_revision_monitor_article_results",
-        create_sql=ARTICLE_RESULTS_CREATE_SQL,
-        target_columns=[
-            "run_id",
-            "article_id",
-            "status",
-            "previous_revid",
-            "current_revid",
-            "top_severity",
-            "snapshot_path",
-            "timeline_path",
-            "aoo_path",
-            "report_path",
-        ],
-    )
-    _rebuild_table_with_columns(
-        conn,
-        table_name="wiki_revision_monitor_candidate_pairs",
-        create_sql=CANDIDATE_PAIRS_CREATE_SQL,
-        target_columns=[
-            "run_id",
-            "article_id",
-            "pair_id",
-            "pair_kind",
-            "older_revid",
-            "newer_revid",
-            "selected",
-            "score",
-            "pair_report_path",
-            "status",
-        ],
-    )
-    _rebuild_table_with_columns(
-        conn,
-        table_name="wiki_revision_monitor_contested_graphs",
-        create_sql=CONTESTED_GRAPHS_CREATE_SQL,
-        target_columns=[
-            "run_id",
-            "article_id",
-            "graph_path",
-            "region_count",
-            "cycle_count",
-            "selected_pair_count",
-            "changed_event_count",
-            "changed_attribution_count",
-            "highest_severity",
-            "hottest_region_json",
-        ],
-    )
+    rebuild_specs = [
+        (
+            "wiki_revision_monitor_runs",
+            RUNS_CREATE_SQL,
+            ["run_id", "pack_id", "started_at", "completed_at", "status", "out_dir"],
+        ),
+        (
+            "wiki_revision_monitor_article_results",
+            ARTICLE_RESULTS_CREATE_SQL,
+            [
+                "run_id",
+                "article_id",
+                "status",
+                "previous_revid",
+                "current_revid",
+                "top_severity",
+                "snapshot_path",
+                "timeline_path",
+                "aoo_path",
+                "report_path",
+            ],
+        ),
+        (
+            "wiki_revision_monitor_candidate_pairs",
+            CANDIDATE_PAIRS_CREATE_SQL,
+            [
+                "run_id",
+                "article_id",
+                "pair_id",
+                "pair_kind",
+                "older_revid",
+                "newer_revid",
+                "selected",
+                "score",
+                "pair_report_path",
+                "status",
+            ],
+        ),
+        (
+            "wiki_revision_monitor_contested_graphs",
+            CONTESTED_GRAPHS_CREATE_SQL,
+            [
+                "run_id",
+                "article_id",
+                "graph_path",
+                "region_count",
+                "cycle_count",
+                "selected_pair_count",
+                "changed_event_count",
+                "changed_attribution_count",
+                "highest_severity",
+                "hottest_region_json",
+            ],
+        ),
+    ]
+    if any(_needs_rebuild(conn, table_name=table_name, target_columns=target_columns) for table_name, _, target_columns in rebuild_specs):
+        run_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_runs",
+            columns=["run_id", "pack_id", "started_at", "completed_at", "status", "out_dir"],
+        )
+        article_result_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_article_results",
+            columns=[
+                "run_id",
+                "article_id",
+                "status",
+                "previous_revid",
+                "current_revid",
+                "top_severity",
+                "snapshot_path",
+                "timeline_path",
+                "aoo_path",
+                "report_path",
+            ],
+        )
+        candidate_pair_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_candidate_pairs",
+            columns=[
+                "run_id",
+                "article_id",
+                "pair_id",
+                "pair_kind",
+                "older_revid",
+                "newer_revid",
+                "selected",
+                "score",
+                "pair_report_path",
+                "status",
+            ],
+        )
+        contested_graph_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_contested_graphs",
+            columns=[
+                "run_id",
+                "article_id",
+                "graph_path",
+                "region_count",
+                "cycle_count",
+                "selected_pair_count",
+                "changed_event_count",
+                "changed_attribution_count",
+                "highest_severity",
+                "hottest_region_json",
+            ],
+        )
+        conn.execute("PRAGMA foreign_keys = OFF")
+        for table_name in [
+            "wiki_revision_monitor_candidate_pairs",
+            "wiki_revision_monitor_article_results",
+            "wiki_revision_monitor_contested_graphs",
+            "wiki_revision_monitor_runs",
+        ]:
+            if _table_columns(conn, table_name):
+                conn.execute(f"DROP TABLE {table_name}")
+        conn.execute(RUNS_CREATE_SQL)
+        conn.execute(ARTICLE_RESULTS_CREATE_SQL)
+        conn.execute(CANDIDATE_PAIRS_CREATE_SQL)
+        conn.execute(CONTESTED_GRAPHS_CREATE_SQL)
+        if run_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status, out_dir)
+                VALUES(?,?,?,?,?,?)
+                """,
+                run_rows,
+            )
+        if article_result_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_article_results(
+                  run_id, article_id, status, previous_revid, current_revid, top_severity,
+                  snapshot_path, timeline_path, aoo_path, report_path
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                """,
+                article_result_rows,
+            )
+        if candidate_pair_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_candidate_pairs(
+                  run_id, article_id, pair_id, pair_kind, older_revid, newer_revid, selected, score,
+                  pair_report_path, status
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                """,
+                candidate_pair_rows,
+            )
+        if contested_graph_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_contested_graphs(
+                  run_id, article_id, graph_path, region_count, cycle_count, selected_pair_count,
+                  changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                """,
+                contested_graph_rows,
+            )
+        conn.execute("PRAGMA foreign_keys = ON")
     ensure_read_model_schema(conn)
 
 
@@ -834,22 +949,21 @@ def _default_build_timeline(
     out_path: Path,
     python_cmd: str,
     repo_root: Path,
+    snapshot_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    _subprocess_json(
-        [
-            python_cmd,
-            str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_extract.py"),
-            "--snapshot",
-            str(snapshot_path),
-            "--out",
-            str(out_path),
-        ],
-        cwd=repo_root,
+    module_globals = runpy.run_path(str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_extract.py"))
+    build_timeline_payload_from_snapshot = module_globals["build_timeline_payload_from_snapshot"]
+    if snapshot_payload is None:
+        snapshot_payload = read_json_file(snapshot_path)
+    if not isinstance(snapshot_payload, Mapping):
+        raise RuntimeError(f"snapshot payload unreadable: {snapshot_path}")
+    payload = build_timeline_payload_from_snapshot(
+        snap=dict(snapshot_payload),
+        snapshot_path=snapshot_path,
+        max_events=220,
+        section_contains=[],
     )
-    payload = read_json_file(out_path)
-    if payload is None:
-        raise RuntimeError(f"timeline file unreadable: {out_path}")
-    return {"timeline_path": out_path, "timeline_payload": payload}
+    return {"timeline_path": None, "timeline_payload": payload}
 
 
 def _default_build_aoo(
@@ -859,24 +973,25 @@ def _default_build_aoo(
     out_path: Path,
     python_cmd: str,
     repo_root: Path,
+    timeline_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    args = [
-        python_cmd,
-        str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_aoo_extract.py"),
-        "--timeline",
-        str(timeline_path),
-        "--out",
-        str(out_path),
-        "--no-db",
-    ]
+    module_globals = runpy.run_path(str(repo_root / "SensibLaw" / "scripts" / "wiki_timeline_aoo_extract.py"))
+    build_aoo_payload_from_timeline = module_globals["build_aoo_payload_from_timeline"]
     title = str(article.get("title") or "")
-    if _looks_like_person_title(title):
-        args.extend(["--root-actor", title, "--root-surname", title.split()[-1]])
-    _subprocess_json(args, cwd=repo_root)
-    payload = read_json_file(out_path)
-    if payload is None:
-        raise RuntimeError(f"aoo file unreadable: {out_path}")
-    return {"aoo_path": out_path, "aoo_payload": payload}
+    root_actor = title if _looks_like_person_title(title) else "George W. Bush"
+    root_surname = title.split()[-1] if _looks_like_person_title(title) else "Bush"
+    if timeline_payload is None:
+        timeline_payload = read_json_file(timeline_path)
+    if not isinstance(timeline_payload, Mapping):
+        raise RuntimeError("timeline payload unavailable for in-process AAO extraction")
+    payload = build_aoo_payload_from_timeline(
+        timeline_payload=dict(timeline_payload),
+        timeline_path=timeline_path,
+        root_actor=root_actor,
+        root_surname=root_surname,
+        no_db=True,
+    )
+    return {"aoo_path": None, "aoo_payload": payload}
 
 
 def _default_auto_review_context(
@@ -1096,6 +1211,65 @@ def _split_sections(wikitext: str) -> dict[str, str]:
     return {key: value for key, value in sections.items() if value is not None}
 
 
+def _invoke_build_timeline(
+    build_timeline_fn: Callable[..., Mapping[str, Any]],
+    *,
+    snapshot_path: Path,
+    out_path: Path,
+    python_cmd: str,
+    repo_root: Path,
+    snapshot_payload: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    try:
+        return build_timeline_fn(
+            snapshot_path=snapshot_path,
+            out_path=out_path,
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            snapshot_payload=snapshot_payload,
+        )
+    except TypeError as exc:
+        if "snapshot_payload" not in str(exc):
+            raise
+        return build_timeline_fn(
+            snapshot_path=snapshot_path,
+            out_path=out_path,
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+        )
+
+
+def _invoke_build_aoo(
+    build_aoo_fn: Callable[..., Mapping[str, Any]],
+    *,
+    article: Mapping[str, Any],
+    timeline_path: Path,
+    out_path: Path,
+    python_cmd: str,
+    repo_root: Path,
+    timeline_payload: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    try:
+        return build_aoo_fn(
+            article=article,
+            timeline_path=timeline_path,
+            out_path=out_path,
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            timeline_payload=timeline_payload,
+        )
+    except TypeError as exc:
+        if "timeline_payload" not in str(exc):
+            raise
+        return build_aoo_fn(
+            article=article,
+            timeline_path=timeline_path,
+            out_path=out_path,
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+        )
+
+
 def _section_delta_summary(
     older_snapshot_payload: Mapping[str, Any],
     newer_snapshot_payload: Mapping[str, Any],
@@ -1183,8 +1357,7 @@ def _score_candidate_pair(
     }
 
 
-def _pair_graph_extract(pair_report_path: str | None) -> dict[str, Any]:
-    payload = read_json_file(Path(str(pair_report_path))) if pair_report_path else None
+def _pair_graph_extract(payload: Mapping[str, Any] | None) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
         return {
             "changed_event_ids": [],
@@ -1214,8 +1387,7 @@ def _selected_issue_packet_rows(selected_pairs: list[Mapping[str, Any]]) -> list
     rows: list[dict[str, Any]] = []
     for pair in selected_pairs:
         pair_id = str(pair.get("pair_id") or "")
-        report_path = pair.get("pair_report_path")
-        payload = read_json_file(Path(str(report_path))) if report_path else None
+        payload = pair.get("pair_report_payload")
         if not isinstance(payload, Mapping):
             continue
         comparison = payload.get("comparison_report") if isinstance(payload.get("comparison_report"), Mapping) else {}
@@ -1284,7 +1456,7 @@ def _build_contested_region_graph(
                 "pair_report_path": pair.get("pair_report_path"),
             }
         )
-        graph_extract = _pair_graph_extract(pair.get("pair_report_path"))
+        graph_extract = _pair_graph_extract(pair.get("pair_report_payload"))
         pair["graph_extract"] = graph_extract
         region_ids: list[str] = []
         for section in ((pair.get("section_delta_summary") or {}).get("top_changed_sections") or []):
@@ -1456,8 +1628,6 @@ def _build_contested_region_graph(
         "summary": summary,
     }
     write_json_file(graph_path, payload)
-    latest_path = out_dir / "contested_graphs" / f"{slug_artifact_name(article_id)}__latest.json"
-    write_json_file(latest_path, payload)
     return graph_path, payload
 
 
@@ -1484,74 +1654,110 @@ def _build_pair_report(
         older_revid=older_revid,
         newer_revid=newer_revid,
     )
+    with tempfile.TemporaryDirectory(prefix="wiki_pair_", dir=str(out_dir)) as temp_dir_text:
+        temp_dir = Path(temp_dir_text)
+        temp_pair_paths = pair_artifact_paths(
+            out_dir=temp_dir,
+            article_id=str(article.get("article_id") or ""),
+            pair_kind=str(pair["pair_kind"]),
+            older_revid=older_revid,
+            newer_revid=newer_revid,
+        )
 
-    older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=out_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
-    newer_snapshot = fetch_revision_snapshot_fn(article=article, revid=newer_revid, out_dir=out_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
-    older_snapshot_payload = dict(older_snapshot["snapshot_payload"])
-    newer_snapshot_payload = dict(newer_snapshot["snapshot_payload"])
-    older_contract_error = _snapshot_contract_error(article, older_snapshot_payload)
-    newer_contract_error = _snapshot_contract_error(article, newer_snapshot_payload)
-    if older_contract_error:
-        raise RuntimeError(older_contract_error)
-    if newer_contract_error:
-        raise RuntimeError(newer_contract_error)
-    write_json_file(pair_paths["older_snapshot"], older_snapshot_payload)
-    write_json_file(pair_paths["newer_snapshot"], newer_snapshot_payload)
+        older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=temp_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
+        newer_snapshot = fetch_revision_snapshot_fn(article=article, revid=newer_revid, out_dir=temp_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
+        older_snapshot_payload = dict(older_snapshot["snapshot_payload"])
+        newer_snapshot_payload = dict(newer_snapshot["snapshot_payload"])
+        older_contract_error = _snapshot_contract_error(article, older_snapshot_payload)
+        newer_contract_error = _snapshot_contract_error(article, newer_snapshot_payload)
+        if older_contract_error:
+            raise RuntimeError(older_contract_error)
+        if newer_contract_error:
+            raise RuntimeError(newer_contract_error)
 
-    scoring = _score_candidate_pair(pair, older_snapshot_payload=older_snapshot_payload, newer_snapshot_payload=newer_snapshot_payload, section_focus_limit=section_focus_limit)
-    pair.update(scoring)
+        scoring = _score_candidate_pair(pair, older_snapshot_payload=older_snapshot_payload, newer_snapshot_payload=newer_snapshot_payload, section_focus_limit=section_focus_limit)
+        pair.update(scoring)
 
-    older_timeline = build_timeline_fn(snapshot_path=pair_paths["older_snapshot"], out_path=pair_paths["older_timeline"], python_cmd=python_cmd, repo_root=repo_root)
-    newer_timeline = build_timeline_fn(snapshot_path=pair_paths["newer_snapshot"], out_path=pair_paths["newer_timeline"], python_cmd=python_cmd, repo_root=repo_root)
-    older_aoo = build_aoo_fn(article=article, timeline_path=Path(str(older_timeline["timeline_path"])), out_path=pair_paths["older_aoo"], python_cmd=python_cmd, repo_root=repo_root)
-    newer_aoo = build_aoo_fn(article=article, timeline_path=Path(str(newer_timeline["timeline_path"])), out_path=pair_paths["newer_aoo"], python_cmd=python_cmd, repo_root=repo_root)
-    older_aoo_payload = read_json_file(Path(str(older_aoo["aoo_path"])))
-    newer_aoo_payload = read_json_file(Path(str(newer_aoo["aoo_path"])))
+        older_timeline = _invoke_build_timeline(
+            build_timeline_fn,
+            snapshot_path=Path(str(older_snapshot["snapshot_path"])),
+            out_path=temp_pair_paths["older_timeline"],
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            snapshot_payload=older_snapshot_payload,
+        )
+        newer_timeline = _invoke_build_timeline(
+            build_timeline_fn,
+            snapshot_path=Path(str(newer_snapshot["snapshot_path"])),
+            out_path=temp_pair_paths["newer_timeline"],
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            snapshot_payload=newer_snapshot_payload,
+        )
+        older_aoo = _invoke_build_aoo(
+            build_aoo_fn,
+            article=article,
+            timeline_path=temp_pair_paths["older_timeline"],
+            out_path=temp_pair_paths["older_aoo"],
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            timeline_payload=dict(older_timeline["timeline_payload"]),
+        )
+        newer_aoo = _invoke_build_aoo(
+            build_aoo_fn,
+            article=article,
+            timeline_path=temp_pair_paths["newer_timeline"],
+            out_path=temp_pair_paths["newer_aoo"],
+            python_cmd=python_cmd,
+            repo_root=repo_root,
+            timeline_payload=dict(newer_timeline["timeline_payload"]),
+        )
+        older_aoo_payload = dict(older_aoo["aoo_payload"])
+        newer_aoo_payload = dict(newer_aoo["aoo_payload"])
 
-    inner = build_revision_comparison_report(
-        previous_snapshot=older_snapshot_payload,
-        current_snapshot=newer_snapshot_payload,
-        previous_payload=older_aoo_payload,
-        current_payload=newer_aoo_payload,
-    )
-    section_context = list((pair.get("section_delta_summary") or {}).get("top_changed_sections") or [])
-    inner = _merge_packet_review_context(
-        report=inner,
-        article=article,
-        auto_review_context_fn=auto_review_context_fn,
-        bridge_db_path=bridge_db_path,
-        section_context=section_context,
-    )
-    wrapper = {
-        "schema_version": PAIR_REPORT_SCHEMA_VERSION,
-        "highest_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
-        "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
-        "pair": {
-            "pair_id": pair["pair_id"],
-            "pair_kind": pair["pair_kind"],
-            "pair_kinds": list(pair.get("pair_kinds") or []),
-            "older_revision": {
-                "revid": older_revid,
-                "rev_timestamp": older_snapshot_payload.get("rev_timestamp"),
-                "snapshot_path": str(pair_paths["older_snapshot"]),
+        inner = build_revision_comparison_report(
+            previous_snapshot=older_snapshot_payload,
+            current_snapshot=newer_snapshot_payload,
+            previous_payload=older_aoo_payload,
+            current_payload=newer_aoo_payload,
+        )
+        section_context = list((pair.get("section_delta_summary") or {}).get("top_changed_sections") or [])
+        inner = _merge_packet_review_context(
+            report=inner,
+            article=article,
+            auto_review_context_fn=auto_review_context_fn,
+            bridge_db_path=bridge_db_path,
+            section_context=section_context,
+        )
+        wrapper = {
+            "schema_version": PAIR_REPORT_SCHEMA_VERSION,
+            "highest_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
+            "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
+            "pair": {
+                "pair_id": pair["pair_id"],
+                "pair_kind": pair["pair_kind"],
+                "pair_kinds": list(pair.get("pair_kinds") or []),
+                "older_revision": {
+                    "revid": older_revid,
+                    "rev_timestamp": older_snapshot_payload.get("rev_timestamp"),
+                },
+                "newer_revision": {
+                    "revid": newer_revid,
+                    "rev_timestamp": newer_snapshot_payload.get("rev_timestamp"),
+                },
+                "candidate_score": pair["candidate_score"],
+                "score_breakdown": pair["score_breakdown"],
             },
-            "newer_revision": {
-                "revid": newer_revid,
-                "rev_timestamp": newer_snapshot_payload.get("rev_timestamp"),
-                "snapshot_path": str(pair_paths["newer_snapshot"]),
-            },
-            "candidate_score": pair["candidate_score"],
-            "score_breakdown": pair["score_breakdown"],
-        },
-        "section_delta_summary": pair["section_delta_summary"],
-        "comparison_report": inner,
-    }
+            "section_delta_summary": pair["section_delta_summary"],
+            "comparison_report": inner,
+        }
     write_json_file(pair_paths["pair_report"], wrapper)
     pair.update(
         {
             "selected": True,
             "status": "reported",
             "pair_report_path": str(pair_paths["pair_report"]),
+            "pair_report_payload": wrapper,
             "top_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
             "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
         }
@@ -1763,8 +1969,7 @@ def run(
                     )
                     selected_pairs.append(selected)
                     candidate_pair_counts["selected"] += 1
-                    if selected.get("pair_report_path"):
-                        candidate_pair_counts["reported"] += 1
+                    candidate_pair_counts["reported"] += 1
                     _emit_progress(
                         progress_callback,
                         "revision_pack_article_reports_progress",
@@ -1782,10 +1987,30 @@ def run(
                     _insert_candidate_pair(conn, run_id=run_id, article_id=article_id, pair_payload=materialized)
 
                 if previous_revid is None:
-                    current_timeline = build_timeline_fn(snapshot_path=current_snapshot_path, out_path=current_paths["timeline"], python_cmd=py, repo_root=repo_root)
-                    current_aoo = build_aoo_fn(article=article, timeline_path=Path(str(current_timeline["timeline_path"])), out_path=current_paths["aoo"], python_cmd=py, repo_root=repo_root)
-                    current_timeline_path = Path(str(current_timeline["timeline_path"]))
-                    current_aoo_path = Path(str(current_aoo["aoo_path"]))
+                    with tempfile.TemporaryDirectory(prefix="wiki_current_", dir=str(out_dir)) as current_temp_dir_text:
+                        current_temp_dir = Path(current_temp_dir_text)
+                        current_temp_paths = revision_artifact_paths(
+                            out_dir=current_temp_dir,
+                            article_id=article_id,
+                            revid=current_revid,
+                        )
+                        current_timeline = _invoke_build_timeline(
+                            build_timeline_fn,
+                            snapshot_path=current_snapshot_path,
+                            out_path=current_temp_paths["timeline"],
+                            python_cmd=py,
+                            repo_root=repo_root,
+                            snapshot_payload=current_snapshot_payload,
+                        )
+                        _invoke_build_aoo(
+                            build_aoo_fn,
+                            article=article,
+                            timeline_path=current_temp_paths["timeline"],
+                            out_path=current_temp_paths["aoo"],
+                            python_cmd=py,
+                            repo_root=repo_root,
+                            timeline_payload=dict(current_timeline["timeline_payload"]),
+                        )
 
                 status: str
                 if selected_pairs:
@@ -1880,9 +2105,9 @@ def run(
                     rev_timestamp=_norm_text(current_snapshot_payload.get("rev_timestamp")) or None,
                     fetched_at=_norm_text(current_snapshot_payload.get("fetched_at")) or None,
                     snapshot_path=current_snapshot_path,
-                    timeline_path=current_timeline_path or (Path(str(previous_state["timeline_path"])) if previous_state and previous_state["timeline_path"] else None),
-                    aoo_path=current_aoo_path or (Path(str(previous_state["aoo_path"])) if previous_state and previous_state["aoo_path"] else None),
-                    report_path=current_report_path or (Path(str(previous_state["report_path"])) if previous_state and previous_state["report_path"] else None),
+                    timeline_path=None,
+                    aoo_path=None,
+                    report_path=current_report_path,
                     status=status,
                 )
                 _insert_article_result(
@@ -1982,9 +2207,6 @@ def run(
             contested_graph_counts=contested_graph_counts,
             article_results=article_results,
         )
-        summary_path = out_dir / "runs" / f"{slug_artifact_name(run_id)}.json"
-        write_json_file(summary_path, summary)
-        summary["summary_path"] = str(summary_path)
         _emit_progress(
             progress_callback,
             "revision_pack_articles_finished",

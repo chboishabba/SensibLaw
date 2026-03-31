@@ -833,9 +833,10 @@ review_pack = {
      hard contradiction
    - that narrow promotion is now implemented:
      period-aware mismatch gating
-   - next runtime promotion should remain narrow:
-     add simple scope-tag carriage before broadening autonomous text ingestion
-     claims
+   - the next narrow promotion is now also implemented:
+     simple scope-tag carriage/matching through the generic source-unit ->
+     observation-claim -> bridge path, so "different scope" can be surfaced as
+     explicit dimension mismatch instead of generic temporal pressure alone
 8. Source capture should now generalize one layer up without destabilizing the
    bridge:
    - treat the current PDF/report path as the first stable source-unit type,
@@ -846,6 +847,9 @@ review_pack = {
      `SourceUnitAdapter` runtime path that can ingest PDF snapshot text and
      HTML snapshot text without changing downstream `ObservationClaim` or
      bridge behavior
+   - this is also the correct future entry path for bounded Wikipedia revision
+     text when article prose is useful as upstream evidence; Wikipedia remains
+     a proposal/evidence surface, not the semantic truth layer
 
 ## Non-goals
 - no claim that the repo should decide Wikidata ontology governance

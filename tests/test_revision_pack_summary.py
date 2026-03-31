@@ -7,7 +7,7 @@ from src.wiki_timeline.revision_pack_summary import build_run_summary, human_sum
 
 def test_revision_pack_summary_builds_triage_and_human_summary() -> None:
     payload = build_run_summary(
-        schema_version='wiki_revision_pack_state_v0_3',
+        schema_version='wiki_revision_pack_state_v0_5',
         pack_id='pack',
         run_id='run:1',
         state_db_path=Path('/tmp/state.sqlite'),

@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-03-28
+Last updated: 2026-04-01
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -8,7 +8,14 @@ entry point for Niklas, Ege, Peter, and related reviewers.
 
 If you need one short plain-language handoff that also works for the Zelph
 developer, start with:
-- `../../docs/planning/wikidata_zelph_single_handoff_20260325.md`
+- `../../docs/planning/wikidata_combined_assist_handoff_20260401.md`
+
+If you need the current execution-order roadmap across the Nat migration lane
+and the broader Peter/Ege/Rosario assist lane, use:
+- `../../docs/planning/wikidata_combined_roadmap_nat_and_assist_20260401.md`
+
+If you need the assist-lane finish-line model by itself, use:
+- `../../docs/planning/wikidata_assist_lane_completion_model_20260401.md`
 
 Treat this status note as the Wikidata-specific detailed appendix after that
 shared handoff.
@@ -116,7 +123,7 @@ shared handoff.
       - `schemas/sl.wikidata.climate_text_source.v1.schema.yaml`
       - `build_observation_claim_payload_from_revision_locked_climate_text_sources(...)`
       - `attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(...)`
-    - current remaining bottleneck:
+  - current remaining bottleneck:
       real revision-locked climate text artifacts are still needed beyond
       fixture-shaped inputs
     - current live target-selection result:
@@ -142,6 +149,64 @@ shared handoff.
     - next narrowing:
       add simple scope-tag carriage / matching so the bridge can tell
       "different scope" apart from generic temporal split pressure
+  - Nat WDU sandbox followthrough is now normalized enough for ontology-group
+    handoff:
+    - handoff note:
+      `docs/planning/wikidata_ontology_group_handoff_nat_lane_20260401.md`
+    - current bounded lane progress:
+      - `7 / 8`
+      - `87.5%`
+    - working-group meaning:
+      the lane now has revision-locked proposal capture, explicit cohort
+      manifests, a first materialized business-family tranche, review-only
+      export artifacts, and a clean qualifier/reference shape scan
+    - current bounded Cohort A truth:
+      - entities:
+        `Q10403939` (`Akademiska Hus`)
+        `Q10422059` (`Atrium Ljungberg`)
+      - candidate rows:
+        `53`
+      - classification:
+        `split_required = 53`
+      - checked-safe subset:
+        none
+      - classification checkpoint:
+        completed for the first materialized tranche
+    - first live Cohort A expansion pass is now also pinned:
+      - note:
+        `docs/planning/wikidata_nat_cohort_a_live_tranche_20260401.md`
+      - live tranche truth:
+        - `4` business-family QIDs
+        - `188` candidate rows
+        - `split_required = 188`
+        - checked-safe subset:
+          none
+    - targeted checked-safe hunt followthrough is now pinned:
+      - note:
+        `docs/planning/wikidata_nat_cohort_a_checked_safe_hunt_20260401.md`
+      - fixture:
+        `tests/fixtures/wikidata/wikidata_nat_cohort_a_checked_safe_hunt_20260401.json`
+      - result:
+        - candidate rows:
+          `2`
+        - checked-safe subset:
+          `2`
+        - bucket:
+          `safe_with_reference_transfer = 2`
+      - interpretation:
+        a bounded checked-safe subset now exists, so the final Nat gate is
+        explicitly post-edit verification rather than continued blind Cohort A
+        discovery
+    - next ontology-group decision:
+      run bounded post-edit verification for the discovered checked-safe subset
+      or branch to Cohort C, the higher-risk non-GHG / missing-`P459` lane
+    - Cohort C branch state is now pinned as repo memory:
+      - branch note:
+        `docs/planning/wikidata_nat_cohort_c_branch_20260401.md`
+      - branch fixture:
+        `SensibLaw/tests/fixtures/wikidata/wikidata_nat_cohort_c_branch_20260401.json`
+      - next gate:
+        review-first population scan
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review
@@ -180,6 +245,22 @@ shared handoff.
     useful local signal
   - productive contradiction discovery remains live-first via WDQS/current
     Wikidata rather than local pruned-bin retention
+  - Peter / Ege / Rosario assist followthrough is now formalized as a local
+    completion model:
+    - model:
+      `docs/planning/wikidata_assist_lane_completion_model_20260401.md`
+    - current bounded progress:
+      - `4 / 7`
+      - `57.142857%`
+    - completed milestones:
+      - prior-work / originality boundary pinned
+      - Rosario parity gap note pinned
+      - bounded `P2738` disjointness lane exists
+      - checked wiki/Wikidata structural handoff exists
+    - remaining milestones:
+      - broader `P2738` coverage
+      - better culprit sophistication
+      - combined outward-facing assist packet
 
 ## Current artifacts
 - Checked structural handoff:
@@ -232,6 +313,8 @@ shared handoff.
   - `docs/planning/wikidata_property_constraint_pressure_test_20260307.md`
 - Climate-change property-migration protocol note:
   - `docs/planning/wikidata_climate_change_property_migration_protocol_20260327.md`
+- Ontology-group Nat-lane handoff:
+  - `docs/planning/wikidata_ontology_group_handoff_nat_lane_20260401.md`
 - Migration-pack contract note:
   - `docs/planning/wikidata_migration_pack_contract_20260328.md`
 - Migration-pack schema:
