@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Added provider-backed ontology enrichment helpers on the normalized
+  `src/ontology` surface, including candidate lookup, deterministic
+  filtering, JSON emission, and optional interactive upsert into the existing
+  concept/actor external-reference tables.
+- Documented the enrichment boundary in `docs/external_ontologies.md` so the
+  new helpers stay advisory and do not create a parallel ontology package.
 - Affidavit Phase 1 gate v3:
   - live Dad/Johl now runs on the SQLite-first inspection surface:
     - DB:

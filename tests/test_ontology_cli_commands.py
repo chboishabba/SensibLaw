@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from cli import __main__ as cli_main
 from sensiblaw.db.dao import LegalSourceDAO, ensure_database
+from src.ontology import enrichment as ontology_enrichment
 
 
 class _FakeResponse:
@@ -59,6 +60,132 @@ def test_ontology_lookup_cli(monkeypatch, capsys):
     results = json.loads(stdout)
     assert results[0]["id"] == "a"
     assert results[0]["score"] >= 0.9
+
+
+def test_ontology_concepts_enrich_cli_emits_provider_candidates(
+    tmp_path, monkeypatch, capsys
+):
+    db_path = tmp_path / "ontology.db"
+    connection = sqlite3.connect(db_path)
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+        cur.execute(
+            "INSERT INTO concepts(code, label, concept_type, source) VALUES (?,?,?,?)",
+            ("CONSENT", "Consent", "TOPIC", "seed"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        if "wikidata.org" in url:
+            assert params["search"] == "CONSENT"
+            return _FakeResponse(
+                {
+                    "search": [
+                        {
+                            "id": "Q1",
+                            "label": "Consent",
+                            "description": "Consent concept",
+                            "score": 0.91,
+                        }
+                    ]
+                }
+            )
+        assert "dbpedia.org" in url
+        return _FakeResponse(
+            {
+                "docs": [
+                    {
+                        "resource": ["http://dbpedia.org/resource/Consent"],
+                        "label": ["Consent"],
+                        "comment": ["Consent concept"],
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(ontology_enrichment.requests, "get", fake_get)
+
+    out_path = tmp_path / "candidates.json"
+    cli_main.main(
+        [
+            "ontology",
+            "concepts-enrich",
+            "--db",
+            str(db_path),
+            "--providers",
+            "wikidata",
+            "dbpedia",
+            "--limit",
+            "1",
+            "--out",
+            str(out_path),
+        ]
+    )
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert payload[0]["code"] == "CONSENT"
+    assert payload[0]["candidates"]["wikidata"][0]["external_id"] == "Q1"
+    assert payload[0]["candidates"]["dbpedia"][0]["external_id"].endswith("/Consent")
+
+
+def test_ontology_actors_enrich_cli_interactive_upsert(
+    tmp_path, monkeypatch, capsys
+):
+    db_path = tmp_path / "ontology.db"
+    connection = sqlite3.connect(db_path)
+    try:
+        ensure_database(connection)
+        cur = connection.cursor()
+        cur.execute("INSERT INTO actors(kind, label) VALUES (?, ?)", ("ORG", "Example Org"))
+        connection.commit()
+    finally:
+        connection.close()
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        assert "wikidata.org" in url
+        assert params["search"] == "Example Org"
+        return _FakeResponse(
+            {
+                "search": [
+                    {
+                        "id": "Q123",
+                        "label": "Example Org",
+                        "description": "Example organization",
+                        "score": 0.87,
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(ontology_enrichment.requests, "get", fake_get)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "1")
+
+    cli_main.main(
+        [
+            "ontology",
+            "actors-enrich",
+            "--db",
+            str(db_path),
+            "--providers",
+            "wikidata",
+            "--limit",
+            "1",
+            "--interactive",
+        ]
+    )
+    capsys.readouterr()
+
+    connection = sqlite3.connect(db_path)
+    try:
+        rows = connection.execute(
+            "SELECT provider, external_id FROM actor_external_refs ORDER BY id"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    assert rows == [("wikidata", "Q123")]
 
 
 def test_ontology_upsert_cli(tmp_path, capsys):
