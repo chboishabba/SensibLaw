@@ -11,6 +11,7 @@ erDiagram
     Actor ||--o{ ActorContactPoint : "contact points"
     Address ||--o{ ActorPersonDetails : "postal address"
     Address ||--o{ ActorOrgDetails : "registered address"
+    Address ||--o{ Event : "located_at"
 
     Document ||--o{ Sentence : "contains"
     Sentence ||--o{ UtteranceSentence : "mapped to"
@@ -88,8 +89,7 @@ erDiagram
         string  city
         string  state_province
         string  postal_code
-        int     country_id
-        int     subdivision_id
+        string  country_code
     }
 
     ActorPersonDetails {
@@ -127,6 +127,7 @@ erDiagram
         string  label
         datetime valid_from
         datetime valid_to
+        int     address_id    "FK to Address; free-text location retained for legacy backfill"
     }
 
     Document {
