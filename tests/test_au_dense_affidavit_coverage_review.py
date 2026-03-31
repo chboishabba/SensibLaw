@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_au_dense_affidavit_coverage_review as module
 from scripts.build_au_dense_affidavit_coverage_review import build_au_dense_affidavit_coverage_review
 
 
@@ -90,3 +92,9 @@ def test_build_au_dense_affidavit_coverage_review(tmp_path: Path) -> None:
     assert "Provisional Anchor Bundles" in summary_text
     assert "#1" in summary_text
     assert "Source rows: `24`" in summary_text
+
+
+def test_au_dense_affidavit_builder_stays_a_thin_wrapper() -> None:
+    src = inspect.getsource(module.build_au_dense_affidavit_coverage_review)
+
+    assert "write_affidavit_coverage_review(" in src

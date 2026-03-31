@@ -7,9 +7,11 @@ from pathlib import Path
 from typing import Any
 from typing import Mapping
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 
+from src.reporting.source_loaders import fetch_text_url
+from src.reporting.source_identity import build_google_public_source_id
 from src.reporting.structure_report import TextUnit
+from src.reporting.text_unit_builders import build_indexed_text_unit
 
 
 _GOOGLE_HOSTS = {"docs.google.com"}
@@ -40,19 +42,17 @@ def build_google_public_export_url(url: str) -> str:
 
 def fetch_google_public_export_text(url: str, *, timeout: int = 20) -> str:
     export_url = build_google_public_export_url(url)
-    request = Request(export_url, headers={"User-Agent": _USER_AGENT})
-    with urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8", errors="replace")
+    return fetch_text_url(export_url, headers={"User-Agent": _USER_AGENT}, timeout=timeout)
 
 
 def load_google_doc_units_from_text(text: str, *, source_id: str) -> list[TextUnit]:
     lines = [_clean_line(line) for line in text.splitlines()]
     paragraphs = [line for line in lines if line]
     return [
-        TextUnit(
-            unit_id=f"{source_id}:p{index}",
+        build_indexed_text_unit(
             source_id=source_id,
             source_type="google_doc_public",
+            index=f"p{index}",
             text=paragraph,
         )
         for index, paragraph in enumerate(paragraphs, start=1)
@@ -64,7 +64,10 @@ def load_google_doc_units_from_url(url: str) -> list[TextUnit]:
     if parsed["kind"] != "doc":
         raise ValueError("url is not a Google Doc")
     text = fetch_google_public_export_text(url)
-    return load_google_doc_units_from_text(text, source_id=f"google_doc:{parsed['doc_id']}")
+    return load_google_doc_units_from_text(
+        text,
+        source_id=build_google_public_source_id(kind=parsed["kind"], doc_id=parsed["doc_id"]),
+    )
 
 
 def _row_to_text(row: Mapping[str, Any]) -> str:
@@ -99,10 +102,10 @@ def load_google_sheet_units_from_csv_text(text: str, *, source_id: str) -> list[
             continue
         unit_ref = _clean_line(str(row.get("ID#1") or row.get("ID#2") or row.get("ID as is") or index)) or str(index)
         units.append(
-            TextUnit(
-                unit_id=f"{source_id}:r{unit_ref}",
+            build_indexed_text_unit(
                 source_id=source_id,
                 source_type="google_sheet_public",
+                index=f"r{unit_ref}",
                 text=rendered,
             )
         )
@@ -114,7 +117,10 @@ def load_google_sheet_units_from_url(url: str) -> list[TextUnit]:
     if parsed["kind"] != "sheet":
         raise ValueError("url is not a Google Sheet")
     text = fetch_google_public_export_text(url)
-    return load_google_sheet_units_from_csv_text(text, source_id=f"google_sheet:{parsed['doc_id']}")
+    return load_google_sheet_units_from_csv_text(
+        text,
+        source_id=build_google_public_source_id(kind=parsed["kind"], doc_id=parsed["doc_id"]),
+    )
 
 
 def extract_affidavit_text_from_doc_text(text: str) -> str:

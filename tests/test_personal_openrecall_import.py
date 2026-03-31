@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import inspect
 import json
 from pathlib import Path
 import sqlite3
 
+from scripts import build_personal_handoff_from_openrecall
 from scripts.build_personal_handoff_from_openrecall import build_handoff_from_openrecall_artifact, main
+from src.reporting import openrecall_import
 from src.reporting.openrecall_import import ensure_openrecall_capture_schema, import_openrecall_db
 
 
@@ -123,3 +126,29 @@ def test_openrecall_import_script_writes_artifact(tmp_path: Path, capsys) -> Non
     payload = json.loads(captured.out)
     assert exit_code == 0
     assert Path(payload["report_path"]).exists()
+
+
+def test_openrecall_script_uses_shared_handoff_artifact_writer() -> None:
+    source = inspect.getsource(build_personal_handoff_from_openrecall)
+
+    assert "write_handoff_artifact(" in source
+
+
+def test_openrecall_import_uses_shared_text_unit_builder() -> None:
+    source = inspect.getsource(openrecall_import)
+
+    assert "build_header_body_text(" in source
+
+
+def test_openrecall_import_uses_shared_source_identity_policy() -> None:
+    source = inspect.getsource(openrecall_import)
+
+    assert "build_openrecall_capture_id(" in source
+    assert "format_local_iso_and_date_from_timestamp(" in source
+
+
+def test_openrecall_import_uses_shared_source_loader_policy() -> None:
+    source = inspect.getsource(openrecall_import)
+
+    assert "find_timestamped_artifact_path(" in source
+    assert "resolve_loader_path(" in source

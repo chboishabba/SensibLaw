@@ -19,20 +19,31 @@ from scripts.review_geometry_normalization import (
     compute_normalized_metrics_from_profile,
     render_normalized_metrics_markdown,
 )
+from src.policy.wikidata_structural_geometry import (
+    build_checked_disjointness_cues,
+    build_checked_disjointness_rows,
+    build_checked_hotspot_cues,
+    build_checked_hotspot_rows,
+    build_checked_qualifier_drift_cues,
+    build_checked_qualifier_drift_row,
+)
+from src.policy.wikidata_structural_io import write_json_markdown_artifact
+try:
+    from src.policy.wikidata_review_queue import (
+        make_bundles as _make_bundles_impl,
+        make_provisional_rows as _make_provisional_rows_impl,
+        next_action_for_workload as _next_action_for_workload_impl,
+    )
+except ModuleNotFoundError:
+    from policy.wikidata_review_queue import (
+        make_bundles as _make_bundles_impl,
+        make_provisional_rows as _make_provisional_rows_impl,
+        next_action_for_workload as _next_action_for_workload_impl,
+    )
 
 
 ARTIFACT_VERSION = "wikidata_structural_review_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
-
-
-def _workload_weight(workload_class: str) -> int:
-    return {
-        "structural_contradiction": 90,
-        "governance_gap": 78,
-        "qualifier_drift_gap": 72,
-        "cluster_promotion_gap": 60,
-        "baseline_confirmation": 25,
-    }.get(workload_class, 10)
 
 
 def _status_for_workload(workload_class: str) -> str:
@@ -44,26 +55,7 @@ def _status_for_workload(workload_class: str) -> str:
 
 
 def _next_action_for_workload(workload_class: str) -> str:
-    return {
-        "baseline_confirmation": "retain as checked baseline",
-        "cluster_promotion_gap": "preserve as promoted structural exemplar",
-        "governance_gap": "promote held hotspot pack through manifest governance",
-        "qualifier_drift_gap": "inspect qualifier signature drift across revision windows",
-        "structural_contradiction": "review contradiction culprits and preserve disjointness evidence",
-    }.get(workload_class, "review structural evidence")
-
-
-def _candidate_cue_priority(cue_kind: str) -> int:
-    return {
-        "violation_counts": 18,
-        "pair_label": 14,
-        "hold_reason": 13,
-        "sample_question": 10,
-        "qualifier_signature_delta": 12,
-        "qualifier_property_set": 8,
-        "source_artifact": 5,
-        "property_pid": 4,
-    }.get(cue_kind, 2)
+    return _next_action_for_workload_impl(workload_class)
 
 
 def _make_review_items(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -168,25 +160,10 @@ def _make_source_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     rows.append(
-        {
-            "source_row_id": f"source:qualifier_drift:{drift['slot_id']}",
-            "review_item_id": f"review:qualifier_drift:{drift['slot_id']}",
-            "source_kind": "qualifier_drift_projection",
-            "workload_class": "qualifier_drift_gap",
-            "review_status": "review_required",
-            "recommended_next_action": _next_action_for_workload("qualifier_drift_gap"),
-            "source_path": drift["projection_path"],
-            "text": (
-                f"Qualifier drift for {drift['slot_id']} at severity={drift['severity']} "
-                f"from {drift['from_window']} to {drift['to_window']}."
-            ),
-            "cue_payload": {
-                "qualifier_signatures_t1": drift["qualifier_signatures_t1"],
-                "qualifier_signatures_t2": drift["qualifier_signatures_t2"],
-                "qualifier_property_set_t1": drift["qualifier_property_set_t1"],
-                "qualifier_property_set_t2": drift["qualifier_property_set_t2"],
-            },
-        }
+        build_checked_qualifier_drift_row(
+            drift=drift,
+            recommended_next_action=_next_action_for_workload("qualifier_drift_gap"),
+        )
     )
 
     for pack in slice_payload["hotspot_governance"]["packs"]:
@@ -194,39 +171,14 @@ def _make_source_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
             "governance_gap" if pack.get("hold_reason") else "cluster_promotion_gap"
         )
         review_status = _status_for_workload(workload_class)
-        rows.append(
-            {
-                "source_row_id": f"source:hotspot_pack:{pack['pack_id']}",
-                "review_item_id": f"review:hotspot_pack:{pack['pack_id']}",
-                "source_kind": "hotspot_pack_summary",
-                "workload_class": workload_class,
-                "review_status": review_status,
-                "recommended_next_action": _next_action_for_workload(workload_class),
-                "source_path": pack["source_artifacts"][0] if pack.get("source_artifacts") else None,
-                "text": (
-                    f"{pack['pack_id']} ({pack['hotspot_family']}) has {pack['cluster_count']} clusters "
-                    f"and promotion_status={pack['promotion_status']}."
-                ),
-                "cue_payload": {
-                    "hold_reason": pack.get("hold_reason"),
-                    "source_artifacts": pack.get("source_artifacts", []),
-                },
-            }
-        )
-        for index, question in enumerate(pack.get("sample_questions", []), start=1):
-            rows.append(
-                {
-                    "source_row_id": f"source:hotspot_pack_question:{pack['pack_id']}:{index}",
-                    "review_item_id": f"review:hotspot_pack:{pack['pack_id']}",
-                    "source_kind": "hotspot_sample_question",
-                    "workload_class": workload_class,
-                    "review_status": review_status,
-                    "recommended_next_action": _next_action_for_workload(workload_class),
-                    "source_path": pack["source_artifacts"][0] if pack.get("source_artifacts") else None,
-                    "text": question,
-                    "cue_payload": {"question_index": index},
-                }
+        rows.extend(
+            build_checked_hotspot_rows(
+                pack=pack,
+                workload_class=workload_class,
+                review_status=review_status,
+                recommended_next_action=_next_action_for_workload(workload_class),
             )
+        )
 
     for case in slice_payload["disjointness_cases"]:
         workload_class = (
@@ -235,24 +187,14 @@ def _make_source_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
             else "structural_contradiction"
         )
         review_status = _status_for_workload(workload_class)
-        for index, pair_label in enumerate(case["pair_labels"], start=1):
-            rows.append(
-                {
-                    "source_row_id": f"source:disjointness_case:{case['case_id']}:{index}",
-                    "review_item_id": f"review:disjointness_case:{case['case_id']}",
-                    "source_kind": "disjointness_pair",
-                    "workload_class": workload_class,
-                    "review_status": review_status,
-                    "recommended_next_action": _next_action_for_workload(workload_class),
-                    "source_path": case["source_path"],
-                    "text": pair_label,
-                    "cue_payload": {
-                        "pair_label": pair_label,
-                        "subclass_violation_count": case["subclass_violation_count"],
-                        "instance_violation_count": case["instance_violation_count"],
-                    },
-                }
+        rows.extend(
+            build_checked_disjointness_rows(
+                case=case,
+                workload_class=workload_class,
+                review_status=review_status,
+                recommended_next_action=_next_action_for_workload(workload_class),
             )
+        )
     return rows
 
 
@@ -273,84 +215,11 @@ def _make_candidate_cues(
                 }
             )
         elif row["source_kind"] == "qualifier_drift_projection":
-            for signature in cue_payload.get("qualifier_signatures_t2", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:signature:{len(cues)+1}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "qualifier_signature_delta",
-                        "cue_value": signature,
-                    }
-                )
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:property_set",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": "qualifier_property_set",
-                    "cue_value": " -> ".join(
-                        [
-                            ",".join(cue_payload.get("qualifier_property_set_t1", [])) or "none",
-                            ",".join(cue_payload.get("qualifier_property_set_t2", [])) or "none",
-                        ]
-                    ),
-                }
-            )
-        elif row["source_kind"] == "hotspot_pack_summary":
-            hold_reason = cue_payload.get("hold_reason")
-            if hold_reason:
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:hold_reason",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "hold_reason",
-                        "cue_value": hold_reason,
-                    }
-                )
-            for artifact in cue_payload.get("source_artifacts", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:source_artifact:{len(cues)+1}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "source_artifact",
-                        "cue_value": artifact,
-                    }
-                )
-        elif row["source_kind"] == "hotspot_sample_question":
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:sample_question",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": "sample_question",
-                    "cue_value": row["text"],
-                }
-            )
+            cues.extend(build_checked_qualifier_drift_cues(row))
+        elif row["source_kind"] in {"hotspot_pack_summary", "hotspot_sample_question"}:
+            cues.extend(build_checked_hotspot_cues(row))
         elif row["source_kind"] == "disjointness_pair":
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:pair",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": "pair_label",
-                    "cue_value": cue_payload["pair_label"],
-                }
-            )
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:violations",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": "violation_counts",
-                    "cue_value": (
-                        f"subclass={cue_payload['subclass_violation_count']}, "
-                        f"instance={cue_payload['instance_violation_count']}"
-                    ),
-                }
-            )
+            cues.extend(build_checked_disjointness_cues(row))
     return cues
 
 
@@ -398,70 +267,13 @@ def _make_provisional_rows(
     source_rows: list[dict[str, Any]],
     candidate_cues: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    item_by_id = {row["review_item_id"]: row for row in review_items}
-    source_by_id = {row["source_row_id"]: row for row in source_rows}
-    rows: list[dict[str, Any]] = []
-    for cue in candidate_cues:
-        source_row = source_by_id[cue["source_row_id"]]
-        review_item = item_by_id[cue["review_item_id"]]
-        priority_score = _workload_weight(source_row["workload_class"]) + _candidate_cue_priority(
-            cue["cue_kind"]
-        )
-        rows.append(
-            {
-                "provisional_review_id": f"prov:{cue['cue_id']}",
-                "review_item_id": cue["review_item_id"],
-                "source_row_id": cue["source_row_id"],
-                "cue_id": cue["cue_id"],
-                "cue_kind": cue["cue_kind"],
-                "cue_value": cue["cue_value"],
-                "workload_class": source_row["workload_class"],
-                "recommended_next_action": review_item["recommended_next_action"],
-                "priority_score": priority_score,
-                "dedupe_key": f"{cue['review_item_id']}|{cue['cue_kind']}|{cue['cue_value']}",
-            }
-        )
-    rows.sort(
-        key=lambda row: (
-            -row["priority_score"],
-            row["review_item_id"],
-            row["source_row_id"],
-            row["cue_kind"],
-            row["cue_value"],
-        )
-    )
-    for index, row in enumerate(rows, start=1):
-        row["priority_rank"] = index
-    return rows
+    return _make_provisional_rows_impl(review_items, source_rows, candidate_cues)
 
 
 def _make_bundles(
     provisional_rows: list[dict[str, Any]], source_rows: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
-    source_by_id = {row["source_row_id"]: row for row in source_rows}
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row in provisional_rows:
-        grouped[row["review_item_id"]].append(row)
-
-    bundles: list[dict[str, Any]] = []
-    for review_item_id, rows in grouped.items():
-        source_row_ids = sorted({row["source_row_id"] for row in rows})
-        texts = [source_by_id[source_row_id]["text"] for source_row_id in source_row_ids]
-        bundles.append(
-            {
-                "bundle_id": f"bundle:{review_item_id}",
-                "review_item_id": review_item_id,
-                "source_row_ids": source_row_ids,
-                "source_texts": texts,
-                "anchor_count": len(rows),
-                "top_priority_score": max(row["priority_score"] for row in rows),
-                "recommended_next_action": rows[0]["recommended_next_action"],
-            }
-        )
-    bundles.sort(key=lambda row: (-row["top_priority_score"], -row["anchor_count"], row["bundle_id"]))
-    for index, row in enumerate(bundles, start=1):
-        row["bundle_rank"] = index
-    return bundles
+    return _make_bundles_impl(provisional_rows, source_rows)
 
 
 def build_review_artifact(output_dir: Path) -> dict[str, Any]:
@@ -527,12 +339,12 @@ def build_review_artifact(output_dir: Path) -> dict[str, Any]:
         provisional_bundle_count=len(provisional_review_bundles),
     )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
-    summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
-    return {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+    return write_json_markdown_artifact(
+        output_dir=output_dir,
+        artifact_version=ARTIFACT_VERSION,
+        payload=payload,
+        summary_text=build_summary_markdown(payload),
+    )
 
 
 def build_summary_markdown(payload: dict[str, Any]) -> str:

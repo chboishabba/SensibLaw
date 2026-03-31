@@ -5,7 +5,7 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
-from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, human_summary, run
+from src.wiki_timeline.revision_pack_runner import default_out_dir_for_pack, ensure_revision_pack_schema, human_summary, run
 
 
 def _pack(tmp_path: Path, *, pack_id: str = "test_pack") -> Path:
@@ -266,6 +266,81 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert pair_rows[0] >= 2
         graph_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_contested_graphs WHERE article_id = 'article_1'").fetchone()
         assert graph_rows[0] >= 1
+        summary_row = conn.execute(
+            """
+            SELECT highest_severity, changed_count, candidate_reported_count
+            FROM wiki_revision_monitor_run_summaries
+            WHERE run_id = ?
+            """
+            ,
+            (third["run_id"],),
+        ).fetchone()
+        assert summary_row["highest_severity"] == "high"
+        assert summary_row["changed_count"] == 1
+        assert summary_row["candidate_reported_count"] >= 1
+        changed_row = conn.execute(
+            """
+            SELECT article_id, contested_graph_available, contested_region_count
+            FROM wiki_revision_monitor_changed_articles
+            WHERE run_id = ?
+            """,
+            (third["run_id"],),
+        ).fetchone()
+        assert changed_row["article_id"] == "article_1"
+        assert changed_row["contested_graph_available"] == 1
+        assert changed_row["contested_region_count"] >= 1
+        packet_row = conn.execute(
+            """
+            SELECT severity, review_context_json
+            FROM wiki_revision_monitor_issue_packets
+            WHERE run_id = ? AND article_id = ?
+            ORDER BY packet_order ASC
+            LIMIT 1
+            """,
+            (third["run_id"], "article_1"),
+        ).fetchone()
+        assert packet_row["severity"] in {"high", "medium", "low"}
+        assert "curated_qids" in str(packet_row["review_context_json"] or "")
+        selected_pair_row = conn.execute(
+            """
+            SELECT pair_kind, top_severity, top_changed_sections_json
+            FROM wiki_revision_monitor_selected_pairs
+            WHERE run_id = ? AND article_id = ?
+            ORDER BY candidate_score DESC
+            LIMIT 1
+            """,
+            (third["run_id"], "article_1"),
+        ).fetchone()
+        assert selected_pair_row["pair_kind"]
+        assert selected_pair_row["top_severity"] in {"high", "medium", "low", "none"}
+        assert "section" in str(selected_pair_row["top_changed_sections_json"] or "")
+        article_result_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_results)").fetchall()
+        }
+        assert "packet_counts_json" not in article_result_columns
+        assert "result_json" not in article_result_columns
+        pair_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_candidate_pairs)").fetchall()
+        }
+        assert "score_json" not in pair_columns
+        assert "section_delta_json" not in pair_columns
+        assert "result_json" not in pair_columns
+        backcompat_summary_row = conn.execute(
+            "SELECT summary_json FROM wiki_revision_monitor_runs WHERE run_id = ?",
+            (third["run_id"],),
+        ).fetchone()
+        assert backcompat_summary_row["summary_json"] != "{}"
+        backcompat_graph_row = conn.execute(
+            """
+            SELECT graph_json
+            FROM wiki_revision_monitor_contested_graphs
+            WHERE run_id = ? AND article_id = ?
+            """,
+            (third["run_id"], "article_1"),
+        ).fetchone()
+        assert backcompat_graph_row["graph_json"] != "{}"
 
 
 def test_pack_runner_emits_progress(tmp_path: Path) -> None:
@@ -298,6 +373,188 @@ def test_pack_runner_emits_progress(tmp_path: Path) -> None:
     assert "revision_pack_article_reports_progress" in stages
     finished = [details for stage, details in seen if stage == "revision_pack_article_finished"]
     assert finished[-1]["status"] == "changed"
+
+
+def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_articles (
+              article_id TEXT PRIMARY KEY,
+              pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
+              wiki TEXT NOT NULL,
+              title TEXT NOT NULL,
+              role TEXT NOT NULL,
+              topics_json TEXT NOT NULL,
+              review_context_json TEXT NOT NULL,
+              article_order INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_runs (
+              run_id TEXT PRIMARY KEY,
+              pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
+              started_at TEXT NOT NULL,
+              completed_at TEXT,
+              status TEXT NOT NULL,
+              out_dir TEXT NOT NULL,
+              summary_json TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_article_results (
+              run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+              article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+              status TEXT NOT NULL,
+              previous_revid INTEGER,
+              current_revid INTEGER,
+              top_severity TEXT NOT NULL,
+              packet_counts_json TEXT NOT NULL,
+              snapshot_path TEXT,
+              timeline_path TEXT,
+              aoo_path TEXT,
+              report_path TEXT,
+              result_json TEXT NOT NULL,
+              PRIMARY KEY (run_id, article_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_candidate_pairs (
+              run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+              article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+              pair_id TEXT NOT NULL,
+              pair_kind TEXT NOT NULL,
+              older_revid INTEGER,
+              newer_revid INTEGER,
+              selected INTEGER NOT NULL DEFAULT 0,
+              score REAL NOT NULL DEFAULT 0,
+              score_json TEXT NOT NULL,
+              section_delta_json TEXT NOT NULL,
+              pair_report_path TEXT,
+              status TEXT NOT NULL,
+              result_json TEXT NOT NULL,
+              PRIMARY KEY (run_id, article_id, pair_id)
+            )
+            """
+        )
+        conn.execute("INSERT INTO wiki_revision_monitor_packs(pack_id) VALUES('pack_one')")
+        conn.execute(
+            """
+            INSERT INTO wiki_revision_monitor_articles(
+              article_id, pack_id, wiki, title, role, topics_json, review_context_json, article_order
+            ) VALUES('article_1', 'pack_one', 'enwiki', 'Example Article', 'baseline', '[]', '{}', 0)
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO wiki_revision_monitor_runs(
+              run_id, pack_id, started_at, completed_at, status, out_dir, summary_json
+            ) VALUES('run:pack_one:2026-03-31T00:00:00Z:abc', 'pack_one', '2026-03-31T00:00:00Z', NULL, 'ok', '/tmp/out', '{}')
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO wiki_revision_monitor_article_results(
+              run_id, article_id, status, previous_revid, current_revid, top_severity, packet_counts_json,
+              snapshot_path, timeline_path, aoo_path, report_path, result_json
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "run:pack_one:2026-03-31T00:00:00Z:abc",
+                "article_1",
+                "changed",
+                1,
+                2,
+                "high",
+                "{}",
+                "/tmp/snapshot.json",
+                "/tmp/timeline.json",
+                "/tmp/aoo.json",
+                "/tmp/report.json",
+                "{}",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO wiki_revision_monitor_candidate_pairs(
+              run_id, article_id, pair_id, pair_kind, older_revid, newer_revid, selected, score,
+              score_json, section_delta_json, pair_report_path, status, result_json
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "run:pack_one:2026-03-31T00:00:00Z:abc",
+                "article_1",
+                "pair:1",
+                "largest_delta_in_window",
+                1,
+                2,
+                1,
+                9.5,
+                "{}",
+                "{}",
+                "/tmp/pair.json",
+                "candidate",
+                "{}",
+            ),
+        )
+        ensure_revision_pack_schema(conn)
+        article_result_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_results)").fetchall()
+        }
+        assert "packet_counts_json" not in article_result_columns
+        assert "result_json" not in article_result_columns
+        pair_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_candidate_pairs)").fetchall()
+        }
+        assert "score_json" not in pair_columns
+        assert "section_delta_json" not in pair_columns
+        assert "result_json" not in pair_columns
+        migrated_article_row = conn.execute(
+            """
+            SELECT status, previous_revid, current_revid, top_severity, snapshot_path, timeline_path, aoo_path, report_path
+            FROM wiki_revision_monitor_article_results
+            WHERE run_id = ? AND article_id = ?
+            """,
+            ("run:pack_one:2026-03-31T00:00:00Z:abc", "article_1"),
+        ).fetchone()
+        assert migrated_article_row == (
+            "changed",
+            1,
+            2,
+            "high",
+            "/tmp/snapshot.json",
+            "/tmp/timeline.json",
+            "/tmp/aoo.json",
+            "/tmp/report.json",
+        )
+        migrated_pair_row = conn.execute(
+            """
+            SELECT pair_kind, older_revid, newer_revid, selected, score, pair_report_path, status
+            FROM wiki_revision_monitor_candidate_pairs
+            WHERE run_id = ? AND article_id = ? AND pair_id = ?
+            """,
+            ("run:pack_one:2026-03-31T00:00:00Z:abc", "article_1", "pair:1"),
+        ).fetchone()
+        assert migrated_pair_row == (
+            "largest_delta_in_window",
+            1,
+            2,
+            1,
+            9.5,
+            "/tmp/pair.json",
+            "candidate",
+        )
 
 
 def test_pack_runner_records_error_without_state_corruption(tmp_path: Path) -> None:

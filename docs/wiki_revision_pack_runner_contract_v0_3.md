@@ -66,6 +66,16 @@ The dedicated revision-monitor SQLite store now also persists:
 - `wiki_revision_monitor_contested_cycles`
 - `wiki_revision_monitor_contested_edges`
 
+Backcompat boundary in v0.3:
+
+- `summary_json` and `graph_json` remain bounded fallback/export surfaces
+- article-result and candidate-pair operational blob columns are no longer
+  canonical and now exist only as temporary compatibility residue
+- the explicit contraction plan is tracked in:
+  - `../docs/planning/wiki_revision_monitor_blob_deprecation_matrix_20260331.md`
+  - `../docs/planning/wiki_revision_monitor_schema_contraction_plan_20260331.md`
+  - `../docs/planning/wiki_revision_monitor_v0_4_placeholder_blob_drop_20260331.md`
+
 Heavyweight graph artifacts remain file exports under:
 - `SensibLaw/demo/ingest/wiki_revision_monitor/<pack_id>/contested_graphs/`
 

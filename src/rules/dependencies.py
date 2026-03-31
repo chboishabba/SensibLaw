@@ -123,6 +123,24 @@ def _load_pipeline() -> Language:
     )
 
 
+@lru_cache(maxsize=16384)
+def _get_dependencies_cached(text: str) -> tuple[SentenceDependencies, ...]:
+    parser = _load_pipeline()
+    doc = parser(text)
+    sentences: List[SentenceDependencies] = []
+
+    for sentence in _iterate_sentences(doc):
+        candidates = _collect_candidates(sentence)
+        sentences.append(
+            SentenceDependencies(
+                text=sentence.text.strip(),
+                candidates=candidates,
+            )
+        )
+
+    return tuple(sentences)
+
+
 def _extract_span(token: Token) -> Span:
     """Return the span covering ``token`` and its modifiers."""
 
@@ -180,19 +198,4 @@ def get_dependencies(text: str) -> List[SentenceDependencies]:
 
     if not text.strip():
         return []
-
-    parser = _load_pipeline()
-    doc = parser(text)
-    sentences: List[SentenceDependencies] = []
-
-    for sentence in _iterate_sentences(doc):
-        candidates = _collect_candidates(sentence)
-        sentences.append(
-            SentenceDependencies(
-                text=sentence.text.strip(),
-                candidates=candidates,
-            )
-        )
-
-    return sentences
-
+    return list(_get_dependencies_cached(text))

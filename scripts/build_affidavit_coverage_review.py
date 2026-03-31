@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sqlite3
@@ -35,6 +34,117 @@ except Exception:  # pragma: no cover - import path fallback for direct script u
     from policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
 
 try:
+    from src.policy.affidavit_text_normalization import (
+        find_numbered_rebuttal_start as _find_numbered_rebuttal_start,
+        predicate_focus_tokens as _predicate_focus_tokens,
+        split_affidavit_sentence_clauses as _split_affidavit_sentence_clauses,
+        split_affidavit_text as _split_affidavit_text,
+        split_source_segment_clauses as _split_source_segment_clauses,
+        split_source_text_segments as _split_source_text_segments,
+        tokenize_affidavit_text as _tokenize,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_text_normalization import (
+        find_numbered_rebuttal_start as _find_numbered_rebuttal_start,
+        predicate_focus_tokens as _predicate_focus_tokens,
+        split_affidavit_sentence_clauses as _split_affidavit_sentence_clauses,
+        split_affidavit_text as _split_affidavit_text,
+        split_source_segment_clauses as _split_source_segment_clauses,
+        split_source_text_segments as _split_source_text_segments,
+        tokenize_affidavit_text as _tokenize,
+    )
+
+try:
+    from src.policy.affidavit_claim_root import (
+        derive_claim_root_fields as _derive_claim_root_fields,
+        is_duplicate_response_excerpt as _is_duplicate_response_excerpt,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_claim_root import (
+        derive_claim_root_fields as _derive_claim_root_fields,
+        is_duplicate_response_excerpt as _is_duplicate_response_excerpt,
+    )
+
+try:
+    from src.policy.affidavit_candidate_alignment import (
+        family_alignment_adjustment as _family_alignment_adjustment,
+        is_quote_rebuttal_support_excerpt as _is_quote_rebuttal_support_excerpt,
+        predicate_alignment_score as _predicate_alignment_score,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_candidate_alignment import (
+        family_alignment_adjustment as _family_alignment_adjustment,
+        is_quote_rebuttal_support_excerpt as _is_quote_rebuttal_support_excerpt,
+        predicate_alignment_score as _predicate_alignment_score,
+    )
+
+try:
+    from src.policy.affidavit_lexical_heuristics import (
+        LEXICAL_HEURISTIC_HINT_RULES as _LEXICAL_HEURISTIC_HINT_RULES,
+        apply_lexical_heuristic_group as _apply_lexical_heuristic_group_impl,
+        build_justification_packets as _build_justification_packets_impl,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_lexical_heuristics import (
+        LEXICAL_HEURISTIC_HINT_RULES as _LEXICAL_HEURISTIC_HINT_RULES,
+        apply_lexical_heuristic_group as _apply_lexical_heuristic_group_impl,
+        build_justification_packets as _build_justification_packets_impl,
+    )
+
+try:
+    from src.policy.affidavit_extraction_hints import (
+        DEFAULT_WORKLOAD_CLASS_PRIORITY as _DEFAULT_WORKLOAD_CLASS_PRIORITY,
+        MONTH_PATTERN as _MONTH_PATTERN,
+        PROCEDURAL_EVENT_KEYWORDS as _PROCEDURAL_EVENT_KEYWORDS,
+        build_candidate_anchors as _build_candidate_anchors_impl,
+        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
+        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
+        classify_workload_with_hints as _classify_workload_with_hints_impl,
+        extract_extraction_hints as _extract_extraction_hints_impl,
+        recommend_next_action as _recommend_next_action_impl,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_extraction_hints import (
+        DEFAULT_WORKLOAD_CLASS_PRIORITY as _DEFAULT_WORKLOAD_CLASS_PRIORITY,
+        MONTH_PATTERN as _MONTH_PATTERN,
+        PROCEDURAL_EVENT_KEYWORDS as _PROCEDURAL_EVENT_KEYWORDS,
+        build_candidate_anchors as _build_candidate_anchors_impl,
+        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
+        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
+        classify_workload_with_hints as _classify_workload_with_hints_impl,
+        extract_extraction_hints as _extract_extraction_hints_impl,
+        recommend_next_action as _recommend_next_action_impl,
+    )
+
+try:
+    from src.policy.affidavit_candidate_arbitration import (
+        arbitrate_candidate_selection as _arbitrate_candidate_selection,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_candidate_arbitration import (
+        arbitrate_candidate_selection as _arbitrate_candidate_selection,
+    )
+
+try:
+    from src.policy.affidavit_response_semantics import (
+        derive_claim_state as _derive_claim_state_impl,
+        derive_missing_dimensions as _derive_missing_dimensions_impl,
+        derive_primary_target_component as _derive_primary_target_component_impl,
+        derive_relation_classification as _derive_relation_classification_impl,
+        derive_semantic_basis as _derive_semantic_basis_impl,
+        infer_response_packet as _infer_response_packet_impl,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_response_semantics import (
+        derive_claim_state as _derive_claim_state_impl,
+        derive_missing_dimensions as _derive_missing_dimensions_impl,
+        derive_primary_target_component as _derive_primary_target_component_impl,
+        derive_relation_classification as _derive_relation_classification_impl,
+        derive_semantic_basis as _derive_semantic_basis_impl,
+        infer_response_packet as _infer_response_packet_impl,
+    )
+
+try:
     from src.fact_intake import persist_contested_affidavit_review
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from fact_intake import persist_contested_affidavit_review
@@ -49,87 +159,7 @@ ARTIFACT_VERSION = "affidavit_coverage_review_v1"
 _PARTIAL_MATCH_THRESHOLD = 0.3
 _COVERED_MATCH_THRESHOLD = 0.6
 
-_STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "had",
-    "has",
-    "have",
-    "he",
-    "her",
-    "hers",
-    "him",
-    "his",
-    "i",
-    "in",
-    "into",
-    "is",
-    "it",
-    "its",
-    "of",
-    "on",
-    "or",
-    "she",
-    "that",
-    "the",
-    "their",
-    "them",
-    "there",
-    "they",
-    "this",
-    "to",
-    "was",
-    "were",
-    "with",
-    "you",
-    "your",
-}
-
-_TOKEN_NORMALIZATION = {
-    "emphasise": "emphasize",
-    "emphasised": "emphasized",
-    "emphasises": "emphasizes",
-    "emphasising": "emphasizing",
-    "organisation": "organization",
-    "organisations": "organizations",
-}
-
-_WORKLOAD_CLASS_PRIORITY = [
-    "normalization_gap",
-    "chronology_gap",
-    "event_extraction_gap",
-    "review_queue_only",
-    "evidence_gap",
-]
-
-_MONTH_PATTERN = r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-_PROCEDURAL_EVENT_KEYWORDS = {
-    "adjourn",
-    "adjourned",
-    "appeal",
-    "argued",
-    "commenced",
-    "consider",
-    "decision",
-    "dismissed",
-    "duty",
-    "filed",
-    "hearing",
-    "judgment",
-    "lodged",
-    "notice",
-    "ordered",
-    "proceedings",
-    "submissions",
-}
+_WORKLOAD_CLASS_PRIORITY = list(_DEFAULT_WORKLOAD_CLASS_PRIORITY)
 
 _CHARACTERIZATION_TERMS = {
     "abusive",
@@ -142,45 +172,6 @@ _CHARACTERIZATION_TERMS = {
     "undermine",
     "improper",
 }
-
-_LEXICAL_HEURISTIC_HINT_RULES: dict[str, tuple[dict[str, Any], ...]] = {
-    "justification": (
-        {
-            "rule_id": "justification.consent",
-            "label": "consent",
-            "patterns": (
-                r"\bconsent\b",
-                r"\bwith consent\b",
-                r"\bknowledge and consent\b",
-                r"\bpermission\b",
-            ),
-        },
-        {
-            "rule_id": "justification.authority_or_necessity",
-            "label": "authority_or_necessity",
-            "patterns": (
-                r"\bepoa\b",
-                r"\bduty\b",
-                r"\bduties\b",
-                r"\bauthority\b",
-                r"\blegal matters\b",
-                r"\bcare\b",
-            ),
-        },
-        {
-            "rule_id": "justification.scope_limitation",
-            "label": "scope_limitation",
-            "patterns": (
-                r"\bspecific purposes\b",
-                r"\bonly to\b",
-                r"\blimited\b",
-                r"\bminimally\b",
-                r"\bno further than necessary\b",
-            ),
-        },
-    ),
-}
-
 
 def _emit_progress(progress_callback: Any | None, stage: str, **details: Any) -> None:
     if not callable(progress_callback):
@@ -200,112 +191,25 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _tokenize(text: str) -> set[str]:
-    tokens = {
-        _TOKEN_NORMALIZATION.get(token, token)
-        for token in re.findall(r"[A-Za-z0-9']+", text.casefold())
-        if len(token) >= 2 and token not in _STOPWORDS
-    }
-    return tokens
-
-
 def _apply_lexical_heuristic_group(text: str, group: str) -> dict[str, list[dict[str, Any]]]:
-    matches: dict[str, list[dict[str, Any]]] = {}
-    for rule in _LEXICAL_HEURISTIC_HINT_RULES.get(group, ()):
-        label = str(rule.get("label") or "").strip()
-        rule_id = str(rule.get("rule_id") or "").strip()
-        if not label or not rule_id:
-            continue
-        rule_matches: list[dict[str, Any]] = []
-        for pattern in rule.get("patterns", ()):
-            compiled = re.compile(str(pattern), re.IGNORECASE)
-            for match in compiled.finditer(text):
-                rule_matches.append(
-                    {
-                        "rule_id": rule_id,
-                        "text": match.group(0),
-                        "start": match.start(),
-                        "end": match.end(),
-                    }
-                )
-        if rule_matches:
-            matches[label] = rule_matches
-    return matches
+    return _apply_lexical_heuristic_group_impl(text, group)
 
 
-_HEDGE_VERBS = {"feel", "believe", "think", "recall"}
+try:
+    from src.policy.affidavit_structural_sentence import (
+        analyze_structural_sentence as _analyze_structural_sentence_impl,
+    )
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.affidavit_structural_sentence import (
+        analyze_structural_sentence as _analyze_structural_sentence_impl,
+    )
 
 
 def _analyze_structural_sentence(text: str) -> dict[str, Any]:
-    if _get_dependencies is None:
-        return {}
-    try:
-        sentences = _get_dependencies(text)
-    except Exception:
-        return {}
-    if not sentences:
-        return {}
-    first = sentences[0]
-    candidates = getattr(first, "candidates", {}) or {}
-    subjects = list(candidates.get("nsubj", [])) + list(candidates.get("nsubjpass", []))
-    verbs = list(candidates.get("verb", []))
-    negations = list(candidates.get("neg", []))
-    subject_texts = [str(getattr(item, "text", "") or "").strip() for item in subjects if str(getattr(item, "text", "") or "").strip()]
-    verb_lemmas = [str(getattr(item, "lemma", "") or getattr(item, "text", "") or "").strip().lower() for item in verbs]
-    return {
-        "subject_texts": subject_texts,
-        "verb_lemmas": verb_lemmas,
-        "has_negation": bool(negations),
-        "has_first_person_subject": any(text.casefold() == "i" for text in subject_texts),
-        "has_hedge_verb": any(lemma in _HEDGE_VERBS for lemma in verb_lemmas),
-    }
-
-
-def _split_source_text_segments(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text).strip()
-    if not compact:
-        return []
-    parts = [segment.strip(" -") for segment in re.split(r"(?<=[.!?])\s+", compact) if segment.strip()]
-    return parts or [compact]
-
-
-def _split_affidavit_sentence_clauses(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text).strip()
-    if not compact:
-        return []
-    parts = [segment.strip(" -") for segment in re.split(r"\s*;\s*", compact) if segment.strip()]
-    return parts or [compact]
-
-
-def _split_affidavit_text(text: str) -> list[dict[str, Any]]:
-    propositions: list[dict[str, Any]] = []
-    paragraphs = [part.strip() for part in re.split(r"\n\s*\n+", text) if part.strip()]
-    for paragraph_index, paragraph in enumerate(paragraphs, start=1):
-        sentence_parts = [
-            sentence.strip()
-            for sentence in re.split(r"(?<=[.!?])\s+", paragraph)
-            if sentence.strip()
-        ]
-        if not sentence_parts:
-            sentence_parts = [paragraph]
-        decomposed_parts: list[str] = []
-        for sentence in sentence_parts:
-            decomposed_parts.extend(_split_affidavit_sentence_clauses(sentence))
-        if not decomposed_parts:
-            decomposed_parts = sentence_parts
-        for sentence_index, sentence in enumerate(decomposed_parts, start=1):
-            proposition_id = f"aff-prop:p{paragraph_index}-s{sentence_index}"
-            propositions.append(
-                {
-                    "proposition_id": proposition_id,
-                    "paragraph_id": f"p{paragraph_index}",
-                    "paragraph_order": paragraph_index,
-                    "sentence_order": sentence_index,
-                    "text": sentence,
-                    "tokens": sorted(_tokenize(sentence)),
-                }
-            )
-    return propositions
+    return _analyze_structural_sentence_impl(
+        text,
+        dependencies_getter=_get_dependencies,
+    )
 
 
 def _reason_codes(review_row: Mapping[str, Any] | None) -> list[str]:
@@ -342,220 +246,33 @@ def _classify_workload(reason_codes: list[str], review_status: str) -> dict[str,
 
 
 def _extract_extraction_hints(text: str) -> dict[str, Any]:
-    transcript_timestamps = re.findall(
-        r"\[(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s*->\s*(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\]",
+    return _extract_extraction_hints_impl(
         text,
+        tokenize=_tokenize,
+        month_pattern=_MONTH_PATTERN,
+        procedural_event_keywords=frozenset(_PROCEDURAL_EVENT_KEYWORDS),
     )
-    calendar_mentions = re.findall(
-        rf"\b(?:\d{{1,2}}\s+{_MONTH_PATTERN}(?:\s+\d{{4}})?|{_MONTH_PATTERN}\s+\d{{4}}|\d{{4}})\b",
-        text,
-    )
-    keyword_hits = sorted({token for token in _tokenize(text) if token in _PROCEDURAL_EVENT_KEYWORDS})
-    return {
-        "has_transcript_timestamp_hint": bool(transcript_timestamps),
-        "transcript_timestamp_windows": [
-            {"start": start, "end": end}
-            for start, end in transcript_timestamps
-        ],
-        "has_calendar_reference_hint": bool(calendar_mentions),
-        "calendar_reference_mentions": calendar_mentions,
-        "has_procedural_event_cue": bool(keyword_hits),
-        "procedural_event_keywords": keyword_hits,
-    }
 
 
 def _build_candidate_anchors(extraction_hints: Mapping[str, Any]) -> list[dict[str, Any]]:
-    anchors: list[dict[str, Any]] = []
-    transcript_windows = extraction_hints.get("transcript_timestamp_windows", [])
-    if isinstance(transcript_windows, list):
-        for window in transcript_windows:
-            if not isinstance(window, Mapping):
-                continue
-            start = str(window.get("start") or "").strip()
-            end = str(window.get("end") or "").strip()
-            if start and end:
-                anchors.append(
-                    {
-                        "anchor_kind": "transcript_timestamp_window",
-                        "label": f"{start} -> {end}",
-                        "anchor_value": {"start": start, "end": end},
-                    }
-                )
-    calendar_mentions = extraction_hints.get("calendar_reference_mentions", [])
-    if isinstance(calendar_mentions, list):
-        for mention in calendar_mentions:
-            value = str(mention).strip()
-            if value:
-                anchors.append(
-                    {
-                        "anchor_kind": "calendar_reference",
-                        "label": value,
-                        "anchor_value": value,
-                    }
-                )
-    event_keywords = extraction_hints.get("procedural_event_keywords", [])
-    if isinstance(event_keywords, list) and event_keywords:
-        anchors.append(
-            {
-                "anchor_kind": "procedural_event_keywords",
-                "label": ", ".join(str(keyword).strip() for keyword in event_keywords if str(keyword).strip()),
-                "anchor_value": [str(keyword).strip() for keyword in event_keywords if str(keyword).strip()],
-            }
-        )
-    return anchors
+    return _build_candidate_anchors_impl(extraction_hints)
 
 
 def _build_provisional_structured_anchors(source_review_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    provisional_rows: list[dict[str, Any]] = []
-    anchor_kind_weight = {
-        "calendar_reference": 30,
-        "transcript_timestamp_window": 20,
-        "procedural_event_keywords": 10,
-    }
-    for row in source_review_rows:
-        if row.get("review_status") != "missing_review":
-            continue
-        candidate_anchors = row.get("candidate_anchors", [])
-        if not isinstance(candidate_anchors, list):
-            continue
-        for anchor_index, anchor in enumerate(candidate_anchors, start=1):
-            if not isinstance(anchor, Mapping):
-                continue
-            anchor_kind = str(anchor.get("anchor_kind") or "").strip()
-            if not anchor_kind:
-                continue
-            anchor_label = str(anchor.get("label") or "").strip()
-            dedupe_key = f"{row['source_row_id']}::{anchor_kind}::{anchor_label}"
-            priority_score = (
-                anchor_kind_weight.get(anchor_kind, 0)
-                + int(round(float(row.get("best_match_score") or 0.0) * 100))
-            )
-            if row.get("best_affidavit_proposition_id"):
-                priority_score += 5
-            provisional_rows.append(
-                {
-                    "provisional_anchor_id": f"{row['source_row_id']}#anchor:{anchor_index}",
-                    "source_row_id": row["source_row_id"],
-                    "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
-                    "primary_workload_class": row.get("primary_workload_class"),
-                    "recommended_next_action": row.get("recommended_next_action"),
-                    "anchor_kind": anchor_kind,
-                    "anchor_label": anchor.get("label"),
-                    "anchor_value": anchor.get("anchor_value"),
-                    "dedupe_key": dedupe_key,
-                    "priority_score": priority_score,
-                    "review_disposition": "provisional_anchor_candidate",
-                }
-            )
-    deduped_rows: dict[str, dict[str, Any]] = {}
-    for row in provisional_rows:
-        existing = deduped_rows.get(row["dedupe_key"])
-        if existing is None or int(row["priority_score"]) > int(existing["priority_score"]):
-            deduped_rows[row["dedupe_key"]] = row
-    ranked_rows = list(deduped_rows.values())
-    ranked_rows.sort(
-        key=lambda row: (
-            -int(row["priority_score"]),
-            str(row.get("source_row_id") or ""),
-            str(row.get("provisional_anchor_id") or ""),
-        )
-    )
-    for rank, row in enumerate(ranked_rows, start=1):
-        row["priority_rank"] = rank
-    return ranked_rows
+    return _build_provisional_structured_anchors_impl(source_review_rows)
 
 
 def _build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    bundles_by_source_row: dict[str, dict[str, Any]] = {}
-    for row in provisional_structured_anchors:
-        source_row_id = str(row.get("source_row_id") or "").strip()
-        if not source_row_id:
-            continue
-        bundle = bundles_by_source_row.setdefault(
-            source_row_id,
-            {
-                "source_row_id": source_row_id,
-                "best_affidavit_proposition_id": row.get("best_affidavit_proposition_id"),
-                "primary_workload_class": row.get("primary_workload_class"),
-                "recommended_next_action": row.get("recommended_next_action"),
-                "top_priority_score": int(row.get("priority_score") or 0),
-                "top_priority_rank": int(row.get("priority_rank") or 0),
-                "anchor_rows": [],
-            },
-        )
-        bundle["anchor_rows"].append(row)
-        if int(row.get("priority_score") or 0) > int(bundle["top_priority_score"]):
-            bundle["top_priority_score"] = int(row.get("priority_score") or 0)
-            bundle["top_priority_rank"] = int(row.get("priority_rank") or 0)
-            bundle["best_affidavit_proposition_id"] = row.get("best_affidavit_proposition_id")
-            bundle["primary_workload_class"] = row.get("primary_workload_class")
-            bundle["recommended_next_action"] = row.get("recommended_next_action")
-    bundles = list(bundles_by_source_row.values())
-    for bundle in bundles:
-        bundle["anchor_rows"].sort(
-            key=lambda row: (
-                -int(row.get("priority_score") or 0),
-                str(row.get("provisional_anchor_id") or ""),
-            )
-        )
-        bundle["anchor_count"] = len(bundle["anchor_rows"])
-    bundles.sort(
-        key=lambda bundle: (
-            -int(bundle.get("top_priority_score") or 0),
-            str(bundle.get("source_row_id") or ""),
-        )
-    )
-    for rank, bundle in enumerate(bundles, start=1):
-        bundle["bundle_rank"] = rank
-    return bundles
+    return _build_provisional_anchor_bundles_impl(provisional_structured_anchors)
 
 
 def _classify_workload_with_hints(reason_codes: list[str], review_status: str, extraction_hints: Mapping[str, Any]) -> dict[str, Any]:
-    normalized_codes = {str(code).strip() for code in reason_codes if str(code).strip()}
-    workload_classes: set[str] = set()
-
-    if "review_queue" in normalized_codes and len(normalized_codes) == 1:
-        workload_classes.add("review_queue_only")
-    if "unreviewed" in normalized_codes and normalized_codes <= {"unreviewed"}:
-        workload_classes.add("review_queue_only")
-    if normalized_codes & {"chronology_undated", "missing_date", "contradictory_chronology"}:
-        workload_classes.add("chronology_gap")
-    if normalized_codes & {"event_missing"}:
-        workload_classes.add("event_extraction_gap")
-    if normalized_codes & {"statement_only_fact", "source_conflict"}:
-        workload_classes.add("evidence_gap")
-
-    if review_status == "missing_review" and not workload_classes:
-        workload_classes.add("review_queue_only")
-
-    ordered_classes = [name for name in _WORKLOAD_CLASS_PRIORITY if name in workload_classes]
-    primary_class = ordered_classes[0] if ordered_classes else None
-    has_temporal_hint = bool(extraction_hints.get("has_transcript_timestamp_hint")) or bool(extraction_hints.get("has_calendar_reference_hint"))
-    has_event_hint = bool(extraction_hints.get("has_procedural_event_cue"))
-    if primary_class == "chronology_gap" and has_temporal_hint and has_event_hint:
-        recommended_action = "promote existing event/date cues into structured anchors"
-    elif primary_class == "chronology_gap" and has_temporal_hint:
-        recommended_action = "promote existing temporal cues into structured anchors"
-    elif primary_class == "chronology_gap":
-        recommended_action = "extract structured event/date support"
-    elif primary_class == "event_extraction_gap" and has_event_hint:
-        recommended_action = "promote existing event cues into structured events"
-    elif primary_class == "event_extraction_gap":
-        recommended_action = "extract structured event/date support"
-    elif primary_class == "normalization_gap":
-        recommended_action = "normalize transcript/source wording"
-    elif primary_class == "review_queue_only":
-        recommended_action = "advance review queue triage"
-    elif primary_class == "evidence_gap":
-        recommended_action = "operator evidentiary review"
-    else:
-        recommended_action = None
-
-    return {
-        "workload_classes": ordered_classes,
-        "primary_workload_class": primary_class,
-        "recommended_next_action": recommended_action,
-    }
+    return _classify_workload_with_hints_impl(
+        reason_codes,
+        review_status,
+        extraction_hints,
+        workload_class_priority=_WORKLOAD_CLASS_PRIORITY,
+    )
 
 
 def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -803,62 +520,6 @@ def _classify_argumentative_role(
     }
 
 
-def _is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> bool:
-    proposition_tokens = _tokenize(proposition_text)
-    excerpt_tokens = _tokenize(excerpt_text)
-    if not proposition_tokens or not excerpt_tokens:
-        return False
-    shared_ratio = len(proposition_tokens & excerpt_tokens) / len(proposition_tokens)
-    return shared_ratio >= 0.85
-
-
-def _normalize_claim_root_text(*, proposition_text: str, duplicate_match_excerpt: str | None, best_match_excerpt: str | None) -> str | None:
-    duplicate_excerpt = str(duplicate_match_excerpt or "").strip()
-    if duplicate_excerpt:
-        return duplicate_excerpt
-    proposition_excerpt = str(proposition_text or "").strip()
-    if proposition_excerpt:
-        return proposition_excerpt
-    best_excerpt = str(best_match_excerpt or "").strip()
-    return best_excerpt or None
-
-
-def _stable_claim_root_id(text: str) -> str:
-    digest = hashlib.sha256(text.casefold().encode("utf-8")).hexdigest()[:16]
-    return f"claim_root:{digest}"
-
-
-def _derive_claim_root_fields(
-    *,
-    proposition_text: str,
-    duplicate_match_excerpt: str | None,
-    best_match_excerpt: str | None,
-) -> dict[str, Any]:
-    claim_root_text = _normalize_claim_root_text(
-        proposition_text=proposition_text,
-        duplicate_match_excerpt=duplicate_match_excerpt,
-        best_match_excerpt=best_match_excerpt,
-    )
-    if not claim_root_text:
-        return {
-            "claim_root_text": None,
-            "claim_root_id": None,
-            "claim_root_basis": None,
-            "alternate_context_excerpt": None,
-        }
-    basis = "duplicate_excerpt" if str(duplicate_match_excerpt or "").strip() else "proposition_text"
-    alternate_context_excerpt = None
-    best_excerpt = str(best_match_excerpt or "").strip()
-    if str(duplicate_match_excerpt or "").strip() and best_excerpt and best_excerpt != str(duplicate_match_excerpt or "").strip():
-        alternate_context_excerpt = best_excerpt
-    return {
-        "claim_root_text": claim_root_text,
-        "claim_root_id": _stable_claim_root_id(claim_root_text),
-        "claim_root_basis": basis,
-        "alternate_context_excerpt": alternate_context_excerpt,
-    }
-
-
 def _infer_response_packet(
     *,
     proposition_text: str,
@@ -868,88 +529,19 @@ def _infer_response_packet(
     response_cues: list[str] | None,
     coverage_status: str,
 ) -> dict[str, Any]:
-    role = str(response_role or "").strip()
-    excerpt = str(best_match_excerpt or "").strip()
-    duplicate_excerpt = str(duplicate_match_excerpt or "").strip() or None
-    proposition_lower = proposition_text.casefold()
-    excerpt_lower = excerpt.casefold()
-    response_acts: list[str] = []
-    legal_significance_signals: list[str] = []
-
-    if duplicate_excerpt:
-        response_acts.append("repetition_only")
-    characterization_overlap = any(term in proposition_lower and term in excerpt_lower for term in _CHARACTERIZATION_TERMS)
-    characterization_dispute = characterization_overlap or "characterization" in excerpt_lower
-    if role in {"dispute", "hedged_denial"}:
-        if characterization_dispute:
-            response_acts.append("deny_characterisation")
-            legal_significance_signals.append("characterization_dispute")
-        else:
-            response_acts.append("deny_fact")
-            legal_significance_signals.append("factual_denial")
-        if role == "hedged_denial":
-            response_acts.append("hedged_denial")
-            legal_significance_signals.append("hedged_denial_signal")
-    elif role == "admission":
-        response_acts.append("admit_fact")
-        legal_significance_signals.append("factual_admission")
-    elif role == "explanation":
-        response_acts.append("explain_context")
-        legal_significance_signals.append("context_explanation")
-    elif role == "support_or_corroboration":
-        response_acts.append("corroborate_or_ground")
-        legal_significance_signals.append("evidentiary_grounding_signal")
-    elif role == "non_response":
-        response_acts.append("non_response")
-    elif role == "restatement_only":
-        response_acts.append("repetition_only")
-    elif role == "procedural_frame":
-        response_acts.append("procedural_or_nonresponsive_frame")
-
-    justification_matches = _apply_lexical_heuristic_group(excerpt, "justification")
-    if justification_matches.get("consent"):
-        response_acts.append("justify")
-        legal_significance_signals.append("consent_signal")
-    if justification_matches.get("authority_or_necessity"):
-        legal_significance_signals.append("authority_or_necessity_signal")
-    if justification_matches.get("scope_limitation"):
-        response_acts.append("scope_limitation")
-        legal_significance_signals.append("scope_limitation")
-
-    if coverage_status == "covered" and response_acts and all(act != "repetition_only" for act in response_acts):
-        support_status = "substantively_addressed"
-    elif coverage_status == "partial" and duplicate_excerpt:
-        support_status = "textually_addressed"
-    elif coverage_status == "partial" and response_acts:
-        support_status = "responsive_but_non_substantive"
-    elif coverage_status in {"unsupported_affidavit", "contested_source", "abstained_source"}:
-        support_status = "unresolved"
-    else:
-        support_status = "textually_addressed"
-
-    if "evidentiary_grounding_signal" in legal_significance_signals and support_status in {
-        "substantively_addressed",
-        "responsive_but_non_substantive",
-    }:
-        support_status = "evidentially_grounded_response"
-
-    return {
-        "response_acts": sorted(dict.fromkeys(response_acts)),
-        "legal_significance_signals": sorted(dict.fromkeys(legal_significance_signals)),
-        "support_status": support_status,
-    }
+    return _infer_response_packet_impl(
+        proposition_text=proposition_text,
+        best_match_excerpt=best_match_excerpt,
+        duplicate_match_excerpt=duplicate_match_excerpt,
+        response_role=response_role,
+        coverage_status=coverage_status,
+        characterization_terms=_CHARACTERIZATION_TERMS,
+        justification_matches=_apply_lexical_heuristic_group(str(best_match_excerpt or "").strip(), "justification"),
+    )
 
 
 def _derive_primary_target_component(*, response: Mapping[str, Any], response_acts: list[str]) -> str:
-    component_targets = response.get("component_targets") if isinstance(response.get("component_targets"), list) else []
-    normalized_targets = [str(target).strip() for target in component_targets if str(target).strip()]
-    if "characterization" in normalized_targets and "deny_characterisation" in set(response_acts):
-        return "characterization"
-    if "time" in normalized_targets:
-        return "time"
-    if "predicate_text" in normalized_targets:
-        return "predicate_text"
-    return normalized_targets[0] if normalized_targets else "predicate_text"
+    return _derive_primary_target_component_impl(response=response, response_acts=response_acts)
 
 
 def _derive_semantic_basis(
@@ -959,24 +551,12 @@ def _derive_semantic_basis(
     response_component_bindings: list[dict[str, Any]],
     justifications: list[dict[str, Any]],
 ) -> str:
-    if any(str(cue).startswith("structural:") for cue in response_cues):
-        return "structural"
-    structural_binding_components = {
-        str(binding.get("component") or "").strip()
-        for binding in response_component_bindings
-        if isinstance(binding, Mapping)
-        and str(binding.get("component") or "").strip() in {"predicate_text", "characterization", "time"}
-    }
-    if structural_binding_components and justifications:
-        return "mixed"
-    if structural_binding_components:
-        return "structural"
-    if justifications:
-        return "heuristic"
-    speech_act = str(response.get("speech_act") or "").strip()
-    if speech_act in {"deny", "admit", "explain"}:
-        return "heuristic"
-    return "heuristic"
+    return _derive_semantic_basis_impl(
+        response_cues=response_cues,
+        response=response,
+        response_component_bindings=response_component_bindings,
+        justifications=justifications,
+    )
 
 
 def _derive_claim_state(
@@ -986,68 +566,12 @@ def _derive_claim_state(
     support_status: str,
     duplicate_match_excerpt: str | None,
 ) -> dict[str, str]:
-    acts = set(response_acts)
-    signals = set(legal_significance_signals)
-    has_for = bool(
-        {"admit_fact", "corroborate_or_ground"} & acts
-        or {"factual_admission", "evidentiary_grounding_signal"} & signals
+    return _derive_claim_state_impl(
+        response_acts=response_acts,
+        legal_significance_signals=legal_significance_signals,
+        support_status=support_status,
+        duplicate_match_excerpt=duplicate_match_excerpt,
     )
-    has_against = bool(
-        {"deny_fact", "deny_characterisation", "hedged_denial"} & acts
-        or {"factual_denial", "characterization_dispute", "hedged_denial_signal"} & signals
-    )
-    if has_for and has_against:
-        support_direction = "mixed"
-    elif has_for:
-        support_direction = "for"
-    elif has_against:
-        support_direction = "against"
-    else:
-        support_direction = "none"
-
-    if support_status == "unresolved" and support_direction == "none":
-        conflict_state = "unanswered"
-    elif support_direction == "mixed":
-        conflict_state = "partially_reconciled"
-    elif support_direction == "against":
-        conflict_state = "disputed"
-    elif support_direction == "for":
-        conflict_state = "undisputed"
-    elif duplicate_match_excerpt:
-        conflict_state = "unresolved"
-    else:
-        conflict_state = "unanswered"
-
-    if support_status == "evidentially_grounded_response":
-        evidentiary_state = "supported"
-    elif support_status == "substantively_addressed" and support_direction in {"for", "mixed"}:
-        evidentiary_state = "weakly_supported"
-    elif support_direction == "against":
-        evidentiary_state = "unproven"
-    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "unresolved"}:
-        evidentiary_state = "unproven"
-    else:
-        evidentiary_state = "unassessed"
-
-    if support_direction == "none" and support_status == "unresolved":
-        operational_status = "claim_only"
-    elif support_direction == "for" and conflict_state == "undisputed" and evidentiary_state in {"unproven", "weakly_supported"}:
-        operational_status = "claim_with_support"
-    elif support_direction == "against":
-        operational_status = "claim_with_opposition" if conflict_state == "unanswered" else "disputed_claim"
-    elif support_direction == "mixed" and conflict_state == "partially_reconciled":
-        operational_status = "partially_reconciled_claim"
-    elif support_direction == "for" and evidentiary_state in {"supported", "strongly_supported"}:
-        operational_status = "resolved_but_unproven"
-    else:
-        operational_status = "disputed_claim" if conflict_state == "disputed" else "claim_only"
-
-    return {
-        "support_direction": support_direction,
-        "conflict_state": conflict_state,
-        "evidentiary_state": evidentiary_state,
-        "operational_status": operational_status,
-    }
 
 
 def _derive_missing_dimensions(
@@ -1058,27 +582,13 @@ def _derive_missing_dimensions(
     best_match_excerpt: str | None,
     duplicate_match_excerpt: str | None,
 ) -> list[str]:
-    dimensions: list[str] = []
-    component = str(primary_target_component or "").strip()
-    if component == "time":
-        dimensions.append("time")
-    elif component == "characterization":
-        dimensions.append("direct_response")
-    elif component == "predicate_text":
-        dimensions.append("action")
-
-    if support_status in {"responsive_but_non_substantive", "unresolved"}:
-        dimensions.append("direct_response")
-    if support_status == "textually_addressed" and not str(duplicate_match_excerpt or "").strip():
-        dimensions.append("object")
-    if coverage_status == "unsupported_affidavit" and not str(best_match_excerpt or "").strip():
-        dimensions.append("direct_response")
-
-    deduped: list[str] = []
-    for dimension in dimensions:
-        if dimension and dimension not in deduped:
-            deduped.append(dimension)
-    return deduped or ["direct_response"]
+    return _derive_missing_dimensions_impl(
+        coverage_status=coverage_status,
+        support_status=support_status,
+        primary_target_component=primary_target_component,
+        best_match_excerpt=best_match_excerpt,
+        duplicate_match_excerpt=duplicate_match_excerpt,
+    )
 
 
 def _derive_relation_classification(
@@ -1093,86 +603,17 @@ def _derive_relation_classification(
     duplicate_match_excerpt: str | None,
     alternate_context_excerpt: str | None = None,
 ) -> dict[str, Any]:
-    role = str(best_response_role or "").strip()
-    component = str(primary_target_component or "").strip()
-    missing_dimensions = _derive_missing_dimensions(
+    return _derive_relation_classification_impl(
         coverage_status=coverage_status,
         support_status=support_status,
-        primary_target_component=component,
+        conflict_state=conflict_state,
+        support_direction=support_direction,
+        best_response_role=best_response_role,
+        primary_target_component=primary_target_component,
         best_match_excerpt=best_match_excerpt,
         duplicate_match_excerpt=duplicate_match_excerpt,
+        alternate_context_excerpt=alternate_context_excerpt,
     )
-
-    relation_root = "non_resolving"
-    relation_leaf = "non_substantive_response"
-    classification = "non_substantive_response"
-    reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
-    matched_response = str(best_match_excerpt or "").strip() or None
-
-    if str(duplicate_match_excerpt or "").strip():
-        relation_root = "supports"
-        relation_leaf = "equivalent_support"
-        classification = "supported"
-        matched_response = str(duplicate_match_excerpt or "").strip() or matched_response
-        if str(alternate_context_excerpt or "").strip():
-            reason = "A direct or near-duplicate clause supports the same claim root, while a nearby alternate clause adds context and should not replace the matching leaf."
-        else:
-            reason = "A direct or near-duplicate clause supports the same claim root."
-        missing_dimensions = []
-
-    elif coverage_status == "covered":
-        relation_root = "supports"
-        relation_leaf = "exact_support" if support_status == "substantively_addressed" else "equivalent_support"
-        classification = "supported"
-        reason = "The matched response aligns on the same proposition with substantive support."
-    elif coverage_status in {"contested_source", "contested_affidavit"} or conflict_state == "disputed" or support_direction == "against" or role == "dispute":
-        relation_root = "invalidates"
-        relation_leaf = "explicit_dispute" if role in {"dispute", "hedged_denial"} else "implicit_dispute"
-        classification = "disputed"
-        reason = "The matched response disputes or materially opposes the same proposition."
-    elif coverage_status == "unsupported_affidavit":
-        relation_root = "unanswered"
-        relation_leaf = "missing"
-        classification = "missing"
-        reason = "No adequately aligned response row was found for this proposition."
-    elif support_status == "evidentially_grounded_response" or role == "admission":
-        relation_root = "supports"
-        relation_leaf = "partial_support"
-        classification = "partial_support"
-        reason = "The matched response grounds part of the proposition, but does not fully resolve it."
-    elif component == "time":
-        relation_root = "non_resolving"
-        relation_leaf = "adjacent_event"
-        classification = "adjacent_event"
-        reason = "The matched response appears to concern a nearby event or timing slice rather than the exact proposition."
-    elif support_status == "textually_addressed":
-        relation_root = "non_resolving"
-        relation_leaf = "substitution"
-        classification = "substitution"
-        reason = "The matched response overlaps lexically, but substitutes a different act or incident."
-    elif support_status in {"textually_addressed", "responsive_but_non_substantive", "evidentially_grounded_response"} or role in {"explanation", "procedural_frame", "restatement_only", "non_response"}:
-        relation_root = "non_resolving"
-        relation_leaf = "non_substantive_response"
-        classification = "non_substantive_response"
-        reason = "The matched response is procedural, explanatory, or otherwise non-substantive for this proposition."
-    elif coverage_status == "partial":
-        relation_root = "supports"
-        relation_leaf = "partial_support"
-        classification = "partial_support"
-        reason = "The matched response partially overlaps the proposition but leaves key dimensions unresolved."
-
-    return {
-        "relation_root": relation_root,
-        "relation_leaf": relation_leaf,
-        "classification": classification,
-        "explanation": {
-            "classification": classification,
-            "matched_response": matched_response,
-            "reason": reason,
-            "missing_dimension": missing_dimensions,
-        },
-        "missing_dimensions": missing_dimensions,
-    }
 
 
 def _build_zelph_claim_state_fact(
@@ -1369,31 +810,7 @@ def _build_response_packet(
 
 
 def _build_justification_packets(excerpt_text: str) -> list[dict[str, Any]]:
-    excerpt = str(excerpt_text or "")
-    packets: list[dict[str, Any]] = []
-    rule_matches = _apply_lexical_heuristic_group(excerpt, "justification")
-    for justification_type, matches in rule_matches.items():
-        if not matches:
-            continue
-        match = matches[0]
-        packets.append(
-            {
-                "type": justification_type,
-                "rule_id": match["rule_id"],
-                "span": {
-                    "text": match["text"],
-                    "start": match["start"],
-                    "end": match["end"],
-                },
-                "target_component": "predicate_text",
-                "bound_response_span": {
-                    "text": match["text"],
-                    "start": match["start"],
-                    "end": match["end"],
-                },
-            }
-        )
-    return packets
+    return _build_justification_packets_impl(excerpt_text)
 
 
 def _build_response_component_bindings(
@@ -1477,6 +894,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
     proposition_tokens = proposition.get("tokens", [])
     row_text = str(source_row.get("text") or "")
     comparison_mode = str(source_row.get("comparison_mode") or "").strip()
+    numbered_rebuttal_start = _find_numbered_rebuttal_start(row_text)
     row_score = _similarity_score(proposition_tokens, source_row.get("tokens", []))
     row_entry = {
         "score": row_score,
@@ -1494,7 +912,19 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                 "match_excerpt": segment,
             }
         )
+        if comparison_mode == "contested_narrative":
+            for clause in _split_source_segment_clauses(segment):
+                clause_tokens = sorted(_tokenize(clause))
+                clause_score = _similarity_score(proposition_tokens, clause_tokens)
+                segments.append(
+                    {
+                        "score": clause_score,
+                        "match_basis": "clause",
+                        "match_excerpt": clause,
+                    }
+                )
     candidates = segments if comparison_mode == "contested_narrative" else [row_entry, *segments]
+    proposition_lower = str(proposition.get("text") or "").casefold()
     for candidate in candidates:
         role_data = _classify_argumentative_role(
             str(proposition.get("text") or ""),
@@ -1508,6 +938,22 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
             str(proposition.get("text") or ""),
             str(candidate["match_excerpt"] or ""),
         )
+        excerpt_text = str(candidate["match_excerpt"] or "")
+        excerpt_lower = excerpt_text.casefold()
+        excerpt_start = row_text.find(excerpt_text) if excerpt_text else -1
+        candidate["excerpt_start"] = excerpt_start
+        candidate["is_numbered_rebuttal_excerpt"] = bool(
+            numbered_rebuttal_start is not None and excerpt_start >= numbered_rebuttal_start >= 0
+        )
+        candidate["is_proposition_echo"] = bool(
+            proposition_lower
+            and excerpt_lower
+            and (proposition_lower in excerpt_lower or excerpt_lower in proposition_lower)
+        )
+        candidate["predicate_alignment_score"] = _predicate_alignment_score(
+            str(proposition.get("text") or ""),
+            str(candidate["match_excerpt"] or ""),
+        )
         adjusted = float(candidate["score"])
         if comparison_mode == "contested_narrative" and (
             candidate["response_role"] == "restatement_only" or candidate["is_duplicate_excerpt"]
@@ -1515,46 +961,75 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
             adjusted = min(adjusted, max(_PARTIAL_MATCH_THRESHOLD, _COVERED_MATCH_THRESHOLD - 0.01))
         elif comparison_mode == "contested_narrative" and candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"} and adjusted >= _PARTIAL_MATCH_THRESHOLD:
             adjusted = min(1.0, round(adjusted + 0.05, 6))
+        if comparison_mode == "contested_narrative" and not (
+            candidate.get("is_proposition_echo") or candidate.get("is_duplicate_excerpt")
+        ):
+            adjusted = min(
+                1.0,
+                round(
+                    adjusted
+                    + _family_alignment_adjustment(
+                        str(proposition.get("text") or ""),
+                        str(candidate.get("match_excerpt") or ""),
+                        row_text,
+                    ),
+                    6,
+                ),
+            )
         candidate["adjusted_score"] = adjusted
 
-    best_candidate = max(
-        candidates,
-        key=lambda item: (float(item["adjusted_score"]), float(item["score"]), -len(str(item["match_excerpt"] or ""))),
+    row_has_proposition_echo = any(candidate.get("is_proposition_echo") for candidate in candidates)
+    if comparison_mode == "contested_narrative" and row_has_proposition_echo and numbered_rebuttal_start is not None:
+        for candidate in candidates:
+            if candidate.get("is_proposition_echo") or candidate.get("is_duplicate_excerpt"):
+                continue
+            candidate_role = str(candidate.get("response_role") or "")
+            current_adjusted = float(candidate.get("adjusted_score") or 0.0)
+            if candidate.get("is_numbered_rebuttal_excerpt") and candidate_role in {
+                "dispute",
+                "admission",
+                "explanation",
+                "support_or_corroboration",
+                "procedural_frame",
+            }:
+                candidate["adjusted_score"] = min(1.0, round(current_adjusted + 0.12, 6))
+            elif (
+                not candidate.get("is_numbered_rebuttal_excerpt")
+                and candidate_role in {"dispute", "admission", "explanation", "support_or_corroboration"}
+            ):
+                candidate["adjusted_score"] = round(max(0.0, current_adjusted - 0.12), 6)
+    if comparison_mode == "contested_narrative" and row_has_proposition_echo:
+        best_echo_adjusted_score = max(
+            (float(candidate.get("adjusted_score") or 0.0) for candidate in candidates if candidate.get("is_proposition_echo")),
+            default=0.0,
+        )
+        for candidate in candidates:
+            if (
+                not candidate.get("is_proposition_echo")
+                and not candidate.get("is_duplicate_excerpt")
+                and (
+                    (
+                        candidate["response_role"] in {"non_response", "procedural_frame", "restatement_only"}
+                        and _is_quote_rebuttal_support_excerpt(str(candidate.get("match_excerpt") or ""))
+                    )
+                    or (
+                        candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration", "procedural_frame"}
+                        and float(candidate.get("predicate_alignment_score") or 0.0) >= 0.5
+                    )
+                )
+            ):
+                if candidate["response_role"] in {"non_response", "procedural_frame", "restatement_only"}:
+                    candidate["response_role"] = "support_or_corroboration"
+                candidate["response_cues"] = list(candidate["response_cues"]) + ["non_echo_direct_overlap"]
+                candidate["adjusted_score"] = min(
+                    1.0,
+                    round(max(float(candidate["adjusted_score"]), best_echo_adjusted_score - 0.03), 6),
+                )
+
+    return _arbitrate_candidate_selection(
+        comparison_mode=comparison_mode,
+        candidates=candidates,
     )
-    duplicate_match_excerpt = None
-    if comparison_mode == "contested_narrative" and (
-        best_candidate["response_role"] == "restatement_only" or best_candidate["is_duplicate_excerpt"]
-    ):
-        substantive_candidates = [
-            candidate
-            for candidate in candidates
-            if candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration"}
-            and not candidate["is_duplicate_excerpt"]
-        ]
-        if substantive_candidates:
-            alternate_candidate = max(
-                substantive_candidates,
-                key=lambda item: (float(item["adjusted_score"]), float(item["score"]), -len(str(item["match_excerpt"] or ""))),
-            )
-            duplicate_match_excerpt = str(best_candidate["match_excerpt"] or "").strip()
-            best_candidate = alternate_candidate
-
-    best_score = float(best_candidate["score"])
-    adjusted_score = float(best_candidate["adjusted_score"])
-    best_basis = str(best_candidate["match_basis"])
-    best_excerpt = str(best_candidate["match_excerpt"] or "").strip()
-    response_role = str(best_candidate["response_role"])
-    response_cues = best_candidate["response_cues"]
-
-    return {
-        "score": best_score,
-        "adjusted_score": adjusted_score,
-        "match_basis": best_basis,
-        "match_excerpt": best_excerpt,
-        "duplicate_match_excerpt": duplicate_match_excerpt,
-        "response_role": response_role,
-        "response_cues": response_cues,
-    }
 
 
 def _classify_affidavit_match(score: float, source_row: Mapping[str, Any] | None, response_role: str | None = None) -> str:
@@ -1633,20 +1108,11 @@ def _build_related_review_clusters(
             dominant_workload_class = sorted(workload_counter.items(), key=lambda item: (-item[1], item[0]))[0][0]
         has_temporal_hint_cluster = extraction_hint_counter["transcript_timestamp_hint"] > 0 or extraction_hint_counter["calendar_reference_hint"] > 0
         has_event_hint_cluster = extraction_hint_counter["procedural_event_cue"] > 0
-        if dominant_workload_class == "chronology_gap" and has_temporal_hint_cluster and has_event_hint_cluster:
-            recommended_next_action = "promote existing event/date cues into structured anchors"
-        elif dominant_workload_class == "chronology_gap" and has_temporal_hint_cluster:
-            recommended_next_action = "promote existing temporal cues into structured anchors"
-        elif dominant_workload_class in {"chronology_gap", "event_extraction_gap"}:
-            recommended_next_action = "extract structured event/date support"
-        elif dominant_workload_class == "normalization_gap":
-            recommended_next_action = "normalize transcript/source wording"
-        elif dominant_workload_class == "review_queue_only":
-            recommended_next_action = "advance review queue triage"
-        elif dominant_workload_class == "evidence_gap":
-            recommended_next_action = "operator evidentiary review"
-        else:
-            recommended_next_action = None
+        recommended_next_action = _recommend_next_action_impl(
+            dominant_workload_class,
+            has_temporal_hint=has_temporal_hint_cluster,
+            has_event_hint=has_event_hint_cluster,
+        )
         clusters.append(
             {
                 "proposition_id": proposition_id,
@@ -1764,7 +1230,7 @@ def build_affidavit_coverage_review(
             score_row = _score_proposition_against_source_row(proposition, row)
             raw_score = float(score_row["score"])
             adjusted_score = float(score_row.get("adjusted_score") or raw_score)
-            if raw_score <= 0:
+            if adjusted_score <= 0:
                 continue
             scored_rows.append((adjusted_score, raw_score, row, score_row))
         scored_rows.sort(key=lambda item: (-item[0], -item[1], item[2]["source_row_id"]))
@@ -2191,7 +1657,7 @@ def build_affidavit_coverage_review(
         str(row.get("best_response_role") or "unknown").strip() or "unknown"
         for row in affidavit_rows
     )
-    substantive_roles = {"dispute", "admission", "explanation", "support_or_corroboration"}
+    substantive_roles = {"dispute", "admission", "explanation", "support_or_corroboration", "technical_qualification"}
     substantive_response_count = sum(
         1
         for row in affidavit_rows
@@ -2459,10 +1925,13 @@ def write_affidavit_coverage_review(
     source_path: str | None = None,
     affidavit_path: str | None = None,
     db_path: Path | None = None,
+    write_artifacts: bool = True,
     progress_callback: Any | None = None,
     trace_callback: Any | None = None,
     trace_level: str = "verbose",
 ) -> dict[str, Any]:
+    if not write_artifacts and db_path is None:
+        raise ValueError("write_artifacts=False requires db_path so the review still has a persisted receiver")
     _emit_progress(
         progress_callback,
         "artifact_build_started",
@@ -2479,28 +1948,38 @@ def write_affidavit_coverage_review(
         trace_level=trace_level,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
-    summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    _emit_progress(
-        progress_callback,
-        "artifact_write_started",
-        section="affidavit_artifact",
-        message="Writing affidavit review files.",
-        output_dir=str(output_dir),
-    )
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
-    result: dict[str, Any] = {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
-    _emit_progress(
-        progress_callback,
-        "artifact_write_finished",
-        section="affidavit_artifact",
-        completed=2,
-        total=2,
-        message="Affidavit review files written.",
-        artifact_path=str(artifact_path),
-        summary_path=str(summary_path),
-    )
+    result: dict[str, Any] = {}
+    if write_artifacts:
+        artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
+        summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
+        _emit_progress(
+            progress_callback,
+            "artifact_write_started",
+            section="affidavit_artifact",
+            message="Writing affidavit review files.",
+            output_dir=str(output_dir),
+        )
+        artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
+        result.update({"artifact_path": str(artifact_path), "summary_path": str(summary_path)})
+        _emit_progress(
+            progress_callback,
+            "artifact_write_finished",
+            section="affidavit_artifact",
+            completed=2,
+            total=2,
+            message="Affidavit review files written.",
+            artifact_path=str(artifact_path),
+            summary_path=str(summary_path),
+        )
+    else:
+        _emit_progress(
+            progress_callback,
+            "artifact_write_skipped",
+            section="affidavit_artifact",
+            message="Skipped bulky affidavit review artifact write; using persisted receiver as primary surface.",
+            output_dir=str(output_dir),
+        )
     if db_path is not None:
         _emit_progress(
             progress_callback,
@@ -2527,6 +2006,7 @@ def main() -> None:
     parser.add_argument("--affidavit-text", required=True, help="Path to the affidavit/declaration draft text file.")
     parser.add_argument("--output-dir", required=True, help="Directory where JSON and summary outputs will be written.")
     parser.add_argument("--db-path", default=None, help="Optional sqlite path for persisting a normalized contested-review receiver.")
+    parser.add_argument("--skip-artifacts", action="store_true", help="Skip bulky JSON/markdown artifact writes and persist to sqlite only.")
     parser.add_argument("--progress", action="store_true", help="Emit progress updates to stderr.")
     parser.add_argument("--progress-format", default="human", choices=["human", "json", "bar"], help="Progress output format.")
     parser.add_argument("--trace", action="store_true", help="Emit detailed trace events to stderr.")
@@ -2549,6 +2029,7 @@ def main() -> None:
         source_path=str(source_path),
         affidavit_path=str(affidavit_path),
         db_path=Path(args.db_path) if args.db_path else None,
+        write_artifacts=not bool(args.skip_artifacts),
         progress_callback=progress_callback,
         trace_callback=trace_callback,
         trace_level=str(args.trace_level),

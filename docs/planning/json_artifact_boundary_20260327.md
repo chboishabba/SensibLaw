@@ -67,6 +67,9 @@ These are currently mixed review surfaces:
   normalized runs/rows/facts when persisted through the read-model path
 - contested Google Docs narrative review inherits that receiver when the
   builder is invoked with `--db-path`
+- when `--db-path` is provided, the live Google Docs wrapper is now SQLite-first
+  by default and skips bulky JSON/markdown review artifacts unless
+  `--write-artifacts` is explicitly requested
 - the JSON/markdown artifacts remain valid derived projections and a
   presentation/export contract
 - broader diagnostics / scorecards / comparison reports remain artifact-backed

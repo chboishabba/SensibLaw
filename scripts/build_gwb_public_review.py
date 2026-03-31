@@ -20,6 +20,19 @@ except ModuleNotFoundError:
         render_normalized_metrics_markdown,
     )
 
+try:
+    from src.policy.affidavit_extraction_hints import (
+        build_candidate_anchors as _build_candidate_anchors_impl,
+        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
+        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
+    )
+except ModuleNotFoundError:
+    from policy.affidavit_extraction_hints import (
+        build_candidate_anchors as _build_candidate_anchors_impl,
+        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
+        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
+    )
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 
@@ -27,6 +40,11 @@ SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
 ARTIFACT_VERSION = "gwb_public_review_v1"
 SOURCE_SLICE_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_handoff_v1" / "gwb_public_handoff_v1.slice.json"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
+_GWB_ANCHOR_KIND_WEIGHT = {
+    "calendar_reference": 30,
+    "receipt": 20,
+    "surface": 10,
+}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -91,10 +109,9 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
                             "anchor_value": receipt.get("value"),
                         }
                     )
-            for year in _year_mentions(text):
-                anchor_candidates.append(
-                    {"anchor_kind": "calendar_reference", "anchor_label": year, "anchor_value": year}
-                )
+            anchor_candidates.extend(
+                _build_candidate_anchors_impl({"calendar_reference_mentions": _year_mentions(text)})
+            )
             workload_classes = []
             if matched:
                 workload_classes.append("covered")
@@ -188,61 +205,46 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
 
 
 def _rank_provisional_rows(source_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = []
-    weight_by_kind = {
-        "calendar_reference": 30,
-        "receipt": 20,
-        "surface": 10,
-    }
-    for row in source_rows:
-        if row.get("review_status") != "missing_review":
-            continue
-        for idx, anchor in enumerate(row.get("candidate_anchors", []) or [], start=1):
-            kind = anchor.get("anchor_kind") or "receipt"
-            label = str(anchor.get("anchor_label") or "").strip()
-            score = weight_by_kind.get(kind, 10)
-            provisional_id = f"{row['source_row_id']}#p{idx}"
-            rows.append(
-                {
-                    "provisional_review_id": provisional_id,
-                    "source_row_id": row["source_row_id"],
-                    "anchor_kind": kind,
-                    "anchor_label": label,
-                    "priority_score": score,
-                }
-            )
-    rows.sort(key=lambda r: (-int(r.get("priority_score") or 0), r.get("provisional_review_id")))
+    provisional_rows = _build_provisional_structured_anchors_impl(
+        source_rows,
+        anchor_kind_weight=_GWB_ANCHOR_KIND_WEIGHT,
+        dedupe=False,
+    )
+    rows: list[dict[str, Any]] = []
+    for row in provisional_rows:
+        copied = dict(row)
+        provisional_anchor_id = str(copied.pop("provisional_anchor_id", "")).strip()
+        if provisional_anchor_id:
+            copied["provisional_review_id"] = provisional_anchor_id.replace("#anchor:", "#p")
+        rows.append(copied)
+    rows.sort(key=lambda r: (-int(r.get("priority_score") or 0), str(r.get("provisional_review_id") or "")))
     for rank, row in enumerate(rows, start=1):
         row["priority_rank"] = rank
     return rows
 
 
 def _bundle_provisional_rows(provisional_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    bundles_by_source: dict[str, dict[str, Any]] = {}
+    shared_rows: list[dict[str, Any]] = []
     for row in provisional_rows:
-        src = row.get("source_row_id")
-        if not src:
-            continue
-        bundle = bundles_by_source.setdefault(
-            src,
-            {
-                "source_row_id": src,
-                "anchor_rows": [],
-                "top_priority_score": 0,
-            },
-        )
-        bundle["anchor_rows"].append(row)
-        score = int(row.get("priority_score") or 0)
-        if score > bundle["top_priority_score"]:
-            bundle["top_priority_score"] = score
-    bundles = list(bundles_by_source.values())
+        copied = dict(row)
+        provisional_review_id = str(copied.pop("provisional_review_id", "")).strip()
+        if provisional_review_id:
+            copied["provisional_anchor_id"] = provisional_review_id.replace("#p", "#anchor:")
+        shared_rows.append(copied)
+    bundles = _build_provisional_anchor_bundles_impl(shared_rows)
+    normalized_bundles: list[dict[str, Any]] = []
     for bundle in bundles:
-        bundle["anchor_rows"].sort(key=lambda r: (-int(r.get("priority_score") or 0), r.get("provisional_review_id")))
-        bundle["anchor_count"] = len(bundle["anchor_rows"])
-    bundles.sort(key=lambda b: (-int(b.get("top_priority_score") or 0), b.get("source_row_id")))
-    for rank, bundle in enumerate(bundles, start=1):
-        bundle["bundle_rank"] = rank
-    return bundles
+        normalized_bundle = dict(bundle)
+        normalized_anchor_rows: list[dict[str, Any]] = []
+        for row in bundle.get("anchor_rows", []):
+            copied = dict(row)
+            provisional_anchor_id = str(copied.pop("provisional_anchor_id", "")).strip()
+            if provisional_anchor_id:
+                copied["provisional_review_id"] = provisional_anchor_id.replace("#anchor:", "#p")
+            normalized_anchor_rows.append(copied)
+        normalized_bundle["anchor_rows"] = normalized_anchor_rows
+        normalized_bundles.append(normalized_bundle)
+    return normalized_bundles
 
 
 def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:

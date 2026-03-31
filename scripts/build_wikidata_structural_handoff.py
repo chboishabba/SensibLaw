@@ -14,6 +14,7 @@ if str(SENSIBLAW_ROOT) not in sys.path:
 
 from src.ontology.wikidata_disjointness import project_wikidata_disjointness_payload
 from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
+from src.policy.wikidata_structural_io import load_json_object, relative_repo_path
 from src.zelph_bridge import run_zelph_inference
 
 
@@ -65,13 +66,6 @@ HOTSPOT_PACK_IDS = (
 )
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"JSON payload must be an object: {path}")
-    return payload
-
-
 def _sanitize_id(raw: str) -> str:
     return "".join(ch if ch.isalnum() else "_" for ch in raw).strip("_").lower()
 
@@ -81,11 +75,11 @@ def _quote(value: Any) -> str:
 
 
 def _relative(path: Path) -> str:
-    return str(path.resolve().relative_to(REPO_ROOT))
+    return relative_repo_path(path, repo_root=REPO_ROOT)
 
 
 def _build_qualifier_core() -> dict[str, Any]:
-    baseline_payload = _load_json(QUALIFIER_BASELINE_PATH)
+    baseline_payload = load_json_object(QUALIFIER_BASELINE_PATH)
     baseline_windows = baseline_payload.get("windows", [])
     statement_count = sum(
         len(window.get("statement_bundles", []))
@@ -101,7 +95,7 @@ def _build_qualifier_core() -> dict[str, Any]:
             if isinstance(bundle, dict) and bundle.get("property") is not None
         }
     )
-    drift_projection = _load_json(QUALIFIER_DRIFT_PROJECTION_PATH)
+    drift_projection = load_json_object(QUALIFIER_DRIFT_PROJECTION_PATH)
     drift_rows = drift_projection.get("qualifier_drift", [])
     drift_row = drift_rows[0] if drift_rows else {}
     return {
@@ -178,7 +172,7 @@ def _case_status(report: dict[str, Any]) -> str:
 def _build_disjointness_cases() -> list[dict[str, Any]]:
     cases = []
     for case_id, path in DISJOINTNESS_CASE_PATHS.items():
-        payload = _load_json(path)
+        payload = load_json_object(path)
         report = project_wikidata_disjointness_payload(payload)
         metadata = payload.get("metadata", {})
         review = report.get("review_summary", {})

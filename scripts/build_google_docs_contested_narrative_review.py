@@ -5,9 +5,9 @@ import argparse
 import json
 from pathlib import Path
 import sqlite3
-import re
 import sys
 import tempfile
+from typing import Any
 
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
@@ -26,86 +26,13 @@ from src.fact_intake.google_public_import import (  # noqa: E402
     parse_google_public_url,
 )
 from src.fact_intake.read_model import build_fact_intake_payload_from_text_units  # noqa: E402
+from src.policy.affidavit_reconciliation_text import group_contested_response_units  # noqa: E402
 from src.reporting.structure_report import TextUnit  # noqa: E402
 
 try:
     from scripts.cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging  # noqa: E402
 except (ModuleNotFoundError, ImportError):
     from cli_runtime import build_event_callback, build_progress_callback, configure_cli_logging  # noqa: E402
-
-
-def _tokenize_for_duplicate_filter(text: str) -> set[str]:
-    return {
-        token
-        for token in re.findall(r"[A-Za-z0-9']+", text.casefold())
-        if len(token) >= 2
-    }
-
-
-def _strip_enumeration_prefix(text: str) -> str:
-    return re.sub(r"^\s*\d+(?:[-.]\d+)*[.)]?\s*", "", text).strip()
-
-
-def _similarity(left: set[str], right: set[str]) -> float:
-    if not left or not right:
-        return 0.0
-    shared = left & right
-    if not shared:
-        return 0.0
-    return (2.0 * len(shared)) / (len(left) + len(right))
-
-
-def _is_duplicate_affidavit_unit(text: str, affidavit_text: str) -> bool:
-    affidavit_candidates = []
-    for raw_line in affidavit_text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        tokens = _tokenize_for_duplicate_filter(_strip_enumeration_prefix(line))
-        if tokens:
-            affidavit_candidates.append(tokens)
-    unit_tokens = _tokenize_for_duplicate_filter(_strip_enumeration_prefix(text))
-    return any(_similarity(unit_tokens, aff_tokens) >= 0.85 for aff_tokens in affidavit_candidates)
-
-
-def _group_contested_response_units(response_units: list[TextUnit], affidavit_text: str) -> list[TextUnit]:
-    grouped: list[TextUnit] = []
-    current_heading: TextUnit | None = None
-    current_parts: list[str] = []
-    for unit in response_units:
-        text = str(unit.text or "").strip()
-        if not text:
-            continue
-        looks_numbered = bool(re.match(r"^\s*\d+(?:[-.]\d+)*[.)]?\s+", text))
-        is_duplicate_heading = looks_numbered and _is_duplicate_affidavit_unit(text, affidavit_text)
-        if is_duplicate_heading:
-            if current_heading is not None and current_parts:
-                grouped.append(
-                    TextUnit(
-                        unit_id=f"{current_heading.unit_id}:block",
-                        source_id=current_heading.source_id,
-                        source_type=current_heading.source_type,
-                        text="\n".join(current_parts).strip(),
-                    )
-                )
-            current_heading = unit
-            current_parts = [text]
-            continue
-        if current_heading is not None:
-            current_parts.append(text)
-            continue
-        grouped.append(unit)
-    if current_heading is not None and current_parts:
-        grouped.append(
-            TextUnit(
-                unit_id=f"{current_heading.unit_id}:block",
-                source_id=current_heading.source_id,
-                source_type=current_heading.source_type,
-                text="\n".join(current_parts).strip(),
-            )
-        )
-    return grouped
-
 
 def _emit_progress(progress_callback: ProgressCallback | None, stage: str, **details: Any) -> None:
     if progress_callback is None:
@@ -124,10 +51,14 @@ def build_google_docs_contested_narrative_review(
     affidavit_doc_url: str,
     response_doc_url: str,
     output_dir: Path,
+    db_path: Path | None = None,
+    write_artifacts: bool | None = None,
     progress_callback=None,
     trace_callback=None,
     trace_level: str = "verbose",
-) -> dict[str, str]:
+) -> dict[str, Any]:
+    if write_artifacts is None:
+        write_artifacts = db_path is None
     output_dir.mkdir(parents=True, exist_ok=True)
     _emit_trace(trace_callback, "google_docs_run_started", affidavit_doc_url=affidavit_doc_url, response_doc_url=response_doc_url)
     _emit_progress(progress_callback, "google_affidavit_fetch_started", section="google_docs", completed=0, total=2, message="Fetching affidavit Google Doc.")
@@ -154,7 +85,7 @@ def build_google_docs_contested_narrative_review(
         source_id=f"google_doc:{response_parsed['doc_id']}",
     )
     _emit_progress(progress_callback, "google_response_units_loaded", section="google_docs", completed=len(response_units), total=len(response_units), message="Loaded raw response units.")
-    response_units = _group_contested_response_units(response_units, affidavit_text)
+    response_units = group_contested_response_units(response_units, affidavit_text)
     _emit_progress(progress_callback, "google_response_units_grouped", section="google_docs", completed=len(response_units), total=len(response_units), message="Grouped contested response units.")
     if trace_level == "verbose":
         _emit_trace(
@@ -178,6 +109,8 @@ def build_google_docs_contested_narrative_review(
         affidavit_text=affidavit_text,
         source_path=response_doc_url,
         affidavit_path=affidavit_doc_url,
+        db_path=db_path,
+        write_artifacts=bool(write_artifacts),
         progress_callback=progress_callback,
         trace_callback=trace_callback,
         trace_level=trace_level,
@@ -200,6 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--affidavit-doc-url", required=True)
     parser.add_argument("--response-doc-url", required=True)
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--db-path", default=None, help="Optional sqlite path for persisting the normalized contested-review receiver.")
+    parser.add_argument("--write-artifacts", action="store_true", help="Write bulky JSON/markdown artifacts even when --db-path is provided.")
     parser.add_argument("--progress", action="store_true", help="Emit progress updates to stderr.")
     parser.add_argument("--progress-format", default="human", choices=["human", "json", "bar"], help="Progress output format.")
     parser.add_argument("--trace", action="store_true", help="Emit detailed trace events to stderr.")
@@ -212,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
         affidavit_doc_url=str(args.affidavit_doc_url),
         response_doc_url=str(args.response_doc_url),
         output_dir=Path(args.output_dir).resolve(),
+        db_path=Path(args.db_path).resolve() if args.db_path else None,
+        write_artifacts=(True if bool(args.write_artifacts) else None),
         progress_callback=build_progress_callback(enabled=bool(args.progress), fmt=str(args.progress_format)),
         trace_callback=build_event_callback(enabled=bool(args.trace), fmt=str(args.trace_format), label="trace"),
         trace_level=str(args.trace_level),

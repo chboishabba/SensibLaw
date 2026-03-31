@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_gwb_public_review as module
 from scripts.build_gwb_public_review import ARTIFACT_VERSION, build_gwb_public_review
 
 
@@ -64,3 +66,11 @@ def test_build_gwb_public_review(tmp_path: Path) -> None:
     assert "GWB Public Review" in summary_text
     assert "Normalized Metrics" in summary_text
     assert "Provisional Anchor Bundles" in summary_text
+
+
+def test_gwb_public_review_consumes_shared_anchor_queueing_component() -> None:
+    rank_src = inspect.getsource(module._rank_provisional_rows)
+    bundle_src = inspect.getsource(module._bundle_provisional_rows)
+
+    assert "_build_provisional_structured_anchors_impl" in rank_src
+    assert "_build_provisional_anchor_bundles_impl" in bundle_src

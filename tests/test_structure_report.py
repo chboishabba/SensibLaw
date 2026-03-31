@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
+from src.reporting import structure_report
 from src.reporting.structure_report import TextUnit, build_structure_report, load_file_units
 
 
@@ -101,3 +103,10 @@ def test_load_file_units_splits_court_transcript_on_speaker_turns(tmp_path: Path
     assert units[0].text.startswith("MR P.D. HERZFELD, SC :")
     assert "AustLII Search" not in units[0].text
     assert units[1].text.startswith("GAGELER CJ:")
+
+
+def test_structure_report_db_loaders_use_shared_text_unit_builders() -> None:
+    source = inspect.getsource(structure_report)
+
+    assert "build_indexed_text_unit(" in source
+    assert "build_timestamped_speaker_text(" in source

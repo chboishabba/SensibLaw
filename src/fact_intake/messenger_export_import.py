@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from src.reporting.source_loaders import list_message_export_json_paths
 from src.reporting.structure_report import TextUnit
+from src.reporting.source_identity import build_hashed_source_id, format_utc_iso_from_timestamp_ms
+from src.reporting.text_unit_builders import build_indexed_text_unit, build_timestamped_speaker_text
 
 
 SYSTEM_MESSAGE_FRAGMENTS = (
@@ -114,31 +115,15 @@ def _classify_message(*, sender: str, message: str, conversation: str, ts: str) 
     return None
 
 
-def _iso_from_timestamp_ms(timestamp_ms: Any) -> str:
-    value = int(timestamp_ms)
-    return datetime.fromtimestamp(value / 1000.0, tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _safe_source_id(raw: str) -> str:
-    normalized = raw.strip()
-    digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
-    return f"messenger_export:{digest}"
-
-
 def _thread_key(payload: Mapping[str, Any], export_path: Path) -> str:
     thread_path = str(payload.get("thread_path") or "").strip()
     title = str(payload.get("title") or "").strip()
     basis = thread_path or title or export_path.name
-    return _safe_source_id(basis)
+    return build_hashed_source_id(prefix="messenger_export", raw=basis)
 
 
 def _iter_export_paths(export_path: Path) -> list[Path]:
-    resolved = export_path.expanduser().resolve()
-    if resolved.is_file():
-        return [resolved]
-    if resolved.is_dir():
-        return sorted(path for path in resolved.rglob("message_*.json") if path.is_file())
-    raise FileNotFoundError(str(resolved))
+    return list_message_export_json_paths(export_path)
 
 
 def load_messenger_export_units(export_path: str | Path, *, limit: int | None = None) -> list[TextUnit]:
@@ -162,7 +147,7 @@ def load_messenger_export_units(export_path: str | Path, *, limit: int | None = 
             sender, content = _split_sender_message_contamination(sender, content)
             if not content:
                 continue
-            ts = _iso_from_timestamp_ms(raw_message.get("timestamp_ms"))
+            ts = format_utc_iso_from_timestamp_ms(raw_message.get("timestamp_ms"))
             reason = _classify_message(sender=sender, message=content, conversation=conversation, ts=ts)
             if reason is not None:
                 continue
@@ -170,11 +155,11 @@ def load_messenger_export_units(export_path: str | Path, *, limit: int | None = 
             rows.append(
                 (
                     sort_key,
-                    TextUnit(
-                        unit_id=f"{source_id}:{index}",
+                    build_indexed_text_unit(
                         source_id=source_id,
                         source_type="facebook_messages_archive_sample",
-                        text=f"[{ts}] {sender}: {content}",
+                        index=index,
+                        text=build_timestamped_speaker_text(ts=ts, speaker=sender, text=content),
                     ),
                 )
             )

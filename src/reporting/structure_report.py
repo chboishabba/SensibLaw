@@ -11,6 +11,7 @@ from typing import Iterable
 
 from src.text.message_transcript import parse_message_header, parse_time_range_header
 from src.sensiblaw.interfaces.shared_reducer import collect_canonical_structure_occurrences
+from src.reporting.text_unit_builders import build_indexed_text_unit, build_timestamped_speaker_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,7 +277,12 @@ def load_chat_units(db_path: str | Path, run_id: str | None = None) -> list[Text
             (run_id,),
         ).fetchall()
         return [
-            TextUnit(unit_id=f"{run_id}:{int(row['row_order'])}", source_id=run_id, source_type="chat_test_db", text=str(row["text"]))
+            build_indexed_text_unit(
+                source_id=run_id,
+                source_type="chat_test_db",
+                index=int(row["row_order"]),
+                text=str(row["text"]),
+            )
             for row in rows
             if str(row["text"]).strip()
         ]
@@ -303,11 +309,15 @@ def load_messenger_units(db_path: str | Path, run_id: str | None = None) -> list
             (run_id,),
         ).fetchall()
         return [
-            TextUnit(
-                unit_id=f"{run_id}:{int(row['row_order'])}",
+            build_indexed_text_unit(
                 source_id=run_id,
                 source_type="messenger_test_db",
-                text=f"[{row['ts']}] {row['sender']}: {row['text']}",
+                index=int(row["row_order"]),
+                text=build_timestamped_speaker_text(
+                    ts=str(row["ts"]),
+                    speaker=str(row["sender"]),
+                    text=str(row["text"]),
+                ),
             )
             for row in rows
             if str(row["text"]).strip()

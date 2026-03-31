@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_wikidata_structural_handoff as handoff_module
 from scripts.build_wikidata_structural_handoff import build_handoff_artifact
 
 
@@ -75,3 +77,10 @@ def test_build_wikidata_structural_handoff_artifact(tmp_path: Path) -> None:
             "needs_review_due_to_structure",
             "true",
         ) in triples
+
+
+def test_wikidata_structural_handoff_uses_shared_io_policy() -> None:
+    source = inspect.getsource(handoff_module)
+
+    assert "load_json_object(" in source
+    assert "relative_repo_path(" in source

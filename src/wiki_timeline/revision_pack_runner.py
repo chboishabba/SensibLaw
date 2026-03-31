@@ -11,8 +11,30 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from src.wiki_timeline.revision_harness import build_revision_comparison_report
+from src.wiki_timeline.revision_pack_storage import (
+    default_out_dir_for_pack,
+    graph_artifact_path,
+    pair_artifact_paths,
+    read_json_file,
+    revision_artifact_paths,
+    slug_artifact_name,
+    stable_json,
+    write_json_file,
+)
+from src.wiki_timeline.revision_monitor_read_models import (
+    ensure_read_model_schema,
+    replace_changed_articles,
+    replace_issue_packets,
+    replace_selected_pairs,
+    upsert_run_summary,
+)
+from src.wiki_timeline.revision_pack_summary import (
+    build_run_summary,
+    human_summary as _human_summary,
+    severity_rank,
+)
 
-STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_3"
+STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_5"
 PAIR_REPORT_SCHEMA_VERSION = "wiki_revision_pair_report_v0_1"
 CONTESTED_GRAPH_SCHEMA_VERSION = "wiki_contested_region_graph_v0_1"
 _WS_RE = re.compile(r"\s+")
@@ -22,17 +44,6 @@ _REVERT_RE = re.compile(r"\b(revert|reverted|reverting|undid|undo|rv|rollback)\b
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def _stable_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _slug(text: str) -> str:
-    out = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in str(text or "").strip())
-    while "__" in out:
-        out = out.replace("__", "_")
-    return out.strip("._") or "artifact"
 
 
 def _norm_text(value: Any) -> str:
@@ -48,26 +59,9 @@ def _safe_int(value: Any) -> int | None:
         return None
 
 
-def _read_json(path: Path | None) -> dict[str, Any] | None:
-    if path is None or not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
 def _emit_progress(progress_callback: Callable[[str, Mapping[str, Any]], None] | None, stage: str, details: Mapping[str, Any]) -> None:
     if callable(progress_callback):
         progress_callback(stage, dict(details))
-
-
-def default_out_dir_for_pack(pack_path: Path) -> Path:
-    pack = json.loads(pack_path.read_text(encoding="utf-8"))
-    pack_id = str(pack.get("pack_id") or pack_path.stem or "wiki_revision_monitor").strip()
-    return Path("SensibLaw/demo/ingest/wiki_revision_monitor") / _slug(pack_id)
 
 
 def _snapshot_contract_error(article: Mapping[str, Any], snapshot_payload: Mapping[str, Any]) -> str | None:
@@ -93,6 +87,100 @@ def _parse_iso_datetime(value: Any) -> datetime | None:
         return datetime.fromisoformat(text)
     except Exception:
         return None
+
+
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    return {
+        str(row[1])
+        for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+
+
+def _rebuild_table_with_columns(
+    conn: sqlite3.Connection,
+    *,
+    table_name: str,
+    create_sql: str,
+    target_columns: list[str],
+) -> None:
+    existing_columns = _table_columns(conn, table_name)
+    if not existing_columns:
+        return
+    if existing_columns == set(target_columns):
+        return
+    temp_name = f"{table_name}__legacy_v0_3"
+    shared_columns = [column for column in target_columns if column in existing_columns]
+    conn.execute(f"ALTER TABLE {table_name} RENAME TO {temp_name}")
+    conn.execute(create_sql)
+    if shared_columns:
+        column_list = ", ".join(shared_columns)
+        conn.execute(
+            f"INSERT INTO {table_name} ({column_list}) SELECT {column_list} FROM {temp_name}"
+        )
+    conn.execute(f"DROP TABLE {temp_name}")
+
+
+ARTICLE_RESULTS_CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_results (
+  run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  previous_revid INTEGER,
+  current_revid INTEGER,
+  top_severity TEXT NOT NULL,
+  snapshot_path TEXT,
+  timeline_path TEXT,
+  aoo_path TEXT,
+  report_path TEXT,
+  PRIMARY KEY (run_id, article_id)
+)
+"""
+
+
+CANDIDATE_PAIRS_CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS wiki_revision_monitor_candidate_pairs (
+  run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+  pair_id TEXT NOT NULL,
+  pair_kind TEXT NOT NULL,
+  older_revid INTEGER,
+  newer_revid INTEGER,
+  selected INTEGER NOT NULL DEFAULT 0,
+  score REAL NOT NULL DEFAULT 0,
+  pair_report_path TEXT,
+  status TEXT NOT NULL,
+  PRIMARY KEY (run_id, article_id, pair_id)
+)
+"""
+
+
+RUNS_CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS wiki_revision_monitor_runs (
+  run_id TEXT PRIMARY KEY,
+  pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  status TEXT NOT NULL,
+  out_dir TEXT NOT NULL
+)
+"""
+
+
+CONTESTED_GRAPHS_CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_graphs (
+  run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+  graph_path TEXT NOT NULL,
+  region_count INTEGER NOT NULL DEFAULT 0,
+  cycle_count INTEGER NOT NULL DEFAULT 0,
+  selected_pair_count INTEGER NOT NULL DEFAULT 0,
+  changed_event_count INTEGER NOT NULL DEFAULT 0,
+  changed_attribution_count INTEGER NOT NULL DEFAULT 0,
+  highest_severity TEXT NOT NULL DEFAULT 'none',
+  hottest_region_json TEXT,
+  PRIMARY KEY (run_id, article_id)
+)
+"""
 
 
 def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
@@ -139,38 +227,8 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_runs (
-          run_id TEXT PRIMARY KEY,
-          pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
-          started_at TEXT NOT NULL,
-          completed_at TEXT,
-          status TEXT NOT NULL,
-          out_dir TEXT NOT NULL,
-          summary_json TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_results (
-          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
-          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
-          status TEXT NOT NULL,
-          previous_revid INTEGER,
-          current_revid INTEGER,
-          top_severity TEXT NOT NULL,
-          packet_counts_json TEXT NOT NULL,
-          snapshot_path TEXT,
-          timeline_path TEXT,
-          aoo_path TEXT,
-          report_path TEXT,
-          result_json TEXT NOT NULL,
-          PRIMARY KEY (run_id, article_id)
-        )
-        """
-    )
+    conn.execute(RUNS_CREATE_SQL)
+    conn.execute(ARTICLE_RESULTS_CREATE_SQL)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS wiki_revision_monitor_history_rows (
@@ -187,44 +245,8 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_candidate_pairs (
-          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
-          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
-          pair_id TEXT NOT NULL,
-          pair_kind TEXT NOT NULL,
-          older_revid INTEGER,
-          newer_revid INTEGER,
-          selected INTEGER NOT NULL DEFAULT 0,
-          score REAL NOT NULL DEFAULT 0,
-          score_json TEXT NOT NULL,
-          section_delta_json TEXT NOT NULL,
-          pair_report_path TEXT,
-          status TEXT NOT NULL,
-          result_json TEXT NOT NULL,
-          PRIMARY KEY (run_id, article_id, pair_id)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_graphs (
-          run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
-          article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
-          graph_path TEXT NOT NULL,
-          graph_json TEXT NOT NULL,
-          region_count INTEGER NOT NULL DEFAULT 0,
-          cycle_count INTEGER NOT NULL DEFAULT 0,
-          selected_pair_count INTEGER NOT NULL DEFAULT 0,
-          changed_event_count INTEGER NOT NULL DEFAULT 0,
-          changed_attribution_count INTEGER NOT NULL DEFAULT 0,
-          highest_severity TEXT NOT NULL DEFAULT 'none',
-          hottest_region_json TEXT,
-          PRIMARY KEY (run_id, article_id)
-        )
-        """
-    )
+    conn.execute(CANDIDATE_PAIRS_CREATE_SQL)
+    conn.execute(CONTESTED_GRAPHS_CREATE_SQL)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_regions (
@@ -268,12 +290,77 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    _rebuild_table_with_columns(
+        conn,
+        table_name="wiki_revision_monitor_runs",
+        create_sql=RUNS_CREATE_SQL,
+        target_columns=[
+            "run_id",
+            "pack_id",
+            "started_at",
+            "completed_at",
+            "status",
+            "out_dir",
+        ],
+    )
+    _rebuild_table_with_columns(
+        conn,
+        table_name="wiki_revision_monitor_article_results",
+        create_sql=ARTICLE_RESULTS_CREATE_SQL,
+        target_columns=[
+            "run_id",
+            "article_id",
+            "status",
+            "previous_revid",
+            "current_revid",
+            "top_severity",
+            "snapshot_path",
+            "timeline_path",
+            "aoo_path",
+            "report_path",
+        ],
+    )
+    _rebuild_table_with_columns(
+        conn,
+        table_name="wiki_revision_monitor_candidate_pairs",
+        create_sql=CANDIDATE_PAIRS_CREATE_SQL,
+        target_columns=[
+            "run_id",
+            "article_id",
+            "pair_id",
+            "pair_kind",
+            "older_revid",
+            "newer_revid",
+            "selected",
+            "score",
+            "pair_report_path",
+            "status",
+        ],
+    )
+    _rebuild_table_with_columns(
+        conn,
+        table_name="wiki_revision_monitor_contested_graphs",
+        create_sql=CONTESTED_GRAPHS_CREATE_SQL,
+        target_columns=[
+            "run_id",
+            "article_id",
+            "graph_path",
+            "region_count",
+            "cycle_count",
+            "selected_pair_count",
+            "changed_event_count",
+            "changed_attribution_count",
+            "highest_severity",
+            "hottest_region_json",
+        ],
+    )
+    ensure_read_model_schema(conn)
 
 
 def _store_pack_manifest(conn: sqlite3.Connection, *, pack_path: Path, pack: Mapping[str, Any]) -> None:
     ensure_revision_pack_schema(conn)
     pack_id = str(pack.get("pack_id") or "").strip()
-    manifest_json = _stable_json(pack)
+    manifest_json = stable_json(pack)
     manifest_sha256 = __import__("hashlib").sha256(manifest_json.encode("utf-8")).hexdigest()
     conn.execute(
         """
@@ -389,21 +476,28 @@ def _upsert_article_state(
 def _insert_run(conn: sqlite3.Connection, *, run_id: str, pack_id: str, started_at: str, out_dir: Path) -> None:
     conn.execute(
         """
-        INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status, out_dir, summary_json)
-        VALUES(?,?,?,?,?,?,?)
+        INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status, out_dir)
+        VALUES(?,?,?,?,?,?)
         """,
-        (run_id, pack_id, started_at, None, "running", str(out_dir), "{}"),
+        (run_id, pack_id, started_at, None, "running", str(out_dir)),
     )
 
 
-def _complete_run(conn: sqlite3.Connection, *, run_id: str, status: str, summary: Mapping[str, Any]) -> None:
+def _complete_run(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    status: str,
+    summary: Mapping[str, Any],
+    completed_at: str,
+) -> None:
     conn.execute(
         """
         UPDATE wiki_revision_monitor_runs
-        SET completed_at = ?, status = ?, summary_json = ?
+        SET completed_at = ?, status = ?
         WHERE run_id = ?
         """,
-        (_utc_now_iso(), status, json.dumps(summary, sort_keys=True), run_id),
+        (completed_at, status, run_id),
     )
 
 
@@ -426,9 +520,9 @@ def _insert_article_result(
     conn.execute(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_article_results(
-          run_id, article_id, status, previous_revid, current_revid, top_severity, packet_counts_json,
-          snapshot_path, timeline_path, aoo_path, report_path, result_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+          run_id, article_id, status, previous_revid, current_revid, top_severity,
+          snapshot_path, timeline_path, aoo_path, report_path
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
@@ -437,12 +531,10 @@ def _insert_article_result(
             previous_revid,
             current_revid,
             top_severity,
-            json.dumps(packet_counts, sort_keys=True),
             str(snapshot_path) if snapshot_path else None,
             str(timeline_path) if timeline_path else None,
             str(aoo_path) if aoo_path else None,
             str(report_path) if report_path else None,
-            json.dumps(result_payload, sort_keys=True),
         ),
     )
 
@@ -486,8 +578,8 @@ def _insert_candidate_pair(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_candidate_pairs(
           run_id, article_id, pair_id, pair_kind, older_revid, newer_revid, selected, score,
-          score_json, section_delta_json, pair_report_path, status, result_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+          pair_report_path, status
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
@@ -498,11 +590,8 @@ def _insert_candidate_pair(
             _safe_int(pair_payload.get("newer_revid")),
             1 if pair_payload.get("selected") else 0,
             float(pair_payload.get("candidate_score") or 0.0),
-            json.dumps(pair_payload.get("score_breakdown") or {}, sort_keys=True),
-            json.dumps(pair_payload.get("section_delta_summary") or {}, sort_keys=True),
             str(pair_payload.get("pair_report_path") or "") or None,
             str(pair_payload.get("status") or "candidate"),
-            json.dumps(pair_payload, sort_keys=True),
         ),
     )
 
@@ -519,15 +608,14 @@ def _insert_contested_graph(
     conn.execute(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_contested_graphs(
-          run_id, article_id, graph_path, graph_json, region_count, cycle_count, selected_pair_count,
+          run_id, article_id, graph_path, region_count, cycle_count, selected_pair_count,
           changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
             article_id,
             str(graph_path),
-            json.dumps(graph_payload, sort_keys=True),
             int(summary.get("region_count") or 0),
             int(summary.get("cycle_count") or 0),
             int(summary.get("selected_pair_count") or 0),
@@ -595,6 +683,38 @@ def _insert_contested_graph(
                 json.dumps(edge, sort_keys=True),
             ),
         )
+    for event in graph_payload.get("events") or []:
+        if not isinstance(event, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO wiki_revision_monitor_contested_events(
+              run_id, article_id, event_id, event_json
+            ) VALUES(?,?,?,?)
+            """,
+            (
+                run_id,
+                article_id,
+                str(event.get("event_id") or ""),
+                json.dumps(event, sort_keys=True),
+            ),
+        )
+    for epistemic in graph_payload.get("epistemic_surfaces") or []:
+        if not isinstance(epistemic, Mapping):
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO wiki_revision_monitor_contested_epistemic(
+              run_id, article_id, epistemic_id, epistemic_json
+            ) VALUES(?,?,?,?)
+            """,
+            (
+                run_id,
+                article_id,
+                str(epistemic.get("epistemic_id") or ""),
+                json.dumps(epistemic, sort_keys=True),
+            ),
+        )
 
 
 def _subprocess_json(args: list[str], *, cwd: Path) -> dict[str, Any]:
@@ -635,7 +755,7 @@ def _default_fetch_current_snapshot(
     if not snapshots:
         raise RuntimeError(f"wiki pull returned no snapshots for {article.get('title')}")
     snapshot_path = Path(str(snapshots[0]))
-    snapshot_payload = _read_json(snapshot_path)
+    snapshot_payload = read_json_file(snapshot_path)
     if snapshot_payload is None:
         raise RuntimeError(f"snapshot file unreadable: {snapshot_path}")
     return {"snapshot_path": snapshot_path, "snapshot_payload": snapshot_payload}
@@ -668,7 +788,7 @@ def _default_fetch_revision_snapshot(
     if not snapshots:
         raise RuntimeError(f"wiki pull returned no snapshot for revision {revid}")
     snapshot_path = Path(str(snapshots[0]))
-    snapshot_payload = _read_json(snapshot_path)
+    snapshot_payload = read_json_file(snapshot_path)
     if snapshot_payload is None:
         raise RuntimeError(f"snapshot file unreadable: {snapshot_path}")
     return {"snapshot_path": snapshot_path, "snapshot_payload": snapshot_payload}
@@ -702,7 +822,7 @@ def _default_fetch_revision_history(
     if not histories:
         return {"history_path": None, "history_payload": {"rows": [], "warnings": ["no_history_manifest"]}}
     history_path = Path(str(histories[0]))
-    history_payload = _read_json(history_path)
+    history_payload = read_json_file(history_path)
     if history_payload is None:
         raise RuntimeError(f"history manifest unreadable: {history_path}")
     return {"history_path": history_path, "history_payload": history_payload}
@@ -726,7 +846,7 @@ def _default_build_timeline(
         ],
         cwd=repo_root,
     )
-    payload = _read_json(out_path)
+    payload = read_json_file(out_path)
     if payload is None:
         raise RuntimeError(f"timeline file unreadable: {out_path}")
     return {"timeline_path": out_path, "timeline_payload": payload}
@@ -753,7 +873,7 @@ def _default_build_aoo(
     if _looks_like_person_title(title):
         args.extend(["--root-actor", title, "--root-surname", title.split()[-1]])
     _subprocess_json(args, cwd=repo_root)
-    payload = _read_json(out_path)
+    payload = read_json_file(out_path)
     if payload is None:
         raise RuntimeError(f"aoo file unreadable: {out_path}")
     return {"aoo_path": out_path, "aoo_payload": payload}
@@ -825,29 +945,6 @@ def _merge_packet_review_context(
         if section_context:
             packet["section_context"] = section_context
     return report
-
-
-def _artifact_paths(*, out_dir: Path, article_id: str, revid: int | None) -> dict[str, Path]:
-    revid_text = str(revid) if revid is not None else "none"
-    base = f"{_slug(article_id)}__revid_{revid_text}"
-    return {
-        "snapshot": out_dir / "snapshots" / f"{base}.json",
-        "timeline": out_dir / "timeline" / f"{base}.json",
-        "aoo": out_dir / "aoo" / f"{base}.json",
-    }
-
-
-def _pair_artifact_paths(*, out_dir: Path, article_id: str, pair_kind: str, older_revid: int | None, newer_revid: int | None) -> dict[str, Path]:
-    base = f"{_slug(article_id)}__{_slug(pair_kind)}__{older_revid or 'none'}__{newer_revid or 'none'}"
-    return {
-        "older_snapshot": out_dir / "pair_snapshots" / f"{base}__older.json",
-        "newer_snapshot": out_dir / "pair_snapshots" / f"{base}__newer.json",
-        "older_timeline": out_dir / "timeline" / f"{base}__older.json",
-        "newer_timeline": out_dir / "timeline" / f"{base}__newer.json",
-        "older_aoo": out_dir / "aoo" / f"{base}__older.json",
-        "newer_aoo": out_dir / "aoo" / f"{base}__newer.json",
-        "pair_report": out_dir / "pair_reports" / f"{base}.json",
-    }
 
 
 def _history_config(pack: Mapping[str, Any], article: Mapping[str, Any]) -> dict[str, int]:
@@ -1086,184 +1183,8 @@ def _score_candidate_pair(
     }
 
 
-def _severity_rank(value: Any) -> int:
-    return {"high": 3, "medium": 2, "low": 1, "none": 0}.get(str(value or "none"), 0)
-
-
-def _build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: int = 5, pair_limit: int = 8, section_limit: int = 10) -> dict[str, Any]:
-    top_articles: list[dict[str, Any]] = []
-    top_pairs: list[dict[str, Any]] = []
-    top_sections: dict[str, dict[str, Any]] = {}
-    top_graphs: list[dict[str, Any]] = []
-    top_cycles: list[dict[str, Any]] = []
-    top_regions: dict[str, dict[str, Any]] = {}
-
-    for row in article_results:
-        if not isinstance(row, Mapping):
-            continue
-        top_articles.append(
-            {
-                "article_id": row.get("article_id"),
-                "title": row.get("title"),
-                "status": row.get("status"),
-                "top_severity": row.get("top_severity", "none"),
-                "selected_primary_pair_kind": row.get("selected_primary_pair_kind"),
-                "selected_primary_pair_id": row.get("selected_primary_pair_id"),
-                "selected_primary_pair_score": row.get("selected_primary_pair_score"),
-                "candidate_pairs_selected": row.get("candidate_pairs_selected", 0),
-                "report_path": row.get("report_path"),
-            }
-        )
-        graph_summary = row.get("contested_graph_summary") if isinstance(row.get("contested_graph_summary"), Mapping) else None
-        if graph_summary:
-            top_graphs.append(
-                {
-                    "article_id": row.get("article_id"),
-                    "title": row.get("title"),
-                    "top_severity": row.get("top_severity", "none"),
-                    "contested_graph_path": row.get("contested_graph_path"),
-                    "region_count": graph_summary.get("region_count", 0),
-                    "cycle_count": graph_summary.get("cycle_count", 0),
-                    "selected_pair_count": graph_summary.get("selected_pair_count", 0),
-                    "graph_heat": graph_summary.get("graph_heat", 0.0),
-                    "hottest_region": graph_summary.get("hottest_region"),
-                }
-            )
-            for cycle in graph_summary.get("top_cycles") or []:
-                if isinstance(cycle, Mapping):
-                    top_cycles.append(
-                        {
-                            "article_id": row.get("article_id"),
-                            "title": row.get("title"),
-                            "cycle_id": cycle.get("cycle_id"),
-                            "region_id": cycle.get("region_id"),
-                            "region_title": cycle.get("region_title"),
-                            "touch_count": cycle.get("touch_count", 0),
-                            "highest_severity": cycle.get("highest_severity", "none"),
-                            "pair_kinds": list(cycle.get("pair_kinds") or []),
-                            "reason": cycle.get("reason"),
-                            "contested_graph_path": row.get("contested_graph_path"),
-                        }
-                    )
-            for region in graph_summary.get("top_regions") or []:
-                if isinstance(region, Mapping):
-                    key = str(region.get("region_id") or "")
-                    candidate = {
-                        "article_id": row.get("article_id"),
-                        "title": row.get("title"),
-                        "region_id": region.get("region_id"),
-                        "region_title": region.get("title"),
-                        "touch_count": region.get("touch_count", 0),
-                        "total_touched_bytes": region.get("total_touched_bytes", 0),
-                        "highest_severity": region.get("highest_severity", "none"),
-                        "contested_graph_path": row.get("contested_graph_path"),
-                    }
-                    existing = top_regions.get(key)
-                    if existing is None or int(candidate.get("total_touched_bytes") or 0) > int(existing.get("total_touched_bytes") or 0):
-                        top_regions[key] = candidate
-        for pair in row.get("pair_reports") or []:
-            if not isinstance(pair, Mapping):
-                continue
-            top_pairs.append(
-                {
-                    "article_id": row.get("article_id"),
-                    "title": row.get("title"),
-                    "pair_id": pair.get("pair_id"),
-                    "pair_kind": pair.get("pair_kind"),
-                    "pair_kinds": list(pair.get("pair_kinds") or []),
-                    "older_revid": pair.get("older_revid"),
-                    "newer_revid": pair.get("newer_revid"),
-                    "candidate_score": pair.get("candidate_score"),
-                    "top_severity": pair.get("top_severity", "none"),
-                    "pair_report_path": pair.get("pair_report_path"),
-                }
-            )
-            for section in pair.get("top_changed_sections") or []:
-                if not isinstance(section, Mapping):
-                    continue
-                name = str(section.get("section") or "").strip()
-                if not name:
-                    continue
-                touched = int(section.get("touched_bytes") or 0)
-                existing = top_sections.get(name)
-                candidate = {
-                    "section": name,
-                    "max_touched_bytes": touched,
-                    "article_id": row.get("article_id"),
-                    "title": row.get("title"),
-                    "pair_id": pair.get("pair_id"),
-                    "pair_kind": pair.get("pair_kind"),
-                    "top_severity": pair.get("top_severity", "none"),
-                    "pair_report_path": pair.get("pair_report_path"),
-                }
-                if existing is None or touched > int(existing.get("max_touched_bytes") or 0):
-                    top_sections[name] = candidate
-
-    top_articles.sort(
-        key=lambda item: (
-            -_severity_rank(item.get("top_severity")),
-            -float(item.get("selected_primary_pair_score") or 0.0),
-            -int(item.get("candidate_pairs_selected") or 0),
-            str(item.get("article_id") or ""),
-        )
-    )
-    top_pairs.sort(
-        key=lambda item: (
-            -_severity_rank(item.get("top_severity")),
-            -float(item.get("candidate_score") or 0.0),
-            str(item.get("article_id") or ""),
-            str(item.get("pair_id") or ""),
-        )
-    )
-    ranked_sections = sorted(
-        top_sections.values(),
-        key=lambda item: (
-            -int(item.get("max_touched_bytes") or 0),
-            -_severity_rank(item.get("top_severity")),
-            str(item.get("section") or ""),
-        ),
-    )
-    top_graphs.sort(
-        key=lambda item: (
-            -_severity_rank(item.get("top_severity")),
-            -float(item.get("graph_heat") or 0.0),
-            -int(item.get("cycle_count") or 0),
-            str(item.get("article_id") or ""),
-        )
-    )
-    top_cycles.sort(
-        key=lambda item: (
-            -_severity_rank(item.get("highest_severity")),
-            -int(item.get("touch_count") or 0),
-            str(item.get("article_id") or ""),
-            str(item.get("cycle_id") or ""),
-        )
-    )
-    ranked_regions = sorted(
-        top_regions.values(),
-        key=lambda item: (
-            -_severity_rank(item.get("highest_severity")),
-            -int(item.get("total_touched_bytes") or 0),
-            -int(item.get("touch_count") or 0),
-            str(item.get("region_title") or ""),
-        ),
-    )
-    return {
-        "top_changed_articles": top_articles[:article_limit],
-        "top_high_severity_pairs": top_pairs[:pair_limit],
-        "top_sections_changed": ranked_sections[:section_limit],
-        "top_contested_graphs": top_graphs[:article_limit],
-        "top_contested_cycles": top_cycles[:pair_limit],
-        "top_contested_regions": ranked_regions[:section_limit],
-    }
-
-
-def _graph_artifact_path(*, out_dir: Path, article_id: str, run_id: str) -> Path:
-    return out_dir / "contested_graphs" / f"{_slug(article_id)}__{_slug(run_id)}.json"
-
-
 def _pair_graph_extract(pair_report_path: str | None) -> dict[str, Any]:
-    payload = _read_json(Path(str(pair_report_path))) if pair_report_path else None
+    payload = read_json_file(Path(str(pair_report_path))) if pair_report_path else None
     if not isinstance(payload, Mapping):
         return {
             "changed_event_ids": [],
@@ -1289,6 +1210,47 @@ def _pair_graph_extract(pair_report_path: str | None) -> dict[str, Any]:
     }
 
 
+def _selected_issue_packet_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for pair in selected_pairs:
+        pair_id = str(pair.get("pair_id") or "")
+        report_path = pair.get("pair_report_path")
+        payload = read_json_file(Path(str(report_path))) if report_path else None
+        if not isinstance(payload, Mapping):
+            continue
+        comparison = payload.get("comparison_report") if isinstance(payload.get("comparison_report"), Mapping) else {}
+        issue_packets = comparison.get("issue_packets") if isinstance(comparison.get("issue_packets"), list) else []
+        for index, packet in enumerate(issue_packets):
+            if not isinstance(packet, Mapping):
+                continue
+            row = dict(packet)
+            row["pair_id"] = pair_id
+            row["packet_order"] = index
+            rows.append(row)
+    return rows
+
+
+def _selected_pair_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for pair in selected_pairs:
+        if not isinstance(pair, Mapping):
+            continue
+        rows.append(
+            {
+                "pair_id": str(pair.get("pair_id") or ""),
+                "pair_kind": str(pair.get("pair_kind") or ""),
+                "pair_kinds": list(pair.get("pair_kinds") or []),
+                "older_revid": pair.get("older_revid"),
+                "newer_revid": pair.get("newer_revid"),
+                "candidate_score": pair.get("candidate_score"),
+                "top_severity": pair.get("top_severity", "none"),
+                "pair_report_path": pair.get("pair_report_path"),
+                "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
+            }
+        )
+    return rows
+
+
 def _build_contested_region_graph(
     *,
     article: Mapping[str, Any],
@@ -1298,7 +1260,7 @@ def _build_contested_region_graph(
 ) -> tuple[Path, dict[str, Any]]:
     article_id = str(article.get("article_id") or "")
     title = str(article.get("title") or "")
-    graph_path = _graph_artifact_path(out_dir=out_dir, article_id=article_id, run_id=run_id)
+    graph_path = graph_artifact_path(out_dir=out_dir, article_id=article_id, run_id=run_id)
     regions: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
     cycles: list[dict[str, Any]] = []
@@ -1329,7 +1291,7 @@ def _build_contested_region_graph(
             if not isinstance(section, Mapping):
                 continue
             section_title = str(section.get("section") or "").strip() or "(unknown)"
-            region_id = f"region:{_slug(section_title)}"
+            region_id = f"region:{slug_artifact_name(section_title)}"
             region_ids.append(region_id)
             region = regions.setdefault(
                 region_id,
@@ -1356,7 +1318,7 @@ def _build_contested_region_graph(
             region["changed_attribution_event_ids"] = sorted(
                 set(region.get("changed_attribution_event_ids") or []).union(graph_extract["changed_attribution_event_ids"])
             )
-            if _severity_rank(pair.get("top_severity")) > _severity_rank(region.get("highest_severity")):
+            if severity_rank(pair.get("top_severity")) > severity_rank(region.get("highest_severity")):
                 region["highest_severity"] = str(pair.get("top_severity") or "none")
             edges.append(
                 {
@@ -1367,7 +1329,7 @@ def _build_contested_region_graph(
                     "weight": int(section.get("touched_bytes") or 0),
                 }
             )
-            if _severity_rank(pair.get("top_severity")) > 0:
+            if severity_rank(pair.get("top_severity")) > 0:
                 edges.append(
                     {
                         "edge_id": f"edge:escalates_region:{pair_id}:{region_id}",
@@ -1423,7 +1385,7 @@ def _build_contested_region_graph(
 
     for region in regions.values():
         region["graph_heat"] = round(
-            float(region["total_touched_bytes"]) + (250.0 * _severity_rank(region["highest_severity"])) + (125.0 * len(region["changed_attribution_event_ids"])),
+            float(region["total_touched_bytes"]) + (250.0 * severity_rank(region["highest_severity"])) + (125.0 * len(region["changed_attribution_event_ids"])),
             3,
         )
         if int(region["touch_count"] or 0) >= 3 or (int(region["touch_count"] or 0) >= 2 and len(region["pair_kinds"]) >= 2):
@@ -1475,7 +1437,7 @@ def _build_contested_region_graph(
         "graph_heat": graph_heat,
         "hottest_region": hottest_region,
         "top_regions": ranked_regions[:5],
-        "top_cycles": sorted(cycles, key=lambda item: (-_severity_rank(item.get("highest_severity")), -int(item.get("touch_count") or 0), str(item.get("region_title") or "")))[:5],
+        "top_cycles": sorted(cycles, key=lambda item: (-severity_rank(item.get("highest_severity")), -int(item.get("touch_count") or 0), str(item.get("region_title") or "")))[:5],
     }
     payload = {
         "schema_version": CONTESTED_GRAPH_SCHEMA_VERSION,
@@ -1493,9 +1455,9 @@ def _build_contested_region_graph(
         "cycles": cycles,
         "summary": summary,
     }
-    _write_json(graph_path, payload)
-    latest_path = out_dir / "contested_graphs" / f"{_slug(article_id)}__latest.json"
-    _write_json(latest_path, payload)
+    write_json_file(graph_path, payload)
+    latest_path = out_dir / "contested_graphs" / f"{slug_artifact_name(article_id)}__latest.json"
+    write_json_file(latest_path, payload)
     return graph_path, payload
 
 
@@ -1515,7 +1477,13 @@ def _build_pair_report(
 ) -> dict[str, Any]:
     older_revid = int(pair["older_revid"])
     newer_revid = int(pair["newer_revid"])
-    pair_paths = _pair_artifact_paths(out_dir=out_dir, article_id=str(article.get("article_id") or ""), pair_kind=str(pair["pair_kind"]), older_revid=older_revid, newer_revid=newer_revid)
+    pair_paths = pair_artifact_paths(
+        out_dir=out_dir,
+        article_id=str(article.get("article_id") or ""),
+        pair_kind=str(pair["pair_kind"]),
+        older_revid=older_revid,
+        newer_revid=newer_revid,
+    )
 
     older_snapshot = fetch_revision_snapshot_fn(article=article, revid=older_revid, out_dir=out_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
     newer_snapshot = fetch_revision_snapshot_fn(article=article, revid=newer_revid, out_dir=out_dir / "pair_snapshots", python_cmd=python_cmd, repo_root=repo_root)
@@ -1527,8 +1495,8 @@ def _build_pair_report(
         raise RuntimeError(older_contract_error)
     if newer_contract_error:
         raise RuntimeError(newer_contract_error)
-    _write_json(pair_paths["older_snapshot"], older_snapshot_payload)
-    _write_json(pair_paths["newer_snapshot"], newer_snapshot_payload)
+    write_json_file(pair_paths["older_snapshot"], older_snapshot_payload)
+    write_json_file(pair_paths["newer_snapshot"], newer_snapshot_payload)
 
     scoring = _score_candidate_pair(pair, older_snapshot_payload=older_snapshot_payload, newer_snapshot_payload=newer_snapshot_payload, section_focus_limit=section_focus_limit)
     pair.update(scoring)
@@ -1537,8 +1505,8 @@ def _build_pair_report(
     newer_timeline = build_timeline_fn(snapshot_path=pair_paths["newer_snapshot"], out_path=pair_paths["newer_timeline"], python_cmd=python_cmd, repo_root=repo_root)
     older_aoo = build_aoo_fn(article=article, timeline_path=Path(str(older_timeline["timeline_path"])), out_path=pair_paths["older_aoo"], python_cmd=python_cmd, repo_root=repo_root)
     newer_aoo = build_aoo_fn(article=article, timeline_path=Path(str(newer_timeline["timeline_path"])), out_path=pair_paths["newer_aoo"], python_cmd=python_cmd, repo_root=repo_root)
-    older_aoo_payload = _read_json(Path(str(older_aoo["aoo_path"])))
-    newer_aoo_payload = _read_json(Path(str(newer_aoo["aoo_path"])))
+    older_aoo_payload = read_json_file(Path(str(older_aoo["aoo_path"])))
+    newer_aoo_payload = read_json_file(Path(str(newer_aoo["aoo_path"])))
 
     inner = build_revision_comparison_report(
         previous_snapshot=older_snapshot_payload,
@@ -1578,7 +1546,7 @@ def _build_pair_report(
         "section_delta_summary": pair["section_delta_summary"],
         "comparison_report": inner,
     }
-    _write_json(pair_paths["pair_report"], wrapper)
+    write_json_file(pair_paths["pair_report"], wrapper)
     pair.update(
         {
             "selected": True,
@@ -1679,9 +1647,9 @@ def run(
                 if contract_error:
                     raise RuntimeError(contract_error)
                 current_revid = _safe_int(current_snapshot_payload.get("revid"))
-                current_paths = _artifact_paths(out_dir=out_dir, article_id=article_id, revid=current_revid)
+                current_paths = revision_artifact_paths(out_dir=out_dir, article_id=article_id, revid=current_revid)
                 if current_snapshot_path != current_paths["snapshot"]:
-                    _write_json(current_paths["snapshot"], current_snapshot_payload)
+                    write_json_file(current_paths["snapshot"], current_snapshot_payload)
                     current_snapshot_path = current_paths["snapshot"]
 
                 history = fetch_revision_history_fn(
@@ -1932,6 +1900,18 @@ def run(
                     report_path=current_report_path,
                     result_payload=result_payload,
                 )
+                replace_issue_packets(
+                    conn,
+                    run_id=run_id,
+                    article_id=article_id,
+                    packet_rows=_selected_issue_packet_rows(selected_pairs),
+                )
+                replace_selected_pairs(
+                    conn,
+                    run_id=run_id,
+                    article_id=article_id,
+                    pair_rows=_selected_pair_rows(selected_pairs),
+                )
                 article_results.append(result_payload)
                 _emit_progress(
                     progress_callback,
@@ -1975,6 +1955,8 @@ def run(
                     report_path=current_report_path,
                     result_payload=result_payload,
                 )
+                replace_issue_packets(conn, run_id=run_id, article_id=article_id, packet_rows=[])
+                replace_selected_pairs(conn, run_id=run_id, article_id=article_id, pair_rows=[])
                 article_results.append(result_payload)
                 _emit_progress(
                     progress_callback,
@@ -1989,27 +1971,19 @@ def run(
                     },
                 )
 
-        highest_severity = "none"
-        for candidate in ("high", "medium", "low"):
-            if any(row.get("top_severity") == candidate for row in article_results):
-                highest_severity = candidate
-                break
-        summary = {
-            "schema_version": STATE_SCHEMA_VERSION,
-            "ok": True,
-            "pack_id": pack_id,
-            "run_id": run_id,
-            "state_db_path": str(state_db_path),
-            "out_dir": str(out_dir),
-            "counts": summary_counts,
-            "candidate_pair_counts": candidate_pair_counts,
-            "contested_graph_counts": contested_graph_counts,
-            "highest_severity": highest_severity,
-            "pack_triage": _build_pack_triage(article_results),
-            "articles": article_results,
-        }
-        summary_path = out_dir / "runs" / f"{_slug(run_id)}.json"
-        _write_json(summary_path, summary)
+        summary = build_run_summary(
+            schema_version=STATE_SCHEMA_VERSION,
+            pack_id=pack_id,
+            run_id=run_id,
+            state_db_path=state_db_path,
+            out_dir=out_dir,
+            counts=summary_counts,
+            candidate_pair_counts=candidate_pair_counts,
+            contested_graph_counts=contested_graph_counts,
+            article_results=article_results,
+        )
+        summary_path = out_dir / "runs" / f"{slug_artifact_name(run_id)}.json"
+        write_json_file(summary_path, summary)
         summary["summary_path"] = str(summary_path)
         _emit_progress(
             progress_callback,
@@ -2022,75 +1996,22 @@ def run(
                 "message": f"Processed {len(article_results)} article results.",
             },
         )
-        _complete_run(conn, run_id=run_id, status="ok", summary=summary)
+        completed_at = _utc_now_iso()
+        _complete_run(conn, run_id=run_id, status="ok", summary=summary, completed_at=completed_at)
+        upsert_run_summary(
+            conn,
+            run_id=run_id,
+            pack_id=pack_id,
+            started_at=run_started,
+            completed_at=completed_at,
+            status="ok",
+            out_dir=str(out_dir),
+            summary=summary,
+        )
+        replace_changed_articles(conn, run_id=run_id, pack_id=pack_id, article_rows=article_results)
         conn.commit()
         return summary
 
 
 def human_summary(payload: Mapping[str, Any]) -> str:
-    counts = payload.get("counts") or {}
-    pair_counts = payload.get("candidate_pair_counts") or {}
-    graph_counts = payload.get("contested_graph_counts") or {}
-    lines = [
-        f"pack={payload.get('pack_id')} run={payload.get('run_id')}",
-        (
-            "counts: "
-            f"baseline_initialized={counts.get('baseline_initialized', 0)} "
-            f"unchanged={counts.get('unchanged', 0)} "
-            f"changed={counts.get('changed', 0)} "
-            f"no_candidate_delta={counts.get('no_candidate_delta', 0)} "
-            f"error={counts.get('error', 0)}"
-        ),
-        (
-            "pairs: "
-            f"considered={pair_counts.get('considered', 0)} "
-            f"selected={pair_counts.get('selected', 0)} "
-            f"reported={pair_counts.get('reported', 0)}"
-        ),
-        (
-            "graphs: "
-            f"articles={graph_counts.get('articles_with_graphs', 0)} "
-            f"built={graph_counts.get('graphs_built', 0)} "
-            f"regions={graph_counts.get('regions_detected', 0)} "
-            f"cycles={graph_counts.get('cycles_detected', 0)}"
-        ),
-        f"highest_severity={payload.get('highest_severity')}",
-    ]
-    triage = payload.get("pack_triage") or {}
-    top_articles = triage.get("top_changed_articles") or []
-    top_pairs = triage.get("top_high_severity_pairs") or []
-    top_sections = triage.get("top_sections_changed") or []
-    if top_articles:
-        lines.append(
-            "top_articles="
-            + ", ".join(
-                f"{row.get('article_id')}:{row.get('top_severity')}:{row.get('selected_primary_pair_kind')}"
-                for row in top_articles[:3]
-                if isinstance(row, Mapping)
-            )
-        )
-    if top_pairs:
-        lines.append(
-            "top_pairs="
-            + ", ".join(
-                f"{row.get('article_id')}:{row.get('pair_kind')}:{row.get('top_severity')}"
-                for row in top_pairs[:3]
-                if isinstance(row, Mapping)
-            )
-        )
-    if top_sections:
-        lines.append(
-            "top_sections="
-            + ", ".join(
-                f"{row.get('section')}:{row.get('max_touched_bytes')}"
-                for row in top_sections[:3]
-                if isinstance(row, Mapping)
-            )
-        )
-    for row in payload.get("articles") or []:
-        if not isinstance(row, Mapping):
-            continue
-        lines.append(
-            f"{row.get('article_id')}: status={row.get('status')} sev={row.get('top_severity', 'none')} prev={row.get('previous_revid')} curr={row.get('current_revid')} primary_pair={row.get('selected_primary_pair_kind')} pairs={row.get('candidate_pairs_selected', 0)} report={row.get('report_path')}"
-        )
-    return "\n".join(lines)
+    return _human_summary(payload)

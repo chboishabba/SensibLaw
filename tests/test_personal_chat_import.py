@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_personal_handoff_from_chat_json
 from scripts.build_personal_handoff_from_chat_json import build_handoff_from_chat_artifact, main
+from src.fact_intake import personal_chat_import
 from src.fact_intake.personal_chat_import import build_handoff_input_from_chat_json, build_handoff_report_from_chat_json
 
 _PERSONAL_FIXTURE_PATH = (
@@ -58,3 +61,17 @@ def test_build_handoff_from_chat_artifact_returns_paths(tmp_path) -> None:
     payload = build_handoff_from_chat_artifact(_PERSONAL_FIXTURE_PATH, tmp_path / "artifact")
     assert payload["mode"] == "personal_handoff"
     assert payload["primary_count"] == 3
+
+
+def test_personal_chat_import_uses_shared_disclosure_policy_defaults() -> None:
+    source = inspect.getsource(personal_chat_import)
+
+    assert "normalize_profile(" in source
+    assert "DEFAULT_HANDOFF_SHARE_WITH" in source
+    assert "DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES" in source
+
+
+def test_chat_json_script_uses_shared_handoff_artifact_writer() -> None:
+    source = inspect.getsource(build_personal_handoff_from_chat_json)
+
+    assert "write_handoff_artifact(" in source

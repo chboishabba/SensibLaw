@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sqlite3
 
 from scripts.build_google_docs_contested_narrative_review import build_google_docs_contested_narrative_review
 
@@ -212,3 +213,80 @@ def test_google_docs_contested_narrative_review_reports_trace(monkeypatch, tmp_p
     assert "google_docs_units_grouped" in stages
     assert "proposition_started" in stages
     assert "proposition_classified" in stages
+
+
+def test_google_docs_contested_narrative_review_groups_duplicate_heading_blocks(monkeypatch, tmp_path: Path) -> None:
+    from scripts import build_google_docs_contested_narrative_review as module
+    from scripts import build_affidavit_coverage_review as review_module
+
+    affidavit_text = (
+        "Affidavit Text:\n"
+        "The respondent cut off my internet in November 2024.\n"
+        "The respondent pushed me on the back deck.\n"
+    )
+    response_text = (
+        "Summary of Response\n\n"
+        "1. The respondent cut off my internet in November 2024.\n\n"
+        "I cut off the internet because the router outage escalated.\n\n"
+        "2. The respondent pushed me on the back deck.\n\n"
+        "I dispute the characterization of the deck incident.\n"
+    )
+    lookup = {
+        "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
+        "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
+    }
+    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+    monkeypatch.setattr(
+        review_module,
+        "_analyze_structural_sentence",
+        lambda text: {
+            "subject_texts": ["I"] if text.casefold().startswith("i ") else [],
+            "verb_lemmas": ["dispute"] if "dispute" in text.casefold() else ["cut"] if "cut off" in text.casefold() else [],
+            "has_negation": "dispute" in text.casefold(),
+            "has_first_person_subject": text.casefold().startswith("i "),
+            "has_hedge_verb": False,
+        },
+    )
+
+    payload = build_google_docs_contested_narrative_review(
+        affidavit_doc_url="https://docs.google.com/document/d/aff/edit?usp=sharing",
+        response_doc_url="https://docs.google.com/document/d/resp/edit?usp=sharing",
+        output_dir=tmp_path / "out",
+    )
+
+    meta = json.loads(Path(payload["meta_path"]).read_text(encoding="utf-8"))
+    assert meta["response_unit_count"] == 3
+
+
+def test_google_docs_contested_narrative_review_persists_sqlite_without_bulky_artifacts(monkeypatch, tmp_path: Path) -> None:
+    from scripts import build_google_docs_contested_narrative_review as module
+
+    affidavit_text = "Affidavit Text:\nThe respondent cut off my internet in November 2024."
+    response_text = (
+        "Summary of Response\n\n"
+        "1. The respondent cut off my internet in November 2024.\n\n"
+        "I acknowledge this likely occurred on many occasions."
+    )
+    lookup = {
+        "https://docs.google.com/document/d/aff/edit?usp=sharing": affidavit_text,
+        "https://docs.google.com/document/d/resp/edit?usp=sharing": response_text,
+    }
+    monkeypatch.setattr(module, "fetch_google_public_export_text", lambda url: lookup[url])
+
+    db_path = tmp_path / "itir.sqlite"
+    output_dir = tmp_path / "out"
+    payload = build_google_docs_contested_narrative_review(
+        affidavit_doc_url="https://docs.google.com/document/d/aff/edit?usp=sharing",
+        response_doc_url="https://docs.google.com/document/d/resp/edit?usp=sharing",
+        output_dir=output_dir,
+        db_path=db_path,
+    )
+
+    assert "artifact_path" not in payload
+    assert "summary_path" not in payload
+    assert Path(payload["meta_path"]).exists()
+    assert payload["persist_summary"]["review_run_id"]
+
+    with sqlite3.connect(str(db_path)) as conn:
+        count = conn.execute("SELECT COUNT(*) FROM contested_review_runs").fetchone()[0]
+    assert count == 1

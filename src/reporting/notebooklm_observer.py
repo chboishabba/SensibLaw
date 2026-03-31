@@ -6,6 +6,8 @@ from pathlib import Path
 import json
 from typing import Any
 
+from src.reporting.notebooklm_run_loader import iter_dated_artifacts, resolve_runs_root
+
 if False:  # pragma: no cover
     from src.reporting.structure_report import TextUnit
 
@@ -35,33 +37,18 @@ class NotebookLMObserverRow:
     has_context: bool | None
 
 
-def _is_date_text(value: str) -> bool:
-    return len(value) == 10 and value[4] == "-" and value[7] == "-" and value.replace("-", "").isdigit()
-
-
-def _resolve_runs_root(runs_root: str | Path) -> Path:
-    return Path(runs_root).expanduser().resolve()
-
-
 def _iter_date_files(
-    runs_root: Path,
+    runs_root: str | Path,
     *,
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> list[tuple[str, Path]]:
-    out: list[tuple[str, Path]] = []
-    for entry in sorted(runs_root.iterdir() if runs_root.exists() else []):
-        if not entry.is_dir() or not _is_date_text(entry.name):
-            continue
-        date_text = entry.name
-        if start_date and date_text < start_date:
-            continue
-        if end_date and date_text > end_date:
-            continue
-        notes_path = entry / "logs" / "notes" / f"{date_text}.jsonl"
-        if notes_path.exists():
-            out.append((date_text, notes_path))
-    return out
+    return iter_dated_artifacts(
+        runs_root,
+        relative_path=lambda date_text: ("logs", "notes", f"{date_text}.jsonl"),
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def _clean_text(value: Any) -> str | None:
@@ -120,10 +107,9 @@ def iter_notebooklm_observer_rows(
     end_date: str | None = None,
     notebook_id_hash: str | None = None,
 ) -> list[NotebookLMObserverRow]:
-    root = _resolve_runs_root(runs_root)
     rows: list[NotebookLMObserverRow] = []
     seq = 0
-    for date_text, notes_path in _iter_date_files(root, start_date=start_date, end_date=end_date):
+    for date_text, notes_path in _iter_date_files(runs_root, start_date=start_date, end_date=end_date):
         with notes_path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 raw = line.strip()
@@ -319,7 +305,7 @@ def build_notebooklm_observer_report(
     ]
     return {
         "scope": {
-            "runsRoot": str(_resolve_runs_root(runs_root)),
+            "runsRoot": str(resolve_runs_root(runs_root)),
             "startDate": start_date,
             "endDate": end_date,
             "notebookIdHash": notebook_id_hash,

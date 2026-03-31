@@ -6,6 +6,8 @@ from pathlib import Path
 import json
 from typing import Any
 
+from src.reporting.notebooklm_run_loader import iter_dated_artifacts
+
 if False:  # pragma: no cover
     from src.reporting.structure_report import TextUnit
 
@@ -29,28 +31,13 @@ class NotebookLMActivityRow:
     provenance_source: str | None
 
 
-def _is_date_text(value: str) -> bool:
-    return len(value) == 10 and value[4] == "-" and value[7] == "-" and value.replace("-", "").isdigit()
-
-
-def _resolve_runs_root(runs_root: str | Path) -> Path:
-    return Path(runs_root).expanduser().resolve()
-
-
-def _iter_date_files(runs_root: Path, *, start_date: str | None = None, end_date: str | None = None) -> list[tuple[str, Path]]:
-    out: list[tuple[str, Path]] = []
-    for entry in sorted(runs_root.iterdir() if runs_root.exists() else []):
-        if not entry.is_dir() or not _is_date_text(entry.name):
-            continue
-        date_text = entry.name
-        if start_date and date_text < start_date:
-            continue
-        if end_date and date_text > end_date:
-            continue
-        path = entry / "outputs" / "notebooklm" / "notebooklm_activity_normalized.jsonl"
-        if path.exists():
-            out.append((date_text, path))
-    return out
+def _iter_date_files(runs_root: str | Path, *, start_date: str | None = None, end_date: str | None = None) -> list[tuple[str, Path]]:
+    return iter_dated_artifacts(
+        runs_root,
+        relative_path=("outputs", "notebooklm", "notebooklm_activity_normalized.jsonl"),
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def _clean_text(value: Any) -> str | None:
@@ -90,10 +77,9 @@ def iter_notebooklm_activity_rows(
     end_date: str | None = None,
     notebook_id_hash: str | None = None,
 ) -> list[NotebookLMActivityRow]:
-    root = _resolve_runs_root(runs_root)
     rows: list[NotebookLMActivityRow] = []
     seq = 0
-    for date_text, target in _iter_date_files(root, start_date=start_date, end_date=end_date):
+    for date_text, target in _iter_date_files(runs_root, start_date=start_date, end_date=end_date):
         with target.open("r", encoding="utf-8") as handle:
             for line in handle:
                 raw = line.strip()

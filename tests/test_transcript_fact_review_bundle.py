@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import sqlite3
 from pathlib import Path
@@ -19,6 +20,7 @@ from src.fact_intake import (
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.reporting.structure_report import TextUnit
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
+import src.fact_intake.transcript_review_bundle as transcript_review_bundle
 
 
 def test_fact_review_bundle_example_validates() -> None:
@@ -139,3 +141,33 @@ def test_transcript_fact_review_cli_payload_reports_progress(tmp_path: Path) -> 
     assert "eta_confidence_interval_seconds" in progress_details
     assert "eta_confidence" in progress_details
     assert "factRunId" in payload
+
+
+def test_transcript_bundle_uses_shared_review_bundle_component() -> None:
+    source = inspect.getsource(transcript_review_bundle.build_transcript_fact_review_bundle)
+    assert "build_event_chronology(" in source
+    assert "build_abstentions(" in source
+    assert "build_fact_review_bundle_payload(" in source
+
+
+def test_transcript_payload_uses_shared_payload_builder() -> None:
+    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    assert "build_fact_intake_run(" in source
+    assert "build_source_rows(" in source
+    assert "ensure_event_source_row(" in source
+    assert "build_excerpt_row(" in source
+    assert "build_statement_row(" in source
+    assert "build_fact_candidate_row(" in source
+    assert "build_fact_intake_payload(" in source
+
+
+def test_transcript_payload_uses_shared_observation_projection_path() -> None:
+    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    assert "build_role_observation(" in source
+    assert "build_relation_observation(" in source
+
+
+def test_transcript_payload_uses_shared_projection_helpers() -> None:
+    source = inspect.getsource(transcript_review_bundle.build_fact_intake_payload_from_transcript_report)
+    assert "fact_status_for_statement(" in source
+    assert "observation_status_from_relation(" in source

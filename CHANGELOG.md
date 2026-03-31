@@ -1,6 +1,36 @@
 # Changelog
 
 ## Unreleased
+- Affidavit Phase 1 gate v3:
+  - live Dad/Johl now runs on the SQLite-first inspection surface:
+    - DB:
+      `/tmp/dad_johl_phase1_gate_v3/itir.sqlite`
+    - review run:
+      `contested_review:b9d0cbbccb02c13e`
+    - query surface:
+      `scripts/query_fact_review.py contested-rows`
+  - packet-local clause selection now keeps:
+    - `p2-s5` on the intended audio-control clause
+    - `p2-s6` on the intended keyboard-control clause
+  - `p2-s21` remains on the EPOA revocation family with
+    `relation_leaf = exact_support`
+  - remaining live gap:
+    `p2-s38` / `p2-s39` still reciprocally swap within the same
+    quote-to-rebuttal row
+- Affidavit matcher optimization pass v2:
+  - Updated `src/rules/dependencies.py` so repeated excerpt texts reuse cached
+    dependency parses instead of re-running the parser path each time.
+  - Updated `scripts/build_affidavit_coverage_review.py` so tokenization,
+    structural sentence analysis, lexical heuristic scans, and text splitting
+    are memoized at the helper level.
+  - Added focused coverage in `tests/test_affidavit_coverage_review.py` for
+    contested quote-to-rebuttal matching behavior while keeping the broader
+    focused suites green.
+  - Corrected `.venv` profiling on the extracted Dad/Johl fixture now shows the
+    local build path reduced from about `13.691s` to about `8.934s`.
+  - Remaining dominant local cost is the spaCy parse itself, so the next
+    optimization target is parser amortization / lexical gating rather than
+    more generic regex caching.
 - notebooklm-pack dry-run wrapper:
   - Added `../scripts/notebooklm_pack_ingest.py` as the first bounded
     integration seam between sibling `notebooklm-pack` output and the repo’s
@@ -3039,3 +3069,36 @@
     the admissibility gate.
   - Updated `todo.md` so any later Agda formalization keeps that reading
     explicit instead of smuggling phase labels into proof or truth authority.
+- `2026-03-30` affidavit predicate-family routing pass:
+  - stopped dropping adjusted duplicate-root support rows when their raw
+    segment overlap was zero
+  - tightened sibling-family routing so live Dad/Johl now keeps:
+    - `p2-s5` on the audio-control row
+    - `p2-s6` on the keyboard-control row
+    - `p2-s21` on the EPOA revocation row instead of the nearby August RTA row
+  - focused verification:
+    `54 passed`
+  - live artifact:
+    `/tmp/dad_johl_predicate_family_v5/affidavit_coverage_review_v1.json`
+- `2026-03-30` affidavit SQLite-first runtime seam:
+  - `scripts/build_affidavit_coverage_review.py` now allows persisted
+    contested-review runs to skip bulky JSON/markdown review artifacts when
+    `write_artifacts = False`
+  - `scripts/build_google_docs_contested_narrative_review.py` now accepts
+    `--db-path` and defaults to the persisted SQLite receiver when that flag is
+    present
+  - live Google Docs affidavit review now keeps bulky JSON/markdown artifacts
+    as an opt-in presentation/export contract via `--write-artifacts`, not a
+    mandatory runtime output
+  - added focused regression coverage in:
+    - `tests/test_affidavit_coverage_review.py`
+    - `tests/test_google_docs_contested_narrative_review.py`
+  - focused verification:
+    `51 passed in 2.25s`
+- `2026-03-30` affidavit Phase 1 milestone 1:
+  - added `scripts/query_fact_review.py contested-rows` as a narrow
+    SQLite-first inspection surface for persisted contested affidavit runs
+  - added focused coverage in `tests/test_query_fact_review_script.py`
+  - this gives the Dad/Johl debugging loop direct DB access to:
+    relation root/leaf, excerpts, response role, promotion status, explanation,
+    and matched-source-row detail without opening the bulky review artifact

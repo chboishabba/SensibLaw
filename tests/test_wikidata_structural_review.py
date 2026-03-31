@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_wikidata_structural_review as review_module
 from scripts.build_wikidata_structural_review import build_review_artifact
 
 
@@ -81,3 +83,20 @@ def test_build_wikidata_structural_review_artifact(tmp_path: Path) -> None:
     assert "Related review clusters: 4" in summary_text
     assert "Qualifier drift case Q100104196|P166" in summary_text
     assert "Top Provisional Review Bundles" in summary_text
+
+
+def test_wikidata_structural_review_uses_shared_io_policy() -> None:
+    source = inspect.getsource(review_module)
+
+    assert "write_json_markdown_artifact(" in source
+
+
+def test_wikidata_structural_review_uses_shared_geometry_policy() -> None:
+    source = inspect.getsource(review_module)
+
+    assert "build_checked_qualifier_drift_row(" in source
+    assert "build_checked_qualifier_drift_cues(" in source
+    assert "build_checked_hotspot_rows(" in source
+    assert "build_checked_hotspot_cues(" in source
+    assert "build_checked_disjointness_rows(" in source
+    assert "build_checked_disjointness_cues(" in source

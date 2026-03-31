@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
 from scripts.build_personal_handoff_bundle import build_handoff_artifact, main
+from src.fact_intake import personal_handoff_bundle
 from src.fact_intake.personal_handoff_bundle import build_personal_handoff_report
 
 _FIXTURE_PATH = (
@@ -102,3 +104,19 @@ def test_protected_disclosure_summary_emits_envelope_without_leaking_excluded_te
     assert "workplace_integrity_v1" in summary
     assert "Protected workplace-integrity material must remain local-only" in summary
     assert "potential workplace retaliation risk" not in summary
+
+
+def test_personal_handoff_uses_shared_disclosure_policy() -> None:
+    source = inspect.getsource(personal_handoff_bundle)
+
+    assert "build_protected_disclosure_settings" in source
+    assert "normalize_profile(" in source
+    assert "normalize_share_with(" in source
+    assert "created_at_utc(" in source
+
+
+def test_personal_handoff_uses_shared_payload_mutations() -> None:
+    source = inspect.getsource(personal_handoff_bundle)
+
+    assert "append_payload_observation(" in source
+    assert "append_payload_review(" in source

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import json
 
 from scripts.run_fact_review_acceptance_wave import main
 from src.fact_intake import load_fact_review_acceptance_fixture_manifest
+from src.fact_intake import acceptance_fixtures
 from src.fact_intake.acceptance_fixtures import _DEFAULT_MANIFEST_BY_WAVE
 
 
@@ -313,3 +315,11 @@ def test_ui_baseline_real_fixtures_present_and_green(tmp_path, capsys) -> None:
             assert summary["fail_count"] == 0
             assert summary["partial_count"] == 0
             assert all(story["status"] == "pass" for story in fixture["stories"])
+
+
+def test_acceptance_fixtures_use_shared_payload_mutations() -> None:
+    source = inspect.getsource(acceptance_fixtures)
+
+    assert "append_payload_observation(" in source
+    assert "append_payload_review(" in source
+    assert "append_payload_contestation(" in source

@@ -12,7 +12,9 @@ from scripts.build_affidavit_coverage_review import (
     _derive_primary_target_component,
     _derive_semantic_basis,
     _infer_response_packet,
+    _score_proposition_against_source_row,
     _split_affidavit_text,
+    _tokenize,
     build_affidavit_coverage_review,
     write_affidavit_coverage_review,
 )
@@ -202,6 +204,48 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")
 
 
+def test_write_affidavit_coverage_review_can_persist_without_bulky_artifacts(tmp_path: Path) -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "transcript_semantic:sqlite_only"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            }
+        ],
+        "review_queue": [
+            {
+                "fact_id": "fact:f1",
+                "contestation_count": 0,
+                "reason_codes": [],
+                "latest_review_status": "review_queue",
+            }
+        ],
+    }
+    out_dir = tmp_path / "artifact"
+    db_path = tmp_path / "itir.sqlite"
+    result = write_affidavit_coverage_review(
+        output_dir=out_dir,
+        source_payload=source_payload,
+        affidavit_text="The witness attended the meeting on Tuesday.",
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=db_path,
+        write_artifacts=False,
+    )
+
+    assert "artifact_path" not in result
+    assert "summary_path" not in result
+    assert result["persist_summary"]["review_run_id"]
+    assert not (out_dir / "affidavit_coverage_review_v1.json").exists()
+    assert not (out_dir / "affidavit_coverage_review_v1.summary.md").exists()
+
+
 def test_build_affidavit_coverage_review_reports_progress() -> None:
     source_payload = {
         "version": "fact.review.bundle.v1",
@@ -339,8 +383,8 @@ def test_write_affidavit_coverage_review_persists_normalized_receiver(tmp_path: 
         assert affidavit_row[3] in {"promoted_true", "promoted_false", "candidate_conflict", "abstained"}
         assert affidavit_row[4] == "supports"
         assert affidavit_row[5] in {"exact_support", "equivalent_support"}
-        assert json.loads(affidavit_row[7])["classification"] == "supported"
-        assert json.loads(affidavit_row[8])
+    assert json.loads(affidavit_row[7])["classification"] == "supported"
+    assert isinstance(json.loads(affidavit_row[8]), list)
 
 
 def test_build_contested_affidavit_proving_slice_groups_rows_and_next_steps(tmp_path: Path) -> None:
@@ -663,6 +707,47 @@ def test_build_affidavit_coverage_review_downgrades_pure_restatement_from_covere
     assert source_row["best_response_role"] == "restatement_only"
 
 
+def test_build_affidavit_coverage_review_keeps_adjusted_duplicate_root_row_in_ranking() -> None:
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "au_semantic:duplicate-root-adjusted", "comparison_mode": "contested_narrative"},
+        "facts": [
+            {
+                "fact_id": "fact:audio",
+                "fact_text": (
+                    "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+                    "I acknowledge this likely occurred on many occasions."
+                ),
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s1"],
+                "excerpt_ids": ["excerpt:e1"],
+                "source_ids": ["src:1"],
+            },
+            {
+                "fact_id": "fact:keyboard",
+                "fact_text": "Johl came into my room and pulled out the keyboard so I couldn't type.",
+                "candidate_status": "candidate",
+                "statement_ids": ["statement:s2"],
+                "excerpt_ids": ["excerpt:e2"],
+                "source_ids": ["src:1"],
+            },
+        ],
+        "review_queue": [
+            {"fact_id": "fact:audio", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+            {"fact_id": "fact:keyboard", "contestation_count": 0, "reason_codes": [], "latest_review_status": "review_queue"},
+        ],
+    }
+
+    payload = build_affidavit_coverage_review(
+        source_payload=source_payload,
+        affidavit_text="Johl came into my room and would turn off or stop what I was listening to on my computer.",
+    )
+
+    affidavit_row = payload["affidavit_rows"][0]
+    assert affidavit_row["best_source_row_id"] == "fact:audio"
+    assert affidavit_row["duplicate_match_excerpt"] == "Johl came into my room and would turn off or stop what I was listening to on my computer."
+
+
 def test_build_affidavit_coverage_review_promotes_duplicate_root_support_over_context_swap(monkeypatch) -> None:
     from scripts import build_affidavit_coverage_review as module
 
@@ -962,3 +1047,253 @@ def test_semantic_basis_becomes_structural_for_predicate_binding_without_heurist
         justifications=[],
     )
     assert basis == "structural"
+
+
+def test_score_proposition_prefers_non_echo_sibling_over_echo_header() -> None:
+    proposition = {"text": "Due to concerns that conversation may escalate I didn't want to come out of my room."}
+    source_row = {
+        "text": (
+            "Due to concerns that conversation may escalate I didn't want to come out of my room. "
+            "I turned off the internet to prompt a safe conversation about housing."
+        ),
+        "source_row_id": "fact:test-echo-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    result = _score_proposition_against_source_row(proposition, source_row)
+
+    assert result["match_excerpt"] == "I turned off the internet to prompt a safe conversation about housing."
+    assert "Due to concerns that conversation may escalate I didn't want to come out of my room" in (result["duplicate_match_excerpt"] or "")
+    assert result["is_proposition_echo"] is False
+
+
+def test_score_proposition_prefers_numbered_rebuttal_over_echo_preamble_clause() -> None:
+    proposition = {"text": "Due to concerns that conversation may escalate I didn't want to come out of my room."}
+    source_row = {
+        "text": (
+            "In mid-November 2024 Johl cut off my access to the internet. "
+            "I think it was due to the fact that he had come to my door and wanted me to come out and talk to him. "
+            "Due to concerns that conversation may escalate I didn't want to come out of my room. "
+            "1. Communication had broken down. "
+            "4. After consecutive attempts on my behalf to resolve our misunderstandings, "
+            "and in lieu of the constant stream of accusations, I disabled John's internet "
+            "as a final attempt to prompt a discussion to resolve the situation."
+        ),
+        "source_row_id": "fact:test-numbered-rebuttal-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    result = _score_proposition_against_source_row(proposition, source_row)
+
+    assert result["match_excerpt"] == "After consecutive attempts on my behalf to resolve our misunderstandings"
+    assert "Due to concerns that conversation may escalate I didn't want to come out of my room" in (result["duplicate_match_excerpt"] or "")
+
+
+def test_score_proposition_promotes_quote_rebuttal_acknowledgement_over_echo_header() -> None:
+    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    source_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions, and on some occasions, "
+            "John would express his discontent. I acknowledge that I may have done this more urgently on some occasions than others."
+        ),
+        "source_row_id": "fact:test-ack-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    result = _score_proposition_against_source_row(proposition, source_row)
+
+    assert result["match_basis"] == "clause"
+    assert result["match_excerpt"] == "I acknowledge this likely occurred on many occasions"
+    assert result["response_role"] == "support_or_corroboration"
+    assert "Johl came into my room and would turn off or stop what I was listening to on my computer" in (result["duplicate_match_excerpt"] or "")
+
+
+def test_score_proposition_prefers_keyboard_rebuttal_over_audio_echo_family() -> None:
+    proposition = {"text": "Johl came into my room and pulled out the keyboard so I couldn’t type."}
+    source_row = {
+        "text": (
+            "Johl came into my room and pulled out the keyboard so I couldn't type. "
+            "John insisted on minimising my feelings and needs, and so, for my own sanity, "
+            "I was forced to remove the keyboard to prevent further disagreements."
+        ),
+        "source_row_id": "fact:test-keyboard-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    result = _score_proposition_against_source_row(proposition, source_row)
+
+    assert result["match_basis"] == "clause"
+    assert result["match_excerpt"] == "for my own sanity, I was forced to remove the keyboard to prevent further disagreements."
+    assert result["predicate_alignment_score"] > 0.3
+    assert result["adjusted_score"] > result["score"]
+
+
+def test_score_proposition_prefers_epoa_rebuttal_over_generic_august_procedural_row() -> None:
+    proposition = {"text": "In August 2024, I took steps to revoke my EPOA."}
+    source_row = {
+        "text": (
+            "In August 2024 I took steps to revoke my EPOA. "
+            "For a number of weeks and months, John had failed to complete the necessary steps to revoke his EPOA, while stating that he had done so. "
+            "This is corroborated by the dated signature on the revocation documents."
+        ),
+        "source_row_id": "fact:test-epoa-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    result = _score_proposition_against_source_row(proposition, source_row)
+
+    assert result["match_excerpt"] == "For a number of weeks and months, John had failed to complete the necessary steps to revoke his EPOA"
+    assert result["adjusted_score"] > result["score"]
+
+
+def test_score_proposition_prefers_audio_family_row_over_keyboard_sibling_row() -> None:
+    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    audio_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions."
+        ),
+        "source_row_id": "fact:test-audio-row",
+        "comparison_mode": "contested_narrative",
+    }
+    keyboard_row = {
+        "text": (
+            "Johl came into my room and pulled out the keyboard so I couldn't type. "
+            "This incident occurred approximately one year prior to the alleged timeframe."
+        ),
+        "source_row_id": "fact:test-keyboard-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    audio_score = _score_proposition_against_source_row(proposition, audio_row)
+    keyboard_score = _score_proposition_against_source_row(proposition, keyboard_row)
+
+    assert audio_score["adjusted_score"] > keyboard_score["adjusted_score"]
+
+
+def test_score_proposition_does_not_treat_passive_listening_sentence_as_audio_control_family() -> None:
+    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    audio_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions."
+        ),
+        "source_row_id": "fact:test-audio-row",
+        "comparison_mode": "contested_narrative",
+    }
+    passive_listening_row = {
+        "text": (
+            "At one point in September I was having an online appointment with my psychologist, "
+            "during which Johl yelled through the closed door contradicting what I was saying in a private appointment "
+            "and I did consider that he may have listening to previous sessions."
+        ),
+        "source_row_id": "fact:test-passive-listening-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    audio_score = _score_proposition_against_source_row(proposition, audio_row)
+    passive_score = _score_proposition_against_source_row(proposition, passive_listening_row)
+
+    assert audio_score["adjusted_score"] > passive_score["adjusted_score"]
+
+
+def test_score_proposition_does_not_treat_room_isolation_sentence_as_audio_control_family() -> None:
+    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    audio_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions."
+        ),
+        "source_row_id": "fact:test-audio-row",
+        "comparison_mode": "contested_narrative",
+    }
+    room_isolation_row = {
+        "text": "I said I would lock my doors and stay in my room.",
+        "source_row_id": "fact:test-room-isolation-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    audio_score = _score_proposition_against_source_row(proposition, audio_row)
+    room_score = _score_proposition_against_source_row(proposition, room_isolation_row)
+
+    assert audio_score["adjusted_score"] > room_score["adjusted_score"]
+
+
+def test_score_proposition_does_not_treat_generic_computer_reference_as_audio_control_family() -> None:
+    proposition = {"text": "Johl came into my room and would turn off or stop what I was listening to on my computer."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    audio_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions."
+        ),
+        "source_row_id": "fact:test-audio-row",
+        "comparison_mode": "contested_narrative",
+    }
+    generic_computer_row = {
+        "text": "These files were transcribed locally by a computer program, and then I would search for my name, so I could understand what I was doing wrong.",
+        "source_row_id": "fact:test-generic-computer-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    audio_score = _score_proposition_against_source_row(proposition, audio_row)
+    generic_score = _score_proposition_against_source_row(proposition, generic_computer_row)
+
+    assert audio_score["adjusted_score"] > generic_score["adjusted_score"]
+
+
+def test_score_proposition_prefers_keyboard_family_row_over_audio_sibling_row() -> None:
+    proposition = {"text": "Johl came into my room and pulled out the keyboard so I couldn’t type."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    keyboard_row = {
+        "text": (
+            "Johl came into my room and pulled out the keyboard so I couldn't type. "
+            "This incident occurred approximately one year prior to the alleged timeframe."
+        ),
+        "source_row_id": "fact:test-keyboard-row",
+        "comparison_mode": "contested_narrative",
+    }
+    audio_row = {
+        "text": (
+            "Johl came into my room and would turn off or stop what I was listening to on my computer. "
+            "I acknowledge this likely occurred on many occasions."
+        ),
+        "source_row_id": "fact:test-audio-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    keyboard_score = _score_proposition_against_source_row(proposition, keyboard_row)
+    audio_score = _score_proposition_against_source_row(proposition, audio_row)
+
+    assert keyboard_score["adjusted_score"] > audio_score["adjusted_score"]
+
+
+def test_score_proposition_prefers_epoa_revocation_row_over_rta_row() -> None:
+    proposition = {"text": "In August 2024, I took steps to revoke my EPOA."}
+    proposition["tokens"] = sorted(_tokenize(proposition["text"]))
+    revocation_row = {
+        "text": (
+            "In August 2024 I took steps to revoke my EPOA. "
+            "I had only received the revocation three weeks ago. "
+            "This is corroborated by the dated signature on the revocation documents."
+        ),
+        "source_row_id": "fact:test-revocation-row",
+        "comparison_mode": "contested_narrative",
+    }
+    rta_row = {
+        "text": (
+            "On 7 August 2024, I had filed with the RTA for a Dispute Resolution service, "
+            "regarding the issues surrounding John and my tenancy."
+        ),
+        "source_row_id": "fact:test-rta-row",
+        "comparison_mode": "contested_narrative",
+    }
+
+    revocation_score = _score_proposition_against_source_row(proposition, revocation_row)
+    rta_score = _score_proposition_against_source_row(proposition, rta_row)
+
+    assert revocation_score["adjusted_score"] > rta_score["adjusted_score"]

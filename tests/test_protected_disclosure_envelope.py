@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import json
 import sqlite3
 from pathlib import Path
 
 from scripts.build_protected_disclosure_envelope import build_protected_disclosure_artifact, main
+from src.fact_intake import protected_disclosure_envelope
 from src.fact_intake.protected_disclosure_envelope import build_protected_disclosure_envelope
 
 _FIXTURE_PATH = (
@@ -88,3 +90,12 @@ def test_build_protected_disclosure_artifact_returns_paths(tmp_path) -> None:
     payload = build_protected_disclosure_artifact(_FIXTURE_PATH, tmp_path / "artifact")
     assert payload["recipient_profile"] == "lawyer"
     assert payload["sealed_item_count"] == 3
+
+
+def test_protected_disclosure_envelope_uses_shared_disclosure_policy() -> None:
+    source = inspect.getsource(protected_disclosure_envelope)
+
+    assert "build_protected_disclosure_settings" in source
+    assert "normalize_profile(" in source
+    assert "normalize_share_with(" in source
+    assert "sha256_payload(" in source

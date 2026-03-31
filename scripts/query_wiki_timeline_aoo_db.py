@@ -38,9 +38,26 @@ def _resolve_db_path() -> Path:
 def main() -> None:
     p = argparse.ArgumentParser(description="Query wiki timeline payloads from the canonical SQLite store.")
     p.add_argument("--db-path", help="Path to canonical ITIR sqlite database.")
+    p.add_argument(
+        "--projection",
+        choices=["raw", "fact_timeline", "timeline_view"],
+        default="raw",
+        help="Optional projection view over the loaded payload.",
+    )
+    p.add_argument(
+        "--with-source-meta",
+        action="store_true",
+        help="Wrap the result as {source, rel_path, timeline_suffix, payload}.",
+    )
+    p.add_argument(
+        "--source-variant",
+        choices=["timeline", "aoo", "aoo_all"],
+        help="Optional source-registry variant override when using --source-key.",
+    )
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--run-id", help="Exact run_id to load.")
     g.add_argument("--timeline-path-suffix", help="Pick best run whose stored timeline_path ends with this suffix.")
+    g.add_argument("--source-key", help="Named source key resolved through the Python wiki timeline source registry.")
     g.add_argument("--list-runs", action="store_true", help="List available runs.")
     args = p.parse_args()
 
@@ -53,7 +70,11 @@ def main() -> None:
     if str(sb_root) not in sys.path:
         sys.path.insert(0, str(sb_root))
 
+    from src.wiki_timeline.fact_timeline_projection import build_fact_timeline_projection  # noqa: PLC0415
+    from src.wiki_timeline.numeric_projection import apply_numeric_projection  # noqa: PLC0415
+    from src.wiki_timeline.source_registry import resolve_source_config  # noqa: PLC0415
     from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized  # noqa: PLC0415
+    from src.wiki_timeline.timeline_view_projection import build_timeline_view_projection  # noqa: PLC0415
 
     with sqlite3.connect(str(db_path)) as conn:
         conn.row_factory = sqlite3.Row
@@ -80,14 +101,39 @@ def main() -> None:
             return
 
         run_id = str(args.run_id) if args.run_id else None
-        if not run_id and args.timeline_path_suffix:
-            run_id = _pick_best_run_for_timeline_suffix(conn, str(args.timeline_path_suffix))
+        source_meta: dict[str, str] | None = None
+        timeline_suffix = str(args.timeline_path_suffix) if args.timeline_path_suffix else None
+        if args.source_key:
+            fallback = "gwb" if args.projection == "timeline_view" else "hca"
+            source_meta = resolve_source_config(
+                args.source_key,
+                projection=args.projection,
+                fallback=fallback,
+                variant=args.source_variant,
+            )
+            timeline_suffix = source_meta["timeline_suffix"]
+        if not run_id and timeline_suffix:
+            run_id = _pick_best_run_for_timeline_suffix(conn, timeline_suffix)
         if not run_id:
             sys.stdout.write("null\n")
             return
 
         payload: dict[str, Any] | None = load_run_payload_from_normalized(conn, run_id)
-        sys.stdout.write(json.dumps(payload, indent=2, sort_keys=True) if payload is not None else "null")
+        if payload is not None:
+            payload = apply_numeric_projection(payload)
+        if payload is not None and args.projection == "timeline_view":
+            payload = build_timeline_view_projection(payload)
+        if payload is not None and args.projection == "fact_timeline":
+            payload = build_fact_timeline_projection(payload)
+        result: Any = payload
+        if payload is not None and args.with_source_meta and source_meta is not None:
+            result = {
+                "source": source_meta["source"],
+                "rel_path": source_meta["rel_path"],
+                "timeline_suffix": source_meta["timeline_suffix"],
+                "payload": payload,
+            }
+        sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) if result is not None else "null")
         sys.stdout.write("\n")
 
 

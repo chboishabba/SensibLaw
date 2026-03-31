@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_personal_handoff_from_messenger_export
 from scripts.build_personal_handoff_from_messenger_export import build_handoff_from_messenger_export_artifact, main
+from src.fact_intake import messenger_export_import
 from src.fact_intake.messenger_export_import import load_messenger_export_units
 
 
@@ -70,3 +73,29 @@ def test_messenger_export_script_writes_artifact(tmp_path: Path, capsys) -> None
     payload = json.loads(captured.out)
     assert exit_code == 0
     assert Path(payload["report_path"]).exists()
+
+
+def test_messenger_export_script_uses_shared_handoff_artifact_writer() -> None:
+    source = inspect.getsource(build_personal_handoff_from_messenger_export)
+
+    assert "write_handoff_artifact(" in source
+
+
+def test_messenger_export_loader_uses_shared_text_unit_builders() -> None:
+    source = inspect.getsource(messenger_export_import)
+
+    assert "build_indexed_text_unit(" in source
+    assert "build_timestamped_speaker_text(" in source
+
+
+def test_messenger_export_loader_uses_shared_source_identity_policy() -> None:
+    source = inspect.getsource(messenger_export_import)
+
+    assert "build_hashed_source_id(" in source
+    assert "format_utc_iso_from_timestamp_ms(" in source
+
+
+def test_messenger_export_loader_uses_shared_source_loader_policy() -> None:
+    source = inspect.getsource(messenger_export_import)
+
+    assert "list_message_export_json_paths(" in source

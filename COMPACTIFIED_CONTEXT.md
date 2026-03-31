@@ -1737,6 +1737,16 @@ Use `CONVERSATION_ID:line#` citing the line-numbered excerpts in
     - `p2-s5` and `p2-s6` remain the next same-incident sibling-leaf failure
     - `p2-s21` still reads closer to adjacent event or substitution than true
       support
+- `2026-03-30` affidavit matcher optimization pass v2:
+  - `src/rules/dependencies.py` now caches dependency parses by repeated
+    excerpt text
+  - `scripts/build_affidavit_coverage_review.py` now memoizes tokenization,
+    structural sentence analysis, lexical heuristic scans, and text splitting
+    at the helper level
+  - corrected `.venv` profile on the extracted Dad/Johl fixture:
+    local build reduced from about `13.691s` to about `8.934s`
+  - remaining dominant local cost is the parser call itself, so the next
+    optimization boundary is parser amortization / lexical gating
 - `2026-03-29` notebooklm-pack boundary check:
   - checked sibling repo `../notebooklm-pack` against the current `ZOS` /
     `JMD` notes
@@ -1782,3 +1792,58 @@ Use `CONVERSATION_ID:line#` citing the line-numbered excerpts in
   - the next gap is not NotebookLM liveness; it is freezing the minimal seam
     object and keeping observer metadata separate from any future JMD receipt
     reading
+- `2026-03-30` affidavit Phase 1 gate v3:
+  - live Dad/Johl now runs on the SQLite-first inspection surface:
+    - DB:
+      `/tmp/dad_johl_phase1_gate_v3/itir.sqlite`
+    - review run:
+      `contested_review:b9d0cbbccb02c13e`
+    - query surface:
+      `scripts/query_fact_review.py contested-rows`
+  - packet-local clause selection now keeps:
+    - `p2-s5` on the intended audio-control clause
+    - `p2-s6` on the intended keyboard-control clause
+  - `p2-s21` remains on the EPOA revocation family with
+    `relation_leaf = exact_support`
+  - remaining live gap:
+    `p2-s38` / `p2-s39` still reciprocally swap within the same
+    quote-to-rebuttal row
+- `2026-03-30` affidavit predicate-family routing pass:
+  - matcher now keeps adjusted duplicate-root support rows even when their raw
+    segment overlap is zero
+  - live Dad/Johl artifact:
+    `/tmp/dad_johl_predicate_family_v5/affidavit_coverage_review_v1.json`
+  - current live target rows:
+    - `p2-s5` -> intended audio row
+    - `p2-s6` -> intended keyboard row
+    - `p2-s21` -> intended EPOA revocation row
+    - `p2-s38` / `p2-s39` stay in the improved same-incident sibling state
+  - focused verification:
+    `54 passed`
+- `2026-03-30` affidavit SQLite-first runtime seam:
+  - `scripts/build_affidavit_coverage_review.py` now supports persisted
+    contested-review runs without bulky JSON/markdown outputs
+  - `scripts/build_google_docs_contested_narrative_review.py` now accepts
+    `--db-path` and defaults to SQLite-first live runs when it is supplied
+  - bulky JSON/markdown affidavit review outputs are now explicit derived
+    projections behind `--write-artifacts`
+  - this makes the affidavit lane operationally consistent with
+    `docs/planning/json_artifact_boundary_20260327.md`:
+    persisted SQLite/read-model state is the working surface; JSON is receipt /
+    export material
+  - focused verification:
+    `51 passed in 2.25s`
+- `2026-03-30` affidavit Phase 1 milestone 1:
+  - `scripts/query_fact_review.py contested-rows` now exposes a narrow
+    SQLite-first row inspection seam over persisted contested-review runs
+  - this is the first direct replacement for bulky artifact inspection in the
+    Dad/Johl loop
+  - `scripts/run_sl_with_zkperf.py` now supports command-mode observation from
+    `--sl-db-path` alone, so DB-backed affidavit runs no longer need a fake
+    JSON boundary just to be measured
+  - `scripts/run_sl_zkperf_stream_hf.sh` now preserves the live
+    `--sl-db-path ... -- COMMAND` path instead of degrading into static DB
+    observation
+  - focused verification:
+    `SensibLaw/tests/test_query_fact_review_script.py` and
+    `tests/test_sl_zkperf.py` passed

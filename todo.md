@@ -78,6 +78,92 @@
 - [x] Add a normalized cross-lane summary block for AU, Wikidata, and GWB so
   workload and ranking metrics become directly comparable rather than only
   shape-compatible.
+- [x] Reuse normalized Python anchor queueing in
+  `scripts/build_gwb_public_review.py` by consuming
+  `src/policy/affidavit_extraction_hints.py` for calendar-anchor shaping and
+  provisional anchor ranking/bundling while preserving the GWB artifact shape.
+- [x] Move Wikidata checked/dense review queueing policy out of
+  `scripts/build_wikidata_structural_review.py` into one shared Python
+  component that both structural-review builders consume.
+- [x] Reuse normalized Python queueing in
+  `scripts/build_gwb_broader_review.py` by consuming
+  `src/policy/affidavit_extraction_hints.py` for provisional review ranking
+  and bundle rollup while preserving the broader-review artifact shape.
+- [x] Normalize duplicated transcript and AU fact-review bundle assembly into
+  one shared Python component:
+  `src/fact_intake/review_bundle.py` now owns chronology assembly,
+  abstention rollup, and fact-review bundle envelope shaping, with transcript
+  and AU builders reduced to lane-specific semantic context and operator-view
+  additions.
+- [x] Normalize duplicated transcript and AU fact-intake payload scaffolding
+  into one shared Python component:
+  `src/fact_intake/payload_builder.py` now owns run/source/excerpt/statement
+  /fact-candidate scaffolding and final payload emission, with transcript and
+  AU builders reduced to lane-specific observation mapping.
+- [x] Normalize duplicated transcript and AU observation row geometry into one
+  shared Python component:
+  `src/fact_intake/observation_builder.py` now owns observation ID generation
+  and common row shaping, with transcript and AU builders reduced to choosing
+  which observations to emit.
+- [x] Normalize duplicated transcript and AU projection mechanics into one
+  shared Python component:
+  `src/fact_intake/projection_helpers.py` now owns relation-status policy,
+  fact-status policy, and generic role/relation observation emission, with
+  transcript and AU builders keeping only lane-specific mapping tables.
+- [x] Normalize duplicated fact-intake disclosure/export policy into one
+  shared Python component:
+  `src/fact_intake/disclosure_policy.py` now owns recipient normalization,
+  protected-disclosure settings, share-with normalization, stable hashing, and
+  UTC creation stamps, with personal-handoff, protected-disclosure, and chat
+  import builders reduced to adopter-specific payload shaping.
+- [x] Normalize duplicated fact-intake payload mutation helpers into one
+  shared Python component:
+  `src/fact_intake/payload_mutations.py` now owns observation, review, and
+  contestation append semantics plus deterministic mutation-row IDs, with
+  personal-handoff and acceptance-fixture builders reduced to adopter-specific
+  inputs and provenance.
+- [x] Normalize duplicated fact-intake handoff artifact writing into one
+  shared Python component:
+  `src/fact_intake/handoff_artifacts.py` now owns mode/version routing,
+  summary renderer selection, artifact emission, and common return-payload
+  shaping for the chat-json, Messenger, Google Public, message-db, and
+  OpenRecall script entrypoints.
+- [x] Normalize duplicated loader-side `TextUnit` shaping into one shared
+  Python component:
+  `src/reporting/text_unit_builders.py` now owns indexed `TextUnit`
+  construction, timestamped speaker rendering, and header/body composition for
+  Messenger, Google Public, structure-report DB loaders, and OpenRecall.
+- [x] Normalize duplicated importer-side source identity and timestamp policy
+  into one shared Python component:
+  `src/reporting/source_identity.py` now owns hashed source IDs, Google
+  public source-id formatting, UTC millisecond timestamp rendering, local
+  capture timestamp/date derivation, and OpenRecall capture IDs for Messenger,
+  Google Public, and OpenRecall import surfaces.
+- [x] Normalize duplicated importer-side source loader policy into one shared
+  Python component:
+  `src/reporting/source_loaders.py` now owns loader path resolution, Messenger
+  export file discovery, HTTP text fetch, and timestamped artifact lookup for
+  Messenger, Google Public, and OpenRecall import surfaces.
+- [x] Normalize duplicated Wikidata structural IO policy into one shared
+  Python component:
+  `src/policy/wikidata_structural_io.py` now owns repo-relative path shaping,
+  JSON fixture loading, and JSON+markdown artifact emission for the Wikidata
+  structural handoff, checked review, and dense review builders.
+- [x] Start Wikidata checked/dense review geometry normalization with the
+  qualifier-drift overlap:
+  `src/policy/wikidata_structural_geometry.py` now owns the shared checked and
+  dense qualifier-drift source-row and cue-building geometry, with both review
+  builders reduced to orchestration for that first overlap slice.
+- [x] Extend Wikidata checked/dense review geometry normalization to the
+  hotspot overlap:
+  `src/policy/wikidata_structural_geometry.py` now also owns checked hotspot
+  summary/question geometry and dense hotspot summary/focus/family geometry,
+  with both review builders reduced further toward orchestration shells.
+- [x] Extend Wikidata checked/dense review geometry normalization to the
+  disjointness overlap:
+  `src/policy/wikidata_structural_geometry.py` now also owns checked
+  disjointness row/cue geometry and dense disjointness row/cue geometry,
+  leaving the builders closer to pure orchestration surfaces.
 - [ ] If external Wikimedia funding becomes operationally relevant for the
   Wikidata lane, keep a small maintained funding/watchlist note sourced from
   official online grant pages rather than treating "active Wikidata grants" as
@@ -99,6 +185,63 @@
   leaves cross-swapping into the wrong support or dispute row. Contract notes:
   `../docs/planning/affidavit_claim_reconciliation_contract_20260329.md` and
   `../docs/planning/affidavit_coverage_review_lane_20260325.md`.
+- [ ] Normalize duplicated affidavit reconciliation-text helpers into a shared
+  Python module instead of leaving tokenization / duplicate-heading grouping
+  logic inside wrapper scripts such as
+  `scripts/build_google_docs_contested_narrative_review.py`.
+  First bounded slice:
+  extract duplicate-filter tokenization, enumeration stripping, similarity,
+  duplicate affidavit-unit detection, and contested-response grouping behind a
+  reusable helper with focused regression coverage.
+  - DONE:
+    `src/policy/affidavit_reconciliation_text.py` now owns that first helper
+    seam, and `tests/test_affidavit_reconciliation_text.py` plus
+    `tests/test_google_docs_contested_narrative_review.py` pin the behavior.
+  - next:
+    DONE:
+    `src/policy/affidavit_text_normalization.py` now owns token filtering,
+    predicate-focus filtering, rebuttal-start detection, clause splitting, and
+    affidavit proposition decomposition, with focused coverage in
+    `tests/test_affidavit_text_normalization.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_claim_root.py` now owns duplicate-response excerpt
+    detection and claim-root field derivation, with focused coverage in
+    `tests/test_affidavit_claim_root.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_candidate_alignment.py` now owns predicate
+    alignment, quote-rebuttal support detection, and family-alignment
+    adjustment policy, with focused coverage in
+    `tests/test_affidavit_candidate_alignment.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_candidate_arbitration.py` now owns sibling-leaf
+    arbitration, duplicate-root alternate promotion, and final winner and
+    tie-break policy, with focused coverage in
+    `tests/test_affidavit_candidate_arbitration.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_response_semantics.py` now owns response packet
+    shaping, target-component selection, semantic basis, claim-state,
+    missing-dimension, and relation-classification policy, with focused
+    coverage in `tests/test_affidavit_response_semantics.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_structural_sentence.py` now owns parser-facing
+    structural sentence analysis and fallback behavior, with focused coverage
+    in `tests/test_affidavit_structural_sentence.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_lexical_heuristics.py` now owns lexical cue
+    inventory, grouped heuristic matching, and justification packet shaping,
+    with focused coverage in `tests/test_affidavit_lexical_heuristics.py`.
+  - next:
+    DONE:
+    `src/policy/affidavit_extraction_hints.py` now owns extraction-hint
+    derivation, candidate-anchor shaping, provisional-anchor ranking and
+    bundling, and hint-aware workload recommendations, with focused coverage
+    in `tests/test_affidavit_extraction_hints.py`.
 - [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
   resolver matches the documented authority order (`already-ingested/local ->
   JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search
@@ -450,13 +593,62 @@
   drift.
 - [ ] Bring the wiki revision monitor lane up to the same functional standard
   as the stronger suite pipelines before prioritizing GUI integration:
-  - add query-first helpers/read models over latest runs, changed articles,
-    severities, and issue-packet summaries instead of relying on raw
-    `result_json` blobs alone
+  - [x] Add query-first helpers/read models over latest runs, changed
+    articles, severities, and contested-graph selection so consumers stop
+    depending on script-local query assembly.
+  - [x] Add explicit SQLite run-summary and changed-article read-model tables
+    so the query lane can prefer normalized SQLite rows over `summary_json`
+    blobs for latest-run and changed-article selection.
+  - [x] Add explicit SQLite selected issue-packet rows so selected-article
+    packet detail can be queried from SQLite instead of pair-report blobs.
+  - [x] Add explicit SQLite selected-pair rows so pair kind, severity, score,
+    and section-touch summaries can be queried from SQLite instead of
+    pair-report blobs.
+  - [x] Add explicit SQLite contested-graph event and epistemic rows, and
+    assemble selected contested graphs from SQLite-first graph read models
+    instead of `graph_json` blobs.
+  - [x] Make blob fallback explicit and observable:
+    the query lane now emits `summary_source` and `selected_graph_source` so
+    operators can verify SQLite read models win over blob columns and
+    artifacts when both exist.
+  - [x] Audit the remaining legacy blob columns and freeze a deprecation
+    matrix:
+    `summary_json` and `graph_json` remain bounded backcompat writes, while
+    `packet_counts_json`, article/pair `result_json`, `score_json`, and
+    `section_delta_json` are now placeholder-only legacy columns pending a
+    later schema drop. See
+    `../docs/planning/wiki_revision_monitor_blob_deprecation_matrix_20260331.md`.
+  - [x] Freeze the versioned schema contraction plan for the remaining blob
+    columns in
+    `../docs/planning/wiki_revision_monitor_schema_contraction_plan_20260331.md`:
+    placeholder-only legacy columns are the v0.4 drop set, while
+    `summary_json` and `graph_json` remain v0.5 candidates pending stricter
+    consumer audit.
+  - [x] Complete the local workspace consumer audit and promote the v0.4
+    placeholder-only schema drop for newly created DBs:
+    `../docs/planning/wiki_revision_monitor_v0_4_placeholder_blob_drop_20260331.md`
+    and `src/wiki_timeline/revision_pack_runner.py` now remove the dropped
+    columns from new-table creation while keeping older DBs writable through
+    named-column inserts.
+  - [x] Add the in-place v0.4 migration for existing revision-monitor DBs:
+    `src/wiki_timeline/revision_pack_runner.py` now rebuilds the legacy
+    article-result and candidate-pair tables without the placeholder-only
+    columns while preserving surviving row data. Contract note:
+    `../docs/planning/wiki_revision_monitor_v0_4_in_place_migration_20260331.md`.
+  - [x] Move pack triage and run-summary assembly behind one shared Python
+    summary owner so `revision_pack_runner.py` stops owning reporting geometry
+    inline.
+  - [x] Move artifact naming and JSON IO behind one shared Python storage
+    owner so `revision_pack_runner.py` keeps orchestration/state policy rather
+    than storage mechanics.
   - keep producer-owned report surfaces explicit so other lanes can consume
     revision artifacts without re-deriving monitor logic
   - preserve the dedicated runner/state-DB posture; this is a standards/
     interoperability task, not a demand to fold the lane into `itir-svelte`
+  - next:
+    decide whether the v0.5 backcompat blobs (`summary_json`, `graph_json`)
+    should also get an in-place drop migration once their stricter consumer
+    audit is complete
 - [x] Add an OpenRecall observer integration v1 lane:
   - vendored `openrecall/` SQLite captures now import into `itir.sqlite` via a
     bounded append-only importer and normalized capture tables/read models
@@ -489,6 +681,9 @@
   - source-local preview `TextUnit` projection
   - keep outputs under `runs/<date>/outputs/notebooklm/`; do not fold them
     into `logs/notes` or dashboard waterfall/timeline accounting yet
+  - shared runs-root resolution and dated artifact discovery now live in one
+    Python loader so observer/activity reporting stops duplicating local file
+    lookup policy
 - [ ] Decide how much richer NotebookLM interaction capture should get before
   any dashboard or mission-lens activity/session integration:
   - whether conversation-history observations are sufficient, or whether the

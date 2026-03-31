@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_wikidata_dense_structural_review as dense_module
 from scripts.build_wikidata_dense_structural_review import build_dense_review_artifact
 
 
@@ -71,3 +73,22 @@ def test_build_wikidata_dense_structural_review_artifact(tmp_path: Path) -> None
     assert "Wikidata Dense Structural Review Summary" in summary_text
     assert "Normalized Metrics" in summary_text
     assert "Top Provisional Review Bundles" in summary_text
+
+
+def test_wikidata_dense_structural_review_uses_shared_io_policy() -> None:
+    source = inspect.getsource(dense_module)
+
+    assert "load_json_object(" in source
+    assert "relative_repo_path(" in source
+    assert "write_json_markdown_artifact(" in source
+
+
+def test_wikidata_dense_structural_review_uses_shared_geometry_policy() -> None:
+    source = inspect.getsource(dense_module)
+
+    assert "build_dense_qualifier_drift_row(" in source
+    assert "build_dense_qualifier_drift_cues(" in source
+    assert "build_dense_hotspot_rows(" in source
+    assert "build_dense_hotspot_cues(" in source
+    assert "build_dense_disjointness_row(" in source
+    assert "build_dense_disjointness_cues(" in source

@@ -222,6 +222,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     contested_slice_p.add_argument("--review-run-id", required=True)
 
+    contested_rows_p = sub.add_parser(
+        "contested-rows",
+        help="Show a narrow SQLite-first row inspection surface for one persisted contested affidavit review run",
+    )
+    contested_rows_p.add_argument("--review-run-id", required=True)
+    contested_rows_p.add_argument("--proposition-id", action="append", default=[])
+    contested_rows_p.add_argument("--limit", type=int, default=20)
+
     authority_runs_p = sub.add_parser("authority-runs", help="List persisted authority ingest runs")
     authority_runs_p.add_argument("--limit", type=int, default=20)
     authority_runs_p.add_argument("--authority-kind", default=None)
@@ -421,6 +429,88 @@ def main(argv: list[str] | None = None) -> int:
                     conn,
                     review_run_id=getattr(args, "review_run_id", None),
                 ),
+            }
+        elif args.command == "contested-rows":
+            review_run_id = str(getattr(args, "review_run_id", None) or "").strip()
+            proposition_ids = [str(value).strip() for value in getattr(args, "proposition_id", []) if str(value).strip()]
+            sql = """
+                SELECT
+                  proposition_id,
+                  paragraph_id,
+                  paragraph_order,
+                  sentence_order,
+                  proposition_text,
+                  coverage_status,
+                  best_source_row_id,
+                  best_match_score,
+                  best_adjusted_match_score,
+                  best_match_basis,
+                  best_match_excerpt,
+                  duplicate_match_excerpt,
+                  best_response_role,
+                  support_status,
+                  semantic_basis,
+                  promotion_status,
+                  promotion_basis,
+                  promotion_reason,
+                  support_direction,
+                  conflict_state,
+                  evidentiary_state,
+                  operational_status,
+                  relation_root,
+                  relation_leaf,
+                  primary_target_component,
+                  explanation_json,
+                  missing_dimensions_json,
+                  matched_source_rows_json
+                FROM contested_review_affidavit_rows
+                WHERE review_run_id = ?
+            """
+            params: list[object] = [review_run_id]
+            if proposition_ids:
+                placeholders = ", ".join("?" for _ in proposition_ids)
+                sql += f" AND proposition_id IN ({placeholders})"
+                params.extend(proposition_ids)
+            sql += " ORDER BY paragraph_order, sentence_order, proposition_id LIMIT ?"
+            params.append(int(getattr(args, "limit", 20)))
+            rows = conn.execute(sql, params).fetchall()
+            payload = {
+                "ok": True,
+                "dbPath": str(args.db_path.resolve()),
+                "review_run_id": review_run_id,
+                "rows": [
+                    {
+                        "proposition_id": str(row["proposition_id"]),
+                        "paragraph_id": row["paragraph_id"],
+                        "paragraph_order": int(row["paragraph_order"] or 0),
+                        "sentence_order": int(row["sentence_order"] or 0),
+                        "proposition_text": row["proposition_text"],
+                        "coverage_status": row["coverage_status"],
+                        "best_source_row_id": row["best_source_row_id"],
+                        "best_match_score": row["best_match_score"],
+                        "best_adjusted_match_score": row["best_adjusted_match_score"],
+                        "best_match_basis": row["best_match_basis"],
+                        "best_match_excerpt": row["best_match_excerpt"],
+                        "duplicate_match_excerpt": row["duplicate_match_excerpt"],
+                        "best_response_role": row["best_response_role"],
+                        "support_status": row["support_status"],
+                        "semantic_basis": row["semantic_basis"],
+                        "promotion_status": row["promotion_status"],
+                        "promotion_basis": row["promotion_basis"],
+                        "promotion_reason": row["promotion_reason"],
+                        "support_direction": row["support_direction"],
+                        "conflict_state": row["conflict_state"],
+                        "evidentiary_state": row["evidentiary_state"],
+                        "operational_status": row["operational_status"],
+                        "relation_root": row["relation_root"],
+                        "relation_leaf": row["relation_leaf"],
+                        "primary_target_component": row["primary_target_component"],
+                        "explanation": _parse_json_arg(row["explanation_json"], label="explanation_json", default={}),
+                        "missing_dimensions": _parse_json_arg(row["missing_dimensions_json"], label="missing_dimensions_json", default=[]),
+                        "matched_source_rows": _parse_json_arg(row["matched_source_rows_json"], label="matched_source_rows_json", default=[]),
+                    }
+                    for row in rows
+                ],
             }
         elif args.command == "authority-runs":
             payload = {

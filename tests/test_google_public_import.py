@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_personal_handoff_from_google_public
 from scripts.build_personal_handoff_from_google_public import build_handoff_from_google_public_artifact
+from src.fact_intake import google_public_import
 from src.fact_intake.google_public_import import (
     build_google_public_export_url,
     extract_affidavit_text_from_doc_text,
@@ -67,3 +70,27 @@ def test_build_handoff_from_google_public_artifact_uses_public_units(monkeypatch
     report = json.loads(Path(payload["report_path"]).read_text(encoding="utf-8"))
     assert payload["google_kind"] == "doc"
     assert report["recipient_export"]["exported_item_count"] == 2
+
+
+def test_google_public_script_uses_shared_handoff_artifact_writer() -> None:
+    source = inspect.getsource(build_personal_handoff_from_google_public)
+
+    assert "write_handoff_artifact(" in source
+
+
+def test_google_public_loader_uses_shared_text_unit_builder() -> None:
+    source = inspect.getsource(google_public_import)
+
+    assert "build_indexed_text_unit(" in source
+
+
+def test_google_public_loader_uses_shared_source_identity_policy() -> None:
+    source = inspect.getsource(google_public_import)
+
+    assert "build_google_public_source_id(" in source
+
+
+def test_google_public_loader_uses_shared_source_loader_policy() -> None:
+    source = inspect.getsource(google_public_import)
+
+    assert "fetch_text_url(" in source

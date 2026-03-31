@@ -8,6 +8,10 @@ import sqlite3
 from typing import TYPE_CHECKING
 from typing import Any
 
+from src.reporting.source_loaders import find_timestamped_artifact_path, resolve_loader_path
+from src.reporting.source_identity import build_openrecall_capture_id, format_local_iso_and_date_from_timestamp
+from src.reporting.text_unit_builders import build_header_body_text
+
 if TYPE_CHECKING:
     from src.reporting.structure_report import TextUnit
 
@@ -92,31 +96,12 @@ def ensure_openrecall_capture_schema(conn: sqlite3.Connection) -> None:
     )
 
 
-def _capture_id(source_db_path: str, source_timestamp: int) -> str:
-    digest = hashlib.sha1(f"{source_db_path}|{source_timestamp}".encode("utf-8")).hexdigest()[:16]
-    return f"openrecall:{digest}"
-
-
-def _iso_and_date_from_timestamp(ts: int) -> tuple[str, str]:
-    local_dt = datetime.fromtimestamp(int(ts)).astimezone()
-    return local_dt.isoformat(timespec="seconds"), local_dt.date().isoformat()
-
-
 def _screenshot_path_for_timestamp(*, source_db_path: Path, storage_path: Path | None, timestamp: int) -> Path | None:
     candidates: list[Path] = []
     if storage_path is not None:
         candidates.append(storage_path / "screenshots")
     candidates.append(source_db_path.parent / "screenshots")
-    for root in candidates:
-        if not root.exists():
-            continue
-        exact = sorted(root.glob(f"{timestamp}.webp"))
-        if exact:
-            return exact[0]
-        indexed = sorted(root.glob(f"{timestamp}_*.webp"))
-        if indexed:
-            return indexed[0]
-    return None
+    return find_timestamped_artifact_path(search_roots=candidates, timestamp=timestamp, suffix=".webp")
 
 
 def _content_sha1(app_name: str, window_title: str, ocr_text: str) -> str:
@@ -131,10 +116,7 @@ def _unit_text(app_name: str, window_title: str, ocr_text: str) -> str:
     if window_title.strip():
         parts.append(window_title.strip())
     header = " ".join(parts).strip()
-    body = str(ocr_text or "").strip()
-    if header and body:
-        return f"{header}\n{body}"
-    return header or body
+    return build_header_body_text(header=header, body=str(ocr_text or "").strip())
 
 
 def import_openrecall_db(
@@ -146,8 +128,8 @@ def import_openrecall_db(
     limit: int | None = None,
 ) -> OpenRecallImportSummary:
     ensure_openrecall_capture_schema(conn)
-    resolved_source = Path(source_db_path).expanduser().resolve()
-    resolved_storage = Path(storage_path).expanduser().resolve() if storage_path is not None else None
+    resolved_source = resolve_loader_path(source_db_path)
+    resolved_storage = resolve_loader_path(storage_path) if storage_path is not None else None
     with sqlite3.connect(str(resolved_source)) as src:
         src.row_factory = sqlite3.Row
         query = """
@@ -185,8 +167,8 @@ def import_openrecall_db(
     imported_count = 0
     for row in rows:
         ts = int(row["timestamp"])
-        capture_id = _capture_id(str(resolved_source), ts)
-        captured_at, captured_date = _iso_and_date_from_timestamp(ts)
+        capture_id = build_openrecall_capture_id(source_db_path=str(resolved_source), source_timestamp=ts)
+        captured_at, captured_date = format_local_iso_and_date_from_timestamp(ts)
         app_name = str(row["app"] or "")
         window_title = str(row["title"] or "")
         ocr_text = str(row["text"] or "")

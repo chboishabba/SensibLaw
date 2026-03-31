@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import sqlite3
 from pathlib import Path
@@ -21,6 +22,7 @@ from src.fact_intake import (
 )
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
+import src.fact_intake.au_review_bundle as au_review_bundle
 
 
 def _seed_au_fixture_db(db_path: Path) -> str:
@@ -164,3 +166,33 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["operator_views"]["authority_follow"]["queue"][0]["resolution_status"] == "open"
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])
+
+
+def test_au_bundle_uses_shared_review_bundle_component() -> None:
+    source = inspect.getsource(au_review_bundle.build_au_fact_review_bundle)
+    assert "build_event_chronology(" in source
+    assert "build_abstentions(" in source
+    assert "build_fact_review_bundle_payload(" in source
+
+
+def test_au_payload_uses_shared_payload_builder() -> None:
+    source = inspect.getsource(au_review_bundle.build_fact_intake_payload_from_au_semantic_report)
+    assert "build_fact_intake_run(" in source
+    assert "build_source_rows(" in source
+    assert "ensure_event_source_row(" in source
+    assert "build_excerpt_row(" in source
+    assert "build_statement_row(" in source
+    assert "build_fact_candidate_row(" in source
+    assert "build_fact_intake_payload(" in source
+
+
+def test_au_payload_uses_shared_observation_projection_path() -> None:
+    source = inspect.getsource(au_review_bundle.build_fact_intake_payload_from_au_semantic_report)
+    assert "build_role_observation(" in source
+    assert "build_relation_observation(" in source
+
+
+def test_au_payload_uses_shared_projection_helpers() -> None:
+    source = inspect.getsource(au_review_bundle.build_fact_intake_payload_from_au_semantic_report)
+    assert "fact_status_for_statement(" in source
+    assert "observation_status_from_relation(" in source

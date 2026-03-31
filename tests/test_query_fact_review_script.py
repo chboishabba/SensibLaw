@@ -722,3 +722,65 @@ def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys
     assert proving_slice["sections"]["missing"][0]["relation_leaf"] == "missing"
     assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
     assert proving_slice["next_steps"]
+
+
+def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    source_payload = {
+        "version": "fact.review.bundle.v1",
+        "run": {"source_label": "query_contested_rows_demo"},
+        "facts": [
+            {
+                "fact_id": "fact:f1",
+                "fact_text": "The witness attended the meeting on Tuesday.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+            {
+                "fact_id": "fact:f2",
+                "fact_text": "The witness denied attending the second meeting.",
+                "candidate_status": "candidate",
+                "statement_ids": [],
+                "excerpt_ids": [],
+                "source_ids": [],
+            },
+        ],
+        "review_queue": [
+            {"fact_id": "fact:f1", "contestation_count": 0, "reason_codes": [], "latest_review_status": "reviewed"},
+            {"fact_id": "fact:f2", "contestation_count": 1, "reason_codes": ["source_conflict"], "latest_review_status": "contested"},
+        ],
+    }
+    result = write_affidavit_coverage_review(
+        output_dir=tmp_path / "artifact",
+        source_payload=source_payload,
+        affidavit_text=(
+            "The witness attended the meeting on Tuesday.\n\n"
+            "The witness denied attending the second meeting."
+        ),
+        source_path="bundle.json",
+        affidavit_path="draft.txt",
+        db_path=Path(db_path),
+    )
+    review_run_id = result["persist_summary"]["review_run_id"]
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "contested-rows",
+            "--review-run-id",
+            review_run_id,
+            "--proposition-id",
+            "aff-prop:p2-s1",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["review_run_id"] == review_run_id
+    assert len(payload["rows"]) == 1
+    row = payload["rows"][0]
+    assert row["proposition_id"] == "aff-prop:p2-s1"
+    assert row["relation_root"] in {"invalidates", "supports", "non_resolving", "unanswered"}
+    assert isinstance(row["matched_source_rows"], list)

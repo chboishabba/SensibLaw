@@ -5,6 +5,11 @@ from typing import Any, Mapping
 
 from src.reporting.structure_report import TextUnit
 
+from .disclosure_policy import (
+    DEFAULT_HANDOFF_SHARE_WITH,
+    DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES,
+    normalize_profile,
+)
 from .personal_handoff_bundle import build_personal_handoff_report
 from .protected_disclosure_envelope import build_protected_disclosure_envelope
 
@@ -79,11 +84,12 @@ def build_handoff_input_from_chat_json(input_payload: Mapping[str, Any]) -> dict
     protected = mode == "protected_disclosure_envelope"
     if mode not in {"personal_handoff", "protected_disclosure_envelope"}:
         raise ValueError(f"unsupported mode: {mode}")
+    recipient_profile = normalize_profile(str(input_payload.get("recipient_profile") or ""))
     payload = {
         "mode": mode,
         "source_label": str(input_payload.get("source_label") or "").strip(),
         "notes": input_payload.get("notes"),
-        "recipient_profile": input_payload.get("recipient_profile"),
+        "recipient_profile": recipient_profile,
         "handoff": dict(input_payload.get("handoff") or {}),
         "entries": _normalize_messages_to_entries(input_payload, protected=protected),
         "observations": list(input_payload.get("observations", [])) if isinstance(input_payload.get("observations"), list) else [],
@@ -109,7 +115,8 @@ def build_handoff_input_from_units(
     if mode not in {"personal_handoff", "protected_disclosure_envelope"}:
         raise ValueError(f"unsupported mode: {mode}")
     protected = mode == "protected_disclosure_envelope"
-    share_with = list(default_share_with) if default_share_with else ["lawyer", "doctor", "advocate", "regulator"]
+    recipient_profile = normalize_profile(recipient_profile)
+    share_with = list(default_share_with) if default_share_with else list(DEFAULT_HANDOFF_SHARE_WITH)
     messages: list[dict[str, Any]] = []
     for unit in units:
         message: dict[str, Any] = {
@@ -139,7 +146,7 @@ def build_handoff_input_from_units(
                     "disclosure_level": "protected_disclosure_v1",
                     "envelope_policy": "protected_disclosure_local_only_v1",
                     "handling_notice": "Protected-disclosure material must remain local-only and scoped to legal or regulatory recipients.",
-                    "allowed_recipient_profiles": ["lawyer", "regulator"],
+                    "allowed_recipient_profiles": list(DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES),
                 },
             }
         )

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -14,6 +13,7 @@ from src.transcript_semantic.semantic import build_transcript_semantic_report, r
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
 
 from .au_review_bundle import build_au_fact_review_bundle, build_fact_intake_payload_from_au_semantic_report
+from .payload_mutations import append_payload_contestation, append_payload_observation, append_payload_review
 from .read_model import (
     OBSERVATION_PREDICATE_TO_FAMILY,
     build_fact_intake_payload_from_text_units,
@@ -45,14 +45,6 @@ def default_fact_review_fixture_manifest_path(wave: str = "wave1_legal") -> Path
 
 def default_wave1_fixture_manifest_path() -> Path:
     return default_fact_review_fixture_manifest_path("wave1_legal")
-
-
-def _stable_json(payload: object) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _sha256_payload(payload: object) -> str:
-    return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
 
 
 def _manifest_fixtures(path: Path | None = None, *, wave: str = "wave1_legal") -> list[dict[str, Any]]:
@@ -96,29 +88,23 @@ def _append_observation(
     observation_status: str = "captured",
     provenance: Mapping[str, Any] | None = None,
 ) -> None:
-    statement = payload["statements"][statement_index]
-    excerpt = payload["excerpts"][statement_index]
-    source = next((row for row in payload["sources"] if row["source_id"] == excerpt["source_id"]), payload["sources"][0])
-    observation_id = f"obs:{_sha256_payload({'run_id': payload['run']['run_id'], 'fixture_key': fixture_key, 'statement_id': statement['statement_id'], 'predicate_key': predicate_key, 'object_text': object_text})[:16]}"
-    payload["observations"].append(
-        {
-            "observation_id": observation_id,
-            "statement_id": statement["statement_id"],
-            "excerpt_id": excerpt["excerpt_id"],
-            "source_id": source["source_id"],
-            "observation_order": len(
-                [row for row in payload["observations"] if row["statement_id"] == statement["statement_id"]]
-            )
-            + 1,
+    append_payload_observation(
+        payload,
+        statement_index=statement_index,
+        predicate_key=predicate_key,
+        predicate_family=OBSERVATION_PREDICATE_TO_FAMILY[predicate_key],
+        object_text=object_text,
+        object_type=object_type,
+        subject_text=subject_text,
+        object_ref=object_ref,
+        observation_status=observation_status,
+        identity_fields={
+            "fixture_key": fixture_key,
+            "statement_id": payload["statements"][statement_index]["statement_id"],
             "predicate_key": predicate_key,
-            "predicate_family": OBSERVATION_PREDICATE_TO_FAMILY[predicate_key],
             "object_text": object_text,
-            "object_type": object_type,
-            "object_ref": object_ref,
-            "subject_text": subject_text,
-            "observation_status": observation_status,
-            "provenance": dict(provenance or {"source": "acceptance_fixture", "fixture_key": fixture_key}),
-        }
+        },
+        provenance=dict(provenance or {"source": "acceptance_fixture", "fixture_key": fixture_key}),
     )
 
 
@@ -130,17 +116,19 @@ def _append_review(
     review_status: str,
     note: str,
 ) -> None:
-    fact = payload["fact_candidates"][fact_index]
-    review_id = f"review:{_sha256_payload({'run_id': payload['run']['run_id'], 'fixture_key': fixture_key, 'fact_id': fact['fact_id'], 'review_status': review_status, 'note': note})[:16]}"
-    payload["reviews"].append(
-        {
-            "review_id": review_id,
-            "fact_id": fact["fact_id"],
+    append_payload_review(
+        payload,
+        fact_index=fact_index,
+        review_status=review_status,
+        reviewer="mary-parity-acceptance",
+        note=note,
+        identity_fields={
+            "fixture_key": fixture_key,
+            "fact_id": payload["fact_candidates"][fact_index]["fact_id"],
             "review_status": review_status,
-            "reviewer": "mary-parity-acceptance",
             "note": note,
-            "provenance": {"source": "acceptance_fixture", "fixture_key": fixture_key},
-        }
+        },
+        provenance={"source": "acceptance_fixture", "fixture_key": fixture_key},
     )
 
 
@@ -154,23 +142,24 @@ def _append_contestation(
     status: str = "disputed",
     contestation_scope: str | None = None,
 ) -> None:
-    fact = payload["fact_candidates"][fact_index]
-    statement = payload["statements"][statement_index]
-    contestation_id = f"contest:{_sha256_payload({'run_id': payload['run']['run_id'], 'fixture_key': fixture_key, 'fact_id': fact['fact_id'], 'statement_id': statement['statement_id'], 'reason_text': reason_text})[:16]}"
-    payload["contestations"].append(
-        {
-            "contestation_id": contestation_id,
-            "fact_id": fact["fact_id"],
-            "statement_id": statement["statement_id"],
-            "contestation_status": status,
+    append_payload_contestation(
+        payload,
+        fact_index=fact_index,
+        statement_index=statement_index,
+        status=status,
+        reason_text=reason_text,
+        author="mary-parity-acceptance",
+        identity_fields={
+            "fixture_key": fixture_key,
+            "fact_id": payload["fact_candidates"][fact_index]["fact_id"],
+            "statement_id": payload["statements"][statement_index]["statement_id"],
             "reason_text": reason_text,
-            "author": "mary-parity-acceptance",
-            "provenance": {
-                "source": "acceptance_fixture",
-                "fixture_key": fixture_key,
-                **({"contestation_scope": contestation_scope} if contestation_scope else {}),
-            },
-        }
+        },
+        provenance={
+            "source": "acceptance_fixture",
+            "fixture_key": fixture_key,
+            **({"contestation_scope": contestation_scope} if contestation_scope else {}),
+        },
     )
 
 

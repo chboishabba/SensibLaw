@@ -21,15 +21,38 @@ from scripts.build_wikidata_structural_handoff import (
     _build_slice,
 )
 from scripts.build_wikidata_structural_review import (
-    _make_bundles,
     _make_clusters,
-    _make_provisional_rows,
     _make_review_items,
 )
+try:
+    from src.policy.wikidata_review_queue import (
+        make_bundles as _make_bundles,
+        make_provisional_rows as _make_provisional_rows,
+        next_action_for_workload as _next_action_for_workload,
+    )
+except ModuleNotFoundError:
+    from policy.wikidata_review_queue import (
+        make_bundles as _make_bundles,
+        make_provisional_rows as _make_provisional_rows,
+        next_action_for_workload as _next_action_for_workload,
+    )
 from scripts.review_geometry_profiles import get_normalized_profile
 from scripts.review_geometry_normalization import (
     compute_normalized_metrics_from_profile,
     render_normalized_metrics_markdown,
+)
+from src.policy.wikidata_structural_geometry import (
+    build_dense_disjointness_cues,
+    build_dense_disjointness_row,
+    build_dense_hotspot_cues,
+    build_dense_hotspot_rows,
+    build_dense_qualifier_drift_cues,
+    build_dense_qualifier_drift_row,
+)
+from src.policy.wikidata_structural_io import (
+    load_json_object,
+    relative_repo_path,
+    write_json_markdown_artifact,
 )
 
 
@@ -37,15 +60,8 @@ ARTIFACT_VERSION = "wikidata_dense_structural_review_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"JSON payload must be an object: {path}")
-    return payload
-
-
 def _relative(path: Path) -> str:
-    return str(path.resolve().relative_to(REPO_ROOT))
+    return relative_repo_path(path, repo_root=REPO_ROOT)
 
 
 def _label_for(label_map: dict[str, Any], qid: str | None) -> str:
@@ -57,9 +73,9 @@ def _label_for(label_map: dict[str, Any], qid: str | None) -> str:
 def _build_source_review_rows() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     checked_slice = _build_slice()
-    baseline_payload = _load_json(QUALIFIER_BASELINE_PATH)
-    drift_projection = _load_json(QUALIFIER_DRIFT_PROJECTION_PATH)
-    hotspot_manifest = _load_json(HOTSPOT_MANIFEST_PATH)
+    baseline_payload = load_json_object(QUALIFIER_BASELINE_PATH)
+    drift_projection = load_json_object(QUALIFIER_DRIFT_PROJECTION_PATH)
+    hotspot_manifest = load_json_object(HOTSPOT_MANIFEST_PATH)
     baseline_item_id = "review:qualifier_baseline"
     drift_item_id = f"review:qualifier_drift:{checked_slice['qualifier_core']['drift_case']['slot_id']}"
 
@@ -77,7 +93,7 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
                     "source_kind": "qualifier_statement_bundle",
                     "workload_class": "baseline_confirmation",
                     "review_status": "baseline",
-                    "recommended_next_action": "retain as checked baseline",
+                    "recommended_next_action": _next_action_for_workload("baseline_confirmation"),
                     "source_path": _relative(QUALIFIER_BASELINE_PATH),
                     "text": (
                         f"{subject} {bundle.get('property')} {value} in {window_id} "
@@ -94,25 +110,12 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
 
     for drift_row in drift_projection.get("qualifier_drift", []):
         rows.append(
-            {
-                "source_row_id": f"source:dense:qualifier_drift:{drift_row['slot_id']}",
-                "review_item_id": drift_item_id,
-                "source_kind": "qualifier_drift_summary",
-                "workload_class": "qualifier_drift_gap",
-                "review_status": "review_required",
-                "recommended_next_action": "inspect qualifier signature drift across revision windows",
-                "source_path": _relative(QUALIFIER_DRIFT_PROJECTION_PATH),
-                "text": (
-                    f"{drift_row['slot_id']} drift from {drift_row['from_window']} to "
-                    f"{drift_row['to_window']} at severity={drift_row['severity']}."
-                ),
-                "cue_payload": {
-                    "qualifier_signatures_t1": drift_row.get("qualifier_signatures_t1", []),
-                    "qualifier_signatures_t2": drift_row.get("qualifier_signatures_t2", []),
-                    "qualifier_property_set_t1": drift_row.get("qualifier_property_set_t1", []),
-                    "qualifier_property_set_t2": drift_row.get("qualifier_property_set_t2", []),
-                },
-            }
+            build_dense_qualifier_drift_row(
+                drift_row=drift_row,
+                review_item_id=drift_item_id,
+                source_path=_relative(QUALIFIER_DRIFT_PROJECTION_PATH),
+                recommended_next_action=_next_action_for_workload("qualifier_drift_gap"),
+            )
         )
 
     for pack in hotspot_manifest.get("entries", []):
@@ -122,67 +125,19 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
         workload_class = "governance_gap" if pack.get("promotion_status") != "promoted" else "cluster_promotion_gap"
         review_status = "review_required" if workload_class == "governance_gap" else "promoted"
         item_id = f"review:hotspot_pack:{pack_id}"
-        rows.append(
-            {
-                "source_row_id": f"source:dense:hotspot_pack:{pack_id}",
-                "review_item_id": item_id,
-                "source_kind": "hotspot_pack_summary",
-                "workload_class": workload_class,
-                "review_status": review_status,
-                "recommended_next_action": (
-                    "promote held hotspot pack through manifest governance"
-                    if workload_class == "governance_gap"
-                    else "preserve as promoted structural exemplar"
-                ),
-                "source_path": _relative(HOTSPOT_MANIFEST_PATH),
-                "text": f"{pack_id} focuses on {','.join(pack.get('focus_qids', []))}.",
-                "cue_payload": {
-                    "hold_reason": pack.get("hold_reason") or pack.get("status"),
-                    "focus_qids": pack.get("focus_qids", []),
-                    "candidate_cluster_families": pack.get("candidate_cluster_families", []),
-                    "source_artifacts": pack.get("source_artifacts", []),
-                },
-            }
+        rows.extend(
+            build_dense_hotspot_rows(
+                pack=pack,
+                item_id=item_id,
+                workload_class=workload_class,
+                review_status=review_status,
+                recommended_next_action=_next_action_for_workload(workload_class),
+                source_path=_relative(HOTSPOT_MANIFEST_PATH),
+            )
         )
-        for index, qid in enumerate(pack.get("focus_qids", []), start=1):
-            rows.append(
-                {
-                    "source_row_id": f"source:dense:hotspot_focus:{pack_id}:{index}",
-                    "review_item_id": item_id,
-                    "source_kind": "hotspot_focus_qid",
-                    "workload_class": workload_class,
-                    "review_status": review_status,
-                    "recommended_next_action": (
-                        "promote held hotspot pack through manifest governance"
-                        if workload_class == "governance_gap"
-                        else "preserve as promoted structural exemplar"
-                    ),
-                    "source_path": _relative(HOTSPOT_MANIFEST_PATH),
-                    "text": f"Focus QID {qid}",
-                    "cue_payload": {"focus_qid": qid},
-                }
-            )
-        for index, family in enumerate(pack.get("candidate_cluster_families", []), start=1):
-            rows.append(
-                {
-                    "source_row_id": f"source:dense:hotspot_cluster_family:{pack_id}:{index}",
-                    "review_item_id": item_id,
-                    "source_kind": "hotspot_cluster_family",
-                    "workload_class": workload_class,
-                    "review_status": review_status,
-                    "recommended_next_action": (
-                        "promote held hotspot pack through manifest governance"
-                        if workload_class == "governance_gap"
-                        else "preserve as promoted structural exemplar"
-                    ),
-                    "source_path": _relative(HOTSPOT_MANIFEST_PATH),
-                    "text": family,
-                    "cue_payload": {"cluster_family": family},
-                }
-            )
 
     for case_id, path in DISJOINTNESS_CASE_PATHS.items():
-        payload = _load_json(path)
+        payload = load_json_object(path)
         label_map = payload.get("metadata", {}).get("label_map", {})
         review_item_id = f"review:disjointness_case:{case_id}"
         workload_class = "baseline_confirmation"
@@ -199,26 +154,20 @@ def _build_source_review_rows() -> list[dict[str, Any]]:
                     f"{_label_for(label_map, value)} ({value})"
                 )
                 rows.append(
-                    {
-                        "source_row_id": f"source:dense:disjointness:{case_id}:{index}",
-                        "review_item_id": review_item_id,
-                        "source_kind": "disjointness_statement_bundle",
-                        "workload_class": workload_class,
-                        "review_status": review_status,
-                        "recommended_next_action": (
-                            "review contradiction culprits and preserve disjointness evidence"
-                            if workload_class == "structural_contradiction"
-                            else "retain as checked baseline"
-                        ),
-                        "source_path": _relative(path),
-                        "text": text,
-                        "cue_payload": {
-                            "subject": subject,
-                            "value": value,
-                            "property": bundle.get("property"),
-                            "qualifier_keys": sorted((bundle.get("qualifiers") or {}).keys()),
-                        },
-                    }
+                    build_dense_disjointness_row(
+                        case_id=case_id,
+                        review_item_id=review_item_id,
+                        workload_class=workload_class,
+                        review_status=review_status,
+                        recommended_next_action=_next_action_for_workload(workload_class),
+                        source_path=_relative(path),
+                        index=index,
+                        text=text,
+                        subject=subject,
+                        value=value,
+                        property_pid=str(bundle.get("property") or ""),
+                        qualifier_keys=sorted((bundle.get("qualifiers") or {}).keys()),
+                    )
                 )
     return rows
 
@@ -246,70 +195,13 @@ def _make_candidate_structural_cues(source_rows: list[dict[str, Any]]) -> list[d
                         "cue_kind": "qualifier_property",
                         "cue_value": key,
                     }
-                )
+            )
         elif row["source_kind"] == "qualifier_drift_summary":
-            for signature in payload.get("qualifier_signatures_t2", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:signature:{len(cues)+1}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "qualifier_signature_delta",
-                        "cue_value": signature,
-                    }
-                )
-        elif row["source_kind"] == "hotspot_pack_summary":
-            for qid in payload.get("focus_qids", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:focus_qid:{qid}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "focus_qid",
-                        "cue_value": qid,
-                    }
-                )
-            for family in payload.get("candidate_cluster_families", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:cluster_family:{family}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "cluster_family",
-                        "cue_value": family,
-                    }
-                )
-        elif row["source_kind"] in {"hotspot_focus_qid", "hotspot_cluster_family"}:
-            cue_key = "focus_qid" if "focus_qid" in payload else "cluster_family"
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:{cue_key}",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": cue_key,
-                    "cue_value": payload[cue_key],
-                }
-            )
+            cues.extend(build_dense_qualifier_drift_cues(row))
+        elif row["source_kind"] in {"hotspot_pack_summary", "hotspot_focus_qid", "hotspot_cluster_family"}:
+            cues.extend(build_dense_hotspot_cues(row))
         elif row["source_kind"] == "disjointness_statement_bundle":
-            cues.append(
-                {
-                    "cue_id": f"{row['source_row_id']}:property",
-                    "source_row_id": row["source_row_id"],
-                    "review_item_id": row["review_item_id"],
-                    "cue_kind": "property_pid",
-                    "cue_value": payload["property"],
-                }
-            )
-            for key in payload.get("qualifier_keys", []):
-                cues.append(
-                    {
-                        "cue_id": f"{row['source_row_id']}:qualifier:{key}",
-                        "source_row_id": row["source_row_id"],
-                        "review_item_id": row["review_item_id"],
-                        "cue_kind": "qualifier_property",
-                        "cue_value": key,
-                    }
-                )
+            cues.extend(build_dense_disjointness_cues(row))
     return cues
 
 
@@ -376,12 +268,12 @@ def build_dense_review_artifact(output_dir: Path) -> dict[str, Any]:
         provisional_bundle_count=len(provisional_review_bundles),
     )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    artifact_path = output_dir / f"{ARTIFACT_VERSION}.json"
-    summary_path = output_dir / f"{ARTIFACT_VERSION}.summary.md"
-    artifact_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    summary_path.write_text(build_summary_markdown(payload), encoding="utf-8")
-    return {"artifact_path": str(artifact_path), "summary_path": str(summary_path)}
+    return write_json_markdown_artifact(
+        output_dir=output_dir,
+        artifact_version=ARTIFACT_VERSION,
+        payload=payload,
+        summary_text=build_summary_markdown(payload),
+    )
 
 
 def build_summary_markdown(payload: dict[str, Any]) -> str:

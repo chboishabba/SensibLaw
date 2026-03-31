@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from src.reporting.structure_report import TextUnit
 
+from .disclosure_policy import (
+    DEFAULT_HANDOFF_SHARE_WITH,
+    DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES,
+    ProtectedDisclosureSettings,
+    build_protected_disclosure_settings,
+    created_at_utc,
+    normalize_profile,
+    normalize_share_with,
+)
+from .payload_mutations import append_payload_observation, append_payload_review
 from .read_model import (
     OBSERVATION_PREDICATE_TO_FAMILY,
     build_fact_intake_payload_from_text_units,
@@ -50,34 +57,6 @@ class EntryPolicy:
     protected_disclosure_reason: str | None
 
 
-@dataclass(frozen=True)
-class ProtectedDisclosureEnvelope:
-    enabled: bool
-    disclosure_level: str
-    envelope_policy: str
-    handling_notice: str
-    allowed_recipient_profiles: tuple[str, ...]
-
-
-def _stable_json(payload: object) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _sha256_payload(payload: object) -> str:
-    return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
-
-
-def _created_at_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _normalize_profile(profile: str) -> str:
-    text = str(profile or "").strip().casefold()
-    if text not in _RECIPIENT_PROFILES:
-        raise ValueError(f"unsupported recipient_profile: {profile}")
-    return text
-
-
 def _normalize_signal_classes(entry: Mapping[str, Any]) -> list[str]:
     explicit = entry.get("signal_classes")
     if isinstance(explicit, list) and explicit:
@@ -86,10 +65,11 @@ def _normalize_signal_classes(entry: Mapping[str, Any]) -> list[str]:
 
 
 def _normalize_share_with(entry: Mapping[str, Any]) -> list[str]:
-    raw = entry.get("share_with")
-    if not isinstance(raw, list) or not raw:
-        return ["lawyer", "doctor", "advocate", "regulator"]
-    return [_normalize_profile(str(value)) for value in raw]
+    return normalize_share_with(
+        entry,
+        default_share_with=DEFAULT_HANDOFF_SHARE_WITH,
+        field_name="entry.share_with",
+    )
 
 
 def _normalize_text_export_policy(entry: Mapping[str, Any]) -> str:
@@ -104,30 +84,16 @@ def _normalize_protected_disclosure_reason(entry: Mapping[str, Any]) -> str | No
     return text or None
 
 
-def _build_protected_disclosure_envelope(handoff_flags: Mapping[str, Any]) -> ProtectedDisclosureEnvelope:
-    raw = handoff_flags.get("protected_disclosure")
-    if not isinstance(raw, Mapping) or not bool(raw.get("enabled")):
-        return ProtectedDisclosureEnvelope(
-            enabled=False,
-            disclosure_level="none",
-            envelope_policy="none",
-            handling_notice="",
-            allowed_recipient_profiles=(),
-        )
-    allowed_raw = raw.get("allowed_recipient_profiles")
-    if isinstance(allowed_raw, list) and allowed_raw:
-        allowed = tuple(_normalize_profile(str(value)) for value in allowed_raw)
-    else:
-        allowed = ("lawyer", "regulator")
-    return ProtectedDisclosureEnvelope(
-        enabled=True,
-        disclosure_level=str(raw.get("disclosure_level") or "protected_disclosure_v1"),
-        envelope_policy=str(raw.get("envelope_policy") or "protected_disclosure_local_only_v1"),
-        handling_notice=str(
-            raw.get("handling_notice")
-            or "Protected-disclosure material must remain local-only, do-not-sync, and scoped to permitted recipients."
+def _build_protected_disclosure_envelope(handoff_flags: Mapping[str, Any]) -> ProtectedDisclosureSettings:
+    return build_protected_disclosure_settings(
+        handoff_flags,
+        require_enabled=False,
+        default_allowed_recipient_profiles=DEFAULT_PROTECTED_ALLOWED_RECIPIENT_PROFILES,
+        default_disclosure_level="protected_disclosure_v1",
+        default_envelope_policy="protected_disclosure_local_only_v1",
+        default_handling_notice=(
+            "Protected-disclosure material must remain local-only, do-not-sync, and scoped to permitted recipients."
         ),
-        allowed_recipient_profiles=allowed,
     )
 
 
@@ -214,45 +180,34 @@ def _append_observation(payload: dict[str, Any], observation: Mapping[str, Any],
     predicate_key = str(observation.get("predicate_key") or "").strip()
     if predicate_key not in OBSERVATION_PREDICATE_TO_FAMILY:
         raise ValueError(f"unsupported observation predicate_key: {predicate_key}")
-    statement = payload["statements"][statement_index]
-    excerpt = payload["excerpts"][statement_index]
-    source = next((row for row in payload["sources"] if row["source_id"] == excerpt["source_id"]), payload["sources"][0])
     object_text = str(observation.get("object_text") or "").strip()
     if not object_text:
         raise ValueError("observation.object_text is required")
-    observation_id = "obs:" + _sha256_payload(
-        {
-            "run_id": payload["run"]["run_id"],
+    append_payload_observation(
+        payload,
+        statement_index=statement_index,
+        predicate_key=predicate_key,
+        predicate_family=OBSERVATION_PREDICATE_TO_FAMILY[predicate_key],
+        object_text=object_text,
+        object_type=str(observation.get("object_type") or "note"),
+        object_ref=observation.get("object_ref"),
+        subject_text=observation.get("subject_text"),
+        observation_status=str(observation.get("observation_status") or "captured"),
+        identity_fields={
             "unit_id": unit_id,
             "predicate_key": predicate_key,
             "object_text": object_text,
             "order": len(payload["observations"]),
-        }
-    )[:16]
-    payload["observations"].append(
-        {
-            "observation_id": observation_id,
-            "statement_id": statement["statement_id"],
-            "excerpt_id": excerpt["excerpt_id"],
-            "source_id": source["source_id"],
-            "observation_order": len([row for row in payload["observations"] if row["statement_id"] == statement["statement_id"]]) + 1,
-            "predicate_key": predicate_key,
-            "predicate_family": OBSERVATION_PREDICATE_TO_FAMILY[predicate_key],
-            "object_text": object_text,
-            "object_type": str(observation.get("object_type") or "note"),
-            "object_ref": observation.get("object_ref"),
-            "subject_text": observation.get("subject_text"),
-            "observation_status": str(observation.get("observation_status") or "captured"),
-            "provenance": {
-                "source": "personal_handoff_input",
-                "unit_id": unit_id,
-                **(
-                    {"signal_classes": [str(value) for value in observation.get("signal_classes", [])]}
-                    if isinstance(observation.get("signal_classes"), list)
-                    else {}
-                ),
-            },
-        }
+        },
+        provenance={
+            "source": "personal_handoff_input",
+            "unit_id": unit_id,
+            **(
+                {"signal_classes": [str(value) for value in observation.get("signal_classes", [])]}
+                if isinstance(observation.get("signal_classes"), list)
+                else {}
+            ),
+        },
     )
 
 
@@ -261,29 +216,23 @@ def _append_review(payload: dict[str, Any], review: Mapping[str, Any], fact_inde
     fact_index = fact_index_by_unit_id.get(unit_id)
     if fact_index is None:
         raise ValueError(f"review references unknown unit_id: {unit_id}")
-    fact = payload["fact_candidates"][fact_index]
     review_status = str(review.get("review_status") or "").strip()
     if not review_status:
         raise ValueError("review.review_status is required")
     note = str(review.get("note") or "").strip()
-    review_id = "review:" + _sha256_payload(
-        {
-            "run_id": payload["run"]["run_id"],
+    append_payload_review(
+        payload,
+        fact_index=fact_index,
+        review_status=review_status,
+        reviewer="personal_handoff_builder",
+        note=note,
+        identity_fields={
             "unit_id": unit_id,
-            "fact_id": fact["fact_id"],
+            "fact_id": payload["fact_candidates"][fact_index]["fact_id"],
             "review_status": review_status,
             "note": note,
-        }
-    )[:16]
-    payload["reviews"].append(
-        {
-            "review_id": review_id,
-            "fact_id": fact["fact_id"],
-            "review_status": review_status,
-            "reviewer": "personal_handoff_builder",
-            "note": note,
-            "provenance": {"source": "personal_handoff_input", "unit_id": unit_id},
-        }
+        },
+        provenance={"source": "personal_handoff_input", "unit_id": unit_id},
     )
 
 
@@ -292,7 +241,7 @@ def build_personal_handoff_report(input_payload: Mapping[str, Any]) -> dict[str,
     if not source_label:
         raise ValueError("source_label is required")
     notes = str(input_payload.get("notes") or "").strip() or None
-    recipient_profile = _normalize_profile(str(input_payload.get("recipient_profile") or ""))
+    recipient_profile = normalize_profile(str(input_payload.get("recipient_profile") or ""))
     handoff_flags = input_payload.get("handoff") if isinstance(input_payload.get("handoff"), Mapping) else {}
     protected_envelope = _build_protected_disclosure_envelope(handoff_flags)
     entries = list(input_payload.get("entries", [])) if isinstance(input_payload.get("entries"), list) else []
@@ -393,7 +342,7 @@ def build_personal_handoff_report(input_payload: Mapping[str, Any]) -> dict[str,
     preferred_view = operator_views[preferred_view_key]
     return {
         "version": PERSONAL_HANDOFF_REPORT_VERSION,
-        "created_at": _created_at_utc(),
+        "created_at": created_at_utc(),
         "run": {
             "source_label": source_label,
             "fact_run_id": fact_payload["run"]["run_id"],

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_gwb_broader_review as module
 from scripts.build_gwb_broader_review import ARTIFACT_VERSION, build_gwb_broader_review
 
 
@@ -62,3 +64,11 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert "GWB Broader Review" in summary_text
     assert "Normalized Metrics" in summary_text
     assert "Top Provisional Review Bundles" in summary_text
+
+
+def test_gwb_broader_review_consumes_shared_queueing_component() -> None:
+    rows_src = inspect.getsource(module._build_provisional_rows)
+    bundles_src = inspect.getsource(module._build_bundles)
+
+    assert "_build_provisional_structured_anchors_impl" in rows_src
+    assert "_build_provisional_anchor_bundles_impl" in bundles_src

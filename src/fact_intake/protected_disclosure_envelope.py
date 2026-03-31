@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import hashlib
-import json
-from datetime import datetime, timezone
 from typing import Any, Mapping
+
+from .disclosure_policy import (
+    build_protected_disclosure_settings,
+    created_at_utc,
+    normalize_profile,
+    normalize_share_with,
+    sha256_payload,
+)
 
 PROTECTED_DISCLOSURE_ENVELOPE_VERSION = "protected.disclosure.envelope.v1"
 
-_RECIPIENT_PROFILES = {"lawyer", "doctor", "advocate", "regulator"}
 _ENVELOPE_EXPORT_POLICIES = {"metadata_only", "redact", "omit"}
 _IDENTITY_POLICIES = {"named", "pseudonymous", "withheld"}
 _RETALIATION_RISK_LEVELS = {"unspecified", "low", "moderate", "high", "extreme"}
@@ -42,40 +46,11 @@ _MINIMIZATION_MAX_EXPOSURE = {
 }
 
 
-def _stable_json(payload: object) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _sha256_payload(payload: object) -> str:
-    return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
-
-
-def _created_at_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _normalize_profile(value: str) -> str:
-    text = str(value or "").strip().casefold()
-    if text not in _RECIPIENT_PROFILES:
-        raise ValueError(f"unsupported recipient_profile: {value}")
-    return text
-
-
 def _require_protected_disclosure(handoff: Mapping[str, Any]) -> Mapping[str, Any]:
     protected = handoff.get("protected_disclosure")
     if not isinstance(protected, Mapping) or not bool(protected.get("enabled")):
         raise ValueError("protected_disclosure.enabled=true is required for protected disclosure envelopes")
     return protected
-
-
-def _normalize_allowed_recipients(protected: Mapping[str, Any]) -> list[str]:
-    raw = protected.get("allowed_recipient_profiles")
-    if not isinstance(raw, list) or not raw:
-        raise ValueError("protected_disclosure.allowed_recipient_profiles is required")
-    out = [_normalize_profile(str(value)) for value in raw]
-    if len(set(out)) != len(out):
-        raise ValueError("protected_disclosure.allowed_recipient_profiles must not contain duplicates")
-    return out
 
 
 def _normalize_retaliation_risk_level(value: Any) -> str:
@@ -118,13 +93,12 @@ def _normalize_identity_policy(entry: Mapping[str, Any]) -> str:
 
 
 def _normalize_share_with(entry: Mapping[str, Any]) -> list[str]:
-    raw = entry.get("share_with")
-    if not isinstance(raw, list) or not raw:
-        return []
-    out = [_normalize_profile(str(value)) for value in raw]
-    if len(set(out)) != len(out):
-        raise ValueError("entry.share_with must not contain duplicates")
-    return out
+    return normalize_share_with(
+        entry,
+        default_share_with=(),
+        field_name="entry.share_with",
+        require_unique=True,
+    )
 
 
 def _normalize_retaliation_risk_tags(entry: Mapping[str, Any]) -> list[str]:
@@ -161,7 +135,7 @@ def _build_sealed_item(
     protected_only = bool(entry.get("protected_disclosure_only"))
     protected_reason = str(entry.get("protected_disclosure_reason") or "").strip() or None
     recipient_class = _RECIPIENT_CLASS_BY_PROFILE[recipient_profile]
-    item_id = "envitem:" + _sha256_payload(
+    item_id = "envitem:" + sha256_payload(
         {
             "run_id": run_id,
             "unit_id": unit_id,
@@ -205,15 +179,23 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
     source_label = str(input_payload.get("source_label") or "").strip()
     if not source_label:
         raise ValueError("source_label is required")
-    recipient_profile = _normalize_profile(str(input_payload.get("recipient_profile") or ""))
+    recipient_profile = normalize_profile(str(input_payload.get("recipient_profile") or ""))
     notes = str(input_payload.get("notes") or "").strip() or None
     handoff = input_payload.get("handoff") if isinstance(input_payload.get("handoff"), Mapping) else {}
     protected = _require_protected_disclosure(handoff)
-    allowed_recipient_profiles = _normalize_allowed_recipients(protected)
+    protected_settings = build_protected_disclosure_settings(
+        handoff,
+        require_enabled=True,
+        default_allowed_recipient_profiles=(),
+        default_disclosure_level="protected_disclosure_v1",
+        default_envelope_policy="protected_disclosure_local_only_v1",
+        default_handling_notice="Protected-disclosure material must remain local-only and do-not-sync.",
+    )
+    allowed_recipient_profiles = list(protected_settings.allowed_recipient_profiles)
     retaliation_risk_level = _normalize_retaliation_risk_level(handoff.get("retaliation_risk_level"))
     disclosure_route = _normalize_disclosure_route(protected)
     minimization_mode = _normalize_minimization_mode(protected, retaliation_risk_level)
-    run_id = "pdoenv:" + _sha256_payload(
+    run_id = "pdoenv:" + sha256_payload(
         {
             "source_label": source_label,
             "recipient_profile": recipient_profile,
@@ -269,7 +251,7 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
 
     return {
         "version": PROTECTED_DISCLOSURE_ENVELOPE_VERSION,
-        "created_at": _created_at_utc(),
+        "created_at": created_at_utc(),
         "run": {
             "envelope_id": run_id,
             "source_label": source_label,
@@ -284,14 +266,11 @@ def build_protected_disclosure_envelope(input_payload: Mapping[str, Any]) -> dic
         },
         "protected_disclosure": {
             "enabled": True,
-            "disclosure_level": str(protected.get("disclosure_level") or "protected_disclosure_v1"),
-            "envelope_policy": str(protected.get("envelope_policy") or "protected_disclosure_local_only_v1"),
+            "disclosure_level": protected_settings.disclosure_level,
+            "envelope_policy": protected_settings.envelope_policy,
             "disclosure_route": disclosure_route,
             "minimization_mode": minimization_mode,
-            "handling_notice": str(
-                protected.get("handling_notice")
-                or "Protected-disclosure material must remain local-only and do-not-sync."
-            ),
+            "handling_notice": protected_settings.handling_notice,
             "allowed_recipient_profiles": allowed_recipient_profiles,
             "active_restrictions": [
                 "force_local_only",

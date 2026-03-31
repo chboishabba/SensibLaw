@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_au_affidavit_coverage_review as module
 from scripts.build_au_affidavit_coverage_review import build_au_affidavit_coverage_review
 
 
@@ -27,3 +29,9 @@ def test_build_au_affidavit_coverage_review(tmp_path: Path) -> None:
     assert any(row["coverage_status"] == "unsupported_affidavit" for row in payload["affidavit_rows"])
     assert any(row["review_status"] == "missing_review" for row in payload["source_review_rows"])
     assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
+
+
+def test_au_affidavit_builder_stays_a_thin_wrapper() -> None:
+    src = inspect.getsource(module.build_au_affidavit_coverage_review)
+
+    assert "write_affidavit_coverage_review(" in src

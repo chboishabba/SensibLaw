@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import json
 import sqlite3
 from pathlib import Path
 
+from scripts import build_personal_handoff_from_message_db
 from scripts.build_personal_handoff_from_message_db import build_handoff_from_message_db_artifact, main
 
 
@@ -207,3 +209,9 @@ def test_message_db_import_script_writes_artifact(tmp_path: Path, capsys) -> Non
     assert exit_code == 0
     assert payload["source_kind"] == "chat"
     assert Path(payload["report_path"]).exists()
+
+
+def test_message_db_script_uses_shared_handoff_artifact_writer() -> None:
+    source = inspect.getsource(build_personal_handoff_from_message_db)
+
+    assert "write_handoff_artifact(" in source
