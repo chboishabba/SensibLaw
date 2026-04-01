@@ -107,4 +107,5 @@ be verified during the scan.
 - `review_first_population_scan_ready` (runtime normalizer surface)
 - `review_first_population_scan_live_preview` (bounded live helper surface)
 - `review_first_population_scan_operator_packet` (review packet surface)
+- CLI entrypoint: `sensiblaw wikidata cohort-c-operator-packet`
 - future packetized review surface once the scan yields reproducible rows

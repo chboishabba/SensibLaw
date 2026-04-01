@@ -643,3 +643,28 @@ def test_wikidata_build_split_plan_cli_writes_json(tmp_path, capsys) -> None:
     assert stdout["plan_count"] == 1
     assert stdout["counts_by_status"] == {"structurally_decomposable": 1}
     assert payload["plans"][0]["status"] == "structurally_decomposable"
+
+
+def test_wikidata_cohort_c_operator_packet_cli_wraps_scan_payload(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = root / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_population_scan_20260402.json"
+    out_path = tmp_path / "cohort_c_operator_packet.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-c-operator-packet",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["decision"] == "review"
+    assert stdout["candidate_count"] == 3
+    assert payload["decision"] == "review"
+    assert payload["triage_prompts"][0].startswith("Review the candidate P459 status split")

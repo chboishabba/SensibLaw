@@ -336,7 +336,7 @@ shared handoff.
         and endpoint unavailability is surfaced explicitly
       - operator packet:
         now exists and makes the candidate set, triage prompts, and hold/review
-        decision text explicit
+        decision text explicit, with a CLI entrypoint for review packet export
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

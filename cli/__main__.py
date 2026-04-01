@@ -791,6 +791,37 @@ def _handle_wikidata_build_split_plan(args: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _handle_wikidata_nat_cohort_c_operator_packet(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import (
+        build_nat_cohort_c_operator_packet,
+        build_nat_cohort_c_population_scan_live,
+    )
+
+    if args.input:
+        scan_payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    else:
+        scan_payload = build_nat_cohort_c_population_scan_live(
+            row_limit=args.row_limit,
+            timeout_seconds=args.timeout_seconds,
+        )
+    report = build_nat_cohort_c_operator_packet(scan_payload)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "decision": report["decision"],
+                "candidate_count": report["summary"]["candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_wikidata_hotspot_generate_clusters(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
 
@@ -2525,6 +2556,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_build_split_plan.set_defaults(
         func=_handle_wikidata_build_split_plan
+    )
+    wikidata_nat_cohort_c_operator_packet = wikidata_sub.add_parser(
+        "cohort-c-operator-packet",
+        help="Build an operator-facing packet from the Cohort C live preview or a saved scan payload",
+    )
+    wikidata_nat_cohort_c_operator_packet.add_argument(
+        "--input",
+        type=Path,
+        help="Optional path to a saved Cohort C scan payload JSON",
+    )
+    wikidata_nat_cohort_c_operator_packet.add_argument(
+        "--row-limit",
+        type=int,
+        default=20,
+        help="Maximum number of live candidate rows to request when no --input is supplied",
+    )
+    wikidata_nat_cohort_c_operator_packet.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=30,
+        help="Timeout for the live Wikidata query when no --input is supplied",
+    )
+    wikidata_nat_cohort_c_operator_packet.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the operator packet JSON",
+    )
+    wikidata_nat_cohort_c_operator_packet.set_defaults(
+        func=_handle_wikidata_nat_cohort_c_operator_packet
     )
     wikidata_hotspot_generate_clusters = wikidata_sub.add_parser(
         "hotspot-generate-clusters",
