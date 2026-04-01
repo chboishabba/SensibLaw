@@ -328,6 +328,9 @@ shared handoff.
         `SensibLaw/tests/fixtures/wikidata/wikidata_nat_cohort_c_branch_20260401.json`
       - next gate:
         review-first population scan
+      - runtime note:
+        the pinned Cohort C sample fixture now has a bounded scan normalizer,
+        but no live population scan has run yet
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

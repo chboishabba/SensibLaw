@@ -19,6 +19,7 @@ from src.ontology.wikidata import (
     attach_wikidata_phi_text_bridge_from_source_units,
     attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
     build_wikidata_review_packet,
+    build_nat_cohort_c_population_scan,
     build_observation_claim_payload_from_source_units,
     build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
@@ -92,6 +93,16 @@ def _load_nat_cohort_c_branch_fixture() -> dict:
         / "fixtures"
         / "wikidata"
         / "wikidata_nat_cohort_c_branch_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_c_population_scan_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_population_scan_20260402.json"
     )
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -1377,6 +1388,27 @@ def test_nat_cohort_c_branch_fixture_pins_non_ghg_or_missing_p459_branch_state()
         "P813",
         "P1476",
         "P2960",
+    ]
+
+
+def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates() -> None:
+    payload = _load_nat_cohort_c_population_scan_fixture()
+
+    scan = build_nat_cohort_c_population_scan(payload)
+
+    assert scan["cohort_id"] == "non_ghg_protocol_or_missing_p459"
+    assert scan["scan_status"] == "review_first_population_scan_ready"
+    assert scan["next_gate"] == "review_first_population_scan"
+    assert scan["summary"] == {
+        "candidate_count": 3,
+        "p459_status_counts": {"missing": 2, "non_GHG_protocol": 1},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert [candidate["qid"] for candidate in scan["sample_candidates"]] == [
+        "Q30938280",
+        "Q731938",
+        "Q1785637",
     ]
 
 

@@ -8,6 +8,9 @@ Advance the non-GHG-protocol / missing `determination method (P459)` lane toward
 its first review-first population scan so the policy-risk cohort is bound into
 the repo rather than remaining an abstract branch note.
 
+The runtime now has a bounded Cohort C scan normalizer for the pinned sample
+fixture, but the live population scan gate remains unopened.
+
 This artifact stays within Cohort C: it reuses the migration mapping plan from
 `wikidata_nat_wdu_sandbox_migration_mapping_20260401.md` and the pinned branch
 state from `wikidata_nat_cohort_c_branch_20260401.md` and does not reach into
@@ -45,13 +48,15 @@ Cohort B/D/E.
 
 - Cohort C selection rule is already pinned
 - the sandbox page defines the qualifier/reference expectations
-- no actual population scan has run yet
+- no actual live population scan has run yet
+- the runtime scan normalizer exists for the pinned sample fixture
 
 ### L
 
 1. capture the policy-risk branch state (`branch_pinned`)
 2. plan a first review-first population scan (this document)
-3. generate per-statement scan results and hold them in a review-only surface
+3. normalize the pinned sample fixture into a review-first Cohort C surface
+4. generate per-statement scan results and hold them in a review-only surface
 
 ### P
 
@@ -92,5 +97,5 @@ be verified during the scan.
 ## Next Gates
 
 - `review_first_population_scan` (documented candidate set)
+- `review_first_population_scan_ready` (runtime normalizer surface)
 - future packetized review surface once the scan yields reproducible rows
-

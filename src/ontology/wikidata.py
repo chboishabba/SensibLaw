@@ -1004,6 +1004,46 @@ def build_wikidata_review_packet(
     return packet
 
 
+def build_nat_cohort_c_population_scan(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C population scan requires the Cohort C payload")
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    p459_status_counts: dict[str, int] = {}
+    for candidate in sample_candidates:
+        status = candidate["p459_status"] or "unknown"
+        p459_status_counts[status] = p459_status_counts.get(status, 0) + 1
+    return {
+        "lane_id": _stringify(payload.get("lane_id")),
+        "cohort_id": _stringify(payload.get("cohort_id")),
+        "selection_rule": _stringify(payload.get("selection_rule")),
+        "source_revision_fixture": _stringify(payload.get("source_revision_fixture")),
+        "scan_status": "review_first_population_scan_ready",
+        "next_gate": _stringify(payload.get("next_gate")),
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": p459_status_counts,
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "notes": list(payload.get("notes", []))
+        if isinstance(payload.get("notes"), list)
+        else [],
+    }
+
+
 def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
     tags = set(_extract_scope_tags_from_text(line_text))
     tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_id", ""))))
