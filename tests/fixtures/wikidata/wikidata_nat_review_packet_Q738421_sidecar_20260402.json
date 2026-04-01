@@ -1,0 +1,977 @@
+{
+  "follow_receipts": [
+    {
+      "extracted_evidence": [
+        "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+      ],
+      "follow_reason": "bounded follow of the query link named in the source surface",
+      "receipt_id": "follow:query:1",
+      "unresolved_uncertainty": [
+        "query output is live search evidence rather than a revision-locked source",
+        "followed link not expanded into a deeper fetch in this packet slice",
+        "query row should be checked against the reviewed split bundle"
+      ],
+      "url": "https://w.wiki/KR5d"
+    }
+  ],
+  "packet_id": "review-packet:041f7506c2efdeca",
+  "page_signals": {
+    "cited_links": [
+      "https://w.wiki/KR5d"
+    ],
+    "expected_qualifier_properties": [
+      "P3831",
+      "P459",
+      "P518",
+      "P580",
+      "P582",
+      "P585",
+      "P7452"
+    ],
+    "expected_reference_properties": [
+      "P1065",
+      "P1476",
+      "P2960",
+      "P813",
+      "P854"
+    ],
+    "outbound_links": [],
+    "query_links": [
+      "https://w.wiki/KR5d"
+    ],
+    "unresolved_questions": [
+      "is it necesary to add the rank?",
+      "is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology"
+    ]
+  },
+  "parsed_page": {
+    "cohort_task_lines": [
+      "evaluate migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)",
+      "capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P518), reason for preferred rank (P7452)",
+      "check if there really are not extra qualifiers within the items that are instances of instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera)",
+      "capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we found only the following reference properties: reference URL (P854), archive URL (P1065), retrieved (P813), title (P1476), archive date (P2960)",
+      "evaluate migration for all other reconciled \"instance of\"",
+      "evaluate migrations of statements cuyo determination method no es GHG protocol (otro determination method o no tiene el determination method)",
+      "evaluate migration for 1395 statements cuyo sujeto no tiene un \"instance of\"",
+      "evaluar migración para 142 declaraciones cuyo sujeto tiene un instance of que no pudo ser reconciliado"
+    ],
+    "headings": [
+      "tasks",
+      "done",
+      "to do",
+      "queries"
+    ],
+    "query_rows": [
+      "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+    ],
+    "sections": [
+      {
+        "heading": "tasks",
+        "items": []
+      },
+      {
+        "heading": "done",
+        "items": [
+          "is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology",
+          "get the units wip query"
+        ]
+      },
+      {
+        "heading": "to do",
+        "items": [
+          "evaluate migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)",
+          "capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P518), reason for preferred rank (P7452)",
+          "check if there really are not extra qualifiers within the items that are instances of instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera)",
+          "capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we found only the following reference properties: reference URL (P854), archive URL (P1065), retrieved (P813), title (P1476), archive date (P2960)",
+          "is it necesary to add the rank?",
+          "evaluate migration for all other reconciled \"instance of\"",
+          "look for any unexpected qualifiers",
+          "capture references",
+          "evaluate migrations of statements cuyo determination method no es GHG protocol (otro determination method o no tiene el determination method)",
+          "evaluate migration for 1395 statements cuyo sujeto no tiene un \"instance of\"",
+          "look for any unexpected qualifiers",
+          "capture references",
+          "evaluar migración para 142 declaraciones cuyo sujeto tiene un instance of que no pudo ser reconciliado",
+          "look for any unexpected qualifiers",
+          "capture references"
+        ]
+      },
+      {
+        "heading": "queries",
+        "items": [
+          "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+        ]
+      }
+    ],
+    "task_buckets": {
+      "done": [
+        "is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology",
+        "get the units wip query"
+      ],
+      "todo": [
+        "evaluate migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)",
+        "capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P518), reason for preferred rank (P7452)",
+        "check if there really are not extra qualifiers within the items that are instances of instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera)",
+        "capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we found only the following reference properties: reference URL (P854), archive URL (P1065), retrieved (P813), title (P1476), archive date (P2960)",
+        "is it necesary to add the rank?",
+        "evaluate migration for all other reconciled \"instance of\"",
+        "look for any unexpected qualifiers",
+        "capture references",
+        "evaluate migrations of statements cuyo determination method no es GHG protocol (otro determination method o no tiene el determination method)",
+        "evaluate migration for 1395 statements cuyo sujeto no tiene un \"instance of\"",
+        "look for any unexpected qualifiers",
+        "capture references",
+        "evaluar migración para 142 declaraciones cuyo sujeto tiene un instance of que no pudo ser reconciliado",
+        "look for any unexpected qualifiers",
+        "capture references"
+      ]
+    }
+  },
+  "review_entity_qid": "Q738421",
+  "reviewer_view": {
+    "decision_focus": [
+      "confirm_split_axes",
+      "confirm_target_bundle_count",
+      "spot_check_reference_propagation",
+      "spot_check_qualifier_propagation",
+      "resolve_page_open_questions",
+      "use_todo_bucket_as_review_checklist"
+    ],
+    "recommended_next_step": "review_structured_split",
+    "uncertainty_flags": [
+      "page_open_questions"
+    ]
+  },
+  "schema_version": "sl.wikidata_review_packet.v0_1",
+  "semantic_decomposition": {
+    "candidate_units": [
+      {
+        "text": "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th",
+        "unit_id": "query_row:1",
+        "unit_type": "query_row_surface"
+      },
+      {
+        "text": "receipt_id=follow:query:1 url=https://w.wiki/KR5d reason=bounded follow of the query link named in the source surface evidence_count=1 unresolved_count=3",
+        "unit_id": "follow_receipt:1",
+        "unit_type": "follow_receipt_surface"
+      },
+      {
+        "text": "is it necesary to add the rank?",
+        "unit_id": "open_question:1",
+        "unit_type": "open_question_surface"
+      },
+      {
+        "text": "is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology",
+        "unit_id": "open_question:2",
+        "unit_type": "open_question_surface"
+      },
+      {
+        "text": "evaluate migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)",
+        "unit_id": "todo_item:1",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P518), reason for preferred rank (P7452)",
+        "unit_id": "todo_item:2",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "check if there really are not extra qualifiers within the items that are instances of instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera)",
+        "unit_id": "todo_item:3",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we found only the following reference properties: reference URL (P854), archive URL (P1065), retrieved (P813), title (P1476), archive date (P2960)",
+        "unit_id": "todo_item:4",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "is it necesary to add the rank?",
+        "unit_id": "todo_item:5",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "evaluate migration for all other reconciled \"instance of\"",
+        "unit_id": "todo_item:6",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "look for any unexpected qualifiers",
+        "unit_id": "todo_item:7",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "capture references",
+        "unit_id": "todo_item:8",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "evaluate migrations of statements cuyo determination method no es GHG protocol (otro determination method o no tiene el determination method)",
+        "unit_id": "todo_item:9",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "evaluate migration for 1395 statements cuyo sujeto no tiene un \"instance of\"",
+        "unit_id": "todo_item:10",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "look for any unexpected qualifiers",
+        "unit_id": "todo_item:11",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "capture references",
+        "unit_id": "todo_item:12",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "evaluar migración para 142 declaraciones cuyo sujeto tiene un instance of que no pudo ser reconciliado",
+        "unit_id": "todo_item:13",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "look for any unexpected qualifiers",
+        "unit_id": "todo_item:14",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "capture references",
+        "unit_id": "todo_item:15",
+        "unit_type": "todo_surface"
+      },
+      {
+        "text": "migration_goal: Since the cretion of P14143 I have to migrate most of the P5991 statements with their references and qualifiers to use this new property (This has been discussed in the property proposal and documented in Wikiproject climate change).\n\ntasks\ndone\n\n- is there",
+        "unit_id": "anchor:goal",
+        "unit_type": "anchor_surface"
+      },
+      {
+        "text": "cohort_business_family: migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)\n- capt",
+        "unit_id": "anchor:cohort_business_family",
+        "unit_type": "anchor_surface"
+      },
+      {
+        "text": "expected_qualifier_family: all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P",
+        "unit_id": "anchor:qualifier_family",
+        "unit_type": "anchor_surface"
+      },
+      {
+        "text": "expected_reference_family: , empresa de capital abierto, institución financiera)\n- capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we fo",
+        "unit_id": "anchor:reference_family",
+        "unit_type": "anchor_surface"
+      },
+      {
+        "text": "query_anchor: protocol (otro determination method o no tiene el determination method)\n- evaluate",
+        "unit_id": "anchor:query_anchor",
+        "unit_type": "anchor_surface"
+      },
+      {
+        "text": "split://Q738421|P5991 status=structurally_decomposable action=review_structured_split review_required=True proposed_bundle_count=41",
+        "unit_id": "split_plan:context",
+        "unit_type": "split_context_surface"
+      },
+      {
+        "text": "property=P3831 source=slot reason=multi_valued_dimension cardinality=4",
+        "unit_id": "split_axis:1",
+        "unit_type": "split_axis_surface"
+      },
+      {
+        "text": "property=P518 source=slot reason=multi_valued_dimension cardinality=9",
+        "unit_id": "split_axis:2",
+        "unit_type": "split_axis_surface"
+      },
+      {
+        "text": "property=P580 source=slot reason=multi_valued_dimension cardinality=7",
+        "unit_id": "split_axis:3",
+        "unit_type": "split_axis_surface"
+      },
+      {
+        "text": "property=P582 source=slot reason=multi_valued_dimension cardinality=7",
+        "unit_id": "split_axis:4",
+        "unit_type": "split_axis_surface"
+      },
+      {
+        "text": "property=__value__ source=slot reason=multi_value_slot cardinality=41",
+        "unit_id": "split_axis:5",
+        "unit_type": "split_axis_surface"
+      },
+      {
+        "text": "source_candidate_ids=41 sample=Q738421|P5991|1,Q738421|P5991|2,Q738421|P5991|3",
+        "unit_id": "split_candidates:summary",
+        "unit_type": "split_context_surface"
+      },
+      {
+        "text": "anchor_refs_not_promoted_to_grounded_claims",
+        "unit_id": "missing_evidence:1",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "follow_receipts_not_promoted_to_semantic_claims",
+        "unit_id": "missing_evidence:2",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "no_claim_boundary_mapping_for_candidate_units",
+        "unit_id": "missing_evidence:3",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "no_cross_source_alignment_for_candidate_units",
+        "unit_id": "missing_evidence:4",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "no_revision_locked_excerpts_for_candidate_units",
+        "unit_id": "missing_evidence:5",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "open_questions_not_resolved_into_grounded_assertions",
+        "unit_id": "missing_evidence:6",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "query_rows_not_expanded_into_fetched_semantic_units",
+        "unit_id": "missing_evidence:7",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "split_context_not_lifted_into_semantic_decision_graph",
+        "unit_id": "missing_evidence:8",
+        "unit_type": "missing_evidence_surface"
+      },
+      {
+        "text": "todo_items_not_lifted_into_review_decision_graph",
+        "unit_id": "missing_evidence:9",
+        "unit_type": "missing_evidence_surface"
+      }
+    ],
+    "claim_boundaries": {
+      "candidate_claim_boundaries": [
+        {
+          "anchor_ref": {
+            "anchor_id": "goal",
+            "end": 257,
+            "label": "migration_goal",
+            "start": 0
+          },
+          "axis_signals": [
+            {
+              "axis_id": "axis:1",
+              "cardinality": 4,
+              "property": "P3831",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:2",
+              "cardinality": 9,
+              "property": "P518",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:3",
+              "cardinality": 7,
+              "property": "P580",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:4",
+              "cardinality": 7,
+              "property": "P582",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:5",
+              "cardinality": 41,
+              "property": "__value__",
+              "reason": "multi_value_slot",
+              "source": "slot"
+            }
+          ],
+          "boundary_id": "boundary:1",
+          "boundary_state": "candidate_only",
+          "candidate_claim_text": "Since the cretion of P14143 I have to migrate most of the P5991 statements with their references and qualifiers to use this new property (This has been discussed in the property proposal and documented in Wikiproject climate change).\n\ntasks\ndone\n\n- is there",
+          "missing_evidence": [
+            "no_clause_level_segmentation",
+            "no_cross_source_alignment",
+            "no_grounded_claim_assertion",
+            "open_questions_unresolved"
+          ],
+          "review_prompt": "Check whether anchor 'migration_goal' expresses one claim boundary per axis: P3831, P518, P580, P582, __value__."
+        },
+        {
+          "anchor_ref": {
+            "anchor_id": "cohort_business_family",
+            "end": 585,
+            "label": "cohort_business_family",
+            "start": 408
+          },
+          "axis_signals": [
+            {
+              "axis_id": "axis:1",
+              "cardinality": 4,
+              "property": "P3831",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:2",
+              "cardinality": 9,
+              "property": "P518",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:3",
+              "cardinality": 7,
+              "property": "P580",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:4",
+              "cardinality": 7,
+              "property": "P582",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:5",
+              "cardinality": 41,
+              "property": "__value__",
+              "reason": "multi_value_slot",
+              "source": "slot"
+            }
+          ],
+          "boundary_id": "boundary:2",
+          "boundary_state": "candidate_only",
+          "candidate_claim_text": "migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)\n- capt",
+          "missing_evidence": [
+            "no_clause_level_segmentation",
+            "no_cross_source_alignment",
+            "no_grounded_claim_assertion",
+            "open_questions_unresolved"
+          ],
+          "review_prompt": "Check whether anchor 'cohort_business_family' expresses one claim boundary per axis: P3831, P518, P580, P582, __value__."
+        },
+        {
+          "anchor_ref": {
+            "anchor_id": "qualifier_family",
+            "end": 847,
+            "label": "expected_qualifier_family",
+            "start": 588
+          },
+          "axis_signals": [
+            {
+              "axis_id": "axis:1",
+              "cardinality": 4,
+              "property": "P3831",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:2",
+              "cardinality": 9,
+              "property": "P518",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:3",
+              "cardinality": 7,
+              "property": "P580",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:4",
+              "cardinality": 7,
+              "property": "P582",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:5",
+              "cardinality": 41,
+              "property": "__value__",
+              "reason": "multi_value_slot",
+              "source": "slot"
+            }
+          ],
+          "boundary_id": "boundary:3",
+          "boundary_state": "candidate_only",
+          "candidate_claim_text": "all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P",
+          "missing_evidence": [
+            "no_clause_level_segmentation",
+            "no_cross_source_alignment",
+            "no_grounded_claim_assertion",
+            "open_questions_unresolved"
+          ],
+          "review_prompt": "Check whether anchor 'expected_qualifier_family' expresses one claim boundary per axis: P3831, P518, P580, P582, __value__."
+        },
+        {
+          "anchor_ref": {
+            "anchor_id": "reference_family",
+            "end": 1289,
+            "label": "expected_reference_family",
+            "start": 1047
+          },
+          "axis_signals": [
+            {
+              "axis_id": "axis:1",
+              "cardinality": 4,
+              "property": "P3831",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:2",
+              "cardinality": 9,
+              "property": "P518",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:3",
+              "cardinality": 7,
+              "property": "P580",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:4",
+              "cardinality": 7,
+              "property": "P582",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:5",
+              "cardinality": 41,
+              "property": "__value__",
+              "reason": "multi_value_slot",
+              "source": "slot"
+            }
+          ],
+          "boundary_id": "boundary:4",
+          "boundary_state": "candidate_only",
+          "candidate_claim_text": ", empresa de capital abierto, institución financiera)\n- capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we fo",
+          "missing_evidence": [
+            "no_clause_level_segmentation",
+            "no_cross_source_alignment",
+            "no_grounded_claim_assertion",
+            "open_questions_unresolved"
+          ],
+          "review_prompt": "Check whether anchor 'expected_reference_family' expresses one claim boundary per axis: P3831, P518, P580, P582, __value__."
+        },
+        {
+          "anchor_ref": {
+            "anchor_id": "query_anchor",
+            "end": 1737,
+            "label": "query_anchor",
+            "start": 1655
+          },
+          "axis_signals": [
+            {
+              "axis_id": "axis:1",
+              "cardinality": 4,
+              "property": "P3831",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:2",
+              "cardinality": 9,
+              "property": "P518",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:3",
+              "cardinality": 7,
+              "property": "P580",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:4",
+              "cardinality": 7,
+              "property": "P582",
+              "reason": "multi_valued_dimension",
+              "source": "slot"
+            },
+            {
+              "axis_id": "axis:5",
+              "cardinality": 41,
+              "property": "__value__",
+              "reason": "multi_value_slot",
+              "source": "slot"
+            }
+          ],
+          "boundary_id": "boundary:5",
+          "boundary_state": "candidate_only",
+          "candidate_claim_text": "protocol (otro determination method o no tiene el determination method)\n- evaluate",
+          "missing_evidence": [
+            "no_clause_level_segmentation",
+            "no_cross_source_alignment",
+            "no_grounded_claim_assertion",
+            "open_questions_unresolved"
+          ],
+          "review_prompt": "Check whether anchor 'query_anchor' expresses one claim boundary per axis: P3831, P518, P580, P582, __value__."
+        }
+      ],
+      "decomposition_state": "candidate_only",
+      "non_claims": [
+        "not_full_semantic_decomposition",
+        "not_claim_truth_evaluation",
+        "not_execution_ready_migration_logic"
+      ],
+      "schema_version": "sl.wikidata_review_packet.claim_boundaries.v0_1",
+      "summary": {
+        "anchor_count": 5,
+        "axis_count": 5,
+        "candidate_boundary_count": 5,
+        "unresolved_question_count": 2
+      }
+    },
+    "cross_source_alignment": {
+      "agreements": [
+        "Shared entity id Q738421 appears in 3 source(s)."
+      ],
+      "common_fields": [],
+      "consensus_identity": "Q738421",
+      "consensus_level": "full_consensus",
+      "disagreements": [
+        "Fields documented on each surface do not overlap, so reviewers should cross-check."
+      ],
+      "packet_id": "review-packet:041f7506c2efdeca",
+      "pairwise_signatures": [
+        {
+          "field_overlap": [
+            "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+          ],
+          "only_in_left": [
+            "source"
+          ],
+          "only_in_right": [],
+          "pair": "wiki_surface vs query_slice",
+          "shared_keys": [
+            "fields",
+            "qid",
+            "summary"
+          ]
+        },
+        {
+          "field_overlap": [],
+          "only_in_left": [
+            "qid",
+            "source"
+          ],
+          "only_in_right": [
+            "primary_qid"
+          ],
+          "pair": "wiki_surface vs split_bundle",
+          "shared_keys": [
+            "fields",
+            "summary"
+          ]
+        },
+        {
+          "field_overlap": [],
+          "only_in_left": [
+            "qid"
+          ],
+          "only_in_right": [
+            "primary_qid"
+          ],
+          "pair": "query_slice vs split_bundle",
+          "shared_keys": [
+            "fields",
+            "summary"
+          ]
+        }
+      ],
+      "profiles": {
+        "query_slice": {
+          "field_signature": [
+            "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+          ],
+          "identity": "Q738421",
+          "key_signature": [
+            "fields",
+            "qid",
+            "summary"
+          ],
+          "label": "query_slice",
+          "source_tag": "",
+          "summary": "query rows from parsed page"
+        },
+        "split_bundle": {
+          "field_signature": [
+            "P3831",
+            "P518",
+            "P580",
+            "P582",
+            "__value__"
+          ],
+          "identity": "Q738421",
+          "key_signature": [
+            "fields",
+            "primary_qid",
+            "summary"
+          ],
+          "label": "split_bundle",
+          "source_tag": "",
+          "summary": "review_structured_split"
+        },
+        "wiki_surface": {
+          "field_signature": [
+            "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+          ],
+          "identity": "Q738421",
+          "key_signature": [
+            "fields",
+            "qid",
+            "source",
+            "summary"
+          ],
+          "label": "wiki_surface",
+          "source_tag": "wiki",
+          "summary": "User:Nat (WDU)/Sandbox/Fossil fuel industries/Migrate from carbon footprint to GHG emissions"
+        }
+      },
+      "schema_version": "sl.wikidata_review_packet.cross_source_alignment.v0_1"
+    },
+    "decomposition_state": "surface_only",
+    "follow_depth": {
+      "enriched_count": 1,
+      "no_excerpt_count": 0,
+      "packet_id": "review-packet:041f7506c2efdeca",
+      "receipt_count": 1,
+      "receipts": [
+        {
+          "evidence_excerpt": "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th",
+          "excerpt_source": "extracted_evidence",
+          "receipt_id": "follow:query:1",
+          "status": "enriched",
+          "unresolved_uncertainty": [
+            "query output is live search evidence rather than a revision-locked source",
+            "followed link not expanded into a deeper fetch in this packet slice",
+            "query row should be checked against the reviewed split bundle"
+          ],
+          "url": "https://w.wiki/KR5d"
+        }
+      ],
+      "schema_version": "sl.wikidata_review_packet.follow_depth.v0_1"
+    },
+    "layer_schema_version": "sl.wikidata_review_packet.semantic_layer.v0_1",
+    "missing_evidence": [
+      "anchor_refs_not_promoted_to_grounded_claims",
+      "follow_receipts_not_promoted_to_semantic_claims",
+      "no_claim_boundary_mapping_for_candidate_units",
+      "no_cross_source_alignment_for_candidate_units",
+      "no_revision_locked_excerpts_for_candidate_units",
+      "open_questions_not_resolved_into_grounded_assertions",
+      "query_rows_not_expanded_into_fetched_semantic_units",
+      "split_context_not_lifted_into_semantic_decision_graph",
+      "todo_items_not_lifted_into_review_decision_graph"
+    ],
+    "reviewer_actions": {
+      "can_execute_edits": false,
+      "decision_focus": [
+        "confirm_split_axes",
+        "confirm_target_bundle_count",
+        "spot_check_reference_propagation",
+        "spot_check_qualifier_propagation",
+        "resolve_page_open_questions",
+        "use_todo_bucket_as_review_checklist"
+      ],
+      "likely_decision": "review_structured_split",
+      "non_claims": [
+        "review aid only",
+        "does not execute edits",
+        "does not resolve uncertainty automatically"
+      ],
+      "packet_id": "review-packet:041f7506c2efdeca",
+      "review_entity_qid": "Q738421",
+      "schema_version": "sl.wikidata_review_packet.reviewer_actions.v0_1",
+      "smallest_next_check": {
+        "check_id": "confirm_first_split_axis",
+        "rationale": "split plan is axis-driven; confirm first axis property=P3831 cardinality=4"
+      },
+      "uncertainty_flags": [
+        "page_open_questions"
+      ],
+      "why_this_row_is_in_review": [
+        "split_status=structurally_decomposable",
+        "split_plan_requires_review",
+        "split_axes_detected=5",
+        "uncertainty=page_open_questions"
+      ]
+    },
+    "separate_from_parsed_page": true,
+    "variant_comparison": {
+      "comparisons": [
+        {
+          "agreements": [
+            "P3831"
+          ],
+          "comparison_action": "review_structured_split",
+          "comparison_id": "split://Q1785637|P5991",
+          "disagreements": [
+            "P518",
+            "P580",
+            "P582",
+            "__value__"
+          ],
+          "notes": [],
+          "primary_action": "review_structured_split",
+          "status": "disagreement"
+        }
+      ],
+      "diagnostic_flags": [],
+      "non_authoritative": true,
+      "primary_candidate_id": "split://Q738421|P5991"
+    }
+  },
+  "source_surface": {
+    "anchor_refs": [
+      {
+        "anchor_id": "goal",
+        "end": 257,
+        "label": "migration_goal",
+        "start": 0,
+        "text_excerpt": "Since the cretion of P14143 I have to migrate most of the P5991 statements with their references and qualifiers to use this new property (This has been discussed in the property proposal and documented in Wikiproject climate change).\n\ntasks\ndone\n\n- is there"
+      },
+      {
+        "anchor_id": "cohort_business_family",
+        "end": 585,
+        "label": "cohort_business_family",
+        "start": 408,
+        "text_excerpt": "migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)\n- capt"
+      },
+      {
+        "anchor_id": "qualifier_family",
+        "end": 847,
+        "label": "expected_qualifier_family",
+        "start": 588,
+        "text_excerpt": "all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P"
+      },
+      {
+        "anchor_id": "reference_family",
+        "end": 1289,
+        "label": "expected_reference_family",
+        "start": 1047,
+        "text_excerpt": ", empresa de capital abierto, institución financiera)\n- capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we fo"
+      },
+      {
+        "anchor_id": "query_anchor",
+        "end": 1737,
+        "label": "query_anchor",
+        "start": 1655,
+        "text_excerpt": "protocol (otro determination method o no tiene el determination method)\n- evaluate"
+      }
+    ],
+    "origin": {
+      "source_type": "wiki",
+      "source_url": "https://www.wikidata.org/wiki/User:Nat_(WDU)/Sandbox/Fossil_fuel_industries/Migrate_from_carbon_footprint_to_GHG_emissions",
+      "title": "User:Nat (WDU)/Sandbox/Fossil fuel industries/Migrate from carbon footprint to GHG emissions"
+    },
+    "revision": {
+      "retrieval_method": "wiki_revision",
+      "revision_id": "provided_snapshot_2026-04-01",
+      "revision_timestamp": "2026-04-01T00:00:00+10:00"
+    },
+    "source_entity_qid": "Q10884",
+    "source_unit_id": "unit:wikidata_user_sandbox:nat_wdu:p5991_p14143:2026-04-01"
+  },
+  "split_review_context": {
+    "merged_split_axes": [
+      {
+        "cardinality": 4,
+        "property": "P3831",
+        "reason": "multi_valued_dimension",
+        "source": "slot"
+      },
+      {
+        "cardinality": 9,
+        "property": "P518",
+        "reason": "multi_valued_dimension",
+        "source": "slot"
+      },
+      {
+        "cardinality": 7,
+        "property": "P580",
+        "reason": "multi_valued_dimension",
+        "source": "slot"
+      },
+      {
+        "cardinality": 7,
+        "property": "P582",
+        "reason": "multi_valued_dimension",
+        "source": "slot"
+      },
+      {
+        "cardinality": 41,
+        "property": "__value__",
+        "reason": "multi_value_slot",
+        "source": "slot"
+      }
+    ],
+    "proposed_bundle_count": 41,
+    "qualifier_propagation": "exact",
+    "reference_propagation": "exact",
+    "review_required": true,
+    "source_candidate_ids": [
+      "Q738421|P5991|1",
+      "Q738421|P5991|2",
+      "Q738421|P5991|3",
+      "Q738421|P5991|4",
+      "Q738421|P5991|5",
+      "Q738421|P5991|6",
+      "Q738421|P5991|7",
+      "Q738421|P5991|8",
+      "Q738421|P5991|9",
+      "Q738421|P5991|10",
+      "Q738421|P5991|11",
+      "Q738421|P5991|12",
+      "Q738421|P5991|13",
+      "Q738421|P5991|14",
+      "Q738421|P5991|15",
+      "Q738421|P5991|16",
+      "Q738421|P5991|17",
+      "Q738421|P5991|18",
+      "Q738421|P5991|19",
+      "Q738421|P5991|20",
+      "Q738421|P5991|21",
+      "Q738421|P5991|22",
+      "Q738421|P5991|23",
+      "Q738421|P5991|24",
+      "Q738421|P5991|25",
+      "Q738421|P5991|26",
+      "Q738421|P5991|27",
+      "Q738421|P5991|28",
+      "Q738421|P5991|29",
+      "Q738421|P5991|30",
+      "Q738421|P5991|31",
+      "Q738421|P5991|32",
+      "Q738421|P5991|33",
+      "Q738421|P5991|34",
+      "Q738421|P5991|35",
+      "Q738421|P5991|36",
+      "Q738421|P5991|37",
+      "Q738421|P5991|38",
+      "Q738421|P5991|39",
+      "Q738421|P5991|40",
+      "Q738421|P5991|41"
+    ],
+    "source_slot_id": "Q738421|P5991",
+    "split_plan_id": "split://Q738421|P5991",
+    "status": "structurally_decomposable",
+    "suggested_action": "review_structured_split"
+  }
+}

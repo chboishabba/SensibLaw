@@ -1551,10 +1551,10 @@ def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split
     assert "split_context_not_lifted_into_semantic_decision_graph" in semantic["missing_evidence"]
 
 
-def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows() -> None:
+def test_nat_review_packet_attachment_coverage_fixture_expands_to_fifteen_rows() -> None:
     payload = _load_nat_review_packet_attachment_coverage_fixture()
 
-    assert payload["packetized_split_rows"] == 13
+    assert payload["packetized_split_rows"] == 15
     assert payload["packetized_split_row_ids"] == [
         "Q10403939|P5991",
         "Q10422059|P5991",
@@ -1569,9 +1569,11 @@ def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows(
         "Q731938|P5991",
         "Q10416948|P5991",
         "Q56404383|P5991",
+        "Q1785637|P5991",
+        "Q738421|P5991",
     ]
-    assert len(payload["packet_slots"]) == 13
-    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 13 / 53 packetized rows"
+    assert len(payload["packet_slots"]) == 15
+    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 15 / 53 packetized rows"
 
 
 def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic_layers() -> None:

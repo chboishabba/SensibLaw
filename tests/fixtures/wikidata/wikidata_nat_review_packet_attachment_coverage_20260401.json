@@ -4,7 +4,7 @@
   "lane_id": "wikidata_nat_p5991_p14143",
   "source_revision_fixture": "wiki_revision_nat_wdu_sandbox_p5991_p14143_20260401.json",
   "held_split_rows_total": 53,
-  "packetized_split_rows": 13,
+  "packetized_split_rows": 15,
   "packetized_split_row_ids": [
     "Q10403939|P5991",
     "Q10422059|P5991",
@@ -18,7 +18,9 @@
     "Q47508289|P5991",
     "Q731938|P5991",
     "Q10416948|P5991",
-    "Q56404383|P5991"
+    "Q56404383|P5991",
+    "Q1785637|P5991",
+    "Q738421|P5991"
   ],
   "coverage_state": "partial_packetized",
   "packet_slots": [
@@ -2600,13 +2602,27 @@
       "split_plan_id": "split://Q56404383|P5991",
       "packet_ref": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_review_packet_Q56404383_sidecar_20260402.json",
       "packet_status": "attached_review_surface_with_sidecar"
+    },
+    {
+      "packet_id": "review-packet:f451ac11e012b114",
+      "review_entity_qid": "Q1785637",
+      "split_plan_id": "split://Q1785637|P5991",
+      "packet_ref": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_review_packet_Q1785637_sidecar_20260402.json",
+      "packet_status": "attached_review_surface"
+    },
+    {
+      "packet_id": "review-packet:041f7506c2efdeca",
+      "review_entity_qid": "Q738421",
+      "split_plan_id": "split://Q738421|P5991",
+      "packet_ref": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_review_packet_Q738421_sidecar_20260402.json",
+      "packet_status": "attached_review_surface"
     }
   ],
   "ready_for_reviewers": [
     "Pinned review packet for Q10403939",
     "Second packetized held row for Q10422059",
     "Live-tranche packets now include AstraZeneca (Q731938) plus eight other wider-online rows",
-    "Coverage index showing 13 / 53 packetized rows"
+    "Coverage index showing 15 / 53 packetized rows"
   ],
   "still_missing": [
     "packet attachment across the remaining held split rows",
@@ -2616,6 +2632,6 @@
   "notes": [
     "This index widens Nat packet coverage without changing shared trackers.",
     "It is a review aid, not an execution authority.",
-    "The expanded packet surface now spans the original two held rows plus nine wider-online reviewed rows from the live tranche, including AstraZeneca (Q731938)."
+    "The expanded packet surface now spans the original two held rows plus eleven wider-online reviewed rows from the live tranche, including AstraZeneca (Q731938), Apoteket (Q1785637), and Assa Abloy (Q738421)."
   ]
 }

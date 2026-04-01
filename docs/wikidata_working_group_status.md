@@ -197,9 +197,9 @@ shared handoff.
           explicit and separate from the shallow parser coverage
     - current packet coverage now has a first multi-row attachment index:
       `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
-      records `13 / 53` packetized held split rows, with the original packet
+      records `15 / 53` packetized held split rows, with the original packet
       for `Q10403939`, second and third packetized held rows for
-      `Q10422059` and `Q731938`, nine wider-online reviewed rows from the
+      `Q10422059` and `Q731938`, ten wider-online reviewed rows from the
       live tranche, and two additional pilot-pack sidecar packets for
       `Q10416948` and `Q56404383`
     - packet coverage is now creeping toward diminishing returns; only new split

@@ -54,13 +54,15 @@ Update:
   - it is not the full SensibLaw decomposition or contingent-clause layer
   - richer semantic decomposition should land later as a separate semantic
     layer above or beside `parsed_page`
-- the first broader packet-coverage surface is now present at `13 / 53`
+- the first broader packet-coverage surface is now present at `15 / 53`
   packetized rows, spanning the original two held rows plus the AstraZeneca
-  held row, the wider-online reviewed rows from the live tranche, and two
+  held row, the wider-online reviewed rows from the live tranche, two
+  additional wider-online reviewed rows (`Q1785637`, `Q738421`), and two
   additional pilot-pack split plans (`Q10416948`, `Q56404383`) that now carry
   the semantic sidecar
-- the current packet coverage surface is now `13 / 53` after the two
-  pilot-pack sidecar packets were added
+- the current packet coverage surface is now `15 / 53` after the two
+  additional live-tranche rows and the two pilot-pack sidecar packets were
+  added
 - the optional semantic sidecar is now landed behind
   `include_semantic_decomposition=True` and stays separate from
   `parsed_page`

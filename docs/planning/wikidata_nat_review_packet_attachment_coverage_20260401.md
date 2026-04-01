@@ -18,9 +18,10 @@ This note covers:
 - the existing Nat review packet for `Q10403939`
 - a second packetized held split row for `Q10422059`
 - a third packetized held split row for `Q731938` (AstraZeneca) drawn from the live tranche
-- nine wider-online reviewed rows from the live tranche
+- ten wider-online reviewed rows from the live tranche
 - two additional sidecar-backed pilot-pack split plans for `Q10416948` and
   `Q56404383`
+- two additional wider-online reviewed rows for `Q1785637` and `Q738421`
 - the shared review-packet contract surface
 
 It does not cover:
@@ -39,11 +40,11 @@ Held split rows in the current Nat tranche:
 
 Packetized held split rows in this slice:
 
-- packetized rows: `13`
-- packetization coverage: `13 / 53`
+- packetized rows: `15`
+- packetization coverage: `15 / 53`
 
 That is the first actual coverage expansion beyond the docs-only checkpoint.
-It now includes the original two held rows, the AstraZeneca held row, the
+It now includes the original two held rows, the AstraZeneca held row, ten
 wider-online reviewed rows from the live tranche, and two additional
 pilot-pack packets that carry the semantic sidecar. It is still partial.
 
@@ -102,7 +103,7 @@ The packet surface now includes:
 1. the original packet for `Q10403939`
 2. a second packetized held row for `Q10422059`
 3. a third held-row packet for `Q731938` (AstraZeneca)
-4. nine wider-online reviewed rows from the live tranche
+4. ten wider-online reviewed rows from the live tranche
 5. two additional pilot-pack sidecar packets for `Q10416948` and `Q56404383`
 6. a machine-readable index that records all attachments
 
@@ -118,7 +119,7 @@ Reviewers now have:
 - the new AstraZeneca held row from the live tranche plus the surrounding
   wider-online rows
 - two additional sidecar-backed pilot-pack packets
-- a coverage index showing 13 / 53 packetized rows
+- a coverage index showing 15 / 53 packetized rows
 
 In practical terms, that gives reviewers a broader packet surface without
 pretending the whole tranche is packetized.
@@ -183,7 +184,7 @@ title Wikidata Nat Review Packet Attachment Coverage
 Component(contract, "Review Packet Contract", "Existing Nat review-packet contract")
 Component(packet1, "Held Row Packet 1", "Q10403939")
 Component(packet2, "Held Row Packet 2", "Q10422059")
-Component(index, "Attachment Coverage Index", "13 / 53 packetized rows")
+Component(index, "Attachment Coverage Index", "15 / 53 packetized rows")
 Component(reviewer, "Reviewer", "Nat / ontology reviewers")
 
 Rel(contract, packet1, "supports")
