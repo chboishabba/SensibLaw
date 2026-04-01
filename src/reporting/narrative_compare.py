@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 from src.reporting.structure_report import TextUnit
 from src.reporting.source_url import parse_source_url
+from src.policy.provenance_packet_geometry import ensure_receipt_kinds, receipt_dict
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,10 +64,6 @@ def _norm(value: str) -> str:
     return text
 
 
-def _receipt(kind: str, value: str) -> dict[str, str]:
-    return {"kind": kind, "value": value}
-
-
 def _argument(role: str, value: str) -> dict[str, str]:
     return {"role": role, "value": value}
 
@@ -118,7 +115,7 @@ def _extract_fact_proposition(
             "predicate_key": predicate_key,
             "anchor_text": cleaned,
             "arguments": [_argument("subject", subject), _argument("object", obj)],
-            "receipts": [_receipt("source_signal", source_signal), _receipt("claim_text", cleaned)],
+            "receipts": [receipt_dict("source_signal", source_signal), receipt_dict("claim_text", cleaned)],
         }
         fact = {
             "fact_id": f"{event_id}:f{proposition_index}",
@@ -140,7 +137,7 @@ def _extract_fact_proposition(
         "predicate_key": "claim_text",
         "anchor_text": cleaned,
         "arguments": [_argument("content", cleaned)],
-        "receipts": [_receipt("source_signal", source_signal), _receipt("claim_text", cleaned)],
+        "receipts": [receipt_dict("source_signal", source_signal), receipt_dict("claim_text", cleaned)],
     }
     return proposition, None
 
@@ -195,8 +192,8 @@ def _extract_claim_graph(
                 "anchor_text": cleaned,
                 "arguments": wrapper_arguments,
                 "receipts": [
-                    _receipt("source_signal", f"wrapper_{link_kind}"),
-                    _receipt("surface_text", cleaned),
+                    receipt_dict("source_signal", f"wrapper_{link_kind}"),
+                    receipt_dict("surface_text", cleaned),
                 ],
             }
             propositions.append(wrapper)
@@ -209,7 +206,7 @@ def _extract_claim_graph(
                     "source_proposition_id": wrapper_id,
                     "target_proposition_id": target_proposition_id,
                     "link_kind": "attributes_to",
-                    "receipts": [_receipt("speaker", speaker), _receipt("wrapper_kind", link_kind)],
+                    "receipts": [receipt_dict("speaker", speaker), receipt_dict("wrapper_kind", link_kind)],
                 }
             )
             if _norm(speaker) in {"court records", "records", "documents", "court record"}:
@@ -470,11 +467,11 @@ def _derive_comparison_links(
                     "left_proposition_id": left_id,
                     "right_proposition_id": right_id,
                     "receipts": [
-                        _receipt("comparison_basis", comparison_basis),
-                        _receipt("subject_object_key", str(row.get("subject_object_key") or "")),
-                        _receipt("link_type", "causal_dispute"),
-                        _receipt("confidence", confidence),
-                        _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
+                        receipt_dict("comparison_basis", comparison_basis),
+                        receipt_dict("subject_object_key", str(row.get("subject_object_key") or "")),
+                        receipt_dict("link_type", "causal_dispute"),
+                        receipt_dict("confidence", confidence),
+                        receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
                     ],
                 }
             )
@@ -530,11 +527,11 @@ def _derive_support_links(
                         "confidence": "medium",
                         "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
-                            _receipt("support_basis", "block_subject_embeds_causal_subject"),
-                            _receipt("support_source", str(row.get("predicate_key") or "")),
-                            _receipt("link_type", "causal_support"),
-                            _receipt("confidence", "medium"),
-                            _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
+                            receipt_dict("support_basis", "block_subject_embeds_causal_subject"),
+                            receipt_dict("support_source", str(row.get("predicate_key") or "")),
+                            receipt_dict("link_type", "causal_support"),
+                            receipt_dict("confidence", "medium"),
+                            receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
                         ],
                     }
                 )
@@ -579,11 +576,11 @@ def _derive_support_links(
                         "confidence": "high",
                         "counter_hypothesis_ref": counter_hypothesis_ref,
                         "receipts": [
-                            _receipt("support_basis", "documentary_support_same_signature"),
-                            _receipt("support_source", "court_records"),
-                            _receipt("link_type", "causal_support"),
-                            _receipt("confidence", "high"),
-                            _receipt("counter_hypothesis_ref", counter_hypothesis_ref),
+                            receipt_dict("support_basis", "documentary_support_same_signature"),
+                            receipt_dict("support_source", "court_records"),
+                            receipt_dict("link_type", "causal_support"),
+                            receipt_dict("confidence", "high"),
+                            receipt_dict("counter_hypothesis_ref", counter_hypothesis_ref),
                         ],
                     }
                 )
@@ -824,7 +821,6 @@ def _iter_causal_links(payload: dict[str, Any]) -> Iterable[tuple[dict[str, Any]
 
 
 def ensure_claim_link_provenance_for_public_artifact(payload: dict[str, Any]) -> None:
-    required_receipt_kinds = {"link_type", "confidence", "counter_hypothesis_ref"}
     for link, location in _iter_causal_links(payload):
         link_kind = str(link.get("link_kind") or "")
         link_type = str(link.get("link_type") or "").strip()
@@ -840,11 +836,13 @@ def ensure_claim_link_provenance_for_public_artifact(payload: dict[str, Any]) ->
             raise ValueError(f"{location} missing counter_hypothesis_ref for causal link_kind={link_kind}")
 
         receipts = link.get("receipts") or []
-        receipt_kinds = {str(receipt.get("kind") or "") for receipt in receipts if isinstance(receipt, dict)}
-        missing_receipt_kinds = required_receipt_kinds - receipt_kinds
-        if missing_receipt_kinds:
-            missing = ", ".join(sorted(missing_receipt_kinds))
-            raise ValueError(f"{location} missing provenance receipt kinds: {missing}")
+        try:
+            ensure_receipt_kinds(
+                receipts,
+                required_kinds=("link_type", "confidence", "counter_hypothesis_ref"),
+            )
+        except ValueError as exc:
+            raise ValueError(f"{location} {exc}") from exc
 
 
 def load_narrative_fixture(path: str | Path) -> dict[str, Any]:

@@ -36,7 +36,6 @@ def test_revision_monitor_read_models_round_trip() -> None:
         CREATE TABLE wiki_revision_monitor_contested_graphs (
           run_id TEXT NOT NULL,
           article_id TEXT NOT NULL,
-          graph_path TEXT NOT NULL,
           graph_json TEXT NOT NULL,
           region_count INTEGER NOT NULL DEFAULT 0,
           cycle_count INTEGER NOT NULL DEFAULT 0,
@@ -107,7 +106,6 @@ def test_revision_monitor_read_models_round_trip() -> None:
         started_at="2026-03-31T00:00:00Z",
         completed_at="2026-03-31T00:10:00Z",
         status="ok",
-        out_dir="SensibLaw/demo/ingest/wiki_revision_monitor/pack_one",
         summary={
             "highest_severity": "high",
             "counts": {"changed": 2, "error": 0, "unchanged": 0, "baseline_initialized": 0, "no_candidate_delta": 0},
@@ -137,7 +135,6 @@ def test_revision_monitor_read_models_round_trip() -> None:
                 "selected_primary_pair_score": 9.5,
                 "candidate_pairs_selected": 2,
                 "contested_graph_available": True,
-                "contested_graph_path": "/tmp/graph.json",
                 "contested_graph_summary": {"region_count": 3, "cycle_count": 1, "graph_heat": 7.5},
             },
         ],
@@ -150,10 +147,13 @@ def test_revision_monitor_read_models_round_trip() -> None:
     assert latest[0]["highest_severity"] == "high"
     assert changed[0]["article_id"] == "article_1"
     assert changed[0]["contested_graph_available"] is True
+    assert "report_path" not in changed[0]
+    assert "contested_graph_path" not in changed[0]
     assert summary is not None
     assert summary["pack_id"] == "pack_one"
     assert summary["counts"]["changed"] == 2
     assert summary["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
+    assert "report_path" not in summary["pack_triage"]["top_changed_articles"][0]
 
 
 def test_revision_monitor_issue_packet_rows_round_trip() -> None:
@@ -232,7 +232,6 @@ def test_revision_monitor_selected_pair_rows_round_trip() -> None:
                 "newer_revid": 2,
                 "candidate_score": 9.5,
                 "top_severity": "high",
-                "pair_report_path": "/tmp/pair.json",
                 "top_changed_sections": [{"section": "History", "touched_bytes": 1200}],
             }
         ],
@@ -241,6 +240,7 @@ def test_revision_monitor_selected_pair_rows_round_trip() -> None:
     assert rows[0]["pair_id"] == "pair:1"
     assert rows[0]["pair_kind"] == "largest_delta_in_window"
     assert rows[0]["top_changed_sections"][0]["section"] == "History"
+    assert "pair_report_path" not in rows[0]
 
 
 def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
@@ -268,7 +268,6 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
         CREATE TABLE wiki_revision_monitor_contested_graphs (
           run_id TEXT NOT NULL,
           article_id TEXT NOT NULL,
-          graph_path TEXT NOT NULL,
           graph_json TEXT NOT NULL,
           region_count INTEGER NOT NULL DEFAULT 0,
           cycle_count INTEGER NOT NULL DEFAULT 0,
@@ -337,14 +336,13 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_contested_graphs(
-          run_id, article_id, graph_path, graph_json, region_count, cycle_count, selected_pair_count,
+          run_id, article_id, graph_json, region_count, cycle_count, selected_pair_count,
           changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)
         """,
         (
             "run:pack_one:2026-03-31T00:00:00Z:abc",
             "article_1",
-            "/tmp/graph.json",
             "{}",
             1,
             0,
@@ -417,7 +415,6 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
                 "newer_revid": 2,
                 "candidate_score": 9.5,
                 "top_severity": "high",
-                "pair_report_path": "/tmp/pair.json",
                 "top_changed_sections": [{"section": "History", "touched_bytes": 1200}],
             }
         ],
@@ -426,6 +423,66 @@ def test_revision_monitor_contested_graph_payload_from_sqlite() -> None:
     assert payload is not None
     assert payload["article"]["article_id"] == "article_1"
     assert payload["selected_pairs"][0]["pair_id"] == "pair:1"
+    assert "pair_report_path" not in payload["selected_pairs"][0]
     assert payload["regions"][0]["region_id"] == "region:1"
     assert payload["events"][0]["event_id"] == "ev:1"
     assert payload["epistemic_surfaces"][0]["epistemic_id"] == "epi:1"
+    assert "graph_path" not in payload
+
+
+def test_ensure_read_model_schema_rebuilds_dead_path_columns() -> None:
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("CREATE TABLE wiki_revision_monitor_packs (pack_id TEXT PRIMARY KEY)")
+    conn.execute("CREATE TABLE wiki_revision_monitor_runs (run_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute("CREATE TABLE wiki_revision_monitor_articles (article_id TEXT PRIMARY KEY, pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE)")
+    conn.execute(
+        """
+        CREATE TABLE wiki_revision_monitor_changed_articles (
+          run_id TEXT NOT NULL,
+          article_id TEXT NOT NULL,
+          pack_id TEXT NOT NULL,
+          title TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL,
+          top_severity TEXT NOT NULL DEFAULT 'none',
+          previous_revid INTEGER,
+          current_revid INTEGER,
+          selected_primary_pair_id TEXT,
+          selected_primary_pair_kind TEXT,
+          selected_primary_pair_score REAL NOT NULL DEFAULT 0,
+          candidate_pairs_selected INTEGER NOT NULL DEFAULT 0,
+          report_path TEXT,
+          contested_graph_available INTEGER NOT NULL DEFAULT 0,
+          contested_graph_path TEXT,
+          contested_region_count INTEGER NOT NULL DEFAULT 0,
+          contested_cycle_count INTEGER NOT NULL DEFAULT 0,
+          graph_heat REAL NOT NULL DEFAULT 0,
+          PRIMARY KEY (run_id, article_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE wiki_revision_monitor_selected_pairs (
+          run_id TEXT NOT NULL,
+          article_id TEXT NOT NULL,
+          pair_id TEXT NOT NULL,
+          pair_kind TEXT NOT NULL,
+          pair_kinds_json TEXT NOT NULL,
+          older_revid INTEGER,
+          newer_revid INTEGER,
+          candidate_score REAL NOT NULL DEFAULT 0,
+          top_severity TEXT NOT NULL DEFAULT 'none',
+          pair_report_path TEXT,
+          top_changed_sections_json TEXT NOT NULL,
+          PRIMARY KEY (run_id, article_id, pair_id)
+        )
+        """
+    )
+    ensure_read_model_schema(conn)
+    changed_cols = {row[1] for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_changed_articles)").fetchall()}
+    pair_cols = {row[1] for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_selected_pairs)").fetchall()}
+    assert "report_path" not in changed_cols
+    assert "contested_graph_path" not in changed_cols
+    assert "pair_report_path" not in pair_cols

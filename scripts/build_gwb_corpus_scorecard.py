@@ -6,8 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
+from src.storage.repo_roots import relative_repo_path, repo_root, sensiblaw_root
+
+REPO_ROOT = repo_root()
+SENSIBLAW_ROOT = sensiblaw_root()
 ARTIFACT_VERSION = "gwb_corpus_scorecard_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
 DEFAULT_HANDOFF_SCORECARD_PATH = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / "gwb_public_handoff_v1" / "gwb_public_handoff_v1.scorecard.json"

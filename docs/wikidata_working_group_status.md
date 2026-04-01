@@ -10,6 +10,10 @@ If you need one short plain-language handoff that also works for the Zelph
 developer, start with:
 - `../../docs/planning/wikidata_combined_assist_handoff_20260401.md`
 
+If you need the shortest practical onboarding note for Shixiong Zhao on the
+current climate migration + Nat packet lane, start with:
+- `planning/wikidata_shixiong_handoff_20260402.md`
+
 If you need the current execution-order roadmap across the Nat migration lane
 and the broader Peter/Ege/Rosario assist lane, use:
 - `../../docs/planning/wikidata_combined_roadmap_nat_and_assist_20260401.md`
@@ -17,8 +21,24 @@ and the broader Peter/Ege/Rosario assist lane, use:
 If you need the assist-lane finish-line model by itself, use:
 - `../../docs/planning/wikidata_assist_lane_completion_model_20260401.md`
 
+If you need the assist-lane reviewer-packet alignment note, use:
+- `../../docs/planning/wikidata_assist_lane_reviewer_packet_alignment_20260401.md`
+
+If you need the full intended Nat end product and the tiered automation
+posture, use:
+- `planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
+
 Treat this status note as the Wikidata-specific detailed appendix after that
 shared handoff.
+
+## Parallel execution posture
+- when the task surface is wide enough to split cleanly, assign one
+  nonblocking lane per worker
+- keep lanes disjoint so workers do not compete on the same artifact set
+- only parallelize when the lane split is actually useful; do not force
+  parallelism onto a single narrow gate
+- the main purpose of this posture is faster review/split throughput, not
+  broader authority or riskier execution
 
 ## Current focus
 - bounded slice now includes structural `P31` / `P279` review plus phase-2
@@ -100,6 +120,79 @@ shared handoff.
     - the lane is doing structured statement-bundle checks
     - the lane is not yet doing source-text understanding or deep semantic
       reasoning over prose
+  - user-story alignment is now explicit:
+    - review-and-split is the right mainline goal for the wider Nat lane
+    - ITIR should help by capturing/parsing revision-locked wiki surfaces and
+      reducing reviewer uncertainty through bounded cited-ref / link-follow
+      assist
+    - current honest boundary:
+      generic wiki-page ref/link-follow reviewer assist is desired and now
+      story-backed, but still only partially implemented
+  - docs-first next slice is now pinned:
+    - build a bounded reviewer-packet lane above the existing split-plan
+      surfaces:
+      `docs/planning/wikidata_review_packet_plan_20260401.md`
+    - the first machine-readable contract for that lane is now pinned:
+      `docs/planning/wikidata_review_packet_contract_20260401.md`
+    - the first bounded runtime slice is now landed:
+      - schema:
+        `schemas/sl.wikidata_review_packet.v0_1.schema.yaml`
+      - builder:
+        `build_wikidata_review_packet(...)`
+      - pinned Nat fixture:
+        `tests/fixtures/wikidata/wikidata_nat_review_packet_20260401.json`
+      - current parser coverage:
+        - section headings
+        - done / to-do task buckets
+        - query rows
+        - cohort-oriented task lines
+      - bounded follow-receipt support now auto-attaches a query-link receipt
+        when the source surface provides one
+      - explicit boundary:
+        - `parsed_page` is only the current shallow surface-parse helper
+        - it is not the full SensibLaw decomposition / contingent-clause layer
+        - richer semantic decomposition should land later as a separate layer
+          above or beside `parsed_page`
+    - planned order:
+      - revision capture
+      - bounded parser
+      - reviewer packet attachment for split-required Nat rows
+    - current honest boundary:
+      - the contract layer and first single-packet runtime slice are now
+        defined
+      - the bounded parser upgrade is now landed
+      - bounded follow receipts now exist for the Nat query-link surface, but
+        broader follow-receipt coverage across held rows still remains
+      - broader packet coverage across held rows now has a first
+        13-row attachment surface, but it is still incomplete
+      - a separate semantic sidecar now exists behind
+        `include_semantic_decomposition=True`
+      - deeper SensibLaw-style semantic decomposition should still stay
+        explicit and separate from the shallow parser coverage
+    - current packet coverage now has a first multi-row attachment index:
+      `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
+      records `13 / 53` packetized held split rows, with the original packet
+      for `Q10403939`, second and third packetized held rows for
+      `Q10422059` and `Q731938`, nine wider-online reviewed rows from the
+      live tranche, and two additional pilot-pack sidecar packets for
+      `Q10416948` and `Q56404383`
+    - the assist lane now has a parallel reviewer-packet alignment note:
+      `docs/planning/wikidata_assist_lane_reviewer_packet_alignment_20260401.md`
+      so the same packet grammar can be adopted without overstating parity or
+      completion
+    - the assist lane now also has a smallest-fixture note:
+      `docs/planning/wikidata_assist_lane_packet_fixture_note_20260402.md`
+      so the reviewer-facing reuse of Nat field names stays explicit while
+      the lane remains review-first and nonblocking
+  - end-product posture is now explicit:
+    - the goal is full pipeline coverage, not blind full-population execution
+    - the honest end state is tiered:
+      - Tier 1: fully automated checked-safe rows
+      - Tier 2: semi-automated split with human approval
+      - Tier 3: review-only reviewer packets
+      - Tier 4: hold
+    - the wider Nat value proposition is therefore reviewer throughput and
+      uncertainty reduction, not pretending all `~50k` rows belong to Tier 1
   - immediate next assist target:
     - reduce the large `ambiguous_semantics` bucket for temporal/multi-value
       rows

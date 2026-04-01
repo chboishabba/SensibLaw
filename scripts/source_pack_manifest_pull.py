@@ -21,6 +21,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from src.storage.manifest_runtime import load_json_object, resolve_sensiblaw_manifest_path
+
 
 AUTHORITY_HOST_SUFFIXES = (
     "austlii.edu.au",
@@ -200,6 +202,10 @@ def _guess_content_type_from_path(path: Path) -> str:
     return "application/octet-stream"
 
 
+DEFAULT_SOURCE_PACK_PATH = resolve_sensiblaw_manifest_path("data", "source_packs", "legal_principles_au_v1.json")
+DEFAULT_OUTPUT_DIR = resolve_sensiblaw_manifest_path("demo", "ingest", "legal_principles_au_v1")
+
+
 def _iso_to_anchor(ts: str) -> Dict[str, object]:
     d = dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
     return {
@@ -310,7 +316,7 @@ def run(
     wiki_rps: float,
     default_rps: float,
 ) -> Dict[str, object]:
-    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    pack = load_json_object(pack_path)
     pack_id = str(pack.get("pack_id") or pack_path.stem)
     user_agent = f"ITIR-suite/source-pack-manifest-pull ({pack_id})"
     generated_at = _utc_now_iso()
@@ -501,14 +507,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--pack",
         dest="pack_path",
         type=Path,
-        default=Path("SensibLaw/data/source_packs/legal_principles_au_v1.json"),
+        default=DEFAULT_SOURCE_PACK_PATH,
         help="Source-pack JSON path (default: %(default)s)",
     )
     ap.add_argument(
         "--out-dir",
         dest="out_dir",
         type=Path,
-        default=Path("SensibLaw/demo/ingest/legal_principles_au_v1"),
+        default=DEFAULT_OUTPUT_DIR,
         help="Output directory (default: %(default)s)",
     )
     ap.add_argument("--timeout", type=int, default=20, help="Per-request timeout seconds (default: %(default)s)")

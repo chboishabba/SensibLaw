@@ -7,6 +7,26 @@ import json
 from src.wiki_timeline.revision_pack_summary import severity_rank
 
 
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return [str(row[1]) for row in rows]
+
+
+def _needs_rebuild(conn: sqlite3.Connection, *, table_name: str, target_columns: list[str]) -> bool:
+    existing = _table_columns(conn, table_name)
+    return bool(existing) and existing != target_columns
+
+
+def _snapshot_rows(conn: sqlite3.Connection, *, table_name: str, columns: list[str]) -> list[tuple[Any, ...]]:
+    existing = _table_columns(conn, table_name)
+    if not existing:
+        return []
+    selected = [column for column in columns if column in existing]
+    if not selected:
+        return []
+    return conn.execute(f"SELECT {', '.join(selected)} FROM {table_name}").fetchall()
+
+
 def _safe_int(value: Any) -> int:
     try:
         return int(value or 0)
@@ -30,7 +50,6 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
           started_at TEXT NOT NULL,
           completed_at TEXT,
           status TEXT NOT NULL,
-          out_dir TEXT NOT NULL,
           highest_severity TEXT NOT NULL DEFAULT 'none',
           baseline_initialized_count INTEGER NOT NULL DEFAULT 0,
           unchanged_count INTEGER NOT NULL DEFAULT 0,
@@ -62,9 +81,7 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
           selected_primary_pair_kind TEXT,
           selected_primary_pair_score REAL NOT NULL DEFAULT 0,
           candidate_pairs_selected INTEGER NOT NULL DEFAULT 0,
-          report_path TEXT,
           contested_graph_available INTEGER NOT NULL DEFAULT 0,
-          contested_graph_path TEXT,
           contested_region_count INTEGER NOT NULL DEFAULT 0,
           contested_cycle_count INTEGER NOT NULL DEFAULT 0,
           graph_heat REAL NOT NULL DEFAULT 0,
@@ -104,7 +121,6 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
           newer_revid INTEGER,
           candidate_score REAL NOT NULL DEFAULT 0,
           top_severity TEXT NOT NULL DEFAULT 'none',
-          pair_report_path TEXT,
           top_changed_sections_json TEXT NOT NULL,
           PRIMARY KEY (run_id, article_id, pair_id)
         )
@@ -134,6 +150,134 @@ def ensure_read_model_schema(conn: sqlite3.Connection) -> None:
     )
 
 
+    rebuild_specs = [
+        (
+            "wiki_revision_monitor_changed_articles",
+            [
+                "run_id",
+                "article_id",
+                "pack_id",
+                "title",
+                "status",
+                "top_severity",
+                "previous_revid",
+                "current_revid",
+                "selected_primary_pair_id",
+                "selected_primary_pair_kind",
+                "selected_primary_pair_score",
+                "candidate_pairs_selected",
+                "contested_graph_available",
+                "contested_region_count",
+                "contested_cycle_count",
+                "graph_heat",
+            ],
+        ),
+        (
+            "wiki_revision_monitor_selected_pairs",
+            [
+                "run_id",
+                "article_id",
+                "pair_id",
+                "pair_kind",
+                "pair_kinds_json",
+                "older_revid",
+                "newer_revid",
+                "candidate_score",
+                "top_severity",
+                "top_changed_sections_json",
+            ],
+        ),
+    ]
+    if any(_needs_rebuild(conn, table_name=table_name, target_columns=target_columns) for table_name, target_columns in rebuild_specs):
+        changed_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_changed_articles",
+            columns=[
+                "run_id", "article_id", "pack_id", "title", "status", "top_severity",
+                "previous_revid", "current_revid", "selected_primary_pair_id",
+                "selected_primary_pair_kind", "selected_primary_pair_score",
+                "candidate_pairs_selected", "contested_graph_available",
+                "contested_region_count", "contested_cycle_count", "graph_heat",
+            ],
+        )
+        pair_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_selected_pairs",
+            columns=[
+                "run_id", "article_id", "pair_id", "pair_kind", "pair_kinds_json",
+                "older_revid", "newer_revid", "candidate_score", "top_severity",
+                "top_changed_sections_json",
+            ],
+        )
+        conn.execute("PRAGMA foreign_keys = OFF")
+        for table_name in ["wiki_revision_monitor_selected_pairs", "wiki_revision_monitor_changed_articles"]:
+            if _table_columns(conn, table_name):
+                conn.execute(f"DROP TABLE {table_name}")
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_changed_articles (
+              run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+              article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+              pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
+              title TEXT NOT NULL DEFAULT '',
+              status TEXT NOT NULL,
+              top_severity TEXT NOT NULL DEFAULT 'none',
+              previous_revid INTEGER,
+              current_revid INTEGER,
+              selected_primary_pair_id TEXT,
+              selected_primary_pair_kind TEXT,
+              selected_primary_pair_score REAL NOT NULL DEFAULT 0,
+              candidate_pairs_selected INTEGER NOT NULL DEFAULT 0,
+              contested_graph_available INTEGER NOT NULL DEFAULT 0,
+              contested_region_count INTEGER NOT NULL DEFAULT 0,
+              contested_cycle_count INTEGER NOT NULL DEFAULT 0,
+              graph_heat REAL NOT NULL DEFAULT 0,
+              PRIMARY KEY (run_id, article_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE wiki_revision_monitor_selected_pairs (
+              run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
+              article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+              pair_id TEXT NOT NULL,
+              pair_kind TEXT NOT NULL,
+              pair_kinds_json TEXT NOT NULL,
+              older_revid INTEGER,
+              newer_revid INTEGER,
+              candidate_score REAL NOT NULL DEFAULT 0,
+              top_severity TEXT NOT NULL DEFAULT 'none',
+              top_changed_sections_json TEXT NOT NULL,
+              PRIMARY KEY (run_id, article_id, pair_id)
+            )
+            """
+        )
+        if changed_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_changed_articles(
+                  run_id, article_id, pack_id, title, status, top_severity, previous_revid, current_revid,
+                  selected_primary_pair_id, selected_primary_pair_kind, selected_primary_pair_score,
+                  candidate_pairs_selected, contested_graph_available, contested_region_count,
+                  contested_cycle_count, graph_heat
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                changed_rows,
+            )
+        if pair_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_selected_pairs(
+                  run_id, article_id, pair_id, pair_kind, pair_kinds_json, older_revid, newer_revid,
+                  candidate_score, top_severity, top_changed_sections_json
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                """,
+                pair_rows,
+            )
+        conn.execute("PRAGMA foreign_keys = ON")
+
+
 def upsert_run_summary(
     conn: sqlite3.Connection,
     *,
@@ -142,7 +286,6 @@ def upsert_run_summary(
     started_at: str,
     completed_at: str | None,
     status: str,
-    out_dir: str,
     summary: Mapping[str, Any],
 ) -> None:
     counts = summary.get("counts") if isinstance(summary.get("counts"), Mapping) else {}
@@ -151,17 +294,16 @@ def upsert_run_summary(
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_run_summaries(
-          run_id, pack_id, started_at, completed_at, status, out_dir, highest_severity,
+          run_id, pack_id, started_at, completed_at, status, highest_severity,
           baseline_initialized_count, unchanged_count, changed_count, error_count, no_candidate_delta_count,
           candidate_considered_count, candidate_selected_count, candidate_reported_count,
           graphs_article_count, graphs_built_count, regions_detected_count, cycles_detected_count
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(run_id) DO UPDATE SET
           pack_id=excluded.pack_id,
           started_at=excluded.started_at,
           completed_at=excluded.completed_at,
           status=excluded.status,
-          out_dir=excluded.out_dir,
           highest_severity=excluded.highest_severity,
           baseline_initialized_count=excluded.baseline_initialized_count,
           unchanged_count=excluded.unchanged_count,
@@ -182,7 +324,6 @@ def upsert_run_summary(
             started_at,
             completed_at,
             status,
-            out_dir,
             str(summary.get("highest_severity") or "none"),
             _safe_int(counts.get("baseline_initialized")),
             _safe_int(counts.get("unchanged")),
@@ -217,9 +358,8 @@ def replace_changed_articles(
             INSERT INTO wiki_revision_monitor_changed_articles(
               run_id, article_id, pack_id, title, status, top_severity, previous_revid, current_revid,
               selected_primary_pair_id, selected_primary_pair_kind, selected_primary_pair_score,
-              candidate_pairs_selected, report_path, contested_graph_available, contested_graph_path,
-              contested_region_count, contested_cycle_count, graph_heat
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              candidate_pairs_selected, contested_graph_available, contested_region_count, contested_cycle_count, graph_heat
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 run_id,
@@ -234,9 +374,7 @@ def replace_changed_articles(
                 row.get("selected_primary_pair_kind"),
                 _safe_float(row.get("selected_primary_pair_score")),
                 _safe_int(row.get("candidate_pairs_selected")),
-                row.get("report_path"),
                 1 if row.get("contested_graph_available") else 0,
-                row.get("contested_graph_path"),
                 _safe_int(graph_summary.get("region_count")),
                 _safe_int(graph_summary.get("cycle_count")),
                 _safe_float(graph_summary.get("graph_heat")),
@@ -301,8 +439,8 @@ def replace_selected_pairs(
             """
             INSERT INTO wiki_revision_monitor_selected_pairs(
               run_id, article_id, pair_id, pair_kind, pair_kinds_json, older_revid, newer_revid,
-              candidate_score, top_severity, pair_report_path, top_changed_sections_json
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+              candidate_score, top_severity, top_changed_sections_json
+            ) VALUES(?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 run_id,
@@ -314,7 +452,6 @@ def replace_selected_pairs(
                 row.get("newer_revid"),
                 _safe_float(row.get("candidate_score")),
                 str(row.get("top_severity") or "none"),
-                row.get("pair_report_path"),
                 json.dumps(row.get("top_changed_sections") or [], sort_keys=True),
             ),
         )
@@ -323,7 +460,7 @@ def replace_selected_pairs(
 def latest_run_rows(conn: sqlite3.Connection, *, pack_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
-        SELECT run_id, pack_id, started_at, completed_at, status, out_dir, highest_severity,
+        SELECT run_id, pack_id, started_at, completed_at, status, highest_severity,
                changed_count, error_count, candidate_reported_count, graphs_built_count
         FROM wiki_revision_monitor_run_summaries
         WHERE pack_id = ?
@@ -339,8 +476,7 @@ def changed_article_rows(conn: sqlite3.Connection, *, run_id: str) -> list[dict[
         """
         SELECT article_id, pack_id, title, status, top_severity, previous_revid, current_revid,
                selected_primary_pair_id, selected_primary_pair_kind, selected_primary_pair_score,
-               candidate_pairs_selected, report_path, contested_graph_available, contested_graph_path,
-               contested_region_count, contested_cycle_count, graph_heat
+               candidate_pairs_selected, contested_graph_available, contested_region_count, contested_cycle_count, graph_heat
         FROM wiki_revision_monitor_changed_articles
         WHERE run_id = ?
         ORDER BY
@@ -387,7 +523,7 @@ def selected_pair_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str
     rows = conn.execute(
         """
         SELECT pair_id, pair_kind, pair_kinds_json, older_revid, newer_revid, candidate_score,
-               top_severity, pair_report_path, top_changed_sections_json
+               top_severity, top_changed_sections_json
         FROM wiki_revision_monitor_selected_pairs
         WHERE run_id = ? AND article_id = ?
         ORDER BY
@@ -409,7 +545,7 @@ def selected_pair_rows(conn: sqlite3.Connection, *, run_id: str, article_id: str
 def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id: str) -> dict[str, Any] | None:
     graph_row = conn.execute(
         """
-        SELECT graph_path, region_count, cycle_count, selected_pair_count, changed_event_count,
+        SELECT region_count, cycle_count, selected_pair_count, changed_event_count,
                changed_attribution_count, highest_severity, hottest_region_json
         FROM wiki_revision_monitor_contested_graphs
         WHERE run_id = ? AND article_id = ?
@@ -521,14 +657,13 @@ def contested_graph_payload(conn: sqlite3.Connection, *, run_id: str, article_id
         "edges": edges,
         "cycles": cycles,
         "summary": summary,
-        "graph_path": graph_row["graph_path"],
     }
 
 
 def summary_from_read_models(conn: sqlite3.Connection, *, run_id: str) -> dict[str, Any] | None:
     run_row = conn.execute(
         """
-        SELECT run_id, pack_id, started_at, completed_at, status, out_dir, highest_severity,
+        SELECT run_id, pack_id, started_at, completed_at, status, highest_severity,
                baseline_initialized_count, unchanged_count, changed_count, error_count, no_candidate_delta_count,
                candidate_considered_count, candidate_selected_count, candidate_reported_count,
                graphs_article_count, graphs_built_count, regions_detected_count, cycles_detected_count
@@ -550,7 +685,6 @@ def summary_from_read_models(conn: sqlite3.Connection, *, run_id: str) -> dict[s
             "selected_primary_pair_kind": row.get("selected_primary_pair_kind"),
             "selected_primary_pair_score": row.get("selected_primary_pair_score"),
             "candidate_pairs_selected": row.get("candidate_pairs_selected"),
-            "report_path": row.get("report_path"),
         }
         for row in articles
     ]
@@ -566,7 +700,6 @@ def summary_from_read_models(conn: sqlite3.Connection, *, run_id: str) -> dict[s
         "ok": True,
         "pack_id": run_row["pack_id"],
         "run_id": run_row["run_id"],
-        "out_dir": run_row["out_dir"],
         "counts": {
             "baseline_initialized": run_row["baseline_initialized_count"],
             "unchanged": run_row["unchanged_count"],

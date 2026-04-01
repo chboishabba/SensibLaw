@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import inspect
 import json
+from pathlib import Path
 
 from scripts.run_fact_review_acceptance_wave import main
 from src.fact_intake import load_fact_review_acceptance_fixture_manifest
 from src.fact_intake import acceptance_fixtures
 from src.fact_intake.acceptance_fixtures import _DEFAULT_MANIFEST_BY_WAVE
+from src.storage.manifest_runtime import resolve_sensiblaw_manifest_path
 
 
 def test_wave1_acceptance_fixture_manifest_lists_canonical_real_and_synthetic_fixtures() -> None:
@@ -64,6 +66,15 @@ def test_wave5_handoff_false_coherence_manifest_lists_canonical_fixtures() -> No
         "synthetic_multi_professional_reopen_v1",
         "synthetic_false_coherence_pressure_v1",
     } <= fixture_ids
+
+
+def test_default_acceptance_manifest_path_uses_shared_manifest_runtime() -> None:
+    path = acceptance_fixtures.default_fact_review_fixture_manifest_path()
+    expected = resolve_sensiblaw_manifest_path("data", "fact_review", _DEFAULT_MANIFEST_BY_WAVE["wave1_legal"])
+    assert path == expected
+    source = inspect.getsource(acceptance_fixtures)
+    assert "load_versioned_json_object" in source
+    assert "resolve_sensiblaw_manifest_path" in source
 
 
 def test_wave1_acceptance_runner_builds_fixture_batch_and_rollup(tmp_path, capsys) -> None:

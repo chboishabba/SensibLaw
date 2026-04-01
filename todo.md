@@ -38,6 +38,14 @@
   (`class-class`, `instance-instance`, `instance-class`, inverse validity vs
   redundancy) rather than generic ontology repair. See
   `docs/planning/wikidata_mereology_parthood_note_20260307.md`.
+
+- [x] Widen the Nat reviewer-packet attachment lane to a first bounded
+  multi-row surface. The attachment coverage index now records `13 / 53`
+  packetized held split rows in
+  `docs/planning/wikidata_nat_review_packet_attachment_coverage_20260401.md`,
+  keeping the lane partial but no longer single-row only. The latest added
+  packets are the two sidecar-backed pilot-pack rows `Q10416948` and
+  `Q56404383`.
 - [x] Decide which parts of the existing DASHI-style epistemic/projection
   formalism are safe to reuse for Wikidata mereology diagnostics without
   collapsing the bounded control-plane work into an ontology-fix proposal.
@@ -164,16 +172,93 @@
   `src/policy/wikidata_structural_geometry.py` now also owns checked
   disjointness row/cue geometry and dense disjointness row/cue geometry,
   leaving the builders closer to pure orchestration surfaces.
-- [ ] Finish the wiki revision monitor writer contraction by deciding whether
-  pair report and contested graph survive as explicit exports now that the
-  default runner path no longer uses subprocess JSON handoff for timeline/AOO
-  extraction.
-- [ ] Finish pair-report demotion in the wiki revision monitor lane so
-  `pair_report_path` is a legacy link only, not an operational state driver.
+- [x] Finish the wiki revision monitor writer contraction decision:
+  pair-report JSON and contested-graph JSON no longer survive as routine
+  report artifacts on the default runner path, and timeline/AOO extraction no
+  longer depends on subprocess JSON handoff.
+- [x] Finish pair-report demotion in the wiki revision monitor lane so
+  `pair_report_path` is no longer an operational state driver.
 - [x] Finish current-article state contraction in the wiki revision monitor
   lane so timeline/AOO JSON paths are not persisted as durable continuity, and
   remove the default subprocess JSON handoff by calling the extractors
   in-process.
+- [x] Finish the remaining wiki revision monitor contract cleanup:
+  remove dead path-centric contract residue, freeze the no-routine-JSON export
+  posture explicitly, and confirm the runner/query/docs surfaces all describe
+  the lane as SQLite-canonical rather than transitional.
+  - DONE:
+    default read-model/query payloads now demote export-path fields so
+    `report_path`, `pair_report_path`, `contested_graph_path`, and `graph_path`
+    do not appear as routine runtime-state fields. Contract note:
+    `../docs/planning/wiki_revision_monitor_path_contract_demotion_20260401.md`.
+  - DONE:
+    the default runner path no longer writes pair-report JSON or
+    contested-graph JSON, and the runner summary/triage surface no longer
+    advertises those paths as routine report fields. Contract note:
+    `../docs/planning/wiki_revision_monitor_no_routine_json_reports_20260401.md`.
+  - DONE:
+    the dead report/graph path columns are now removed from fresh storage and
+    read-model schema, with in-place rebuild coverage for old DBs. Contract
+    note: `../docs/planning/wiki_revision_monitor_dead_path_schema_drop_20260401.md`.
+  - DONE:
+    the provenance boundary is now explicit: local path fields are not truth,
+    and any future share/publish posture should resolve through logical
+    artifact identity, revision, digest, sink refs, and acknowledgements
+    rather than local JSON/path assumptions. Contract note:
+    `../docs/planning/wiki_revision_monitor_provenance_path_boundary_20260401.md`.
+  - DONE:
+    `timeline_path` and `aoo_path` are now removed from
+    `wiki_revision_monitor_article_state` and
+    `wiki_revision_monitor_article_results`, including old-DB rebuilds.
+    Contract note:
+    `../docs/planning/wiki_revision_monitor_path_residue_cut_20260402.md`.
+  - final posture:
+    `snapshot_path` survives only as bounded article-local provenance, and
+    `out_dir` survives only as transitional run-level provenance rather than
+    truth or semantic identity.
+- [x] Land the first bounded manifest-root / manifest-load normalization slice:
+  `src/storage/manifest_runtime.py` now owns repo-owned manifest-path
+  resolution and top-level JSON-object loading, with first adopters in
+  `src/fact_intake/acceptance_fixtures.py` and
+  `scripts/source_pack_manifest_pull.py`. Contract note:
+  `../docs/planning/manifest_root_normalization_slice_20260402.md`.
+- [x] Freeze the first post-substrate user-story alignment read:
+  `../docs/planning/user_story_alignment_and_reprioritization_20260402.md`
+  now records that the strongest remaining SensibLaw gaps are no longer broad
+  substrate normalization, but operator/workflow gaps above the existing
+  fact-review/read-model/review-geometry spine:
+  - guided next-step workflow clarity through `itir-svelte`
+  - a real annotation / QA workbench slice
+  - more direct user-feedback evidence beyond proxy/story notes
+- [x] Land a shared SQLite runtime substrate for repo-relative path resolution
+  and connection plumbing; first adopters are the wiki-timeline query runtime
+  and fact-review query surface.
+- [x] Land a shared provenance / receipt geometry substrate for receipt rows
+  and packet headers; first adopters are narrative comparison and handoff
+  artifact shaping.
+- [x] Land a shared reviewer-packet geometry substrate for queue-item
+  normalization; first adopter is the fact-intake control plane.
+- [x] Land a shared repo/runtime root helper substrate at
+  `src/storage/repo_roots.py` with first adopters in
+  `scripts/report_wiki_random_timeline_readiness.py`,
+  `scripts/report_wiki_random_article_ingest_coverage.py`, and
+  `scripts/run_fact_semantic_benchmark_matrix.py`. Contract note:
+  `../docs/planning/repo_runtime_helper_substrate_20260401.md`.
+- [x] Collapse the duplicate repo bootstrap helper into the same canonical
+  root substrate:
+  `src/storage/repo_roots.py` now also owns the remaining script-file-based
+  root-resolution helpers, `src/storage/repo_runtime.py` is removed, and the
+  remaining adopter scripts now import the canonical root module directly.
+  Contract note: `../docs/planning/repo_roots_runtime_collapse_20260402.md`.
+- [x] Extend the canonical repo-root substrate through the tested structural
+  script family:
+  `scripts/build_wikidata_structural_handoff.py`,
+  `scripts/build_wikidata_structural_review.py`,
+  `scripts/build_wikidata_dense_structural_review.py`, and
+  `scripts/build_gwb_broader_corpus_checkpoint.py` now source repo and
+  `SensibLaw` roots from `src/storage/repo_roots.py` rather than recomputing
+  them locally. Contract note:
+  `../docs/planning/repo_roots_structural_script_adoption_20260402.md`.
 - [ ] If external Wikimedia funding becomes operationally relevant for the
   Wikidata lane, keep a small maintained funding/watchlist note sourced from
   official online grant pages rather than treating "active Wikidata grants" as
@@ -195,7 +280,7 @@
   leaves cross-swapping into the wrong support or dispute row. Contract notes:
   `../docs/planning/affidavit_claim_reconciliation_contract_20260329.md` and
   `../docs/planning/affidavit_coverage_review_lane_20260325.md`.
-- [ ] Normalize duplicated affidavit reconciliation-text helpers into a shared
+- [x] Normalize duplicated affidavit reconciliation-text helpers into a shared
   Python module instead of leaving tokenization / duplicate-heading grouping
   logic inside wrapper scripts such as
   `scripts/build_google_docs_contested_narrative_review.py`.
@@ -252,6 +337,10 @@
     derivation, candidate-anchor shaping, provisional-anchor ranking and
     bundling, and hint-aware workload recommendations, with focused coverage
     in `tests/test_affidavit_extraction_hints.py`.
+  Outcome:
+  the planned normalization ladder from reconciliation text through extraction
+  hints is now landed; the remaining open affidavit work is parity/outcome
+  quality, not this helper-extraction umbrella.
 - [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
   resolver matches the documented authority order (`already-ingested/local ->
   JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search
@@ -659,6 +748,9 @@
     duplicate `__latest.json` contested-graph alias, while keeping the
     canonical graph artifact path unchanged. Contract note:
     `../docs/planning/wiki_revision_monitor_sidecar_contraction_slice1_20260331.md`.
+  - [x] Remove routine JSON report artifacts from the default runner path and
+    call timeline/AOO extraction in-process rather than through file-shaped
+    subprocess handoff.
   - [x] Move pack triage and run-summary assembly behind one shared Python
     summary owner so `revision_pack_runner.py` stops owning reporting geometry
     inline.
@@ -670,9 +762,9 @@
   - preserve the dedicated runner/state-DB posture; this is a standards/
     interoperability task, not a demand to fold the lane into `itir-svelte`
   - next:
-    decide the canonical replacement contract for the remaining runner working
-    artifacts (`pair_reports`, snapshots, timeline, and AOO files) before
-    removing those JSON surfaces
+    finish the post-contraction contract cleanup so dead path-centric residue
+    is removed and the docs/runtime surfaces all describe the lane as
+    SQLite-canonical rather than still transitional
 - [x] Add an OpenRecall observer integration v1 lane:
   - vendored `openrecall/` SQLite captures now import into `itir.sqlite` via a
     bounded append-only importer and normalized capture tables/read models

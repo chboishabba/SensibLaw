@@ -1,28 +1,23 @@
 from __future__ import annotations
 
-import os
-import sqlite3
 from pathlib import Path
 from typing import Any
 
 from src.wiki_timeline.numeric_projection import apply_numeric_projection
 from src.wiki_timeline.source_registry import normalize_source_key, resolve_source_config
+from src.storage.sqlite_runtime import resolve_sqlite_db_path
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized
 from src.wiki_timeline.timeline_view_projection import build_timeline_view_projection
 
 
 def resolve_query_db_path(explicit_db_path: str | None = None) -> Path:
-    raw = (
-        (explicit_db_path or "").strip()
-        or os.environ.get("ITIR_DB_PATH")
-        or os.environ.get("SL_WIKI_TIMELINE_DB")
-        or os.environ.get("SL_WIKI_TIMELINE_AOO_DB")
-        or ".cache_local/itir.sqlite"
+    return resolve_sqlite_db_path(
+        explicit_db_path,
+        env_vars=("ITIR_DB_PATH", "SL_WIKI_TIMELINE_DB", "SL_WIKI_TIMELINE_AOO_DB"),
     )
-    return Path(raw).expanduser().resolve()
 
 
-def pick_best_run_for_timeline_suffix(conn: sqlite3.Connection, suffix: str) -> str | None:
+def pick_best_run_for_timeline_suffix(conn, suffix: str) -> str | None:
     rows = conn.execute(
         """
         SELECT run_id, generated_at, n_events, timeline_path
@@ -46,7 +41,7 @@ def timeline_suffix_candidates_for_rel_path(rel_path: str) -> list[str]:
 
 
 def load_projection_payload(
-    conn: sqlite3.Connection,
+    conn,
     *,
     run_id: str,
     projection: str,
@@ -65,7 +60,7 @@ def load_projection_payload(
 
 
 def load_source_meta_envelope(
-    conn: sqlite3.Connection,
+    conn,
     *,
     source_key: Any,
     projection: str,
@@ -94,7 +89,7 @@ def load_source_meta_envelope(
 
 
 def load_rel_path_envelope(
-    conn: sqlite3.Connection,
+    conn,
     *,
     rel_path: str,
     projection: str,

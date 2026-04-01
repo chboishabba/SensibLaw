@@ -89,6 +89,8 @@ def test_wikidata_structural_review_uses_shared_io_policy() -> None:
     source = inspect.getsource(review_module)
 
     assert "write_json_markdown_artifact(" in source
+    assert "repo_root()" in source
+    assert "sensiblaw_root()" in source
 
 
 def test_wikidata_structural_review_uses_shared_geometry_policy() -> None:

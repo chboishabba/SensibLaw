@@ -66,18 +66,40 @@ The dedicated revision-monitor SQLite store now also persists:
 - `wiki_revision_monitor_contested_cycles`
 - `wiki_revision_monitor_contested_edges`
 
-Backcompat boundary in v0.3:
+Historical backcompat boundary in v0.3:
 
-- `summary_json` and `graph_json` remain bounded fallback/export surfaces
-- article-result and candidate-pair operational blob columns are no longer
-  canonical and now exist only as temporary compatibility residue
-- the explicit contraction plan is tracked in:
+- `summary_json` and `graph_json` were the bounded fallback/export surfaces at
+  that point in the contraction sequence
+- article-result and candidate-pair operational blob columns were already no
+  longer canonical and existed only as temporary compatibility residue
+- the explicit contraction plan was tracked in:
   - `../docs/planning/wiki_revision_monitor_blob_deprecation_matrix_20260331.md`
   - `../docs/planning/wiki_revision_monitor_schema_contraction_plan_20260331.md`
   - `../docs/planning/wiki_revision_monitor_v0_4_placeholder_blob_drop_20260331.md`
 
-Heavyweight graph artifacts remain file exports under:
-- `SensibLaw/demo/ingest/wiki_revision_monitor/<pack_id>/contested_graphs/`
+Current state beyond this v0.3 note:
+
+- later v0.4/v0.5 contraction slices removed the legacy blob columns from both
+  fresh schema creation and old-DB migration
+- the query lane is now SQLite-first and no longer uses DB blob fallback
+- routine pair-report/contested-graph JSON report artifacts are no longer the
+  intended default report surface
+- local path fields are no longer the intended semantic identity surface;
+  truth remains in SQLite/read models, while any surviving local paths are
+  provenance-only or transitional implementation residue unless a concrete
+  downstream consumer requires them
+- the later path-residue cut removed `timeline_path` and `aoo_path` from
+  article-state and article-result storage entirely; only bounded
+  provenance-only residue such as `snapshot_path` and transitional `out_dir`
+  remains
+- hosted/shareable provenance should resolve through logical artifact identity,
+  revision, digest, sink refs, and acknowledgements rather than local JSON
+  files or local filesystem paths alone
+
+The current default runner posture beyond this v0.3 contract note is:
+- no routine pair-report JSON report artifacts
+- no routine contested-graph JSON report artifacts
+- SQLite/read models remain the canonical operational surface
 
 ## Run summary additions
 Run summaries must now include:
@@ -88,7 +110,6 @@ Run summaries must now include:
 
 Article rows must now include:
 - `contested_graph_available`
-- `contested_graph_path`
 - `contested_graph_summary`
 
 ## Consumer posture

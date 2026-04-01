@@ -22,6 +22,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Deque, Dict, List, Optional, Set, Tuple
 
+from src.storage.repo_roots import resolve_sensiblaw_relative
+
 
 AUTHORITY_HOST_SUFFIXES = (
     "austlii.edu.au",
@@ -472,18 +474,22 @@ def run(
     }
 
 
+DEFAULT_AUTHORITY_MANIFEST_PATH = resolve_sensiblaw_relative("demo", "ingest", "legal_principles_au_v1", "manifest.json")
+DEFAULT_AUTHORITY_OUT_DIR = resolve_sensiblaw_relative("demo", "ingest", "legal_principles_au_v1", "follow")
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Bounded authority-link follow pass from source-pack manifest.")
     ap.add_argument(
         "--manifest",
         type=Path,
-        default=Path("SensibLaw/demo/ingest/legal_principles_au_v1/manifest.json"),
+        default=DEFAULT_AUTHORITY_MANIFEST_PATH,
         help="Input first-pass manifest path (default: %(default)s)",
     )
     ap.add_argument(
         "--out-dir",
         type=Path,
-        default=Path("SensibLaw/demo/ingest/legal_principles_au_v1/follow"),
+        default=DEFAULT_AUTHORITY_OUT_DIR,
         help="Output directory (default: %(default)s)",
     )
     ap.add_argument("--timeout", type=int, default=20, help="Per-request timeout seconds (default: %(default)s)")

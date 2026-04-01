@@ -50,6 +50,20 @@ design pressure only.
   promotion family.
 
 ### Partial-stack support that exists but is narrower than the stories
+- First bounded wiki-revision review/split assist seams now exist:
+  `docs/planning/wiki_revision_source_unit_lattice_admission_20260401.md`,
+  `docs/planning/wikidata_nat_wdu_sandbox_migration_mapping_20260401.md`,
+  `docs/planning/wikidata_split_verification_contract_20260401.md`,
+  `tests/fixtures/wikidata/wiki_revision_nat_wdu_sandbox_p5991_p14143_20260401.json`,
+  `tests/fixtures/wikidata/wikidata_nat_split_verification_multi_plan_surface_20260401.json`
+  plus the runtime/CLI split verifier in `src/ontology/wikidata.py` and
+  `cli/__main__.py`.
+  Current reality: the repo can capture revision-locked wiki proposal surfaces,
+  map them into migration/review cohorts, and verify expected split after-state
+  for bounded reviewed plans.
+  Still missing: a general reviewer-facing lane that parses ordinary wiki page
+  references/outbound links and follows selected cited sources into the same
+  review packet automatically.
 - First bounded citation-driven authority follow/ingest seam now exists:
   `src/ingestion/citation_follow.py`,
   `src/ingestion/austlii_pipeline.py`,
@@ -191,6 +205,14 @@ design pressure only.
 - No annotator workbench.
 - No explicit abstain/inter-rater workflow UI.
 - Only the lower-level review queue primitives exist.
+
+### Wiki review / split assist completeness
+- First revision-locked wiki proposal and split-verification seams now exist.
+- Still missing:
+  - generic wiki-page citation/reference parsing into reviewer packets
+  - bounded outbound-link follow from wiki refs into stronger-source receipts
+  - one obvious operator workbench that presents those packets for split-heavy
+    Wikidata review
 
 ### Semantic-governance completeness
 - A repo-wide static guard now exists for the currently covered truth-bearing

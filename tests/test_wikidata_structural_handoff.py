@@ -84,3 +84,5 @@ def test_wikidata_structural_handoff_uses_shared_io_policy() -> None:
 
     assert "load_json_object(" in source
     assert "relative_repo_path(" in source
+    assert "repo_root()" in source
+    assert "sensiblaw_root()" in source

@@ -29,7 +29,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                 "selected_primary_pair_id": row.get("selected_primary_pair_id"),
                 "selected_primary_pair_score": row.get("selected_primary_pair_score"),
                 "candidate_pairs_selected": row.get("candidate_pairs_selected", 0),
-                "report_path": row.get("report_path"),
             }
         )
         graph_summary = row.get("contested_graph_summary") if isinstance(row.get("contested_graph_summary"), Mapping) else None
@@ -39,7 +38,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                     "article_id": row.get("article_id"),
                     "title": row.get("title"),
                     "top_severity": row.get("top_severity", "none"),
-                    "contested_graph_path": row.get("contested_graph_path"),
                     "region_count": graph_summary.get("region_count", 0),
                     "cycle_count": graph_summary.get("cycle_count", 0),
                     "selected_pair_count": graph_summary.get("selected_pair_count", 0),
@@ -60,7 +58,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                             "highest_severity": cycle.get("highest_severity", "none"),
                             "pair_kinds": list(cycle.get("pair_kinds") or []),
                             "reason": cycle.get("reason"),
-                            "contested_graph_path": row.get("contested_graph_path"),
                         }
                     )
             for region in graph_summary.get("top_regions") or []:
@@ -74,7 +71,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                         "touch_count": region.get("touch_count", 0),
                         "total_touched_bytes": region.get("total_touched_bytes", 0),
                         "highest_severity": region.get("highest_severity", "none"),
-                        "contested_graph_path": row.get("contested_graph_path"),
                     }
                     existing = top_regions.get(key)
                     if existing is None or int(candidate.get("total_touched_bytes") or 0) > int(existing.get("total_touched_bytes") or 0):
@@ -93,7 +89,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                     "newer_revid": pair.get("newer_revid"),
                     "candidate_score": pair.get("candidate_score"),
                     "top_severity": pair.get("top_severity", "none"),
-                    "pair_report_path": pair.get("pair_report_path"),
                 }
             )
             for section in pair.get("top_changed_sections") or []:
@@ -112,7 +107,6 @@ def build_pack_triage(article_results: list[dict[str, Any]], *, article_limit: i
                     "pair_id": pair.get("pair_id"),
                     "pair_kind": pair.get("pair_kind"),
                     "top_severity": pair.get("top_severity", "none"),
-                    "pair_report_path": pair.get("pair_report_path"),
                 }
                 if existing is None or touched > int(existing.get("max_touched_bytes") or 0):
                     top_sections[name] = candidate
@@ -139,7 +133,6 @@ def build_run_summary(
     pack_id: str,
     run_id: str,
     state_db_path: Path,
-    out_dir: Path,
     counts: Mapping[str, Any],
     candidate_pair_counts: Mapping[str, Any],
     contested_graph_counts: Mapping[str, Any],
@@ -156,7 +149,6 @@ def build_run_summary(
         "pack_id": pack_id,
         "run_id": run_id,
         "state_db_path": str(state_db_path),
-        "out_dir": str(out_dir),
         "counts": dict(counts),
         "candidate_pair_counts": dict(candidate_pair_counts),
         "contested_graph_counts": dict(contested_graph_counts),
@@ -209,6 +201,6 @@ def human_summary(payload: Mapping[str, Any]) -> str:
         if not isinstance(row, Mapping):
             continue
         lines.append(
-            f"{row.get('article_id')}: status={row.get('status')} sev={row.get('top_severity', 'none')} prev={row.get('previous_revid')} curr={row.get('current_revid')} primary_pair={row.get('selected_primary_pair_kind')} pairs={row.get('candidate_pairs_selected', 0)} report={row.get('report_path')}"
+            f"{row.get('article_id')}: status={row.get('status')} sev={row.get('top_severity', 'none')} prev={row.get('previous_revid')} curr={row.get('current_revid')} primary_pair={row.get('selected_primary_pair_kind')} pairs={row.get('candidate_pairs_selected', 0)}"
         )
     return "\n".join(lines)

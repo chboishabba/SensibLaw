@@ -6,15 +6,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Mapping
 
-_THIS_DIR = Path(__file__).resolve().parent
-_SENSIBLAW_ROOT = _THIS_DIR.parent
-if str(_SENSIBLAW_ROOT) not in sys.path:
-    sys.path.insert(0, str(_SENSIBLAW_ROOT))
+from src.storage.repo_roots import resolve_repo_root, resolve_sensiblaw_root
+
+REPO_ROOT = resolve_repo_root(__file__)
+SENSIBLAW_ROOT = resolve_sensiblaw_root(__file__)
 
 from scripts.report_wiki_random_lexer_coverage import score_snapshot_payload as score_reducer_payload  # noqa: E402
 from scripts.report_wiki_random_timeline_readiness import score_snapshot_payload as score_timeline_payload  # noqa: E402

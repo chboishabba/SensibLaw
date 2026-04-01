@@ -19,6 +19,8 @@ SPLIT_PLAN_SCHEMA_VERSION = "sl.wikidata_split_plan.v0_1"
 WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION = "sl.wikidata_phi_text_bridge_case.v1"
 WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION = "sl.wikidata.climate_text_source.v1"
 SOURCE_UNIT_SCHEMA_VERSION = "sl.source_unit.v1"
+WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION = "sl.wikidata_review_packet.v0_1"
+WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION = "sl.wikidata_review_packet.semantic_layer.v0_1"
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
 DEFAULT_PROPERTY_FILTER = ("P279", "P31")
 PROPERTY_PROFILES = {
@@ -68,6 +70,8 @@ SCOPE_TAG_PATTERNS = {
     "scope_2": re.compile(r"\bscope[\s_-]*2\b", re.IGNORECASE),
     "scope_3": re.compile(r"\bscope[\s_-]*3\b", re.IGNORECASE),
 }
+URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
+PROPERTY_ID_PATTERN = re.compile(r"\bP\d+\b")
 
 
 def resolve_property_filter(
@@ -307,6 +311,478 @@ def _normalize_string_list(raw: Any) -> tuple[str, ...]:
         return tuple(sorted(set(values)))
     value = _stringify(raw).strip()
     return (value,) if value else tuple()
+
+
+def _extract_property_ids(text: str) -> list[str]:
+    return sorted(set(match.group(0) for match in PROPERTY_ID_PATTERN.finditer(text or "")))
+
+
+def _extract_urls(text: str) -> list[str]:
+    return sorted(set(match.group(0).rstrip(".,)") for match in URL_PATTERN.finditer(text or "")))
+
+
+def _anchor_excerpt(text: str, *, start: int, end: int) -> str:
+    return (text or "")[max(start, 0):max(end, 0)].strip()
+
+
+def _source_unit_anchor_refs(source: Mapping[str, Any]) -> list[dict[str, Any]]:
+    anchors = source.get("anchors")
+    content = source.get("content")
+    if not isinstance(anchors, list) or not isinstance(content, Mapping):
+        return []
+    text = _stringify(content.get("text", ""))
+    anchor_refs: list[dict[str, Any]] = []
+    for anchor in anchors:
+        if not isinstance(anchor, Mapping):
+            continue
+        start = int(anchor.get("start", 0) or 0)
+        end = int(anchor.get("end", 0) or 0)
+        anchor_refs.append(
+            {
+                "anchor_id": _stringify(anchor.get("anchor_id")),
+                "start": start,
+                "end": end,
+                "label": anchor.get("label"),
+                "text_excerpt": _anchor_excerpt(text, start=start, end=end),
+            }
+        )
+    return anchor_refs
+
+
+def _anchor_text_by_label(source: Mapping[str, Any], label: str) -> str:
+    for anchor in _source_unit_anchor_refs(source):
+        if _stringify(anchor.get("label")) == label:
+            return _stringify(anchor.get("text_excerpt", ""))
+    return ""
+
+
+def _extract_unresolved_questions(text: str) -> list[str]:
+    questions: list[str] = []
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.endswith("?"):
+            questions.append(line.lstrip("- ").strip())
+            continue
+        lowered = line.lower()
+        if lowered.startswith("- is ") or lowered.startswith("is it "):
+            questions.append(line.lstrip("- ").strip())
+    return sorted(set(question for question in questions if question))
+
+
+def _find_first_line_matching(text: str, patterns: Sequence[str]) -> str:
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip()
+        lowered = line.lower()
+        if any(pattern in lowered for pattern in patterns):
+            return line
+    return ""
+
+
+def _is_bounded_section_heading(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("- "):
+        return False
+    if len(stripped) > 40:
+        return False
+    if any(token in stripped for token in (".", "(", ")", ":", "http://", "https://")):
+        return False
+    words = [word for word in stripped.split() if word]
+    if not words or len(words) > 4:
+        return False
+    return stripped.lower() in {"tasks", "done", "to do", "queries"}
+
+
+def _parse_bounded_wiki_sections(text: str) -> dict[str, Any]:
+    headings: list[str] = []
+    sections: list[dict[str, Any]] = []
+    current_heading: str | None = None
+    current_items: list[str] = []
+
+    def flush_current() -> None:
+        nonlocal current_heading, current_items
+        if current_heading is not None:
+            sections.append({"heading": current_heading, "items": list(current_items)})
+        current_heading = None
+        current_items = []
+
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("- "):
+            if current_heading is None:
+                current_heading = "unheaded"
+                if current_heading not in headings:
+                    headings.append(current_heading)
+            current_items.append(line[2:].strip())
+            continue
+        if _is_bounded_section_heading(line):
+            flush_current()
+            current_heading = line
+            if line not in headings:
+                headings.append(line)
+    flush_current()
+
+    section_map = {section["heading"].lower(): section["items"] for section in sections}
+    todo_items = list(section_map.get("to do", []))
+    done_items = list(section_map.get("done", []))
+    query_rows = list(section_map.get("queries", []))
+    cohort_task_lines = [
+        item for item in todo_items
+        if any(
+            token in item.lower()
+            for token in ("instance", "statements", "migration for", "evaluate migration")
+        )
+    ]
+    return {
+        "headings": headings,
+        "sections": sections,
+        "task_buckets": {
+            "done": done_items,
+            "todo": todo_items,
+        },
+        "cohort_task_lines": cohort_task_lines,
+        "query_rows": query_rows,
+    }
+
+
+def _normalize_follow_receipts(raw: Sequence[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+    receipts: list[dict[str, Any]] = []
+    for index, receipt in enumerate(raw or []):
+        if not isinstance(receipt, Mapping):
+            raise ValueError("follow receipts must be objects")
+        receipt_id = _stringify(receipt.get("receipt_id", f"follow:{index + 1}")).strip()
+        url = _stringify(receipt.get("url", "")).strip()
+        follow_reason = _stringify(receipt.get("follow_reason", "")).strip()
+        if not receipt_id or not url or not follow_reason:
+            raise ValueError("follow receipts require receipt_id, url, and follow_reason")
+        receipts.append(
+            {
+                "receipt_id": receipt_id,
+                "url": url,
+                "follow_reason": follow_reason,
+                "extracted_evidence": [
+                    _stringify(item).strip()
+                    for item in receipt.get("extracted_evidence", [])
+                    if _stringify(item).strip()
+                ],
+                "unresolved_uncertainty": [
+                    _stringify(item).strip()
+                    for item in receipt.get("unresolved_uncertainty", [])
+                    if _stringify(item).strip()
+                ],
+            }
+        )
+    return receipts
+
+
+def _bounded_follow_receipts_from_page_signals(
+    *,
+    parsed_page: Mapping[str, Any],
+    page_signals: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    query_links = page_signals.get("query_links")
+    if not isinstance(query_links, list) or not query_links:
+        return []
+    query_rows = parsed_page.get("query_rows")
+    if not isinstance(query_rows, list):
+        query_rows = []
+
+    receipts: list[dict[str, Any]] = []
+    for index, url in enumerate(query_links):
+        follow_url = _stringify(url).strip()
+        if not follow_url:
+            continue
+        query_row = _stringify(query_rows[index]).strip() if index < len(query_rows) else ""
+        extracted_evidence = [
+            f"query_row: {query_row}" if query_row else f"query_link: {follow_url}",
+        ]
+        unresolved_uncertainty = [
+            "query output is live search evidence rather than a revision-locked source",
+            "followed link not expanded into a deeper fetch in this packet slice",
+        ]
+        if query_row:
+            unresolved_uncertainty.append("query row should be checked against the reviewed split bundle")
+        receipts.append(
+            {
+                "receipt_id": f"follow:query:{index + 1}",
+                "url": follow_url,
+                "follow_reason": "bounded follow of the query link named in the source surface",
+                "extracted_evidence": extracted_evidence,
+                "unresolved_uncertainty": unresolved_uncertainty,
+            }
+        )
+    return receipts
+
+
+def _select_source_unit(
+    payload: Mapping[str, Any],
+    *,
+    source_unit_id: str | None = None,
+) -> Mapping[str, Any]:
+    source_units = _source_units_from_payload(payload)
+    if source_unit_id is None:
+        if not source_units:
+            raise ValueError("source unit payload requires at least one source unit")
+        return source_units[0]
+    for source in source_units:
+        if _stringify(source.get("source_unit_id")) == source_unit_id:
+            return source
+    raise ValueError(f"source unit not found: {source_unit_id}")
+
+
+def _select_split_plan(
+    payload: Mapping[str, Any],
+    *,
+    split_plan_id: str,
+) -> Mapping[str, Any]:
+    if _stringify(payload.get("schema_version", "")) != SPLIT_PLAN_SCHEMA_VERSION:
+        raise ValueError(f"split plan payload must use {SPLIT_PLAN_SCHEMA_VERSION}")
+    plans = payload.get("plans")
+    if not isinstance(plans, list):
+        raise ValueError("split plan payload requires a plans array")
+    for plan in plans:
+        if isinstance(plan, Mapping) and _stringify(plan.get("split_plan_id")) == split_plan_id:
+            return plan
+    raise ValueError(f"split plan not found: {split_plan_id}")
+
+
+def _review_packet_page_signals(source: Mapping[str, Any]) -> dict[str, Any]:
+    content = source.get("content")
+    if not isinstance(content, Mapping):
+        raise ValueError("source unit content must be an object")
+    text = _stringify(content.get("text", ""))
+    qualifier_text = _find_first_line_matching(
+        text,
+        ("qualifiers wip:", "qualifiers we can find:"),
+    ) or _anchor_text_by_label(source, "expected_qualifier_family")
+    reference_text = _find_first_line_matching(
+        text,
+        ("following reference properties:", "capture the references."),
+    ) or _anchor_text_by_label(source, "expected_reference_family")
+    urls = _extract_urls(text)
+    query_links = [
+        url for url in urls
+        if "w.wiki/" in url or "query.wikidata.org" in url
+    ]
+    cited_links = list(query_links)
+    outbound_links = [url for url in urls if url not in set(query_links)]
+    return {
+        "query_links": query_links,
+        "cited_links": cited_links,
+        "outbound_links": outbound_links,
+        "unresolved_questions": _extract_unresolved_questions(text),
+        "expected_qualifier_properties": _extract_property_ids(qualifier_text),
+        "expected_reference_properties": _extract_property_ids(reference_text),
+    }
+
+
+def _reviewer_view_for_packet(
+    *,
+    split_plan: Mapping[str, Any],
+    parsed_page: Mapping[str, Any],
+    page_signals: Mapping[str, Any],
+    follow_receipts: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    decision_focus = ["confirm_split_axes", "confirm_target_bundle_count"]
+    if _stringify(split_plan.get("reference_propagation")) != "exact":
+        decision_focus.append("confirm_reference_propagation")
+    else:
+        decision_focus.append("spot_check_reference_propagation")
+    if _stringify(split_plan.get("qualifier_propagation")) != "exact":
+        decision_focus.append("confirm_qualifier_propagation")
+    else:
+        decision_focus.append("spot_check_qualifier_propagation")
+    if page_signals.get("unresolved_questions"):
+        decision_focus.append("resolve_page_open_questions")
+    todo_items = parsed_page.get("task_buckets", {}).get("todo", []) if isinstance(parsed_page.get("task_buckets"), Mapping) else []
+    if todo_items:
+        decision_focus.append("use_todo_bucket_as_review_checklist")
+    uncertainty_flags: list[str] = []
+    if page_signals.get("unresolved_questions"):
+        uncertainty_flags.append("page_open_questions")
+    if _stringify(split_plan.get("status")) == "review_only":
+        uncertainty_flags.append("plan_status_review_only")
+    if _stringify(split_plan.get("reference_propagation")) != "exact":
+        uncertainty_flags.append("reference_propagation_requires_review")
+    if _stringify(split_plan.get("qualifier_propagation")) != "exact":
+        uncertainty_flags.append("qualifier_propagation_requires_review")
+    if not follow_receipts:
+        uncertainty_flags.append("no_follow_receipts")
+    return {
+        "decision_focus": decision_focus,
+        "uncertainty_flags": uncertainty_flags,
+        "recommended_next_step": _stringify(split_plan.get("suggested_action", "review_only")),
+    }
+
+
+def _build_review_packet_semantic_decomposition(
+    *,
+    parsed_page: Mapping[str, Any],
+    page_signals: Mapping[str, Any],
+    follow_receipts: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    query_rows = [
+        _stringify(item).strip()
+        for item in parsed_page.get("query_rows", [])
+        if _stringify(item).strip()
+    ]
+    unresolved_questions = [
+        _stringify(item).strip()
+        for item in page_signals.get("unresolved_questions", [])
+        if _stringify(item).strip()
+    ]
+    todo_items = []
+    task_buckets = parsed_page.get("task_buckets")
+    if isinstance(task_buckets, Mapping):
+        todo_items = [
+            _stringify(item).strip()
+            for item in task_buckets.get("todo", [])
+            if _stringify(item).strip()
+        ]
+
+    candidate_units: list[dict[str, str]] = []
+    candidate_units.extend(
+        {
+            "unit_id": f"query_row:{index + 1}",
+            "unit_type": "query_row_surface",
+            "text": row,
+        }
+        for index, row in enumerate(query_rows)
+    )
+    candidate_units.extend(
+        {
+            "unit_id": f"open_question:{index + 1}",
+            "unit_type": "open_question_surface",
+            "text": question,
+        }
+        for index, question in enumerate(unresolved_questions)
+    )
+    candidate_units.extend(
+        {
+            "unit_id": f"todo_item:{index + 1}",
+            "unit_type": "todo_surface",
+            "text": item,
+        }
+        for index, item in enumerate(todo_items)
+    )
+
+    missing_evidence = [
+        "no_revision_locked_excerpts_for_candidate_units",
+        "no_claim_boundary_mapping_for_candidate_units",
+        "no_cross_source_alignment_for_candidate_units",
+    ]
+    if query_rows:
+        missing_evidence.append("query_rows_not_expanded_into_fetched_semantic_units")
+    if follow_receipts:
+        missing_evidence.append("follow_receipts_not_promoted_to_semantic_claims")
+    if unresolved_questions:
+        missing_evidence.append("open_questions_not_resolved_into_grounded_assertions")
+    if todo_items:
+        missing_evidence.append("todo_items_not_lifted_into_review_decision_graph")
+
+    return {
+        "layer_schema_version": WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION,
+        "decomposition_state": "surface_only",
+        "separate_from_parsed_page": True,
+        "candidate_units": candidate_units,
+        "missing_evidence": sorted(set(missing_evidence)),
+    }
+
+
+def build_wikidata_review_packet(
+    *,
+    source_unit_payload: Mapping[str, Any],
+    split_plan_payload: Mapping[str, Any],
+    split_plan_id: str,
+    source_unit_id: str | None = None,
+    follow_receipts: Sequence[Mapping[str, Any]] | None = None,
+    include_semantic_decomposition: bool = False,
+) -> dict[str, Any]:
+    source = _select_source_unit(source_unit_payload, source_unit_id=source_unit_id)
+    split_plan = _select_split_plan(split_plan_payload, split_plan_id=split_plan_id)
+    revision = source.get("revision")
+    origin = source.get("origin")
+    if not isinstance(revision, Mapping) or not isinstance(origin, Mapping):
+        raise ValueError("source units require revision and origin objects")
+    content = source.get("content")
+    if not isinstance(content, Mapping):
+        raise ValueError("source unit content must be an object")
+    parsed_page = _parse_bounded_wiki_sections(_stringify(content.get("text", "")))
+    page_signals = _review_packet_page_signals(source)
+    if follow_receipts is None:
+        normalized_receipts = _bounded_follow_receipts_from_page_signals(
+            parsed_page=parsed_page,
+            page_signals=page_signals,
+        )
+    else:
+        normalized_receipts = _normalize_follow_receipts(follow_receipts)
+    packet_key = (
+        f"{_stringify(source.get('source_unit_id'))}|"
+        f"{_stringify(split_plan.get('split_plan_id'))}"
+    )
+    packet_id = f"review-packet:{hashlib.sha1(packet_key.encode('utf-8')).hexdigest()[:16]}"
+    packet = {
+        "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
+        "packet_id": packet_id,
+        "review_entity_qid": _stringify(split_plan.get("entity_qid")),
+        "source_surface": {
+            "source_unit_id": _stringify(source.get("source_unit_id")),
+            "source_entity_qid": _stringify(source.get("entity_qid")),
+            "revision": {
+                "revision_id": revision.get("revision_id"),
+                "revision_timestamp": _stringify(revision.get("revision_timestamp")),
+                "retrieval_method": _stringify(revision.get("retrieval_method")),
+            },
+            "origin": {
+                "source_type": _stringify(origin.get("source_type")),
+                "source_url": origin.get("source_url"),
+                "title": origin.get("title"),
+            },
+            "anchor_refs": _source_unit_anchor_refs(source),
+        },
+        "split_review_context": {
+            "split_plan_id": _stringify(split_plan.get("split_plan_id")),
+            "source_slot_id": _stringify(split_plan.get("source_slot_id")),
+            "source_candidate_ids": [
+                _stringify(item) for item in split_plan.get("source_candidate_ids", [])
+            ],
+            "status": _stringify(split_plan.get("status")),
+            "review_required": bool(split_plan.get("review_required")),
+            "suggested_action": _stringify(split_plan.get("suggested_action")),
+            "merged_split_axes": [
+                {
+                    "property": _stringify(axis.get("property")),
+                    "source": _stringify(axis.get("source")),
+                    "reason": _stringify(axis.get("reason")),
+                    "cardinality": int(axis.get("cardinality", 0) or 0),
+                }
+                for axis in split_plan.get("merged_split_axes", [])
+                if isinstance(axis, Mapping)
+            ],
+            "proposed_bundle_count": int(split_plan.get("proposed_bundle_count", 0) or 0),
+            "reference_propagation": _stringify(split_plan.get("reference_propagation")),
+            "qualifier_propagation": _stringify(split_plan.get("qualifier_propagation")),
+        },
+        "parsed_page": parsed_page,
+        "page_signals": page_signals,
+        "follow_receipts": normalized_receipts,
+        "reviewer_view": _reviewer_view_for_packet(
+            split_plan=split_plan,
+            parsed_page=parsed_page,
+            page_signals=page_signals,
+            follow_receipts=normalized_receipts,
+        ),
+    }
+    if include_semantic_decomposition:
+        packet["semantic_decomposition"] = _build_review_packet_semantic_decomposition(
+            parsed_page=parsed_page,
+            page_signals=page_signals,
+            follow_receipts=normalized_receipts,
+        )
+    return packet
 
 
 def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
@@ -2929,7 +3405,9 @@ __all__ = [
     "MIGRATION_PACK_SCHEMA_VERSION",
     "WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION",
     "SOURCE_UNIT_SCHEMA_VERSION",
+    "WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION",
     "adapt_legacy_climate_text_source_to_source_units",
+    "build_wikidata_review_packet",
     "build_observation_claim_payload_from_source_units",
     "build_observation_claim_payload_from_revision_locked_climate_text_sources",
     "attach_wikidata_phi_text_bridge_from_source_units",

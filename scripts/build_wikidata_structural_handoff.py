@@ -7,8 +7,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
+_THIS_DIR = Path(__file__).resolve().parent
+_SENSIBLAW_ROOT = _THIS_DIR.parent
+if str(_SENSIBLAW_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SENSIBLAW_ROOT))
+
+from src.storage.repo_roots import repo_root, sensiblaw_root
+
+REPO_ROOT = repo_root()
+SENSIBLAW_ROOT = sensiblaw_root()
 if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 

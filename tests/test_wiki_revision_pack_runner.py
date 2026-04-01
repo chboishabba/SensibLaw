@@ -209,8 +209,7 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert first["candidate_pair_counts"]["reported"] >= 1
     assert first["articles"][0]["baseline_initialized"] is True
     assert first["articles"][0]["candidate_pairs_selected"] >= 1
-    first_report = Path(first["articles"][0]["pair_reports"][0]["pair_report_path"])
-    pair_report = json.loads(first_report.read_text(encoding="utf-8"))
+    pair_report = first["articles"][0]["pair_reports"][0]["pair_report_payload"]
     assert pair_report["schema_version"] == "wiki_revision_pair_report_v0_1"
     assert pair_report["highest_severity"] in {"high", "medium", "low", "none"}
     assert isinstance(pair_report["packet_counts"], dict)
@@ -229,8 +228,12 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
     assert first["articles"][0]["selected_primary_pair_score"] is not None
     assert isinstance(first["articles"][0]["packet_counts"], dict)
     assert first["articles"][0]["contested_graph_available"] is True
-    assert first["articles"][0]["contested_graph_path"]
+    assert "pair_report_path" not in first["articles"][0]["pair_reports"][0]
+    assert "contested_graph_path" not in first["articles"][0]
+    assert "report_path" not in first["articles"][0]
     assert not (out_dir / "contested_graphs" / "article_1__latest.json").exists()
+    assert not any((out_dir / "pair_reports").glob("*.json"))
+    assert not any((out_dir / "contested_graphs").glob("*.json"))
     assert first["articles"][0]["contested_graph_summary"]["region_count"] >= 1
     assert first["pack_triage"]["top_changed_articles"][0]["article_id"] == "article_1"
     assert first["pack_triage"]["top_high_severity_pairs"][0]["article_id"] == "article_1"
@@ -274,14 +277,12 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert state["last_revid"] == 3
         state_paths = conn.execute(
             """
-            SELECT snapshot_path, timeline_path, aoo_path, report_path
+            SELECT snapshot_path
             FROM wiki_revision_monitor_article_state
             WHERE article_id = 'article_1'
             """
         ).fetchone()
         assert state_paths["snapshot_path"]
-        assert state_paths["timeline_path"] is None
-        assert state_paths["aoo_path"] is None
         pair_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_candidate_pairs WHERE article_id = 'article_1'").fetchone()
         assert pair_rows[0] >= 2
         graph_rows = conn.execute("SELECT count(*) FROM wiki_revision_monitor_contested_graphs WHERE article_id = 'article_1'").fetchone()
@@ -301,7 +302,7 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert summary_row["candidate_reported_count"] == summary_row["candidate_selected_count"]
         changed_row = conn.execute(
             """
-            SELECT article_id, contested_graph_available, contested_region_count, report_path
+            SELECT article_id, contested_graph_available, contested_region_count
             FROM wiki_revision_monitor_changed_articles
             WHERE run_id = ?
             """,
@@ -310,7 +311,6 @@ def test_pack_runner_history_pairs_and_state_cycle(tmp_path: Path) -> None:
         assert changed_row["article_id"] == "article_1"
         assert changed_row["contested_graph_available"] == 1
         assert changed_row["contested_region_count"] >= 1
-        assert changed_row["report_path"]
         packet_row = conn.execute(
             """
             SELECT severity, review_context_json
@@ -445,6 +445,22 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
         )
         conn.execute(
             """
+            CREATE TABLE wiki_revision_monitor_article_state (
+              article_id TEXT PRIMARY KEY REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+              last_revid INTEGER,
+              last_rev_timestamp TEXT,
+              last_fetched_at TEXT,
+              snapshot_path TEXT,
+              timeline_path TEXT,
+              aoo_path TEXT,
+              report_path TEXT,
+              status TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE wiki_revision_monitor_article_results (
               run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
               article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
@@ -520,6 +536,25 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
         )
         conn.execute(
             """
+            INSERT INTO wiki_revision_monitor_article_state(
+              article_id, last_revid, last_rev_timestamp, last_fetched_at, snapshot_path, timeline_path, aoo_path, report_path, status, updated_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "article_1",
+                2,
+                "2026-03-31T00:00:00Z",
+                "2026-03-31T00:01:00Z",
+                "/tmp/snapshot.json",
+                "/tmp/timeline.json",
+                "/tmp/aoo.json",
+                "/tmp/report.json",
+                "changed",
+                "2026-03-31T00:02:00Z",
+            ),
+        )
+        conn.execute(
+            """
             INSERT INTO wiki_revision_monitor_article_results(
               run_id, article_id, status, previous_revid, current_revid, top_severity, packet_counts_json,
               snapshot_path, timeline_path, aoo_path, report_path, result_json
@@ -564,6 +599,10 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             ),
         )
         ensure_revision_pack_schema(conn)
+        article_state_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_state)").fetchall()
+        }
         article_result_columns = {
             row[1]
             for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_article_results)").fetchall()
@@ -573,8 +612,14 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_runs)").fetchall()
         }
         assert "summary_json" not in run_columns
+        assert "report_path" not in article_state_columns
+        assert "timeline_path" not in article_state_columns
+        assert "aoo_path" not in article_state_columns
         assert "packet_counts_json" not in article_result_columns
+        assert "report_path" not in article_result_columns
         assert "result_json" not in article_result_columns
+        assert "timeline_path" not in article_result_columns
+        assert "aoo_path" not in article_result_columns
         pair_columns = {
             row[1]
             for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_candidate_pairs)").fetchall()
@@ -584,12 +629,14 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             for row in conn.execute("PRAGMA table_info(wiki_revision_monitor_contested_graphs)").fetchall()
         }
         assert "graph_json" not in graph_columns
+        assert "graph_path" not in graph_columns
         assert "score_json" not in pair_columns
         assert "section_delta_json" not in pair_columns
         assert "result_json" not in pair_columns
+        assert "pair_report_path" not in pair_columns
         migrated_run_row = conn.execute(
             """
-            SELECT run_id, pack_id, started_at, completed_at, status, out_dir
+            SELECT run_id, pack_id, started_at, completed_at, status
             FROM wiki_revision_monitor_runs
             WHERE run_id = ?
             """,
@@ -601,11 +648,19 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             "2026-03-31T00:00:00Z",
             None,
             "ok",
-            "/tmp/out",
         )
+        migrated_state_row = conn.execute(
+            """
+            SELECT last_revid, snapshot_path, status
+            FROM wiki_revision_monitor_article_state
+            WHERE article_id = ?
+            """,
+            ("article_1",),
+        ).fetchone()
+        assert migrated_state_row == (2, "/tmp/snapshot.json", "changed")
         migrated_article_row = conn.execute(
             """
-            SELECT status, previous_revid, current_revid, top_severity, snapshot_path, timeline_path, aoo_path, report_path
+            SELECT status, previous_revid, current_revid, top_severity, snapshot_path
             FROM wiki_revision_monitor_article_results
             WHERE run_id = ? AND article_id = ?
             """,
@@ -617,13 +672,10 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             2,
             "high",
             "/tmp/snapshot.json",
-            "/tmp/timeline.json",
-            "/tmp/aoo.json",
-            "/tmp/report.json",
         )
         migrated_pair_row = conn.execute(
             """
-            SELECT pair_kind, older_revid, newer_revid, selected, score, pair_report_path, status
+            SELECT pair_kind, older_revid, newer_revid, selected, score, status
             FROM wiki_revision_monitor_candidate_pairs
             WHERE run_id = ? AND article_id = ? AND pair_id = ?
             """,
@@ -635,12 +687,11 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             2,
             1,
             9.5,
-            "/tmp/pair.json",
             "candidate",
         )
         migrated_graph_row = conn.execute(
             """
-            SELECT graph_path, region_count, cycle_count, selected_pair_count,
+            SELECT region_count, cycle_count, selected_pair_count,
                    changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
             FROM wiki_revision_monitor_contested_graphs
             WHERE run_id = ? AND article_id = ?
@@ -648,7 +699,6 @@ def test_ensure_revision_pack_schema_migrates_v0_3_blob_columns_in_place(tmp_pat
             ("run:pack_one:2026-03-31T00:00:00Z:abc", "article_1"),
         ).fetchone()
         assert migrated_graph_row == (
-            "/tmp/graph.json",
             1,
             0,
             1,
@@ -840,7 +890,6 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
                 "current_revid": 2,
                 "selected_primary_pair_kind": "largest_delta_in_window",
                 "candidate_pairs_selected": 2,
-                "report_path": "/tmp/pair.json",
             }
         ],
     }
@@ -851,7 +900,8 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     assert "top_articles=article_1:high:largest_delta_in_window" in text
     assert "top_pairs=article_1:largest_delta_in_window:high" in text
     assert "top_sections=History:1200" in text
-    assert "article_1: status=changed sev=high prev=1 curr=2 primary_pair=largest_delta_in_window pairs=2 report=/tmp/pair.json" in text
+    assert "article_1: status=changed sev=high prev=1 curr=2 primary_pair=largest_delta_in_window pairs=2" in text
+    assert "report=" not in text
 
     script = Path(__file__).resolve().parents[1] / "scripts" / "wiki_revision_pack_runner.py"
     completed = subprocess.run(
@@ -863,11 +913,13 @@ def test_pack_runner_cli_human_summary(tmp_path: Path) -> None:
     assert "--summary-format" in completed.stdout
 
 
-def test_pack_runner_keeps_pair_report_as_export_not_working_state() -> None:
+def test_pack_runner_keeps_pair_payload_in_memory_not_json_working_state() -> None:
     source = (Path(__file__).resolve().parents[1] / "src" / "wiki_timeline" / "revision_pack_runner.py").read_text(encoding="utf-8")
     assert 'pair.get("pair_report_payload")' in source
     assert 'read_json_file(Path(str(report_path))) if report_path else None' not in source
     assert 'if selected.get("pair_report_path")' not in source
+    assert 'write_json_file(pair_paths["pair_report"], wrapper)' not in source
+    assert "write_json_file(graph_path, payload)" not in source
     assert 'report_path=current_report_path or (Path(str(previous_state["report_path"]))' not in source
     assert 'timeline_path=current_timeline_path or (Path(str(previous_state["timeline_path"]))' not in source
     assert 'aoo_path=current_aoo_path or (Path(str(previous_state["aoo_path"]))' not in source

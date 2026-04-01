@@ -116,11 +116,10 @@ def build_query_payload(*, db_path: Path, pack_id: str | None = None, run_id: st
                         "started_at": row["started_at"],
                         "completed_at": row["completed_at"],
                         "status": row["status"],
-                        "out_dir": row["out_dir"],
                     }
                     for row in con.execute(
                         """
-                        SELECT run_id, pack_id, started_at, completed_at, status, out_dir
+                SELECT run_id, pack_id, started_at, completed_at, status
                         FROM wiki_revision_monitor_runs
                         WHERE pack_id = ?
                         ORDER BY started_at DESC

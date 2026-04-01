@@ -9,6 +9,7 @@ from .protected_disclosure_envelope import (
     PROTECTED_DISCLOSURE_ENVELOPE_VERSION,
     render_protected_disclosure_summary,
 )
+from src.policy.provenance_packet_geometry import packet_header
 
 
 def resolve_handoff_artifact_metadata(report: Mapping[str, Any], *, mode: str) -> dict[str, Any]:
@@ -44,15 +45,20 @@ def write_handoff_artifact(
     report_path.write_text(json.dumps(dict(report), indent=2, sort_keys=True), encoding="utf-8")
     summary_path.write_text(summary, encoding="utf-8")
 
-    payload: dict[str, object] = {
-        "mode": mode,
-        "version": version,
-        "normalized_input_path": str(normalized_path),
-        "report_path": str(report_path),
-        "summary_path": str(summary_path),
-        "recipient_profile": str(report["run"]["recipient_profile"]),
-        "primary_count": int(metadata["primary_count"]),
-    }
+    payload: dict[str, object] = packet_header(
+        version=version,
+        summary=summary,
+        primary_count=int(metadata["primary_count"]),
+        source_family=str(report["run"]["recipient_profile"]),
+        route_target=mode,
+        extra={
+            "mode": mode,
+            "normalized_input_path": str(normalized_path),
+            "report_path": str(report_path),
+            "summary_path": str(summary_path),
+            "recipient_profile": str(report["run"]["recipient_profile"]),
+        },
+    )
     if extra_metadata:
         payload.update(dict(extra_metadata))
     return payload

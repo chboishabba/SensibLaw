@@ -14,6 +14,11 @@ _SENSIBLAW_ROOT = _THIS_DIR.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
+from src.storage.repo_roots import resolve_repo_root, resolve_sensiblaw_root  # noqa: E402
+
+REPO_ROOT = resolve_repo_root(__file__)
+SENSIBLAW_ROOT = resolve_sensiblaw_root(__file__)
+
 from scripts.benchmark_fact_semantics import main as benchmark_main
 
 _DEFAULT_DRIFT_THRESHOLDS = {

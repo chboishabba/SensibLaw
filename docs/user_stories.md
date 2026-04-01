@@ -577,6 +577,10 @@ overwrite individual timelines, and admins cannot “clean up” history.
   remain review queues, not autonomous edits.
 - Export view: every suggestion stays linked to its source article span,
   revision window, or pinned diagnostic artifact.
+- ITIR-assist view: revision-locked wiki pages, sandbox pages, and cited
+  references can be parsed into reviewer-facing constraints, bounded follow
+  candidates, and uncertainty-reducing evidence packets so split-heavy cases
+  become quicker to inspect without turning wiki prose into authority.
 - Forbidden: silent promotion from candidate issue to accepted truth; hiding
   abstentions or missing evidence to make the report look cleaner.
 - Failure prevented: opaque bot behavior, unverifiable cleanup claims, and

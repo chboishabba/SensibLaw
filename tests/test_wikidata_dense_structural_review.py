@@ -81,6 +81,8 @@ def test_wikidata_dense_structural_review_uses_shared_io_policy() -> None:
     assert "load_json_object(" in source
     assert "relative_repo_path(" in source
     assert "write_json_markdown_artifact(" in source
+    assert "repo_root()" in source
+    assert "sensiblaw_root()" in source
 
 
 def test_wikidata_dense_structural_review_uses_shared_geometry_policy() -> None:

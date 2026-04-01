@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
@@ -43,3 +44,9 @@ def test_manifest_pull_indexes_seed_paths_without_network(tmp_path: Path) -> Non
     assert docs[0]["status"] == "ok"
     assert docs[0]["seed_path"] == str(local)
     assert docs[0]["raw_path"] == str(local)  # no duplication for local binaries
+
+
+def test_manifest_pull_uses_shared_manifest_runtime() -> None:
+    source = inspect.getsource(pull)
+    assert "load_json_object" in source
+    assert "resolve_sensiblaw_manifest_path" in source

@@ -11,11 +11,15 @@ from typing import Any, Callable
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
+_SENSIBLAW_ROOT = _THIS_DIR.parent
+if str(_SENSIBLAW_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from cli_runtime import build_progress_callback, configure_cli_logging
+from src.storage.repo_roots import repo_root, sensiblaw_root
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
+REPO_ROOT = repo_root()
+SENSIBLAW_ROOT = sensiblaw_root()
 THIS_DIR = Path(__file__).resolve().parent
 ARTIFACT_VERSION = "gwb_broader_corpus_checkpoint_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION

@@ -7,16 +7,15 @@ import argparse
 import contextlib
 import io
 import json
-import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
 
-_THIS_DIR = Path(__file__).resolve().parent
-_SENSIBLAW_ROOT = _THIS_DIR.parent
-if str(_SENSIBLAW_ROOT) not in sys.path:
-    sys.path.insert(0, str(_SENSIBLAW_ROOT))
+from src.storage.repo_roots import resolve_repo_root, resolve_sensiblaw_root
+
+REPO_ROOT = resolve_repo_root(__file__)
+SENSIBLAW_ROOT = resolve_sensiblaw_root(__file__)
 
 from scripts.wiki_timeline_aoo_extract import main as wiki_timeline_aoo_main  # noqa: E402
 from scripts.wiki_timeline_extract import main as wiki_timeline_extract_main  # noqa: E402

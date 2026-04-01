@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
+from scripts import build_gwb_broader_corpus_checkpoint as checkpoint_module
 from scripts.build_gwb_broader_corpus_checkpoint import build_broader_checkpoint
 
 
@@ -55,3 +57,10 @@ def test_build_gwb_broader_corpus_checkpoint(tmp_path: Path) -> None:
         and row["source_families"] == ["checked_handoff", "corpus_book_timeline"]
         for row in merged_relations
     )
+
+
+def test_gwb_broader_corpus_checkpoint_uses_shared_repo_roots() -> None:
+    source = inspect.getsource(checkpoint_module)
+
+    assert "repo_root()" in source
+    assert "sensiblaw_root()" in source

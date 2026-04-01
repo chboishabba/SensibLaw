@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
@@ -39,6 +38,7 @@ def main() -> None:
     if str(sb_root) not in sys.path:
         sys.path.insert(0, str(sb_root))
 
+    from src.storage.sqlite_runtime import connect_sqlite  # noqa: PLC0415
     from src.wiki_timeline.query_runtime import (  # noqa: PLC0415
         load_projection_payload,
         load_rel_path_envelope,
@@ -53,8 +53,7 @@ def main() -> None:
         sys.stdout.write("null\n")
         return
 
-    with sqlite3.connect(str(db_path)) as conn:
-        conn.row_factory = sqlite3.Row
+    with connect_sqlite(db_path) as conn:
 
         if args.list_runs:
             rows = conn.execute(

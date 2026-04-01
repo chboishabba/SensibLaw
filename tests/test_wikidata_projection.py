@@ -10,6 +10,7 @@ from src.ontology.wikidata import (
     SCHEMA_VERSION,
     SPLIT_PLAN_SCHEMA_VERSION,
     SOURCE_UNIT_SCHEMA_VERSION,
+    WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
     WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION,
     WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
     adapt_legacy_climate_text_source_to_source_units,
@@ -17,6 +18,7 @@ from src.ontology.wikidata import (
     attach_wikidata_phi_text_bridge_from_observation_claim,
     attach_wikidata_phi_text_bridge_from_source_units,
     attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
+    build_wikidata_review_packet,
     build_observation_claim_payload_from_source_units,
     build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
@@ -48,6 +50,10 @@ def _load_source_unit_schema() -> dict:
 
 def _load_split_plan_schema() -> dict:
     return yaml.safe_load(Path("schemas/sl.wikidata_split_plan.v0_1.schema.yaml").read_text(encoding="utf-8"))
+
+
+def _load_review_packet_schema() -> dict:
+    return yaml.safe_load(Path("schemas/sl.wikidata_review_packet.v0_1.schema.yaml").read_text(encoding="utf-8"))
 
 
 def _load_wiki_revision_source_unit_fixture() -> dict:
@@ -136,6 +142,36 @@ def _load_nat_cohort_a_classification_checkpoint_fixture() -> dict:
         / "fixtures"
         / "wikidata"
         / "wikidata_nat_cohort_a_classification_checkpoint_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_review_packet_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_review_packet_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_review_packet_attachment_coverage_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_review_packet_attachment_coverage_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_review_packet_sidecar_fixture(qid: str) -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / f"wikidata_nat_review_packet_{qid}_sidecar_20260402.json"
     )
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -1423,6 +1459,112 @@ def test_nat_cohort_a_split_plan_fixture_pins_two_review_only_slot_plans() -> No
     assert payload["summary"]["counts_by_status"] == {"structurally_decomposable": 2}
     assert {plan["entity_qid"] for plan in payload["plans"]} == {"Q10403939", "Q10422059"}
     assert all(plan["suggested_action"] == "review_structured_split" for plan in payload["plans"])
+
+
+def test_nat_review_packet_fixture_is_schema_valid() -> None:
+    payload = _load_nat_review_packet_fixture()
+
+    jsonschema.validate(payload, _load_review_packet_schema())
+    assert payload["schema_version"] == WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION
+    assert payload["parsed_page"]["headings"] == ["tasks", "done", "to do", "queries"]
+    assert payload["parsed_page"]["task_buckets"]["done"] == [
+        "is there any documentation or protocol on how to make this kind of migrations? Asked Jan and Wikiproject onthology",
+        "get the units wip query",
+    ]
+    assert payload["parsed_page"]["query_rows"] == [
+        "https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+    ]
+    assert payload["split_review_context"]["split_plan_id"] == "split://Q10403939|P5991"
+    assert payload["page_signals"]["query_links"] == ["https://w.wiki/KR5d"]
+    assert payload["page_signals"]["expected_reference_properties"] == [
+        "P1065",
+        "P1476",
+        "P2960",
+        "P813",
+        "P854",
+    ]
+
+
+def test_build_wikidata_review_packet_attaches_nat_source_unit_to_split_plan() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+    )
+
+    jsonschema.validate(payload, _load_review_packet_schema())
+    assert payload["schema_version"] == WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION
+    assert payload["review_entity_qid"] == "Q10403939"
+    assert payload["source_surface"]["revision"]["retrieval_method"] == "wiki_revision"
+    assert payload["parsed_page"]["headings"] == ["tasks", "done", "to do", "queries"]
+    assert len(payload["parsed_page"]["task_buckets"]["todo"]) == 15
+    assert len(payload["parsed_page"]["cohort_task_lines"]) == 8
+    assert payload["split_review_context"]["proposed_bundle_count"] == 24
+    assert payload["page_signals"]["expected_qualifier_properties"] == [
+        "P3831",
+        "P459",
+        "P518",
+        "P580",
+        "P582",
+        "P585",
+        "P7452",
+    ]
+    assert len(payload["follow_receipts"]) == 1
+    assert payload["follow_receipts"][0]["url"] == "https://w.wiki/KR5d"
+    assert payload["follow_receipts"][0]["extracted_evidence"] == [
+        "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
+    ]
+    assert payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+    assert "use_todo_bucket_as_review_checklist" in payload["reviewer_view"]["decision_focus"]
+    assert "page_open_questions" in payload["reviewer_view"]["uncertainty_flags"]
+    assert "no_follow_receipts" not in payload["reviewer_view"]["uncertainty_flags"]
+
+
+def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        follow_receipts=[],
+    )
+
+    assert payload["follow_receipts"] == []
+    assert "no_follow_receipts" in payload["reviewer_view"]["uncertainty_flags"]
+
+
+def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows() -> None:
+    payload = _load_nat_review_packet_attachment_coverage_fixture()
+
+    assert payload["packetized_split_rows"] == 13
+    assert payload["packetized_split_row_ids"] == [
+        "Q10403939|P5991",
+        "Q10422059|P5991",
+        "Q188326|P5991",
+        "Q3356220|P5991",
+        "Q52825|P5991",
+        "Q862811|P5991",
+        "Q10425193|P5991",
+        "Q10601765|P5991",
+        "Q30938280|P5991",
+        "Q47508289|P5991",
+        "Q731938|P5991",
+        "Q10416948|P5991",
+        "Q56404383|P5991",
+    ]
+    assert len(payload["packet_slots"]) == 13
+    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 13 / 53 packetized rows"
+
+
+def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic_layers() -> None:
+    for qid, expected_step in [
+        ("Q10416948", "review_structured_split"),
+        ("Q56404383", "review_only"),
+    ]:
+        payload = _load_nat_review_packet_sidecar_fixture(qid)
+        assert payload["follow_receipts"]
+        assert payload["semantic_decomposition"]["separate_from_parsed_page"] is True
+        assert payload["semantic_decomposition"]["candidate_units"]
+        assert payload["reviewer_view"]["recommended_next_step"] == expected_step
 
 
 def test_nat_cohort_a_classification_checkpoint_fixture_pins_split_required_seed_state() -> None:

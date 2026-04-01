@@ -20,22 +20,27 @@ review workflow rather than as a loose sandbox proposal.
 
 Current bounded progress:
 
-- `7 / 8`
-- `87.5%`
+- bounded mainline: complete
+- wider proof lane: complete
+- wider online lane: held
+- split-plan-first continuation: active
 
 Completed:
 
 1. Nat sandbox page captured as revision-locked `wiki_revision` source unit
-2. task buckets mapped into five normalized cohorts
+2. task buckets mapped into normalized cohorts
 3. explicit cohort manifests pinned
-4. first bounded Cohort A tranche materialized
-5. Cohort A qualifier/reference shape scan completed
-6. Cohort A classification checkpoint completed for the materialized seed
-7. review-only export artifacts produced
+4. checked-safe subset found and post-edit verified on bounded rows
+5. wider proof lane completed
+6. wider online passes executed honestly and then held after repeated
+   zero-yield direct-safe tranches
+7. split-plan-first review surface built for wider held rows
+8. split verification now exists in both single-plan and batch form
 
-Remaining:
+Current missing layer:
 
-8. post-edit verification on any promoted subset
+- generic reviewer packets for split-heavy rows using bounded wiki parsing and
+  selected followed-source receipts
 
 ## What Is Pinned Now
 
@@ -69,6 +74,18 @@ First live Cohort A expansion:
 - `docs/planning/wikidata_nat_cohort_a_live_tranche_20260401.md`
 - `tests/fixtures/wikidata/wikidata_nat_cohort_a_live_discovery_20260401.json`
 - `tests/fixtures/wikidata/wikidata_nat_cohort_a_live_tranche_20260401.json`
+
+Split-verification branch:
+
+- `docs/planning/wikidata_split_verification_contract_20260401.md`
+- `docs/planning/wikidata_nat_split_verification_pilot_q30938280_20260401.md`
+- `docs/planning/wikidata_nat_split_verification_pilot_q3356220_20260401.md`
+- `tests/fixtures/wikidata/wikidata_nat_split_verification_multi_plan_surface_20260401.json`
+
+End-product and next-layer planning:
+
+- `docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
+- `docs/planning/wikidata_review_packet_plan_20260401.md`
 
 ## Working-Group Meaning
 
@@ -121,28 +138,25 @@ Interpretation:
 
 ## Decision Needed From The Group
 
-The next bounded branch is now clear:
+The next bounded branch is now different from the earlier checkpoint.
 
-Option A:
-run a targeted checked-safe hunt inside Cohort A
-
-Option B:
-branch to Cohort C, the higher-risk lane where `P459` is missing or not GHG
-protocol
+The direct-safe search has already done its job. The wider online lane showed
+that broader Cohort A passes are predominantly split/review work, not direct
+rewrite work.
 
 Recommended next move:
 
-- stop blind business-family expansion and switch to a targeted checked-safe
-  search inside Cohort A
-- only branch to Cohort C once the group wants to confront policy-risk rather
-  than shape/structure risk
+- stop widening blind online passes
+- build the generic reviewer-packet layer for split-heavy rows
+- keep Cohort C as a distinct policy-risk branch rather than mixing it into the
+  mainline
 
 Reason:
 
-- Cohort A is already pinned, materialized, shape-checked, and now also
-  live-expanded without surfacing a safe subset
-- Cohort C is more governance-heavy and is likely to produce more policy-hold
-  outcomes than structural learning at this moment
+- the lane already proved direct-safe handling on a bounded subset
+- the lane already proved wider Cohort A is mostly split-required
+- the highest-value next improvement is reviewer throughput and reduced
+  uncertainty, not another proof that the same rows are hard
 
 ## Governance Reminder
 
@@ -160,8 +174,10 @@ The runtime remains responsible for:
 ## Suggested Group Handoff Wording
 
 The Nat `P5991 -> P14143` lane is no longer just a sandbox discussion.
-It is now a bounded review workflow with explicit cohorts, a materialized
-business-family tranche, and a clean shape check. The current result is not “safe
-rewrite,” but “structured split-required pressure.” The next group decision is
-whether to run a targeted checked-safe hunt inside Cohort A or pivot into the higher-risk
-non-GHG / missing-`P459` lane.
+It now has a complete bounded mainline, a completed wider proof lane, and a
+held wider online lane that honestly shows the broader business-family surface
+is mostly review-and-split rather than direct-safe rewrite. The next useful
+product step is not more blind widening. It is a reviewer-packet layer that
+parses bounded wiki surfaces, exposes cited references and selected followed
+sources, and helps reviewers process split-heavy rows faster without turning
+page text into authority.

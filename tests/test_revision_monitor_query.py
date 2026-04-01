@@ -142,7 +142,6 @@ def _seed_db(db_path: Path) -> None:
         CREATE TABLE wiki_revision_monitor_contested_graphs (
           run_id TEXT NOT NULL,
           article_id TEXT NOT NULL,
-          graph_path TEXT NOT NULL,
           graph_json TEXT NOT NULL,
           region_count INTEGER NOT NULL DEFAULT 0,
           cycle_count INTEGER NOT NULL DEFAULT 0,
@@ -250,7 +249,7 @@ def _seed_db(db_path: Path) -> None:
             "2026-03-31T00:00:00Z",
             "2026-03-31T00:10:00Z",
             "ok",
-            "SensibLaw/demo/ingest/wiki_revision_monitor/pack_one",
+            "/tmp/out",
             json.dumps(summary),
         ),
     )
@@ -269,7 +268,7 @@ def _seed_db(db_path: Path) -> None:
             "2026-03-31T00:00:00Z",
             "2026-03-31T00:10:00Z",
             "ok",
-            "SensibLaw/demo/ingest/wiki_revision_monitor/pack_one",
+            "/tmp/out",
             "low",
             0,
             0,
@@ -342,8 +341,8 @@ def _seed_db(db_path: Path) -> None:
         """
         INSERT INTO wiki_revision_monitor_selected_pairs(
           run_id, article_id, pair_id, pair_kind, pair_kinds_json, older_revid, newer_revid,
-          candidate_score, top_severity, pair_report_path, top_changed_sections_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+          candidate_score, top_severity, top_changed_sections_json
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)
         """,
         (
             "run:pack_one:2026-03-31T00:00:00Z:abc",
@@ -355,16 +354,14 @@ def _seed_db(db_path: Path) -> None:
             2,
             2.5,
             "high",
-            "/tmp/pair.json",
             json.dumps([{"section": "History", "touched_bytes": 1200}]),
         ),
     )
     conn.execute(
-        "INSERT INTO wiki_revision_monitor_contested_graphs(run_id, article_id, graph_path, graph_json, region_count, cycle_count, selected_pair_count, changed_event_count, changed_attribution_count, highest_severity, hottest_region_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO wiki_revision_monitor_contested_graphs(run_id, article_id, graph_json, region_count, cycle_count, selected_pair_count, changed_event_count, changed_attribution_count, highest_severity, hottest_region_json) VALUES(?,?,?,?,?,?,?,?,?,?)",
         (
             "run:pack_one:2026-03-31T00:00:00Z:abc",
             "article_1",
-            "/tmp/graph.json",
             json.dumps({"summary": {"region_count": 1}, "article": {"article_id": "article_1"}}),
             1,
             0,
@@ -478,7 +475,10 @@ def test_revision_monitor_query_reads_db_backed_summary_and_graph(tmp_path: Path
     assert payload["summary_source"] == "sqlite_read_model"
     assert payload["latest_runs"][0]["run_id"] == "run:pack_one:2026-03-31T00:00:00Z:abc"
     assert payload["changed_articles"][0]["article_id"] == "article_1"
+    assert "report_path" not in payload["changed_articles"][0]
+    assert "contested_graph_path" not in payload["changed_articles"][0]
     assert payload["selected_pairs"][0]["pair_id"] == "pair:1"
+    assert "pair_report_path" not in payload["selected_pairs"][0]
     assert payload["selected_pairs"][0]["top_changed_sections"][0]["section"] == "History"
     assert payload["selected_issue_packets"][0]["packet_id"] == "packet:1"
     assert payload["selected_issue_packets"][0]["review_context"]["curated"]["curated_qids"] == ["Q1"]
@@ -487,6 +487,8 @@ def test_revision_monitor_query_reads_db_backed_summary_and_graph(tmp_path: Path
     assert payload["selected_graph"]["regions"][0]["region_id"] == "region:1"
     assert payload["selected_graph"]["events"][0]["event_id"] == "ev:1"
     assert payload["selected_graph"]["epistemic_surfaces"][0]["epistemic_id"] == "epi:1"
+    assert "graph_path" not in payload["selected_graph"]
+    assert "report_path" not in payload["summary"]["pack_triage"]["top_changed_articles"][0]
 
 
 def test_revision_monitor_query_prefers_sqlite_read_models_over_blob_columns(tmp_path: Path) -> None:

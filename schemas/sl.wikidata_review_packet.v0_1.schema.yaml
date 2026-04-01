@@ -1,0 +1,280 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_review_packet.v0_1
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - packet_id
+  - review_entity_qid
+  - source_surface
+  - split_review_context
+  - parsed_page
+  - page_signals
+  - follow_receipts
+  - reviewer_view
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_review_packet.v0_1
+  packet_id:
+    type: string
+    minLength: 1
+  review_entity_qid:
+    type: string
+    minLength: 1
+  source_surface:
+    type: object
+    additionalProperties: false
+    required:
+      - source_unit_id
+      - source_entity_qid
+      - revision
+      - origin
+      - anchor_refs
+    properties:
+      source_unit_id:
+        type: string
+        minLength: 1
+      source_entity_qid:
+        type: string
+        minLength: 1
+      revision:
+        type: object
+        additionalProperties: false
+        required:
+          - revision_id
+          - revision_timestamp
+          - retrieval_method
+        properties:
+          revision_id:
+            type: [string, integer]
+          revision_timestamp:
+            type: string
+            minLength: 1
+          retrieval_method:
+            type: string
+      origin:
+        type: object
+        additionalProperties: false
+        required:
+          - source_type
+          - source_url
+          - title
+        properties:
+          source_type:
+            type: string
+          source_url:
+            type: [string, "null"]
+          title:
+            type: [string, "null"]
+      anchor_refs:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - anchor_id
+            - start
+            - end
+            - label
+            - text_excerpt
+          properties:
+            anchor_id:
+              type: string
+            start:
+              type: integer
+              minimum: 0
+            end:
+              type: integer
+              minimum: 0
+            label:
+              type: [string, "null"]
+            text_excerpt:
+              type: string
+  split_review_context:
+    type: object
+    additionalProperties: false
+    required:
+      - split_plan_id
+      - source_slot_id
+      - source_candidate_ids
+      - status
+      - review_required
+      - suggested_action
+      - merged_split_axes
+      - proposed_bundle_count
+      - reference_propagation
+      - qualifier_propagation
+    properties:
+      split_plan_id:
+        type: string
+      source_slot_id:
+        type: string
+      source_candidate_ids:
+        type: array
+        items:
+          type: string
+      status:
+        type: string
+      review_required:
+        type: boolean
+      suggested_action:
+        type: string
+      merged_split_axes:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - property
+            - source
+            - reason
+            - cardinality
+          properties:
+            property:
+              type: string
+            source:
+              type: string
+            reason:
+              type: string
+            cardinality:
+              type: integer
+              minimum: 1
+      proposed_bundle_count:
+        type: integer
+        minimum: 0
+      reference_propagation:
+        type: string
+      qualifier_propagation:
+        type: string
+  parsed_page:
+    type: object
+    additionalProperties: false
+    required:
+      - headings
+      - sections
+      - task_buckets
+      - cohort_task_lines
+      - query_rows
+    properties:
+      headings:
+        type: array
+        items:
+          type: string
+      sections:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - heading
+            - items
+          properties:
+            heading:
+              type: string
+            items:
+              type: array
+              items:
+                type: string
+      task_buckets:
+        type: object
+        additionalProperties: false
+        required:
+          - done
+          - todo
+        properties:
+          done:
+            type: array
+            items:
+              type: string
+          todo:
+            type: array
+            items:
+              type: string
+      cohort_task_lines:
+        type: array
+        items:
+          type: string
+      query_rows:
+        type: array
+        items:
+          type: string
+  page_signals:
+    type: object
+    additionalProperties: false
+    required:
+      - query_links
+      - cited_links
+      - outbound_links
+      - unresolved_questions
+      - expected_qualifier_properties
+      - expected_reference_properties
+    properties:
+      query_links:
+        type: array
+        items:
+          type: string
+      cited_links:
+        type: array
+        items:
+          type: string
+      outbound_links:
+        type: array
+        items:
+          type: string
+      unresolved_questions:
+        type: array
+        items:
+          type: string
+      expected_qualifier_properties:
+        type: array
+        items:
+          type: string
+      expected_reference_properties:
+        type: array
+        items:
+          type: string
+  follow_receipts:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - receipt_id
+        - url
+        - follow_reason
+        - extracted_evidence
+        - unresolved_uncertainty
+      properties:
+        receipt_id:
+          type: string
+        url:
+          type: string
+        follow_reason:
+          type: string
+        extracted_evidence:
+          type: array
+          items:
+            type: string
+        unresolved_uncertainty:
+          type: array
+          items:
+            type: string
+  reviewer_view:
+    type: object
+    additionalProperties: false
+    required:
+      - decision_focus
+      - uncertainty_flags
+      - recommended_next_step
+    properties:
+      decision_focus:
+        type: array
+        items:
+          type: string
+      uncertainty_flags:
+        type: array
+        items:
+          type: string
+      recommended_next_step:
+        type: string

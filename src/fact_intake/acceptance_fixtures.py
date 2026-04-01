@@ -9,6 +9,7 @@ from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semanti
 from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.reporting.structure_report import TextUnit
+from src.storage.manifest_runtime import load_versioned_json_object, resolve_sensiblaw_manifest_path
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
 
@@ -40,7 +41,7 @@ def default_fact_review_fixture_manifest_path(wave: str = "wave1_legal") -> Path
     filename = _DEFAULT_MANIFEST_BY_WAVE.get(wave)
     if filename is None:
         raise ValueError(f"unsupported fixture manifest wave: {wave}")
-    return Path(__file__).resolve().parents[2] / "data" / "fact_review" / filename
+    return resolve_sensiblaw_manifest_path("data", "fact_review", filename)
 
 
 def default_wave1_fixture_manifest_path() -> Path:
@@ -49,9 +50,10 @@ def default_wave1_fixture_manifest_path() -> Path:
 
 def _manifest_fixtures(path: Path | None = None, *, wave: str = "wave1_legal") -> list[dict[str, Any]]:
     manifest_path = path or default_fact_review_fixture_manifest_path(wave)
-    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if payload.get("version") != FACT_REVIEW_ACCEPTANCE_FIXTURE_MANIFEST_VERSION:
-        raise ValueError(f"unsupported fixture manifest version: {payload.get('version')}")
+    payload = load_versioned_json_object(
+        manifest_path,
+        expected_version=FACT_REVIEW_ACCEPTANCE_FIXTURE_MANIFEST_VERSION,
+    )
     fixtures = payload.get("fixtures")
     if not isinstance(fixtures, list):
         raise ValueError("fixture manifest fixtures must be a list")
@@ -60,10 +62,10 @@ def _manifest_fixtures(path: Path | None = None, *, wave: str = "wave1_legal") -
 
 def load_fact_review_acceptance_fixture_manifest(path: Path | None = None, *, wave: str = "wave1_legal") -> dict[str, Any]:
     manifest_path = path or default_fact_review_fixture_manifest_path(wave)
-    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if payload.get("version") != FACT_REVIEW_ACCEPTANCE_FIXTURE_MANIFEST_VERSION:
-        raise ValueError(f"unsupported fixture manifest version: {payload.get('version')}")
-    return payload
+    return load_versioned_json_object(
+        manifest_path,
+        expected_version=FACT_REVIEW_ACCEPTANCE_FIXTURE_MANIFEST_VERSION,
+    )
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -267,7 +269,7 @@ def _seed_au_timeline_fixture(db_path: Path, fixture_key: str, events: list[dict
 
 
 def _seed_au_linkage(conn: sqlite3.Connection) -> None:
-    seed_path = Path(__file__).resolve().parents[2] / "data" / "ontology" / "au_semantic_linkage_seed_v1.json"
+    seed_path = resolve_sensiblaw_manifest_path("data", "ontology", "au_semantic_linkage_seed_v1.json")
     seed_payload = json.loads(seed_path.read_text(encoding="utf-8"))
     import_au_semantic_seed_payload(conn, seed_payload)
 
@@ -1034,7 +1036,14 @@ def _build_synthetic_wiki_legal_fidelity_v1(db_path: Path, fixture: Mapping[str,
 
 
 def _build_real_wiki_history_fixture(db_path: Path, fixture: Mapping[str, Any], wiki: str, title: str, history_filename: str) -> dict[str, Any]:
-    history_path = Path(__file__).resolve().parents[2] / "demo" / "ingest" / "wiki_revision_monitor" / "wiki_revision_contested_v1" / "history" / history_filename
+    history_path = resolve_sensiblaw_manifest_path(
+        "demo",
+        "ingest",
+        "wiki_revision_monitor",
+        "wiki_revision_contested_v1",
+        "history",
+        history_filename,
+    )
     with history_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     

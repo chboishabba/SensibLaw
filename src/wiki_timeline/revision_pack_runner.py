@@ -15,7 +15,6 @@ from typing import Any, Callable, Mapping
 from src.wiki_timeline.revision_harness import build_revision_comparison_report
 from src.wiki_timeline.revision_pack_storage import (
     default_out_dir_for_pack,
-    graph_artifact_path,
     pair_artifact_paths,
     read_json_file,
     revision_artifact_paths,
@@ -36,7 +35,7 @@ from src.wiki_timeline.revision_pack_summary import (
     severity_rank,
 )
 
-STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_5"
+STATE_SCHEMA_VERSION = "wiki_revision_pack_state_v0_8"
 PAIR_REPORT_SCHEMA_VERSION = "wiki_revision_pair_report_v0_1"
 CONTESTED_GRAPH_SCHEMA_VERSION = "wiki_contested_region_graph_v0_1"
 _WS_RE = re.compile(r"\s+")
@@ -147,9 +146,6 @@ CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_results (
   current_revid INTEGER,
   top_severity TEXT NOT NULL,
   snapshot_path TEXT,
-  timeline_path TEXT,
-  aoo_path TEXT,
-  report_path TEXT,
   PRIMARY KEY (run_id, article_id)
 )
 """
@@ -165,7 +161,6 @@ CREATE TABLE IF NOT EXISTS wiki_revision_monitor_candidate_pairs (
   newer_revid INTEGER,
   selected INTEGER NOT NULL DEFAULT 0,
   score REAL NOT NULL DEFAULT 0,
-  pair_report_path TEXT,
   status TEXT NOT NULL,
   PRIMARY KEY (run_id, article_id, pair_id)
 )
@@ -178,8 +173,7 @@ CREATE TABLE IF NOT EXISTS wiki_revision_monitor_runs (
   pack_id TEXT NOT NULL REFERENCES wiki_revision_monitor_packs(pack_id) ON DELETE CASCADE,
   started_at TEXT NOT NULL,
   completed_at TEXT,
-  status TEXT NOT NULL,
-  out_dir TEXT NOT NULL
+  status TEXT NOT NULL
 )
 """
 
@@ -188,7 +182,6 @@ CONTESTED_GRAPHS_CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS wiki_revision_monitor_contested_graphs (
   run_id TEXT NOT NULL REFERENCES wiki_revision_monitor_runs(run_id) ON DELETE CASCADE,
   article_id TEXT NOT NULL REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
-  graph_path TEXT NOT NULL,
   region_count INTEGER NOT NULL DEFAULT 0,
   cycle_count INTEGER NOT NULL DEFAULT 0,
   selected_pair_count INTEGER NOT NULL DEFAULT 0,
@@ -229,22 +222,18 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_state (
-          article_id TEXT PRIMARY KEY REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
-          last_revid INTEGER,
-          last_rev_timestamp TEXT,
-          last_fetched_at TEXT,
-          snapshot_path TEXT,
-          timeline_path TEXT,
-          aoo_path TEXT,
-          report_path TEXT,
-          status TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )
-        """
-    )
+    ARTICLE_STATE_CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS wiki_revision_monitor_article_state (
+  article_id TEXT PRIMARY KEY REFERENCES wiki_revision_monitor_articles(article_id) ON DELETE CASCADE,
+  last_revid INTEGER,
+  last_rev_timestamp TEXT,
+  last_fetched_at TEXT,
+  snapshot_path TEXT,
+  status TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+)
+"""
+    conn.execute(ARTICLE_STATE_CREATE_SQL)
     conn.execute(RUNS_CREATE_SQL)
     conn.execute(ARTICLE_RESULTS_CREATE_SQL)
     conn.execute(
@@ -312,7 +301,20 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         (
             "wiki_revision_monitor_runs",
             RUNS_CREATE_SQL,
-            ["run_id", "pack_id", "started_at", "completed_at", "status", "out_dir"],
+            ["run_id", "pack_id", "started_at", "completed_at", "status"],
+        ),
+        (
+            "wiki_revision_monitor_article_state",
+            ARTICLE_STATE_CREATE_SQL,
+            [
+                "article_id",
+                "last_revid",
+                "last_rev_timestamp",
+                "last_fetched_at",
+                "snapshot_path",
+                "status",
+                "updated_at",
+            ],
         ),
         (
             "wiki_revision_monitor_article_results",
@@ -325,9 +327,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
                 "current_revid",
                 "top_severity",
                 "snapshot_path",
-                "timeline_path",
-                "aoo_path",
-                "report_path",
             ],
         ),
         (
@@ -342,7 +341,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
                 "newer_revid",
                 "selected",
                 "score",
-                "pair_report_path",
                 "status",
             ],
         ),
@@ -352,7 +350,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
             [
                 "run_id",
                 "article_id",
-                "graph_path",
                 "region_count",
                 "cycle_count",
                 "selected_pair_count",
@@ -367,7 +364,20 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         run_rows = _snapshot_rows(
             conn,
             table_name="wiki_revision_monitor_runs",
-            columns=["run_id", "pack_id", "started_at", "completed_at", "status", "out_dir"],
+            columns=["run_id", "pack_id", "started_at", "completed_at", "status"],
+        )
+        article_state_rows = _snapshot_rows(
+            conn,
+            table_name="wiki_revision_monitor_article_state",
+            columns=[
+                "article_id",
+                "last_revid",
+                "last_rev_timestamp",
+                "last_fetched_at",
+                "snapshot_path",
+                "status",
+                "updated_at",
+            ],
         )
         article_result_rows = _snapshot_rows(
             conn,
@@ -380,9 +390,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
                 "current_revid",
                 "top_severity",
                 "snapshot_path",
-                "timeline_path",
-                "aoo_path",
-                "report_path",
             ],
         )
         candidate_pair_rows = _snapshot_rows(
@@ -397,7 +404,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
                 "newer_revid",
                 "selected",
                 "score",
-                "pair_report_path",
                 "status",
             ],
         )
@@ -407,7 +413,6 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
             columns=[
                 "run_id",
                 "article_id",
-                "graph_path",
                 "region_count",
                 "cycle_count",
                 "selected_pair_count",
@@ -421,30 +426,42 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
         for table_name in [
             "wiki_revision_monitor_candidate_pairs",
             "wiki_revision_monitor_article_results",
+            "wiki_revision_monitor_article_state",
             "wiki_revision_monitor_contested_graphs",
             "wiki_revision_monitor_runs",
         ]:
             if _table_columns(conn, table_name):
                 conn.execute(f"DROP TABLE {table_name}")
         conn.execute(RUNS_CREATE_SQL)
+        conn.execute(ARTICLE_STATE_CREATE_SQL)
         conn.execute(ARTICLE_RESULTS_CREATE_SQL)
         conn.execute(CANDIDATE_PAIRS_CREATE_SQL)
         conn.execute(CONTESTED_GRAPHS_CREATE_SQL)
         if run_rows:
             conn.executemany(
                 """
-                INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status, out_dir)
-                VALUES(?,?,?,?,?,?)
+                INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status)
+                VALUES(?,?,?,?,?)
                 """,
                 run_rows,
+            )
+        if article_state_rows:
+            conn.executemany(
+                """
+                INSERT INTO wiki_revision_monitor_article_state(
+                  article_id, last_revid, last_rev_timestamp, last_fetched_at,
+                  snapshot_path, status, updated_at
+                ) VALUES(?,?,?,?,?,?,?)
+                """,
+                article_state_rows,
             )
         if article_result_rows:
             conn.executemany(
                 """
                 INSERT INTO wiki_revision_monitor_article_results(
                   run_id, article_id, status, previous_revid, current_revid, top_severity,
-                  snapshot_path, timeline_path, aoo_path, report_path
-                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                  snapshot_path
+                ) VALUES(?,?,?,?,?,?,?)
                 """,
                 article_result_rows,
             )
@@ -453,8 +470,8 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
                 """
                 INSERT INTO wiki_revision_monitor_candidate_pairs(
                   run_id, article_id, pair_id, pair_kind, older_revid, newer_revid, selected, score,
-                  pair_report_path, status
-                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                  status
+                ) VALUES(?,?,?,?,?,?,?,?,?)
                 """,
                 candidate_pair_rows,
             )
@@ -462,9 +479,9 @@ def ensure_revision_pack_schema(conn: sqlite3.Connection) -> None:
             conn.executemany(
                 """
                 INSERT INTO wiki_revision_monitor_contested_graphs(
-                  run_id, article_id, graph_path, region_count, cycle_count, selected_pair_count,
+                  run_id, article_id, region_count, cycle_count, selected_pair_count,
                   changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
-                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                ) VALUES(?,?,?,?,?,?,?,?,?)
                 """,
                 contested_graph_rows,
             )
@@ -535,7 +552,7 @@ def _load_article_state(conn: sqlite3.Connection, article_id: str) -> sqlite3.Ro
     return conn.execute(
         """
         SELECT article_id, last_revid, last_rev_timestamp, last_fetched_at,
-               snapshot_path, timeline_path, aoo_path, report_path, status, updated_at
+               snapshot_path, status, updated_at
         FROM wiki_revision_monitor_article_state
         WHERE article_id = ?
         """,
@@ -551,25 +568,19 @@ def _upsert_article_state(
     rev_timestamp: str | None,
     fetched_at: str | None,
     snapshot_path: Path | None,
-    timeline_path: Path | None,
-    aoo_path: Path | None,
-    report_path: Path | None,
     status: str,
 ) -> None:
     conn.execute(
         """
         INSERT INTO wiki_revision_monitor_article_state(
           article_id, last_revid, last_rev_timestamp, last_fetched_at,
-          snapshot_path, timeline_path, aoo_path, report_path, status, updated_at
-        ) VALUES(?,?,?,?,?,?,?,?,?,?)
+          snapshot_path, status, updated_at
+        ) VALUES(?,?,?,?,?,?,?)
         ON CONFLICT(article_id) DO UPDATE SET
           last_revid=excluded.last_revid,
           last_rev_timestamp=excluded.last_rev_timestamp,
           last_fetched_at=excluded.last_fetched_at,
           snapshot_path=excluded.snapshot_path,
-          timeline_path=excluded.timeline_path,
-          aoo_path=excluded.aoo_path,
-          report_path=excluded.report_path,
           status=excluded.status,
           updated_at=excluded.updated_at
         """,
@@ -579,22 +590,19 @@ def _upsert_article_state(
             rev_timestamp,
             fetched_at,
             str(snapshot_path) if snapshot_path else None,
-            str(timeline_path) if timeline_path else None,
-            str(aoo_path) if aoo_path else None,
-            str(report_path) if report_path else None,
             status,
             _utc_now_iso(),
         ),
     )
 
 
-def _insert_run(conn: sqlite3.Connection, *, run_id: str, pack_id: str, started_at: str, out_dir: Path) -> None:
+def _insert_run(conn: sqlite3.Connection, *, run_id: str, pack_id: str, started_at: str) -> None:
     conn.execute(
         """
-        INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status, out_dir)
-        VALUES(?,?,?,?,?,?)
+        INSERT INTO wiki_revision_monitor_runs(run_id, pack_id, started_at, completed_at, status)
+        VALUES(?,?,?,?,?)
         """,
-        (run_id, pack_id, started_at, None, "running", str(out_dir)),
+        (run_id, pack_id, started_at, None, "running"),
     )
 
 
@@ -627,17 +635,14 @@ def _insert_article_result(
     top_severity: str,
     packet_counts: Mapping[str, Any],
     snapshot_path: Path | None,
-    timeline_path: Path | None,
-    aoo_path: Path | None,
-    report_path: Path | None,
     result_payload: Mapping[str, Any],
 ) -> None:
     conn.execute(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_article_results(
           run_id, article_id, status, previous_revid, current_revid, top_severity,
-          snapshot_path, timeline_path, aoo_path, report_path
-        ) VALUES(?,?,?,?,?,?,?,?,?,?)
+          snapshot_path
+        ) VALUES(?,?,?,?,?,?,?)
         """,
         (
             run_id,
@@ -647,9 +652,6 @@ def _insert_article_result(
             current_revid,
             top_severity,
             str(snapshot_path) if snapshot_path else None,
-            str(timeline_path) if timeline_path else None,
-            str(aoo_path) if aoo_path else None,
-            str(report_path) if report_path else None,
         ),
     )
 
@@ -693,8 +695,8 @@ def _insert_candidate_pair(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_candidate_pairs(
           run_id, article_id, pair_id, pair_kind, older_revid, newer_revid, selected, score,
-          pair_report_path, status
-        ) VALUES(?,?,?,?,?,?,?,?,?,?)
+          status
+        ) VALUES(?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
@@ -705,7 +707,6 @@ def _insert_candidate_pair(
             _safe_int(pair_payload.get("newer_revid")),
             1 if pair_payload.get("selected") else 0,
             float(pair_payload.get("candidate_score") or 0.0),
-            str(pair_payload.get("pair_report_path") or "") or None,
             str(pair_payload.get("status") or "candidate"),
         ),
     )
@@ -716,21 +717,19 @@ def _insert_contested_graph(
     *,
     run_id: str,
     article_id: str,
-    graph_path: Path,
     graph_payload: Mapping[str, Any],
 ) -> None:
     summary = graph_payload.get("summary") if isinstance(graph_payload.get("summary"), Mapping) else {}
     conn.execute(
         """
         INSERT OR REPLACE INTO wiki_revision_monitor_contested_graphs(
-          run_id, article_id, graph_path, region_count, cycle_count, selected_pair_count,
+          run_id, article_id, region_count, cycle_count, selected_pair_count,
           changed_event_count, changed_attribution_count, highest_severity, hottest_region_json
-        ) VALUES(?,?,?,?,?,?,?,?,?,?)
+        ) VALUES(?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
             article_id,
-            str(graph_path),
             int(summary.get("region_count") or 0),
             int(summary.get("cycle_count") or 0),
             int(summary.get("selected_pair_count") or 0),
@@ -1416,7 +1415,6 @@ def _selected_pair_rows(selected_pairs: list[Mapping[str, Any]]) -> list[dict[st
                 "newer_revid": pair.get("newer_revid"),
                 "candidate_score": pair.get("candidate_score"),
                 "top_severity": pair.get("top_severity", "none"),
-                "pair_report_path": pair.get("pair_report_path"),
                 "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
             }
         )
@@ -1429,10 +1427,9 @@ def _build_contested_region_graph(
     run_id: str,
     selected_pairs: list[dict[str, Any]],
     out_dir: Path,
-) -> tuple[Path, dict[str, Any]]:
+) -> dict[str, Any]:
     article_id = str(article.get("article_id") or "")
     title = str(article.get("title") or "")
-    graph_path = graph_artifact_path(out_dir=out_dir, article_id=article_id, run_id=run_id)
     regions: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
     cycles: list[dict[str, Any]] = []
@@ -1453,7 +1450,6 @@ def _build_contested_region_graph(
                 "newer_revid": pair.get("newer_revid"),
                 "candidate_score": pair.get("candidate_score"),
                 "top_severity": pair.get("top_severity", "none"),
-                "pair_report_path": pair.get("pair_report_path"),
             }
         )
         graph_extract = _pair_graph_extract(pair.get("pair_report_payload"))
@@ -1627,8 +1623,7 @@ def _build_contested_region_graph(
         "cycles": cycles,
         "summary": summary,
     }
-    write_json_file(graph_path, payload)
-    return graph_path, payload
+    return payload
 
 
 def _build_pair_report(
@@ -1647,13 +1642,6 @@ def _build_pair_report(
 ) -> dict[str, Any]:
     older_revid = int(pair["older_revid"])
     newer_revid = int(pair["newer_revid"])
-    pair_paths = pair_artifact_paths(
-        out_dir=out_dir,
-        article_id=str(article.get("article_id") or ""),
-        pair_kind=str(pair["pair_kind"]),
-        older_revid=older_revid,
-        newer_revid=newer_revid,
-    )
     with tempfile.TemporaryDirectory(prefix="wiki_pair_", dir=str(out_dir)) as temp_dir_text:
         temp_dir = Path(temp_dir_text)
         temp_pair_paths = pair_artifact_paths(
@@ -1751,12 +1739,10 @@ def _build_pair_report(
             "section_delta_summary": pair["section_delta_summary"],
             "comparison_report": inner,
         }
-    write_json_file(pair_paths["pair_report"], wrapper)
     pair.update(
         {
             "selected": True,
             "status": "reported",
-            "pair_report_path": str(pair_paths["pair_report"]),
             "pair_report_payload": wrapper,
             "top_severity": str(((inner.get("triage_dashboard") or {}).get("highest_severity")) or "none"),
             "packet_counts": dict(((inner.get("triage_dashboard") or {}).get("packet_counts")) or {}),
@@ -1805,7 +1791,7 @@ def run(
         conn.row_factory = sqlite3.Row
         ensure_revision_pack_schema(conn)
         _store_pack_manifest(conn, pack_path=pack_path, pack=pack)
-        _insert_run(conn, run_id=run_id, pack_id=pack_id, started_at=run_started, out_dir=out_dir)
+        _insert_run(conn, run_id=run_id, pack_id=pack_id, started_at=run_started)
 
         articles = [article for article in pack.get("articles") or [] if isinstance(article, Mapping)]
         total_articles = len(articles)
@@ -1828,10 +1814,6 @@ def run(
             previous_state = _load_article_state(conn, article_id)
             previous_revid = int(previous_state["last_revid"]) if previous_state and previous_state["last_revid"] is not None else None
             current_snapshot_path: Path | None = None
-            current_timeline_path: Path | None = None
-            current_aoo_path: Path | None = None
-            current_report_path: Path | None = None
-            contested_graph_path: Path | None = None
             contested_graph_summary: dict[str, Any] | None = None
 
             try:
@@ -2035,10 +2017,9 @@ def run(
                         for key, value in dict(pair.get("packet_counts") or {}).items():
                             aggregate_counts[key] = aggregate_counts.get(key, 0) + int(value)
                     packet_counts = aggregate_counts
-                    current_report_path = Path(str(selected_pairs[0]["pair_report_path"])) if selected_pairs[0].get("pair_report_path") else None
                 primary_pair = selected_pairs[0] if selected_pairs else None
                 if _graph_enabled(pack, article) and selected_pairs:
-                    contested_graph_path, contested_graph_payload = _build_contested_region_graph(
+                    contested_graph_payload = _build_contested_region_graph(
                         article=article,
                         run_id=run_id,
                         selected_pairs=selected_pairs,
@@ -2049,7 +2030,6 @@ def run(
                         conn,
                         run_id=run_id,
                         article_id=article_id,
-                        graph_path=contested_graph_path,
                         graph_payload=contested_graph_payload,
                     )
                     contested_graph_counts["articles_with_graphs"] += 1
@@ -2085,17 +2065,15 @@ def run(
                             "older_revid": pair["older_revid"],
                             "newer_revid": pair["newer_revid"],
                             "candidate_score": pair["candidate_score"],
-                            "pair_report_path": pair.get("pair_report_path"),
                             "top_severity": pair.get("top_severity", "none"),
+                            "pair_report_payload": pair.get("pair_report_payload"),
                             "top_changed_sections": list(((pair.get("section_delta_summary") or {}).get("top_changed_sections")) or []),
                         }
                         for pair in selected_pairs
                     ],
                     "packet_counts": packet_counts,
                     "contested_graph_available": contested_graph_summary is not None,
-                    "contested_graph_path": str(contested_graph_path) if contested_graph_path else None,
                     "contested_graph_summary": contested_graph_summary,
-                    "report_path": str(current_report_path) if current_report_path else None,
                 }
 
                 _upsert_article_state(
@@ -2105,9 +2083,6 @@ def run(
                     rev_timestamp=_norm_text(current_snapshot_payload.get("rev_timestamp")) or None,
                     fetched_at=_norm_text(current_snapshot_payload.get("fetched_at")) or None,
                     snapshot_path=current_snapshot_path,
-                    timeline_path=None,
-                    aoo_path=None,
-                    report_path=current_report_path,
                     status=status,
                 )
                 _insert_article_result(
@@ -2120,9 +2095,6 @@ def run(
                     top_severity=top_severity,
                     packet_counts=packet_counts,
                     snapshot_path=current_snapshot_path,
-                    timeline_path=current_timeline_path,
-                    aoo_path=current_aoo_path,
-                    report_path=current_report_path,
                     result_payload=result_payload,
                 )
                 replace_issue_packets(
@@ -2161,9 +2133,7 @@ def run(
                     "current_revid": None,
                     "error": f"{type(exc).__name__}: {exc}",
                     "contested_graph_available": False,
-                    "contested_graph_path": None,
                     "contested_graph_summary": None,
-                    "report_path": None,
                 }
                 _insert_article_result(
                     conn,
@@ -2175,9 +2145,6 @@ def run(
                     top_severity="none",
                     packet_counts={},
                     snapshot_path=current_snapshot_path,
-                    timeline_path=current_timeline_path,
-                    aoo_path=current_aoo_path,
-                    report_path=current_report_path,
                     result_payload=result_payload,
                 )
                 replace_issue_packets(conn, run_id=run_id, article_id=article_id, packet_rows=[])
@@ -2201,7 +2168,6 @@ def run(
             pack_id=pack_id,
             run_id=run_id,
             state_db_path=state_db_path,
-            out_dir=out_dir,
             counts=summary_counts,
             candidate_pair_counts=candidate_pair_counts,
             contested_graph_counts=contested_graph_counts,
@@ -2227,7 +2193,6 @@ def run(
             started_at=run_started,
             completed_at=completed_at,
             status="ok",
-            out_dir=str(out_dir),
             summary=summary,
         )
         replace_changed_articles(conn, run_id=run_id, pack_id=pack_id, article_rows=article_results)

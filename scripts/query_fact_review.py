@@ -5,7 +5,6 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-import sqlite3
 import sys
 
 _THIS_DIR = Path(__file__).resolve().parent
@@ -37,6 +36,7 @@ from src.fact_intake import (
     resolve_fact_run_id,
     resolve_fact_run_link,
 )
+from src.storage.sqlite_runtime import connect_sqlite, resolve_sqlite_db_path
 
 _ACCEPTANCE_WAVE_CHOICES = [
     "wave1_legal",
@@ -269,12 +269,12 @@ def main(argv: list[str] | None = None) -> int:
     feedback_import_p.add_argument("--input", type=Path, required=True)
 
     args = parser.parse_args(argv)
-    with sqlite3.connect(str(args.db_path)) as conn:
-        conn.row_factory = sqlite3.Row
+    db_path = resolve_sqlite_db_path(args.db_path)
+    with connect_sqlite(db_path) as conn:
         if args.command == "runs":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "runs": list_fact_intake_runs(
                     conn,
                     limit=args.limit,
@@ -285,13 +285,13 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "sources":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "sources": list_fact_review_sources(conn, limit=args.limit, workflow_kind=getattr(args, "workflow_kind", None)),
             }
         elif args.command == "resolve-workflow":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "workflow_link": resolve_fact_run_link(
                     conn,
                     workflow_kind=getattr(args, "workflow_kind", None),
@@ -311,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "workflow_link": workflow_link,
                 "summary": build_fact_review_run_summary(conn, run_id=workflow_link["fact_run_id"]),
             }
@@ -325,7 +325,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "summary": build_fact_review_run_summary(conn, run_id=resolved_run_id),
             }
         elif args.command == "review-queue":
@@ -339,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
             summary = build_fact_review_run_summary(conn, run_id=resolved_run_id)
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "run": summary["run"],
                 "summary": summary["summary"],
                 "review_queue": summary["review_queue"],
@@ -356,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
             summary = build_fact_review_run_summary(conn, run_id=resolved_run_id)
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "run": summary["run"],
                 "chronology_summary": summary["chronology_summary"],
                 "chronology": summary["chronology"],
@@ -372,7 +372,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "semantic_status": build_fact_semantic_status_report(conn, run_id=resolved_run_id),
             }
         elif args.command == "semantic-refreshes":
@@ -385,7 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             ) if any(getattr(args, name, None) for name in ("run_id", "workflow_kind", "workflow_run_id", "source_label")) else None
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "refreshes": list_semantic_refresh_runs(conn, run_id=resolved_run_id, limit=args.limit),
             }
         elif args.command == "feedback":
@@ -398,13 +398,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "feedback": build_fact_agent_feedback_payload(conn, run_id=resolved_run_id),
             }
         elif args.command == "contested-runs":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "runs": list_contested_affidavit_review_runs(
                     conn,
                     limit=args.limit,
@@ -415,7 +415,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "contested-summary":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "review": build_contested_affidavit_review_summary(
                     conn,
                     review_run_id=getattr(args, "review_run_id", None),
@@ -424,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "contested-proving-slice":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "proving_slice": build_contested_affidavit_proving_slice(
                     conn,
                     review_run_id=getattr(args, "review_run_id", None),
@@ -476,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
             rows = conn.execute(sql, params).fetchall()
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "review_run_id": review_run_id,
                 "rows": [
                     {
@@ -515,7 +515,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "authority-runs":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "runs": list_authority_ingest_runs(
                     conn,
                     limit=args.limit,
@@ -525,7 +525,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "authority-summary":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "summary": build_authority_ingest_summary(
                     conn,
                     ingest_run_id=getattr(args, "ingest_run_id", None),
@@ -534,7 +534,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "feedback-receipts":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "receipts": list_feedback_receipts(
                     conn,
                     limit=args.limit,
@@ -546,7 +546,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "feedback-summary":
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "summary": build_feedback_receipt_summary(
                     conn,
                     receipt_id=getattr(args, "receipt_id", None),
@@ -556,7 +556,7 @@ def main(argv: list[str] | None = None) -> int:
             receipt = persist_feedback_receipt(conn, _build_feedback_payload_from_args(args))
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "receipt": receipt,
             }
         elif args.command == "feedback-import":
@@ -564,7 +564,7 @@ def main(argv: list[str] | None = None) -> int:
             receipts = [persist_feedback_receipt(conn, item) for item in imported_payloads]
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "input": str(args.input.resolve()),
                 "imported_count": len(receipts),
                 "receipts": receipts,
@@ -580,7 +580,7 @@ def main(argv: list[str] | None = None) -> int:
             operator_views = build_fact_review_operator_views(conn, run_id=resolved_run_id)
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "run": build_fact_review_run_summary(conn, run_id=resolved_run_id)["run"],
                 "view_kind": args.view_kind,
                 "view": operator_views[args.view_kind],
@@ -595,7 +595,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "workbench": build_fact_review_workbench_payload(conn, run_id=resolved_run_id),
             }
         elif args.command == "acceptance":
@@ -609,7 +609,7 @@ def main(argv: list[str] | None = None) -> int:
             workbench = build_fact_review_workbench_payload(conn, run_id=resolved_run_id)
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "acceptance": build_fact_review_acceptance_report(
                     workbench,
                     wave=args.wave,
@@ -645,7 +645,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "selector": {
                     "run_id": resolved_run_id,
                     "workflow_kind": resolved_workflow_kind,
@@ -675,7 +675,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = {
                 "ok": True,
-                "dbPath": str(args.db_path.resolve()),
+                "dbPath": str(db_path),
                 "report": build_fact_intake_report(conn, run_id=resolved_run_id),
             }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))

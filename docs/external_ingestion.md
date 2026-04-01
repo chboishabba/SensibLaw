@@ -174,8 +174,16 @@ Current contract:
 - current success criteria are functional/cross-pipeline first:
   - deterministic producer-owned outputs
   - queryable run/result state
-  - additive read models over raw report blobs
+  - SQLite-first read models rather than raw report blobs or DB blob fallback
   - later GUI/workbench use is downstream, not the immediate target
+
+Current posture:
+
+- query-time revision-monitor access is now SQLite-canonical
+- routine JSON report artifacts are no longer the intended default inspection
+  surface
+- any remaining writer-side artifact residue is a contract-cleanup issue, not a
+  reason to treat JSON as the operational store
 
 See:
 - `SensibLaw/docs/wiki_revision_harness_contract_v0_1.md`
