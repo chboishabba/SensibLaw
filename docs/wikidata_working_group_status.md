@@ -11,7 +11,8 @@ developer, start with:
 - `../../docs/planning/wikidata_combined_assist_handoff_20260401.md`
 
 If you need the shortest practical onboarding note for Shixiong Zhao on the
-current climate migration + Nat packet lane, start with:
+current climate migration + Nat packet lane, tailored to his Wikidata
+validation / inspection work, start with:
 - `planning/wikidata_shixiong_handoff_20260402.md`
 
 If you need the current execution-order roadmap across the Nat migration lane

@@ -35,6 +35,30 @@ So the product goal is:
 - split/review packets for the harder majority
 - verification after edits
 
+## Why this is relevant to your work
+
+Your recent paper is about three things that matter here:
+
+- validating whether a Wikidata problem is real
+- deciding whether it is actually worth correcting
+- giving people a system they can inspect rather than a black-box claim
+
+That is a good fit for this lane.
+
+The overlap is not "classification hierarchy" itself.
+
+The overlap is the method:
+
+- bounded validation instead of broad hand-waving
+- explicit criteria for when a change is justified
+- reviewer-facing inspection surfaces
+- conservative correction posture
+
+There is also a second overlap around evidence quality.
+
+This lane is strict about qualifier and reference preservation, and it does not
+want weak provenance, path-only artifacts, or silent semantic jumps.
+
 ## What is already done
 
 These pieces are real now:
@@ -86,6 +110,12 @@ So the honest current position is:
 - pilot migration review: possible
 - full production migration execution: not done
 
+The strongest current lesson is simple:
+
+- the hard part is not detecting candidate rows
+- the hard part is deciding when a proposed correction is really warranted
+- most pressure is in split/review, not bulk rewrite
+
 ## Nat lane in plain language
 
 Nat is now best understood as a review-and-split workbench.
@@ -118,6 +148,10 @@ Important boundary:
 - it is a review aid
 - it is not a hidden semantic authority layer
 
+If your paper's "inspect the relationships before deciding to correct them"
+idea is the mental model, that is close to what these packets are trying to do
+for migration rows.
+
 ## What is not done yet
 
 These are the main missing pieces:
@@ -129,6 +163,8 @@ These are the main missing pieces:
 - clearer packet/workbench support for the hard split-heavy rows
 - more real reviewed text-linked evidence for climate cases
 - broader execution confidence beyond the checked-safe subset
+- a sharper explicit criterion for when a held row should actually be corrected
+  rather than just flagged
 
 ## Best files to read first
 
@@ -138,17 +174,17 @@ Read these in this order:
    - `SensibLaw/docs/wikidata_working_group_status.md`
 2. Migration protocol:
    - `SensibLaw/docs/planning/wikidata_climate_change_property_migration_protocol_20260327.md`
-3. Migration pack contract:
-   - `SensibLaw/docs/planning/wikidata_migration_pack_contract_20260328.md`
-4. Nat end-product note:
-   - `SensibLaw/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
-5. Reviewer packet contract:
+3. Reviewer packet contract:
    - `SensibLaw/docs/planning/wikidata_review_packet_contract_20260401.md`
+4. Migration pack contract:
+   - `SensibLaw/docs/planning/wikidata_migration_pack_contract_20260328.md`
+5. Nat end-product note:
+   - `SensibLaw/docs/planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
 
 If you only have time for two files, read:
 
 - `SensibLaw/docs/wikidata_working_group_status.md`
-- `SensibLaw/docs/planning/wikidata_migration_pack_contract_20260328.md`
+- `SensibLaw/docs/planning/wikidata_review_packet_contract_20260401.md`
 
 ## Best places to look in the repo
 
@@ -175,6 +211,8 @@ The most useful help is:
    - real non-equivalent cases
    - cases that only need bounded human review
 3. help decide what evidence is enough before a row leaves review-only status
+4. help define a correction-worthiness rule that is clear enough for reviewers
+   to use without overstating certainty
 
 In short:
 
@@ -193,12 +231,15 @@ In short:
 
 If Shixiong wants to engage quickly, the best immediate contribution is:
 
-- review the current migration-pack and packet contracts
+- review the current packet and migration-pack contracts
 - look at the pilot pack and the split-heavy rows
+- pressure-test whether the current packet surface is good enough for a human
+  reviewer to decide "correct", "split", or "hold"
 - help us think clearly about when a row is:
   - safely transferable
   - split-required
   - not equivalent
   - still too uncertain
+  - visible but not worth correcting yet
 
 That is the current high-value discussion.
