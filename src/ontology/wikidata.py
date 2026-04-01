@@ -1044,6 +1044,171 @@ def build_nat_cohort_c_population_scan(
     }
 
 
+def _sparql_nat_cohort_c_population_scan_query(*, row_limit: int) -> str:
+    return f"""
+SELECT ?item ?itemLabel ?statement ?p459 ?p459Label ?qualifier_pid
+WHERE {{
+  ?item p:P5991 ?statement .
+  OPTIONAL {{
+    ?statement pq:P459 ?p459 .
+    OPTIONAL {{
+      ?p459 rdfs:label ?p459Label .
+      FILTER(LANG(?p459Label) = "en")
+    }}
+  }}
+  OPTIONAL {{
+    ?statement ?pq ?qv .
+    FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+    BIND(STRAFTER(STR(?pq), "http://www.wikidata.org/prop/qualifier/") AS ?qualifier_pid)
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+  FILTER(!BOUND(?p459) || !BOUND(?p459Label) || LCASE(STR(?p459Label)) != "ghg protocol")
+}}
+LIMIT {max(1, int(row_limit))}
+""".strip()
+
+
+def build_nat_cohort_c_population_scan_from_sparql_results(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    bindings = payload.get("results", {}).get("bindings", [])
+    if not isinstance(bindings, list):
+        raise ValueError("SPARQL payload requires a results.bindings array")
+
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in bindings:
+        if not isinstance(row, Mapping):
+            continue
+        item = row.get("item", {}).get("value") if isinstance(row.get("item"), Mapping) else None
+        statement = (
+            row.get("statement", {}).get("value") if isinstance(row.get("statement"), Mapping) else None
+        )
+        if not item or not statement:
+            continue
+        qid = _extract_qid(_stringify(item))
+        statement_id = _extract_qid(_stringify(statement))
+        item_label = (
+            row.get("itemLabel", {}).get("value")
+            if isinstance(row.get("itemLabel"), Mapping)
+            else None
+        )
+        p459 = row.get("p459", {}).get("value") if isinstance(row.get("p459"), Mapping) else None
+        p459_label = (
+            row.get("p459Label", {}).get("value")
+            if isinstance(row.get("p459Label"), Mapping)
+            else None
+        )
+        qualifier_pid = (
+            row.get("qualifier_pid", {}).get("value")
+            if isinstance(row.get("qualifier_pid"), Mapping)
+            else None
+        )
+        candidate = grouped.setdefault(
+            (qid, statement_id),
+            {
+                "qid": qid,
+                "label": _stringify(item_label) or qid,
+                "statement_id": statement_id,
+                "has_p459": p459 is not None,
+                "p459_label": _stringify(p459_label),
+                "qualifier_properties": set(),
+            },
+        )
+        if qualifier_pid:
+            candidate["qualifier_properties"].add(_stringify(qualifier_pid))
+
+    sample_candidates: list[dict[str, Any]] = []
+    p459_status_counts: dict[str, int] = {}
+    for (qid, statement_id), candidate in sorted(grouped.items()):
+        p459_label = _stringify(candidate.get("p459_label"))
+        p459_status = "missing" if not candidate.get("has_p459") else "non_GHG_protocol"
+        qualifier_properties = sorted(candidate.get("qualifier_properties", set()))
+        sample_candidates.append(
+            {
+                "qid": qid,
+                "label": _stringify(candidate.get("label")) or qid,
+                "statement_id": statement_id,
+                "p459_status": p459_status,
+                "p459_label": p459_label if p459_label else None,
+                "qualifier_properties": qualifier_properties,
+                "qualifier_snippet": (
+                    "determination method missing"
+                    if p459_status == "missing"
+                    else f"determination method label: {p459_label or 'unlabelled'}"
+                ),
+                "policy_note": (
+                    "live candidate lacks determination method"
+                    if p459_status == "missing"
+                    else "live candidate uses a non-GHG protocol determination method"
+                ),
+            }
+        )
+        p459_status_counts[p459_status] = p459_status_counts.get(p459_status, 0) + 1
+
+    return {
+        "lane_id": "wikidata_nat_wdu_p5991_p14143",
+        "cohort_id": "non_ghg_protocol_or_missing_p459",
+        "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+        "source_revision_fixture": "live_query_preview",
+        "scan_status": "live_population_scan_preview",
+        "next_gate": "review_first_population_scan",
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": p459_status_counts,
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "notes": [
+            "This live preview stays bounded and review-first.",
+            "It is diagnostic, not a migration or promotion authority.",
+        ],
+    }
+
+
+def build_nat_cohort_c_population_scan_live(
+    *,
+    row_limit: int = 20,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    query = _sparql_nat_cohort_c_population_scan_query(row_limit=row_limit)
+    try:
+        payload = _http_get_json(
+            SPARQL_ENDPOINT,
+            params={"format": "json", "query": query},
+            timeout_seconds=timeout_seconds,
+        )
+    except Exception as exc:
+        return {
+            "lane_id": "wikidata_nat_wdu_p5991_p14143",
+            "cohort_id": "non_ghg_protocol_or_missing_p459",
+            "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+            "source_revision_fixture": "live_query_preview",
+            "scan_status": "live_population_scan_unavailable",
+            "next_gate": "review_first_population_scan",
+            "sample_candidates": [],
+            "summary": {
+                "candidate_count": 0,
+                "p459_status_counts": {},
+                "review_first": True,
+                "policy_risk": "high",
+            },
+            "failures": [
+                {
+                    "stage": "live_query",
+                    "error": _stringify(exc),
+                    "endpoint": SPARQL_ENDPOINT,
+                }
+            ],
+            "notes": [
+                "The live preview helper is fail-closed when the Wikidata query endpoint is unavailable.",
+            ],
+        }
+    if not isinstance(payload, Mapping):
+        raise ValueError("Cohort C live scan requires a JSON object payload")
+    return build_nat_cohort_c_population_scan_from_sparql_results(payload)
+
+
 def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
     tags = set(_extract_scope_tags_from_text(line_text))
     tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_id", ""))))
@@ -3667,6 +3832,9 @@ __all__ = [
     "WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION",
     "adapt_legacy_climate_text_source_to_source_units",
     "build_wikidata_review_packet",
+    "build_nat_cohort_c_population_scan",
+    "build_nat_cohort_c_population_scan_from_sparql_results",
+    "build_nat_cohort_c_population_scan_live",
     "build_observation_claim_payload_from_source_units",
     "build_observation_claim_payload_from_revision_locked_climate_text_sources",
     "attach_wikidata_phi_text_bridge_from_source_units",

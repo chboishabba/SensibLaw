@@ -9,7 +9,8 @@ its first review-first population scan so the policy-risk cohort is bound into
 the repo rather than remaining an abstract branch note.
 
 The runtime now has a bounded Cohort C scan normalizer for the pinned sample
-fixture, but the live population scan gate remains unopened.
+fixture and a bounded live scan preview helper that uses the same selection
+rule while keeping the live population scan gate fail-closed.
 
 This artifact stays within Cohort C: it reuses the migration mapping plan from
 `wikidata_nat_wdu_sandbox_migration_mapping_20260401.md` and the pinned branch
@@ -50,6 +51,10 @@ Cohort B/D/E.
 - the sandbox page defines the qualifier/reference expectations
 - no actual live population scan has run yet
 - the runtime scan normalizer exists for the pinned sample fixture
+- the bounded live scan preview helper now exists for the same selection rule
+- the live population scan gate remains fail-closed and review-first
+- live-query failure is surfaced as an explicit unavailable state rather than
+  raising into a silent retry loop
 
 ### L
 
@@ -98,4 +103,5 @@ be verified during the scan.
 
 - `review_first_population_scan` (documented candidate set)
 - `review_first_population_scan_ready` (runtime normalizer surface)
+- `review_first_population_scan_live_preview` (bounded live helper surface)
 - future packetized review surface once the scan yields reproducible rows

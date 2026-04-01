@@ -20,6 +20,8 @@ from src.ontology.wikidata import (
     attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
     build_wikidata_review_packet,
     build_nat_cohort_c_population_scan,
+    build_nat_cohort_c_population_scan_from_sparql_results,
+    build_nat_cohort_c_population_scan_live,
     build_observation_claim_payload_from_source_units,
     build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
@@ -1410,6 +1412,68 @@ def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates(
         "Q731938",
         "Q1785637",
     ]
+
+
+def test_nat_cohort_c_live_population_scan_result_normalizer_groups_statement_rows() -> None:
+    sparql_payload = {
+        "results": {
+            "bindings": [
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q1"},
+                    "itemLabel": {"value": "Example One"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "qualifier_pid": {"value": "P580"},
+                },
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q1"},
+                    "itemLabel": {"value": "Example One"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "qualifier_pid": {"value": "P582"},
+                },
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q2"},
+                    "itemLabel": {"value": "Example Two"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q2-def"},
+                    "p459": {"value": "https://www.wikidata.org/entity/Q999"},
+                    "p459Label": {"value": "Alt standard"},
+                    "qualifier_pid": {"value": "P518"},
+                },
+            ]
+        }
+    }
+
+    scan = build_nat_cohort_c_population_scan_from_sparql_results(sparql_payload)
+
+    assert scan["scan_status"] == "live_population_scan_preview"
+    assert scan["summary"] == {
+        "candidate_count": 2,
+        "p459_status_counts": {"missing": 1, "non_GHG_protocol": 1},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert scan["sample_candidates"][0]["qid"] == "Q1"
+    assert scan["sample_candidates"][0]["p459_status"] == "missing"
+    assert scan["sample_candidates"][0]["qualifier_properties"] == ["P580", "P582"]
+    assert scan["sample_candidates"][1]["qid"] == "Q2"
+    assert scan["sample_candidates"][1]["p459_status"] == "non_GHG_protocol"
+
+
+def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(monkeypatch) -> None:
+    def _raise(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("src.ontology.wikidata._http_get_json", _raise)
+
+    payload = build_nat_cohort_c_population_scan_live(row_limit=3, timeout_seconds=1)
+
+    assert payload["scan_status"] == "live_population_scan_unavailable"
+    assert payload["summary"] == {
+        "candidate_count": 0,
+        "p459_status_counts": {},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert payload["failures"][0]["stage"] == "live_query"
 
 
 def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materialization() -> None:

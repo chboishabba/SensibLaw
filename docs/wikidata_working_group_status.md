@@ -330,7 +330,10 @@ shared handoff.
         review-first population scan
       - runtime note:
         the pinned Cohort C sample fixture now has a bounded scan normalizer,
-        but no live population scan has run yet
+        and the same selection rule now has a bounded live scan preview helper
+      - live scan gate:
+        still fail-closed and review-first; no blanket population scan implied,
+        and endpoint unavailability is surfaced explicitly
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review
