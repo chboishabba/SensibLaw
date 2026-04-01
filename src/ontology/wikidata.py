@@ -11,6 +11,22 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
 import requests
 
+from .wikidata_review_packet_claim_boundaries import (
+    build_review_packet_claim_boundaries,
+)
+from .wikidata_review_packet_cross_source_alignment import (
+    summarize_cross_source_alignment,
+)
+from .wikidata_review_packet_follow_depth import (
+    enrich_review_packet_follow_depth,
+)
+from .wikidata_review_packet_reviewer_actions import (
+    build_wikidata_review_packet_reviewer_actions,
+)
+from .wikidata_review_packet_variant_compare import (
+    compare_review_packet_variants,
+)
+
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
 FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
@@ -618,8 +634,53 @@ def _reviewer_view_for_packet(
     }
 
 
+def _comparison_variants_from_split_plan_payload(
+    *,
+    split_plan_payload: Mapping[str, Any],
+    split_plan_id: str,
+    max_variants: int = 3,
+) -> list[dict[str, Any]]:
+    plans = split_plan_payload.get("plans")
+    if not isinstance(plans, list):
+        return []
+    variants: list[dict[str, Any]] = []
+    for plan in plans:
+        if not isinstance(plan, Mapping):
+            continue
+        candidate_split_plan_id = _stringify(plan.get("split_plan_id")).strip()
+        if not candidate_split_plan_id:
+            entity_qid = _stringify(plan.get("entity_qid")).strip()
+            if entity_qid:
+                candidate_split_plan_id = f"split://{entity_qid}|{_stringify(split_plan_payload.get('source_property')).strip()}"
+        if not candidate_split_plan_id or candidate_split_plan_id == split_plan_id:
+            continue
+        variants.append(
+            {
+                "candidate_id": candidate_split_plan_id,
+                "classification": _stringify(plan.get("status")).strip(),
+                "suggested_action": _stringify(plan.get("suggested_action")).strip(),
+                "action": _stringify(plan.get("suggested_action")).strip(),
+                "merged_split_axes": [
+                    {
+                        "property": _stringify(axis.get("property")).strip(),
+                        "cardinality": int(axis.get("cardinality", 0) or 0),
+                        "reason": _stringify(axis.get("reason")).strip(),
+                        "source": _stringify(axis.get("source")).strip(),
+                    }
+                    for axis in plan.get("merged_split_axes", [])
+                    if isinstance(axis, Mapping)
+                ],
+            }
+        )
+        if len(variants) >= max_variants:
+            break
+    return variants
+
+
 def _build_review_packet_semantic_decomposition(
     *,
+    anchor_refs: Sequence[Mapping[str, Any]],
+    split_review_context: Mapping[str, Any],
     parsed_page: Mapping[str, Any],
     page_signals: Mapping[str, Any],
     follow_receipts: Sequence[Mapping[str, Any]],
@@ -642,6 +703,20 @@ def _build_review_packet_semantic_decomposition(
             for item in task_buckets.get("todo", [])
             if _stringify(item).strip()
         ]
+    normalized_anchor_refs = [
+        anchor for anchor in anchor_refs
+        if isinstance(anchor, Mapping) and _stringify(anchor.get("text_excerpt", "")).strip()
+    ]
+    split_plan_id = _stringify(split_review_context.get("split_plan_id", "")).strip()
+    split_axes = [
+        axis for axis in split_review_context.get("merged_split_axes", [])
+        if isinstance(axis, Mapping)
+    ]
+    source_candidate_ids = [
+        _stringify(candidate_id).strip()
+        for candidate_id in split_review_context.get("source_candidate_ids", [])
+        if _stringify(candidate_id).strip()
+    ]
 
     candidate_units: list[dict[str, str]] = []
     candidate_units.extend(
@@ -651,6 +726,23 @@ def _build_review_packet_semantic_decomposition(
             "text": row,
         }
         for index, row in enumerate(query_rows)
+    )
+    candidate_units.extend(
+        {
+            "unit_id": f"follow_receipt:{index + 1}",
+            "unit_type": "follow_receipt_surface",
+            "text": (
+                f"receipt_id={_stringify(receipt.get('receipt_id')).strip()} "
+                f"url={_stringify(receipt.get('url')).strip()} "
+                f"reason={_stringify(receipt.get('follow_reason')).strip()} "
+                f"evidence_count={len(receipt.get('extracted_evidence', []))} "
+                f"unresolved_count={len(receipt.get('unresolved_uncertainty', []))}"
+            ),
+        }
+        for index, receipt in enumerate(follow_receipts)
+        if isinstance(receipt, Mapping)
+        and _stringify(receipt.get("receipt_id")).strip()
+        and _stringify(receipt.get("url")).strip()
     )
     candidate_units.extend(
         {
@@ -668,6 +760,56 @@ def _build_review_packet_semantic_decomposition(
         }
         for index, item in enumerate(todo_items)
     )
+    candidate_units.extend(
+        {
+            "unit_id": f"anchor:{_stringify(anchor.get('anchor_id')).strip() or index + 1}",
+            "unit_type": "anchor_surface",
+            "text": (
+                f"{_stringify(anchor.get('label')).strip()}: "
+                f"{_stringify(anchor.get('text_excerpt')).strip()}"
+                if _stringify(anchor.get("label")).strip()
+                else _stringify(anchor.get("text_excerpt")).strip()
+            ),
+        }
+        for index, anchor in enumerate(normalized_anchor_refs)
+    )
+    if split_plan_id:
+        candidate_units.append(
+            {
+                "unit_id": "split_plan:context",
+                "unit_type": "split_context_surface",
+                "text": (
+                    f"{split_plan_id} status={_stringify(split_review_context.get('status'))} "
+                    f"action={_stringify(split_review_context.get('suggested_action'))} "
+                    f"review_required={bool(split_review_context.get('review_required'))} "
+                    f"proposed_bundle_count={int(split_review_context.get('proposed_bundle_count', 0) or 0)}"
+                ),
+            }
+        )
+    candidate_units.extend(
+        {
+            "unit_id": f"split_axis:{index + 1}",
+            "unit_type": "split_axis_surface",
+            "text": (
+                f"property={_stringify(axis.get('property'))} "
+                f"source={_stringify(axis.get('source'))} "
+                f"reason={_stringify(axis.get('reason'))} "
+                f"cardinality={int(axis.get('cardinality', 0) or 0)}"
+            ),
+        }
+        for index, axis in enumerate(split_axes)
+    )
+    if source_candidate_ids:
+        candidate_units.append(
+            {
+                "unit_id": "split_candidates:summary",
+                "unit_type": "split_context_surface",
+                "text": (
+                    f"source_candidate_ids={len(source_candidate_ids)} "
+                    f"sample={','.join(source_candidate_ids[:3])}"
+                ),
+            }
+        )
 
     missing_evidence = [
         "no_revision_locked_excerpts_for_candidate_units",
@@ -682,13 +824,27 @@ def _build_review_packet_semantic_decomposition(
         missing_evidence.append("open_questions_not_resolved_into_grounded_assertions")
     if todo_items:
         missing_evidence.append("todo_items_not_lifted_into_review_decision_graph")
+    if normalized_anchor_refs:
+        missing_evidence.append("anchor_refs_not_promoted_to_grounded_claims")
+    if split_axes or split_plan_id:
+        missing_evidence.append("split_context_not_lifted_into_semantic_decision_graph")
+
+    normalized_missing_evidence = sorted(set(missing_evidence))
+    candidate_units.extend(
+        {
+            "unit_id": f"missing_evidence:{index + 1}",
+            "unit_type": "missing_evidence_surface",
+            "text": gap,
+        }
+        for index, gap in enumerate(normalized_missing_evidence)
+    )
 
     return {
         "layer_schema_version": WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION,
         "decomposition_state": "surface_only",
         "separate_from_parsed_page": True,
         "candidate_units": candidate_units,
-        "missing_evidence": sorted(set(missing_evidence)),
+        "missing_evidence": normalized_missing_evidence,
     }
 
 
@@ -699,6 +855,8 @@ def build_wikidata_review_packet(
     split_plan_id: str,
     source_unit_id: str | None = None,
     follow_receipts: Sequence[Mapping[str, Any]] | None = None,
+    follow_depth_source_text_by_url: Mapping[str, str] | None = None,
+    comparison_variants: Sequence[Mapping[str, Any]] | None = None,
     include_semantic_decomposition: bool = False,
 ) -> dict[str, Any]:
     source = _select_source_unit(source_unit_payload, source_unit_id=source_unit_id)
@@ -777,11 +935,72 @@ def build_wikidata_review_packet(
         ),
     }
     if include_semantic_decomposition:
-        packet["semantic_decomposition"] = _build_review_packet_semantic_decomposition(
+        auto_comparison_variants = list(comparison_variants or [])
+        if not auto_comparison_variants:
+            auto_comparison_variants = _comparison_variants_from_split_plan_payload(
+                split_plan_payload=split_plan_payload,
+                split_plan_id=split_plan_id,
+            )
+        semantic_decomposition = _build_review_packet_semantic_decomposition(
+            anchor_refs=packet["source_surface"]["anchor_refs"],
+            split_review_context=packet["split_review_context"],
             parsed_page=parsed_page,
             page_signals=page_signals,
             follow_receipts=normalized_receipts,
         )
+        semantic_decomposition["follow_depth"] = enrich_review_packet_follow_depth(
+            packet,
+            source_text_by_url=follow_depth_source_text_by_url,
+        )
+        semantic_decomposition["claim_boundaries"] = build_review_packet_claim_boundaries(
+            source_surface=packet["source_surface"],
+            split_review_context=packet["split_review_context"],
+            parsed_page=parsed_page,
+            page_signals=page_signals,
+        )
+        semantic_decomposition["cross_source_alignment"] = summarize_cross_source_alignment(
+            packet_id=packet_id,
+            wiki_surface={
+                "qid": _stringify(packet.get("review_entity_qid")),
+                "source": _stringify(packet["source_surface"]["origin"].get("source_type")),
+                "fields": list(parsed_page.get("query_rows", [])),
+                "summary": _stringify(packet["source_surface"]["origin"].get("title")),
+            },
+            query_slice={
+                "qid": _stringify(packet.get("review_entity_qid")),
+                "fields": list(parsed_page.get("query_rows", [])),
+                "summary": "query rows from parsed page",
+            },
+            split_bundle={
+                "primary_qid": _stringify(packet.get("review_entity_qid")),
+                "fields": [
+                    axis.get("property")
+                    for axis in packet["split_review_context"].get("merged_split_axes", [])
+                    if isinstance(axis, Mapping)
+                ],
+                "summary": _stringify(packet["split_review_context"].get("suggested_action")),
+            },
+        )
+        semantic_decomposition["reviewer_actions"] = (
+            build_wikidata_review_packet_reviewer_actions(packet)
+        )
+        if auto_comparison_variants:
+            semantic_decomposition["variant_comparison"] = compare_review_packet_variants(
+                primary_variant={
+                    "candidate_id": packet["split_review_context"].get("split_plan_id"),
+                    "suggested_action": packet["split_review_context"].get("suggested_action"),
+                    "merged_split_axes": packet["split_review_context"].get("merged_split_axes", []),
+                    "action": packet["split_review_context"].get("suggested_action"),
+                },
+                comparison_variants=auto_comparison_variants,
+            )
+        else:
+            semantic_decomposition["variant_comparison"] = {
+                "non_authoritative": True,
+                "diagnostic_flags": ["no_comparisons_provided"],
+                "comparisons": [],
+            }
+        packet["semantic_decomposition"] = semantic_decomposition
     return packet
 
 

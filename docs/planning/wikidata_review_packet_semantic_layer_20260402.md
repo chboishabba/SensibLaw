@@ -21,6 +21,16 @@ attaches:
 The new layer is explicitly a sidecar derived from existing bounded packet
 signals (`parsed_page`, `page_signals`, `follow_receipts`).
 
+It currently lifts:
+
+- query rows
+- follow receipts
+- open questions
+- todo items
+- anchor-derived reviewer spans
+- split-review context spans
+- explicit missing-evidence gap spans
+
 ## Non-claims
 
 - It does not replace or mutate `parsed_page`.

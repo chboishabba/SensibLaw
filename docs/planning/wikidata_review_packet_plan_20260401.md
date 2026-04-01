@@ -32,6 +32,7 @@ What is still missing:
 
 - broader packet coverage across held Nat rows
 - later semantic decomposition above or beside `parsed_page`
+- a bounded variant-comparison lane for targeted uncertainty reduction
 
 Update:
 
@@ -63,9 +64,34 @@ Update:
 - the optional semantic sidecar is now landed behind
   `include_semantic_decomposition=True` and stays separate from
   `parsed_page`
+- the semantic sidecar now explicitly records anchor-derived reviewer units
+  and split-review context units (merged split axes + recommended action)
+  so reviewers can reach the same conclusion without assuming the parsed
+  surface is semantic decomposition
+- the same semantic sidecar now also lifts bounded follow receipts into
+  candidate units when they are present, so the receipt boundary stays visible
+  without being overstated as grounded semantic promotion
+- the same sidecar also promotes its `missing_evidence` list into explicit gap
+  units so the reviewer can see what still is not grounded yet
 - the next implementation pressure is broader packet coverage across the
   remaining held Nat rows, then any later expansion of the semantic sidecar
   above or beside `parsed_page`
+- from this point onward the packet coverage lane is experiencing diminishing
+  returns; only genuinely new split shapes should trigger another packet
+  attachment rather than repeated routine rows.
+- the helper-lane slices now exist as standalone modules and are aggregated
+  behind the optional semantic sidecar:
+  - follow depth
+  - claim-boundary mapping
+  - cross-source alignment
+  - reviewer actions
+  - bounded variant comparison
+  - the remaining work is to extend their evidence inputs, not to widen the
+    packet contract
+- variant comparison now has a grounded Nat example path: when the split
+  payload includes sibling plans from the same cohort, the packet can derive
+  a small bounded comparison set automatically, so the comparison lane is no
+  longer limited to abstract examples
 
 ## Planned Workflow
 
@@ -112,6 +138,21 @@ Every followed source must produce a receipt:
 - why it was followed
 - what evidence was extracted
 - what uncertainty remains
+
+### Step 3b: Compare variants
+
+Compare only a small bounded set of relevant variants when the comparison is
+likely to reduce reviewer uncertainty:
+
+- adjacent statement bundles in the same cohort
+- nearby wiki revisions of the same proposal/sandbox page
+- alternate query/result slices for the same target shape
+- source/reference variants that explain why one row splits differently from
+  another
+
+Variant comparison is a diagnostic lever, not a truth engine. It should help
+cluster split shapes and sharpen reviewer packets, but it must not become
+open-ended diff-hunting or a substitute for the review packet itself.
 
 ### Step 4: Packetize
 
@@ -173,12 +214,14 @@ Promotion still requires the existing bounded checks:
 2. page parsed
 3. refs/links exposed
 4. selected sources followed with receipts
-5. reviewer packet emitted
-6. reviewer decides
+5. targeted variants compared where useful
+6. reviewer packet emitted
+7. reviewer decides
 
 ### P
 
 - build reviewer-packet infrastructure above the existing split-plan lane
+- keep variant comparison bounded and diagnostic, not authoritative
 
 ### G
 
@@ -200,6 +243,7 @@ Promotion still requires the existing bounded checks:
   - bounded parser
   - broader packet coverage across held rows, now with an 11-row surface
   - optional semantic decomposition sidecar above or beside `parsed_page`
+  - bounded variant-comparison lane for targeted uncertainty reduction
 
 ## ISO 9000 Reading
 
@@ -281,7 +325,8 @@ Rel(PACKET, HUMAN, "review packet")
 Implement in this order:
 
 1. broader packet coverage across the remaining held Nat rows
-2. optional semantic decomposition layer above or beside `parsed_page`
+2. bounded variant-comparison lane for targeted uncertainty reduction
+3. optional semantic decomposition layer above or beside `parsed_page`
 
 ## This Pass
 
@@ -296,3 +341,6 @@ The implementation has since begun and the current lane state now includes:
 
 The remaining work is the broader packet coverage across held Nat rows and
 any later expansion of the semantic sidecar above or beside `parsed_page`.
+The new bounded variant-comparison lane now sits between those two stages so
+reviewers can compare a few relevant variants without turning the packet into
+an open-ended diff hunt.

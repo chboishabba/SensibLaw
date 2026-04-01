@@ -149,6 +149,8 @@ shared handoff.
         - cohort-oriented task lines
       - bounded follow-receipt support now auto-attaches a query-link receipt
         when the source surface provides one
+      - bounded variant comparison is now explicitly available as a diagnostic
+        lever for targeted uncertainty reduction, not as a truth engine
       - explicit boundary:
         - `parsed_page` is only the current shallow surface-parse helper
         - it is not the full SensibLaw decomposition / contingent-clause layer
@@ -164,12 +166,35 @@ shared handoff.
       - the bounded parser upgrade is now landed
       - bounded follow receipts now exist for the Nat query-link surface, but
         broader follow-receipt coverage across held rows still remains
+      - bounded variant comparison is allowed, but only across a few relevant
+        variants and never as a substitute for the review packet
       - broader packet coverage across held rows now has a first
         13-row attachment surface, but it is still incomplete
       - a separate semantic sidecar now exists behind
         `include_semantic_decomposition=True`
-      - deeper SensibLaw-style semantic decomposition should still stay
-        explicit and separate from the shallow parser coverage
+      - that sidecar publishes anchor-derived reviewer units, bounded
+        follow-receipt units, explicit missing-evidence gap units, and
+        explicit split-review context units (merged split axes plus
+        recommended steps)
+      - the same sidecar now also aggregates bounded helper lanes for:
+        - follow depth
+        - claim-boundary mapping
+        - cross-source alignment
+        - reviewer actions
+        - bounded variant comparison
+      - bounded variant comparison now has a grounded Nat example path using
+        sibling split plans from the same cohort, and it can be derived
+        automatically from the split payload when sibling plans are present so
+        the comparison lane can surface real agreement/disagreement patterns
+        without becoming open ended diff hunting
+      - standalone helper modules now exist for:
+        - follow depth
+        - claim-boundary mapping
+        - cross-source alignment
+        - reviewer actions
+        - bounded variant comparison
+        - deeper SensibLaw-style semantic decomposition should still stay
+          explicit and separate from the shallow parser coverage
     - current packet coverage now has a first multi-row attachment index:
       `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
       records `13 / 53` packetized held split rows, with the original packet
@@ -177,6 +202,8 @@ shared handoff.
       `Q10422059` and `Q731938`, nine wider-online reviewed rows from the
       live tranche, and two additional pilot-pack sidecar packets for
       `Q10416948` and `Q56404383`
+    - packet coverage is now creeping toward diminishing returns; only new split
+      shapes should justify another attachment step
     - the assist lane now has a parallel reviewer-packet alignment note:
       `docs/planning/wikidata_assist_lane_reviewer_packet_alignment_20260401.md`
       so the same packet grammar can be adopted without overstating parity or

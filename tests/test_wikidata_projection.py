@@ -1532,6 +1532,25 @@ def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() ->
     assert "no_follow_receipts" in payload["reviewer_view"]["uncertainty_flags"]
 
 
+def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split_context_units() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        include_semantic_decomposition=True,
+    )
+
+    semantic = payload["semantic_decomposition"]
+    unit_types = {unit["unit_type"] for unit in semantic["candidate_units"]}
+    assert "follow_receipt_surface" in unit_types
+    assert "anchor_surface" in unit_types
+    assert "split_context_surface" in unit_types
+    assert "missing_evidence_surface" in unit_types
+    assert "split_axis_surface" in unit_types
+    assert "anchor_refs_not_promoted_to_grounded_claims" in semantic["missing_evidence"]
+    assert "split_context_not_lifted_into_semantic_decision_graph" in semantic["missing_evidence"]
+
+
 def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows() -> None:
     payload = _load_nat_review_packet_attachment_coverage_fixture()
 
@@ -1564,6 +1583,16 @@ def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic
         assert payload["follow_receipts"]
         assert payload["semantic_decomposition"]["separate_from_parsed_page"] is True
         assert payload["semantic_decomposition"]["candidate_units"]
+        unit_types = {
+            unit["unit_type"] for unit in payload["semantic_decomposition"]["candidate_units"]
+        }
+        assert "follow_receipt_surface" in unit_types
+        assert "anchor_surface" in unit_types
+        assert "split_context_surface" in unit_types
+        assert "missing_evidence_surface" in unit_types
+        merged_split_axes = payload["split_review_context"]["merged_split_axes"]
+        if merged_split_axes:
+            assert "split_axis_surface" in unit_types
         assert payload["reviewer_view"]["recommended_next_step"] == expected_step
 
 
