@@ -334,6 +334,9 @@ shared handoff.
       - live scan gate:
         still fail-closed and review-first; no blanket population scan implied,
         and endpoint unavailability is surfaced explicitly
+      - operator packet:
+        now exists and makes the candidate set, triage prompts, and hold/review
+        decision text explicit
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

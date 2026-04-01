@@ -55,6 +55,8 @@ Cohort B/D/E.
 - the live population scan gate remains fail-closed and review-first
 - live-query failure is surfaced as an explicit unavailable state rather than
   raising into a silent retry loop
+- the preview is now packaged into an operator-facing review packet that makes
+  the candidate set, triage prompts, and hold/review decision explicit
 
 ### L
 
@@ -104,4 +106,5 @@ be verified during the scan.
 - `review_first_population_scan` (documented candidate set)
 - `review_first_population_scan_ready` (runtime normalizer surface)
 - `review_first_population_scan_live_preview` (bounded live helper surface)
+- `review_first_population_scan_operator_packet` (review packet surface)
 - future packetized review surface once the scan yields reproducible rows

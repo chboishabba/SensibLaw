@@ -22,6 +22,7 @@ from src.ontology.wikidata import (
     build_nat_cohort_c_population_scan,
     build_nat_cohort_c_population_scan_from_sparql_results,
     build_nat_cohort_c_population_scan_live,
+    build_nat_cohort_c_operator_packet,
     build_observation_claim_payload_from_source_units,
     build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
@@ -1474,6 +1475,31 @@ def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(
         "policy_risk": "high",
     }
     assert payload["failures"][0]["stage"] == "live_query"
+
+
+def test_nat_cohort_c_operator_packet_wraps_scan_payload_with_hold_or_review_decision() -> None:
+    review_scan = _load_nat_cohort_c_population_scan_fixture()
+    review_packet = build_nat_cohort_c_operator_packet(review_scan)
+    assert review_packet["decision"] == "review"
+    assert review_packet["governance"] == {
+        "automation_allowed": False,
+        "fail_closed": True,
+        "live_query_unavailable": False,
+    }
+    assert review_packet["triage_prompts"][0].startswith("Review the candidate P459 status split")
+
+    unavailable_scan = {
+        "lane_id": "wikidata_nat_wdu_p5991_p14143",
+        "cohort_id": "non_ghg_protocol_or_missing_p459",
+        "scan_status": "live_population_scan_unavailable",
+        "summary": {"p459_status_counts": {}, "review_first": True, "policy_risk": "high"},
+        "sample_candidates": [],
+        "notes": ["The live preview helper is fail-closed when the Wikidata query endpoint is unavailable."],
+    }
+    unavailable_packet = build_nat_cohort_c_operator_packet(unavailable_scan)
+    assert unavailable_packet["decision"] == "hold"
+    assert unavailable_packet["governance"]["live_query_unavailable"] is True
+    assert unavailable_packet["triage_prompts"][0].startswith("Live query was unavailable")
 
 
 def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materialization() -> None:

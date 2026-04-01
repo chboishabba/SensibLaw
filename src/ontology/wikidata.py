@@ -1209,6 +1209,150 @@ def build_nat_cohort_c_population_scan_live(
     return build_nat_cohort_c_population_scan_from_sparql_results(payload)
 
 
+def build_nat_cohort_c_operator_packet(
+    scan_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(scan_payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C operator packet requires the Cohort C payload")
+    summary = scan_payload.get("summary")
+    summary_payload = summary if isinstance(summary, Mapping) else {}
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in scan_payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    scan_status = _stringify(scan_payload.get("scan_status"))
+    unavailable = scan_status == "live_population_scan_unavailable"
+    if unavailable:
+        decision_text = "hold"
+        triage_prompts = [
+            "Live query was unavailable; retry later before any cohort claim.",
+            "Do not infer migration readiness from an unavailable preview.",
+        ]
+    else:
+        decision_text = "review"
+        triage_prompts = [
+            "Review the candidate P459 status split before any cohort claim.",
+            "Check whether the missing vs non-GHG protocol buckets need different handling.",
+            "Keep the lane review-first and fail-closed.",
+        ]
+    packet_id = hashlib.sha1(
+        json.dumps(
+            {
+                "cohort_id": scan_payload.get("cohort_id"),
+                "scan_status": scan_status,
+                "candidate_count": len(sample_candidates),
+                "candidate_qids": [candidate["qid"] for candidate in sample_candidates],
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return {
+        "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
+        "packet_id": f"operator-packet:{packet_id}",
+        "lane_id": _stringify(scan_payload.get("lane_id")),
+        "cohort_id": _stringify(scan_payload.get("cohort_id")),
+        "scan_status": scan_status or "unknown",
+        "decision": decision_text,
+        "triage_prompts": triage_prompts,
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": dict(summary_payload.get("p459_status_counts", {})),
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "governance": {
+            "automation_allowed": False,
+            "fail_closed": True,
+            "live_query_unavailable": unavailable,
+        },
+        "notes": list(scan_payload.get("notes", []))
+        if isinstance(scan_payload.get("notes"), list)
+        else [],
+    }
+
+
+def build_nat_cohort_c_operator_packet(
+    scan_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(scan_payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C operator packet requires the Cohort C payload")
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in scan_payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    scan_status = _stringify(scan_payload.get("scan_status"))
+    unavailable = scan_status == "live_population_scan_unavailable"
+    if unavailable:
+        decision_text = "hold"
+        triage_prompts = [
+            "Live query was unavailable; retry later before any cohort claim.",
+            "Do not infer migration readiness from an unavailable preview.",
+        ]
+    else:
+        decision_text = "review"
+        triage_prompts = [
+            "Review the candidate P459 status split before any cohort claim.",
+            "Check whether the missing vs non-GHG protocol buckets need different handling.",
+            "Keep the lane review-first and fail-closed.",
+        ]
+    packet_id = hashlib.sha1(
+        json.dumps(
+            {
+                "cohort_id": scan_payload.get("cohort_id"),
+                "scan_status": scan_status,
+                "candidate_count": len(sample_candidates),
+                "candidate_qids": [candidate["qid"] for candidate in sample_candidates],
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return {
+        "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
+        "packet_id": f"operator-packet:{packet_id}",
+        "lane_id": _stringify(scan_payload.get("lane_id")),
+        "cohort_id": _stringify(scan_payload.get("cohort_id")),
+        "scan_status": scan_status or "unknown",
+        "decision": decision_text,
+        "triage_prompts": triage_prompts,
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": dict(scan_payload.get("summary", {}).get("p459_status_counts", {}))
+            if isinstance(scan_payload.get("summary"), Mapping)
+            else {},
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "governance": {
+            "automation_allowed": False,
+            "fail_closed": True,
+            "live_query_unavailable": unavailable,
+        },
+        "notes": list(scan_payload.get("notes", []))
+        if isinstance(scan_payload.get("notes"), list)
+        else [],
+    }
+
+
 def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
     tags = set(_extract_scope_tags_from_text(line_text))
     tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_id", ""))))
@@ -3835,6 +3979,7 @@ __all__ = [
     "build_nat_cohort_c_population_scan",
     "build_nat_cohort_c_population_scan_from_sparql_results",
     "build_nat_cohort_c_population_scan_live",
+    "build_nat_cohort_c_operator_packet",
     "build_observation_claim_payload_from_source_units",
     "build_observation_claim_payload_from_revision_locked_climate_text_sources",
     "attach_wikidata_phi_text_bridge_from_source_units",
