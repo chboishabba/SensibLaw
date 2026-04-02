@@ -1,0 +1,21 @@
+{
+  "lane_id": "wikidata_nat_cohort_e_unreconciled_instanceof",
+  "samples": [
+    {
+      "candidate_id": "Q10422059|P5991|5",
+      "merged_split_axes": [
+        {"property": "__value__", "cardinality": 3, "reason": "multi_value_slot", "source": "slot"},
+        {"property": "P3831", "cardinality": 1, "reason": "role", "source": "slot"}
+      ],
+      "suggested_action": "review_structured_split"
+    },
+    {
+      "candidate_id": "Q10403939|P5991|12",
+      "merged_split_axes": [
+        {"property": "__value__", "cardinality": 2, "reason": "multi_value_slot", "source": "slot"},
+        {"property": "P459", "cardinality": 1, "reason": "standard", "source": "signal"}
+      ],
+      "suggested_action": "review_only"
+    }
+  ]
+}

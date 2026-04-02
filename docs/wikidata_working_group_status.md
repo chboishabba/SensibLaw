@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-04-01
+Last updated: 2026-04-03
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -28,6 +28,41 @@ If you need the assist-lane reviewer-packet alignment note, use:
 If you need the full intended Nat end product and the tiered automation
 posture, use:
 - `planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
+
+If you need the explicit staged roadmap from the current lane to the blind
+migration-bot moonshot, use:
+- `planning/wikidata_nat_gap_to_moonshot_program_20260402.md`
+
+The Nat lane's long-term P0 moonshot is blind migration automation, but the
+current operating posture stays review-first, split-first, and fail-closed
+until that moonshot is earned by the smaller lanes.
+
+The current executable moonshot-gap surfaces now include reproducible
+operator/report paths for:
+- grounding depth
+- Cohort B operator packet, queue, and report
+- Cohort C operator evidence, report, and report batch
+- Cohort D operator review queue and operator report
+- Cohort E diagnostics report and batch report
+- automation graduation evaluation, report building, and batch proposal
+  evaluation
+
+The latest broader measured-evidence tranche now extends those surfaces with:
+- grounding-depth evidence reports over representative packet batches
+- Cohort B deterministic multi-case operator batch reports
+- Cohort C broader measured evidence samples over real candidate slices
+- Cohort D multi-case operator report batches
+- Cohort E grouped diagnostics summaries over batch runs
+- automation-graduation repeated-run evidence reports
+
+The next broader operator/governance tranche now extends those measured runs
+with deterministic higher-level control surfaces:
+- grounding-depth comparison/index reports across packet batches
+- Cohort B multi-batch operator evidence indexes
+- Cohort C operator indexes over broader real candidate slices
+- Cohort D multi-batch review-control indexes
+- Cohort E aggregated disagreement/summary indexes
+- automation-graduation governance indexes across repeated evidence snapshots
 
 Treat this status note as the Wikidata-specific detailed appendix after that
 shared handoff.
@@ -195,6 +230,28 @@ shared handoff.
         - bounded variant comparison
         - deeper SensibLaw-style semantic decomposition should still stay
           explicit and separate from the shallow parser coverage
+    - the non-company moonshot-gap lanes now also have executable operator
+      surfaces beyond packet-only notes:
+      - grounding depth:
+        `src/ontology/wikidata_grounding_depth.py`
+        plus `sensiblaw wikidata grounding-depth`
+      - Cohort B:
+        `src/ontology/wikidata_nat_cohort_b_operator_packet.py`,
+        `src/ontology/wikidata_nat_cohort_b_operator_queue.py`, and
+        `src/ontology/wikidata_nat_cohort_b_operator_report.py`
+      - Cohort C:
+        `src/ontology/wikidata_cohort_c_operator_report.py` and
+        `src/ontology/wikidata_cohort_c_operator_report_batch.py`
+      - Cohort D:
+        `src/ontology/wikidata_nat_cohort_d_review.py` plus
+        `sensiblaw wikidata cohort-d-operator-report`
+      - Cohort E:
+        `src/ontology/wikidata_cohort_e_diagnostics.py` plus
+        `cli/cohort_e_diagnostics.py`
+      - automation graduation:
+        `src/ontology/wikidata_nat_automation_graduation.py` plus
+        `sensiblaw wikidata automation-graduation-eval` and
+        `sensiblaw wikidata automation-graduation-eval-batch`
     - current packet coverage now has a first multi-row attachment index:
       `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
       records `15 / 53` packetized held split rows, with the original packet
@@ -221,6 +278,84 @@ shared handoff.
       - Tier 4: hold
     - the wider Nat value proposition is therefore reviewer throughput and
       uncertainty reduction, not pretending all `~50k` rows belong to Tier 1
+  - gap-to-moonshot posture is now explicit:
+    - the current gap is trustable automation readiness, not lack of one more
+      packet field
+    - the current staged priorities are:
+      - grounding depth on representative hard packets
+      - structural breadth on Cohort C and the other non-company lanes
+      - explicit automation graduation criteria
+    - broader company-family packet attachment is now secondary unless it
+      reveals a genuinely new split shape
+  - the next non-company axis is now backed by lane-local artifacts:
+    - grounding depth lane:
+      `docs/planning/wikidata_nat_grounding_depth_evidence_20260402.md`
+      plus runtime helper:
+      `src/ontology/wikidata_grounding_depth.py`
+      and operator attachment fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_operator_surface_20260402.json`
+      plus batch artifact fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_batch_20260402.json`
+      plus evidence report fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_evidence_report_20260402.json`
+    - Cohort B review bucket:
+      `docs/planning/wikidata_nat_cohort_b_review_bucket_20260402.md`
+      plus runtime helper:
+      `src/ontology/wikidata_nat_cohort_b_review_bucket.py`
+      and operator packet helper:
+      `src/ontology/wikidata_nat_cohort_b_operator_packet.py`
+      with packet note:
+      `docs/planning/wikidata_nat_cohort_b_operator_packet_20260402.md`
+      plus operator batch report helper:
+      `src/ontology/wikidata_nat_cohort_b_operator_batch_report.py`
+    - Cohort C live-preview extension:
+      `docs/planning/wikidata_nat_cohort_c_live_preview_extension_20260402.md`
+      and operator evidence packet:
+      `docs/planning/wikidata_nat_cohort_c_operator_evidence_20260403.md`
+      plus operator report helper:
+      `src/ontology/wikidata_cohort_c_operator_report.py`
+      plus broader measured evidence note:
+      `docs/planning/wikidata_nat_cohort_c_ptolemy_evidence_20260405.md`
+    - Cohort D review lane:
+      `docs/planning/wikidata_nat_cohort_d_review_lane_20260402.md`
+      plus type-probing helper:
+      `docs/planning/wikidata_nat_cohort_d_type_probing_surface_20260402.md`
+      and operator review queue fixture:
+      `tests/fixtures/wikidata/wikidata_nat_cohort_d_operator_review_surface_20260402.json`
+      plus operator CLI note:
+      `docs/planning/wikidata_nat_cohort_d_operator_review_cli_20260402.md`
+      plus operator report batch note:
+      `docs/planning/wikidata_nat_cohort_d_operator_report_batch_surface_20260402.md`
+    - Cohort E diagnostics/reconciliation scan plan:
+      `docs/planning/wikidata_nat_cohort_e_reconciliation_scan_plan_20260403.md`
+      plus diagnostics helper:
+      `src/ontology/wikidata_cohort_e_diagnostics.py`
+      and diagnostics CLI note:
+      `docs/planning/wikidata_nat_cohort_e_diagnostics_cli_20260403.md`
+      plus grouped diagnostics summary fixture:
+      `tests/fixtures/wikidata/wikidata_nat_cohort_e_diagnostic_summary_20260403.json`
+    - automation graduation gate note:
+      `docs/planning/wikidata_nat_automation_graduation_criteria_20260402.md`
+      plus evaluator:
+      `src/ontology/wikidata_nat_automation_graduation.py`
+      and report builder:
+      `build_nat_automation_graduation_report(...)`
+      plus CLI:
+      `sensiblaw wikidata automation-graduation-eval`
+      plus repeated-run evidence CLI:
+      `sensiblaw wikidata automation-graduation-evidence-report`
+  - current honest read:
+    - the moonshot gap is now decomposed into real lane-local evidence work,
+      not only roadmap language
+    - the current automation ceiling remains Level 1 reviewer-assisted split
+      execution until broader family evidence is real
+    - the next useful move is using these helpers as review/control surfaces,
+      not adding more packet shape by default
+    - the current tranche has now crossed into reproducible operator/report
+      surfaces on multiple lanes, not just helper functions
+    - the next evidence tranche is now also real on several lanes, so repeated
+      measured runs are beginning to replace one-off examples as the dominant
+      moonshot-readiness artifact
   - immediate next assist target:
     - reduce the large `ambiguous_semantics` bucket for temporal/multi-value
       rows

@@ -1,0 +1,61 @@
+{
+  "governance_summary_id": "nat-grad-governance-summary-v1",
+  "snapshots": [
+    {
+      "snapshot_id": "gov-s1",
+      "governance_index": {
+        "schema_version": "sl.wikidata_nat_automation_graduation_governance_index.v0_1",
+        "lane": "wikidata_nat_automation_graduation",
+        "governance_batch_id": "nat-grad-governance-v1",
+        "status": "not_ready",
+        "decision": "hold",
+        "promotion_ready": false,
+        "readiness_failed_reasons": [
+          "not_ready_snapshots_present",
+          "rejected_proposals_present",
+          "fail_closed_proposals_present"
+        ],
+        "scope": {
+          "min_snapshots": 2,
+          "snapshot_count": 2,
+          "gate_scope_consistent": true,
+          "gate_id": "B"
+        },
+        "summary": {
+          "ready_count": 0,
+          "not_ready_count": 2,
+          "rejected_count": 2,
+          "fail_closed_count": 2
+        }
+      }
+    },
+    {
+      "snapshot_id": "gov-s2",
+      "governance_index": {
+        "schema_version": "sl.wikidata_nat_automation_graduation_governance_index.v0_1",
+        "lane": "wikidata_nat_automation_graduation",
+        "governance_batch_id": "nat-grad-governance-v2",
+        "status": "not_ready",
+        "decision": "hold",
+        "promotion_ready": false,
+        "readiness_failed_reasons": [
+          "not_ready_snapshots_present",
+          "rejected_proposals_present",
+          "fail_closed_proposals_present"
+        ],
+        "scope": {
+          "min_snapshots": 2,
+          "snapshot_count": 2,
+          "gate_scope_consistent": true,
+          "gate_id": "B"
+        },
+        "summary": {
+          "ready_count": 1,
+          "not_ready_count": 1,
+          "rejected_count": 1,
+          "fail_closed_count": 1
+        }
+      }
+    }
+  ]
+}

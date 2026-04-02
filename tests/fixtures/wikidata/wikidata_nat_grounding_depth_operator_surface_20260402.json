@@ -1,0 +1,18 @@
+{
+  "schema_version": "sl.wikidata_review_packet.grounding_depth_attachment.v0_1",
+  "packet_id": "review-packet:5bae90b4fcb444f6",
+  "qid": "Q10403939",
+  "grounding_status": "grounded",
+  "revision_url": "https://www.wikidata.org/w/index.php?title=Q10403939&oldid=2474420124",
+  "evidence": [
+    {
+      "follow_receipt_url": "https://w.wiki/KR5d",
+      "excerpt": "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th",
+      "excerpt_summary": "Follow receipt confirms the exact query that anchored the migration discussion.",
+      "status": "ok"
+    }
+  ],
+  "notes": [
+    "Original pinned packet, used as baseline reference for qualification."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "lane_id": "wikidata_nat_cohort_e_unreconciled_instanceof",
+  "primary_candidate_id": "Q10422059|P5991|5",
+  "comparisons": [
+    {
+      "comparison_id": "Q10403939|P5991|12",
+      "status": "disagreement",
+      "primary_action": "review_structured_split",
+      "comparison_action": "review_only",
+      "agreements": [],
+      "disagreements": [
+        "P3831",
+        "P459",
+        "__value__"
+      ],
+      "notes": []
+    }
+  ],
+  "diagnostic_flags": [],
+  "hold_reason": "unreconciled instance of",
+  "non_authoritative": true
+}

@@ -13,7 +13,14 @@ review/split assist lane before any new code is written.
 
 The goal is not to create a freeform scraper or hidden authority path. The
 goal is to produce bounded reviewer packets that reduce uncertainty for
-split-heavy Nat/Wikidata review.
+split-heavy Nat/Wikidata review and build the runway toward the lane's
+long-term blind-migration moonshot without pretending that moonshot is already
+available.
+
+Use
+`SensibLaw/docs/planning/wikidata_nat_gap_to_moonshot_program_20260402.md`
+for the higher-level staged roadmap from reviewer packets to blind migration
+readiness.
 
 When the work surface is wide enough to justify parallelism, the orchestration
 rule is one nonblocking lane per worker, with disjoint lane ownership and no
@@ -33,6 +40,14 @@ What is still missing:
 - broader packet coverage across held Nat rows
 - later semantic decomposition above or beside `parsed_page`
 - a bounded variant-comparison lane for targeted uncertainty reduction
+- deeper evidence grounding on representative hard packets so the packet lane
+  can support promotion-gate evidence rather than only reviewer convenience
+
+The explicit product posture is:
+
+- current mode: review-first, split-first, fail-closed
+- long-term moonshot: blind migration automation only after the smaller lanes
+  prove the safe tiers are stable enough to trust
 
 Update:
 
@@ -88,12 +103,35 @@ Update:
   - cross-source alignment
   - reviewer actions
   - bounded variant comparison
-  - the remaining work is to extend their evidence inputs, not to widen the
-    packet contract
+- the remaining work is to extend their evidence inputs, not to widen the
+  packet contract
+- a first grounding-depth evidence lane is now pinned at:
+  - `SensibLaw/docs/planning/wikidata_nat_grounding_depth_evidence_20260402.md`
+  - `SensibLaw/tests/fixtures/wikidata/wikidata_nat_grounding_depth_packets_20260402.json`
+  - `SensibLaw/tests/test_wikidata_nat_grounding_depth.py`
+- that grounding lane now also has a reproducible operator path:
+  - `SensibLaw/src/ontology/wikidata_grounding_depth.py`
+  - `SensibLaw/cli/grounding_depth.py`
+  - `sensiblaw wikidata grounding-depth`
 - variant comparison now has a grounded Nat example path: when the split
   payload includes sibling plans from the same cohort, the packet can derive
   a small bounded comparison set automatically, so the comparison lane is no
   longer limited to abstract examples
+- that means the next pressure is no longer packet shape. It is:
+  - grounding depth and claim-boundary evidence that can feed the newer
+    operator/governance indexes above the lane-local moonshot helpers
+  - repeated broader-slice evidence and disagreement clustering rather than
+    more packet-shape expansion
+  - more grounded revision-locked evidence
+  - stronger claim-boundary confidence
+  - broader structural coverage across non-company cohorts
+  - reuse of the same packet grammar across Cohorts B/C/D/E rather than more
+    routine company-family packet attachment
+  - batch/report use of the operator surfaces so promotion evidence comes from
+    repeated measured runs rather than one-off examples
+  - attachment of the new grounding-depth evidence report and the broader
+    cohort batch/report summaries so packet-readiness claims are backed by
+    multi-case evidence rather than single packet anecdotes
 
 ## Planned Workflow
 
@@ -234,6 +272,9 @@ Promotion still requires the existing bounded checks:
 ### F
 
 - the gap is now implementation, not intent
+- specifically, the gap is no longer "do reviewer packets exist?" It is
+  "are reviewer packets grounded enough to justify later automation
+  graduation?"
 
 ## ITIL Reading
 

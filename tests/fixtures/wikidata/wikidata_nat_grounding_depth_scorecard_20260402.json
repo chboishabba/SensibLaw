@@ -1,0 +1,26 @@
+{
+  "schema_version": "sl.wikidata_review_packet.grounding_depth_scorecard.v0_1",
+  "run_count": 2,
+  "total_grounded_packet_count": 4,
+  "total_attachment_count": 4,
+  "runs": [
+    {
+      "run_id": "baseline",
+      "comparison_count": 2,
+      "grounded_packet_count": 3,
+      "attachment_count": 3,
+      "status_counts": {
+        "grounded": 3
+      }
+    },
+    {
+      "run_id": "single",
+      "comparison_count": 1,
+      "grounded_packet_count": 1,
+      "attachment_count": 1,
+      "status_counts": {
+        "grounded": 1
+      }
+    }
+  ]
+}

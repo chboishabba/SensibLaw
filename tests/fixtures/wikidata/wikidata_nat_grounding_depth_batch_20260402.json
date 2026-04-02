@@ -1,0 +1,49 @@
+{
+  "schema_version": "sl.wikidata_review_packet.grounding_depth_batch.v0_1",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "attachment_count": 2,
+  "attachments": [
+    {
+      "schema_version": "sl.wikidata_review_packet.grounding_depth_attachment.v0_1",
+      "packet_id": "review-packet:5bae90b4fcb444f6",
+      "qid": "Q10403939",
+      "revision_url": "https://www.wikidata.org/w/index.php?title=Q10403939&oldid=2474420124",
+      "grounding_status": "grounded",
+      "evidence": [
+        {
+          "follow_receipt_url": "https://w.wiki/KR5d",
+          "excerpt": "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th",
+          "excerpt_summary": "Follow receipt confirms the exact query that anchored the migration discussion.",
+          "status": "ok"
+        }
+      ],
+      "notes": [
+        "Original pinned packet, used as baseline reference for qualification."
+      ]
+    },
+    {
+      "schema_version": "sl.wikidata_review_packet.grounding_depth_attachment.v0_1",
+      "packet_id": "review-packet:c52b8308fdbdd5e3",
+      "qid": "Q731938",
+      "revision_url": "https://www.wikidata.org/wiki/User:Nat_(WDU)/Sandbox/Fossil_fuel_industries/Migrate_from_carbon_footprint_to_GHG_emissions",
+      "grounding_status": "grounded",
+      "evidence": [
+        {
+          "follow_receipt_url": "https://w.wiki/KR5d",
+          "excerpt": "capture all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find",
+          "excerpt_summary": "Highlights the qualifier families used in policy-risk review.",
+          "status": "ok"
+        },
+        {
+          "follow_receipt_url": "https://w.wiki/KR5d",
+          "excerpt": "is it necesary to add the rank?",
+          "excerpt_summary": "Revision question that appears in follow-receipt uncertainty.",
+          "status": "ok"
+        }
+      ],
+      "notes": [
+        "Live-tranche sample flagged for non-GHG `P459` evidence."
+      ]
+    }
+  ]
+}

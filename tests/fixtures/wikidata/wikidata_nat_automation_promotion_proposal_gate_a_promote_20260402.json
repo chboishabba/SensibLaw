@@ -1,0 +1,31 @@
+{
+  "proposal_id": "nat-gate-a-promote-v1",
+  "gate_id": "A",
+  "from_level": 0,
+  "to_level": 1,
+  "gate_families_passed": [
+    "evidence_grounding",
+    "claim_boundary_reliability",
+    "verification_quality",
+    "policy_risk_containment",
+    "operational_control_and_rollback"
+  ],
+  "evidence_signals": [
+    "reviewer_packets_for_representative_split_shapes",
+    "bounded_follow_depth_present_and_fail_closed",
+    "split_plan_verification_on_representative_reviewed_plans",
+    "uncertainty_flags_preserved"
+  ],
+  "risk_signals": [],
+  "metrics": {
+    "direct_safe_yield_by_family": {"observed": 0.2},
+    "split_required_rate_by_family": {"observed": 0.8},
+    "hold_abstain_rate_and_reason_distribution": {"observed": 0.1},
+    "after_state_verification_pass_rate": {"observed": 1.0},
+    "false_positive_rate_and_severity": {"observed": 0.0},
+    "rollback_invocation_and_recovery_success": {"observed": 1.0},
+    "receipt_completeness_coverage": {"observed": 1.0}
+  },
+  "recommendation": "promote"
+}
+

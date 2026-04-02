@@ -50,6 +50,15 @@ Pinned next gate:
 
 - `review_first_reconciliation_scan`
 
+Supporting runtime helper:
+
+- gather the `split://` plans for Cohort E subjects and normalize their
+  split axes
+- compare unreconciled typing axes against known reconciled axes to
+  surface agreement/disagreement diagnostics
+- emit a report that keeps each row in hold until an explicit reconciliation
+  path is documented
+
 Gate intent:
 
 - classify unreconciled typing causes before any migration decision
@@ -67,6 +76,9 @@ Gate exit condition:
 - Cohort E is not an execution lane.
 - No unreconciled `instance of` row should be treated as checked-safe by default.
 - Reconciliation deficit is a first-class reason to hold.
+- The diagnostics helper documented in `wikidata_nat_cohort_e_reconciliation_scan_plan_20260403.md`
+  emits axis-level agreements/disagreements plus `hold_reason` so reviewers see
+  exactly why a row stays in Cohort E.
 
 ## Compact ZKP
 
@@ -102,4 +114,3 @@ Gate exit condition:
 ### F
 
 - unresolved typing prevents safe cohort promotion until reconciled or held
-

@@ -1,0 +1,105 @@
+{
+  "batch_id": "cohort_d_operator_batch_20260402",
+  "operator_review_surfaces": [
+    {
+      "schema_version": "sl.wikidata_nat_cohort_d_operator_review_surface.v0_1",
+      "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+      "cohort_id": "cohort_d_no_instance_of",
+      "readiness": "review_queue_ready",
+      "queue_size": 2,
+      "unresolved_packet_ref_count": 0,
+      "operator_queue": [
+        {
+          "review_entity_qid": "Q1785637",
+          "packet_id": "review-packet:f451ac11e012b114",
+          "split_plan_id": "split://Q1785637|P5991",
+          "priority": "high",
+          "smallest_next_check": "resolve_page_open_questions",
+          "recommended_next_step": "review_structured_split",
+          "uncertainty_flags": [
+            "page_open_questions"
+          ],
+          "execution_allowed": false
+        },
+        {
+          "review_entity_qid": "Q738421",
+          "packet_id": "review-packet:041f7506c2efdeca",
+          "split_plan_id": "split://Q738421|P5991",
+          "priority": "high",
+          "smallest_next_check": "resolve_page_open_questions",
+          "recommended_next_step": "review_structured_split",
+          "uncertainty_flags": [
+            "page_open_questions"
+          ],
+          "execution_allowed": false
+        }
+      ],
+      "required_checklist": [
+        "confirm_absence_of_instance_of",
+        "collect_typing_candidates",
+        "record_reconcile_or_hold_decision"
+      ],
+      "governance": {
+        "automation_allowed": false,
+        "can_execute_edits": false,
+        "fail_closed": true,
+        "promotion_guard": "hold"
+      },
+      "non_claims": [
+        "non_executing_operator_review_surface",
+        "no_direct_migration_execution",
+        "no_checked_safe_promotion_from_missing_instance_of_alone"
+      ],
+      "case_id": "cohort_d_case_ready"
+    },
+    {
+      "schema_version": "sl.wikidata_nat_cohort_d_operator_review_surface.v0_1",
+      "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+      "cohort_id": "cohort_d_no_instance_of",
+      "readiness": "review_queue_incomplete",
+      "queue_size": 2,
+      "unresolved_packet_ref_count": 1,
+      "operator_queue": [
+        {
+          "review_entity_qid": "Q1785637",
+          "packet_id": "review-packet:f451ac11e012b114",
+          "split_plan_id": "split://Q1785637|P5991",
+          "priority": "medium",
+          "smallest_next_check": "resolve_page_open_questions",
+          "recommended_next_step": "review_structured_split",
+          "uncertainty_flags": [],
+          "execution_allowed": false
+        },
+        {
+          "review_entity_qid": "Q738421",
+          "packet_id": "review-packet:041f7506c2efdeca",
+          "split_plan_id": "split://Q738421|P5991",
+          "priority": "high",
+          "smallest_next_check": "resolve_page_open_questions",
+          "recommended_next_step": "review_structured_split",
+          "uncertainty_flags": [
+            "page_open_questions"
+          ],
+          "execution_allowed": false
+        }
+      ],
+      "required_checklist": [
+        "confirm_absence_of_instance_of",
+        "collect_typing_candidates",
+        "record_reconcile_or_hold_decision"
+      ],
+      "governance": {
+        "automation_allowed": false,
+        "can_execute_edits": false,
+        "fail_closed": true,
+        "promotion_guard": "hold"
+      },
+      "non_claims": [
+        "non_executing_operator_review_surface",
+        "no_direct_migration_execution",
+        "no_checked_safe_promotion_from_missing_instance_of_alone"
+      ],
+      "case_id": "cohort_d_case_incomplete"
+    }
+  ]
+}

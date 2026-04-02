@@ -822,6 +822,395 @@ def _handle_wikidata_nat_cohort_c_operator_packet(args: argparse.Namespace) -> N
     _print_json(report)
 
 
+def _handle_wikidata_nat_cohort_c_operator_evidence(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import build_nat_cohort_c_population_scan_live
+    from src.ontology.wikidata_cohort_c_operator_evidence import (
+        build_nat_cohort_c_operator_evidence_packet,
+    )
+
+    if args.input:
+        scan_payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    else:
+        scan_payload = build_nat_cohort_c_population_scan_live(
+            row_limit=args.row_limit,
+            timeout_seconds=args.timeout_seconds,
+        )
+    report = build_nat_cohort_c_operator_evidence_packet(scan_payload)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "candidate_count": report["summary"]["candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_c_operator_report(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_cohort_c_operator_evidence import (
+        build_nat_cohort_c_operator_evidence_packet,
+    )
+    from src.ontology.wikidata_cohort_c_operator_report import (
+        build_nat_cohort_c_operator_report,
+    )
+
+    if args.input:
+        packet = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    else:
+        payload = build_nat_cohort_c_population_scan_live(
+            row_limit=20,
+            timeout_seconds=30,
+        )
+        packet = build_nat_cohort_c_operator_evidence_packet(payload)
+    report = build_nat_cohort_c_operator_report(packet)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "candidate_count": report["candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_c_operator_report_batch(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_cohort_c_operator_evidence import (
+        build_nat_cohort_c_operator_evidence_packet,
+    )
+    from src.ontology.wikidata_cohort_c_operator_report_batch import (
+        build_nat_cohort_c_operator_report_batch,
+    )
+
+    packets = []
+    for path in args.inputs:
+        packet = json.loads(Path(path).read_text(encoding="utf-8"))
+        packets.append(packet)
+    if not packets:
+        raise ValueError("At least one input packet is required")
+    report = build_nat_cohort_c_operator_report_batch(packets)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "batch_candidate_count": report["batch_candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_c_operator_digest(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_cohort_c_operator_digest import (
+        build_nat_cohort_c_operator_digest,
+    )
+
+    packets = [
+        json.loads(Path(path).read_text(encoding="utf-8"))
+        for path in args.inputs
+    ]
+    report = build_nat_cohort_c_operator_digest(packets)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "candidate_count": report["candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_d_operator_review(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_cohort_d_review import (
+        build_wikidata_nat_cohort_d_operator_review_surface,
+    )
+
+    type_probing_surface = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_wikidata_nat_cohort_d_operator_review_surface(
+        type_probing_surface=type_probing_surface,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "readiness": report["readiness"],
+                "queue_size": report["queue_size"],
+                "unresolved_packet_ref_count": report["unresolved_packet_ref_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_d_operator_report(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_cohort_d_review import (
+        build_wikidata_nat_cohort_d_operator_report,
+    )
+
+    operator_review_surface = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_wikidata_nat_cohort_d_operator_report(operator_review_surface)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "readiness": report["readiness"],
+                "decision": report["decision"],
+                "promotion_allowed": report["promotion_allowed"],
+                "queue_size": report["summary"]["queue_size"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_d_operator_report_batch(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_cohort_d_review import (
+        build_wikidata_nat_cohort_d_operator_report_batch,
+    )
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    surfaces = payload.get("operator_review_surfaces")
+    if not isinstance(surfaces, list):
+        raise SystemExit("Cohort D operator report batch input requires operator_review_surfaces")
+    report = build_wikidata_nat_cohort_d_operator_report_batch(
+        operator_review_surfaces=surfaces,
+        batch_id=str(payload.get("batch_id", "")).strip() or None,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "batch_id": report["batch_id"],
+                "decision": report["decision"],
+                "promotion_allowed": report["promotion_allowed"],
+                "case_count": report["summary"]["case_count"],
+                "all_cases_ready": report["summary"]["all_cases_ready"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_cohort_d_review_control_index(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_cohort_d_review import (
+        build_wikidata_nat_cohort_d_review_control_index,
+    )
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    batch_reports = payload.get("batch_reports")
+    if not isinstance(batch_reports, list):
+        raise SystemExit("Cohort D review control index input requires batch_reports")
+    report = build_wikidata_nat_cohort_d_review_control_index(
+        batch_reports=batch_reports,
+        index_id=str(payload.get("index_id", "")).strip() or None,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "index_id": report["index_id"],
+                "decision": report["decision"],
+                "promotion_allowed": report["promotion_allowed"],
+                "batch_count": report["summary"]["batch_count"],
+                "all_batches_ready": report["summary"]["all_batches_ready"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_automation_graduation_eval(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_automation_graduation_report,
+    )
+
+    criteria = json.loads(Path(args.criteria).read_text(encoding="utf-8"))
+    proposal = json.loads(Path(args.proposal).read_text(encoding="utf-8"))
+    report = build_nat_automation_graduation_report(criteria, proposal)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "proposal_id": report["proposal_id"],
+                "gate_id": report["gate_id"],
+                "status": report["status"],
+                "decision": report["decision"],
+                "promotion_allowed": report["promotion_allowed"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_automation_graduation_eval_batch(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_automation_graduation_batch_report,
+    )
+
+    criteria = json.loads(Path(args.criteria).read_text(encoding="utf-8"))
+    proposal_batch = json.loads(Path(args.proposal_batch).read_text(encoding="utf-8"))
+    report = build_nat_automation_graduation_batch_report(criteria, proposal_batch)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "batch_id": report["batch_id"],
+                "proposal_count": report["proposal_count"],
+                "summary": report["summary"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_automation_graduation_evidence_report(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_automation_graduation_evidence_report,
+    )
+
+    criteria = json.loads(Path(args.criteria).read_text(encoding="utf-8"))
+    proposal_batches = json.loads(Path(args.proposal_batches).read_text(encoding="utf-8"))
+    report = build_nat_automation_graduation_evidence_report(
+        criteria,
+        proposal_batches,
+        min_runs=args.min_runs,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "evidence_batch_id": report["evidence_batch_id"],
+                "status": report["status"],
+                "decision": report["decision"],
+                "promotion_ready": report["promotion_ready"],
+                "summary": report["summary"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_automation_graduation_governance_index(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_automation_graduation_governance_index,
+    )
+
+    criteria = json.loads(Path(args.criteria).read_text(encoding="utf-8"))
+    evidence_snapshots = json.loads(Path(args.evidence_snapshots).read_text(encoding="utf-8"))
+    report = build_nat_automation_graduation_governance_index(
+        criteria,
+        evidence_snapshots,
+        min_snapshots=args.min_snapshots,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "governance_batch_id": report["governance_batch_id"],
+                "status": report["status"],
+                "decision": report["decision"],
+                "promotion_ready": report["promotion_ready"],
+                "summary": report["summary"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_automation_graduation_governance_summary(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_automation_graduation_governance_summary,
+    )
+
+    criteria = json.loads(Path(args.criteria).read_text(encoding="utf-8"))
+    governance_snapshots = json.loads(Path(args.governance_snapshots).read_text(encoding="utf-8"))
+    report = build_nat_automation_graduation_governance_summary(
+        criteria,
+        governance_snapshots,
+        min_indexes=args.min_indexes,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "governance_summary_id": report["governance_summary_id"],
+                "status": report["status"],
+                "decision": report["decision"],
+                "promotion_ready": report["promotion_ready"],
+                "summary": report["summary"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_wikidata_hotspot_generate_clusters(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_hotspot import generate_hotspot_cluster_pack, load_hotspot_manifest
 
@@ -2585,6 +2974,300 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_nat_cohort_c_operator_packet.set_defaults(
         func=_handle_wikidata_nat_cohort_c_operator_packet
+    )
+    wikidata_nat_cohort_c_operator_evidence = wikidata_sub.add_parser(
+        "cohort-c-operator-evidence",
+        help="Materialize the richer Cohort C operator evidence packet deterministically",
+    )
+    wikidata_nat_cohort_c_operator_evidence.add_argument(
+        "--input",
+        type=Path,
+        help="Optional path to a saved Cohort C scan payload JSON",
+    )
+    wikidata_nat_cohort_c_operator_evidence.add_argument(
+        "--row-limit",
+        type=int,
+        default=20,
+        help="Maximum number of live candidate rows to request when no --input is supplied",
+    )
+    wikidata_nat_cohort_c_operator_evidence.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=30,
+        help="Timeout for the live Wikidata query when no --input is supplied",
+    )
+    wikidata_nat_cohort_c_operator_evidence.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the operator evidence JSON",
+    )
+    wikidata_nat_cohort_c_operator_evidence.set_defaults(
+        func=_handle_wikidata_nat_cohort_c_operator_evidence
+    )
+    wikidata_nat_cohort_c_operator_report = wikidata_sub.add_parser(
+        "cohort-c-operator-report",
+        help="Summarize the Cohort C operator evidence packet for deterministic reporting",
+    )
+    wikidata_nat_cohort_c_operator_report.add_argument(
+        "--input",
+        type=Path,
+        help="Optional path to a saved Cohort C operator evidence packet JSON",
+    )
+    wikidata_nat_cohort_c_operator_report.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the operator report JSON",
+    )
+    wikidata_nat_cohort_c_operator_report.set_defaults(
+        func=_handle_wikidata_nat_cohort_c_operator_report
+    )
+    wikidata_nat_cohort_c_operator_report_batch = wikidata_sub.add_parser(
+        "cohort-c-operator-report-batch",
+        help="Aggregate multiple Cohort C evidence packets into a batch report",
+    )
+    wikidata_nat_cohort_c_operator_report_batch.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        required=True,
+        help="Paths to Cohort C operator evidence packet JSON files",
+    )
+    wikidata_nat_cohort_c_operator_report_batch.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the batch report JSON",
+    )
+    wikidata_nat_cohort_c_operator_report_batch.set_defaults(
+        func=_handle_wikidata_nat_cohort_c_operator_report_batch
+    )
+    wikidata_nat_cohort_c_operator_digest = wikidata_sub.add_parser(
+        "cohort-c-operator-digest",
+        help="Create a Cohort C governance digest from multiple operator indexes",
+    )
+    wikidata_nat_cohort_c_operator_digest.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        required=True,
+        help="Path(s) to Cohort C operator evidence packet JSONs",
+    )
+    wikidata_nat_cohort_c_operator_digest.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the digest JSON",
+    )
+    wikidata_nat_cohort_c_operator_digest.set_defaults(
+        func=_handle_wikidata_nat_cohort_c_operator_digest
+    )
+    wikidata_nat_cohort_d_operator_review = wikidata_sub.add_parser(
+        "cohort-d-operator-review",
+        help="Materialize the Cohort D operator/reviewer queue from a type-probing surface",
+    )
+    wikidata_nat_cohort_d_operator_review.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to a Cohort D type-probing surface JSON payload",
+    )
+    wikidata_nat_cohort_d_operator_review.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Cohort D operator/reviewer surface JSON",
+    )
+    wikidata_nat_cohort_d_operator_review.set_defaults(
+        func=_handle_wikidata_nat_cohort_d_operator_review
+    )
+    wikidata_nat_cohort_d_operator_report = wikidata_sub.add_parser(
+        "cohort-d-operator-report",
+        help="Build a bounded Cohort D operator report from a Cohort D operator/reviewer queue surface",
+    )
+    wikidata_nat_cohort_d_operator_report.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to a Cohort D operator/reviewer surface JSON payload",
+    )
+    wikidata_nat_cohort_d_operator_report.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Cohort D operator report JSON",
+    )
+    wikidata_nat_cohort_d_operator_report.set_defaults(
+        func=_handle_wikidata_nat_cohort_d_operator_report
+    )
+    wikidata_nat_cohort_d_operator_report_batch = wikidata_sub.add_parser(
+        "cohort-d-operator-report-batch",
+        help="Build a bounded Cohort D batch report from multiple Cohort D operator/reviewer surfaces",
+    )
+    wikidata_nat_cohort_d_operator_report_batch.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to a Cohort D operator report batch input JSON payload",
+    )
+    wikidata_nat_cohort_d_operator_report_batch.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Cohort D batch report JSON",
+    )
+    wikidata_nat_cohort_d_operator_report_batch.set_defaults(
+        func=_handle_wikidata_nat_cohort_d_operator_report_batch
+    )
+    wikidata_nat_cohort_d_review_control_index = wikidata_sub.add_parser(
+        "cohort-d-review-control-index",
+        help="Build a broader Cohort D review-control index from multiple Cohort D batch reports",
+    )
+    wikidata_nat_cohort_d_review_control_index.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to a Cohort D review-control-index input JSON payload",
+    )
+    wikidata_nat_cohort_d_review_control_index.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Cohort D review-control index JSON",
+    )
+    wikidata_nat_cohort_d_review_control_index.set_defaults(
+        func=_handle_wikidata_nat_cohort_d_review_control_index
+    )
+    wikidata_nat_automation_graduation_eval = wikidata_sub.add_parser(
+        "automation-graduation-eval",
+        help="Evaluate a Nat automation promotion proposal against pinned graduation criteria",
+    )
+    wikidata_nat_automation_graduation_eval.add_argument(
+        "--criteria",
+        type=Path,
+        required=True,
+        help="Path to Nat automation graduation criteria JSON",
+    )
+    wikidata_nat_automation_graduation_eval.add_argument(
+        "--proposal",
+        type=Path,
+        required=True,
+        help="Path to a promotion proposal JSON",
+    )
+    wikidata_nat_automation_graduation_eval.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the graduation evaluation report JSON",
+    )
+    wikidata_nat_automation_graduation_eval.set_defaults(
+        func=_handle_wikidata_nat_automation_graduation_eval
+    )
+    wikidata_nat_automation_graduation_eval_batch = wikidata_sub.add_parser(
+        "automation-graduation-eval-batch",
+        help="Evaluate a batch of Nat automation promotion proposals against pinned graduation criteria",
+    )
+    wikidata_nat_automation_graduation_eval_batch.add_argument(
+        "--criteria",
+        type=Path,
+        required=True,
+        help="Path to Nat automation graduation criteria JSON",
+    )
+    wikidata_nat_automation_graduation_eval_batch.add_argument(
+        "--proposal-batch",
+        type=Path,
+        required=True,
+        help="Path to promotion proposal batch JSON",
+    )
+    wikidata_nat_automation_graduation_eval_batch.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the graduation batch evaluation report JSON",
+    )
+    wikidata_nat_automation_graduation_eval_batch.set_defaults(
+        func=_handle_wikidata_nat_automation_graduation_eval_batch
+    )
+    wikidata_nat_automation_graduation_evidence_report = wikidata_sub.add_parser(
+        "automation-graduation-evidence-report",
+        help="Build repeated-run promotion-readiness evidence from multiple proposal batches",
+    )
+    wikidata_nat_automation_graduation_evidence_report.add_argument(
+        "--criteria",
+        type=Path,
+        required=True,
+        help="Path to Nat automation graduation criteria JSON",
+    )
+    wikidata_nat_automation_graduation_evidence_report.add_argument(
+        "--proposal-batches",
+        type=Path,
+        required=True,
+        help="Path to repeated proposal-batch input JSON",
+    )
+    wikidata_nat_automation_graduation_evidence_report.add_argument(
+        "--min-runs",
+        type=int,
+        default=2,
+        help="Minimum number of repeated runs required before readiness can be promoted",
+    )
+    wikidata_nat_automation_graduation_evidence_report.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the repeated-run evidence report JSON",
+    )
+    wikidata_nat_automation_graduation_evidence_report.set_defaults(
+        func=_handle_wikidata_nat_automation_graduation_evidence_report
+    )
+    wikidata_nat_automation_graduation_governance_index = wikidata_sub.add_parser(
+        "automation-graduation-governance-index",
+        help="Aggregate multiple repeated-run evidence snapshots into a promotion-governance index",
+    )
+    wikidata_nat_automation_graduation_governance_index.add_argument(
+        "--criteria",
+        type=Path,
+        required=True,
+        help="Path to Nat automation graduation criteria JSON",
+    )
+    wikidata_nat_automation_graduation_governance_index.add_argument(
+        "--evidence-snapshots",
+        type=Path,
+        required=True,
+        help="Path to repeated evidence-snapshot input JSON",
+    )
+    wikidata_nat_automation_graduation_governance_index.add_argument(
+        "--min-snapshots",
+        type=int,
+        default=2,
+        help="Minimum number of evidence snapshots required before readiness can be promoted",
+    )
+    wikidata_nat_automation_graduation_governance_index.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the governance index JSON",
+    )
+    wikidata_nat_automation_graduation_governance_index.set_defaults(
+        func=_handle_wikidata_nat_automation_graduation_governance_index
+    )
+    wikidata_nat_automation_graduation_governance_summary = wikidata_sub.add_parser(
+        "automation-graduation-governance-summary",
+        help="Aggregate multiple governance indexes into a broader repeated-run governance summary",
+    )
+    wikidata_nat_automation_graduation_governance_summary.add_argument(
+        "--criteria",
+        type=Path,
+        required=True,
+        help="Path to Nat automation graduation criteria JSON",
+    )
+    wikidata_nat_automation_graduation_governance_summary.add_argument(
+        "--governance-snapshots",
+        type=Path,
+        required=True,
+        help="Path to repeated governance-snapshot input JSON",
+    )
+    wikidata_nat_automation_graduation_governance_summary.add_argument(
+        "--min-indexes",
+        type=int,
+        default=2,
+        help="Minimum number of governance indexes required before readiness can be promoted",
+    )
+    wikidata_nat_automation_graduation_governance_summary.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the governance summary JSON",
+    )
+    wikidata_nat_automation_graduation_governance_summary.set_defaults(
+        func=_handle_wikidata_nat_automation_graduation_governance_summary
     )
     wikidata_hotspot_generate_clusters = wikidata_sub.add_parser(
         "hotspot-generate-clusters",

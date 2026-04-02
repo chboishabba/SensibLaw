@@ -1,0 +1,18 @@
+{
+  "schema_version": "sl.wikidata_review_packet.grounding_depth_evidence_report.v0_1",
+  "comparison_count": 1,
+  "comparison": [
+    {
+      "index": 0,
+      "lane_id": "wikidata_nat_wdu_p5991_p14143",
+      "attachment_count": 1,
+      "grounded_packet_count": 1,
+      "qids": [
+        "Q10422059"
+      ],
+      "status_counts": {
+        "grounded": 1
+      }
+    }
+  ]
+}

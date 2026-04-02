@@ -1,0 +1,13 @@
+{
+  "lane_id": "wikidata_nat_cohort_e_unreconciled_instanceof",
+  "batch_size": 2,
+  "agreement_rows": 0,
+  "disagreement_rows": 2,
+  "axis_disagreement_counts": {
+    "P3831": 1,
+    "P459": 2,
+    "P585": 1,
+    "__value__": 2
+  },
+  "non_authoritative": true
+}

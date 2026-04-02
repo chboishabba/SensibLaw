@@ -1,0 +1,22 @@
+[
+  {
+    "qid": "Q314159",
+    "label": "Sample company without P459",
+    "p459_status": "missing",
+    "preview_hold_reason": "Typeless subject; no `instance of` and P459 absent, policy risk.",
+    "qualifier_shape": ["P585", "P3831"],
+    "reference_snapshot": "https://www.wikidata.org/wiki/Q314159",
+    "hold_gate": "review_first_population_scan",
+    "notes": "Proxy qualifiers cite GHG timeline but no determination method."
+  },
+  {
+    "qid": "Q271828",
+    "label": "GHG non-protocol subject",
+    "p459_status": "non-ghg-protocol",
+    "preview_hold_reason": "P459 present but flagged as non-GHG protocol; requires policy confirmation.",
+    "qualifier_shape": ["P585", "P518"],
+    "reference_snapshot": "https://www.wikidata.org/wiki/Q271828",
+    "hold_gate": "review_first_population_scan",
+    "notes": "Reference track shows `P3831` signifying role in emissions, but P459 diverges."
+  }
+]

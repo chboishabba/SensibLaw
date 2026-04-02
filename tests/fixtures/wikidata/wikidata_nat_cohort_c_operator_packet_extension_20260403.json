@@ -1,0 +1,35 @@
+[
+  {
+    "qid": "Q1000001",
+    "label": "Policy-risk entity alpha",
+    "p459_status": "missing",
+    "preview_hold_reason": "No determination method, subgroup flagged for policy review.",
+    "operator_hold_reason": "Awaiting qualifier reference check plus governance confirmation.",
+    "reference_anchor": "P854 https://www.wikidata.org/wiki/Q1000001",
+    "qualifier_hint": ["P585", "P3831"],
+    "hold_gate": "review_first_population_scan",
+    "notes": "Reference family indicates GHG conversation but lacks P459."
+  },
+  {
+    "qid": "Q1000002",
+    "label": "Policy-risk entity beta",
+    "p459_status": "non-ghg-protocol",
+    "preview_hold_reason": "P459 present but outside expected protocol.",
+    "operator_hold_reason": "Need policy lead buy-in before classification.",
+    "reference_anchor": "P854 https://www.wikidata.org/wiki/Q1000002",
+    "qualifier_hint": ["P518", "P2834"],
+    "hold_gate": "review_first_population_scan",
+    "notes": "Qualifiers reflect exceptional context; hold reason is documented."
+  },
+  {
+    "qid": "Q1000003",
+    "label": "Policy-risk entity gamma",
+    "p459_status": "missing",
+    "preview_hold_reason": "Historic statement without P459, flagged to keep policy oversight.",
+    "operator_hold_reason": "References need manual resolution before further steps.",
+    "reference_anchor": "P248 https://www.wikidata.org/wiki/Q1000003",
+    "qualifier_hint": ["P585", "P518", "P7469"],
+    "hold_gate": "review_first_population_scan",
+    "notes": "Candidate is in high-impact namespace; hold until references confirmed."
+  }
+]
