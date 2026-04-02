@@ -1,5 +1,43 @@
 # SensibLaw TODO
 
+- [P0] Reconsider the moonshot normalization read across AU, GWB, and
+  Wikidata:
+  the previous judgment-architecture pass was useful but too Nat-centric.
+  The stronger cross-lane target is:
+  bounded evidence bundle in -> promoted outcomes out -> derived
+  review/product/graph surfaces after that.
+  - next orchestration order:
+    - shared evidence-bundle -> promoted-outcome contract
+    - AU product normalization
+    - GWB product normalization
+    - Nat text-bridge / grounding as one adopter family
+    - minimal shared primitive/comparison support only where it directly helps
+      those products
+  - current promotion order:
+    - `Ramanujan`
+    - `Erdos`
+    - `Lorentz`
+    - `Euler`
+    - `Ohm`
+    - `Huygens`
+  - control note:
+    - `../docs/planning/moonshot_compiler_normalization_reconsideration_20260402.md`
+      controls lane order if a support note differs
+  - checkpoint re-read:
+    - order unchanged
+    - one worker per lane unchanged
+    - no further allocation change justified at this checkpoint
+    - rechecked again with no change
+    - repeated checkpoint confirmation: still no change
+    - further docs-only reaffirmation now adds no new governance signal
+    - convergence point reached: the next honest move is implementation
+      promotion under the same lane ownership and order
+    - docs-only orchestration updates are frozen for this checkpoint unless
+      new lane evidence materially changes ownership, order, or contract scope
+  - keep graph explicitly derived and optional, not the organizing truth layer
+  - planning note:
+    `../docs/planning/moonshot_compiler_normalization_reconsideration_20260402.md`
+
 ## Wikidata
 - [x] Implement the bounded `P31` / `P279` Wikidata control-plane prototype described in `docs/planning/wikidata_transition_plan_20260306.md`.
 - [x] Add a bounded live-case fixture anchored on the current `alphabet` / `writing system` example.
@@ -230,6 +268,62 @@
   - guided next-step workflow clarity through `itir-svelte`
   - a real annotation / QA workbench slice
   - more direct user-feedback evidence beyond proxy/story notes
+- [ ] Push the next reusable judgment-architecture split above the now-settled
+  substrate layer:
+  - use `../docs/planning/judgment_architecture_lane_split_20260402.md` as the
+    current lane note
+  - current read:
+    - the next highest-value work is not more generic infrastructure cleanup
+    - it is reusable semantic/judgment scaffolding that can help both the
+      Nat moonshot and the broader legal/text-heavy lanes
+  - current bounded priority order:
+    - first executable text bridge over representative temporal / multi-value
+      climate rows
+    - first legal doctrinal primitive scaffold over bounded AU
+      procedural-meaning cases
+    - first common typed primitive/comparison pattern shared across those lanes
+    - deeper grounding depth on representative Nat hard packets
+    - disciplined competing-interpretation / claim-boundary graph surface
+    - stronger promotion / abstain / audit gates
+  - worker split:
+    - `Ramanujan`: text bridge
+    - `Erdos`: legal doctrinal primitives
+    - `Euler`: domain-agnostic primitive architecture
+    - `Lorentz`: Nat grounding depth
+    - `Ohm`: graph discipline
+    - `Huygens`: governance gates
+  - returned-brief read:
+    - `Ramanujan` is ready first on one pinned climate pilot family with
+      additive bridge fields only and explicit abstain outside the bounded
+      temporal / multi-value pattern
+    - `Erdos` should start as a bounded doctrinal projection/review layer over
+      AU procedural-meaning cases, not as a semantic-core rewrite
+    - `Euler` should keep the common layer tiny: one typed primitive plus one
+      bounded comparison surface, with lane-local decisions kept above it
+    - `Lorentz` should deepen grounded hard-packet evidence without widening
+      packet shape
+    - `Ohm` should stay overlay-only and off by default
+    - `Huygens` should formalize `promote | abstain | audit` without hardcoding
+      Nat-only thresholds into the general abstraction
+  - confirmed promotion order:
+    - `Ramanujan`
+    - `Erdos`
+    - `Euler`
+    - `Lorentz`
+    - `Ohm`
+    - `Huygens`
+  - immediate execution checkpoint:
+    - promote `Ramanujan` next on the pinned additive climate text-bridge
+      slice
+    - hold the remaining lanes in ranked order unless the first slice exposes
+      hidden coupling or a better bounded promotion
+    - rechecked orchestration state is unchanged: same lane ownership, same
+      promotion order, no new selection round needed before implementation
+  - keep explicit:
+    - text stays grounded evidence until promoted
+    - legal sources remain truth anchors in legal lanes
+    - graph work must not silently turn chronology into causality
+    - stronger judgment layers must stay fail-closed and auditable
 - [x] Land a shared SQLite runtime substrate for repo-relative path resolution
   and connection plumbing; first adopters are the wiki-timeline query runtime
   and fact-review query surface.
