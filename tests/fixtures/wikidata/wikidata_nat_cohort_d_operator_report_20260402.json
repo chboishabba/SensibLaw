@@ -1,0 +1,44 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_d_operator_report.v0_1",
+  "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+  "cohort_id": "cohort_d_no_instance_of",
+  "readiness": "review_queue_ready",
+  "decision": "review",
+  "promotion_allowed": false,
+  "summary": {
+    "queue_size": 2,
+    "high_priority_count": 2,
+    "medium_priority_count": 0,
+    "unresolved_packet_ref_count": 0
+  },
+  "queue_preview": [
+    {
+      "review_entity_qid": "Q1785637",
+      "priority": "high",
+      "smallest_next_check": "resolve_page_open_questions",
+      "recommended_next_step": "review_structured_split"
+    },
+    {
+      "review_entity_qid": "Q738421",
+      "priority": "high",
+      "smallest_next_check": "resolve_page_open_questions",
+      "recommended_next_step": "review_structured_split"
+    }
+  ],
+  "triage_prompts": [
+    "Review Q1785637 as high priority; start with resolve_page_open_questions.",
+    "Review Q738421 as high priority; start with resolve_page_open_questions."
+  ],
+  "blocked_signals": [],
+  "governance": {
+    "automation_allowed": false,
+    "can_execute_edits": false,
+    "fail_closed": true,
+    "promotion_guard": "hold"
+  },
+  "non_claims": [
+    "report_only_surface",
+    "no_direct_migration_execution",
+    "no_checked_safe_promotion_from_missing_instance_of_alone"
+  ]
+}

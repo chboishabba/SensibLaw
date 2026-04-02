@@ -1,0 +1,187 @@
+{
+  "batch_status": "batch_review_ready",
+  "case_summaries": [
+    {
+      "case_id": "cohort-b-case:1",
+      "decision": "review",
+      "packet_id": "operator-packet:7c8a99e19425124e",
+      "selected_row_count": 1,
+      "variance_flag_counts": {
+        "missing_expected_qualifier_properties": 1,
+        "unexpected_qualifier_properties": 1,
+        "unexpected_reference_properties": 1
+      }
+    },
+    {
+      "case_id": "cohort-b-case:2",
+      "decision": "review",
+      "packet_id": "operator-packet:3f271cffeb066067",
+      "selected_row_count": 2,
+      "variance_flag_counts": {
+        "missing_expected_qualifier_properties": 2,
+        "missing_expected_reference_properties": 1,
+        "unexpected_qualifier_properties": 1,
+        "unexpected_reference_properties": 1
+      }
+    }
+  ],
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "decision_reasons": [
+    "multi_case_operator_evidence_materialized"
+  ],
+  "governance": {
+    "automation_allowed": false,
+    "fail_closed": true,
+    "requires_human_review": true
+  },
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "non_claims": [
+    "batch evidence report only",
+    "not migration execution",
+    "not cross-cohort arbitration"
+  ],
+  "packet_decision_counts": {
+    "review": 2
+  },
+  "queue": {
+    "blocked_packets": [],
+    "cohort_id": "cohort_b_reconciled_non_business",
+    "decision_reasons": [
+      "validated_review_packets_materialized_to_queue"
+    ],
+    "governance": {
+      "automation_allowed": false,
+      "fail_closed": true,
+      "requires_human_review": true
+    },
+    "lane_id": "wikidata_nat_wdu_p5991_p14143",
+    "non_claims": [
+      "queue materialization only",
+      "not migration execution",
+      "not cross-cohort arbitration"
+    ],
+    "queue_items": [
+      {
+        "entity_qid": "Q8646",
+        "instance_of_qid": "Q43229",
+        "packet_id": "operator-packet:3f271cffeb066067",
+        "priority": "high",
+        "queue_item_id": "cohort-b-queue:fc07935a9e84",
+        "row_id": "Q8646|P5991|4",
+        "triage_prompts": [
+          "Confirm class-local semantics before any migration-equivalence judgment.",
+          "Inspect unexpected qualifier properties as potential class-specific semantics."
+        ],
+        "variance_flags": [
+          "missing_expected_qualifier_properties",
+          "unexpected_qualifier_properties",
+          "unexpected_reference_properties"
+        ]
+      },
+      {
+        "entity_qid": "Q8646",
+        "instance_of_qid": "Q43229",
+        "packet_id": "operator-packet:7c8a99e19425124e",
+        "priority": "high",
+        "queue_item_id": "cohort-b-queue:d63ba7035f36",
+        "row_id": "Q8646|P5991|4",
+        "triage_prompts": [
+          "Confirm class-local semantics before any migration-equivalence judgment.",
+          "Inspect unexpected qualifier properties as potential class-specific semantics."
+        ],
+        "variance_flags": [
+          "missing_expected_qualifier_properties",
+          "unexpected_qualifier_properties",
+          "unexpected_reference_properties"
+        ]
+      }
+    ],
+    "queue_status": "review_queue_ready",
+    "schema_version": "sl.wikidata_nat_cohort_b_operator_queue.v0_1",
+    "summary": {
+      "hold_packet_count": 0,
+      "input_packet_count": 2,
+      "queue_item_count": 2,
+      "review_first": true,
+      "review_packet_count": 2,
+      "validation_error_count": 0
+    },
+    "validation_errors": []
+  },
+  "report": {
+    "blocked_packets": [],
+    "cohort_id": "cohort_b_reconciled_non_business",
+    "examples": [
+      {
+        "entity_qid": "Q8646",
+        "priority": "high",
+        "queue_item_id": "cohort-b-queue:fc07935a9e84",
+        "row_id": "Q8646|P5991|4",
+        "variance_flags": [
+          "missing_expected_qualifier_properties",
+          "unexpected_qualifier_properties",
+          "unexpected_reference_properties"
+        ]
+      },
+      {
+        "entity_qid": "Q8646",
+        "priority": "high",
+        "queue_item_id": "cohort-b-queue:d63ba7035f36",
+        "row_id": "Q8646|P5991|4",
+        "variance_flags": [
+          "missing_expected_qualifier_properties",
+          "unexpected_qualifier_properties",
+          "unexpected_reference_properties"
+        ]
+      }
+    ],
+    "governance": {
+      "automation_allowed": false,
+      "fail_closed": true,
+      "requires_human_review": true
+    },
+    "lane_id": "wikidata_nat_wdu_p5991_p14143",
+    "non_claims": [
+      "operator report only",
+      "not migration execution",
+      "not cross-cohort arbitration"
+    ],
+    "queue_status": "review_queue_ready",
+    "recommendations": [
+      "Process high-priority queue rows first using bounded reviewer prompts.",
+      "Keep Cohort B lane review-only; do not execute migration from this report."
+    ],
+    "report_id": "cohort-b-report:943c7b2e0995d0b2",
+    "report_status": "review_only_report_ready",
+    "schema_version": "sl.wikidata_nat_cohort_b_operator_report.v0_1",
+    "summary": {
+      "blocked_packet_count": 0,
+      "priority_counts": {
+        "high": 2
+      },
+      "queue_item_count": 2,
+      "review_first": true,
+      "top_instance_classes": [
+        {
+          "instance_of_qid": "Q43229",
+          "queue_row_count": 2
+        }
+      ],
+      "validation_error_count": 0,
+      "variance_flag_counts": {
+        "missing_expected_qualifier_properties": 2,
+        "unexpected_qualifier_properties": 2,
+        "unexpected_reference_properties": 2
+      }
+    },
+    "validation_errors": []
+  },
+  "schema_version": "sl.wikidata_nat_cohort_b_operator_batch_report.v0_1",
+  "summary": {
+    "blocked_packet_count": 0,
+    "case_count": 2,
+    "queue_item_count": 2,
+    "review_first": true,
+    "validation_error_count": 0
+  }
+}

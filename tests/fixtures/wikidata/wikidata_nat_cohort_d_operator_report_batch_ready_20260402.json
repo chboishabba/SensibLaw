@@ -1,0 +1,47 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_d_operator_report_batch.v0_1",
+  "batch_id": "cohort_d_operator_batch_ready_20260402",
+  "decision": "review",
+  "promotion_allowed": false,
+  "summary": {
+    "case_count": 2,
+    "readiness_counts": {
+      "review_queue_ready": 2,
+      "review_queue_incomplete": 0
+    },
+    "total_queue_size": 4,
+    "total_high_priority_count": 3,
+    "total_unresolved_packet_ref_count": 0,
+    "all_cases_ready": true
+  },
+  "case_reports": [
+    {
+      "case_id": "cohort_d_case_incomplete",
+      "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+      "cohort_id": "cohort_d_no_instance_of",
+      "readiness": "review_queue_ready",
+      "queue_size": 2,
+      "high_priority_count": 1,
+      "unresolved_packet_ref_count": 0,
+      "decision": "review",
+      "promotion_allowed": false
+    },
+    {
+      "case_id": "cohort_d_case_ready",
+      "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+      "cohort_id": "cohort_d_no_instance_of",
+      "readiness": "review_queue_ready",
+      "queue_size": 2,
+      "high_priority_count": 2,
+      "unresolved_packet_ref_count": 0,
+      "decision": "review",
+      "promotion_allowed": false
+    }
+  ],
+  "blocked_signals": [],
+  "non_claims": [
+    "batch_report_only_surface",
+    "no_direct_migration_execution",
+    "no_checked_safe_promotion_from_missing_instance_of_alone"
+  ]
+}

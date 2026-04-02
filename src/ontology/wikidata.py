@@ -11,6 +11,22 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
 import requests
 
+from .wikidata_review_packet_claim_boundaries import (
+    build_review_packet_claim_boundaries,
+)
+from .wikidata_review_packet_cross_source_alignment import (
+    summarize_cross_source_alignment,
+)
+from .wikidata_review_packet_follow_depth import (
+    enrich_review_packet_follow_depth,
+)
+from .wikidata_review_packet_reviewer_actions import (
+    build_wikidata_review_packet_reviewer_actions,
+)
+from .wikidata_review_packet_variant_compare import (
+    compare_review_packet_variants,
+)
+
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
 FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
@@ -618,8 +634,53 @@ def _reviewer_view_for_packet(
     }
 
 
+def _comparison_variants_from_split_plan_payload(
+    *,
+    split_plan_payload: Mapping[str, Any],
+    split_plan_id: str,
+    max_variants: int = 3,
+) -> list[dict[str, Any]]:
+    plans = split_plan_payload.get("plans")
+    if not isinstance(plans, list):
+        return []
+    variants: list[dict[str, Any]] = []
+    for plan in plans:
+        if not isinstance(plan, Mapping):
+            continue
+        candidate_split_plan_id = _stringify(plan.get("split_plan_id")).strip()
+        if not candidate_split_plan_id:
+            entity_qid = _stringify(plan.get("entity_qid")).strip()
+            if entity_qid:
+                candidate_split_plan_id = f"split://{entity_qid}|{_stringify(split_plan_payload.get('source_property')).strip()}"
+        if not candidate_split_plan_id or candidate_split_plan_id == split_plan_id:
+            continue
+        variants.append(
+            {
+                "candidate_id": candidate_split_plan_id,
+                "classification": _stringify(plan.get("status")).strip(),
+                "suggested_action": _stringify(plan.get("suggested_action")).strip(),
+                "action": _stringify(plan.get("suggested_action")).strip(),
+                "merged_split_axes": [
+                    {
+                        "property": _stringify(axis.get("property")).strip(),
+                        "cardinality": int(axis.get("cardinality", 0) or 0),
+                        "reason": _stringify(axis.get("reason")).strip(),
+                        "source": _stringify(axis.get("source")).strip(),
+                    }
+                    for axis in plan.get("merged_split_axes", [])
+                    if isinstance(axis, Mapping)
+                ],
+            }
+        )
+        if len(variants) >= max_variants:
+            break
+    return variants
+
+
 def _build_review_packet_semantic_decomposition(
     *,
+    anchor_refs: Sequence[Mapping[str, Any]],
+    split_review_context: Mapping[str, Any],
     parsed_page: Mapping[str, Any],
     page_signals: Mapping[str, Any],
     follow_receipts: Sequence[Mapping[str, Any]],
@@ -642,6 +703,20 @@ def _build_review_packet_semantic_decomposition(
             for item in task_buckets.get("todo", [])
             if _stringify(item).strip()
         ]
+    normalized_anchor_refs = [
+        anchor for anchor in anchor_refs
+        if isinstance(anchor, Mapping) and _stringify(anchor.get("text_excerpt", "")).strip()
+    ]
+    split_plan_id = _stringify(split_review_context.get("split_plan_id", "")).strip()
+    split_axes = [
+        axis for axis in split_review_context.get("merged_split_axes", [])
+        if isinstance(axis, Mapping)
+    ]
+    source_candidate_ids = [
+        _stringify(candidate_id).strip()
+        for candidate_id in split_review_context.get("source_candidate_ids", [])
+        if _stringify(candidate_id).strip()
+    ]
 
     candidate_units: list[dict[str, str]] = []
     candidate_units.extend(
@@ -651,6 +726,23 @@ def _build_review_packet_semantic_decomposition(
             "text": row,
         }
         for index, row in enumerate(query_rows)
+    )
+    candidate_units.extend(
+        {
+            "unit_id": f"follow_receipt:{index + 1}",
+            "unit_type": "follow_receipt_surface",
+            "text": (
+                f"receipt_id={_stringify(receipt.get('receipt_id')).strip()} "
+                f"url={_stringify(receipt.get('url')).strip()} "
+                f"reason={_stringify(receipt.get('follow_reason')).strip()} "
+                f"evidence_count={len(receipt.get('extracted_evidence', []))} "
+                f"unresolved_count={len(receipt.get('unresolved_uncertainty', []))}"
+            ),
+        }
+        for index, receipt in enumerate(follow_receipts)
+        if isinstance(receipt, Mapping)
+        and _stringify(receipt.get("receipt_id")).strip()
+        and _stringify(receipt.get("url")).strip()
     )
     candidate_units.extend(
         {
@@ -668,6 +760,56 @@ def _build_review_packet_semantic_decomposition(
         }
         for index, item in enumerate(todo_items)
     )
+    candidate_units.extend(
+        {
+            "unit_id": f"anchor:{_stringify(anchor.get('anchor_id')).strip() or index + 1}",
+            "unit_type": "anchor_surface",
+            "text": (
+                f"{_stringify(anchor.get('label')).strip()}: "
+                f"{_stringify(anchor.get('text_excerpt')).strip()}"
+                if _stringify(anchor.get("label")).strip()
+                else _stringify(anchor.get("text_excerpt")).strip()
+            ),
+        }
+        for index, anchor in enumerate(normalized_anchor_refs)
+    )
+    if split_plan_id:
+        candidate_units.append(
+            {
+                "unit_id": "split_plan:context",
+                "unit_type": "split_context_surface",
+                "text": (
+                    f"{split_plan_id} status={_stringify(split_review_context.get('status'))} "
+                    f"action={_stringify(split_review_context.get('suggested_action'))} "
+                    f"review_required={bool(split_review_context.get('review_required'))} "
+                    f"proposed_bundle_count={int(split_review_context.get('proposed_bundle_count', 0) or 0)}"
+                ),
+            }
+        )
+    candidate_units.extend(
+        {
+            "unit_id": f"split_axis:{index + 1}",
+            "unit_type": "split_axis_surface",
+            "text": (
+                f"property={_stringify(axis.get('property'))} "
+                f"source={_stringify(axis.get('source'))} "
+                f"reason={_stringify(axis.get('reason'))} "
+                f"cardinality={int(axis.get('cardinality', 0) or 0)}"
+            ),
+        }
+        for index, axis in enumerate(split_axes)
+    )
+    if source_candidate_ids:
+        candidate_units.append(
+            {
+                "unit_id": "split_candidates:summary",
+                "unit_type": "split_context_surface",
+                "text": (
+                    f"source_candidate_ids={len(source_candidate_ids)} "
+                    f"sample={','.join(source_candidate_ids[:3])}"
+                ),
+            }
+        )
 
     missing_evidence = [
         "no_revision_locked_excerpts_for_candidate_units",
@@ -682,13 +824,27 @@ def _build_review_packet_semantic_decomposition(
         missing_evidence.append("open_questions_not_resolved_into_grounded_assertions")
     if todo_items:
         missing_evidence.append("todo_items_not_lifted_into_review_decision_graph")
+    if normalized_anchor_refs:
+        missing_evidence.append("anchor_refs_not_promoted_to_grounded_claims")
+    if split_axes or split_plan_id:
+        missing_evidence.append("split_context_not_lifted_into_semantic_decision_graph")
+
+    normalized_missing_evidence = sorted(set(missing_evidence))
+    candidate_units.extend(
+        {
+            "unit_id": f"missing_evidence:{index + 1}",
+            "unit_type": "missing_evidence_surface",
+            "text": gap,
+        }
+        for index, gap in enumerate(normalized_missing_evidence)
+    )
 
     return {
         "layer_schema_version": WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION,
         "decomposition_state": "surface_only",
         "separate_from_parsed_page": True,
         "candidate_units": candidate_units,
-        "missing_evidence": sorted(set(missing_evidence)),
+        "missing_evidence": normalized_missing_evidence,
     }
 
 
@@ -699,6 +855,8 @@ def build_wikidata_review_packet(
     split_plan_id: str,
     source_unit_id: str | None = None,
     follow_receipts: Sequence[Mapping[str, Any]] | None = None,
+    follow_depth_source_text_by_url: Mapping[str, str] | None = None,
+    comparison_variants: Sequence[Mapping[str, Any]] | None = None,
     include_semantic_decomposition: bool = False,
 ) -> dict[str, Any]:
     source = _select_source_unit(source_unit_payload, source_unit_id=source_unit_id)
@@ -777,12 +935,422 @@ def build_wikidata_review_packet(
         ),
     }
     if include_semantic_decomposition:
-        packet["semantic_decomposition"] = _build_review_packet_semantic_decomposition(
+        auto_comparison_variants = list(comparison_variants or [])
+        if not auto_comparison_variants:
+            auto_comparison_variants = _comparison_variants_from_split_plan_payload(
+                split_plan_payload=split_plan_payload,
+                split_plan_id=split_plan_id,
+            )
+        semantic_decomposition = _build_review_packet_semantic_decomposition(
+            anchor_refs=packet["source_surface"]["anchor_refs"],
+            split_review_context=packet["split_review_context"],
             parsed_page=parsed_page,
             page_signals=page_signals,
             follow_receipts=normalized_receipts,
         )
+        semantic_decomposition["follow_depth"] = enrich_review_packet_follow_depth(
+            packet,
+            source_text_by_url=follow_depth_source_text_by_url,
+        )
+        semantic_decomposition["claim_boundaries"] = build_review_packet_claim_boundaries(
+            source_surface=packet["source_surface"],
+            split_review_context=packet["split_review_context"],
+            parsed_page=parsed_page,
+            page_signals=page_signals,
+        )
+        semantic_decomposition["cross_source_alignment"] = summarize_cross_source_alignment(
+            packet_id=packet_id,
+            wiki_surface={
+                "qid": _stringify(packet.get("review_entity_qid")),
+                "source": _stringify(packet["source_surface"]["origin"].get("source_type")),
+                "fields": list(parsed_page.get("query_rows", [])),
+                "summary": _stringify(packet["source_surface"]["origin"].get("title")),
+            },
+            query_slice={
+                "qid": _stringify(packet.get("review_entity_qid")),
+                "fields": list(parsed_page.get("query_rows", [])),
+                "summary": "query rows from parsed page",
+            },
+            split_bundle={
+                "primary_qid": _stringify(packet.get("review_entity_qid")),
+                "fields": [
+                    axis.get("property")
+                    for axis in packet["split_review_context"].get("merged_split_axes", [])
+                    if isinstance(axis, Mapping)
+                ],
+                "summary": _stringify(packet["split_review_context"].get("suggested_action")),
+            },
+        )
+        semantic_decomposition["reviewer_actions"] = (
+            build_wikidata_review_packet_reviewer_actions(packet)
+        )
+        if auto_comparison_variants:
+            semantic_decomposition["variant_comparison"] = compare_review_packet_variants(
+                primary_variant={
+                    "candidate_id": packet["split_review_context"].get("split_plan_id"),
+                    "suggested_action": packet["split_review_context"].get("suggested_action"),
+                    "merged_split_axes": packet["split_review_context"].get("merged_split_axes", []),
+                    "action": packet["split_review_context"].get("suggested_action"),
+                },
+                comparison_variants=auto_comparison_variants,
+            )
+        else:
+            semantic_decomposition["variant_comparison"] = {
+                "non_authoritative": True,
+                "diagnostic_flags": ["no_comparisons_provided"],
+                "comparisons": [],
+            }
+        packet["semantic_decomposition"] = semantic_decomposition
     return packet
+
+
+def build_nat_cohort_c_population_scan(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C population scan requires the Cohort C payload")
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    p459_status_counts: dict[str, int] = {}
+    for candidate in sample_candidates:
+        status = candidate["p459_status"] or "unknown"
+        p459_status_counts[status] = p459_status_counts.get(status, 0) + 1
+    return {
+        "lane_id": _stringify(payload.get("lane_id")),
+        "cohort_id": _stringify(payload.get("cohort_id")),
+        "selection_rule": _stringify(payload.get("selection_rule")),
+        "source_revision_fixture": _stringify(payload.get("source_revision_fixture")),
+        "scan_status": "review_first_population_scan_ready",
+        "next_gate": _stringify(payload.get("next_gate")),
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": p459_status_counts,
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "notes": list(payload.get("notes", []))
+        if isinstance(payload.get("notes"), list)
+        else [],
+    }
+
+
+def _sparql_nat_cohort_c_population_scan_query(*, row_limit: int) -> str:
+    return f"""
+SELECT ?item ?itemLabel ?statement ?p459 ?p459Label ?qualifier_pid
+WHERE {{
+  ?item p:P5991 ?statement .
+  OPTIONAL {{
+    ?statement pq:P459 ?p459 .
+    OPTIONAL {{
+      ?p459 rdfs:label ?p459Label .
+      FILTER(LANG(?p459Label) = "en")
+    }}
+  }}
+  OPTIONAL {{
+    ?statement ?pq ?qv .
+    FILTER(STRSTARTS(STR(?pq), "http://www.wikidata.org/prop/qualifier/"))
+    BIND(STRAFTER(STR(?pq), "http://www.wikidata.org/prop/qualifier/") AS ?qualifier_pid)
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+  FILTER(!BOUND(?p459) || !BOUND(?p459Label) || LCASE(STR(?p459Label)) != "ghg protocol")
+}}
+LIMIT {max(1, int(row_limit))}
+""".strip()
+
+
+def build_nat_cohort_c_population_scan_from_sparql_results(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    bindings = payload.get("results", {}).get("bindings", [])
+    if not isinstance(bindings, list):
+        raise ValueError("SPARQL payload requires a results.bindings array")
+
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in bindings:
+        if not isinstance(row, Mapping):
+            continue
+        item = row.get("item", {}).get("value") if isinstance(row.get("item"), Mapping) else None
+        statement = (
+            row.get("statement", {}).get("value") if isinstance(row.get("statement"), Mapping) else None
+        )
+        if not item or not statement:
+            continue
+        qid = _extract_qid(_stringify(item))
+        statement_id = _extract_qid(_stringify(statement))
+        item_label = (
+            row.get("itemLabel", {}).get("value")
+            if isinstance(row.get("itemLabel"), Mapping)
+            else None
+        )
+        p459 = row.get("p459", {}).get("value") if isinstance(row.get("p459"), Mapping) else None
+        p459_label = (
+            row.get("p459Label", {}).get("value")
+            if isinstance(row.get("p459Label"), Mapping)
+            else None
+        )
+        qualifier_pid = (
+            row.get("qualifier_pid", {}).get("value")
+            if isinstance(row.get("qualifier_pid"), Mapping)
+            else None
+        )
+        candidate = grouped.setdefault(
+            (qid, statement_id),
+            {
+                "qid": qid,
+                "label": _stringify(item_label) or qid,
+                "statement_id": statement_id,
+                "has_p459": p459 is not None,
+                "p459_label": _stringify(p459_label),
+                "qualifier_properties": set(),
+            },
+        )
+        if qualifier_pid:
+            candidate["qualifier_properties"].add(_stringify(qualifier_pid))
+
+    sample_candidates: list[dict[str, Any]] = []
+    p459_status_counts: dict[str, int] = {}
+    for (qid, statement_id), candidate in sorted(grouped.items()):
+        p459_label = _stringify(candidate.get("p459_label"))
+        p459_status = "missing" if not candidate.get("has_p459") else "non_GHG_protocol"
+        qualifier_properties = sorted(candidate.get("qualifier_properties", set()))
+        sample_candidates.append(
+            {
+                "qid": qid,
+                "label": _stringify(candidate.get("label")) or qid,
+                "statement_id": statement_id,
+                "p459_status": p459_status,
+                "p459_label": p459_label if p459_label else None,
+                "qualifier_properties": qualifier_properties,
+                "qualifier_snippet": (
+                    "determination method missing"
+                    if p459_status == "missing"
+                    else f"determination method label: {p459_label or 'unlabelled'}"
+                ),
+                "policy_note": (
+                    "live candidate lacks determination method"
+                    if p459_status == "missing"
+                    else "live candidate uses a non-GHG protocol determination method"
+                ),
+            }
+        )
+        p459_status_counts[p459_status] = p459_status_counts.get(p459_status, 0) + 1
+
+    return {
+        "lane_id": "wikidata_nat_wdu_p5991_p14143",
+        "cohort_id": "non_ghg_protocol_or_missing_p459",
+        "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+        "source_revision_fixture": "live_query_preview",
+        "scan_status": "live_population_scan_preview",
+        "next_gate": "review_first_population_scan",
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": p459_status_counts,
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "notes": [
+            "This live preview stays bounded and review-first.",
+            "It is diagnostic, not a migration or promotion authority.",
+        ],
+    }
+
+
+def build_nat_cohort_c_population_scan_live(
+    *,
+    row_limit: int = 20,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    query = _sparql_nat_cohort_c_population_scan_query(row_limit=row_limit)
+    try:
+        payload = _http_get_json(
+            SPARQL_ENDPOINT,
+            params={"format": "json", "query": query},
+            timeout_seconds=timeout_seconds,
+        )
+    except Exception as exc:
+        return {
+            "lane_id": "wikidata_nat_wdu_p5991_p14143",
+            "cohort_id": "non_ghg_protocol_or_missing_p459",
+            "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+            "source_revision_fixture": "live_query_preview",
+            "scan_status": "live_population_scan_unavailable",
+            "next_gate": "review_first_population_scan",
+            "sample_candidates": [],
+            "summary": {
+                "candidate_count": 0,
+                "p459_status_counts": {},
+                "review_first": True,
+                "policy_risk": "high",
+            },
+            "failures": [
+                {
+                    "stage": "live_query",
+                    "error": _stringify(exc),
+                    "endpoint": SPARQL_ENDPOINT,
+                }
+            ],
+            "notes": [
+                "The live preview helper is fail-closed when the Wikidata query endpoint is unavailable.",
+            ],
+        }
+    if not isinstance(payload, Mapping):
+        raise ValueError("Cohort C live scan requires a JSON object payload")
+    return build_nat_cohort_c_population_scan_from_sparql_results(payload)
+
+
+def build_nat_cohort_c_operator_packet(
+    scan_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(scan_payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C operator packet requires the Cohort C payload")
+    summary = scan_payload.get("summary")
+    summary_payload = summary if isinstance(summary, Mapping) else {}
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in scan_payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    scan_status = _stringify(scan_payload.get("scan_status"))
+    unavailable = scan_status == "live_population_scan_unavailable"
+    if unavailable:
+        decision_text = "hold"
+        triage_prompts = [
+            "Live query was unavailable; retry later before any cohort claim.",
+            "Do not infer migration readiness from an unavailable preview.",
+        ]
+    else:
+        decision_text = "review"
+        triage_prompts = [
+            "Review the candidate P459 status split before any cohort claim.",
+            "Check whether the missing vs non-GHG protocol buckets need different handling.",
+            "Keep the lane review-first and fail-closed.",
+        ]
+    packet_id = hashlib.sha1(
+        json.dumps(
+            {
+                "cohort_id": scan_payload.get("cohort_id"),
+                "scan_status": scan_status,
+                "candidate_count": len(sample_candidates),
+                "candidate_qids": [candidate["qid"] for candidate in sample_candidates],
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return {
+        "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
+        "packet_id": f"operator-packet:{packet_id}",
+        "lane_id": _stringify(scan_payload.get("lane_id")),
+        "cohort_id": _stringify(scan_payload.get("cohort_id")),
+        "scan_status": scan_status or "unknown",
+        "decision": decision_text,
+        "triage_prompts": triage_prompts,
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": dict(summary_payload.get("p459_status_counts", {})),
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "governance": {
+            "automation_allowed": False,
+            "fail_closed": True,
+            "live_query_unavailable": unavailable,
+        },
+        "notes": list(scan_payload.get("notes", []))
+        if isinstance(scan_payload.get("notes"), list)
+        else [],
+    }
+
+
+def build_nat_cohort_c_operator_packet(
+    scan_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _stringify(scan_payload.get("cohort_id")) != "non_ghg_protocol_or_missing_p459":
+        raise ValueError("Cohort C operator packet requires the Cohort C payload")
+    sample_candidates = [
+        {
+            "qid": _stringify(candidate.get("qid")),
+            "label": _stringify(candidate.get("label")),
+            "p459_status": _stringify(candidate.get("p459_status")),
+            "qualifier_snippet": _stringify(candidate.get("qualifier_snippet")),
+            "policy_note": _stringify(candidate.get("policy_note")),
+        }
+        for candidate in scan_payload.get("sample_candidates", [])
+        if isinstance(candidate, Mapping)
+    ]
+    scan_status = _stringify(scan_payload.get("scan_status"))
+    unavailable = scan_status == "live_population_scan_unavailable"
+    if unavailable:
+        decision_text = "hold"
+        triage_prompts = [
+            "Live query was unavailable; retry later before any cohort claim.",
+            "Do not infer migration readiness from an unavailable preview.",
+        ]
+    else:
+        decision_text = "review"
+        triage_prompts = [
+            "Review the candidate P459 status split before any cohort claim.",
+            "Check whether the missing vs non-GHG protocol buckets need different handling.",
+            "Keep the lane review-first and fail-closed.",
+        ]
+    packet_id = hashlib.sha1(
+        json.dumps(
+            {
+                "cohort_id": scan_payload.get("cohort_id"),
+                "scan_status": scan_status,
+                "candidate_count": len(sample_candidates),
+                "candidate_qids": [candidate["qid"] for candidate in sample_candidates],
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return {
+        "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
+        "packet_id": f"operator-packet:{packet_id}",
+        "lane_id": _stringify(scan_payload.get("lane_id")),
+        "cohort_id": _stringify(scan_payload.get("cohort_id")),
+        "scan_status": scan_status or "unknown",
+        "decision": decision_text,
+        "triage_prompts": triage_prompts,
+        "sample_candidates": sample_candidates,
+        "summary": {
+            "candidate_count": len(sample_candidates),
+            "p459_status_counts": dict(scan_payload.get("summary", {}).get("p459_status_counts", {}))
+            if isinstance(scan_payload.get("summary"), Mapping)
+            else {},
+            "review_first": True,
+            "policy_risk": "high",
+        },
+        "governance": {
+            "automation_allowed": False,
+            "fail_closed": True,
+            "live_query_unavailable": unavailable,
+        },
+        "notes": list(scan_payload.get("notes", []))
+        if isinstance(scan_payload.get("notes"), list)
+        else [],
+    }
 
 
 def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
@@ -3408,6 +3976,10 @@ __all__ = [
     "WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION",
     "adapt_legacy_climate_text_source_to_source_units",
     "build_wikidata_review_packet",
+    "build_nat_cohort_c_population_scan",
+    "build_nat_cohort_c_population_scan_from_sparql_results",
+    "build_nat_cohort_c_population_scan_live",
+    "build_nat_cohort_c_operator_packet",
     "build_observation_claim_payload_from_source_units",
     "build_observation_claim_payload_from_revision_locked_climate_text_sources",
     "attach_wikidata_phi_text_bridge_from_source_units",

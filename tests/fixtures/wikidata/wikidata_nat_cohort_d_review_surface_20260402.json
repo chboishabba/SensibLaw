@@ -1,0 +1,57 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_d_review_surface.v0_1",
+  "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+  "cohort_id": "cohort_d_no_instance_of",
+  "source_mapping_ref": "SensibLaw/docs/planning/wikidata_nat_wdu_sandbox_migration_mapping_20260401.md",
+  "cohort_bucket_summary": {
+    "sandbox_claimed_statement_count": 1395,
+    "bucket_reason": "subject_lacks_instance_of"
+  },
+  "governance": {
+    "bucket_type": "typing_deficit_review_only",
+    "automation_allowed": false,
+    "can_execute_edits": false,
+    "promotion_guard": "hold",
+    "fail_closed": true
+  },
+  "review_surface": {
+    "current_gate_id": "review_first_typing_resolution_scan",
+    "current_gate_status": "open_review",
+    "next_gate_id": "type_probing_scan_review_only",
+    "progress_claim": "reviewable_surface_only"
+  },
+  "required_reviewer_checks": [
+    {
+      "check_id": "confirm_absence_of_instance_of",
+      "description": "Confirm the subject still has no instance of statement in the reviewed slice."
+    },
+    {
+      "check_id": "collect_typing_candidates",
+      "description": "Document at least one plausible typing candidate with source anchor."
+    },
+    {
+      "check_id": "record_reconcile_or_hold_decision",
+      "description": "Mark each reviewed row as either candidate-for-reconciliation or explicit hold."
+    }
+  ],
+  "candidate_packet_refs": [
+    {
+      "review_entity_qid": "Q738421",
+      "packet_ref": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_review_packet_Q738421_sidecar_20260402.json",
+      "packet_role": "cohort_d_typing_deficit_probe"
+    },
+    {
+      "review_entity_qid": "Q1785637",
+      "packet_ref": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_review_packet_Q1785637_sidecar_20260402.json",
+      "packet_role": "cohort_d_typing_deficit_probe"
+    }
+  ],
+  "exit_conditions": [
+    "reconciled_typing_candidate_documented_or_explicit_hold",
+    "no_unreviewed_row_claimed_checked_safe"
+  ],
+  "non_claims": [
+    "no_direct_migration_execution",
+    "no_checked_safe_promotion_from_missing_instance_of_alone"
+  ]
+}

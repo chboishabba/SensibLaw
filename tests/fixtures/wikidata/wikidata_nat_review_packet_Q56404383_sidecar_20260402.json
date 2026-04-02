@@ -152,6 +152,11 @@
         "unit_type": "query_row_surface"
       },
       {
+        "text": "receipt_id=follow:query:1 url=https://w.wiki/KR5d reason=bounded follow of the query link named in the source surface evidence_count=1 unresolved_count=3",
+        "unit_id": "follow_receipt:1",
+        "unit_type": "follow_receipt_surface"
+      },
+      {
         "text": "is it necesary to add the rank?",
         "unit_id": "open_question:1",
         "unit_type": "open_question_surface"
@@ -235,17 +240,99 @@
         "text": "capture references",
         "unit_id": "todo_item:15",
         "unit_type": "todo_surface"
+      },
+      {
+        "unit_id": "anchor:goal",
+        "unit_type": "anchor_surface",
+        "text": "migration_goal: Since the cretion of P14143 I have to migrate most of the P5991 statements with their references and qualifiers to use this new property (This has been discussed in the property proposal and documented in Wikiproject climate change).\n\ntasks\ndone\n\n- is there"
+      },
+      {
+        "unit_id": "anchor:cohort_business_family",
+        "unit_type": "anchor_surface",
+        "text": "cohort_business_family: migration for 22514 statements on items that are instances of business (Q4830453), 7138 instances of enterprise (Q6881511) and 7913 instances of public company (Q891723)\n- capt"
+      },
+      {
+        "unit_id": "anchor:qualifier_family",
+        "unit_type": "anchor_surface",
+        "text": "expected_qualifier_family: all \"extra\" qualifiers wip: for these 3 \"instance of\" we are capturing all the qualifiers we can find: determination method or standard (P459), object of statement has role (P3831), point in time (P585), start time (P580), end time (P582), applies to part (P"
+      },
+      {
+        "unit_id": "anchor:reference_family",
+        "unit_type": "anchor_surface",
+        "text": "expected_reference_family: , empresa de capital abierto, institución financiera)\n- capture the references. the first set (things that are instance of empresa, negocio, banco, biopharmaceutical company, compañía, empresa de capital abierto, institución financiera) we fo"
+      },
+      {
+        "unit_id": "anchor:query_anchor",
+        "unit_type": "anchor_surface",
+        "text": "query_anchor: protocol (otro determination method o no tiene el determination method)\n- evaluate"
+      },
+      {
+        "unit_id": "split_plan:context",
+        "unit_type": "split_context_surface",
+        "text": "split://Q56404383|P5991 status=review_only action=review_only review_required=True proposed_bundle_count=1"
+      },
+      {
+        "unit_id": "split_candidates:summary",
+        "unit_type": "split_context_surface",
+        "text": "source_candidate_ids=1 sample=Q56404383|P5991|1"
+      },
+      {
+        "unit_id": "missing_evidence:1",
+        "unit_type": "missing_evidence_surface",
+        "text": "anchor_refs_not_promoted_to_grounded_claims"
+      },
+      {
+        "unit_id": "missing_evidence:2",
+        "unit_type": "missing_evidence_surface",
+        "text": "follow_receipts_not_promoted_to_semantic_claims"
+      },
+      {
+        "unit_id": "missing_evidence:3",
+        "unit_type": "missing_evidence_surface",
+        "text": "no_claim_boundary_mapping_for_candidate_units"
+      },
+      {
+        "unit_id": "missing_evidence:4",
+        "unit_type": "missing_evidence_surface",
+        "text": "no_cross_source_alignment_for_candidate_units"
+      },
+      {
+        "unit_id": "missing_evidence:5",
+        "unit_type": "missing_evidence_surface",
+        "text": "no_revision_locked_excerpts_for_candidate_units"
+      },
+      {
+        "unit_id": "missing_evidence:6",
+        "unit_type": "missing_evidence_surface",
+        "text": "open_questions_not_resolved_into_grounded_assertions"
+      },
+      {
+        "unit_id": "missing_evidence:7",
+        "unit_type": "missing_evidence_surface",
+        "text": "query_rows_not_expanded_into_fetched_semantic_units"
+      },
+      {
+        "unit_id": "missing_evidence:8",
+        "unit_type": "missing_evidence_surface",
+        "text": "split_context_not_lifted_into_semantic_decision_graph"
+      },
+      {
+        "unit_id": "missing_evidence:9",
+        "unit_type": "missing_evidence_surface",
+        "text": "todo_items_not_lifted_into_review_decision_graph"
       }
     ],
     "decomposition_state": "surface_only",
     "layer_schema_version": "sl.wikidata_review_packet.semantic_layer.v0_1",
     "missing_evidence": [
+      "anchor_refs_not_promoted_to_grounded_claims",
       "follow_receipts_not_promoted_to_semantic_claims",
       "no_claim_boundary_mapping_for_candidate_units",
       "no_cross_source_alignment_for_candidate_units",
       "no_revision_locked_excerpts_for_candidate_units",
       "open_questions_not_resolved_into_grounded_assertions",
       "query_rows_not_expanded_into_fetched_semantic_units",
+      "split_context_not_lifted_into_semantic_decision_graph",
       "todo_items_not_lifted_into_review_decision_graph"
     ],
     "separate_from_parsed_page": true

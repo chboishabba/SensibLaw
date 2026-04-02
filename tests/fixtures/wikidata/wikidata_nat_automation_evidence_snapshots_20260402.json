@@ -1,0 +1,296 @@
+{
+  "governance_batch_id": "nat-grad-governance-v1",
+  "snapshots": [
+    {
+      "snapshot_id": "snapshot-2026-04-02a",
+      "min_runs": 2,
+      "proposal_batches": {
+        "evidence_batch_id": "nat-grad-evidence-v1",
+        "runs": [
+          {
+            "run_id": "run-2026-04-02a",
+            "batch_id": "nat-grad-batch-v1",
+            "proposals": [
+              {
+                "proposal_id": "nat-gate-a-promote-v1",
+                "gate_id": "A",
+                "from_level": 0,
+                "to_level": 1,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "reviewer_packets_for_representative_split_shapes",
+                  "bounded_follow_depth_present_and_fail_closed",
+                  "split_plan_verification_on_representative_reviewed_plans",
+                  "uncertainty_flags_preserved"
+                ],
+                "risk_signals": [],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.2},
+                  "split_required_rate_by_family": {"observed": 0.8},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.1},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              },
+              {
+                "proposal_id": "nat-gate-b-hold-v1",
+                "gate_id": "B",
+                "from_level": 1,
+                "to_level": 2,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "repeated_family_scoped_direct_safe_behavior",
+                  "stable_after_state_verification_across_repeated_tranches",
+                  "false_positive_rate_within_family_budget",
+                  "hold_and_abstain_paths_effective"
+                ],
+                "risk_signals": [
+                  "repeated_tranches_revert_to_split_required_majority"
+                ],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.05},
+                  "split_required_rate_by_family": {"observed": 0.95},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.3},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              }
+            ]
+          },
+          {
+            "run_id": "run-2026-04-02b",
+            "batch_id": "nat-grad-batch-v2",
+            "proposals": [
+              {
+                "proposal_id": "nat-gate-a-promote-v2",
+                "gate_id": "A",
+                "from_level": 0,
+                "to_level": 1,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "reviewer_packets_for_representative_split_shapes",
+                  "bounded_follow_depth_present_and_fail_closed",
+                  "split_plan_verification_on_representative_reviewed_plans",
+                  "uncertainty_flags_preserved"
+                ],
+                "risk_signals": [],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.22},
+                  "split_required_rate_by_family": {"observed": 0.78},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.09},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              },
+              {
+                "proposal_id": "nat-gate-b-hold-v2",
+                "gate_id": "B",
+                "from_level": 1,
+                "to_level": 2,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "repeated_family_scoped_direct_safe_behavior",
+                  "stable_after_state_verification_across_repeated_tranches",
+                  "false_positive_rate_within_family_budget",
+                  "hold_and_abstain_paths_effective"
+                ],
+                "risk_signals": [
+                  "repeated_tranches_revert_to_split_required_majority"
+                ],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.04},
+                  "split_required_rate_by_family": {"observed": 0.96},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.31},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "snapshot_id": "snapshot-2026-04-02b",
+      "min_runs": 2,
+      "proposal_batches": {
+        "evidence_batch_id": "nat-grad-evidence-v1",
+        "runs": [
+          {
+            "run_id": "run-2026-04-02a",
+            "batch_id": "nat-grad-batch-v1",
+            "proposals": [
+              {
+                "proposal_id": "nat-gate-a-promote-v1",
+                "gate_id": "A",
+                "from_level": 0,
+                "to_level": 1,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "reviewer_packets_for_representative_split_shapes",
+                  "bounded_follow_depth_present_and_fail_closed",
+                  "split_plan_verification_on_representative_reviewed_plans",
+                  "uncertainty_flags_preserved"
+                ],
+                "risk_signals": [],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.2},
+                  "split_required_rate_by_family": {"observed": 0.8},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.1},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              },
+              {
+                "proposal_id": "nat-gate-b-hold-v1",
+                "gate_id": "B",
+                "from_level": 1,
+                "to_level": 2,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "repeated_family_scoped_direct_safe_behavior",
+                  "stable_after_state_verification_across_repeated_tranches",
+                  "false_positive_rate_within_family_budget",
+                  "hold_and_abstain_paths_effective"
+                ],
+                "risk_signals": [
+                  "repeated_tranches_revert_to_split_required_majority"
+                ],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.05},
+                  "split_required_rate_by_family": {"observed": 0.95},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.3},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              }
+            ]
+          },
+          {
+            "run_id": "run-2026-04-02b",
+            "batch_id": "nat-grad-batch-v2",
+            "proposals": [
+              {
+                "proposal_id": "nat-gate-a-promote-v2",
+                "gate_id": "A",
+                "from_level": 0,
+                "to_level": 1,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "reviewer_packets_for_representative_split_shapes",
+                  "bounded_follow_depth_present_and_fail_closed",
+                  "split_plan_verification_on_representative_reviewed_plans",
+                  "uncertainty_flags_preserved"
+                ],
+                "risk_signals": [],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.22},
+                  "split_required_rate_by_family": {"observed": 0.78},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.09},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              },
+              {
+                "proposal_id": "nat-gate-b-hold-v2",
+                "gate_id": "B",
+                "from_level": 1,
+                "to_level": 2,
+                "gate_families_passed": [
+                  "evidence_grounding",
+                  "claim_boundary_reliability",
+                  "verification_quality",
+                  "policy_risk_containment",
+                  "operational_control_and_rollback"
+                ],
+                "evidence_signals": [
+                  "repeated_family_scoped_direct_safe_behavior",
+                  "stable_after_state_verification_across_repeated_tranches",
+                  "false_positive_rate_within_family_budget",
+                  "hold_and_abstain_paths_effective"
+                ],
+                "risk_signals": [
+                  "repeated_tranches_revert_to_split_required_majority"
+                ],
+                "metrics": {
+                  "direct_safe_yield_by_family": {"observed": 0.04},
+                  "split_required_rate_by_family": {"observed": 0.96},
+                  "hold_abstain_rate_and_reason_distribution": {"observed": 0.31},
+                  "after_state_verification_pass_rate": {"observed": 1.0},
+                  "false_positive_rate_and_severity": {"observed": 0.0},
+                  "rollback_invocation_and_recovery_success": {"observed": 1.0},
+                  "receipt_completeness_coverage": {"observed": 1.0}
+                },
+                "recommendation": "promote"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+

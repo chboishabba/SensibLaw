@@ -95,6 +95,45 @@ An opt-in semantic sidecar now also exists behind
 derives only from existing bounded packet signals, and is intentionally a
 sidecar rather than a replacement for the shallow surface parse.
 
+The sidecar now emits candidate units derived directly from the `source_surface`
+anchors (anchor-derived reviewer units) plus split-review context units that
+summarize merged split axes and the recommended action. This lets the reviewer
+see why each span matters without implying that `parsed_page` already performs
+clause-level semantic-unit extraction.
+
+The same sidecar now also lifts bounded follow receipts into candidate units
+when they are present. That keeps the receipt boundary visible to reviewers
+without collapsing the receipt into a grounded semantic claim or pretending the
+packet has performed deeper source expansion than it has.
+
+The sidecar also turns its own `missing_evidence` list into candidate units so
+the reviewer can see the current semantic gaps alongside the surfaced spans.
+That remains a gap-reporting convenience, not a claim that the gaps are
+resolved.
+
+The optional semantic sidecar now aggregates the bounded helper lanes for:
+
+- follow depth
+- claim-boundary mapping
+- cross-source alignment
+- reviewer actions
+- bounded variant comparison
+
+Those helper lanes stay explicitly non-authoritative and remain separate from
+`parsed_page`, but they now hang off the same packet sidecar so reviewers can
+see them together.
+
+When a case benefits from cross-variant inspection, the packet may also carry
+a bounded variant-comparison surface. That surface must stay small and
+diagnostic:
+
+- compare only a few relevant variants
+- keep the comparison anchored to the same held bundle and revision-locked
+  source
+- use disagreements to explain why a row is `split_required` or `review_only`
+- do not turn variant comparison into open-ended diff hunting or a hidden
+  truth engine
+
 ### 5. Reviewer view
 
 - decision focus areas
@@ -111,6 +150,13 @@ sidecar rather than a replacement for the shallow surface parse.
 - unresolved uncertainty must stay visible
 - shallow surface parse must not be misrepresented as full semantic
   decomposition
+- the helper lanes inside the optional semantic sidecar remain diagnostic and
+  non-authoritative
+- bounded variant comparison is a diagnostic aid, not an authority layer
+- bounded variant comparison may now be grounded automatically from sibling
+  Nat split plans present in the same split payload so the packet can surface
+  real agreement and disagreement patterns without becoming open-ended diff
+  hunting
 
 ## Acceptance criteria
 

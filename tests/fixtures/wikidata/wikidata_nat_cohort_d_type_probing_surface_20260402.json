@@ -1,0 +1,62 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_d_type_probing_surface.v0_1",
+  "lane_id": "wikidata_nat_cohort_d_no_instance_of",
+  "cohort_id": "cohort_d_no_instance_of",
+  "artifact_status": "review_only_ready",
+  "current_gate_id": "review_first_typing_resolution_scan",
+  "next_gate_id": "type_probing_scan_review_only",
+  "governance": {
+    "automation_allowed": false,
+    "can_execute_edits": false,
+    "fail_closed": true,
+    "promotion_guard": "hold"
+  },
+  "required_reviewer_checks": [
+    {
+      "check_id": "confirm_absence_of_instance_of",
+      "description": "Confirm the subject still has no instance of statement in the reviewed slice."
+    },
+    {
+      "check_id": "collect_typing_candidates",
+      "description": "Document at least one plausible typing candidate with source anchor."
+    },
+    {
+      "check_id": "record_reconcile_or_hold_decision",
+      "description": "Mark each reviewed row as either candidate-for-reconciliation or explicit hold."
+    }
+  ],
+  "probe_rows": [
+    {
+      "review_entity_qid": "Q738421",
+      "packet_id": "review-packet:041f7506c2efdeca",
+      "split_plan_id": "split://Q738421|P5991",
+      "packet_status": "structurally_decomposable",
+      "recommended_next_step": "review_structured_split",
+      "uncertainty_flags": [
+        "page_open_questions"
+      ],
+      "smallest_typing_check": "resolve_page_open_questions",
+      "promotion_guard": "hold",
+      "execution_allowed": false
+    },
+    {
+      "review_entity_qid": "Q1785637",
+      "packet_id": "review-packet:f451ac11e012b114",
+      "split_plan_id": "split://Q1785637|P5991",
+      "packet_status": "structurally_decomposable",
+      "recommended_next_step": "review_structured_split",
+      "uncertainty_flags": [
+        "page_open_questions"
+      ],
+      "smallest_typing_check": "resolve_page_open_questions",
+      "promotion_guard": "hold",
+      "execution_allowed": false
+    }
+  ],
+  "unresolved_packet_refs": [],
+  "non_claims": [
+    "non_executing_type_probe_surface",
+    "no_direct_migration_execution",
+    "no_checked_safe_promotion_from_missing_instance_of_alone"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "blocked_packets": [],
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "examples": [
+    {
+      "entity_qid": "Q8646",
+      "priority": "high",
+      "queue_item_id": "cohort-b-queue:fc07935a9e84",
+      "row_id": "Q8646|P5991|4",
+      "variance_flags": [
+        "missing_expected_qualifier_properties",
+        "unexpected_qualifier_properties",
+        "unexpected_reference_properties"
+      ]
+    },
+    {
+      "entity_qid": "Q11661",
+      "priority": "medium",
+      "queue_item_id": "cohort-b-queue:c9ec83c4f421",
+      "row_id": "Q11661|P5991|1",
+      "variance_flags": [
+        "missing_expected_qualifier_properties",
+        "missing_expected_reference_properties"
+      ]
+    }
+  ],
+  "governance": {
+    "automation_allowed": false,
+    "fail_closed": true,
+    "requires_human_review": true
+  },
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "non_claims": [
+    "operator report only",
+    "not migration execution",
+    "not cross-cohort arbitration"
+  ],
+  "queue_status": "review_queue_ready",
+  "recommendations": [
+    "Process high-priority queue rows first using bounded reviewer prompts.",
+    "Keep Cohort B lane review-only; do not execute migration from this report."
+  ],
+  "report_id": "cohort-b-report:8ca3d0ccc0cf6965",
+  "report_status": "review_only_report_ready",
+  "schema_version": "sl.wikidata_nat_cohort_b_operator_report.v0_1",
+  "summary": {
+    "blocked_packet_count": 0,
+    "priority_counts": {
+      "high": 1,
+      "medium": 1
+    },
+    "queue_item_count": 2,
+    "review_first": true,
+    "top_instance_classes": [
+      {
+        "instance_of_qid": "Q13442814",
+        "queue_row_count": 1
+      },
+      {
+        "instance_of_qid": "Q43229",
+        "queue_row_count": 1
+      }
+    ],
+    "validation_error_count": 0,
+    "variance_flag_counts": {
+      "missing_expected_qualifier_properties": 2,
+      "missing_expected_reference_properties": 1,
+      "unexpected_qualifier_properties": 1,
+      "unexpected_reference_properties": 1
+    }
+  },
+  "validation_errors": []
+}

@@ -1,0 +1,587 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from src.ontology.wikidata_nat_automation_graduation import (
+    AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_REPORT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_EVAL_SCHEMA_VERSION,
+    build_nat_automation_graduation_batch_report,
+    build_nat_automation_graduation_evidence_report,
+    build_nat_automation_graduation_governance_index,
+    build_nat_automation_graduation_governance_summary,
+    build_nat_automation_graduation_report,
+    evaluate_nat_automation_promotion,
+)
+
+
+def _load_graduation_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def test_evaluator_approves_gate_a_when_all_requirements_are_met() -> None:
+    criteria = _load_graduation_fixture()
+    proposal = {
+        "gate_id": "A",
+        "from_level": 0,
+        "to_level": 1,
+        "gate_families_passed": criteria["gate_families_required"],
+        "evidence_signals": [
+            "reviewer_packets_for_representative_split_shapes",
+            "bounded_follow_depth_present_and_fail_closed",
+            "split_plan_verification_on_representative_reviewed_plans",
+            "uncertainty_flags_preserved",
+        ],
+        "risk_signals": [],
+        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+        "recommendation": "promote",
+    }
+
+    result = evaluate_nat_automation_promotion(criteria, proposal)
+
+    assert result["schema_version"] == AUTOMATION_GRADUATION_EVAL_SCHEMA_VERSION
+    assert result["status"] == "approved"
+    assert result["decision"] == "promote"
+    assert result["promotion_allowed"] is True
+    assert result["failed_checks"] == []
+
+
+def test_evaluator_rejects_when_blocked_signal_is_triggered() -> None:
+    criteria = _load_graduation_fixture()
+    proposal = {
+        "gate_id": "B",
+        "from_level": 1,
+        "to_level": 2,
+        "gate_families_passed": criteria["gate_families_required"],
+        "evidence_signals": [
+            "repeated_family_scoped_direct_safe_behavior",
+            "stable_after_state_verification_across_repeated_tranches",
+            "false_positive_rate_within_family_budget",
+            "hold_and_abstain_paths_effective",
+        ],
+        "risk_signals": ["repeated_tranches_revert_to_split_required_majority"],
+        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+        "recommendation": "promote",
+    }
+
+    result = evaluate_nat_automation_promotion(criteria, proposal)
+
+    assert result["status"] == "rejected"
+    assert result["decision"] == "hold"
+    assert result["promotion_allowed"] is False
+    assert "blocked_signal_triggered" in result["failed_checks"]
+    assert result["triggered_blockers"] == ["repeated_tranches_revert_to_split_required_majority"]
+
+
+def test_evaluator_fail_closed_on_missing_evidence_families_and_metrics() -> None:
+    criteria = _load_graduation_fixture()
+    proposal = {
+        "gate_id": "C",
+        "from_level": 2,
+        "to_level": 3,
+        "gate_families_passed": [
+            "evidence_grounding",
+            "verification_quality",
+        ],
+        "evidence_signals": [
+            "automation_success_across_multiple_structural_families",
+        ],
+        "risk_signals": [],
+        "metrics": {},
+        "recommendation": "promote",
+    }
+
+    result = evaluate_nat_automation_promotion(criteria, proposal)
+
+    assert result["status"] == "rejected"
+    assert result["decision"] == "hold"
+    assert result["promotion_allowed"] is False
+    assert "missing_required_gate_families" in result["failed_checks"]
+    assert "missing_must_show_evidence" in result["failed_checks"]
+    assert "missing_required_metrics" in result["failed_checks"]
+
+
+def test_evaluator_rejects_unknown_gate_fail_closed() -> None:
+    criteria = _load_graduation_fixture()
+    proposal = {
+        "gate_id": "Z",
+        "from_level": 0,
+        "to_level": 1,
+        "gate_families_passed": criteria["gate_families_required"],
+        "evidence_signals": [],
+        "risk_signals": [],
+        "metrics": {},
+        "recommendation": "promote",
+    }
+
+    result = evaluate_nat_automation_promotion(criteria, proposal)
+
+    assert result["status"] == "rejected"
+    assert result["decision"] == "hold"
+    assert result["promotion_allowed"] is False
+    assert result["failed_checks"] == ["gate_not_found"]
+
+
+def test_report_surface_wraps_evaluation_deterministically() -> None:
+    criteria = _load_graduation_fixture()
+    proposal = {
+        "proposal_id": "proposal-123",
+        "gate_id": "A",
+        "from_level": 0,
+        "to_level": 1,
+        "gate_families_passed": criteria["gate_families_required"],
+        "evidence_signals": [
+            "reviewer_packets_for_representative_split_shapes",
+            "bounded_follow_depth_present_and_fail_closed",
+            "split_plan_verification_on_representative_reviewed_plans",
+            "uncertainty_flags_preserved",
+        ],
+        "risk_signals": [],
+        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+        "recommendation": "promote",
+    }
+
+    report = build_nat_automation_graduation_report(criteria, proposal)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_REPORT_SCHEMA_VERSION
+    assert report["proposal_id"] == "proposal-123"
+    assert report["gate_id"] == "A"
+    assert report["status"] == "approved"
+    assert report["decision"] == "promote"
+    assert report["promotion_allowed"] is True
+    assert report["failed_checks"] == []
+
+
+def test_batch_report_surface_aggregates_mixed_outcomes_fail_closed() -> None:
+    criteria = _load_graduation_fixture()
+    proposal_batch = {
+        "batch_id": "batch-1",
+        "proposals": [
+            {
+                "proposal_id": "p-approve",
+                "gate_id": "A",
+                "from_level": 0,
+                "to_level": 1,
+                "gate_families_passed": criteria["gate_families_required"],
+                "evidence_signals": [
+                    "reviewer_packets_for_representative_split_shapes",
+                    "bounded_follow_depth_present_and_fail_closed",
+                    "split_plan_verification_on_representative_reviewed_plans",
+                    "uncertainty_flags_preserved",
+                ],
+                "risk_signals": [],
+                "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                "recommendation": "promote",
+            },
+            {
+                "proposal_id": "p-reject",
+                "gate_id": "B",
+                "from_level": 1,
+                "to_level": 2,
+                "gate_families_passed": criteria["gate_families_required"],
+                "evidence_signals": [
+                    "repeated_family_scoped_direct_safe_behavior",
+                    "stable_after_state_verification_across_repeated_tranches",
+                    "false_positive_rate_within_family_budget",
+                    "hold_and_abstain_paths_effective",
+                ],
+                "risk_signals": ["repeated_tranches_revert_to_split_required_majority"],
+                "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                "recommendation": "promote",
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_batch_report(criteria, proposal_batch)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION
+    assert report["batch_id"] == "batch-1"
+    assert report["proposal_count"] == 2
+    assert report["summary"]["approved_count"] == 1
+    assert report["summary"]["rejected_count"] == 1
+    assert report["summary"]["fail_closed_count"] == 1
+
+
+def test_evidence_report_surface_holds_when_repeated_runs_include_fail_closed_rows() -> None:
+    criteria = _load_graduation_fixture()
+    repeated_batches = {
+        "evidence_batch_id": "evidence-1",
+        "runs": [
+            {
+                "run_id": "run-1",
+                "batch_id": "batch-1",
+                "proposals": [
+                    {
+                        "proposal_id": "p-1",
+                        "gate_id": "A",
+                        "from_level": 0,
+                        "to_level": 1,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "reviewer_packets_for_representative_split_shapes",
+                            "bounded_follow_depth_present_and_fail_closed",
+                            "split_plan_verification_on_representative_reviewed_plans",
+                            "uncertainty_flags_preserved",
+                        ],
+                        "risk_signals": [],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    },
+                    {
+                        "proposal_id": "p-2",
+                        "gate_id": "B",
+                        "from_level": 1,
+                        "to_level": 2,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "repeated_family_scoped_direct_safe_behavior",
+                            "stable_after_state_verification_across_repeated_tranches",
+                            "false_positive_rate_within_family_budget",
+                            "hold_and_abstain_paths_effective",
+                        ],
+                        "risk_signals": ["repeated_tranches_revert_to_split_required_majority"],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    },
+                ],
+            },
+            {
+                "run_id": "run-2",
+                "batch_id": "batch-2",
+                "proposals": [
+                    {
+                        "proposal_id": "p-3",
+                        "gate_id": "A",
+                        "from_level": 0,
+                        "to_level": 1,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "reviewer_packets_for_representative_split_shapes",
+                            "bounded_follow_depth_present_and_fail_closed",
+                            "split_plan_verification_on_representative_reviewed_plans",
+                            "uncertainty_flags_preserved",
+                        ],
+                        "risk_signals": [],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    },
+                    {
+                        "proposal_id": "p-4",
+                        "gate_id": "B",
+                        "from_level": 1,
+                        "to_level": 2,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "repeated_family_scoped_direct_safe_behavior",
+                            "stable_after_state_verification_across_repeated_tranches",
+                            "false_positive_rate_within_family_budget",
+                            "hold_and_abstain_paths_effective",
+                        ],
+                        "risk_signals": ["repeated_tranches_revert_to_split_required_majority"],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    },
+                ],
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_evidence_report(criteria, repeated_batches, min_runs=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert "rejected_proposals_present" in report["readiness_failed_reasons"]
+    assert "fail_closed_proposals_present" in report["readiness_failed_reasons"]
+    assert "mixed_gate_scope" in report["readiness_failed_reasons"]
+
+
+def test_evidence_report_surface_promotes_when_repeated_runs_are_clean_and_consistent() -> None:
+    criteria = _load_graduation_fixture()
+    repeated_batches = {
+        "evidence_batch_id": "evidence-2",
+        "runs": [
+            {
+                "run_id": "run-1",
+                "batch_id": "batch-1",
+                "proposals": [
+                    {
+                        "proposal_id": "p-1",
+                        "gate_id": "A",
+                        "from_level": 0,
+                        "to_level": 1,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "reviewer_packets_for_representative_split_shapes",
+                            "bounded_follow_depth_present_and_fail_closed",
+                            "split_plan_verification_on_representative_reviewed_plans",
+                            "uncertainty_flags_preserved",
+                        ],
+                        "risk_signals": [],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    }
+                ],
+            },
+            {
+                "run_id": "run-2",
+                "batch_id": "batch-2",
+                "proposals": [
+                    {
+                        "proposal_id": "p-2",
+                        "gate_id": "A",
+                        "from_level": 0,
+                        "to_level": 1,
+                        "gate_families_passed": criteria["gate_families_required"],
+                        "evidence_signals": [
+                            "reviewer_packets_for_representative_split_shapes",
+                            "bounded_follow_depth_present_and_fail_closed",
+                            "split_plan_verification_on_representative_reviewed_plans",
+                            "uncertainty_flags_preserved",
+                        ],
+                        "risk_signals": [],
+                        "metrics": {metric: {"observed": 1} for metric in criteria["metrics_required"]},
+                        "recommendation": "promote",
+                    }
+                ],
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_evidence_report(criteria, repeated_batches, min_runs=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION
+    assert report["status"] == "ready"
+    assert report["decision"] == "promote"
+    assert report["promotion_ready"] is True
+    assert report["readiness_failed_reasons"] == []
+    assert report["readiness_scope"]["gate_consistent"] is True
+    assert report["readiness_scope"]["gate_id"] == "A"
+
+
+def test_governance_index_holds_when_any_snapshot_not_ready() -> None:
+    criteria = _load_graduation_fixture()
+    snapshots = {
+        "governance_batch_id": "gov-1",
+        "snapshots": [
+            {
+                "snapshot_id": "s1",
+                "evidence_report": {
+                    "schema_version": AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "readiness_failed_reasons": [],
+                    "readiness_scope": {"gate_id": "A", "run_count": 2},
+                    "summary": {
+                        "approved_count": 2,
+                        "held_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+            {
+                "snapshot_id": "s2",
+                "evidence_report": {
+                    "schema_version": AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
+                    "status": "not_ready",
+                    "decision": "hold",
+                    "promotion_ready": False,
+                    "readiness_failed_reasons": ["rejected_proposals_present"],
+                    "readiness_scope": {"gate_id": "A", "run_count": 2},
+                    "summary": {
+                        "approved_count": 1,
+                        "held_count": 0,
+                        "rejected_count": 1,
+                        "fail_closed_count": 1,
+                    },
+                },
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_governance_index(criteria, snapshots, min_snapshots=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert "not_ready_snapshots_present" in report["readiness_failed_reasons"]
+    assert "rejected_proposals_present" in report["readiness_failed_reasons"]
+    assert "fail_closed_proposals_present" in report["readiness_failed_reasons"]
+
+
+def test_governance_index_promotes_when_all_snapshots_ready_and_consistent() -> None:
+    criteria = _load_graduation_fixture()
+    snapshots = {
+        "governance_batch_id": "gov-2",
+        "snapshots": [
+            {
+                "snapshot_id": "s1",
+                "evidence_report": {
+                    "schema_version": AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "readiness_failed_reasons": [],
+                    "readiness_scope": {"gate_id": "A", "run_count": 2},
+                    "summary": {
+                        "approved_count": 2,
+                        "held_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+            {
+                "snapshot_id": "s2",
+                "evidence_report": {
+                    "schema_version": AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "readiness_failed_reasons": [],
+                    "readiness_scope": {"gate_id": "A", "run_count": 2},
+                    "summary": {
+                        "approved_count": 1,
+                        "held_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_governance_index(criteria, snapshots, min_snapshots=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION
+    assert report["status"] == "ready"
+    assert report["decision"] == "promote"
+    assert report["promotion_ready"] is True
+    assert report["readiness_failed_reasons"] == []
+    assert report["scope"]["gate_scope_consistent"] is True
+    assert report["scope"]["gate_id"] == "A"
+
+
+def test_governance_summary_holds_when_any_governance_index_not_ready() -> None:
+    criteria = _load_graduation_fixture()
+    governance_snapshots = {
+        "governance_summary_id": "gov-summary-1",
+        "snapshots": [
+            {
+                "snapshot_id": "g1",
+                "governance_index": {
+                    "schema_version": AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "scope": {"gate_id": "A", "snapshot_count": 2},
+                    "summary": {
+                        "ready_count": 2,
+                        "not_ready_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+            {
+                "snapshot_id": "g2",
+                "governance_index": {
+                    "schema_version": AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
+                    "status": "not_ready",
+                    "decision": "hold",
+                    "promotion_ready": False,
+                    "scope": {"gate_id": "A", "snapshot_count": 2},
+                    "summary": {
+                        "ready_count": 1,
+                        "not_ready_count": 1,
+                        "rejected_count": 1,
+                        "fail_closed_count": 1,
+                    },
+                },
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_governance_summary(
+        criteria,
+        governance_snapshots,
+        min_indexes=2,
+    )
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert "not_ready_governance_indexes_present" in report["readiness_failed_reasons"]
+    assert "rejected_proposals_present" in report["readiness_failed_reasons"]
+    assert "fail_closed_proposals_present" in report["readiness_failed_reasons"]
+
+
+def test_governance_summary_promotes_when_governance_indexes_are_ready_and_consistent() -> None:
+    criteria = _load_graduation_fixture()
+    governance_snapshots = {
+        "governance_summary_id": "gov-summary-2",
+        "snapshots": [
+            {
+                "snapshot_id": "g1",
+                "governance_index": {
+                    "schema_version": AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "scope": {"gate_id": "A", "snapshot_count": 2},
+                    "summary": {
+                        "ready_count": 2,
+                        "not_ready_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+            {
+                "snapshot_id": "g2",
+                "governance_index": {
+                    "schema_version": AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
+                    "status": "ready",
+                    "decision": "promote",
+                    "promotion_ready": True,
+                    "scope": {"gate_id": "A", "snapshot_count": 2},
+                    "summary": {
+                        "ready_count": 2,
+                        "not_ready_count": 0,
+                        "rejected_count": 0,
+                        "fail_closed_count": 0,
+                    },
+                },
+            },
+        ],
+    }
+
+    report = build_nat_automation_graduation_governance_summary(
+        criteria,
+        governance_snapshots,
+        min_indexes=2,
+    )
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION
+    assert report["status"] == "ready"
+    assert report["decision"] == "promote"
+    assert report["promotion_ready"] is True
+    assert report["readiness_failed_reasons"] == []
+    assert report["scope"]["gate_scope_consistent"] is True
+    assert report["scope"]["gate_id"] == "A"

@@ -643,3 +643,394 @@ def test_wikidata_build_split_plan_cli_writes_json(tmp_path, capsys) -> None:
     assert stdout["plan_count"] == 1
     assert stdout["counts_by_status"] == {"structurally_decomposable": 1}
     assert payload["plans"][0]["status"] == "structurally_decomposable"
+
+
+def test_wikidata_cohort_c_operator_packet_cli_wraps_scan_payload(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = root / "fixtures" / "wikidata" / "wikidata_nat_cohort_c_population_scan_20260402.json"
+    out_path = tmp_path / "cohort_c_operator_packet.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-c-operator-packet",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["decision"] == "review"
+    assert stdout["candidate_count"] == 3
+    assert payload["decision"] == "review"
+    assert payload["triage_prompts"][0].startswith("Review the candidate P459 status split")
+
+
+def test_wikidata_cohort_d_operator_review_cli_materializes_queue_surface(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_d_type_probing_surface_20260402.json"
+    )
+    out_path = tmp_path / "cohort_d_operator_review_surface.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-d-operator-review",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["readiness"] == "review_queue_ready"
+    assert stdout["queue_size"] == 2
+    assert stdout["unresolved_packet_ref_count"] == 0
+    assert payload["readiness"] == "review_queue_ready"
+    assert payload["queue_size"] == 2
+    assert payload["governance"]["automation_allowed"] is False
+    assert payload["governance"]["can_execute_edits"] is False
+    assert all(row["execution_allowed"] is False for row in payload["operator_queue"])
+
+
+def test_wikidata_cohort_d_operator_report_cli_materializes_report_surface(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_d_operator_review_surface_20260402.json"
+    )
+    out_path = tmp_path / "cohort_d_operator_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-d-operator-report",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["readiness"] == "review_queue_ready"
+    assert stdout["decision"] == "review"
+    assert stdout["promotion_allowed"] is False
+    assert stdout["queue_size"] == 2
+    assert payload["decision"] == "review"
+    assert payload["promotion_allowed"] is False
+    assert payload["summary"]["queue_size"] == 2
+    assert payload["governance"]["automation_allowed"] is False
+    assert payload["governance"]["can_execute_edits"] is False
+
+
+def test_wikidata_cohort_d_operator_report_batch_cli_materializes_batch_report(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_d_operator_report_batch_input_20260402.json"
+    )
+    out_path = tmp_path / "cohort_d_operator_report_batch.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-d-operator-report-batch",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["batch_id"] == "cohort_d_operator_batch_20260402"
+    assert stdout["decision"] == "review"
+    assert stdout["promotion_allowed"] is False
+    assert stdout["case_count"] == 2
+    assert stdout["all_cases_ready"] is False
+    assert payload["summary"]["case_count"] == 2
+    assert payload["summary"]["total_unresolved_packet_ref_count"] == 1
+
+
+def test_wikidata_cohort_d_review_control_index_cli_materializes_control_index(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_d_review_control_index_input_20260402.json"
+    )
+    out_path = tmp_path / "cohort_d_review_control_index.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "cohort-d-review-control-index",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["index_id"] == "cohort_d_review_control_index_20260402"
+    assert stdout["decision"] == "review"
+    assert stdout["promotion_allowed"] is False
+    assert stdout["batch_count"] == 2
+    assert stdout["all_batches_ready"] is False
+    assert payload["summary"]["batch_count"] == 2
+    assert payload["summary"]["all_batches_ready"] is False
+    assert "batch_not_all_cases_ready" in payload["blocked_signals"]
+
+
+def test_wikidata_automation_graduation_eval_cli_approves_gate_a(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    proposal_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_promotion_proposal_gate_a_promote_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_report_gate_a.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-eval",
+            "--criteria",
+            str(criteria_path),
+            "--proposal",
+            str(proposal_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["status"] == "approved"
+    assert stdout["decision"] == "promote"
+    assert stdout["promotion_allowed"] is True
+    assert payload["status"] == "approved"
+    assert payload["failed_checks"] == []
+
+
+def test_wikidata_automation_graduation_eval_cli_holds_gate_b_with_blocker(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    proposal_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_promotion_proposal_gate_b_hold_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_report_gate_b.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-eval",
+            "--criteria",
+            str(criteria_path),
+            "--proposal",
+            str(proposal_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["status"] == "rejected"
+    assert stdout["decision"] == "hold"
+    assert stdout["promotion_allowed"] is False
+    assert payload["status"] == "rejected"
+    assert "blocked_signal_triggered" in payload["failed_checks"]
+
+
+def test_wikidata_automation_graduation_eval_batch_cli_writes_index_report(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    proposal_batch_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_promotion_proposal_batch_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_batch_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-eval-batch",
+            "--criteria",
+            str(criteria_path),
+            "--proposal-batch",
+            str(proposal_batch_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["batch_id"] == "nat-grad-batch-v1"
+    assert stdout["proposal_count"] == 2
+    assert stdout["summary"]["approved_count"] == 1
+    assert stdout["summary"]["rejected_count"] == 1
+    assert stdout["summary"]["fail_closed_count"] == 1
+    assert payload["proposal_count"] == 2
+    assert payload["summary"]["approved_count"] == 1
+    assert payload["summary"]["rejected_count"] == 1
+
+
+def test_wikidata_automation_graduation_evidence_report_cli_writes_readiness_surface(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    proposal_batches_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_promotion_proposal_batches_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_evidence_report.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-evidence-report",
+            "--criteria",
+            str(criteria_path),
+            "--proposal-batches",
+            str(proposal_batches_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["evidence_batch_id"] == "nat-grad-evidence-v1"
+    assert stdout["status"] == "not_ready"
+    assert stdout["decision"] == "hold"
+    assert stdout["promotion_ready"] is False
+    assert stdout["summary"]["rejected_count"] == 2
+    assert payload["status"] == "not_ready"
+    assert "rejected_proposals_present" in payload["readiness_failed_reasons"]
+    assert "fail_closed_proposals_present" in payload["readiness_failed_reasons"]
+
+
+def test_wikidata_automation_graduation_governance_index_cli_writes_snapshot_summary(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    evidence_snapshots_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_evidence_snapshots_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_governance_index.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-governance-index",
+            "--criteria",
+            str(criteria_path),
+            "--evidence-snapshots",
+            str(evidence_snapshots_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["governance_batch_id"] == "nat-grad-governance-v1"
+    assert stdout["status"] == "not_ready"
+    assert stdout["decision"] == "hold"
+    assert stdout["promotion_ready"] is False
+    assert stdout["summary"]["ready_count"] == 0
+    assert stdout["summary"]["not_ready_count"] == 2
+    assert payload["status"] == "not_ready"
+    assert "not_ready_snapshots_present" in payload["readiness_failed_reasons"]
+
+
+def test_wikidata_automation_graduation_governance_summary_cli_writes_repeated_index_summary(
+    tmp_path, capsys
+) -> None:
+    root = Path(__file__).resolve().parent
+    criteria_path = (
+        root / "fixtures" / "wikidata" / "wikidata_nat_automation_graduation_criteria_20260402.json"
+    )
+    governance_snapshots_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_automation_governance_snapshots_20260402.json"
+    )
+    out_path = tmp_path / "automation_graduation_governance_summary.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "automation-graduation-governance-summary",
+            "--criteria",
+            str(criteria_path),
+            "--governance-snapshots",
+            str(governance_snapshots_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert stdout["output"] == str(out_path)
+    assert stdout["governance_summary_id"] == "nat-grad-governance-summary-v1"
+    assert stdout["status"] == "not_ready"
+    assert stdout["decision"] == "hold"
+    assert stdout["promotion_ready"] is False
+    assert stdout["summary"]["ready_count"] == 0
+    assert stdout["summary"]["not_ready_count"] == 2
+    assert payload["status"] == "not_ready"
+    assert "not_ready_governance_indexes_present" in payload["readiness_failed_reasons"]

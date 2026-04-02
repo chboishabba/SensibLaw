@@ -1,0 +1,61 @@
+{
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "control_status": "review_control_ready",
+  "decision_reasons": [
+    "ready_indexes_meet_threshold"
+  ],
+  "governance": {
+    "automation_allowed": false,
+    "fail_closed": true,
+    "requires_human_review": true
+  },
+  "index_entries": [
+    {
+      "decision_reasons": [
+        "ready_batches_meet_threshold"
+      ],
+      "hold_batch_count": 0,
+      "index_id": "cohort-b-index:b4fdccf33628",
+      "index_position": 0,
+      "index_status": "review_index_ready",
+      "ready_batch_count": 2,
+      "validation_error_count": 0
+    },
+    {
+      "decision_reasons": [
+        "ready_batches_meet_threshold"
+      ],
+      "hold_batch_count": 0,
+      "index_id": "cohort-b-index:ed37bab7fef9",
+      "index_position": 1,
+      "index_status": "review_index_ready",
+      "ready_batch_count": 1,
+      "validation_error_count": 0
+    }
+  ],
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "non_claims": [
+    "operator control summary only",
+    "not migration execution",
+    "not cross-cohort arbitration"
+  ],
+  "ready_index_ids": [
+    "cohort-b-index:b4fdccf33628",
+    "cohort-b-index:ed37bab7fef9"
+  ],
+  "schema_version": "sl.wikidata_nat_cohort_b_operator_control_summary.v0_1",
+  "summary": {
+    "aggregate_hold_batch_count": 0,
+    "aggregate_ready_batch_count": 3,
+    "hold_index_count": 0,
+    "input_index_count": 2,
+    "ready_index_count": 2,
+    "review_first": true,
+    "status_counts": {
+      "review_index_ready": 2
+    },
+    "valid_index_count": 2,
+    "validation_error_count": 0
+  },
+  "validation_errors": []
+}

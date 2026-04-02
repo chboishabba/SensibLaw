@@ -6,7 +6,13 @@ Date: 2026-04-01
 
 State the full intended end product for Nat's `P5991 -> P14143` lane in plain
 operational terms, and make explicit that full pipeline coverage is the real
-goal, not blind full-population execution.
+goal. The long-term P0 moonshot is a blind migration bot, but the current lane
+is the review-and-split workbench that has to earn that level of automation.
+
+Use
+`SensibLaw/docs/planning/wikidata_nat_gap_to_moonshot_program_20260402.md`
+for the explicit staged gap, promotion gates, and roadmap from the current
+review-first posture to that moonshot.
 
 ## Plain-Language End Product
 
@@ -24,10 +30,13 @@ It should let reviewers:
 
 The product is therefore:
 
-- not a blind migration bot
+- not a blind migration bot yet
 - not a vague queue of hard rows
 - but a governed backlog-processing system with different lanes for different
   levels of certainty
+
+The blind migration bot is the P0 moonshot for the lane, but it sits on top of
+the review-and-split workbench rather than replacing it.
 
 Operationally, that also means Nat can be run with multiple disjoint review
 lanes at once when the surface is wide enough: one nonblocking lane per worker
@@ -94,9 +103,18 @@ promote or split safely.
 ### What is not complete
 
 - The wider online lane is not yet a broad direct execution lane.
-- The generic reviewer packet contract/parser/follow-receipt lane is not yet
-  implemented.
-- Cohort C remains a separate review-first branch.
+- The reviewer-packet lane is real, but its remaining leverage is grounding
+  depth and non-company structural breadth rather than more packet shape.
+- Cohorts B, C, D, and E remain review-first branches rather than promoted
+  automation families.
+- the automation-graduation ceiling remains at Level 1, not yet at broad
+  family-scoped automation.
+- several moonshot-gap branches now have reproducible operator/report surfaces
+  and CLIs, but those improve auditability and repeatability rather than
+  changing the current automation tier by themselves.
+- those same branches now also have broader operator/governance indexes over
+  repeated batches or evidence snapshots, but those still improve control and
+  auditability rather than changing the automation tier by themselves.
 
 ## ZKP Frame
 
@@ -117,6 +135,7 @@ promote or split safely.
 - split plans
 - split verification
 - next reviewer-packet lane
+- grounding-depth, cohort-review, and graduation operator/report surfaces
 
 ### S
 
@@ -136,16 +155,21 @@ promote or split safely.
 
 - design for full pipeline coverage across all rows, while only automating the
   rows that repeatedly justify it
+- treat the blind migration bot as the P0 moonshot after the review/split
+  workbench proves the safe lanes are stable enough to automate further
 
 ### G
 
 - full backlog coverage is allowed
 - blind full-population execution is not the target
+- blind migration bot automation is the moonshot, not the current default
 
 ### F
 
-- the main missing piece is the generic reviewer-packet layer that compresses
-  hard review cases without overclaiming authority
+- the main missing pieces are:
+  - stronger grounded evidence on hard rows
+  - broader structural coverage across non-company cohorts
+  - measured promotion evidence from the new operator/report surfaces
 
 ## ITIL Reading
 
@@ -228,10 +252,12 @@ review-first lanes rather than a single monolithic worker loop.
 
 It is:
 
-1. generic reviewer-packet contract
-2. bounded parser
-3. bounded follow receipts
-4. packet attachment to held Nat split rows
+1. grounding depth on representative hard packets
+2. structural breadth on Cohort C and the other non-company lanes
+3. measured batch/report evidence across those lanes
+4. explicit automation graduation criteria with repeated-run evidence
+5. only then additional packet attachment when a genuinely new split shape
+   appears
 
 That is the missing layer that makes the wider review-and-split goal truly
 usable at scale.

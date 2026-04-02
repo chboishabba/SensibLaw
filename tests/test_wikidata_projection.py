@@ -19,6 +19,10 @@ from src.ontology.wikidata import (
     attach_wikidata_phi_text_bridge_from_source_units,
     attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
     build_wikidata_review_packet,
+    build_nat_cohort_c_population_scan,
+    build_nat_cohort_c_population_scan_from_sparql_results,
+    build_nat_cohort_c_population_scan_live,
+    build_nat_cohort_c_operator_packet,
     build_observation_claim_payload_from_source_units,
     build_observation_claim_payload_from_revision_locked_climate_text_sources,
     build_wikidata_split_plan,
@@ -92,6 +96,16 @@ def _load_nat_cohort_c_branch_fixture() -> dict:
         / "fixtures"
         / "wikidata"
         / "wikidata_nat_cohort_c_branch_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_c_population_scan_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_c_population_scan_20260402.json"
     )
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -1380,6 +1394,114 @@ def test_nat_cohort_c_branch_fixture_pins_non_ghg_or_missing_p459_branch_state()
     ]
 
 
+def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates() -> None:
+    payload = _load_nat_cohort_c_population_scan_fixture()
+
+    scan = build_nat_cohort_c_population_scan(payload)
+
+    assert scan["cohort_id"] == "non_ghg_protocol_or_missing_p459"
+    assert scan["scan_status"] == "review_first_population_scan_ready"
+    assert scan["next_gate"] == "review_first_population_scan"
+    assert scan["summary"] == {
+        "candidate_count": 3,
+        "p459_status_counts": {"missing": 2, "non_GHG_protocol": 1},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert [candidate["qid"] for candidate in scan["sample_candidates"]] == [
+        "Q30938280",
+        "Q731938",
+        "Q1785637",
+    ]
+
+
+def test_nat_cohort_c_live_population_scan_result_normalizer_groups_statement_rows() -> None:
+    sparql_payload = {
+        "results": {
+            "bindings": [
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q1"},
+                    "itemLabel": {"value": "Example One"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "qualifier_pid": {"value": "P580"},
+                },
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q1"},
+                    "itemLabel": {"value": "Example One"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "qualifier_pid": {"value": "P582"},
+                },
+                {
+                    "item": {"value": "https://www.wikidata.org/entity/Q2"},
+                    "itemLabel": {"value": "Example Two"},
+                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q2-def"},
+                    "p459": {"value": "https://www.wikidata.org/entity/Q999"},
+                    "p459Label": {"value": "Alt standard"},
+                    "qualifier_pid": {"value": "P518"},
+                },
+            ]
+        }
+    }
+
+    scan = build_nat_cohort_c_population_scan_from_sparql_results(sparql_payload)
+
+    assert scan["scan_status"] == "live_population_scan_preview"
+    assert scan["summary"] == {
+        "candidate_count": 2,
+        "p459_status_counts": {"missing": 1, "non_GHG_protocol": 1},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert scan["sample_candidates"][0]["qid"] == "Q1"
+    assert scan["sample_candidates"][0]["p459_status"] == "missing"
+    assert scan["sample_candidates"][0]["qualifier_properties"] == ["P580", "P582"]
+    assert scan["sample_candidates"][1]["qid"] == "Q2"
+    assert scan["sample_candidates"][1]["p459_status"] == "non_GHG_protocol"
+
+
+def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(monkeypatch) -> None:
+    def _raise(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("src.ontology.wikidata._http_get_json", _raise)
+
+    payload = build_nat_cohort_c_population_scan_live(row_limit=3, timeout_seconds=1)
+
+    assert payload["scan_status"] == "live_population_scan_unavailable"
+    assert payload["summary"] == {
+        "candidate_count": 0,
+        "p459_status_counts": {},
+        "review_first": True,
+        "policy_risk": "high",
+    }
+    assert payload["failures"][0]["stage"] == "live_query"
+
+
+def test_nat_cohort_c_operator_packet_wraps_scan_payload_with_hold_or_review_decision() -> None:
+    review_scan = _load_nat_cohort_c_population_scan_fixture()
+    review_packet = build_nat_cohort_c_operator_packet(review_scan)
+    assert review_packet["decision"] == "review"
+    assert review_packet["governance"] == {
+        "automation_allowed": False,
+        "fail_closed": True,
+        "live_query_unavailable": False,
+    }
+    assert review_packet["triage_prompts"][0].startswith("Review the candidate P459 status split")
+
+    unavailable_scan = {
+        "lane_id": "wikidata_nat_wdu_p5991_p14143",
+        "cohort_id": "non_ghg_protocol_or_missing_p459",
+        "scan_status": "live_population_scan_unavailable",
+        "summary": {"p459_status_counts": {}, "review_first": True, "policy_risk": "high"},
+        "sample_candidates": [],
+        "notes": ["The live preview helper is fail-closed when the Wikidata query endpoint is unavailable."],
+    }
+    unavailable_packet = build_nat_cohort_c_operator_packet(unavailable_scan)
+    assert unavailable_packet["decision"] == "hold"
+    assert unavailable_packet["governance"]["live_query_unavailable"] is True
+    assert unavailable_packet["triage_prompts"][0].startswith("Live query was unavailable")
+
+
 def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materialization() -> None:
     payload = _load_nat_cohort_a_seed_slice_fixture()
 
@@ -1532,10 +1654,29 @@ def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() ->
     assert "no_follow_receipts" in payload["reviewer_view"]["uncertainty_flags"]
 
 
-def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows() -> None:
+def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split_context_units() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        include_semantic_decomposition=True,
+    )
+
+    semantic = payload["semantic_decomposition"]
+    unit_types = {unit["unit_type"] for unit in semantic["candidate_units"]}
+    assert "follow_receipt_surface" in unit_types
+    assert "anchor_surface" in unit_types
+    assert "split_context_surface" in unit_types
+    assert "missing_evidence_surface" in unit_types
+    assert "split_axis_surface" in unit_types
+    assert "anchor_refs_not_promoted_to_grounded_claims" in semantic["missing_evidence"]
+    assert "split_context_not_lifted_into_semantic_decision_graph" in semantic["missing_evidence"]
+
+
+def test_nat_review_packet_attachment_coverage_fixture_expands_to_fifteen_rows() -> None:
     payload = _load_nat_review_packet_attachment_coverage_fixture()
 
-    assert payload["packetized_split_rows"] == 13
+    assert payload["packetized_split_rows"] == 15
     assert payload["packetized_split_row_ids"] == [
         "Q10403939|P5991",
         "Q10422059|P5991",
@@ -1550,9 +1691,11 @@ def test_nat_review_packet_attachment_coverage_fixture_expands_to_thirteen_rows(
         "Q731938|P5991",
         "Q10416948|P5991",
         "Q56404383|P5991",
+        "Q1785637|P5991",
+        "Q738421|P5991",
     ]
-    assert len(payload["packet_slots"]) == 13
-    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 13 / 53 packetized rows"
+    assert len(payload["packet_slots"]) == 15
+    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 15 / 53 packetized rows"
 
 
 def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic_layers() -> None:
@@ -1564,6 +1707,16 @@ def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic
         assert payload["follow_receipts"]
         assert payload["semantic_decomposition"]["separate_from_parsed_page"] is True
         assert payload["semantic_decomposition"]["candidate_units"]
+        unit_types = {
+            unit["unit_type"] for unit in payload["semantic_decomposition"]["candidate_units"]
+        }
+        assert "follow_receipt_surface" in unit_types
+        assert "anchor_surface" in unit_types
+        assert "split_context_surface" in unit_types
+        assert "missing_evidence_surface" in unit_types
+        merged_split_axes = payload["split_review_context"]["merged_split_axes"]
+        if merged_split_axes:
+            assert "split_axis_surface" in unit_types
         assert payload["reviewer_view"]["recommended_next_step"] == expected_step
 
 

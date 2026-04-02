@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-04-01
+Last updated: 2026-04-03
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -28,6 +28,41 @@ If you need the assist-lane reviewer-packet alignment note, use:
 If you need the full intended Nat end product and the tiered automation
 posture, use:
 - `planning/wikidata_nat_end_product_and_tiered_automation_20260401.md`
+
+If you need the explicit staged roadmap from the current lane to the blind
+migration-bot moonshot, use:
+- `planning/wikidata_nat_gap_to_moonshot_program_20260402.md`
+
+The Nat lane's long-term P0 moonshot is blind migration automation, but the
+current operating posture stays review-first, split-first, and fail-closed
+until that moonshot is earned by the smaller lanes.
+
+The current executable moonshot-gap surfaces now include reproducible
+operator/report paths for:
+- grounding depth
+- Cohort B operator packet, queue, and report
+- Cohort C operator evidence, report, and report batch
+- Cohort D operator review queue and operator report
+- Cohort E diagnostics report and batch report
+- automation graduation evaluation, report building, and batch proposal
+  evaluation
+
+The latest broader measured-evidence tranche now extends those surfaces with:
+- grounding-depth evidence reports over representative packet batches
+- Cohort B deterministic multi-case operator batch reports
+- Cohort C broader measured evidence samples over real candidate slices
+- Cohort D multi-case operator report batches
+- Cohort E grouped diagnostics summaries over batch runs
+- automation-graduation repeated-run evidence reports
+
+The next broader operator/governance tranche now extends those measured runs
+with deterministic higher-level control surfaces:
+- grounding-depth comparison/index reports across packet batches
+- Cohort B multi-batch operator evidence indexes
+- Cohort C operator indexes over broader real candidate slices
+- Cohort D multi-batch review-control indexes
+- Cohort E aggregated disagreement/summary indexes
+- automation-graduation governance indexes across repeated evidence snapshots
 
 Treat this status note as the Wikidata-specific detailed appendix after that
 shared handoff.
@@ -149,6 +184,8 @@ shared handoff.
         - cohort-oriented task lines
       - bounded follow-receipt support now auto-attaches a query-link receipt
         when the source surface provides one
+      - bounded variant comparison is now explicitly available as a diagnostic
+        lever for targeted uncertainty reduction, not as a truth engine
       - explicit boundary:
         - `parsed_page` is only the current shallow surface-parse helper
         - it is not the full SensibLaw decomposition / contingent-clause layer
@@ -164,19 +201,66 @@ shared handoff.
       - the bounded parser upgrade is now landed
       - bounded follow receipts now exist for the Nat query-link surface, but
         broader follow-receipt coverage across held rows still remains
+      - bounded variant comparison is allowed, but only across a few relevant
+        variants and never as a substitute for the review packet
       - broader packet coverage across held rows now has a first
         13-row attachment surface, but it is still incomplete
       - a separate semantic sidecar now exists behind
         `include_semantic_decomposition=True`
-      - deeper SensibLaw-style semantic decomposition should still stay
-        explicit and separate from the shallow parser coverage
+      - that sidecar publishes anchor-derived reviewer units, bounded
+        follow-receipt units, explicit missing-evidence gap units, and
+        explicit split-review context units (merged split axes plus
+        recommended steps)
+      - the same sidecar now also aggregates bounded helper lanes for:
+        - follow depth
+        - claim-boundary mapping
+        - cross-source alignment
+        - reviewer actions
+        - bounded variant comparison
+      - bounded variant comparison now has a grounded Nat example path using
+        sibling split plans from the same cohort, and it can be derived
+        automatically from the split payload when sibling plans are present so
+        the comparison lane can surface real agreement/disagreement patterns
+        without becoming open ended diff hunting
+      - standalone helper modules now exist for:
+        - follow depth
+        - claim-boundary mapping
+        - cross-source alignment
+        - reviewer actions
+        - bounded variant comparison
+        - deeper SensibLaw-style semantic decomposition should still stay
+          explicit and separate from the shallow parser coverage
+    - the non-company moonshot-gap lanes now also have executable operator
+      surfaces beyond packet-only notes:
+      - grounding depth:
+        `src/ontology/wikidata_grounding_depth.py`
+        plus `sensiblaw wikidata grounding-depth`
+      - Cohort B:
+        `src/ontology/wikidata_nat_cohort_b_operator_packet.py`,
+        `src/ontology/wikidata_nat_cohort_b_operator_queue.py`, and
+        `src/ontology/wikidata_nat_cohort_b_operator_report.py`
+      - Cohort C:
+        `src/ontology/wikidata_cohort_c_operator_report.py` and
+        `src/ontology/wikidata_cohort_c_operator_report_batch.py`
+      - Cohort D:
+        `src/ontology/wikidata_nat_cohort_d_review.py` plus
+        `sensiblaw wikidata cohort-d-operator-report`
+      - Cohort E:
+        `src/ontology/wikidata_cohort_e_diagnostics.py` plus
+        `cli/cohort_e_diagnostics.py`
+      - automation graduation:
+        `src/ontology/wikidata_nat_automation_graduation.py` plus
+        `sensiblaw wikidata automation-graduation-eval` and
+        `sensiblaw wikidata automation-graduation-eval-batch`
     - current packet coverage now has a first multi-row attachment index:
       `tests/fixtures/wikidata/wikidata_nat_review_packet_attachment_coverage_20260401.json`
-      records `13 / 53` packetized held split rows, with the original packet
+      records `15 / 53` packetized held split rows, with the original packet
       for `Q10403939`, second and third packetized held rows for
-      `Q10422059` and `Q731938`, nine wider-online reviewed rows from the
+      `Q10422059` and `Q731938`, ten wider-online reviewed rows from the
       live tranche, and two additional pilot-pack sidecar packets for
       `Q10416948` and `Q56404383`
+    - packet coverage is now creeping toward diminishing returns; only new split
+      shapes should justify another attachment step
     - the assist lane now has a parallel reviewer-packet alignment note:
       `docs/planning/wikidata_assist_lane_reviewer_packet_alignment_20260401.md`
       so the same packet grammar can be adopted without overstating parity or
@@ -194,6 +278,84 @@ shared handoff.
       - Tier 4: hold
     - the wider Nat value proposition is therefore reviewer throughput and
       uncertainty reduction, not pretending all `~50k` rows belong to Tier 1
+  - gap-to-moonshot posture is now explicit:
+    - the current gap is trustable automation readiness, not lack of one more
+      packet field
+    - the current staged priorities are:
+      - grounding depth on representative hard packets
+      - structural breadth on Cohort C and the other non-company lanes
+      - explicit automation graduation criteria
+    - broader company-family packet attachment is now secondary unless it
+      reveals a genuinely new split shape
+  - the next non-company axis is now backed by lane-local artifacts:
+    - grounding depth lane:
+      `docs/planning/wikidata_nat_grounding_depth_evidence_20260402.md`
+      plus runtime helper:
+      `src/ontology/wikidata_grounding_depth.py`
+      and operator attachment fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_operator_surface_20260402.json`
+      plus batch artifact fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_batch_20260402.json`
+      plus evidence report fixture:
+      `tests/fixtures/wikidata/wikidata_nat_grounding_depth_evidence_report_20260402.json`
+    - Cohort B review bucket:
+      `docs/planning/wikidata_nat_cohort_b_review_bucket_20260402.md`
+      plus runtime helper:
+      `src/ontology/wikidata_nat_cohort_b_review_bucket.py`
+      and operator packet helper:
+      `src/ontology/wikidata_nat_cohort_b_operator_packet.py`
+      with packet note:
+      `docs/planning/wikidata_nat_cohort_b_operator_packet_20260402.md`
+      plus operator batch report helper:
+      `src/ontology/wikidata_nat_cohort_b_operator_batch_report.py`
+    - Cohort C live-preview extension:
+      `docs/planning/wikidata_nat_cohort_c_live_preview_extension_20260402.md`
+      and operator evidence packet:
+      `docs/planning/wikidata_nat_cohort_c_operator_evidence_20260403.md`
+      plus operator report helper:
+      `src/ontology/wikidata_cohort_c_operator_report.py`
+      plus broader measured evidence note:
+      `docs/planning/wikidata_nat_cohort_c_ptolemy_evidence_20260405.md`
+    - Cohort D review lane:
+      `docs/planning/wikidata_nat_cohort_d_review_lane_20260402.md`
+      plus type-probing helper:
+      `docs/planning/wikidata_nat_cohort_d_type_probing_surface_20260402.md`
+      and operator review queue fixture:
+      `tests/fixtures/wikidata/wikidata_nat_cohort_d_operator_review_surface_20260402.json`
+      plus operator CLI note:
+      `docs/planning/wikidata_nat_cohort_d_operator_review_cli_20260402.md`
+      plus operator report batch note:
+      `docs/planning/wikidata_nat_cohort_d_operator_report_batch_surface_20260402.md`
+    - Cohort E diagnostics/reconciliation scan plan:
+      `docs/planning/wikidata_nat_cohort_e_reconciliation_scan_plan_20260403.md`
+      plus diagnostics helper:
+      `src/ontology/wikidata_cohort_e_diagnostics.py`
+      and diagnostics CLI note:
+      `docs/planning/wikidata_nat_cohort_e_diagnostics_cli_20260403.md`
+      plus grouped diagnostics summary fixture:
+      `tests/fixtures/wikidata/wikidata_nat_cohort_e_diagnostic_summary_20260403.json`
+    - automation graduation gate note:
+      `docs/planning/wikidata_nat_automation_graduation_criteria_20260402.md`
+      plus evaluator:
+      `src/ontology/wikidata_nat_automation_graduation.py`
+      and report builder:
+      `build_nat_automation_graduation_report(...)`
+      plus CLI:
+      `sensiblaw wikidata automation-graduation-eval`
+      plus repeated-run evidence CLI:
+      `sensiblaw wikidata automation-graduation-evidence-report`
+  - current honest read:
+    - the moonshot gap is now decomposed into real lane-local evidence work,
+      not only roadmap language
+    - the current automation ceiling remains Level 1 reviewer-assisted split
+      execution until broader family evidence is real
+    - the next useful move is using these helpers as review/control surfaces,
+      not adding more packet shape by default
+    - the current tranche has now crossed into reproducible operator/report
+      surfaces on multiple lanes, not just helper functions
+    - the next evidence tranche is now also real on several lanes, so repeated
+      measured runs are beginning to replace one-off examples as the dominant
+      moonshot-readiness artifact
   - immediate next assist target:
     - reduce the large `ambiguous_semantics` bucket for temporal/multi-value
       rows
@@ -301,6 +463,15 @@ shared handoff.
         `SensibLaw/tests/fixtures/wikidata/wikidata_nat_cohort_c_branch_20260401.json`
       - next gate:
         review-first population scan
+      - runtime note:
+        the pinned Cohort C sample fixture now has a bounded scan normalizer,
+        and the same selection rule now has a bounded live scan preview helper
+      - live scan gate:
+        still fail-closed and review-first; no blanket population scan implied,
+        and endpoint unavailability is surfaced explicitly
+      - operator packet:
+        now exists and makes the candidate set, triage prompts, and hold/review
+        decision text explicit, with a CLI entrypoint for review packet export
 - current phase-2 posture is split deliberately:
   - real imported qualifier-bearing baseline slices via entity export
   - bounded synthetic drift fixture for explicit property-set change review

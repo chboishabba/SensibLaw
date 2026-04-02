@@ -1,0 +1,37 @@
+{
+  "schema_version": "sl.wikidata_nat.cohort_c.operator_evidence.v0_1",
+  "packet_id": "operator-evidence:fixture-20260404",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "non_ghg_protocol_or_missing_p459",
+  "scan_status": "live_population_scan_preview",
+  "evidence_rows": [
+    {
+      "qid": "Q1000001",
+      "statement_id": "Q1000001-1",
+      "label": "Policy-risk entity alpha",
+      "p459_status": "missing",
+      "preview_hold_reason": "No determination method, subgroup flagged for policy review.",
+      "operator_hold_reason": "Awaiting qualifier reference check plus governance confirmation.",
+      "reference_anchor": "P854 https://www.wikidata.org/wiki/Q1000001",
+      "qualifier_hint": ["P585", "P3831"],
+      "hold_gate": "review_first_population_scan",
+      "notes": "Reference family indicates GHG conversation but lacks P459.",
+      "promotion_guard": "hold",
+      "notes_summary": "Policy risk hold"
+    },
+    {
+      "qid": "Q1000002",
+      "statement_id": "Q1000002-1",
+      "label": "Policy-risk entity beta",
+      "p459_status": "non-ghg-protocol",
+      "preview_hold_reason": "P459 present but outside expected protocol.",
+      "operator_hold_reason": "Need policy lead buy-in before classification.",
+      "reference_anchor": "P854 https://www.wikidata.org/wiki/Q1000002",
+      "qualifier_hint": ["P518", "P2834"],
+      "hold_gate": "review_first_population_scan",
+      "notes": "Qualifiers reflect exceptional context; hold reason is documented.",
+      "promotion_guard": "hold",
+      "notes_summary": "Policy risk hold"
+    }
+  ]
+}

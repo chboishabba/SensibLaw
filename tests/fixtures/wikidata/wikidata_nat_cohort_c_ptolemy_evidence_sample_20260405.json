@@ -1,0 +1,48 @@
+{
+  "schema_version": "sl.wikidata_nat.cohort_c.operator_evidence.v0_1",
+  "packet_id": "operator-evidence:ptolemy-20260405",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "non_ghg_protocol_or_missing_p459",
+  "scan_status": "live_population_scan_preview",
+  "evidence_rows": [
+    {
+      "qid": "Q4000001",
+      "statement_id": "Q4000001-1",
+      "label": "Ptolemy entity alpha",
+      "p459_status": "missing",
+      "preview_hold_reason": "Historic statement without P459; candidate is policy-sensitive.",
+      "operator_hold_reason": "Need qualifier/reference reconciliation before any decision.",
+      "reference_anchor": "P854 https://www.wikidata.org/wiki/Q4000001",
+      "qualifier_hint": ["P585", "P3831", "P518"],
+      "hold_gate": "review_first_population_scan",
+      "promotion_guard": "hold",
+      "notes": "Candidate touches the same namespace as other held statements."
+    },
+    {
+      "qid": "Q4000002",
+      "statement_id": "Q4000002-1",
+      "label": "Ptolemy entity beta",
+      "p459_status": "non-ghg-protocol",
+      "preview_hold_reason": "Non-GHG determination method flagged for review.",
+      "operator_hold_reason": "Governance review requested due to qualifier spread.",
+      "reference_anchor": "P248 https://www.wikidata.org/wiki/Q4000002",
+      "qualifier_hint": ["P518", "P459"],
+      "hold_gate": "review_first_population_scan",
+      "promotion_guard": "hold",
+      "notes": "Qualifiers indicate multi-asset context."
+    },
+    {
+      "qid": "Q4000003",
+      "statement_id": "Q4000003-1",
+      "label": "Ptolemy entity gamma",
+      "p459_status": "missing",
+      "preview_hold_reason": "Candidate lacks determination method and has high-impact references.",
+      "operator_hold_reason": "Need governance lead confirmation on references.",
+      "reference_anchor": "P854 https://www.wikidata.org/wiki/Q4000003",
+      "qualifier_hint": ["P3853", "P518"],
+      "hold_gate": "review_first_population_scan",
+      "promotion_guard": "hold",
+      "notes": "References involve climate monitoring reports."
+    }
+  ]
+}

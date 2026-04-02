@@ -1,0 +1,118 @@
+{
+  "schema_version": "sl.wikidata_nat_automation_graduation.v0_1",
+  "lane": "nat_p5991_to_p14143",
+  "as_of": "2026-04-02",
+  "levels": [
+    {
+      "level": 0,
+      "name": "review_first_only"
+    },
+    {
+      "level": 1,
+      "name": "reviewer_assisted_split_execution"
+    },
+    {
+      "level": 2,
+      "name": "family_scoped_measured_automation"
+    },
+    {
+      "level": 3,
+      "name": "broad_automation_with_strict_holds"
+    },
+    {
+      "level": 4,
+      "name": "moonshot_blind_migration_bot"
+    }
+  ],
+  "gate_families_required": [
+    "evidence_grounding",
+    "claim_boundary_reliability",
+    "verification_quality",
+    "policy_risk_containment",
+    "operational_control_and_rollback"
+  ],
+  "gates": [
+    {
+      "gate_id": "A",
+      "from_level": 0,
+      "to_level": 1,
+      "must_show": [
+        "reviewer_packets_for_representative_split_shapes",
+        "bounded_follow_depth_present_and_fail_closed",
+        "split_plan_verification_on_representative_reviewed_plans",
+        "uncertainty_flags_preserved"
+      ],
+      "blocked_if": [
+        "evidence_unanchored_to_revision_locked_surface",
+        "split_verification_only_one_narrow_shape"
+      ]
+    },
+    {
+      "gate_id": "B",
+      "from_level": 1,
+      "to_level": 2,
+      "must_show": [
+        "repeated_family_scoped_direct_safe_behavior",
+        "stable_after_state_verification_across_repeated_tranches",
+        "false_positive_rate_within_family_budget",
+        "hold_and_abstain_paths_effective"
+      ],
+      "blocked_if": [
+        "direct_safe_yield_unstable_between_tranches",
+        "repeated_tranches_revert_to_split_required_majority"
+      ]
+    },
+    {
+      "gate_id": "C",
+      "from_level": 2,
+      "to_level": 3,
+      "must_show": [
+        "automation_success_across_multiple_structural_families",
+        "policy_risk_cohorts_separated_and_governed",
+        "cross_source_disagreement_handling_deterministic",
+        "rollback_and_replay_validated_end_to_end"
+      ],
+      "blocked_if": [
+        "automation_gain_depends_on_disabling_hold_or_abstain",
+        "verification_receipts_incomplete_or_nonreplayable"
+      ]
+    },
+    {
+      "gate_id": "D",
+      "from_level": 3,
+      "to_level": 4,
+      "must_show": [
+        "broad_coverage_under_bounded_risk_with_sustained_quality",
+        "blind_execution_safer_than_reviewer_gated_execution_for_promoted_families",
+        "full_auditability_of_source_split_and_after_state",
+        "killswitch_and_rollback_controls_proven"
+      ],
+      "blocked_if": [
+        "material_policy_risk_families_unresolved",
+        "audit_trails_depend_on_manual_reconstruction"
+      ]
+    }
+  ],
+  "metrics_required": [
+    "direct_safe_yield_by_family",
+    "split_required_rate_by_family",
+    "hold_abstain_rate_and_reason_distribution",
+    "after_state_verification_pass_rate",
+    "false_positive_rate_and_severity",
+    "rollback_invocation_and_recovery_success",
+    "receipt_completeness_coverage"
+  ],
+  "current_state": {
+    "current_level": 1,
+    "highest_gate_cleared": "A",
+    "next_gate": "B",
+    "promotion_recommendation": "hold",
+    "rationale": [
+      "review_first_controls_strong",
+      "split_verification_real",
+      "packet_and_follow_depth_support_real",
+      "broad_measured_direct_safe_stability_not_demonstrated"
+    ]
+  }
+}
+

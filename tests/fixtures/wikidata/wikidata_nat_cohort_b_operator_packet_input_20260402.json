@@ -1,0 +1,52 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_b_review_bucket.v0_1",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "decision": "review_only",
+  "decision_reasons": [
+    "cohort_b_rows_require_reviewer_confirmation_before_migration"
+  ],
+  "review_bucket_rows": [
+    {
+      "row_id": "Q11661|P5991|1",
+      "entity_qid": "Q11661",
+      "instance_of_qid": "Q13442814",
+      "review_mode": "review_first",
+      "qualifier_properties": ["P3831", "P459", "P518", "P585"],
+      "reference_properties": ["P813", "P854", "P1476"],
+      "variance_flags": ["missing_expected_qualifier_properties", "missing_expected_reference_properties"],
+      "reviewer_questions": [
+        "Does class Q13442814 preserve semantic equivalence under P5991 -> P14143 mapping?",
+        "Are split axes sufficient to avoid claim-boundary collapse for this row?"
+      ]
+    },
+    {
+      "row_id": "Q8646|P5991|4",
+      "entity_qid": "Q8646",
+      "instance_of_qid": "Q43229",
+      "review_mode": "review_first",
+      "qualifier_properties": ["P459", "P518", "P580", "P582", "P9999"],
+      "reference_properties": ["P813", "P854", "P1065", "P1476", "P2960", "P1234"],
+      "variance_flags": ["missing_expected_qualifier_properties", "unexpected_qualifier_properties", "unexpected_reference_properties"],
+      "reviewer_questions": [
+        "Does class Q43229 preserve semantic equivalence under P5991 -> P14143 mapping?"
+      ]
+    }
+  ],
+  "contract_violations": [],
+  "expected_shape": {
+    "qualifier_properties": ["P3831", "P459", "P518", "P580", "P582", "P585", "P7452"],
+    "reference_properties": ["P1065", "P1476", "P2960", "P813", "P854"]
+  },
+  "summary": {
+    "input_candidate_count": 2,
+    "valid_review_row_count": 2,
+    "contract_violation_count": 0,
+    "review_only_row_count": 2
+  },
+  "non_claims": [
+    "review-first bucket only",
+    "not migration execution",
+    "not full semantic decomposition"
+  ]
+}

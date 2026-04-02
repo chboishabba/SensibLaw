@@ -1,0 +1,22 @@
+{
+  "schema_version": "sl.wikidata_nat_cohort_b_review_bucket.v0_1",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "candidates": [
+    {
+      "row_id": "Q11661|P5991|1",
+      "entity_qid": "Q11661",
+      "instance_of_qid": "Q13442814",
+      "reconciled_instance_of": true,
+      "qualifier_properties": ["P459", "P3831", "P585", "P518"],
+      "reference_properties": ["P854", "P813", "P1476"]
+    },
+    {
+      "row_id": "Q8646|P5991|4",
+      "entity_qid": "Q8646",
+      "instance_of_qid": "Q43229",
+      "reconciled_instance_of": true,
+      "qualifier_properties": ["P459", "P580", "P582", "P518", "P9999"],
+      "reference_properties": ["P854", "P813", "P1476", "P1065", "P2960", "P1234"]
+    }
+  ]
+}

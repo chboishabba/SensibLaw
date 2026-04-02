@@ -1,0 +1,35 @@
+{
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "selection_rule": "determination method or standard (P459) is missing or not GHG protocol",
+  "cohort_id": "non_ghg_protocol_or_missing_p459",
+  "source_revision_fixture": "wiki_revision_nat_wdu_sandbox_p5991_p14143_20260401.json",
+  "scan_status": "planned",
+  "next_gate": "review_first_population_scan",
+  "sample_candidates": [
+    {
+      "qid": "Q30938280",
+      "label": "Essity",
+      "p459_status": "missing",
+      "qualifier_snippet": "mentions start and end times without a determination method",
+      "policy_note": "lives in wider-online tranche but fails the GHG-protocol filter"
+    },
+    {
+      "qid": "Q731938",
+      "label": "AstraZeneca",
+      "p459_status": "non_GHG_protocol",
+      "qualifier_snippet": "determination method references an alternative standard",
+      "policy_note": "policy review needed before deciding whether to migrate"
+    },
+    {
+      "qid": "Q1785637",
+      "label": "Novozymes",
+      "p459_status": "missing",
+      "qualifier_snippet": "point-in-time qualifiers present but no determination method",
+      "policy_note": "represents the policy-risk mass because the subject is a public company"
+    }
+  ],
+  "notes": [
+    "This fixture mirrors the non-GHG / missing P459 branch state and stays review-first.",
+    "The sample set stays intentionally small so reviewers can spot-check qualifier shapes before a broader scan."
+  ]
+}

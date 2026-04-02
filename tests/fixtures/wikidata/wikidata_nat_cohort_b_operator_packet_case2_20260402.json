@@ -1,0 +1,51 @@
+{
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "contract_violations": [],
+  "decision": "review",
+  "governance": {
+    "automation_allowed": false,
+    "fail_closed": true,
+    "requires_human_review": true
+  },
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "non_claims": [
+    "operator review packet only",
+    "not migration execution",
+    "not cross-cohort routing"
+  ],
+  "packet_id": "operator-packet:7c8a99e19425124e",
+  "schema_version": "sl.wikidata_nat_cohort_b_operator_packet.v0_1",
+  "selected_rows": [
+    {
+      "entity_qid": "Q8646",
+      "instance_of_qid": "Q43229",
+      "reviewer_questions": [
+        "Does class Q43229 preserve semantic equivalence under P5991 -> P14143 mapping?"
+      ],
+      "row_id": "Q8646|P5991|4",
+      "variance_flags": [
+        "missing_expected_qualifier_properties",
+        "unexpected_qualifier_properties",
+        "unexpected_reference_properties"
+      ]
+    }
+  ],
+  "source_bucket_decision": "review_only",
+  "summary": {
+    "contract_violation_count": 0,
+    "review_first": true,
+    "selected_row_count": 1,
+    "source_review_row_count": 2,
+    "variance_flag_counts": {
+      "missing_expected_qualifier_properties": 1,
+      "unexpected_qualifier_properties": 1,
+      "unexpected_reference_properties": 1
+    }
+  },
+  "triage_prompts": [
+    "Review highest-variance Cohort B rows first; keep lane review-only.",
+    "Confirm class-local semantics before any migration-equivalence judgment.",
+    "Inspect unexpected qualifier properties as potential class-specific semantics.",
+    "Inspect unexpected reference properties for citation-shape drift."
+  ]
+}

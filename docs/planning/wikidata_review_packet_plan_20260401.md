@@ -13,7 +13,14 @@ review/split assist lane before any new code is written.
 
 The goal is not to create a freeform scraper or hidden authority path. The
 goal is to produce bounded reviewer packets that reduce uncertainty for
-split-heavy Nat/Wikidata review.
+split-heavy Nat/Wikidata review and build the runway toward the lane's
+long-term blind-migration moonshot without pretending that moonshot is already
+available.
+
+Use
+`SensibLaw/docs/planning/wikidata_nat_gap_to_moonshot_program_20260402.md`
+for the higher-level staged roadmap from reviewer packets to blind migration
+readiness.
 
 When the work surface is wide enough to justify parallelism, the orchestration
 rule is one nonblocking lane per worker, with disjoint lane ownership and no
@@ -32,6 +39,15 @@ What is still missing:
 
 - broader packet coverage across held Nat rows
 - later semantic decomposition above or beside `parsed_page`
+- a bounded variant-comparison lane for targeted uncertainty reduction
+- deeper evidence grounding on representative hard packets so the packet lane
+  can support promotion-gate evidence rather than only reviewer convenience
+
+The explicit product posture is:
+
+- current mode: review-first, split-first, fail-closed
+- long-term moonshot: blind migration automation only after the smaller lanes
+  prove the safe tiers are stable enough to trust
 
 Update:
 
@@ -53,19 +69,69 @@ Update:
   - it is not the full SensibLaw decomposition or contingent-clause layer
   - richer semantic decomposition should land later as a separate semantic
     layer above or beside `parsed_page`
-- the first broader packet-coverage surface is now present at `13 / 53`
+- the first broader packet-coverage surface is now present at `15 / 53`
   packetized rows, spanning the original two held rows plus the AstraZeneca
-  held row, the wider-online reviewed rows from the live tranche, and two
+  held row, the wider-online reviewed rows from the live tranche, two
+  additional wider-online reviewed rows (`Q1785637`, `Q738421`), and two
   additional pilot-pack split plans (`Q10416948`, `Q56404383`) that now carry
   the semantic sidecar
-- the current packet coverage surface is now `13 / 53` after the two
-  pilot-pack sidecar packets were added
+- the current packet coverage surface is now `15 / 53` after the two
+  additional live-tranche rows and the two pilot-pack sidecar packets were
+  added
 - the optional semantic sidecar is now landed behind
   `include_semantic_decomposition=True` and stays separate from
   `parsed_page`
+- the semantic sidecar now explicitly records anchor-derived reviewer units
+  and split-review context units (merged split axes + recommended action)
+  so reviewers can reach the same conclusion without assuming the parsed
+  surface is semantic decomposition
+- the same semantic sidecar now also lifts bounded follow receipts into
+  candidate units when they are present, so the receipt boundary stays visible
+  without being overstated as grounded semantic promotion
+- the same sidecar also promotes its `missing_evidence` list into explicit gap
+  units so the reviewer can see what still is not grounded yet
 - the next implementation pressure is broader packet coverage across the
   remaining held Nat rows, then any later expansion of the semantic sidecar
   above or beside `parsed_page`
+- from this point onward the packet coverage lane is experiencing diminishing
+  returns; only genuinely new split shapes should trigger another packet
+  attachment rather than repeated routine rows.
+- the helper-lane slices now exist as standalone modules and are aggregated
+  behind the optional semantic sidecar:
+  - follow depth
+  - claim-boundary mapping
+  - cross-source alignment
+  - reviewer actions
+  - bounded variant comparison
+- the remaining work is to extend their evidence inputs, not to widen the
+  packet contract
+- a first grounding-depth evidence lane is now pinned at:
+  - `SensibLaw/docs/planning/wikidata_nat_grounding_depth_evidence_20260402.md`
+  - `SensibLaw/tests/fixtures/wikidata/wikidata_nat_grounding_depth_packets_20260402.json`
+  - `SensibLaw/tests/test_wikidata_nat_grounding_depth.py`
+- that grounding lane now also has a reproducible operator path:
+  - `SensibLaw/src/ontology/wikidata_grounding_depth.py`
+  - `SensibLaw/cli/grounding_depth.py`
+  - `sensiblaw wikidata grounding-depth`
+- variant comparison now has a grounded Nat example path: when the split
+  payload includes sibling plans from the same cohort, the packet can derive
+  a small bounded comparison set automatically, so the comparison lane is no
+  longer limited to abstract examples
+- that means the next pressure is no longer packet shape. It is:
+  - grounding depth and claim-boundary evidence that can feed the newer
+    operator/governance indexes above the lane-local moonshot helpers
+  - repeated broader-slice evidence and disagreement clustering rather than
+    more packet-shape expansion
+  - more grounded revision-locked evidence
+  - stronger claim-boundary confidence
+  - broader structural coverage across non-company cohorts
+  - reuse of the same packet grammar across Cohorts B/C/D/E rather than more
+    routine company-family packet attachment
+  - batch/report use of the operator surfaces so promotion evidence comes from
+    repeated measured runs rather than one-off examples
+  - attachment of the new grounding-depth evidence report and the broader
+    cohort batch/report summaries so packet-readiness claims are backed by
+    multi-case evidence rather than single packet anecdotes
 
 ## Planned Workflow
 
@@ -112,6 +178,21 @@ Every followed source must produce a receipt:
 - why it was followed
 - what evidence was extracted
 - what uncertainty remains
+
+### Step 3b: Compare variants
+
+Compare only a small bounded set of relevant variants when the comparison is
+likely to reduce reviewer uncertainty:
+
+- adjacent statement bundles in the same cohort
+- nearby wiki revisions of the same proposal/sandbox page
+- alternate query/result slices for the same target shape
+- source/reference variants that explain why one row splits differently from
+  another
+
+Variant comparison is a diagnostic lever, not a truth engine. It should help
+cluster split shapes and sharpen reviewer packets, but it must not become
+open-ended diff-hunting or a substitute for the review packet itself.
 
 ### Step 4: Packetize
 
@@ -173,12 +254,14 @@ Promotion still requires the existing bounded checks:
 2. page parsed
 3. refs/links exposed
 4. selected sources followed with receipts
-5. reviewer packet emitted
-6. reviewer decides
+5. targeted variants compared where useful
+6. reviewer packet emitted
+7. reviewer decides
 
 ### P
 
 - build reviewer-packet infrastructure above the existing split-plan lane
+- keep variant comparison bounded and diagnostic, not authoritative
 
 ### G
 
@@ -189,6 +272,9 @@ Promotion still requires the existing bounded checks:
 ### F
 
 - the gap is now implementation, not intent
+- specifically, the gap is no longer "do reviewer packets exist?" It is
+  "are reviewer packets grounded enough to justify later automation
+  graduation?"
 
 ## ITIL Reading
 
@@ -200,6 +286,7 @@ Promotion still requires the existing bounded checks:
   - bounded parser
   - broader packet coverage across held rows, now with an 11-row surface
   - optional semantic decomposition sidecar above or beside `parsed_page`
+  - bounded variant-comparison lane for targeted uncertainty reduction
 
 ## ISO 9000 Reading
 
@@ -281,7 +368,8 @@ Rel(PACKET, HUMAN, "review packet")
 Implement in this order:
 
 1. broader packet coverage across the remaining held Nat rows
-2. optional semantic decomposition layer above or beside `parsed_page`
+2. bounded variant-comparison lane for targeted uncertainty reduction
+3. optional semantic decomposition layer above or beside `parsed_page`
 
 ## This Pass
 
@@ -296,3 +384,6 @@ The implementation has since begun and the current lane state now includes:
 
 The remaining work is the broader packet coverage across held Nat rows and
 any later expansion of the semantic sidecar above or beside `parsed_page`.
+The new bounded variant-comparison lane now sits between those two stages so
+reviewers can compare a few relevant variants without turning the packet into
+an open-ended diff hunt.

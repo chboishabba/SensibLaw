@@ -1,0 +1,64 @@
+{
+  "blocked_packets": [],
+  "cohort_id": "cohort_b_reconciled_non_business",
+  "decision_reasons": [
+    "validated_review_packets_materialized_to_queue"
+  ],
+  "governance": {
+    "automation_allowed": false,
+    "fail_closed": true,
+    "requires_human_review": true
+  },
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "non_claims": [
+    "queue materialization only",
+    "not migration execution",
+    "not cross-cohort arbitration"
+  ],
+  "queue_items": [
+    {
+      "entity_qid": "Q8646",
+      "instance_of_qid": "Q43229",
+      "packet_id": "operator-packet:3f271cffeb066067",
+      "priority": "high",
+      "queue_item_id": "cohort-b-queue:fc07935a9e84",
+      "row_id": "Q8646|P5991|4",
+      "triage_prompts": [
+        "Confirm class-local semantics before any migration-equivalence judgment.",
+        "Inspect unexpected qualifier properties as potential class-specific semantics."
+      ],
+      "variance_flags": [
+        "missing_expected_qualifier_properties",
+        "unexpected_qualifier_properties",
+        "unexpected_reference_properties"
+      ]
+    },
+    {
+      "entity_qid": "Q11661",
+      "instance_of_qid": "Q13442814",
+      "packet_id": "operator-packet:3f271cffeb066067",
+      "priority": "medium",
+      "queue_item_id": "cohort-b-queue:c9ec83c4f421",
+      "row_id": "Q11661|P5991|1",
+      "triage_prompts": [
+        "Confirm class-local semantics before any migration-equivalence judgment.",
+        "Inspect unexpected qualifier properties as potential class-specific semantics."
+      ],
+      "variance_flags": [
+        "missing_expected_qualifier_properties",
+        "missing_expected_reference_properties"
+      ]
+    }
+  ],
+  "queue_status": "review_queue_ready",
+  "schema_version": "sl.wikidata_nat_cohort_b_operator_queue.v0_1",
+  "summary": {
+    "hold_packet_count": 0,
+    "input_packet_count": 1,
+    "queue_item_count": 2,
+    "review_first": true,
+    "review_packet_count": 1,
+    "validation_error_count": 0
+  },
+  "validation_errors": []
+}
