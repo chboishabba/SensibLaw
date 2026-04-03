@@ -78,7 +78,7 @@ def test_compare_review_packet_variants_disagreement_and_limits() -> None:
     assert comparisons[0]["status"] == "disagreement"
     assert "__value__" in comparisons[0]["disagreements"]
     assert comparisons[1]["status"] == "agreement"
-    assert surface["diagnostic_flags"] == []
+    assert "axis_specific_unreconciled_instance_of" in surface["diagnostic_flags"]
 
 
 def test_compare_review_packet_variants_missing_axes() -> None:

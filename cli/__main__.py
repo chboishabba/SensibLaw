@@ -1061,6 +1061,89 @@ def _handle_wikidata_nat_cohort_d_review_control_index(args: argparse.Namespace)
     _print_json(report)
 
 
+def _handle_wikidata_nat_live_follow_campaign(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_live_follow_campaign import (
+        build_wikidata_nat_live_follow_campaign_plan,
+    )
+
+    campaign = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_wikidata_nat_live_follow_campaign_plan(campaign)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "campaign_id": report["campaign_id"],
+                "plan_count": report["plan_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_live_follow_execute(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_live_follow_executor import (
+        execute_wikidata_nat_live_follow_campaign,
+    )
+
+    campaign = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = execute_wikidata_nat_live_follow_campaign(
+        campaign,
+        category_ids=args.category,
+        plan_ids=args.plan_id,
+        limit=args.limit,
+        timeout_seconds=args.query_timeout,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "campaign_id": report["campaign_id"],
+                "selected_count": report["selected_count"],
+                "status_counts": report["status_counts"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_live_follow_preflight(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_live_follow_executor import (
+        build_policy_risk_population_preview_preflight,
+    )
+
+    campaign = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    report = build_policy_risk_population_preview_preflight(
+        campaign,
+        top_n=args.top_n or 2,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "campaign_id": report["campaign_id"],
+                "top_n": report["top_n"],
+                "candidate_count": report["candidate_count"],
+            }
+        )
+        return
+    _print_json(report)
+
+
 def _handle_wikidata_nat_automation_graduation_eval(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_nat_automation_graduation import (
         build_nat_automation_graduation_report,
@@ -3130,6 +3213,87 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_nat_cohort_d_review_control_index.set_defaults(
         func=_handle_wikidata_nat_cohort_d_review_control_index
+    )
+    wikidata_nat_live_follow_campaign = wikidata_sub.add_parser(
+        "nat-live-follow-campaign",
+        help="Build a bounded Nat live-follow execution plan from a campaign manifest",
+    )
+    wikidata_nat_live_follow_campaign.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat live-follow campaign manifest JSON",
+    )
+    wikidata_nat_live_follow_campaign.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Nat live-follow execution plan JSON",
+    )
+    wikidata_nat_live_follow_campaign.set_defaults(
+        func=_handle_wikidata_nat_live_follow_campaign
+    )
+    wikidata_nat_live_follow_execute = wikidata_sub.add_parser(
+        "nat-live-follow-execute",
+        help="Execute a bounded Nat live-follow run against the campaign manifest",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat live-follow campaign manifest JSON",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--category",
+        action="append",
+        help="Repeatable category_id filter for the execution plan",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--plan-id",
+        action="append",
+        help="Repeatable plan_id filter for the execution plan",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--limit",
+        type=int,
+        help="Optional maximum number of plan rows to execute after filtering",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--query-timeout",
+        type=int,
+        default=30,
+        help="Per-request timeout in seconds",
+    )
+    wikidata_nat_live_follow_execute.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Nat live-follow execution result JSON",
+    )
+    wikidata_nat_live_follow_execute.set_defaults(
+        func=_handle_wikidata_nat_live_follow_execute
+    )
+    wikidata_nat_live_follow_preflight = wikidata_sub.add_parser(
+        "nat-live-follow-preflight",
+        help="Rank the policy-risk population preview lane before executing the bounded live follow lane",
+    )
+    wikidata_nat_live_follow_preflight.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat live-follow campaign manifest JSON",
+    )
+    wikidata_nat_live_follow_preflight.add_argument(
+        "--top-n",
+        type=int,
+        default=2,
+        help="Maximum number of policy-risk candidates to return",
+    )
+    wikidata_nat_live_follow_preflight.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the policy-risk preflight JSON",
+    )
+    wikidata_nat_live_follow_preflight.set_defaults(
+        func=_handle_wikidata_nat_live_follow_preflight
     )
     wikidata_nat_automation_graduation_eval = wikidata_sub.add_parser(
         "automation-graduation-eval",

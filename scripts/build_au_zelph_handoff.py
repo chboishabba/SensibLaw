@@ -20,6 +20,8 @@ if str(SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(SENSIBLAW_ROOT))
 
 from src.zelph_bridge import run_zelph_inference
+from src.policy.compiler_contract import build_au_public_handoff_contract
+from src.policy.product_gate import build_product_gate
 
 
 def _sanitize_id(raw: str) -> str:
@@ -249,6 +251,12 @@ def build_handoff_artifact(output_dir: Path, source_bundle_paths: list[Path] | N
         workbench_by_source.append((str(path.relative_to(REPO_ROOT)), _load_workbench(path)))
 
     slice_payload = _build_slice(workbench_by_source)
+    slice_payload["compiler_contract"] = build_au_public_handoff_contract(slice_payload)
+    slice_payload["promotion_gate"] = build_product_gate(
+        lane="au",
+        product_ref=ARTIFACT_VERSION,
+        compiler_contract=slice_payload["compiler_contract"],
+    )
     summary_text = _build_summary_text(slice_payload)
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()

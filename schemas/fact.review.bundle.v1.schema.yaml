@@ -249,6 +249,8 @@ properties:
           items: {type: string}
   operator_views:
     type: object
+  workflow_summary:
+    type: object
   contested_summary:
     type: object
     properties:
@@ -297,4 +299,7 @@ properties:
       summary: {type: object}
       review_summary: {type: object}
       text_debug: {type: object}
+      compiler_contract: {type: object}
+      promotion_gate: {type: object}
+      suite_normalized_artifact: {type: object}
 additionalProperties: false

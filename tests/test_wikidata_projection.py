@@ -34,6 +34,7 @@ from src.ontology.wikidata import (
     project_wikidata_payload,
     verify_migration_pack_against_after_state,
 )
+from src.ontology.wikidata_grounding_depth import build_grounding_depth_summary
 
 
 def _load_migration_pack_schema() -> dict:
@@ -190,6 +191,16 @@ def _load_nat_review_packet_sidecar_fixture(qid: str) -> dict:
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
+def _load_nat_grounding_depth_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_grounding_depth_packets_20260402.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
 def _load_nat_cohort_a_live_discovery_fixture() -> dict:
     fixture_path = (
         Path(__file__).resolve().parent
@@ -216,6 +227,26 @@ def _load_nat_cohort_a_checked_safe_hunt_fixture() -> dict:
         / "fixtures"
         / "wikidata"
         / "wikidata_nat_cohort_a_checked_safe_hunt_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_run_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_run_20260403.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
     )
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -1642,6 +1673,57 @@ def test_build_wikidata_review_packet_attaches_nat_source_unit_to_split_plan() -
     assert "no_follow_receipts" not in payload["reviewer_view"]["uncertainty_flags"]
 
 
+def test_build_wikidata_review_packet_captures_grounding_gap_signal() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        grounding_depth_summary=build_grounding_depth_summary(
+            fixture=_load_nat_grounding_depth_fixture()
+        ),
+    )
+
+    assert "grounding_gap_class=grounded" in payload["reviewer_view"]["uncertainty_flags"]
+    assert payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+
+
+def test_build_wikidata_review_packet_overrides_next_step_for_live_receipt_review() -> None:
+    live_follow_results = [
+        {
+            "result_rows": [
+                {
+                    "qid": "Q10403939",
+                    "plan_id": "hard_grounding_packet:1",
+                    "target_ref": "review-packet:5bae90b4fcb444f6",
+                    "status": "fetched",
+                    "chosen_source_class": "named_revision_locked_source",
+                    "evidence": {
+                        "source_class": "named_revision_locked_source",
+                        "revision_source": {
+                            "label": "Akademiska Hus",
+                            "revision_url": "https://www.wikidata.org/w/index.php?title=Q10403939&oldid=2419926147",
+                        },
+                    },
+                }
+            ]
+        }
+    ]
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        grounding_depth_summary=build_grounding_depth_summary(
+            fixture=_load_nat_grounding_depth_fixture(),
+            live_follow_results=live_follow_results,
+        ),
+    )
+
+    assert payload["reviewer_view"]["recommended_next_step"] == "review_live_follow_receipts"
+    assert "review_live_follow_receipts" in payload["reviewer_view"]["decision_focus"]
+    assert "live_receipts_ready_for_review" in payload["reviewer_view"]["uncertainty_flags"]
+    assert "live_follow_receipts=1" in payload["reviewer_view"]["uncertainty_flags"]
+
+
 def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() -> None:
     payload = build_wikidata_review_packet(
         source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
@@ -2298,6 +2380,44 @@ def test_verify_migration_pack_against_after_state_reports_verified_and_missing(
     assert by_id["Q1|P5991|1"]["source_still_present"] is True
     assert by_id["Q2|P5991|1"]["status"] == "target_missing"
     assert "Q3|P5991|1" not in by_id
+
+
+def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verified_rows() -> None:
+    payload = _load_nat_cohort_a_gate_b_candidate_verification_run_fixture()
+
+    report = verify_migration_pack_against_after_state(
+        payload["migration_pack"],
+        payload["after_payload"],
+    )
+
+    assert report["verification_scope"] == "checked_safe_subset_only"
+    assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count"]
+    assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+    by_id = {row["candidate_id"]: row for row in report["rows"]}
+    assert by_id["Q1068745|P5991|1"]["status"] == "verified"
+    assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
+    assert by_id["Q1489170|P5991|1"]["status"] == "verified"
+    assert by_id["Q1489170|P5991|1"]["source_still_present"] is True
+
+
+def test_verify_nat_cohort_a_gate_b_candidate_verification_runs_ready_reports_two_clean_runs() -> None:
+    payload = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
+
+    assert len(payload["runs"]) == payload["expected_summary"]["run_count"]
+
+    for run in payload["runs"]:
+        report = verify_migration_pack_against_after_state(
+            run["migration_pack"],
+            run["after_payload"],
+        )
+        assert report["verification_scope"] == "checked_safe_subset_only"
+        assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count_per_run"]
+        assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+        by_id = {row["candidate_id"]: row for row in report["rows"]}
+        assert by_id["Q1068745|P5991|1"]["status"] == "verified"
+        assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
+        assert by_id["Q1489170|P5991|1"]["status"] == "verified"
+        assert by_id["Q1489170|P5991|1"]["source_still_present"] is True
 
 
 def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> None:

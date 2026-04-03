@@ -406,8 +406,28 @@ def _event_time_precision(event: Mapping[str, Any], observations_by_id: Mapping[
     return "approximate"
 
 
+FACT_INT_ROLLBACK_TABLES = [
+    "fact_sources",
+    "fact_excerpts",
+    "fact_statements",
+    "fact_observations",
+    "fact_candidates",
+    "fact_intake_runs",
+]
+
+
 def _delete_run(conn: sqlite3.Connection, run_id: str) -> None:
-    conn.execute("DELETE FROM fact_intake_runs WHERE run_id = ?", (run_id,))
+    fact_ids = [
+        str(row[0])
+        for row in conn.execute("SELECT fact_id FROM fact_candidates WHERE run_id = ?", (run_id,))
+        if row and row[0]
+    ]
+    if fact_ids:
+        placeholders = ",".join("?" for _ in fact_ids)
+        for table in ("fact_candidate_statements", "fact_reviews", "fact_contestations"):
+            conn.execute(f"DELETE FROM {table} WHERE fact_id IN ({placeholders})", fact_ids)
+    for table in FACT_INT_ROLLBACK_TABLES:
+        conn.execute(f"DELETE FROM {table} WHERE run_id = ?", (run_id,))
 
 
 def _delete_contested_review_run(conn: sqlite3.Connection, review_run_id: str) -> None:
@@ -3754,6 +3774,13 @@ def _build_fact_review_workbench_payload_legacy(
         "events": report["events"],
         "facts": facts,
         "rule_atoms": report.get("rule_atoms", []),
+        "semantic_context": report.get("semantic_context", {}),
+        "workflow_summary": _build_fact_review_workflow_summary(
+            report=report,
+            summary=summary,
+            operator_views=operator_views,
+            default_fact_id=default_fact_id,
+        ),
         "inspector_classification": {
             "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
             "selected_fact_id": default_fact_id,
@@ -4729,6 +4756,124 @@ def _build_reopen_navigation(run: Mapping[str, Any], sources: list[Mapping[str, 
     }
 
 
+def _build_fact_review_workflow_summary(
+    *,
+    report: Mapping[str, Any],
+    summary: Mapping[str, Any],
+    operator_views: Mapping[str, Any],
+    default_fact_id: str | None,
+) -> dict[str, Any]:
+    semantic_context = (
+        report.get("semantic_context") if isinstance(report.get("semantic_context"), Mapping) else {}
+    )
+    promotion_gate = (
+        semantic_context.get("promotion_gate")
+        if isinstance(semantic_context.get("promotion_gate"), Mapping)
+        else None
+    )
+    summary_counts = summary.get("summary") if isinstance(summary.get("summary"), Mapping) else {}
+    chronology_summary = (
+        summary.get("chronology_summary") if isinstance(summary.get("chronology_summary"), Mapping) else {}
+    )
+    contested_summary = (
+        summary.get("contested_summary") if isinstance(summary.get("contested_summary"), Mapping) else {}
+    )
+    authority_follow = (
+        operator_views.get("authority_follow") if isinstance(operator_views.get("authority_follow"), Mapping) else {}
+    )
+    authority_follow_summary = (
+        authority_follow.get("summary") if isinstance(authority_follow.get("summary"), Mapping) else {}
+    )
+    authority_follow_queue = (
+        authority_follow.get("queue") if isinstance(authority_follow.get("queue"), list) else []
+    )
+    intake_triage = (
+        operator_views.get("intake_triage") if isinstance(operator_views.get("intake_triage"), Mapping) else {}
+    )
+    intake_groups = (
+        intake_triage.get("groups") if isinstance(intake_triage.get("groups"), Mapping) else {}
+    )
+    review_filters = [
+        str(key)
+        for key, rows in intake_groups.items()
+        if str(key).strip() and str(key) != "all" and isinstance(rows, list) and rows
+    ]
+
+    review_queue_count = int(summary_counts.get("review_queue_count") or 0)
+    contested_followup_count = int(contested_summary.get("needs_followup_count") or 0)
+    authority_follow_queue_count = int(authority_follow_summary.get("queue_count") or len(authority_follow_queue))
+    undated_event_count = int(chronology_summary.get("undated_event_count") or 0)
+    no_event_fact_count = int(chronology_summary.get("no_event_fact_count") or 0)
+    gate_decision = str(promotion_gate.get("decision") or "").strip() if isinstance(promotion_gate, Mapping) else None
+
+    counts = {
+        "review_queue_count": review_queue_count,
+        "contested_followup_count": contested_followup_count,
+        "authority_follow_queue_count": authority_follow_queue_count,
+        "undated_event_count": undated_event_count,
+        "no_event_fact_count": no_event_fact_count,
+    }
+
+    if authority_follow_queue_count > 0:
+        return {
+            "stage": "follow_up",
+            "title": "Resolve authority follow-up items",
+            "recommended_view": "authority_follow",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": f"{authority_follow_queue_count} authority follow-up item(s) remain open.",
+            "counts": counts,
+            "promotion_gate": promotion_gate,
+        }
+    if contested_followup_count > 0:
+        return {
+            "stage": "follow_up",
+            "title": "Resolve contested review items",
+            "recommended_view": "contested_items",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": f"{contested_followup_count} contested item(s) still need follow-up.",
+            "counts": counts,
+            "promotion_gate": promotion_gate,
+        }
+    if review_queue_count > 0:
+        gate_note = " The current promotion gate is audit." if gate_decision == "audit" else ""
+        return {
+            "stage": "decide",
+            "title": "Review unresolved facts",
+            "recommended_view": "intake_triage",
+            "recommended_filter": review_filters[0] if review_filters else "all",
+            "focus_fact_id": default_fact_id,
+            "reason": f"{review_queue_count} fact(s) remain in the review queue.{gate_note}",
+            "counts": counts,
+            "promotion_gate": promotion_gate,
+        }
+    if undated_event_count > 0 or no_event_fact_count > 0:
+        return {
+            "stage": "inspect",
+            "title": "Inspect chronology pressure before handoff",
+            "recommended_view": "chronology_prep",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": (
+                f"Chronology still has {undated_event_count} undated event(s) and "
+                f"{no_event_fact_count} no-event fact(s)."
+            ),
+            "counts": counts,
+            "promotion_gate": promotion_gate,
+        }
+    return {
+        "stage": "record",
+        "title": "Record and hand off the bounded review state",
+        "recommended_view": "professional_handoff",
+        "recommended_filter": None,
+        "focus_fact_id": default_fact_id,
+        "reason": "No open follow-up, review-queue, or chronology pressure is blocking the current bundle.",
+        "counts": counts,
+        "promotion_gate": promotion_gate,
+    }
+
+
 def _fact_review_zelph_rules() -> str:
     base_dir = Path(__file__).resolve().parent
     return load_zelph_rules(
@@ -4794,6 +4939,13 @@ def build_fact_review_workbench_payload(
         "events": report["events"],
         "facts": facts,
         "rule_atoms": report.get("rule_atoms", []),
+        "semantic_context": report.get("semantic_context", {}),
+        "workflow_summary": _build_fact_review_workflow_summary(
+            report=report,
+            summary=summary,
+            operator_views=operator_views,
+            default_fact_id=default_fact_id,
+        ),
         "inspector_classification": {
             "status_order": ["party_assertion", "procedural_outcome", "later_annotation"],
             "selected_fact_id": default_fact_id,

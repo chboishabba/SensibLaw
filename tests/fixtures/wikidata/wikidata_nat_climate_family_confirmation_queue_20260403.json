@@ -1,0 +1,52 @@
+{
+  "schema_version": "sl.wikidata_nat_confirmation_queue.v0_1",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "minimum_independent_paths_required": 2,
+  "queue_rows": [
+    {
+      "claim_id": "Q10651551|P5991|1",
+      "candidate_id": "Q10651551|P5991|1",
+      "family_id": "climate_family_safe_reference_transfer_subset",
+      "cohort_id": "climate_family_safe_reference_transfer",
+      "current_independent_count": 1,
+      "required_independent_count": 2,
+      "missing_independent_count": 1,
+      "follow_goal": "find_independent_confirmation",
+      "blocking_reason": "insufficient_independent_evidence",
+      "seen_root_artifact_ids": [
+        "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+      ],
+      "canonical_form": {
+        "subject": "Q10651551",
+        "property": "P14143",
+        "value": "+442",
+        "rank": "normal",
+        "window_id": "t2_current",
+        "qualifiers": {
+          "P585": [
+            "+2021-00-00T00:00:00Z"
+          ],
+          "P828": [
+            "Q7590"
+          ]
+        },
+        "references": [
+          {
+            "P813": [
+              "+2022-05-18T00:00:00Z"
+            ],
+            "P854": [
+              "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "claim_count": 1,
+    "single_run_queue_count": 1,
+    "promoted_count": 0
+  }
+}

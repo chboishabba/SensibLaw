@@ -1,0 +1,129 @@
+{
+  "campaign_id": "wikidata_nat_live_follow_campaign_20260403",
+  "lane_id": "wikidata_nat_wdu_p5991_p14143",
+  "purpose": "Bounded multi-category live-follow campaign for Nat uncertainty collapse.",
+  "campaign_rule": "local_packet_first_bounded_live_follow_only",
+  "categories": [
+    {
+      "category_id": "hard_grounding_packet",
+      "uncertainty_kind": "revision_locked_evidence_depth",
+      "targets": [
+        {
+          "packet_id": "review-packet:5bae90b4fcb444f6",
+          "qid": "Q10403939"
+        }
+      ],
+      "preferred_source_order": [
+        "named_revision_locked_source",
+        "named_query_link",
+        "named_reference_url"
+      ],
+      "max_hops": 2,
+      "stop_condition": "first authoritative excerpt that closes grounding uncertainty"
+    },
+    {
+      "category_id": "split_heavy_business_family",
+      "uncertainty_kind": "split_axis_and_reference_propagation",
+      "targets": [
+        {
+          "packet_id": "review-packet:041f7506c2efdeca",
+          "qid": "Q738421"
+        },
+        {
+          "packet_id": "review-packet:atrium-ljungberg-20260401",
+          "qid": "Q10422059"
+        }
+      ],
+      "preferred_source_order": [
+        "named_query_link",
+        "named_revision_locked_source",
+        "named_reference_url"
+      ],
+      "max_hops": 2,
+      "stop_condition": "split bundle uncertainty materially reduced or hold strengthened"
+    },
+    {
+      "category_id": "reconciled_non_business_variance",
+      "uncertainty_kind": "variance_heavy_qualifier_reference_shape",
+      "targets": [
+        {
+          "row_id": "Q8646|P5991|4",
+          "qid": "Q8646"
+        },
+        {
+          "row_id": "Q11661|P5991|1",
+          "qid": "Q11661"
+        }
+      ],
+      "preferred_source_order": [
+        "named_reference_url",
+        "named_revision_locked_source",
+        "bounded_live_search"
+      ],
+      "max_hops": 2,
+      "stop_condition": "class-local semantics and variance shape become reviewable"
+    },
+    {
+      "category_id": "policy_risk_population_preview",
+      "uncertainty_kind": "policy_hold_vs_narrower_review_path",
+      "targets": [
+        {
+          "qid": "Q1000001",
+          "statement_id": "Q1000001-1"
+        },
+        {
+          "qid": "Q1000002",
+          "statement_id": "Q1000002-1"
+        }
+      ],
+      "preferred_source_order": [
+        "named_reference_url",
+        "named_revision_locked_source"
+      ],
+      "max_hops": 2,
+      "stop_condition": "policy-risk hold is better justified or narrowed"
+    },
+    {
+      "category_id": "missing_instance_of_typing_deficit",
+      "uncertainty_kind": "typing_check_readiness",
+      "targets": [
+        {
+          "packet_id": "review-packet:f451ac11e012b114",
+          "qid": "Q1785637"
+        },
+        {
+          "packet_id": "review-packet:041f7506c2efdeca",
+          "qid": "Q738421"
+        }
+      ],
+      "preferred_source_order": [
+        "named_revision_locked_source",
+        "named_reference_url",
+        "bounded_live_search"
+      ],
+      "max_hops": 2,
+      "stop_condition": "next typing check becomes more specific or packet stays explicitly blocked"
+    },
+    {
+      "category_id": "unreconciled_instance_of_split_axis",
+      "uncertainty_kind": "axis_specific_unreconciled_instance_of",
+      "targets": [
+        {
+          "candidate_id": "Q10422059|P5991|5",
+          "qid": "Q10422059"
+        },
+        {
+          "candidate_id": "Q10403939|P5991|12",
+          "qid": "Q10403939"
+        }
+      ],
+      "preferred_source_order": [
+        "named_revision_locked_source",
+        "named_reference_url",
+        "bounded_live_search"
+      ],
+      "max_hops": 2,
+      "stop_condition": "split-axis diagnosis becomes reviewable or explicit hold remains justified"
+    }
+  ]
+}

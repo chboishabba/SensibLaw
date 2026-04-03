@@ -97,6 +97,138 @@ def build_abstentions(fact_report: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_bundle_workflow_summary(
+    *,
+    review_summary: Mapping[str, Any],
+    operator_views: Mapping[str, Any],
+    promotion_gate: Mapping[str, Any] | None = None,
+    default_fact_id: str | None = None,
+) -> dict[str, Any]:
+    summary_counts = (
+        review_summary.get("summary") if isinstance(review_summary.get("summary"), Mapping) else {}
+    )
+    chronology_summary = (
+        review_summary.get("chronology_summary")
+        if isinstance(review_summary.get("chronology_summary"), Mapping)
+        else {}
+    )
+    contested_summary = (
+        review_summary.get("contested_summary")
+        if isinstance(review_summary.get("contested_summary"), Mapping)
+        else {}
+    )
+    authority_follow = (
+        operator_views.get("authority_follow")
+        if isinstance(operator_views.get("authority_follow"), Mapping)
+        else {}
+    )
+    authority_follow_summary = (
+        authority_follow.get("summary")
+        if isinstance(authority_follow.get("summary"), Mapping)
+        else {}
+    )
+    authority_follow_queue = (
+        authority_follow.get("queue")
+        if isinstance(authority_follow.get("queue"), list)
+        else []
+    )
+    intake_triage = (
+        operator_views.get("intake_triage")
+        if isinstance(operator_views.get("intake_triage"), Mapping)
+        else {}
+    )
+    intake_groups = (
+        intake_triage.get("groups")
+        if isinstance(intake_triage.get("groups"), Mapping)
+        else {}
+    )
+    review_filters = [
+        str(key)
+        for key, rows in intake_groups.items()
+        if str(key).strip() and str(key) != "all" and isinstance(rows, list) and rows
+    ]
+
+    review_queue_count = int(summary_counts.get("review_queue_count") or 0)
+    contested_followup_count = int(contested_summary.get("needs_followup_count") or 0)
+    authority_follow_queue_count = int(
+        authority_follow_summary.get("queue_count") or len(authority_follow_queue)
+    )
+    undated_event_count = int(chronology_summary.get("undated_event_count") or 0)
+    no_event_fact_count = int(chronology_summary.get("no_event_fact_count") or 0)
+    gate_decision = (
+        str(promotion_gate.get("decision") or "").strip()
+        if isinstance(promotion_gate, Mapping)
+        else None
+    )
+
+    counts = {
+        "review_queue_count": review_queue_count,
+        "contested_followup_count": contested_followup_count,
+        "authority_follow_queue_count": authority_follow_queue_count,
+        "undated_event_count": undated_event_count,
+        "no_event_fact_count": no_event_fact_count,
+    }
+
+    if authority_follow_queue_count > 0:
+        return {
+            "stage": "follow_up",
+            "title": "Resolve authority follow-up items",
+            "recommended_view": "authority_follow",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": f"{authority_follow_queue_count} authority follow-up item(s) remain open.",
+            "counts": counts,
+            "promotion_gate": dict(promotion_gate or {}),
+        }
+    if contested_followup_count > 0:
+        return {
+            "stage": "follow_up",
+            "title": "Resolve contested review items",
+            "recommended_view": "contested_items",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": f"{contested_followup_count} contested item(s) still need follow-up.",
+            "counts": counts,
+            "promotion_gate": dict(promotion_gate or {}),
+        }
+    if review_queue_count > 0:
+        gate_note = " The current promotion gate is audit." if gate_decision == "audit" else ""
+        return {
+            "stage": "decide",
+            "title": "Review unresolved facts",
+            "recommended_view": "intake_triage",
+            "recommended_filter": review_filters[0] if review_filters else "all",
+            "focus_fact_id": default_fact_id,
+            "reason": f"{review_queue_count} fact(s) remain in the review queue.{gate_note}",
+            "counts": counts,
+            "promotion_gate": dict(promotion_gate or {}),
+        }
+    if undated_event_count > 0 or no_event_fact_count > 0:
+        return {
+            "stage": "inspect",
+            "title": "Inspect chronology pressure before handoff",
+            "recommended_view": "chronology_prep",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": (
+                f"Chronology still has {undated_event_count} undated event(s) and "
+                f"{no_event_fact_count} no-event fact(s)."
+            ),
+            "counts": counts,
+            "promotion_gate": dict(promotion_gate or {}),
+        }
+    return {
+        "stage": "record",
+        "title": "Record and hand off the bounded review state",
+        "recommended_view": "professional_handoff",
+        "recommended_filter": None,
+        "focus_fact_id": default_fact_id,
+        "reason": "No open follow-up, review-queue, or chronology pressure is blocking the current bundle.",
+        "counts": counts,
+        "promotion_gate": dict(promotion_gate or {}),
+    }
+
+
 def build_fact_review_bundle_payload(
     *,
     fact_report: Mapping[str, Any],
@@ -108,6 +240,7 @@ def build_fact_review_bundle_payload(
     operator_views: Mapping[str, Any],
     semantic_context: Mapping[str, Any],
     chronology_summary_extras: Mapping[str, Any] | None = None,
+    workflow_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     chronology_summary = {
         **dict(review_summary.get("chronology_summary", {})),
@@ -142,6 +275,7 @@ def build_fact_review_bundle_payload(
         "operator_views": dict(operator_views),
         "contested_summary": dict(review_summary.get("contested_summary", {})),
         "chronology_summary": chronology_summary,
+        "workflow_summary": dict(workflow_summary or {}),
         "abstentions": dict(abstentions),
         "semantic_context": dict(semantic_context),
     }

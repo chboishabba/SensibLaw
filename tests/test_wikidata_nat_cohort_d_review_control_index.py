@@ -36,6 +36,9 @@ def test_cohort_d_review_control_index_fixture_preserves_blockers_and_hold_signa
         "incomplete_batch_present",
         "unresolved_packet_refs_present",
     ]
+    assert payload["workflow_summary"]["stage"] == "inspect"
+    assert payload["workflow_summary"]["recommended_view"] == "batch_entries"
+    assert payload["workflow_summary"]["counts"]["total_unresolved_packet_ref_count"] == 1
 
 
 def test_cohort_d_review_control_index_builder_accepts_batch_reports() -> None:
@@ -48,3 +51,5 @@ def test_cohort_d_review_control_index_builder_accepts_batch_reports() -> None:
     assert report["index_id"] == "cohort_d_review_control_index_20260402"
     assert report["summary"]["batch_count"] == 2
     assert len(report["batch_entries"]) == 2
+    assert report["workflow_summary"]["stage"] == "inspect"
+    assert report["workflow_summary"]["recommended_view"] == "batch_entries"

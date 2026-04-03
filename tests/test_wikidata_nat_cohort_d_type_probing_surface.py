@@ -30,10 +30,12 @@ def test_cohort_d_type_probing_surface_fixture_is_fail_closed_and_non_executing(
     assert payload["governance"]["fail_closed"] is True
     assert payload["governance"]["promotion_guard"] == "hold"
     assert payload["unresolved_packet_refs"] == []
+    assert payload["surface_flags"] == ["missing_instance_of_typing_deficit"]
 
     qids = [row["review_entity_qid"] for row in payload["probe_rows"]]
     assert qids == ["Q738421", "Q1785637"]
     assert all(row["execution_allowed"] is False for row in payload["probe_rows"])
+    assert all(row["cohort_flags"] == ["missing_instance_of_typing_deficit"] for row in payload["probe_rows"])
 
 
 def test_cohort_d_type_probing_surface_marks_missing_packet_refs_incomplete() -> None:

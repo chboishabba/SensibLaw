@@ -215,14 +215,101 @@ Fail-closed repeated-index governance rule:
 
 ## Current Read (Pinned)
 
-Current lane posture remains below Gate B:
+Current lane posture is now split:
 
-- review-first controls are strong
+- one exact Gate B family subset is promoted as bounded `Level 2` pilot-ready
+- broader Cohort A is not promoted
+- climate-family work has only reached a one-run seed state
+- overall lane posture remains below Gate C
+
+## Bounded Pilot Promotion Rule
+
+When a Gate B family is promoted from repeated measured evidence, the default
+promotion scope is bounded unless broader evidence explicitly says otherwise.
+
+For the current Nat checked-safe path, the correct framing is:
+
+- promote only the verified family subset
+- do not infer readiness for broader Cohort A
+- do not infer readiness for Cohorts B, C, D, or E
+- do not infer backlog-wide blind automation readiness
+
+Promotion wording should be explicit:
+
+- pilot-ready for the exact verified family subset
+- generalization forbidden without new measured evidence
+- fail-closed posture preserved outside the promoted subset
 - split verification is real
 - packet and follow-depth support is real
 - broad measured direct-safe stability is not yet demonstrated
 
-So the honest current automation ceiling is `Level 1`.
+So the honest current automation ceiling is:
+
+- `Level 2` for the exact promoted family subset only
+- below `Level 2` for the rest of the lane
+- below Gate C for any broader automation claim
+
+## Current Nat Read
+
+The first bounded measured-automation family is now explicit:
+
+- family scope:
+  `Q1068745|P5991|1` and `Q1489170|P5991|1`
+- promotion scope:
+  bounded pilot-ready only
+- generalization:
+  forbidden without new measured evidence
+
+The second-family climate seam is also explicit:
+
+- family seed:
+  `climate_family_safe_reference_transfer_subset`
+- current safe row:
+  `Q10651551|P5991|1`
+- current state:
+  one truthful verification run only
+- blocker:
+  no second independent after-state artifact and no second safe row in the
+  current pack
+
+This means the lane has crossed Gate B locally for one exact family subset,
+but has not crossed Gate C.
+
+## Independence Rule
+
+Repeated-run evidence must come from real separate artifacts, not synthetic
+duplication of one source slice.
+
+For Nat promotion purposes, two evidence paths are only independent when they
+meet all of the following:
+
+- different after-state artifacts or different revision-locked source bundles
+- not mechanically duplicated from the same underlying artifact
+- same candidate-level semantic conclusion
+- replayable through the same verifier/governance path
+
+Practical consequence:
+
+- one clean run proves bounded local viability
+- two clean but non-independent runs do not clear a gate
+- promotion beyond a local family subset requires independent confirmation
+- when a claim remains `SINGLE_RUN`, the next required input should be emitted
+  as a confirmation intake contract that names the seen roots and the minimum
+  independent artifact bundle needed for re-entry into the verifier path
+
+## Prioritized Roadmap To Complete
+
+The shortest honest path from the current state to broader completion is:
+
+1. keep the current two-row family frozen as already proved
+2. make evidence independence explicit in the runtime and governance model
+3. materialize a truthful second family with at least one additional
+   independent evidence path
+4. rerun the same verifier, proposal, evidence, and governance chain on that
+   second family
+5. only then assess whether Gate C is actually satisfied
+
+This is a data and evidence problem now, not a missing-gates problem.
 
 ## ZKP Frame
 

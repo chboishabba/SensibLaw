@@ -26,6 +26,8 @@ from .wikidata_review_packet_reviewer_actions import (
 from .wikidata_review_packet_variant_compare import (
     compare_review_packet_variants,
 )
+from src.policy.compiler_contract import build_wikidata_migration_pack_contract
+from src.policy.product_gate import build_product_gate
 
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
@@ -601,6 +603,7 @@ def _reviewer_view_for_packet(
     parsed_page: Mapping[str, Any],
     page_signals: Mapping[str, Any],
     follow_receipts: Sequence[Mapping[str, Any]],
+    grounding_depth_row: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     decision_focus = ["confirm_split_axes", "confirm_target_bundle_count"]
     if _stringify(split_plan.get("reference_propagation")) != "exact":
@@ -627,11 +630,133 @@ def _reviewer_view_for_packet(
         uncertainty_flags.append("qualifier_propagation_requires_review")
     if not follow_receipts:
         uncertainty_flags.append("no_follow_receipts")
+    return_recommended_next_step = _stringify(
+        split_plan.get("suggested_action", "review_only")
+    )
+    if grounding_depth_row is not None:
+        grounding_gap_class = _stringify(grounding_depth_row.get("grounding_gap_class"))
+        recommended_follow_target = _stringify(
+            grounding_depth_row.get("recommended_follow_target")
+        )
+        if grounding_gap_class:
+            uncertainty_flags.append(f"grounding_gap_class={grounding_gap_class}")
+        if grounding_gap_class == "live_receipts_ready_for_review":
+            uncertainty_flags.append("live_receipts_ready_for_review")
+            if "review_live_follow_receipts" not in decision_focus:
+                decision_focus.append("review_live_follow_receipts")
+        if grounding_depth_row.get("live_follow_count"):
+            uncertainty_flags.append(
+                f"live_follow_receipts={int(grounding_depth_row.get('live_follow_count') or 0)}"
+            )
+        if recommended_follow_target and recommended_follow_target != _stringify(
+            split_plan.get("suggested_action")
+        ):
+            return_recommended_next_step = recommended_follow_target
     return {
         "decision_focus": decision_focus,
         "uncertainty_flags": uncertainty_flags,
-        "recommended_next_step": _stringify(split_plan.get("suggested_action", "review_only")),
+        "recommended_next_step": return_recommended_next_step,
     }
+
+
+def _packet_grounding_depth_row(
+    *,
+    grounding_depth_summary: Mapping[str, Any] | None,
+    qid: str,
+    split_plan_id: str,
+) -> dict[str, Any] | None:
+    if not isinstance(grounding_depth_summary, Mapping):
+        return None
+    packets = grounding_depth_summary.get("packets")
+    if not isinstance(packets, Sequence):
+        return None
+    def _normalize_key(value: Any) -> str:
+        normalized = _stringify(value).strip()
+        return "" if normalized.lower() in {"", "null"} else normalized
+
+    match_qid = _normalize_key(qid)
+    target_plan = _normalize_key(split_plan_id)
+    for row in packets:
+        if not isinstance(row, Mapping):
+            continue
+        plan_match = _normalize_key(row.get("split_plan_id"))
+        if plan_match and target_plan and plan_match != target_plan:
+            continue
+        if match_qid and _stringify(row.get("qid")) != match_qid:
+            continue
+        grounding_row = dict(row)
+        grounding_gap_class = _stringify(grounding_row.get("grounding_gap_class")).strip()
+        if grounding_gap_class.lower() in {"", "null"}:
+            grounding_gap_class = _derive_grounding_gap_class(grounding_row)
+        if grounding_gap_class == "live_receipts_ready_for_review":
+            grounding_row["recommended_follow_target"] = "review_live_follow_receipts"
+        else:
+            recommended_follow_target = _stringify(
+                grounding_row.get("recommended_follow_target")
+            ).strip()
+            if recommended_follow_target.lower() in {"", "null"}:
+                grounding_row["recommended_follow_target"] = (
+                    "" if grounding_gap_class == "grounded" else _derive_grounding_recommended_target(
+                        grounding_gap_class
+                    )
+                )
+            else:
+                grounding_row["recommended_follow_target"] = recommended_follow_target
+        live_follow_receipts = grounding_row.get("live_follow_receipts")
+        if isinstance(live_follow_receipts, Sequence):
+            grounding_row["live_follow_count"] = len(live_follow_receipts)
+        grounding_row["grounding_gap_class"] = grounding_gap_class
+        return grounding_row
+    return None
+
+
+def _derive_grounding_gap_class(
+    grounding_row: Mapping[str, Any],
+) -> str:
+    status = _stringify(grounding_row.get("grounding_status")).strip()
+    if (
+        status == "grounded"
+        and _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
+        and grounding_row.get("live_follow_receipts")
+    ):
+        return "live_receipts_ready_for_review"
+    if status == "grounded":
+        return "grounded"
+    evidence = grounding_row.get("revision_evidence")
+    if not isinstance(evidence, Sequence):
+        evidence = []
+    evidence_count = len(evidence)
+    if evidence_count == 0:
+        return "no_revision_evidence"
+    missing = {
+        field
+        for item in evidence
+        if isinstance(item, Mapping)
+        for field in item.get("missing_fields", [])
+        if _stringify(field).strip()
+    }
+    if {"excerpt", "excerpt_summary"} <= missing:
+        return "revision_evidence_missing"
+    if missing:
+        return "partial_revision_evidence"
+    if (
+        _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
+        and grounding_row.get("live_follow_receipts")
+    ):
+        return "live_receipts_ready_for_review"
+    return "ungrounded_other"
+
+
+def _derive_grounding_recommended_target(gap_class: str) -> str:
+    if gap_class == "live_receipts_ready_for_review":
+        return "review_live_follow_receipts"
+    if gap_class == "no_revision_evidence":
+        return "revision_locked_packet"
+    if gap_class in {"revision_evidence_missing", "partial_revision_evidence"}:
+        return "revision_locked_evidence"
+    if gap_class == "grounded":
+        return ""
+    return "packet_review"
 
 
 def _comparison_variants_from_split_plan_payload(
@@ -856,6 +981,7 @@ def build_wikidata_review_packet(
     source_unit_id: str | None = None,
     follow_receipts: Sequence[Mapping[str, Any]] | None = None,
     follow_depth_source_text_by_url: Mapping[str, str] | None = None,
+    grounding_depth_summary: Mapping[str, Any] | None = None,
     comparison_variants: Sequence[Mapping[str, Any]] | None = None,
     include_semantic_decomposition: bool = False,
 ) -> dict[str, Any]:
@@ -882,10 +1008,16 @@ def build_wikidata_review_packet(
         f"{_stringify(split_plan.get('split_plan_id'))}"
     )
     packet_id = f"review-packet:{hashlib.sha1(packet_key.encode('utf-8')).hexdigest()[:16]}"
+    review_entity_qid = _stringify(split_plan.get("entity_qid"))
+    grounding_depth_row = _packet_grounding_depth_row(
+        grounding_depth_summary=grounding_depth_summary,
+        qid=review_entity_qid,
+        split_plan_id=_stringify(split_plan.get("split_plan_id")),
+    )
     packet = {
         "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
         "packet_id": packet_id,
-        "review_entity_qid": _stringify(split_plan.get("entity_qid")),
+        "review_entity_qid": review_entity_qid,
         "source_surface": {
             "source_unit_id": _stringify(source.get("source_unit_id")),
             "source_entity_qid": _stringify(source.get("entity_qid")),
@@ -932,6 +1064,7 @@ def build_wikidata_review_packet(
             parsed_page=parsed_page,
             page_signals=page_signals,
             follow_receipts=normalized_receipts,
+            grounding_depth_row=grounding_depth_row,
         ),
     }
     if include_semantic_decomposition:
@@ -3436,7 +3569,7 @@ def build_wikidata_migration_pack(
             )
 
     candidates.sort(key=lambda item: (item["entity_qid"], item["statement_index"], item["candidate_id"]))
-    return {
+    migration_pack = {
         "schema_version": MIGRATION_PACK_SCHEMA_VERSION,
         "source_property": source_property,
         "target_property": target_property,
@@ -3460,6 +3593,13 @@ def build_wikidata_migration_pack(
             "requires_review_count": sum(1 for item in candidates if item["requires_review"]),
         },
     }
+    migration_pack["compiler_contract"] = build_wikidata_migration_pack_contract(migration_pack)
+    migration_pack["promotion_gate"] = build_product_gate(
+        lane="wikidata_nat",
+        product_ref="wikidata_migration_pack",
+        compiler_contract=migration_pack["compiler_contract"],
+    )
+    return migration_pack
 
 
 def export_migration_pack_openrefine_csv(

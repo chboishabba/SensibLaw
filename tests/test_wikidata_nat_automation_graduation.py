@@ -8,13 +8,22 @@ from src.ontology.wikidata_nat_automation_graduation import (
     AUTOMATION_GRADUATION_GOVERNANCE_INDEX_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_GOVERNANCE_SUMMARY_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_BATCH_REPORT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_CLAIM_CONVERGENCE_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_CONFIRMATION_INTAKE_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_CONFIRMATION_INTAKE_REPORT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_CONFIRMATION_QUEUE_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_REPORT_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_EVAL_SCHEMA_VERSION,
+    build_nat_claim_convergence_report,
     build_nat_automation_graduation_batch_report,
     build_nat_automation_graduation_evidence_report,
     build_nat_automation_graduation_governance_index,
     build_nat_automation_graduation_governance_summary,
     build_nat_automation_graduation_report,
+    build_nat_confirmation_intake_contract,
+    build_nat_confirmation_intake_report,
+    build_nat_confirmation_follow_queue,
+    build_nat_gate_b_proposal_batches_from_verification_runs,
     evaluate_nat_automation_promotion,
 )
 
@@ -26,6 +35,105 @@ def _load_graduation_fixture() -> dict:
             / "fixtures"
             / "wikidata"
             / "wikidata_nat_automation_graduation_criteria_20260402.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_cohort_a_gate_b_candidate_evidence_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_evidence_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_cohort_a_gate_b_candidate_evidence_ready_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_evidence_ready_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_run_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_verification_run_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_climate_family_seed_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_climate_family_seed_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_climate_family_verification_run_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_climate_family_verification_run_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_climate_family_claim_convergence_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_climate_family_claim_convergence_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_climate_family_confirmation_queue_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_climate_family_confirmation_queue_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def _load_nat_climate_family_confirmation_intake_contract_fixture() -> dict:
+    return json.loads(
+        (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_climate_family_confirmation_intake_contract_20260403.json"
         ).read_text(encoding="utf-8")
     )
 
@@ -369,6 +477,312 @@ def test_evidence_report_surface_promotes_when_repeated_runs_are_clean_and_consi
     assert report["readiness_failed_reasons"] == []
     assert report["readiness_scope"]["gate_consistent"] is True
     assert report["readiness_scope"]["gate_id"] == "A"
+
+
+def test_evidence_report_surface_holds_gate_b_candidate_when_only_one_subset_run_exists() -> None:
+    criteria = _load_graduation_fixture()
+    repeated_batches = _load_nat_cohort_a_gate_b_candidate_evidence_fixture()
+
+    report = build_nat_automation_graduation_evidence_report(criteria, repeated_batches, min_runs=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert report["readiness_failed_reasons"] == ["insufficient_repeated_runs"]
+    assert report["readiness_scope"]["gate_consistent"] is True
+    assert report["readiness_scope"]["gate_id"] == "B"
+    assert report["summary"]["approved_count"] == 1
+    assert report["summary"]["held_count"] == 0
+    assert report["summary"]["rejected_count"] == 0
+    assert report["summary"]["fail_closed_count"] == 0
+
+
+def test_evidence_report_surface_promotes_gate_b_candidate_when_two_clean_subset_runs_exist() -> None:
+    criteria = _load_graduation_fixture()
+    repeated_batches = _load_nat_cohort_a_gate_b_candidate_evidence_ready_fixture()
+
+    report = build_nat_automation_graduation_evidence_report(criteria, repeated_batches, min_runs=2)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION
+    assert report["status"] == "ready"
+    assert report["decision"] == "promote"
+    assert report["promotion_ready"] is True
+    assert report["readiness_failed_reasons"] == []
+    assert report["readiness_scope"]["gate_consistent"] is True
+    assert report["readiness_scope"]["gate_id"] == "B"
+    assert report["readiness_scope"]["run_count"] == 2
+    assert report["summary"]["approved_count"] == 2
+    assert report["summary"]["held_count"] == 0
+    assert report["summary"]["rejected_count"] == 0
+
+
+def test_build_gate_b_proposal_batches_from_single_verification_run_holds_on_repetition_gap() -> None:
+    criteria = _load_graduation_fixture()
+    verification_runs = _load_nat_cohort_a_gate_b_candidate_verification_run_fixture()
+
+    proposal_batches = build_nat_gate_b_proposal_batches_from_verification_runs(verification_runs)
+    report = build_nat_automation_graduation_evidence_report(criteria, proposal_batches)
+
+    assert proposal_batches["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert len(proposal_batches["runs"]) == 1
+    proposal = proposal_batches["runs"][0]["proposals"][0]
+    assert proposal["metrics"]["after_state_verification_pass_rate"]["observed"] == 1.0
+    assert proposal["metrics"]["false_positive_rate_and_severity"]["observed"] == 0.0
+    assert proposal["verification_report"]["summary"]["verified_candidate_count"] == 2
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert report["readiness_failed_reasons"] == ["insufficient_repeated_runs"]
+
+
+def test_build_gate_b_proposal_batches_from_repeated_verification_runs_produces_ready_report() -> None:
+    criteria = _load_graduation_fixture()
+    verification_runs = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
+
+    proposal_batches = build_nat_gate_b_proposal_batches_from_verification_runs(verification_runs)
+    report = build_nat_automation_graduation_evidence_report(criteria, proposal_batches)
+
+    assert proposal_batches["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert len(proposal_batches["runs"]) == 2
+    assert proposal_batches["promotion_scope"]["scope_status"] == "pilot_ready_only"
+    assert proposal_batches["promotion_scope"]["generalization_allowed"] is False
+    assert proposal_batches["promotion_scope"]["candidate_ids"] == [
+        "Q1068745|P5991|1",
+        "Q1489170|P5991|1",
+    ]
+    for run in proposal_batches["runs"]:
+        proposal = run["proposals"][0]
+        assert proposal["gate_id"] == "B"
+        assert proposal["recommendation"] == "promote"
+        assert proposal["promotion_scope"]["scope_status"] == "pilot_ready_only"
+        assert proposal["promotion_scope"]["generalization_requires_new_evidence"] is True
+        assert proposal["risk_signals"] == []
+        assert proposal["metrics"]["direct_safe_yield_by_family"]["observed"] == 1.0
+        assert proposal["metrics"]["after_state_verification_pass_rate"]["observed"] == 1.0
+        assert proposal["metrics"]["false_positive_rate_and_severity"]["observed"] == 0.0
+        assert proposal["verification_report"]["summary"]["counts_by_status"] == {"verified": 2}
+    assert report["status"] == "ready"
+    assert report["decision"] == "promote"
+    assert report["promotion_ready"] is True
+    assert report["readiness_failed_reasons"] == []
+    assert report["summary"]["fail_closed_count"] == 0
+    assert report["promotion_scope"]["scope_status"] == "pilot_ready_only"
+    assert report["promotion_scope"]["candidate_ids"] == [
+        "Q1068745|P5991|1",
+        "Q1489170|P5991|1",
+    ]
+    assert "does not establish readiness for the broader cohort" in report["promotion_scope"]["promotion_statement"]
+
+
+def test_climate_family_seed_fixture_stays_distinct_and_fail_closed() -> None:
+    seed = _load_nat_climate_family_seed_fixture()
+
+    assert seed["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert seed["cohort_id"] == "climate_family_safe_reference_transfer"
+    assert seed["checked_safe_subset"] == ["Q10651551|P5991|1"]
+    assert seed["counts_by_bucket"] == {
+        "safe_with_reference_transfer": 1,
+        "split_required": 56,
+    }
+    assert seed["unresolved_pressure_status"] == "hold"
+    assert seed["follow_obligation"]["trigger"] == "climate_family_safe_reference_transfer_subset"
+    assert seed["replay_path"].endswith("p5991_p14143_climate_pilot_20260328")
+    assert [row["candidate_id"] for row in seed["pressure_candidates"]] == [
+        "Q10403939|P5991|1",
+        "Q10403939|P5991|2",
+        "Q10422059|P5991|1",
+    ]
+    assert all(row["classification"] == "split_required" for row in seed["pressure_candidates"])
+
+
+def test_climate_family_single_verification_run_materializes_distinct_hold_path() -> None:
+    criteria = _load_graduation_fixture()
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+
+    proposal_batches = build_nat_gate_b_proposal_batches_from_verification_runs(verification_runs)
+    report = build_nat_automation_graduation_evidence_report(criteria, proposal_batches)
+
+    assert proposal_batches["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert proposal_batches["cohort_id"] == "climate_family_safe_reference_transfer"
+    assert proposal_batches["promotion_scope"]["scope_status"] == "pilot_ready_only"
+    assert proposal_batches["promotion_scope"]["candidate_ids"] == ["Q10651551|P5991|1"]
+    assert len(proposal_batches["runs"]) == 1
+    proposal = proposal_batches["runs"][0]["proposals"][0]
+    assert proposal["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert proposal["cohort_id"] == "climate_family_safe_reference_transfer"
+    assert proposal["metrics"]["direct_safe_yield_by_family"]["observed"] == 1.0
+    assert proposal["metrics"]["after_state_verification_pass_rate"]["observed"] == 1.0
+    assert proposal["verification_report"]["summary"]["counts_by_status"] == {"verified": 1}
+    assert report["status"] == "not_ready"
+    assert report["decision"] == "hold"
+    assert report["promotion_ready"] is False
+    assert report["readiness_failed_reasons"] == ["insufficient_repeated_runs"]
+    assert report["promotion_scope"]["candidate_ids"] == ["Q10651551|P5991|1"]
+
+
+def test_claim_convergence_report_promotes_first_family_from_independent_runs() -> None:
+    verification_runs = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
+
+    report = build_nat_claim_convergence_report(verification_runs)
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_CLAIM_CONVERGENCE_SCHEMA_VERSION
+    assert report["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert report["summary"]["total_claims"] == 2
+    assert report["summary"]["promoted_count"] == 2
+    assert report["summary"]["single_run_count"] == 0
+    assert report["summary"]["avg_evidence_paths_per_claim"] == 2.0
+    assert report["summary"]["avg_independent_paths_per_claim"] == 2.0
+    for claim in report["claims"]:
+        assert claim["status"] == "PROMOTED"
+        assert claim["independent_count"] == 2
+        assert len(claim["evidence_paths"]) == 2
+        assert len(claim["independent_root_artifact_ids"]) == 2
+
+
+def test_claim_convergence_report_holds_climate_seed_as_single_run() -> None:
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+    expected = _load_nat_climate_family_claim_convergence_fixture()
+
+    report = build_nat_claim_convergence_report(verification_runs)
+
+    assert report == expected
+    assert report["schema_version"] == AUTOMATION_GRADUATION_CLAIM_CONVERGENCE_SCHEMA_VERSION
+    assert report["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert report["summary"]["total_claims"] == 1
+    assert report["summary"]["single_run_count"] == 1
+    assert report["summary"]["promoted_count"] == 0
+    claim = report["claims"][0]
+    assert claim["candidate_id"] == "Q10651551|P5991|1"
+    assert claim["status"] == "SINGLE_RUN"
+    assert claim["independent_count"] == 1
+    assert len(claim["independent_root_artifact_ids"]) == 1
+
+
+def test_confirmation_follow_queue_targets_only_single_run_claims() -> None:
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+    expected = _load_nat_climate_family_confirmation_queue_fixture()
+
+    queue = build_nat_confirmation_follow_queue(verification_runs)
+
+    assert queue == expected
+    assert queue["schema_version"] == AUTOMATION_GRADUATION_CONFIRMATION_QUEUE_SCHEMA_VERSION
+    assert queue["summary"]["claim_count"] == 1
+    assert queue["summary"]["single_run_queue_count"] == 1
+    row = queue["queue_rows"][0]
+    assert row["claim_id"] == "Q10651551|P5991|1"
+    assert row["blocking_reason"] == "insufficient_independent_evidence"
+    assert row["follow_goal"] == "find_independent_confirmation"
+    assert row["missing_independent_count"] == 1
+
+
+def test_confirmation_intake_contract_targets_only_single_run_claims() -> None:
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+    expected = _load_nat_climate_family_confirmation_intake_contract_fixture()
+
+    contract = build_nat_confirmation_intake_contract(verification_runs)
+
+    assert contract == expected
+    assert contract["schema_version"] == AUTOMATION_GRADUATION_CONFIRMATION_INTAKE_SCHEMA_VERSION
+    assert contract["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert contract["summary"]["claim_count"] == 1
+    assert contract["summary"]["intake_request_count"] == 1
+    row = contract["intake_rows"][0]
+    assert row["claim_id"] == "Q10651551|P5991|1"
+    assert row["candidate_id"] == "Q10651551|P5991|1"
+    assert row["status"] == "awaiting_independent_evidence"
+    assert row["missing_independent_count"] == 1
+    assert row["required_artifact_contract"]["must_supply"] == ["migration_pack", "after_payload"]
+    assert row["required_artifact_contract"]["must_include_new_window_id"] is True
+    assert row["required_artifact_contract"]["must_be_revision_locked"] is True
+    assert row["required_artifact_contract"]["must_be_independent_of_root_artifact_ids"]
+    assert row["runtime_reuse_contract"]["entrypoint"] == "verifier_to_convergence_chain"
+    assert row["runtime_reuse_contract"]["steps"] == [
+        "verify_migration_pack_against_after_state",
+        "build_nat_claim_convergence_report",
+        "build_nat_confirmation_follow_queue",
+    ]
+
+
+def test_confirmation_intake_contract_is_empty_for_promoted_family() -> None:
+    verification_runs = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
+
+    contract = build_nat_confirmation_intake_contract(verification_runs)
+
+    assert contract["schema_version"] == AUTOMATION_GRADUATION_CONFIRMATION_INTAKE_SCHEMA_VERSION
+    assert contract["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert contract["summary"]["claim_count"] == 2
+    assert contract["summary"]["intake_request_count"] == 0
+    assert contract["intake_rows"] == []
+
+
+def test_confirmation_intake_report_aggregates_held_and_promoted_families() -> None:
+    report = build_nat_confirmation_intake_report(
+        [
+            _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture(),
+            _load_nat_climate_family_verification_run_fixture(),
+        ]
+    )
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_CONFIRMATION_INTAKE_REPORT_SCHEMA_VERSION
+    assert report["summary"]["family_count"] == 2
+    assert report["summary"]["families_with_requests"] == 1
+    assert report["summary"]["intake_request_count"] == 1
+    assert len(report["contracts"]) == 2
+    row = report["intake_rows"][0]
+    assert row["family_id"] == "climate_family_safe_reference_transfer_subset"
+    assert row["candidate_id"] == "Q10651551|P5991|1"
+    assert row["missing_independent_count"] == 1
+
+
+def test_claim_convergence_does_not_count_duplicated_artifact_twice() -> None:
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+    duplicated_runs = {
+        **verification_runs,
+        "runs": [
+            verification_runs["runs"][0],
+            {
+                **verification_runs["runs"][0],
+                "run_id": "run-2026-04-03-climate-duplicate",
+            },
+        ],
+    }
+
+    report = build_nat_claim_convergence_report(duplicated_runs)
+
+    assert report["summary"]["total_claims"] == 1
+    assert report["summary"]["single_run_count"] == 1
+    claim = report["claims"][0]
+    assert claim["status"] == "SINGLE_RUN"
+    assert claim["evidence_count"] == 2
+    assert claim["independent_count"] == 1
+
+
+def test_claim_convergence_does_not_count_bridge_derived_artifact_as_independent() -> None:
+    verification_runs = _load_nat_climate_family_verification_run_fixture()
+    first_report = build_nat_claim_convergence_report(verification_runs)
+    original_root = first_report["claims"][0]["independent_root_artifact_ids"][0]
+    bridge_derived_runs = {
+        **verification_runs,
+        "runs": [
+            verification_runs["runs"][0],
+            {
+                **verification_runs["runs"][0],
+                "run_id": "run-2026-04-03-climate-bridge-derived",
+                "derived_from_root_artifact_ids": [original_root],
+            },
+        ],
+    }
+
+    report = build_nat_claim_convergence_report(bridge_derived_runs)
+
+    assert report["summary"]["total_claims"] == 1
+    assert report["summary"]["single_run_count"] == 1
+    claim = report["claims"][0]
+    assert claim["status"] == "SINGLE_RUN"
+    assert claim["evidence_count"] == 2
+    assert claim["independent_count"] == 1
+    assert claim["independent_root_artifact_ids"] == [original_root]
 
 
 def test_governance_index_holds_when_any_snapshot_not_ready() -> None:

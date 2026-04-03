@@ -14,6 +14,20 @@
     },
     "all_batches_ready": false
   },
+  "workflow_summary": {
+    "stage": "inspect",
+    "recommended_view": "batch_entries",
+    "reason": "1 unresolved packet reference(s) and 2 batch(es) still need readiness review.",
+    "counts": {
+      "batch_count": 2,
+      "case_count": 4,
+      "total_queue_size": 8,
+      "total_unresolved_packet_ref_count": 1
+    },
+    "promotion_gate": {
+      "decision": "hold"
+    }
+  },
   "batch_entries": [
     {
       "batch_id": "cohort_d_operator_batch_20260402",

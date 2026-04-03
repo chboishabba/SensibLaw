@@ -49,21 +49,28 @@ def main() -> None:
     args = parser.parse_args()
 
     samples = json.loads(args.samples.read_text(encoding="utf-8"))
+    reports: list[dict[str, object]] = []
+    sample_list = samples.get("samples")
     if args.batch:
-        reports = []
-        total = len(samples["samples"])
-        for index in range(total - 1):
-            primary = samples["samples"][index]
-            references = [samples["samples"][index + 1]]
-            report = build_cohort_e_diagnostic_report(
-                primary_candidate=primary,
-                reference_candidates=references,
-                max_comparisons=1,
-            )
-            reports.append(report)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
-        summary = summarize_cohort_e_reports(reports)
+        if isinstance(sample_list, list):
+            total = len(sample_list)
+            for index in range(total - 1):
+                primary = sample_list[index]
+                for reference_index in range(index + 1, total):
+                    reference = sample_list[reference_index]
+                    report = build_cohort_e_diagnostic_report(
+                        primary_candidate=primary,
+                        reference_candidates=[reference],
+                        max_comparisons=1,
+                    )
+                    reports.append(report)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
+            summary = summarize_cohort_e_reports(reports)
+        else:
+            summary = samples
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding="utf-8")
     else:
         primary = samples["samples"][0]
         references = samples["samples"][1:]

@@ -19,6 +19,8 @@ WIKIDATA_NAT_COHORT_D_REVIEW_CONTROL_INDEX_SCHEMA_VERSION = (
     "sl.wikidata_nat_cohort_d_review_control_index.v0_1"
 )
 
+MISSING_INSTANCE_OF_TYPING_FLAG = "missing_instance_of_typing_deficit"
+
 
 def _stringify(value: Any) -> str:
     if value is None:
@@ -44,6 +46,31 @@ def _smallest_typing_check(packet: Mapping[str, Any]) -> str:
     if decision_focus:
         return decision_focus[0]
     return "confirm_absence_of_instance_of"
+
+
+def _typing_signal_id(row: Mapping[str, Any]) -> str:
+    if not isinstance(row, Mapping):
+        return "wikidata:typing-deficit"
+    packet_id = _stringify(row.get("packet_id"))
+    qid = _stringify(row.get("review_entity_qid"))
+    if packet_id:
+        return packet_id
+    if qid:
+        return f"wikidata:{qid}"
+    return "wikidata:typing-deficit"
+
+
+def _build_probe_typing_signal(row: Mapping[str, Any]) -> dict[str, Any]:
+    qid = _stringify(row.get("review_entity_qid"))
+    return {
+        "signal_id": _typing_signal_id(row),
+        "source": "wikidata",
+        "signal_kind": MISSING_INSTANCE_OF_TYPING_FLAG,
+        "linked_qid": qid or None,
+        "requested_step": _stringify(row.get("recommended_next_step")),
+        "packet_id": _stringify(row.get("packet_id")),
+        "details": _stringify(row.get("split_plan_id")),
+    }
 
 
 def build_wikidata_nat_cohort_d_type_probing_surface(
@@ -107,10 +134,12 @@ def build_wikidata_nat_cohort_d_type_probing_surface(
                 "smallest_typing_check": _smallest_typing_check(packet),
                 "promotion_guard": _stringify(governance.get("promotion_guard", "hold")) or "hold",
                 "execution_allowed": False,
+                "cohort_flags": [MISSING_INSTANCE_OF_TYPING_FLAG],
             }
         )
 
     artifact_status = "review_only_ready" if not unresolved_packet_refs else "review_only_incomplete"
+    typing_deficit_signals = [_build_probe_typing_signal(row) for row in probe_rows]
     return {
         "schema_version": WIKIDATA_NAT_COHORT_D_TYPE_PROBING_SURFACE_SCHEMA_VERSION,
         "lane_id": _stringify(cohort_d_review_surface.get("lane_id")),
@@ -133,6 +162,8 @@ def build_wikidata_nat_cohort_d_type_probing_surface(
             if isinstance(check, Mapping)
         ],
         "probe_rows": probe_rows,
+        "typing_deficit_signals": typing_deficit_signals,
+        "surface_flags": [MISSING_INSTANCE_OF_TYPING_FLAG],
         "unresolved_packet_refs": unresolved_packet_refs,
         "non_claims": [
             "non_executing_type_probe_surface",
@@ -149,6 +180,97 @@ def _priority_from_probe_row(row: Mapping[str, Any]) -> str:
     if _stringify(row.get("packet_status")) == "review_only":
         return "high"
     return "medium"
+
+
+def _build_operator_workflow_summary(
+    *,
+    readiness: str,
+    queue_size: int,
+    high_priority_count: int,
+    medium_priority_count: int,
+    unresolved_packet_ref_count: int,
+    promotion_guard: str,
+) -> dict[str, Any]:
+    counts = {
+        "queue_size": queue_size,
+        "high_priority_count": high_priority_count,
+        "medium_priority_count": medium_priority_count,
+        "unresolved_packet_ref_count": unresolved_packet_ref_count,
+    }
+    if unresolved_packet_ref_count > 0 or readiness != "review_queue_ready":
+        return {
+            "stage": "inspect",
+            "recommended_view": "unresolved_packet_refs",
+            "reason": f"{unresolved_packet_ref_count} packet reference(s) still need resolution before clean review.",
+            "counts": counts,
+            "promotion_gate": {"decision": promotion_guard or "hold"},
+        }
+    if high_priority_count > 0:
+        return {
+            "stage": "follow_up",
+            "recommended_view": "operator_queue",
+            "reason": f"{high_priority_count} high-priority typing check(s) should be reviewed first.",
+            "counts": counts,
+            "promotion_gate": {"decision": promotion_guard or "hold"},
+        }
+    if queue_size > 0:
+        return {
+            "stage": "decide",
+            "recommended_view": "operator_queue",
+            "reason": f"{queue_size} queued packet(s) remain for bounded review.",
+            "counts": counts,
+            "promotion_gate": {"decision": promotion_guard or "hold"},
+        }
+    return {
+        "stage": "record",
+        "recommended_view": "summary",
+        "reason": "No queued packet review remains on this operator surface.",
+        "counts": counts,
+        "promotion_gate": {"decision": promotion_guard or "hold"},
+    }
+
+
+def _build_control_index_workflow_summary(
+    *,
+    all_batches_ready: bool,
+    batch_count: int,
+    case_count: int,
+    total_queue_size: int,
+    total_unresolved_packet_ref_count: int,
+    promotion_guard: str,
+) -> dict[str, Any]:
+    counts = {
+        "batch_count": batch_count,
+        "case_count": case_count,
+        "total_queue_size": total_queue_size,
+        "total_unresolved_packet_ref_count": total_unresolved_packet_ref_count,
+    }
+    if total_unresolved_packet_ref_count > 0 or not all_batches_ready:
+        return {
+            "stage": "inspect",
+            "recommended_view": "batch_entries",
+            "reason": (
+                f"{total_unresolved_packet_ref_count} unresolved packet reference(s) and "
+                f"{batch_count} batch(es) still need readiness review."
+            ),
+            "counts": counts,
+            "promotion_gate": {"decision": promotion_guard or "hold"},
+        }
+    if total_queue_size > 0:
+        return {
+            "stage": "decide",
+            "recommended_view": "batch_entries",
+            "reason": f"{total_queue_size} queued packet review item(s) remain across {case_count} case(s).",
+            "counts": counts,
+            "promotion_gate": {"decision": promotion_guard or "hold"},
+        }
+    return {
+        "stage": "record",
+        "recommended_view": "summary",
+        "reason": "All tracked cohort-D batches are ready and no queued review work remains.",
+        "counts": counts,
+        "promotion_gate": {"decision": promotion_guard or "hold"},
+    }
 
 
 def build_wikidata_nat_cohort_d_operator_review_surface(
@@ -238,6 +360,7 @@ def build_wikidata_nat_cohort_d_operator_report(
     )
     unresolved_packet_ref_count = int(operator_review_surface.get("unresolved_packet_ref_count", 0) or 0)
     readiness = _stringify(operator_review_surface.get("readiness"))
+    promotion_guard = _stringify(governance.get("promotion_guard", "hold")) or "hold"
 
     queue_preview: list[dict[str, Any]] = []
     triage_prompts: list[str] = []
@@ -280,6 +403,14 @@ def build_wikidata_nat_cohort_d_operator_report(
             "medium_priority_count": medium_priority_count,
             "unresolved_packet_ref_count": unresolved_packet_ref_count,
         },
+        "workflow_summary": _build_operator_workflow_summary(
+            readiness=readiness,
+            queue_size=len(queue_preview),
+            high_priority_count=high_priority_count,
+            medium_priority_count=medium_priority_count,
+            unresolved_packet_ref_count=unresolved_packet_ref_count,
+            promotion_guard=promotion_guard,
+        ),
         "queue_preview": queue_preview,
         "triage_prompts": triage_prompts,
         "blocked_signals": blocked_signals,
@@ -287,7 +418,7 @@ def build_wikidata_nat_cohort_d_operator_report(
             "automation_allowed": False,
             "can_execute_edits": False,
             "fail_closed": bool(governance.get("fail_closed", True)),
-            "promotion_guard": _stringify(governance.get("promotion_guard", "hold")) or "hold",
+            "promotion_guard": promotion_guard,
         },
         "non_claims": [
             "report_only_surface",
@@ -424,6 +555,7 @@ def build_wikidata_nat_cohort_d_review_control_index(
         hold_signals.append("incomplete_batch_present")
     if total_unresolved_packet_ref_count > 0:
         hold_signals.append("unresolved_packet_refs_present")
+    promotion_guard = "hold"
 
     return {
         "schema_version": WIKIDATA_NAT_COHORT_D_REVIEW_CONTROL_INDEX_SCHEMA_VERSION,
@@ -438,6 +570,14 @@ def build_wikidata_nat_cohort_d_review_control_index(
             "readiness_counts": readiness_counts,
             "all_batches_ready": all_batches_ready,
         },
+        "workflow_summary": _build_control_index_workflow_summary(
+            all_batches_ready=all_batches_ready,
+            batch_count=len(batch_entries),
+            case_count=total_case_count,
+            total_queue_size=total_queue_size,
+            total_unresolved_packet_ref_count=total_unresolved_packet_ref_count,
+            promotion_guard=promotion_guard,
+        ),
         "batch_entries": batch_entries,
         "blocked_signals": sorted(blocked_signals),
         "hold_signals": hold_signals,

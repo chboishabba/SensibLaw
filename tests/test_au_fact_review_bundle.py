@@ -66,7 +66,7 @@ def _seed_au_fixture_db(db_path: Path) -> str:
     return persisted.run_id
 
 
-def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> None:
+def _prepare_au_fact_review_bundle_fixture(tmp_path: Path):
     db_path = tmp_path / "itir.sqlite"
     timeline_run_id = _seed_au_fixture_db(db_path)
     with sqlite3.connect(str(db_path)) as conn:
@@ -114,12 +114,18 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
             semantic_report=semantic_report,
             source_events=source_events,
         )
+    return bundle, payload, persist_summary, semantic_report
 
-    schema = yaml.safe_load(Path("schemas/fact.review.bundle.v1.schema.yaml").read_text(encoding="utf-8"))
+
+def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> None:
+    bundle, payload, persist_summary, semantic_report = _prepare_au_fact_review_bundle_fixture(tmp_path)
+
+    schema_path = Path(__file__).resolve().parents[1] / "schemas" / "fact.review.bundle.v1.schema.yaml"
+    schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
     jsonschema.validate(bundle, schema)
 
     assert payload["run"]["run_id"].startswith("factrun:")
-    assert payload["run"]["source_label"] == f"au_semantic:{result['run_id']}"
+    assert payload["run"]["source_label"] == f"au_semantic:{semantic_report['run_id']}"
     assert persist_summary["statement_count"] == 3
     assert persist_summary["fact_count"] == 3
     assert persist_summary["observation_count"] >= 6
@@ -138,7 +144,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert {row["role"] for row in appeal_like_event["evidence"]} >= {"event_type", "primary_actor"}
 
     assert bundle["version"] == FACT_REVIEW_BUNDLE_VERSION
-    assert bundle["run"]["semantic_run_id"] == result["run_id"]
+    assert bundle["run"]["semantic_run_id"] == semantic_report["run_id"]
     assert bundle["run"]["workflow_link"]["workflow_kind"] == "au_semantic"
     assert bundle["summary"]["source_document_count"] == 1
     assert bundle["summary"]["event_count"] >= 2
@@ -147,6 +153,15 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert any(row["has_legal_procedural_observations"] for row in bundle["review_queue"])
     assert bundle["chronology_groups"]["dated_events"] or bundle["chronology_groups"]["approximate_events"]
     assert bundle["chronology_summary"]["approximate_event_count"] >= 1
+    assert bundle["workflow_summary"]["stage"] in {"inspect", "decide", "record", "follow_up"}
+    assert bundle["workflow_summary"]["recommended_view"] in {
+        "intake_triage",
+        "chronology_prep",
+        "contested_items",
+        "authority_follow",
+        "professional_handoff",
+    }
+    assert bundle["workflow_summary"]["counts"]["review_queue_count"] >= 0
     assert "procedural_posture" in bundle["operator_views"]
     assert "authority_follow" in bundle["operator_views"]
     assert bundle["abstentions"]["counts"]["observation_abstentions"] >= 0
@@ -159,13 +174,123 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["operator_views"]["authority_follow"]["control_plane"]["version"] == "follow.control.v1"
     assert bundle["operator_views"]["authority_follow"]["control_plane"]["source_family"] == "au_authority"
     assert bundle["operator_views"]["authority_follow"]["summary"]["authority_receipt_count"] >= 1
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["legal_ref_class_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["ref_kind_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["citation_court_hint_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["citation_year_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["jurisdiction_hint_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["instrument_kind_counts"], dict)
     assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["route_target_counts"], dict)
     assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["resolution_status_counts"], dict)
+    assert isinstance(bundle["operator_views"]["authority_follow"]["summary"]["priority_band_counts"], dict)
+    assert bundle["operator_views"]["authority_follow"]["summary"]["highest_priority_score"] >= 0
+    assert bundle["operator_views"]["authority_follow"]["summary"]["highest_authority_yield"] in {
+        "high",
+        "medium",
+        "low",
+    }
     assert isinstance(bundle["operator_views"]["authority_follow"]["queue"], list)
     assert bundle["operator_views"]["authority_follow"]["queue"][0]["title"]
     assert bundle["operator_views"]["authority_follow"]["queue"][0]["resolution_status"] == "open"
+    assert bundle["operator_views"]["authority_follow"]["queue"][0]["priority_rank"] == 1
+    assert "priority_score" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert bundle["operator_views"]["authority_follow"]["queue"][0]["authority_yield"] in {"high", "medium", "low"}
+    assert any(row["label"] == "Reference classes" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Reference kinds" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Authority yield" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Citation courts" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Citation years" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Jurisdictions" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Instrument kinds" for row in bundle["operator_views"]["authority_follow"]["queue"][0]["detail_rows"])
+    assert "legal_ref_details" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "candidate_citation_details" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "jurisdiction_hint_counts" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "instrument_kind_counts" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "ref_kind_counts" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "citation_court_hint_counts" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert "citation_year_counts" in bundle["operator_views"]["authority_follow"]["queue"][0]
+    assert bundle["operator_views"]["legal_follow_graph"]["available"] is True
+    assert bundle["workflow_summary"]["recommended_view"] == "authority_follow"
+    assert bundle["workflow_summary"]["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert bundle["operator_views"]["legal_follow_graph"]["control_plane"]["version"] == "follow.control.v1"
+    assert bundle["operator_views"]["legal_follow_graph"]["control_plane"]["source_family"] == "au_legal_follow"
+    assert bundle["operator_views"]["legal_follow_graph"]["summary"]["authority_receipt_count"] >= 1
+    assert bundle["operator_views"]["legal_follow_graph"]["summary"]["supporting_receipt_count"] >= 1
+    assert bundle["operator_views"]["legal_follow_graph"]["summary"]["supporting_authority_kind_counts"].get("austlii") >= 1
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["jurisdiction_hint_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["instrument_kind_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["reference_class_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["ref_kind_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["citation_court_hint_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["citation_year_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["edge_kind_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["supporting_legislation_role_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["route_target_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["resolution_status_counts"], dict)
+    assert isinstance(bundle["operator_views"]["legal_follow_graph"]["queue"], list)
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])
+    assert bundle["semantic_context"]["legal_follow_graph"]["summary"]["node_count"] >= 1
+    assert bundle["semantic_context"]["legal_follow_graph"]["summary"]["edge_count"] >= 1
+    assert any(node["kind"] == "authority_receipt" for node in bundle["semantic_context"]["legal_follow_graph"]["nodes"])
+    assert any(edge["kind"] == "linked_authority_receipt" for edge in bundle["semantic_context"]["legal_follow_graph"]["edges"])
+    assert bundle["semantic_context"]["compiler_contract"]["lane"] == "au"
+    assert bundle["semantic_context"]["compiler_contract"]["evidence_bundle"]["source_family"] == "au_fact_review_bundle"
+    assert bundle["semantic_context"]["compiler_contract"]["derived_products"][0]["role"] == "fact_review_bundle"
+    assert any(
+        row["role"] == "legal_follow_graph"
+        for row in bundle["semantic_context"]["compiler_contract"]["derived_products"]
+    )
+    assert bundle["semantic_context"]["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert bundle["semantic_context"]["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
+    normalized_artifact = bundle["semantic_context"]["suite_normalized_artifact"]
+    assert normalized_artifact["schema_version"] == "itir.normalized.artifact.v1"
+    assert normalized_artifact["artifact_role"] == "derived_product"
+    assert normalized_artifact["authority"]["derived"] is True
+    assert normalized_artifact["summary"]["lane"] == "au"
+    reasoner_input_artifact = bundle["semantic_context"]["reasoner_input_artifact"]
+    assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
+    assert reasoner_input_artifact["source_system"] == "SensibLaw"
+    assert reasoner_input_artifact["source_lane"] == "au"
+    assert reasoner_input_artifact["artifact_role"] == "derived_product"
+    assert reasoner_input_artifact["reasoner_scope"]["allowed_operations"] == [
+        "explanation",
+        "comparison",
+        "hypothesis",
+        "follow_planning",
+    ]
+    assert reasoner_input_artifact["reasoner_scope"]["forbidden_outputs"] == [
+        "promoted_record",
+        "compiled_state",
+    ]
+    assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
+    assert reasoner_input_artifact["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    root_schema = json.loads(
+        Path(__file__).resolve().parents[2].joinpath("schemas", "itir.normalized.artifact.v1.schema.json").read_text(encoding="utf-8")
+    )
+    jsonschema.Draft202012Validator(root_schema).validate(normalized_artifact)
+
+
+def test_au_authority_follow_queue_supporting_legislation_counts(tmp_path: Path) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+    queue_item = bundle["operator_views"]["authority_follow"]["queue"][0]
+    detail_rows = {row["label"]: row["value"] for row in queue_item["detail_rows"]}
+
+    assert queue_item["priority_score"] >= 1
+    assert queue_item["priority_rank"] == 1
+    assert queue_item["authority_yield"] in {"high", "medium", "low"}
+    assert queue_item["jurisdiction_hint_counts"]
+    assert sum(queue_item["jurisdiction_hint_counts"].values()) >= 1
+    instrument_counts = queue_item["instrument_kind_counts"]
+    if instrument_counts:
+        assert sum(instrument_counts.values()) >= 1
+    assert queue_item["ref_kind_counts"]
+    assert sum(queue_item["ref_kind_counts"].values()) >= 1
+    assert queue_item["legal_ref_class_counts"]
+    assert sum(queue_item["legal_ref_class_counts"].values()) >= 1
+    assert detail_rows.get("Jurisdictions", "").lower() != "none"
+    if instrument_counts:
+        assert detail_rows.get("Instrument kinds", "").lower() != "none"
 
 
 def test_au_bundle_uses_shared_review_bundle_component() -> None:

@@ -10,6 +10,9 @@ def _stringify(value: Any) -> str:
         return ""
     return str(value).strip()
 
+# Flag emitted when split axes disagree once comparisons exist.
+UNRECONCILED_SPLIT_AXIS_FLAG = "axis_specific_unreconciled_instance_of"
+
 
 def _normalize_axes(variant: Variant) -> Mapping[str, Mapping[str, Any]]:
     axes = variant.get("merged_split_axes") or variant.get("split_axes") or []
@@ -56,6 +59,7 @@ def compare_review_packet_variants(
     """Produce a lightweight agreement/disagreement surface for split-review variants."""
     primary_axes = _normalize_axes(primary_variant)
     diagnostics: list[str] = []
+    disagreement_detected = False
     if not primary_axes:
         diagnostics.append("primary_variant_missing_axes")
     primary_id = _stringify(primary_variant.get("candidate_id"))
@@ -76,8 +80,12 @@ def compare_review_packet_variants(
                 "notes": diagnostics.copy() if status == "disagreement" else [],
             }
         )
+        if status == "disagreement":
+            disagreement_detected = True
     if not comparisons:
         diagnostics.append("no_comparisons_provided")
+    if disagreement_detected:
+        diagnostics.append(UNRECONCILED_SPLIT_AXIS_FLAG)
     return {
         "primary_candidate_id": primary_id,
         "comparisons": comparisons,

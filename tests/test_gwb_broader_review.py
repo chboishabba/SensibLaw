@@ -21,7 +21,24 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
 
     assert payload["version"] == ARTIFACT_VERSION
     assert payload["fixture_kind"] == "gwb_broader_review"
-    assert summary["review_item_count"] == 13
+    assert payload["compiler_contract"]["lane"] == "gwb"
+    assert payload["compiler_contract"]["evidence_bundle"]["source_family"] == "gwb_broader_review"
+    assert any(row["role"] == "legal_linkage_graph" for row in payload["compiler_contract"]["derived_products"])
+    assert payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert payload["promotion_gate"]["product_ref"] == "gwb_broader_review_v1"
+    assert payload["workflow_summary"]["stage"] in {"decide", "follow_up", "record", "archive"}
+    assert payload["workflow_summary"]["recommended_view"] in {
+        "legal_follow_graph",
+        "source_review_rows",
+        "summary",
+        "archive_follow_rows",
+    }
+    assert payload["workflow_summary"]["counts"]["missing_review_count"] == summary["missing_review_count"]
+    assert "debate_edge_count" in summary
+    assert payload["workflow_summary"]["counts"]["debate_edge_count"] == summary["debate_edge_count"]
+    assert summary["debate_edge_count"] > 0
+    assert payload["workflow_summary"]["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert summary["review_item_count"] == 16
     assert summary["distinct_seed_lane_count"] == 13
     assert summary["source_row_count"] > 30
     assert summary["covered_count"] > 10
@@ -34,34 +51,95 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert normalized["artifact_id"] == "gwb_broader_review_v1"
     assert normalized["review_item_status_counts"] == {
         "accepted": 7,
-        "review_required": 6,
+        "review_required": 7,
         "held": 0,
     }
     assert normalized["source_status_counts"] == {
-        "accepted": 37,
-        "review_required": 11,
+        "accepted": 39,
+        "review_required": 20,
         "held": 0,
     }
     assert normalized["dominant_primary_workload"] == "linkage_pressure"
     assert normalized["primary_workload_counts"]["linkage_pressure"] == 8
     assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 3
-    assert normalized["candidate_signal_count"] == 38
-    assert normalized["provisional_queue_row_count"] == 38
-    assert normalized["provisional_bundle_count"] == 11
-    assert normalized["review_required_source_ratio"] == 0.229167
-    assert normalized["candidate_signal_density"] == 3.454545
-    assert normalized["provisional_row_density"] == 3.454545
-    assert normalized["provisional_bundle_density"] == 1.0
+    assert normalized["candidate_signal_count"] == 70
+    assert normalized["provisional_queue_row_count"] == 70
+    assert normalized["provisional_bundle_count"] == 19
+    assert normalized["review_required_source_ratio"] == 0.333333
+    assert normalized["candidate_signal_density"] == 3.5
+    assert normalized["provisional_row_density"] == 3.5
+    assert normalized["provisional_bundle_density"] == 0.95
 
     assert any(row["source_kind"] == "seed_family_support" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "merged_promoted_relation" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "source_family_summary" for row in payload["source_review_rows"])
+    assert payload["legal_follow_graph"]["derived_only"] is True
+    assert payload["legal_follow_graph"]["challengeable"] is True
+    assert payload["legal_follow_graph"]["summary"]["seed_lane_count"] == summary["review_item_count"]
+    assert payload["legal_follow_graph"]["summary"]["source_row_count"] == summary["source_row_count"]
+    assert payload["legal_follow_graph"]["summary"]["source_row_node_count"] <= summary["source_row_count"]
+    assert payload["legal_follow_graph"]["summary"]["source_family_count"] >= 1
+    assert payload["legal_follow_graph"]["summary"]["source_kind_counts"].get("source_family_summary", 0) >= 1
+    assert isinstance(payload["legal_follow_graph"]["summary"]["source_family_label_counts"], dict)
+    assert isinstance(payload["legal_follow_graph"]["summary"]["linkage_kind_counts"], dict)
+    assert isinstance(payload["legal_follow_graph"]["summary"]["review_status_label_counts"], dict)
+    assert isinstance(payload["legal_follow_graph"]["summary"]["support_kind_label_counts"], dict)
+    assert isinstance(payload["legal_follow_graph"]["summary"]["followed_source_cite_class_counts"], dict)
+    assert payload["operator_views"]["legal_follow_graph"]["available"] is True
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"], dict)
+    assert payload["operator_views"]["legal_follow_graph"]["control_plane"]["version"] == "follow.control.v1"
+    assert payload["operator_views"]["legal_follow_graph"]["control_plane"]["source_family"] == "gwb_legal_follow"
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["route_target_counts"], dict)
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["resolution_status_counts"], dict)
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["summary"]["priority_band_counts"], dict)
+    assert payload["operator_views"]["legal_follow_graph"]["summary"]["highest_priority_score"] >= 0
+    assert payload["operator_views"]["legal_follow_graph"]["summary"]["highest_authority_yield"] in {
+        "high",
+        "medium",
+        "low",
+    }
+    if payload["operator_views"]["legal_follow_graph"]["summary"]["queue_count"] > 0:
+        assert payload["workflow_summary"]["recommended_view"] in {
+            "legal_follow_graph",
+            "archive_follow_rows",
+        }
+    else:
+        assert payload["workflow_summary"]["recommended_view"] == "source_review_rows"
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["queue"], list)
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["highlight_nodes"], list)
+    assert isinstance(payload["operator_views"]["legal_follow_graph"]["sample_edges"], list)
+    if payload["operator_views"]["legal_follow_graph"]["queue"]:
+        assert payload["operator_views"]["legal_follow_graph"]["queue"][0]["priority_rank"] == 1
     assert payload["related_review_clusters"]
     assert payload["provisional_review_rows"][0]["priority_rank"] == 1
     assert payload["provisional_review_bundles"][0]["bundle_rank"] == 1
+    parliamentary_rows = [
+        row for row in payload["source_review_rows"] if row.get("source_kind") == "parliamentary_statement"
+    ]
+    assert len(parliamentary_rows) == 2
+    assert all(row["metadata"]["source_unit_id"].startswith("sourceunit:parliamentary") for row in parliamentary_rows)
+    assert all(row.get("priority_score") == 5 for row in parliamentary_rows)
+    assert all("operator_label" in row for row in parliamentary_rows)
+    assert all(row["metadata"].get("ready_for_follow") is True for row in parliamentary_rows)
+    assert any(
+        anchor.get("anchor_kind") == "clause_label" for row in parliamentary_rows for anchor in row.get("candidate_anchors", [])
+    )
+    receipt_rows = [
+        row for row in payload["source_review_rows"] if row.get("source_kind") == "uk_legislation_receipt"
+    ]
+    assert receipt_rows
+    anchor_kinds = {anchor["anchor_kind"] for anchor in receipt_rows[0]["candidate_anchors"]}
+    assert "section_label" in anchor_kinds
+    assert "version" in anchor_kinds
 
     summary_text = summary_path.read_text(encoding="utf-8")
     assert "GWB Broader Review" in summary_text
+    assert "Derived Legal-Linkage Graph" in summary_text
+    assert "Source kinds:" in summary_text
+    assert "Linkage kinds:" in summary_text
+    assert "Debate edges captured" in summary_text
+    assert "Graph inspection" in summary_text
+    assert "Sample typed links" in summary_text
     assert "Normalized Metrics" in summary_text
     assert "Top Provisional Review Bundles" in summary_text
 

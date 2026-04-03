@@ -31,6 +31,10 @@ def test_cohort_d_operator_report_fixture_is_fail_closed_and_review_only() -> No
     assert payload["governance"]["can_execute_edits"] is False
     assert payload["blocked_signals"] == []
     assert payload["queue_preview"][0]["review_entity_qid"] == "Q1785637"
+    assert payload["workflow_summary"]["stage"] == "follow_up"
+    assert payload["workflow_summary"]["recommended_view"] == "operator_queue"
+    assert payload["workflow_summary"]["counts"]["high_priority_count"] == 2
+    assert payload["workflow_summary"]["promotion_gate"]["decision"] == "hold"
 
 
 def test_cohort_d_operator_report_adds_blocked_signal_when_queue_not_ready() -> None:
@@ -43,3 +47,5 @@ def test_cohort_d_operator_report_adds_blocked_signal_when_queue_not_ready() -> 
     assert payload["summary"]["unresolved_packet_ref_count"] == 1
     assert "unresolved_packet_refs_present" in payload["blocked_signals"]
     assert "operator_review_surface_not_ready" in payload["blocked_signals"]
+    assert payload["workflow_summary"]["stage"] == "inspect"
+    assert payload["workflow_summary"]["recommended_view"] == "unresolved_packet_refs"

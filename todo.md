@@ -37,6 +37,250 @@
   - keep graph explicitly derived and optional, not the organizing truth layer
   - planning note:
     `../docs/planning/moonshot_compiler_normalization_reconsideration_20260402.md`
+  - completion roadmap:
+    - land the shared evidence-bundle -> promoted-outcome contract as the
+      cross-lane compiler spine
+    - normalize AU onto that contract
+    - normalize GWB onto that contract
+    - land the reusable `promote | abstain | audit` gate above those
+      normalized products
+    - then shift priority to the first operator-grade workflow layer and the
+      remaining high-priority workflow lanes
+  - progress read:
+    - reusable substrate / canonical-surface program: roughly `90-95%`
+    - moonshot compiler-contract reframing: roughly `70-80%`
+    - full project overall: roughly `45-50%`
+  - completion condition:
+    - AU, GWB, and Wikidata/Nat all accept bounded evidence bundles and emit
+      promoted outcomes plus derived products under one shared contract
+    - reusable promotion gate exists above those products
+    - graph stays derived and optional
+    - operator workflow no longer lags far behind the architecture
+  - first implementation slice:
+    - DONE: add one tiny shared `compiler_contract` payload
+    - DONE: first adopters:
+      - AU public handoff
+      - GWB public handoff
+      - Wikidata migration pack
+    - do not normalize doctrinal or migration semantics at this layer
+  - current promoted lane:
+    - AU product normalization
+    - DONE first bounded cut:
+      - emit `semantic_context.compiler_contract` in the AU fact-review bundle
+  - current AU read:
+    - AU public handoff and AU fact-review bundle now share the compiler
+      summary shape
+  - next promoted lane:
+    - GWB product normalization
+    - DONE first bounded cut:
+      - emit `compiler_contract` from GWB public review
+      - emit `compiler_contract` from GWB broader review
+    - current GWB read:
+      - GWB public handoff, GWB public review, and GWB broader review now
+        share the compiler summary shape
+  - current promoted lane:
+    - reusable `promote | abstain | audit` gate
+    - DONE first bounded cut:
+      - add one shared gate record above normalized products
+      - adopt it first in AU, GWB, and Wikidata normalized outputs
+    - landed adopters:
+      - AU public handoff
+      - AU fact-review bundle
+      - GWB public handoff
+      - GWB public review
+      - GWB broader review
+      - Wikidata migration pack
+    - validation:
+      - `28 passed`
+      - touched modules `py_compile` clean
+  - next pinned lane:
+    - first operator-grade workflow layer over normalized outputs
+    - DONE first bounded cut:
+      - emit `semantic_context` and one derived `workflow_summary` from the
+        fact-review workbench payload
+      - surface one explicit inspect -> decide -> record -> follow-up card in
+        the fact-review route
+    - validation:
+      - backend focused gate: `30 passed`
+      - `read_model.py` `py_compile` clean
+      - repo-wide `npm run check` still blocked by unrelated pre-existing
+        `wiki-timeline-aoo-all` errors
+  - next pinned lane:
+    - first bounded annotation / QA workbench slice over the existing
+      fact-review/read-model/operator-view spine
+  - legal moonshot expansion:
+    - AU should deepen first through product normalization, not a separate
+      speculative doctrine engine
+    - next bounded AU cut:
+      - emit one derived `legal_follow_graph` from existing authority
+        receipts, legal refs, and citation candidates
+      - keep the graph derived and reviewable
+    - explicit safety boundary:
+      - `docs/red_team_anti_panopticon.md`
+      - `docs/panopticon_refusal.md`
+  - legal moonshot expansion:
+    - AU should now widen through normalized legal-follow products, not a
+      parallel bespoke graph lane
+    - first bounded slice:
+      - derive one `legal_follow_graph` from authority receipts, legal refs,
+        citations, and follow-needed conjectures inside the AU fact-review
+        bundle semantic context
+    - keep the graph:
+      - derived
+      - non-predictive
+      - non-authoritative
+      - challengeable by source and receipt
+    - governing notes:
+      - `../docs/planning/legal_surface_expansion_and_graph_union_20260402.md`
+      - `../docs/planning/anti_panopticon_red_team_provisions_20260402.md`
+  - revised legal-expansion read:
+    - AU legal follow is now the next strong legal adopter lane
+    - prioritize:
+      - case follow
+      - authority follow
+      - supporting legislation / cited instrument understanding
+      - derived legal-follow graph surfaces
+      - publish `supporting_legislation_role_counts` for derived graphs
+    - keep graph derived, optional, and challengeable
+    - do not widen into predictive legal decisionmaking or surveillance logic
+  - immediate bounded slice:
+    - emit one AU derived legal-follow graph from existing authority receipts,
+      legal refs, and citation hints inside the fact-review bundle semantic
+      context
+    - DONE:
+      - `src/policy/legal_follow_graph.py`
+      - `semantic_context.legal_follow_graph`
+      - `operator_views.legal_follow_graph.summary`
+      - AU compiler contract now lists `legal_follow_graph` as a derived
+        product
+      - AU authority receipts now include structured legal-ref and citation
+        detail for downstream graph consumers
+      - legal-follow graph now distinguishes case refs, supporting
+        legislation, and cited instruments
+      - authority-follow operator packets now expose reference-class counts
+        plus structured legal-ref and citation detail
+    - validation:
+      - focused gate: `19 passed`
+      - touched modules `py_compile` clean
+  - anti-panopticon hardening:
+    - keep `panopticon_refusal.md` as a controlling boundary
+    - make the red-team posture explicit in:
+      `docs/red_team_anti_panopticon.md`
+  - next legal-expansion lane:
+    - deepen supporting-legislation / cited-instrument attachment surfaces on
+      top of the derived legal-follow graph
+    - DONE bounded provenance cut:
+      - legal-follow graph now merges richer receipt/conjecture metadata into
+        shared nodes rather than keeping only the first sparse version
+      - supporting-legislation and cited-instrument nodes/edges now retain
+        structured ref detail where available
+      - citation and authority-receipt nodes now retain structured citation,
+        paragraph, and linkage provenance where available
+      - attachment-bearing graph nodes now also accumulate bounded
+        supporting event and supporting receipt provenance where available
+    - validation:
+      - focused AU/legal/compiler gate: `21 passed`
+  - current bounded AU legal/UI round:
+    - deepen supporting-legislation / cited-instrument attachment provenance
+      further where it materially improves inspectability
+    - surface the derived legal-follow graph in the fact-review workbench as
+      a read-only derived inspection surface
+    - keep it explicitly non-authoritative and challengeable by source and
+      receipt
+    - DONE bounded cut:
+      - graph summary now exposes supporting receipt counts and supporting
+        authority-kind counts for downstream inspection
+      - AU authority-follow payloads now also expose bounded
+        `jurisdiction_hint_counts` and `instrument_kind_counts`
+      - AU authority-follow payloads now also expose bounded
+        `ref_kind_counts`
+      - AU authority-follow payloads now also expose bounded
+        `citation_court_hint_counts` and `citation_year_counts`
+      - AU legal-follow graph now preserves those same jurisdiction /
+        instrument hints on supporting-legislation and cited-instrument
+        nodes and edges, and reports bounded summary counts for them
+      - AU legal-follow graph now also reports bounded
+        `reference_kind_counts`, `reference_class_counts`, `ref_kind_counts`,
+        `edge_kind_counts`, `edge_reference_class_counts`, and
+        `edge_ref_kind_counts`
+      - AU legal-follow graph now also reports bounded
+        `citation_court_hint_counts` and `citation_year_counts`
+      - fact-review workbench now surfaces the graph as a read-only derived
+        inspection pane with summary, authority/receipt, ref/citation, and
+        typed-link views
+      - that workbench pane can also render bounded distribution grids when
+        the derived graph provides them
+    - validation:
+      - focused AU/legal/compiler gate: `21 passed`
+      - touched Python modules `py_compile` clean
+      - `itir-svelte` `npm run check` still fails only on unrelated
+        `wiki-timeline-aoo-all` errors
+  - next bounded legal parity cut:
+    - DONE: added one derived GWB `legal_follow_graph` helper and adopted it
+      in:
+      - `gwb_public_review`
+      - `gwb_broader_review`
+    - DONE: existing GWB review summaries now expose that graph via a bounded
+      "Derived Legal-Linkage Graph" section
+    - DONE: existing GWB review summaries now also expose bounded
+      source-kind/source-family/linkage-kind/review-status/support-kind
+      distributions from that graph so operators can inspect the linkage
+      surface without a separate UI lane
+    - DONE: those GWB review summaries now also expose bounded
+      `Graph inspection` and `Sample typed links` sections for read-only
+      graph inspection without inventing a separate UI lane
+    - DONE: the existing fact-review legal-follow pane is typed to render
+      those bounded graph distributions when present, keeping the same
+      derived-only surface available to AU and GWB
+    - DONE: GWB compiler contracts now list `legal_linkage_graph` as an
+      explicit derived product for those review outputs
+    - DONE: GWB review payloads now also expose one bounded JSON
+      `operator_views.legal_follow_graph` surface with summary,
+      highlight-node, and sample-edge inspection data
+    - DONE: the fact-review workbench now renders that same bounded
+      `operator_views.legal_follow_graph` block for GWB workflows
+    - DONE: GWB legal-linkage graphs now add bounded followed-source nodes
+      when source-review receipts already carry HTTP links
+    - keep the surface product-shaped, not doctrinally overclaimed
+    - validation:
+      - focused AU+GWB/compiler gate: `25 passed`
+      - touched modules `py_compile` clean
+  - legal moonshot is now normal program state:
+    - AU legal-follow and GWB legal-linkage/follow are standard
+      compiler-shaped legal lanes now
+    - next bounded AU cross-jurisdiction requirement:
+      - allow one explicit AU -> UK/British follow hop where current
+        authority receipts, refs, or citation detail already point there
+      - keep it provenance-backed, derived-only, and review-first
+      - do not widen into general common-law ancestry crawl
+    - next bounded GWB cohort candidates:
+      - previous US presidents with visible executive/litigation follow
+      - UK Brexit-era politicians where UK/EU legal interactions are legible
+    - named proving-ground rule:
+      - treat Brexit as a first-class bounded legal-union proving ground, not
+        only as a cohort example
+      - use it to test UK domestic law / EU-law interaction surfaces through
+        bounded reviewable products
+      - keep it anti-panopticon-safe and explicitly non-surveillance
+    - DONE bounded cut:
+      - AU legal-follow now derives one explicit UK/British follow target when
+        current receipt/ref/citation evidence already points there
+      - GWB legal-linkage now classifies followed-source legal URLs into
+        bounded cite classes and reports Brexit-related follow counts where
+        source text/URLs already carry that pressure
+      - GWB legal-linkage now also seeds followed-source receipts from the
+        canonical foundation-source catalog when a review row already names a
+        known UK/EU legal source
+    - keep cohort expansion bounded, review-first, and anti-panopticon-safe
+    - progress/full-flow checkpoint:
+      - recent legal/compiler program: roughly `70-80%`
+      - broader legal-moonshot preparation: roughly `35-45%`
+      - full end-state moonshot: roughly `15-25%`
+      - end-state remains:
+        evidence intake -> canonicalization -> typed extraction -> bounded
+        follow -> promote/abstain/hold -> derived graph -> cross-system union
+        -> commonality/conflict analysis -> operator inspection -> bounded
+        products under anti-panopticon governance
 
 ## Wikidata
 - [x] Implement the bounded `P31` / `P279` Wikidata control-plane prototype described in `docs/planning/wikidata_transition_plan_20260306.md`.

@@ -42,6 +42,30 @@
       "citation_template": "Australia Act 1986 (UK) s {{section}}"
     },
     {
+      "name": "European Union (Withdrawal) Act 2018 (UK)",
+      "jurisdiction": "UK",
+      "base_url": "https://www.legislation.gov.uk/ukpga/2018/16/contents",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "European Union (Withdrawal) Act 2018 (UK) s {{section}}"
+    },
+    {
+      "name": "European Union (Withdrawal Agreement) Act 2020 (UK)",
+      "jurisdiction": "UK",
+      "base_url": "https://www.legislation.gov.uk/ukpga/2020/1/contents",
+      "collection_types": ["principal"],
+      "formats": ["HTML", "PDF"],
+      "citation_template": "European Union (Withdrawal Agreement) Act 2020 (UK) s {{section}}"
+    },
+    {
+      "name": "Treaty on European Union",
+      "jurisdiction": "EU",
+      "base_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012M/TXT",
+      "collection_types": ["treaty"],
+      "formats": ["HTML"],
+      "citation_template": "Treaty on European Union art {{section}}"
+    },
+    {
       "name": "Acts Interpretation Act 1901 (Cth)",
       "jurisdiction": "Commonwealth",
       "base_url": "https://www.legislation.gov.au/Series/C1901A00002",

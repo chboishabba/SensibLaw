@@ -239,6 +239,10 @@ def test_materializer_writes_climate_observation_claim_and_enriched_pack(monkeyp
     manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
 
     assert migration_pack["candidates"][0]["pressure"] == "split_pressure"
+    assert migration_pack["compiler_contract"]["lane"] == "wikidata_nat"
+    assert migration_pack["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "revision_text_evidence_bundle"
+    assert migration_pack["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert migration_pack["promotion_gate"]["product_ref"] == "wikidata_migration_pack"
     assert len(migration_pack["bridge_cases"]) == 1
     assert len(observation_claim["observations"]) == 2
     assert manifest["climate_text_source"] == str(climate_text_source)

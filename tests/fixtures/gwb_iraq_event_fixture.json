@@ -1,0 +1,35 @@
+{
+  "event": {
+    "id": "gwb-iraq-invasion-2003",
+    "label": "2003 Iraq invasion",
+    "date": "2003-03-20",
+    "location": "Iraq",
+    "description": "US-led coalition invasion citing alleged WMDs",
+    "authority_nodes": [
+      {
+        "id": "un-charter-art-2-4",
+        "type": "norm",
+        "title": "UN Charter Article 2(4)",
+        "content": "All members shall refrain from the threat or use of force",
+        "jurisdiction": "international",
+        "validity": "ordinary"
+      },
+      {
+        "id": "un-charter-art-51",
+        "type": "norm",
+        "title": "UN Charter Article 51",
+        "content": "Nothing impairs inherent right of self-defense until Security Council acts",
+        "jurisdiction": "international",
+        "validity": "ordinary"
+      },
+      {
+        "id": "un-charter-chapter-vii",
+        "type": "norm",
+        "title": "UN Charter Chapter VII",
+        "content": "Council may take action to maintain or restore international peace and security",
+        "jurisdiction": "international",
+        "validity": "permissive"
+      }
+    ]
+  }
+}

@@ -1,0 +1,341 @@
+{
+  "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+  "cohort_id": "business_family_reconciled",
+  "candidate_ids": [
+    "Q1068745|P5991|1",
+    "Q1489170|P5991|1"
+  ],
+  "runs": [
+    {
+      "run_id": "run-2026-04-03a",
+      "migration_pack": {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+          {
+            "candidate_id": "Q1068745|P5991|1",
+            "entity_qid": "Q1068745",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q1068745",
+              "property": "P5991",
+              "value": "100",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-check24"
+                  ]
+                }
+              ],
+              "window_id": "t1"
+            },
+            "claim_bundle_after": {
+              "subject": "Q1068745",
+              "property": "P14143",
+              "value": "100",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-check24"
+                  ]
+                }
+              ],
+              "window_id": "t1"
+            }
+          },
+          {
+            "candidate_id": "Q1489170|P5991|1",
+            "entity_qid": "Q1489170",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q1489170",
+              "property": "P5991",
+              "value": "200",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-immowelt"
+                  ]
+                }
+              ],
+              "window_id": "t1"
+            },
+            "claim_bundle_after": {
+              "subject": "Q1489170",
+              "property": "P14143",
+              "value": "200",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-immowelt"
+                  ]
+                }
+              ],
+              "window_id": "t1"
+            }
+          }
+        ]
+      },
+      "after_payload": {
+        "windows": [
+          {
+            "id": "after-a",
+            "statement_bundles": [
+              {
+                "subject": "Q1068745",
+                "property": "P14143",
+                "value": "100",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2024"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-check24"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1068745",
+                "property": "P5991",
+                "value": "100",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2024"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-check24"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1489170",
+                "property": "P14143",
+                "value": "200",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2024"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-immowelt"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1489170",
+                "property": "P5991",
+                "value": "200",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2024"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-immowelt"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "run_id": "run-2026-04-03b",
+      "migration_pack": {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+          {
+            "candidate_id": "Q1068745|P5991|1",
+            "entity_qid": "Q1068745",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q1068745",
+              "property": "P5991",
+              "value": "100",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2025"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-check24-b"
+                  ]
+                }
+              ],
+              "window_id": "t2"
+            },
+            "claim_bundle_after": {
+              "subject": "Q1068745",
+              "property": "P14143",
+              "value": "100",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2025"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-check24-b"
+                  ]
+                }
+              ],
+              "window_id": "t2"
+            }
+          },
+          {
+            "candidate_id": "Q1489170|P5991|1",
+            "entity_qid": "Q1489170",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q1489170",
+              "property": "P5991",
+              "value": "200",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2025"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-immowelt-b"
+                  ]
+                }
+              ],
+              "window_id": "t2"
+            },
+            "claim_bundle_after": {
+              "subject": "Q1489170",
+              "property": "P14143",
+              "value": "200",
+              "rank": "normal",
+              "qualifiers": {
+                "P585": [
+                  "2025"
+                ]
+              },
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-immowelt-b"
+                  ]
+                }
+              ],
+              "window_id": "t2"
+            }
+          }
+        ]
+      },
+      "after_payload": {
+        "windows": [
+          {
+            "id": "after-b",
+            "statement_bundles": [
+              {
+                "subject": "Q1068745",
+                "property": "P14143",
+                "value": "100",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2025"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-check24-b"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1068745",
+                "property": "P5991",
+                "value": "100",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2025"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-check24-b"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1489170",
+                "property": "P14143",
+                "value": "200",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2025"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-immowelt-b"
+                  }
+                ]
+              },
+              {
+                "subject": "Q1489170",
+                "property": "P5991",
+                "value": "200",
+                "rank": "normal",
+                "qualifiers": {
+                  "P585": "2025"
+                },
+                "references": [
+                  {
+                    "P248": "Qsrc-immowelt-b"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected_summary": {
+    "run_count": 2,
+    "verified_candidate_count_per_run": 2,
+    "counts_by_status": {
+      "verified": 2
+    }
+  }
+}

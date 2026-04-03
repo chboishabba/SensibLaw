@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from src.storage.manifest_runtime import load_json_object, resolve_sensiblaw_manifest_path
+from src.tools.network_progress import TransferProgressReporter
 
 
 AUTHORITY_HOST_SUFFIXES = (
@@ -156,7 +157,27 @@ def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPace
         pacer.wait_for(url)
     req = urllib.request.Request(url, headers={"User-Agent": user_agent}, method="GET")
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - bounded explicit fetch
-        data = resp.read()
+        total_header = resp.headers.get("Content-Length")
+        try:
+            total_bytes = int(total_header) if total_header else None
+        except (TypeError, ValueError):
+            total_bytes = None
+        reporter = TransferProgressReporter(
+            label=str(urllib.parse.urlparse(url).path or url),
+            total_bytes=total_bytes,
+        )
+        reporter.start()
+        downloaded_bytes = 0
+        chunks: List[bytes] = []
+        while True:
+            chunk = resp.read(64 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            downloaded_bytes += len(chunk)
+            reporter.update(downloaded_bytes)
+        progress = reporter.finish(downloaded_bytes)
+        data = b"".join(chunks)
         final_url = str(resp.geturl() or url)
         status_code = int(getattr(resp, "status", 200))
         content_type = str(resp.headers.get("Content-Type") or "")
@@ -166,6 +187,7 @@ def _fetch(url: str, timeout: int, user_agent: str, pacer: Optional[_RequestPace
         "status_code": status_code,
         "content_type": content_type,
         "bytes": data,
+        "fetch_progress": progress,
     }
 
 

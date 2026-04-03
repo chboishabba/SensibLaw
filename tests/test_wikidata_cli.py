@@ -229,6 +229,128 @@ def test_wikidata_project_cli_matches_repo_pinned_second_live_drift_case(tmp_pat
     assert file_payload["qualifier_drift"][0]["severity"] == "medium"
 
 
+def test_wikidata_nat_live_follow_campaign_cli_writes_plan(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_live_follow_campaign_20260403.json"
+    )
+    out_path = tmp_path / "nat_live_follow_plan.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-live-follow-campaign",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert file_payload["schema_version"] == "sl.wikidata_nat.live_follow_campaign_plan.v0_1"
+    assert file_payload["campaign_id"] == "wikidata_nat_live_follow_campaign_20260403"
+    assert file_payload["plan_count"] == 11
+
+
+def test_wikidata_nat_live_follow_execute_cli_writes_result(tmp_path, capsys, monkeypatch) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_live_follow_campaign_20260403.json"
+    )
+    out_path = tmp_path / "nat_live_follow_result.json"
+
+    from src.ontology import wikidata_nat_live_follow_executor as executor
+
+    def fake_fetch_json(url: str, *, params=None, timeout_seconds: int = 30):
+        if "w/api.php" in url:
+            return {
+                "query": {
+                    "pages": {
+                        "1": {
+                            "revisions": [
+                                {"revid": 2474420124, "timestamp": "2026-04-01T12:00:00Z"},
+                            ]
+                        }
+                    }
+                }
+            }
+        if "Special:EntityData" in url:
+            return {
+                "entities": {
+                    "Q10403939": {
+                        "labels": {"en": {"value": "Example company"}},
+                        "claims": {"P31": [], "P5991": []},
+                    }
+                }
+            }
+        raise AssertionError(f"unexpected URL {url}")
+
+    monkeypatch.setattr(executor, "_http_get_json", fake_fetch_json)
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-live-follow-execute",
+            "--input",
+            str(in_path),
+            "--category",
+            "hard_grounding_packet",
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert file_payload["schema_version"] == "sl.wikidata_nat.live_follow_result.v0_1"
+    assert file_payload["selected_count"] == 1
+    assert file_payload["status_counts"] == {"fetched": 1}
+
+
+def test_wikidata_nat_live_follow_preflight_cli_writes_report(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_live_follow_campaign_20260403.json"
+    )
+    out_path = tmp_path / "policy_risk_preflight.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-live-follow-preflight",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    file_payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["schema_version"] == "sl.wikidata_nat.policy_risk_population_preview_preflight.v0_1"
+    assert stdout["top_n"] == 2
+    assert stdout["candidate_count"] == 2
+    assert file_payload["candidate_count"] == 2
+    assert len(file_payload["candidates"]) == 2
+
+
 def test_wikidata_build_migration_pack_cli_writes_pack(tmp_path, capsys) -> None:
     in_path = tmp_path / "migration_slice.json"
     out_path = tmp_path / "migration_pack.json"

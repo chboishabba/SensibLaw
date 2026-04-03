@@ -1,0 +1,77 @@
+{
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "intake_rows": [
+    {
+      "candidate_id": "Q10651551|P5991|1",
+      "canonical_form": {
+        "property": "P14143",
+        "qualifiers": {
+          "P585": [
+            "+2021-00-00T00:00:00Z"
+          ],
+          "P828": [
+            "Q7590"
+          ]
+        },
+        "rank": "normal",
+        "references": [
+          {
+            "P813": [
+              "+2022-05-18T00:00:00Z"
+            ],
+            "P854": [
+              "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+            ]
+          }
+        ],
+        "subject": "Q10651551",
+        "value": "+442",
+        "window_id": "t2_current"
+      },
+      "claim_id": "Q10651551|P5991|1",
+      "cohort_id": "climate_family_safe_reference_transfer",
+      "existing_root_artifact_ids": [
+        "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+      ],
+      "family_id": "climate_family_safe_reference_transfer_subset",
+      "missing_independent_count": 1,
+      "required_artifact_contract": {
+        "acceptable_derivation_fields": [
+          "root_artifact_id",
+          "derived_from_root_artifact_ids"
+        ],
+        "must_be_independent_of_root_artifact_ids": [
+          "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+        ],
+        "must_be_revision_locked": true,
+        "must_include_candidate_id": "Q10651551|P5991|1",
+        "must_include_cohort_id": "climate_family_safe_reference_transfer",
+        "must_include_family_id": "climate_family_safe_reference_transfer_subset",
+        "must_include_new_run_id": true,
+        "must_include_new_window_id": true,
+        "must_not_reuse_existing_root_without_derivation_note": true,
+        "must_supply": [
+          "migration_pack",
+          "after_payload"
+        ]
+      },
+      "runtime_reuse_contract": {
+        "entrypoint": "verifier_to_convergence_chain",
+        "steps": [
+          "verify_migration_pack_against_after_state",
+          "build_nat_claim_convergence_report",
+          "build_nat_confirmation_follow_queue"
+        ]
+      },
+      "status": "awaiting_independent_evidence"
+    }
+  ],
+  "minimum_independent_paths_required": 2,
+  "schema_version": "sl.wikidata_nat_confirmation_intake_contract.v0_1",
+  "summary": {
+    "claim_count": 1,
+    "intake_request_count": 1,
+    "promoted_count": 0
+  }
+}

@@ -79,7 +79,19 @@ def test_au_fact_review_script_bundle_emits_review_bundle(tmp_path: Path, capsys
     assert "operator_views" in payload
     assert payload["semantic_context"]["authority_receipts"]["summary"]["authority_receipt_count"] >= 1
     assert payload["operator_views"]["authority_follow"]["available"] is True
+    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["legal_ref_class_counts"], dict)
+    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["jurisdiction_hint_counts"], dict)
+    assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["instrument_kind_counts"], dict)
     assert isinstance(payload["operator_views"]["authority_follow"]["summary"]["route_target_counts"], dict)
+    if payload["operator_views"]["authority_follow"]["queue"]:
+        assert any(
+            row["label"] == "Reference classes"
+            for row in payload["operator_views"]["authority_follow"]["queue"][0]["detail_rows"]
+        )
+        assert any(
+            row["label"] == "Jurisdictions"
+            for row in payload["operator_views"]["authority_follow"]["queue"][0]["detail_rows"]
+        )
     assert any(row["event_type"] in {"appealed", "heard by"} for row in payload["events"])
 
 

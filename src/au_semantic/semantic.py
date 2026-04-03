@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from src.au_semantic.linkage import run_au_semantic_linkage
+from src.citations.normalize import normalize_mnc
 from src.ingestion.citation_follow import extract_citations
 from src.gwb_us_law.linkage import _pick_best_run_for_timeline_suffix
 from src.gwb_us_law.semantic import (
@@ -890,6 +891,8 @@ def run_au_semantic_pipeline(conn, *, timeline_suffix: str = "wiki_timeline_hca_
 def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, Any]]) -> dict[str, Any]:
     authority_titles: set[str] = set()
     legal_refs: set[str] = set()
+    legal_ref_details: list[dict[str, Any]] = []
+    seen_legal_ref_details: set[tuple[str, str, str]] = set()
     for match in matches:
         if not isinstance(match, Mapping):
             continue
@@ -904,6 +907,15 @@ def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, 
                 authority_titles.add(reason_value)
             elif reason_kind:
                 legal_refs.add(reason_value)
+                detail = _legal_ref_detail(reason_kind, reason_value)
+                detail_key = (
+                    str(detail.get("reference_class") or ""),
+                    str(detail.get("ref_kind") or ""),
+                    str(detail.get("canonical_ref") or ""),
+                )
+                if detail_key not in seen_legal_ref_details:
+                    seen_legal_ref_details.add(detail_key)
+                    legal_ref_details.append(detail)
     event_text = str(event.get("text") or "").strip()
     event_section = str(event.get("section") or "").strip()
     parts = [event_text, event_section]
@@ -913,6 +925,14 @@ def _event_authority_hints(event: Mapping[str, Any], matches: list[Mapping[str, 
         "event_section": event_section,
         "authority_titles": sorted(authority_titles),
         "legal_refs": sorted(legal_refs),
+        "legal_ref_details": sorted(
+            legal_ref_details,
+            key=lambda row: (
+                str(row.get("reference_class") or ""),
+                str(row.get("ref_kind") or ""),
+                str(row.get("canonical_ref") or ""),
+            ),
+        ),
     }
 
 
@@ -925,6 +945,104 @@ def _authority_term_tokens(authority_titles: Iterable[str], legal_refs: Iterable
                 continue
             tokens.add(normalized)
     return sorted(tokens)
+
+
+def _classify_legal_ref(ref_kind: str, canonical_ref: str) -> str:
+    kind_norm = _normalize_authority_text(ref_kind)
+    ref_norm = _normalize_authority_text(canonical_ref.split(":", 1)[-1].replace("_", " "))
+    if normalize_mnc(canonical_ref) is not None or "case" in kind_norm or "citation" in kind_norm:
+        return "case"
+    if any(token in kind_norm for token in ("act", "statute", "legislation", "law")) or any(
+        token in ref_norm for token in (" act ", " statute ", " legislation ", " law ")
+    ):
+        return "supporting_legislation"
+    if any(token in kind_norm for token in ("instrument", "regulation", "rule", "ordinance", "order")) or any(
+        token in ref_norm for token in (" instrument ", " regulation ", " rule ", " ordinance ", " order ")
+    ):
+        return "supporting_instrument"
+    if kind_norm in {"court_ref"}:
+        return "court_reference"
+    if kind_norm in {"institution_ref", "organization_ref", "jurisdiction_ref"}:
+        return "institutional_reference"
+    return "other"
+
+
+def _citation_detail(raw_text: str) -> dict[str, Any]:
+    citation = str(raw_text or "").strip()
+    key = normalize_mnc(citation)
+    detail: dict[str, Any] = {
+        "citation": citation,
+        "reference_class": "case" if key is not None else "unknown",
+    }
+    if key is not None:
+        detail["citation_key"] = {"year": key.year, "court": key.court, "number": key.number}
+    return detail
+
+
+def _reference_surface_text(ref_kind: str, canonical_ref: str) -> str:
+    value = str(canonical_ref or "").strip()
+    if ":" in value:
+        value = value.split(":", 1)[1]
+    value = value.replace("_", " ").strip()
+    return value or str(ref_kind or "").strip()
+
+
+def _extract_reference_jurisdiction_hint(value: str) -> str | None:
+    normalized = _normalize_authority_text(value)
+    if not normalized:
+        return None
+    if any(token in normalized for token in ("commonwealth", " australia ", " aust ", " cth ")):
+        return "CTH"
+    for token in ("NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT", "HCA"):
+        if f" {token.lower()} " in f" {normalized} ":
+            return token
+    return None
+
+
+def _infer_instrument_kind(ref_kind: str, canonical_ref: str) -> str | None:
+    surface = f"{str(ref_kind or '').strip()} {_reference_surface_text(ref_kind, canonical_ref)}"
+    normalized = _normalize_authority_text(surface)
+    if not normalized:
+        return None
+    if " act " in f" {normalized} ":
+        return "act"
+    if " regulation " in f" {normalized} ":
+        return "regulation"
+    if " rule " in f" {normalized} " or " rules " in f" {normalized} ":
+        return "rule"
+    if " ordinance " in f" {normalized} ":
+        return "ordinance"
+    if " order " in f" {normalized} ":
+        return "order"
+    if " instrument " in f" {normalized} ":
+        return "instrument"
+    if " treaty " in f" {normalized} ":
+        return "treaty"
+    if " protocol " in f" {normalized} ":
+        return "protocol"
+    if " convention " in f" {normalized} ":
+        return "convention"
+    if " charter " in f" {normalized} ":
+        return "charter"
+    return None
+
+
+def _legal_ref_detail(ref_kind: str, canonical_ref: str) -> dict[str, Any]:
+    canonical_ref = str(canonical_ref or "").strip()
+    surface_text = _reference_surface_text(ref_kind, canonical_ref)
+    detail: dict[str, Any] = {
+        "ref_kind": str(ref_kind or "").strip(),
+        "canonical_ref": canonical_ref,
+        "reference_class": _classify_legal_ref(str(ref_kind or ""), canonical_ref),
+        "surface_text": surface_text,
+        "jurisdiction_hint": _extract_reference_jurisdiction_hint(surface_text),
+        "instrument_kind": _infer_instrument_kind(ref_kind, canonical_ref),
+    }
+    if detail["reference_class"] == "case":
+        key = normalize_mnc(detail["surface_text"])
+        if key is not None:
+            detail["citation_key"] = {"year": key.year, "court": key.court, "number": key.number}
+    return detail
 
 
 def _conjecture_route_target(*, authority_titles: list[str], legal_refs: list[str], candidate_citations: list[str]) -> str:
@@ -965,7 +1083,9 @@ def build_au_authority_receipt_context(
     }
     for hints in event_hints.values():
         hint_text = str(hints.get("text") or "")
-        hints["candidate_citations"] = [ref.raw_text for ref in extract_citations(hint_text)]
+        candidate_citations = [ref.raw_text for ref in extract_citations(hint_text)]
+        hints["candidate_citations"] = candidate_citations
+        hints["candidate_citation_details"] = [_citation_detail(ref_text) for ref_text in candidate_citations]
         hints["authority_term_tokens"] = _authority_term_tokens(
             hints.get("authority_titles", []),
             hints.get("legal_refs", []),
@@ -994,10 +1114,13 @@ def build_au_authority_receipt_context(
         linked_event_ids: list[str] = []
         matched_titles: set[str] = set()
         matched_refs: set[str] = set()
+        matched_ref_details: list[dict[str, Any]] = []
+        matched_ref_detail_seen: set[tuple[str, str, str]] = set()
         for event_id, hints in event_hints.items():
             event_text = _normalize_authority_text(str(hints.get("text") or ""))
             titles = [str(title) for title in hints.get("authority_titles", [])]
             refs = [str(ref) for ref in hints.get("legal_refs", [])]
+            ref_details = list(hints.get("legal_ref_details") or [])
             title_hit = any(
                 _normalize_authority_text(title) and _normalize_authority_text(title) in searchable_text
                 for title in titles
@@ -1016,6 +1139,17 @@ def build_au_authority_receipt_context(
                     for ref in refs
                     if _normalize_authority_text(ref.split(":", 1)[-1].replace("_", " ")) in searchable_text
                 )
+                for detail in ref_details:
+                    if not isinstance(detail, Mapping):
+                        continue
+                    detail_key = (
+                        str(detail.get("reference_class") or ""),
+                        str(detail.get("ref_kind") or ""),
+                        str(detail.get("canonical_ref") or ""),
+                    )
+                    if detail_key not in matched_ref_detail_seen:
+                        matched_ref_detail_seen.add(detail_key)
+                        matched_ref_details.append(dict(detail))
         linked_event_ids = sorted(set(linked_event_ids))
         linked_event_ids_seen.update(linked_event_ids)
         authority_kind = str(run_payload.get("authority_kind") or "")
@@ -1075,9 +1209,26 @@ def build_au_authority_receipt_context(
             "linked_authority_signals": {
                 "authority_titles": sorted(matched_titles),
                 "legal_refs": sorted(matched_refs),
+                "legal_ref_details": sorted(
+                    matched_ref_details,
+                    key=lambda row: (
+                        str(row.get("reference_class") or ""),
+                        str(row.get("ref_kind") or ""),
+                        str(row.get("canonical_ref") or ""),
+                    ),
+                ),
+                "legal_ref_class_counts": dict(
+                    Counter(
+                        str(row.get("reference_class") or "other")
+                        for row in matched_ref_details
+                    )
+                ),
             },
             "linked_event_sections": linked_event_sections,
             "detected_neutral_citations": detected_citations,
+            "detected_neutral_citation_details": [
+                _citation_detail(ref_text) for ref_text in detected_citations
+            ],
             "authority_term_tokens": _authority_term_tokens(sorted(matched_titles), sorted(matched_refs)),
             "route_targets": route_targets,
             "body_preview_text": run_payload.get("body_preview_text"),
@@ -1095,6 +1246,14 @@ def build_au_authority_receipt_context(
                 "linked_event_ids": linked_event_ids,
                 "matched_authority_titles": sorted(matched_titles),
                 "matched_legal_refs": sorted(matched_refs),
+                "matched_legal_ref_details": sorted(
+                    matched_ref_details,
+                    key=lambda row: (
+                        str(row.get("reference_class") or ""),
+                        str(row.get("ref_kind") or ""),
+                        str(row.get("canonical_ref") or ""),
+                    ),
+                ),
                 "link_status": "linked" if linked_event_ids else "unlinked",
                 "storage_basis": "sqlite",
                 "created_at": str(run_payload.get("created_at") or ""),
@@ -1109,7 +1268,9 @@ def build_au_authority_receipt_context(
             "event_text": str(hints.get("event_text") or "")[:240],
             "authority_titles": list(hints.get("authority_titles") or []),
             "legal_refs": list(hints.get("legal_refs") or []),
+            "legal_ref_details": list(hints.get("legal_ref_details") or []),
             "candidate_citations": list(hints.get("candidate_citations") or []),
+            "candidate_citation_details": list(hints.get("candidate_citation_details") or []),
             "authority_term_tokens": list(hints.get("authority_term_tokens") or []),
         }
         for event_id, hints in event_hints.items()
@@ -1131,7 +1292,9 @@ def build_au_authority_receipt_context(
                     "event_text": row["event_text"],
                     "authority_titles": row["authority_titles"],
                     "legal_refs": row["legal_refs"],
+                    "legal_ref_details": row["legal_ref_details"],
                     "candidate_citations": row["candidate_citations"],
+                    "candidate_citation_details": row["candidate_citation_details"],
                     "authority_term_tokens": row["authority_term_tokens"],
                     "route_target": route_target,
                     "resolution_hint": (
@@ -1150,7 +1313,9 @@ def build_au_authority_receipt_context(
                     "event_text": row["event_text"],
                     "authority_titles": row["authority_titles"],
                     "legal_refs": row["legal_refs"],
+                    "legal_ref_details": row["legal_ref_details"],
                     "candidate_citations": row["candidate_citations"],
+                    "candidate_citation_details": row["candidate_citation_details"],
                     "authority_term_tokens": row["authority_term_tokens"],
                     "route_target": route_target,
                     "resolution_hint": "follow_citation_or_link_authority_receipt",
@@ -1163,6 +1328,30 @@ def build_au_authority_receipt_context(
             "follow_needed_event_count": len(follow_needed_events),
             "conjecture_count": len(follow_needed_conjectures),
             "authority_kind_counts": dict(authority_kind_counts),
+            "legal_ref_class_counts": dict(
+                Counter(
+                    str(detail.get("reference_class") or "other")
+                    for item in items
+                    for detail in item.get("matched_legal_ref_details", [])
+                    if isinstance(detail, Mapping)
+                )
+            ),
+            "jurisdiction_hint_counts": dict(
+                Counter(
+                    str(detail.get("jurisdiction_hint") or "unknown")
+                    for item in items
+                    for detail in item.get("matched_legal_ref_details", [])
+                    if isinstance(detail, Mapping)
+                )
+            ),
+            "instrument_kind_counts": dict(
+                Counter(
+                    str(detail.get("instrument_kind") or "unknown")
+                    for item in items
+                    for detail in item.get("matched_legal_ref_details", [])
+                    if isinstance(detail, Mapping)
+                )
+            ),
         },
         "items": items,
         "follow_needed_events": follow_needed_events,

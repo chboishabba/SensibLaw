@@ -378,6 +378,9 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert workbench["reopen_navigation"]["recent_sources"][0]["workflow_kind"] == "transcript_semantic"
     assert workbench["reopen_navigation"]["recent_sources"][0]["fact_run_id"] == payload["run"]["run_id"]
     assert workbench["issue_filters"]["available_filters"] == ["all", "missing_actor", "contradictory_chronology", "procedural_significance"]
+    assert isinstance(workbench["semantic_context"], dict)
+    assert workbench["workflow_summary"]["stage"] in {"inspect", "decide", "record", "follow_up"}
+    assert workbench["workflow_summary"]["recommended_view"] in {"intake_triage", "chronology_prep", "contested_items", "authority_follow", "professional_handoff"}
     assert workbench["inspector_classification"]["facts"][payload["fact_candidates"][0]["fact_id"]]["display_labels"] == ["unclassified"]
     assert workbench["inspector_classification"]["facts"][payload["fact_candidates"][1]["fact_id"]]["status_keys"]["party_assertion"] is True
     assert workbench["zelph_ruleset_version"] == FACT_REVIEW_ZELPH_RULESET_VERSION

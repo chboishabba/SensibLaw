@@ -88,6 +88,21 @@ SensibLaw can already:
 - surface subclass contradiction chains
 - package those outputs into checked summaries and fixture-backed artifacts
 
+### Bounded Nat automation proof
+
+SensibLaw now also has one bounded measured-automation success in the Nat
+`P5991 -> P14143` lane:
+
+- exact promoted subset:
+  `Q1068745|P5991|1` and `Q1489170|P5991|1`
+- scope:
+  pilot-ready only for that exact family subset
+- non-claim:
+  this does not establish broader Cohort A or backlog-wide automation
+
+The next Nat bottleneck is not more proof for those two rows. It is
+independent evidence for a second structural family.
+
 Start here:
 
 - [docs/wikidata_working_group_status.md](docs/wikidata_working_group_status.md)

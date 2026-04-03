@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.fact_intake.review_bundle import (
     build_abstentions,
+    build_bundle_workflow_summary,
     build_event_chronology,
     build_fact_review_bundle_payload,
 )
@@ -115,6 +116,7 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
         operator_views={"intake_triage": {"available": True}},
         semantic_context={"summary": {"relation_candidate_count": 1}},
         chronology_summary_extras={"legal_procedural_observation_count": 2},
+        workflow_summary={"stage": "decide", "recommended_view": "intake_triage"},
     )
 
     assert bundle["run"]["semantic_run_id"] == "semantic:1"
@@ -123,3 +125,28 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
     assert bundle["chronology_summary"]["bundle_dated_event_count"] == 1
     assert bundle["chronology_summary"]["legal_procedural_observation_count"] == 2
     assert bundle["review_queue"][0]["fact_id"] == "fact:1"
+    assert bundle["workflow_summary"]["recommended_view"] == "intake_triage"
+
+
+def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
+    summary = build_bundle_workflow_summary(
+        review_summary={
+            "summary": {"review_queue_count": 2},
+            "contested_summary": {"needs_followup_count": 0},
+            "chronology_summary": {"undated_event_count": 0, "no_event_fact_count": 0},
+        },
+        operator_views={
+            "authority_follow": {
+                "summary": {"queue_count": 1},
+                "queue": [{"item_id": "follow:1"}],
+            },
+            "intake_triage": {"groups": {"all": [], "missing_actor": [{"fact_id": "fact:1"}]}},
+        },
+        promotion_gate={"decision": "audit"},
+        default_fact_id="fact:1",
+    )
+
+    assert summary["stage"] == "follow_up"
+    assert summary["recommended_view"] == "authority_follow"
+    assert summary["focus_fact_id"] == "fact:1"
+    assert summary["promotion_gate"]["decision"] == "audit"

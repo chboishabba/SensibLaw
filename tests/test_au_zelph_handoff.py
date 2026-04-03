@@ -28,6 +28,10 @@ def test_build_au_zelph_handoff_artifact(tmp_path: Path) -> None:
     assert slice_payload["summary"]["fact_count"] >= 3
     assert slice_payload["summary"]["observation_count"] >= 20
     assert slice_payload["summary"]["review_queue_count"] >= 3
+    assert slice_payload["compiler_contract"]["lane"] == "au"
+    assert slice_payload["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "legal_hearing_bundle"
+    assert slice_payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert slice_payload["promotion_gate"]["product_ref"] == "au_public_handoff_v1"
     assert len(slice_payload["selected_facts"]) >= 3
 
     summary_text = summary_path.read_text(encoding="utf-8")
@@ -71,5 +75,7 @@ def test_build_au_zelph_handoff_supports_multi_source_bundles(tmp_path: Path) ->
     assert len(slice_payload["source_bundle_paths"]) == 2
     assert len(slice_payload["selected_facts"]) == 3
     assert slice_payload["summary"]["fact_count"] >= 3
+    assert slice_payload["compiler_contract"]["evidence_bundle"]["source_count"] == 2
+    assert slice_payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     assert all(len(row["source_bundles"]) == 2 for row in slice_payload["selected_facts"])
     assert any("fact:33bf5d1e2fbd3c36" == row["fact_id"] for row in slice_payload["selected_facts"])

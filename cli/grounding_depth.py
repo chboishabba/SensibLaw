@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from typing import Any, Mapping
 
 from src.ontology import wikidata_grounding_depth
 

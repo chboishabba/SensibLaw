@@ -1,0 +1,70 @@
+{
+  "schema_version": "sl.wikidata_nat_claim_convergence_report.v0_1",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "minimum_independent_paths_required": 2,
+  "claims": [
+    {
+      "claim_id": "Q10651551|P5991|1",
+      "candidate_id": "Q10651551|P5991|1",
+      "family_id": "climate_family_safe_reference_transfer_subset",
+      "cohort_id": "climate_family_safe_reference_transfer",
+      "canonical_form": {
+        "subject": "Q10651551",
+        "property": "P14143",
+        "value": "+442",
+        "rank": "normal",
+        "window_id": "t2_current",
+        "qualifiers": {
+          "P585": [
+            "+2021-00-00T00:00:00Z"
+          ],
+          "P828": [
+            "Q7590"
+          ]
+        },
+        "references": [
+          {
+            "P813": [
+              "+2022-05-18T00:00:00Z"
+            ],
+            "P854": [
+              "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+            ]
+          }
+        ]
+      },
+      "evidence_paths": [
+        {
+          "evidence_path_id": "Q10651551|P5991|1:run-2026-04-03-climate-a",
+          "run_id": "run-2026-04-03-climate-a",
+          "source_unit_id": "Q10651551|P14143",
+          "root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
+          "authority_level": "after_state_verification",
+          "provenance_chain": {
+            "candidate_id": "Q10651551|P5991|1",
+            "entity_qid": "Q10651551",
+            "source_slot_id": "Q10651551|P5991",
+            "target_slot_id": "Q10651551|P14143"
+          },
+          "verification_status": "verified"
+        }
+      ],
+      "independent_count": 1,
+      "evidence_count": 1,
+      "independent_root_artifact_ids": [
+        "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+      ],
+      "status": "SINGLE_RUN"
+    }
+  ],
+  "summary": {
+    "total_claims": 1,
+    "unverified_count": 0,
+    "single_run_count": 1,
+    "repeated_run_count": 0,
+    "promoted_count": 0,
+    "avg_evidence_paths_per_claim": 1.0,
+    "avg_independent_paths_per_claim": 1.0
+  }
+}

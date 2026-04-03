@@ -231,6 +231,14 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     first_fact_id = workbench_payload["workbench"]["facts"][0]["fact_id"]
     assert workbench_payload["workbench"]["inspector_classification"]["facts"][first_fact_id]["status_keys"]
     assert "approximate_events" in workbench_payload["workbench"]["chronology_groups"]
+    assert isinstance(workbench_payload["workbench"]["semantic_context"], dict)
+    assert workbench_payload["workbench"]["workflow_summary"]["recommended_view"] in {
+        "intake_triage",
+        "chronology_prep",
+        "contested_items",
+        "authority_follow",
+        "professional_handoff",
+    }
     assert "signal_classes" in workbench_payload["workbench"]["facts"][0]
     assert "inspector_classification" in workbench_payload["workbench"]["facts"][0]
 
@@ -504,6 +512,13 @@ def test_query_fact_review_script_exports_demo_bundle_for_mary_operator_path(tmp
     assert bundle_payload["selector"]["fixture_kind"] == "real"
     assert bundle_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
     assert "missing_actor" in bundle_payload["workbench"]["issue_filters"]["available_filters"]
+    assert isinstance(bundle_payload["workbench"]["semantic_context"], dict)
+    assert bundle_payload["workbench"]["workflow_summary"]["stage"] in {
+        "inspect",
+        "decide",
+        "record",
+        "follow_up",
+    }
     assert "chronology_groups" in bundle_payload["workbench"]
     assert bundle_payload["acceptance"]["wave"] == "wave1_legal"
     assert bundle_payload["sources"][0]["latest_workflow_link"]["workflow_run_id"] == "semantic:query-demo"
