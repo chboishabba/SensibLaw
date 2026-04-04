@@ -1,20 +1,24 @@
 {
-  "schema_version": "sl.wikidata_nat_claim_convergence_report.v0_1",
-  "family_id": "climate_family_safe_reference_transfer_subset",
-  "cohort_id": "climate_family_safe_reference_transfer",
-  "minimum_independent_paths_required": 2,
+  "action_policy_schema_version": "sl.world_model_action_policy.v0_1",
+  "claim_schema_version": "sl.wikidata_nat_claim.v0_1",
   "claims": [
     {
-      "claim_id": "Q10651551|P5991|1",
+      "action_policy": {
+        "actionability": "must_abstain",
+        "claim_id": "Q10651551|P5991|1",
+        "policy_basis": {
+          "claim_status": "SINGLE_RUN",
+          "conflict_resolution_status": "clear",
+          "conflict_type": "none",
+          "convergence_state": "GOVERNED",
+          "observed_at": "2026-04-03",
+          "requires_more_evidence": true
+        },
+        "schema_version": "sl.world_model_action_policy.v0_1"
+      },
       "candidate_id": "Q10651551|P5991|1",
-      "family_id": "climate_family_safe_reference_transfer_subset",
-      "cohort_id": "climate_family_safe_reference_transfer",
       "canonical_form": {
-        "subject": "Q10651551",
         "property": "P14143",
-        "value": "+442",
-        "rank": "normal",
-        "window_id": "t2_current",
         "qualifiers": {
           "P585": [
             "+2021-00-00T00:00:00Z"
@@ -23,6 +27,7 @@
             "Q7590"
           ]
         },
+        "rank": "normal",
         "references": [
           {
             "P813": [
@@ -32,39 +37,182 @@
               "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
             ]
           }
-        ]
+        ],
+        "subject": "Q10651551",
+        "value": "+442",
+        "window_id": "t2_current"
       },
+      "claim_id": "Q10651551|P5991|1",
+      "cohort_id": "climate_family_safe_reference_transfer",
+      "conflict_set": {
+        "candidate_ids": [
+          "Q10651551|P5991|1"
+        ],
+        "claim_id": "Q10651551|P5991|1",
+        "conflict_id": "",
+        "conflict_type": "none",
+        "evidence_rows": [],
+        "resolution_status": "clear",
+        "review_queue_ref": "",
+        "schema_version": "sl.world_model_conflict.v0_1"
+      },
+      "convergence": {
+        "claim_id": "Q10651551|P5991|1",
+        "convergence_state": "GOVERNED",
+        "governance_basis": {
+          "claim_status": "SINGLE_RUN",
+          "requires_policy_gate": true
+        },
+        "merged_evidence_basis": {
+          "independent_root_artifact_ids": [
+            "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+          ],
+          "source_count": 1
+        },
+        "normalized_sources": [
+          {
+            "authority_level": "after_state_verification",
+            "provenance_chain": {
+              "candidate_id": "Q10651551|P5991|1",
+              "entity_qid": "Q10651551",
+              "source_slot_id": "Q10651551|P5991",
+              "target_slot_id": "Q10651551|P14143"
+            },
+            "root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
+            "source_family": "wikidata_after_state_verification",
+            "source_state": "NORMALIZED",
+            "source_unit_id": "Q10651551|P14143",
+            "verification_status": "verified"
+          }
+        ],
+        "schema_version": "sl.world_model_convergence.v0_1"
+      },
+      "evidence_count": 1,
       "evidence_paths": [
         {
-          "evidence_path_id": "Q10651551|P5991|1:run-2026-04-03-climate-a",
-          "run_id": "run-2026-04-03-climate-a",
-          "source_unit_id": "Q10651551|P14143",
-          "root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
           "authority_level": "after_state_verification",
+          "evidence_path_id": "Q10651551|P5991|1:run-2026-04-03-climate-a",
           "provenance_chain": {
             "candidate_id": "Q10651551|P5991|1",
             "entity_qid": "Q10651551",
             "source_slot_id": "Q10651551|P5991",
             "target_slot_id": "Q10651551|P14143"
           },
+          "root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
+          "run_id": "run-2026-04-03-climate-a",
+          "source_unit_id": "Q10651551|P14143",
           "verification_status": "verified"
         }
       ],
+      "family_id": "climate_family_safe_reference_transfer_subset",
       "independent_count": 1,
-      "evidence_count": 1,
       "independent_root_artifact_ids": [
         "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
       ],
-      "status": "SINGLE_RUN"
+      "nat_claim": {
+        "candidate_id": "Q10651551|P5991|1",
+        "canonical_form": {
+          "property": "P14143",
+          "qualifiers": {
+            "P585": [
+              "+2021-00-00T00:00:00Z"
+            ],
+            "P828": [
+              "Q7590"
+            ]
+          },
+          "rank": "normal",
+          "references": [
+            {
+              "P813": [
+                "+2022-05-18T00:00:00Z"
+              ],
+              "P854": [
+                "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+              ]
+            }
+          ],
+          "subject": "Q10651551",
+          "value": "+442",
+          "window_id": "t2_current"
+        },
+        "claim_id": "Q10651551|P5991|1",
+        "cohort_id": "climate_family_safe_reference_transfer",
+        "evidence_status": "single_run",
+        "family_id": "climate_family_safe_reference_transfer_subset",
+        "object": "+442",
+        "predicate": "P14143",
+        "property": "P14143",
+        "provenance": {
+          "run_ids": [
+            "run-2026-04-03-climate-a"
+          ],
+          "source_kind": "after_state_verification"
+        },
+        "qualifiers": {
+          "P585": [
+            "+2021-00-00T00:00:00Z"
+          ],
+          "P828": [
+            "Q7590"
+          ]
+        },
+        "rank": "normal",
+        "references": [
+          {
+            "P813": [
+              "+2022-05-18T00:00:00Z"
+            ],
+            "P854": [
+              "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191"
+            ]
+          }
+        ],
+        "root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
+        "schema_version": "sl.wikidata_nat_claim.v0_1",
+        "source_property": "P14143",
+        "state": "converged_claim",
+        "state_basis": "after_state_verification",
+        "subject": "Q10651551",
+        "target_property": "P14143",
+        "value": "+442",
+        "window_id": "t2_current"
+      },
+      "status": "SINGLE_RUN",
+      "temporal": {
+        "claim_id": "Q10651551|P5991|1",
+        "observed_at": "2026-04-03",
+        "revision_basis": {
+          "independent_root_artifact_ids": [
+            "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084"
+          ],
+          "latest_root_artifact_id": "0285f856bcff9702c73dc1e419cccdc7e7659eec73655305c27e35d51a1c4084",
+          "observation_count": 1,
+          "run_ids": [
+            "run-2026-04-03-climate-a"
+          ]
+        },
+        "schema_version": "sl.world_model_temporal.v0_1",
+        "supersedes": [],
+        "valid_from": "2026-04-03",
+        "valid_to": ""
+      }
     }
   ],
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "conflict_schema_version": "sl.world_model_conflict.v0_1",
+  "convergence_schema_version": "sl.world_model_convergence.v0_1",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "minimum_independent_paths_required": 2,
+  "schema_version": "sl.wikidata_nat_claim_convergence_report.v0_1",
   "summary": {
-    "total_claims": 1,
-    "unverified_count": 0,
-    "single_run_count": 1,
-    "repeated_run_count": 0,
-    "promoted_count": 0,
     "avg_evidence_paths_per_claim": 1.0,
-    "avg_independent_paths_per_claim": 1.0
-  }
+    "avg_independent_paths_per_claim": 1.0,
+    "promoted_count": 0,
+    "repeated_run_count": 0,
+    "single_run_count": 1,
+    "total_claims": 1,
+    "unverified_count": 0
+  },
+  "temporal_schema_version": "sl.world_model_temporal.v0_1"
 }

@@ -3,7 +3,10 @@
 from typing import Mapping
 
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
     build_brexit_national_archives_manifest,
+    build_brexit_national_archives_world_model_report,
     fetch_brexit_archive_records,
     normalized_archive_records,
 )
@@ -61,3 +64,25 @@ def test_fetch_records_falls_back_to_fixture(monkeypatch) -> None:
     records = fetch_brexit_archive_records()
     assert records[0]["text_excerpt"].startswith("The Cabinet resolved")
     assert records[0]["provenance"].get("fixture")
+
+
+def test_brexit_world_model_report_rebinds_records_into_shared_substrate(monkeypatch) -> None:
+    def fake_get(_url: str, **_kwargs):
+        raise RuntimeError("dialing blocked")
+
+    monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
+    records = fetch_brexit_archive_records(limit=1)
+    report = build_brexit_national_archives_world_model_report(records)
+
+    assert report["schema_version"] == BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
+    assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
+    assert report["summary"]["claim_count"] == 1
+    assert report["summary"]["must_review_count"] == 1
+
+    claim = report["claims"][0]
+    assert claim["status"] == "REVIEW_ONLY"
+    assert claim["nat_claim"]["claim_id"] == records[0]["doc_id"]
+    assert claim["nat_claim"]["property"] == "brexit_policy_intent"
+    assert claim["convergence"]["convergence_state"] == "NORMALIZED"
+    assert claim["conflict_set"]["resolution_status"] == "clear"
+    assert claim["action_policy"]["actionability"] == "must_review"

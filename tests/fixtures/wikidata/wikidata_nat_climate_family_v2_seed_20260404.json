@@ -1,0 +1,158 @@
+{
+  "schema_version": "sl.wikidata_nat_climate_family_v2_seed.v0_1",
+  "family_id": "climate_family_v2_live_p14143_subset",
+  "cohort_id": "climate_family_v2_live_p14143",
+  "family_kind": "cross_row_migrated_p14143",
+  "source_property_legacy": "P5991",
+  "target_property": "P14143",
+  "candidate_rows": [
+    {
+      "candidate_id": "Q253423|P14143|2023_scope2_market_based",
+      "entity_qid": "Q253423",
+      "candidate_label": "Lundin Energy",
+      "route_kind": "cross_row_migrated_p14143",
+      "root_artifact_id": "wikidata_property_p14143:Q253423:2023_scope2_market_based",
+      "claim_signature": {
+        "subject": "Q253423",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "614",
+        "year": "2023",
+        "unit": "co2e",
+        "determination_method": [
+          "Q95441586"
+        ],
+        "role_scope": [
+          "Q124946884"
+        ],
+        "applies_to_part": []
+      },
+      "canonical_form": {
+        "subject": "Q253423",
+        "property": "P14143",
+        "value": "+614",
+        "rank": "normal",
+        "qualifiers": {
+          "P585": [
+            "+2023-00-00T00:00:00Z"
+          ],
+          "P459": [
+            "Q95441586"
+          ],
+          "P3831": [
+            "Q124946884"
+          ]
+        },
+        "references": [
+          {
+            "P854": [
+              "https://www.wikidata.org/wiki/Property:P14143"
+            ]
+          }
+        ],
+        "window_id": "p14143_live_2023_scope2_market_based"
+      }
+    },
+    {
+      "candidate_id": "Q253423|P14143|2024_scope1",
+      "entity_qid": "Q253423",
+      "candidate_label": "Lundin Energy",
+      "route_kind": "cross_row_migrated_p14143",
+      "root_artifact_id": "wikidata_property_p14143:Q253423:2024_scope1",
+      "claim_signature": {
+        "subject": "Q253423",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "13",
+        "year": "2024",
+        "unit": "co2e",
+        "determination_method": [
+          "Q95441586"
+        ],
+        "role_scope": [
+          "Q124946883"
+        ],
+        "applies_to_part": []
+      },
+      "canonical_form": {
+        "subject": "Q253423",
+        "property": "P14143",
+        "value": "+13",
+        "rank": "normal",
+        "qualifiers": {
+          "P585": [
+            "+2024-00-00T00:00:00Z"
+          ],
+          "P459": [
+            "Q95441586"
+          ],
+          "P3831": [
+            "Q124946883"
+          ]
+        },
+        "references": [
+          {
+            "P854": [
+              "https://www.wikidata.org/wiki/Property:P14143"
+            ]
+          }
+        ],
+        "window_id": "p14143_live_2024_scope1"
+      }
+    },
+    {
+      "candidate_id": "Q4680631|P14143|2023_cement",
+      "entity_qid": "Q4680631",
+      "candidate_label": "Adani Group",
+      "route_kind": "cross_row_migrated_p14143",
+      "root_artifact_id": "wikidata_property_p14143:Q4680631:2023_cement",
+      "claim_signature": {
+        "subject": "Q4680631",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "8.08",
+        "year": "2023",
+        "unit": "co2e",
+        "determination_method": [
+          "Q130757530"
+        ],
+        "role_scope": [],
+        "applies_to_part": [
+          "Q11451"
+        ]
+      },
+      "canonical_form": {
+        "subject": "Q4680631",
+        "property": "P14143",
+        "value": "+8.08",
+        "rank": "normal",
+        "qualifiers": {
+          "P585": [
+            "+2023-00-00T00:00:00Z"
+          ],
+          "P459": [
+            "Q130757530"
+          ],
+          "P518": [
+            "Q11451"
+          ]
+        },
+        "references": [
+          {
+            "P854": [
+              "https://www.wikidata.org/wiki/Property:P14143"
+            ]
+          }
+        ],
+        "window_id": "p14143_live_2023_cement"
+      }
+    }
+  ],
+  "summary": {
+    "candidate_count": 3,
+    "enterprise_count": 3
+  }
+}

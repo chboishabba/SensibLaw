@@ -1116,6 +1116,194 @@ def _handle_wikidata_nat_live_follow_execute(args: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _handle_wikidata_nat_migration_batch_export(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_migration_batch_export,
+    )
+
+    verification_runs = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    batch_export = build_nat_migration_batch_export(
+        verification_runs, candidate_ids=args.candidate_ids or None
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(batch_export, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "export_id": batch_export["export_id"],
+                "row_count": batch_export["summary"]["row_count"],
+                "candidate_count": batch_export["summary"]["candidate_count"],
+            }
+        )
+        return
+    _print_json(batch_export)
+
+
+def _handle_wikidata_nat_migration_executed_rows(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_migration_executed_rows,
+    )
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    batch_export = payload.get("batch_export") if isinstance(payload, dict) and isinstance(payload.get("batch_export"), dict) else payload
+    executed_rows_report = build_nat_migration_executed_rows(batch_export)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(executed_rows_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "export_id": executed_rows_report["export_id"],
+                "execution_status": executed_rows_report["execution_status"],
+                "row_count": executed_rows_report["summary"]["row_count"],
+            }
+        )
+        return
+    _print_json(executed_rows_report)
+
+
+def _handle_wikidata_nat_post_write_verification(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_post_write_verification_report,
+    )
+
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        executed_receipts = payload.get("runs")
+    else:
+        executed_receipts = payload
+    report = build_nat_post_write_verification_report(
+        executed_receipts if isinstance(executed_receipts, list) else [],
+        require_all_verified=not args.allow_drift,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "run_count": report["summary"]["run_count"],
+                "verified_run_count": report["summary"]["verified_run_count"],
+                "verification_ready": report["summary"]["verification_ready"],
+            }
+        )
+        return
+    _print_json(report)
+
+
+def _handle_wikidata_nat_completion_gate(args: argparse.Namespace) -> None:
+    from src.metrics.nat_completion_gate import scorecard
+
+    report = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    metrics = scorecard(report)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "candidate_yield": metrics["candidate_yield"],
+                "dry_run_pass_rate": metrics["dry_run_pass_rate"],
+                "live_verification_pass_rate": metrics["live_verification_pass_rate"],
+            }
+        )
+        return
+    _print_json(metrics)
+
+
+def _handle_wikidata_nat_migration_execution_proof(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_migration_batch_export,
+        build_nat_migration_execution_proof,
+        build_nat_migration_lifecycle_report,
+    )
+
+    verification_runs = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if args.executed_rows or args.post_execution_batches:
+        batch_export = build_nat_migration_batch_export(
+            verification_runs,
+            candidate_ids=args.candidate_ids or None,
+        )
+        if args.executed_rows:
+            executed_rows_payload = json.loads(Path(args.executed_rows).read_text(encoding="utf-8"))
+            executed_rows = (
+                executed_rows_payload.get("executed_rows", [])
+                if isinstance(executed_rows_payload, dict)
+                else executed_rows_payload
+            )
+        else:
+            executed_rows = []
+        if args.post_execution_batches:
+            post_execution_payload = json.loads(Path(args.post_execution_batches).read_text(encoding="utf-8"))
+            if isinstance(post_execution_payload, dict) and isinstance(post_execution_payload.get("runs"), list):
+                post_execution_batches = [post_execution_payload]
+            elif isinstance(post_execution_payload, list):
+                post_execution_batches = post_execution_payload
+            else:
+                post_execution_batches = []
+        else:
+            post_execution_batches = []
+        lifecycle_report = build_nat_migration_lifecycle_report(
+            [verification_runs],
+            executed_rows=executed_rows,
+            post_execution_batches=post_execution_batches,
+        )
+        lifecycle_row = next(
+            (
+                row
+                for row in lifecycle_report.get("families", [])
+                if isinstance(row, dict) and row.get("family_id") == verification_runs.get("family_id")
+            ),
+            {},
+        )
+        proof = {
+            "schema_version": "sl.wikidata_nat_migration_execution_proof.v0_1",
+            "family_id": verification_runs.get("family_id", ""),
+            "cohort_id": verification_runs.get("cohort_id", ""),
+            "batch_export": batch_export,
+            "executed_rows_report": {
+                "executed_rows": executed_rows,
+                "summary": {"row_count": len(executed_rows)},
+            },
+            "lifecycle_report": lifecycle_report,
+            "summary": {
+                "export_status": batch_export.get("export_status", ""),
+                "execution_status": "external_execution_receipts" if executed_rows else "no_execution_receipts",
+                "lifecycle_state": lifecycle_row.get("lifecycle_state", ""),
+                "candidate_count": int(batch_export.get("summary", {}).get("candidate_count", 0)),
+            },
+        }
+    else:
+        proof = build_nat_migration_execution_proof(
+            verification_runs,
+            candidate_ids=args.candidate_ids or None,
+        )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(proof, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "family_id": proof["family_id"],
+                "lifecycle_state": proof["summary"]["lifecycle_state"],
+                "candidate_count": proof["summary"]["candidate_count"],
+            }
+        )
+        return
+    _print_json(proof)
+
+
 def _handle_wikidata_nat_live_follow_preflight(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_nat_live_follow_executor import (
         build_policy_risk_population_preview_preflight,
@@ -3342,6 +3530,121 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_nat_automation_graduation_eval_batch.set_defaults(
         func=_handle_wikidata_nat_automation_graduation_eval_batch
+    )
+    wikidata_nat_migration_batch_export = wikidata_sub.add_parser(
+        "nat-migration-batch-export",
+        help="Export a Nat migration batch payload for operator review",
+    )
+    wikidata_nat_migration_batch_export.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat verification run JSON",
+    )
+    wikidata_nat_migration_batch_export.add_argument(
+        "--candidate-ids",
+        nargs="+",
+        help="Optional candidate IDs to limit the export",
+    )
+    wikidata_nat_migration_batch_export.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the migration batch export JSON",
+    )
+    wikidata_nat_migration_batch_export.set_defaults(
+        func=_handle_wikidata_nat_migration_batch_export
+    )
+    wikidata_nat_migration_executed_rows = wikidata_sub.add_parser(
+        "nat-migration-executed-rows",
+        help="Build executed-row receipts for a Nat migration batch export",
+    )
+    wikidata_nat_migration_executed_rows.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat migration batch export JSON or execution proof JSON",
+    )
+    wikidata_nat_migration_executed_rows.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the executed-row receipt JSON",
+    )
+    wikidata_nat_migration_executed_rows.set_defaults(
+        func=_handle_wikidata_nat_migration_executed_rows
+    )
+    wikidata_nat_post_write_verification = wikidata_sub.add_parser(
+        "nat-post-write-verification",
+        help="Verify executed Nat migration receipts against observed after-state payloads",
+    )
+    wikidata_nat_post_write_verification.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to executed receipt runs JSON",
+    )
+    wikidata_nat_post_write_verification.add_argument(
+        "--allow-drift",
+        action="store_true",
+        help="Do not require every run to verify cleanly",
+    )
+    wikidata_nat_post_write_verification.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the post-write verification report JSON",
+    )
+    wikidata_nat_post_write_verification.set_defaults(
+        func=_handle_wikidata_nat_post_write_verification
+    )
+    wikidata_nat_completion_gate = wikidata_sub.add_parser(
+        "nat-completion-gate",
+        help="Score a Nat completion gate report from verification runs",
+    )
+    wikidata_nat_completion_gate.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to Nat verification runs JSON",
+    )
+    wikidata_nat_completion_gate.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the Nat completion-gate scorecard JSON",
+    )
+    wikidata_nat_completion_gate.set_defaults(
+        func=_handle_wikidata_nat_completion_gate
+    )
+    wikidata_nat_migration_execution_proof = wikidata_sub.add_parser(
+        "nat-migration-execution-proof",
+        help="Build a Nat migration execution proof from verification runs and optional external receipts",
+    )
+    wikidata_nat_migration_execution_proof.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Path to the Nat verification run JSON",
+    )
+    wikidata_nat_migration_execution_proof.add_argument(
+        "--candidate-ids",
+        nargs="+",
+        help="Optional candidate IDs to limit the proof/export",
+    )
+    wikidata_nat_migration_execution_proof.add_argument(
+        "--executed-rows",
+        type=Path,
+        help="Optional path to external executed-row receipts JSON",
+    )
+    wikidata_nat_migration_execution_proof.add_argument(
+        "--post-execution-batches",
+        type=Path,
+        help="Optional path to post-execution verification-run batch JSON",
+    )
+    wikidata_nat_migration_execution_proof.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the migration execution proof JSON",
+    )
+    wikidata_nat_migration_execution_proof.set_defaults(
+        func=_handle_wikidata_nat_migration_execution_proof
     )
     wikidata_nat_automation_graduation_evidence_report = wikidata_sub.add_parser(
         "automation-graduation-evidence-report",

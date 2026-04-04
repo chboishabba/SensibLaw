@@ -1,0 +1,246 @@
+{
+  "batch_export": {
+    "artifacts": [
+      {
+        "artifact_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f:openrefine_review_rows",
+        "artifact_kind": "openrefine_review_rows",
+        "row_count": 2,
+        "rows": [
+          {
+            "action": "migrate_with_refs",
+            "candidate_id": "Q1068745|P5991|1",
+            "classification": "safe_with_reference_transfer",
+            "entity_qid": "Q1068745",
+            "from_property": "P5991",
+            "qualifiers_json": {
+              "P585": [
+                "2024"
+              ]
+            },
+            "rank": "normal",
+            "references_json": [
+              {
+                "P248": [
+                  "Qsrc-check24"
+                ]
+              }
+            ],
+            "requires_review": false,
+            "slot_id": "None",
+            "statement_index": "None",
+            "target_claim_bundle_json": {
+              "property": "P14143",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "rank": "normal",
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-check24"
+                  ]
+                }
+              ],
+              "subject": "Q1068745",
+              "value": "100",
+              "window_id": "t1"
+            },
+            "to_property": "P14143",
+            "value": "100"
+          },
+          {
+            "action": "migrate_with_refs",
+            "candidate_id": "Q1489170|P5991|1",
+            "classification": "safe_with_reference_transfer",
+            "entity_qid": "Q1489170",
+            "from_property": "P5991",
+            "qualifiers_json": {
+              "P585": [
+                "2024"
+              ]
+            },
+            "rank": "normal",
+            "references_json": [
+              {
+                "P248": [
+                  "Qsrc-immowelt"
+                ]
+              }
+            ],
+            "requires_review": false,
+            "slot_id": "None",
+            "statement_index": "None",
+            "target_claim_bundle_json": {
+              "property": "P14143",
+              "qualifiers": {
+                "P585": [
+                  "2024"
+                ]
+              },
+              "rank": "normal",
+              "references": [
+                {
+                  "P248": [
+                    "Qsrc-immowelt"
+                  ]
+                }
+              ],
+              "subject": "Q1489170",
+              "value": "200",
+              "window_id": "t1"
+            },
+            "to_property": "P14143",
+            "value": "200"
+          }
+        ],
+        "suggested_filename": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f.openrefine.review.json"
+      },
+      {
+        "artifact_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f:quickstatements_v1_review_rows",
+        "artifact_kind": "quickstatements_v1_review_rows",
+        "row_count": 2,
+        "rows": [
+          {
+            "candidate_id": "Q1068745|P5991|1",
+            "cohort_id": "business_family_reconciled",
+            "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+            "property": "P14143",
+            "qualifiers": {
+              "P585": [
+                "2024"
+              ]
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "P248": [
+                  "Qsrc-check24"
+                ]
+              }
+            ],
+            "subject": "Q1068745",
+            "value": "100"
+          },
+          {
+            "candidate_id": "Q1489170|P5991|1",
+            "cohort_id": "business_family_reconciled",
+            "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+            "property": "P14143",
+            "qualifiers": {
+              "P585": [
+                "2024"
+              ]
+            },
+            "rank": "normal",
+            "references": [
+              {
+                "P248": [
+                  "Qsrc-immowelt"
+                ]
+              }
+            ],
+            "subject": "Q1489170",
+            "value": "200"
+          }
+        ],
+        "suggested_filename": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f.quickstatements.review.json"
+      }
+    ],
+    "candidate_ids": [
+      "Q1068745|P5991|1",
+      "Q1489170|P5991|1"
+    ],
+    "cohort_id": "business_family_reconciled",
+    "execution_mode": "review_first",
+    "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+    "export_status": "ready_for_review_export",
+    "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+    "family_state": "PROMOTED",
+    "live_target_supported": true,
+    "payload_status": "ready_for_review_payload",
+    "schema_version": "sl.wikidata_nat_migration_batch_export.v0_1",
+    "summary": {
+      "artifact_count": 2,
+      "candidate_count": 2,
+      "row_count": 2,
+      "target_property": "P14143"
+    },
+    "target_property": "P14143"
+  },
+  "cohort_id": "business_family_reconciled",
+  "executed_rows_report": {
+    "cohort_id": "business_family_reconciled",
+    "executed_rows": [
+      {
+        "artifact_kinds": [
+          "openrefine_review_rows",
+          "quickstatements_v1_review_rows"
+        ],
+        "candidate_id": "Q1068745|P5991|1",
+        "cohort_id": "business_family_reconciled",
+        "execution_mode": "review_first",
+        "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+        "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset"
+      },
+      {
+        "artifact_kinds": [
+          "openrefine_review_rows",
+          "quickstatements_v1_review_rows"
+        ],
+        "candidate_id": "Q1489170|P5991|1",
+        "cohort_id": "business_family_reconciled",
+        "execution_mode": "review_first",
+        "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+        "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset"
+      }
+    ],
+    "execution_status": "ready_execution_receipts",
+    "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+    "export_status": "ready_for_review_export",
+    "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+    "schema_version": "sl.wikidata_nat_migration_executed_rows.v0_1",
+    "summary": {
+      "artifact_count": 4,
+      "row_count": 2
+    }
+  },
+  "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+  "lifecycle_report": {
+    "families": [
+      {
+        "candidate_ids": [
+          "Q1068745|P5991|1",
+          "Q1489170|P5991|1"
+        ],
+        "cohort_id": "business_family_reconciled",
+        "executed_candidate_ids": [
+          "Q1068745|P5991|1",
+          "Q1489170|P5991|1"
+        ],
+        "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+        "lifecycle_state": "VERIFIED",
+        "verified_candidate_ids": [
+          "Q1068745|P5991|1",
+          "Q1489170|P5991|1"
+        ]
+      }
+    ],
+    "minimum_independent_paths_required": 2,
+    "schema_version": "sl.wikidata_nat_migration_lifecycle_report.v0_1",
+    "summary": {
+      "executed_count": 0,
+      "not_started_count": 0,
+      "ready_count": 0,
+      "verified_count": 1
+    }
+  },
+  "schema_version": "sl.wikidata_nat_migration_execution_proof.v0_1",
+  "summary": {
+    "candidate_count": 2,
+    "execution_status": "ready_execution_receipts",
+    "export_status": "ready_for_review_export",
+    "lifecycle_state": "VERIFIED"
+  }
+}

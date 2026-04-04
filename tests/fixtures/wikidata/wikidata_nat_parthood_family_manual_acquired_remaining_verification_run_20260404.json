@@ -1,0 +1,175 @@
+{
+  "family_id": "parthood_family_safe_reference_transfer_subset",
+  "cohort_id": "parthood_family_safe_reference_transfer",
+  "candidate_ids": [
+    "Q3700011|P361|1",
+    "Q980357|P361|1"
+  ],
+  "runs": [
+    {
+      "run_id": "run-2026-04-04-parthood-c",
+      "batch_id": "nat-parthood-family-gate-b-batch-v4",
+      "root_artifact_id": "manual-parthood-root-c",
+      "migration_pack": {
+        "source_property": "P361",
+        "target_property": "P99999",
+        "candidates": [
+          {
+            "candidate_id": "Q3700011|P361|1",
+            "entity_qid": "Q3700011",
+            "candidate_label": "kecamatan",
+            "candidate_description": "third-level administrative region under the county and city",
+            "candidate_archetype_hint": "district_or_subdivision",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q3700011",
+              "property": "P361",
+              "value": "Q3199141",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P248": [
+                    "Q129566940"
+                  ],
+                  "P958": [
+                    "Pasal 66 ayat (1)"
+                  ],
+                  "P1683": [
+                    "Kecamatan merupakan perangkat Daerah Kabupaten dan Daerah Kota yang dipimpin oleh Kepala Kecamatan"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_06"
+            },
+            "claim_bundle_after": {
+              "subject": "Q3700011",
+              "property": "P99999",
+              "value": "Q3199141",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P813": [
+                    "+2026-04-05T00:00:00Z"
+                  ],
+                  "P854": [
+                    "https://example.org/manual-parthood/kecamatan-second-snapshot"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_06"
+            }
+          },
+          {
+            "candidate_id": "Q980357|P361|1",
+            "entity_qid": "Q980357",
+            "candidate_label": "grammatical category",
+            "candidate_description": "analytical class within the grammar of a language",
+            "candidate_archetype_hint": "class_or_type_ontology",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q980357",
+              "property": "P361",
+              "value": "Q315",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P854": [
+                    "http://www-01.sil.org/linguistics/GlossaryOflinguisticTerms/WhatIsAGrammaticalCategory.htm"
+                  ],
+                  "P813": [
+                    "+2015-10-11T00:00:00Z"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_06"
+            },
+            "claim_bundle_after": {
+              "subject": "Q980357",
+              "property": "P99999",
+              "value": "Q315",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P813": [
+                    "+2026-04-05T00:00:00Z"
+                  ],
+                  "P854": [
+                    "https://example.org/manual-parthood/grammatical-category-second-snapshot"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_06"
+            }
+          }
+        ]
+      },
+      "after_payload": {
+        "windows": [
+          {
+            "id": "after-parthood-c",
+            "statement_bundles": [
+              {
+                "subject": "Q3700011",
+                "property": "P99999",
+                "value": "Q3199141",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-05T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/kecamatan-second-snapshot"
+                  }
+                ]
+              },
+              {
+                "subject": "Q3700011",
+                "property": "P361",
+                "value": "Q3199141",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-05T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/kecamatan-second-snapshot"
+                  }
+                ]
+              },
+              {
+                "subject": "Q980357",
+                "property": "P99999",
+                "value": "Q315",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-05T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/grammatical-category-second-snapshot"
+                  }
+                ]
+              },
+              {
+                "subject": "Q980357",
+                "property": "P361",
+                "value": "Q315",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-05T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/grammatical-category-second-snapshot"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

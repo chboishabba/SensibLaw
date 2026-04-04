@@ -18,6 +18,10 @@ SensibLaw currently provides:
 - export/handoff paths into downstream reasoning and review layers such as
   Zelph
 
+The current architecture direction is no longer lane-by-lane growth. It is a
+single normalized process that different source families and work lanes bind
+onto over time.
+
 The important design choice is that SensibLaw is not trying to be "the model
 that knows the answer." It is trying to preserve source traceability while
 making reviewable structure.
@@ -102,6 +106,128 @@ SensibLaw now also has one bounded measured-automation success in the Nat
 
 The next Nat bottleneck is not more proof for those two rows. It is
 independent evidence for a second structural family.
+
+The Nat lane now also has the bounded evidence lifecycle around that blocker:
+
+- `AWAITING_EVIDENCE` families emit machine-readable intake contracts
+- intake contracts can be aggregated into an acquisition backlog
+- routed acquisition tasks can accept supplied evidence bundles
+- same-family acquisition can be built directly from a revision-locked entity
+  export and must still survive the existing verification step
+- successful acquisition can move a family to `READY_TO_RERUN`
+- reruns still have to pass the same convergence and governance path before
+  any promotion claim is allowed
+- some held families also now need a migration-aware read:
+  `MIGRATION_PENDING` explains that the upstream migration protocol is active
+  but the required after-state is not yet observed; it is explanatory state,
+  not a promotion shortcut
+
+Current held second-family seeds are:
+
+- `climate_family_safe_reference_transfer_subset`
+- `parthood_family_safe_reference_transfer_subset`
+
+`parthood_family_safe_reference_transfer_subset` is now the primary second-family
+proving target. As of April 4, 2026 its bounded live candidate set is:
+`Q16572|P361|1`, `Q3700011|P361|1`, and `Q980357|P361|1`.
+Its current same-family live acquisition route is still blocked, because the
+bounded family migrates toward synthetic `P99999` and current live exports only
+carry `P361`.
+A bounded manual/acquired artifact path is now proven for `Q16572|P361|1`,
+which is enough to move the family to `READY_TO_RERUN` through the existing
+state machine even though the live same-family route still fails.
+With acquired artifacts for the remaining two rows, the full parthood family is
+also now proven to reach `PROMOTED` through the same generic acquisition and
+convergence loop.
+The same acquisition plan can now also drive a bounded live revision sweep over
+recent Wikidata revisions and mark the family `PROMOTED` with
+`state_basis = live_same_family_acquisition` when a later revision-locked
+entity export actually verifies. The currently pinned live exports are still
+blocked, so that proves live-path capability rather than a current live-data
+success for parthood.
+The Nat state machine now records a separate `state_basis`, so this result is
+explicitly queryable as `supplied_acquired_artifact` rather than being
+conflated with baseline runtime promotion or live same-family acquisition.
+
+`climate_family_safe_reference_transfer_subset` now has a different read. It is
+not just a thin held family. It is also a controlled migration lane:
+
+- before-state is known: `P5991`
+- desired after-state is known: `P14143`
+- but the verifier still only counts real observed after-states
+
+That means climate can be truthfully described as `MIGRATION_PENDING` where the
+upstream migration protocol is active but the required `P14143` state is not
+yet present in live source reality. This does not count as a second witness
+and does not relax promotion.
+
+That migration-aware read is now reflected in the runtime too:
+
+- the Nat state machine can emit `MIGRATION_PENDING`
+- climate intake routes now include:
+  - `same_family_after_state`
+  - `cross_row_migrated_p14143`
+  - `text_bridge_promoted_observation`
+- the repo carries a bounded `climate_family_v2_live_p14143_subset` seed for
+  migrated-row confirmation against live `P14143` enterprise statements
+
+The current highest-yield next move is therefore not more pressure on the same
+thin climate row. It is:
+
+- use a higher-churn live-backed family for the first observed
+  `live_same_family_acquisition` promotion
+- keep climate on a migration-aware recovery path through:
+  - already-migrated row discovery
+  - bounded cross-source confirmation
+  - or legitimate family expansion if new safe climate rows become real
+
+The broader `P5991` population is also now treated as semantically
+heterogeneous rather than implicitly uniform. Nat can triage rows into:
+
+- `direct_migrate`
+- `split_required`
+- `migration_pending`
+- `out_of_scope`
+- `needs_review`
+
+That means the next scale lever is tighter segmentation and stronger abstention,
+not more aggressive blanket automation across the whole property.
+
+Nat now also has a bounded execution-side overlay:
+
+- batch finder:
+  selects promoted, live-target-capable families for migration work
+- execution payload:
+  shapes review-first OpenRefine / QuickStatements-compatible rows from
+  checked-safe promoted candidates
+- pre-execution contract layer:
+  the repo now also owns explicit candidate contracts, backend routing plans,
+  receipt contracts, and post-write verification contracts for operator handoff
+- lifecycle overlay:
+  `NOT_STARTED -> READY -> EXECUTED -> VERIFIED`
+
+Current read:
+
+- `business_family_reconciled_low_qualifier_checked_safe_subset` is the first
+  execution-ready batch
+- climate is still held and migration-aware, not execution-ready
+- parthood can be promoted for convergence purposes, but its current synthetic
+  target keeps it out of live execution batches
+- operator-facing export, receipt ingestion, post-write verification, and proof
+  CLI surfaces are now real locally
+- but genuine external operator receipts still require an actual external
+  action:
+  a real review/export handoff, a real execution against Wikidata or an
+  equivalent tool, and a real returned record of what was applied
+- the repo can generate receipt schema, receipt examples, derived receipts from
+  pinned exports, and proof bundles that consume receipts
+- the repo cannot honestly generate evidence that an external write happened
+  when it did not
+- so the remaining blocker for operator-real status is provenance, not format
+- the closure paths are:
+  a real Nat handoff that writes back a receipt file, a QS/OpenRefine wrapper
+  that emits receipts, or a manual signed receipt surface with applied rows and
+  timestamps
 
 Start here:
 
@@ -197,10 +323,50 @@ needed.
   [docs/ITIR.md](docs/ITIR.md)
 - architecture layers:
   [docs/ARCHITECTURE_LAYERS.md](docs/ARCHITECTURE_LAYERS.md)
+- whole-system world-model view:
+  [docs/roadmaps/world_model_metasystem_20260404.puml](docs/roadmaps/world_model_metasystem_20260404.puml)
 - interfaces:
   [docs/interfaces.md](docs/interfaces.md)
 - CLI examples:
   [docs/cli_examples.md](docs/cli_examples.md)
+
+## Shared World-Model Process
+
+SensibLaw is now converging toward one normalized process for all source
+families rather than separate local truth models for Wikidata, AU, GWB,
+Brexit, and future lanes.
+
+That shared substrate currently exists in code as five ordered primitives:
+
+1. cross-domain claim model
+2. multi-source convergence
+3. temporal update discipline
+4. contradiction management
+5. unified action policy
+
+What this means in practice:
+
+- source families should normalize into the same claim unit
+- evidence should converge through the same governed merge surface
+- later observations should relate to earlier ones through explicit temporal
+  fields instead of silent overwrite
+- contradictions should be represented explicitly rather than hidden in
+  rejection
+- action permissions should be downstream of evidence, convergence, temporal,
+  and conflict state
+
+Current status:
+
+- the shared substrate exists in code
+- Nat already emits the shared primitives additively in its convergence
+  reports
+- broader lane rebinding is still the next phase
+
+This is the important distinction:
+
+- `Nat` proves one source-adapter path into the substrate
+- the world-model moonshot is the broader goal of rebinding all major lanes
+  onto that same substrate
 
 ### Wikidata lane
 

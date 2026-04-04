@@ -12,14 +12,21 @@ import yaml
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
 from src.au_semantic.semantic import build_au_semantic_report, run_au_semantic_pipeline
 from src.fact_intake import (
+    AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION,
     EVENT_ASSEMBLER_VERSION,
     FACT_REVIEW_BUNDLE_VERSION,
     build_au_fact_review_bundle,
+    build_au_fact_review_bundle_world_model_report,
     build_fact_intake_payload_from_au_semantic_report,
     persist_fact_intake_payload,
     persist_authority_ingest_receipt,
     record_fact_workflow_link,
 )
+from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION
+from src.models.convergence import CONVERGENCE_SCHEMA_VERSION
+from src.models.conflict import CONFLICT_SCHEMA_VERSION
+from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION
+from src.models.temporal import TEMPORAL_SCHEMA_VERSION
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
 import src.fact_intake.au_review_bundle as au_review_bundle
@@ -269,6 +276,33 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
         Path(__file__).resolve().parents[2].joinpath("schemas", "itir.normalized.artifact.v1.schema.json").read_text(encoding="utf-8")
     )
     jsonschema.Draft202012Validator(root_schema).validate(normalized_artifact)
+
+
+def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_substrate(
+    tmp_path: Path,
+) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+
+    report = build_au_fact_review_bundle_world_model_report(bundle)
+
+    assert report["schema_version"] == AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION
+    assert report["claim_schema_version"] == NAT_CLAIM_SCHEMA_VERSION
+    assert report["convergence_schema_version"] == CONVERGENCE_SCHEMA_VERSION
+    assert report["temporal_schema_version"] == TEMPORAL_SCHEMA_VERSION
+    assert report["conflict_schema_version"] == CONFLICT_SCHEMA_VERSION
+    assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
+    assert report["run_id"] == bundle["run"]["fact_run_id"]
+    assert report["semantic_run_id"] == bundle["run"]["semantic_run_id"]
+    assert report["summary"]["claim_count"] == len(bundle["review_queue"])
+    assert report["summary"]["must_review_count"] == len(bundle["review_queue"])
+    first_claim = report["claims"][0]
+    first_queue_row = bundle["review_queue"][0]
+    assert first_claim["claim_id"] == first_queue_row["fact_id"]
+    assert first_claim["status"] == "REVIEW_ONLY"
+    assert first_claim["nat_claim"]["state_basis"] == "review_bundle"
+    assert first_claim["convergence"]["convergence_state"] == "NORMALIZED"
+    assert first_claim["conflict_set"]["conflict_type"] == "none"
+    assert first_claim["action_policy"]["actionability"] == "must_review"
 
 
 def test_au_authority_follow_queue_supporting_legislation_counts(tmp_path: Path) -> None:

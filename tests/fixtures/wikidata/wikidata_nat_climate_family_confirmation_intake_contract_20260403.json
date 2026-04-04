@@ -64,6 +64,29 @@
           "build_nat_confirmation_follow_queue"
         ]
       },
+      "suggested_evidence_routes": [
+        {
+          "priority": 1,
+          "route_id": "Q10651551|P5991|1:same_family_after_state",
+          "route_kind": "same_family_after_state",
+          "source_family": "wikidata_migration_pack",
+          "why": "A new revision-locked after-state bundle for the same family is the shortest truthful path to independent confirmation."
+        },
+        {
+          "priority": 2,
+          "route_id": "Q10651551|P5991|1:cross_row_migrated_p14143",
+          "route_kind": "cross_row_migrated_p14143",
+          "source_family": "wikidata_sparql_p14143",
+          "why": "Climate-family rows can recover through already-migrated P14143 rows that match the same normalized climate claim shape."
+        },
+        {
+          "priority": 3,
+          "route_id": "Q10651551|P5991|1:phi_text_bridge",
+          "route_kind": "text_bridge_promoted_observation",
+          "source_family": "wikidata_phi_text_bridge",
+          "why": "The bounded Phi text bridge is the repo-approved additive pressure lane for climate-family evidence, but it cannot replace structured verification by itself."
+        }
+      ],
       "status": "awaiting_independent_evidence"
     }
   ],

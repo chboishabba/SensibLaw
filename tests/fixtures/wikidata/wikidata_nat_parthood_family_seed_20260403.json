@@ -1,0 +1,54 @@
+{
+  "schema_version": "sl.wikidata_nat_family_seed.v0_1",
+  "seed_id": "nat-parthood-family-seed-20260404",
+  "family_id": "parthood_family_safe_reference_transfer_subset",
+  "cohort_id": "parthood_family_safe_reference_transfer",
+  "source_fixture_path": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_parthood_family_verification_run_20260403.json",
+  "source_property": "P361",
+  "target_property": "P99999",
+  "candidate_count": 3,
+  "checked_safe_subset": [
+    "Q16572|P361|1",
+    "Q3700011|P361|1",
+    "Q980357|P361|1"
+  ],
+  "counts_by_bucket": {
+    "safe_with_reference_transfer": 3
+  },
+  "candidate_profiles": [
+    {
+      "candidate_id": "Q16572|P361|1",
+      "entity_qid": "Q16572",
+      "candidate_label": "Guangzhou",
+      "candidate_description": "capital city of Guangdong Province, China",
+      "candidate_archetype_hint": "city_or_municipality",
+      "source_revision": "2475945368"
+    },
+    {
+      "candidate_id": "Q3700011|P361|1",
+      "entity_qid": "Q3700011",
+      "candidate_label": "kecamatan",
+      "candidate_description": "third-level administrative region under the county and city",
+      "candidate_archetype_hint": "district_or_subdivision",
+      "source_revision": "2475626330"
+    },
+    {
+      "candidate_id": "Q980357|P361|1",
+      "entity_qid": "Q980357",
+      "candidate_label": "grammatical category",
+      "candidate_description": "analytical class within the grammar of a language",
+      "candidate_archetype_hint": "class_or_type_ontology",
+      "source_revision": "2474581003"
+    }
+  ],
+  "unresolved_pressure_status": "hold",
+  "hold_reason": "single_verification_run_not_enough_for_second_family_promotion",
+  "follow_obligation": {
+    "trigger": "parthood_family_safe_reference_transfer_subset",
+    "status": "hold"
+  },
+  "receipt_ids": [
+    "parthood-live-bounded-seed"
+  ],
+  "replay_path": "SensibLaw/tests/fixtures/wikidata/wikidata_nat_parthood_family_verification_run_20260403.json"
+}

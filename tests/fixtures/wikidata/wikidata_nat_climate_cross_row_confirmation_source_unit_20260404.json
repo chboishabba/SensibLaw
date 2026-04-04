@@ -1,0 +1,25 @@
+{
+  "candidate_id": "Q253423|P14143|2021_total",
+  "entity_qid": "Q253423",
+  "candidate_label": "Lundin Energy",
+  "root_artifact_id": "wikidata_property_p14143:Q253423:2021_total",
+  "canonical_form": {
+    "subject": "Q253423",
+    "property": "P14143",
+    "value": "+442",
+    "rank": "normal",
+    "qualifiers": {
+      "P585": [
+        "+2021-00-00T00:00:00Z"
+      ]
+    },
+    "references": [
+      {
+        "P854": [
+          "https://www.wikidata.org/wiki/Property:P14143"
+        ]
+      }
+    ],
+    "window_id": "p14143_live_2021"
+  }
+}

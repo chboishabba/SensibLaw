@@ -1,0 +1,61 @@
+@startuml
+title SensibLaw World-Model Metasystem 2026-04-04
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Monospace
+
+rectangle "External Source Families" as SOURCES {
+  component "Wikidata" as WIKIDATA
+  component "AU" as AU
+  component "GWB" as GWB
+  component "Brexit" as BREXIT
+  component "Future Sources" as FUTURE
+}
+
+rectangle "Lane Adapters" as LANES {
+  component "Nat Lane" as NAT
+  component "Assist / Reviewer Lane" as ASSIST
+  component "Other Lane Adapters" as OTHER
+}
+
+rectangle "Shared World-Model Substrate" as SUBSTRATE {
+  component "Cross-Domain Claim Model" as CLAIM
+  component "Multi-Source Convergence" as CONVERGENCE
+  component "Temporal Update Discipline" as TEMPORAL
+  component "Contradiction Management" as CONFLICT
+  component "Unified Action Policy" as POLICY
+}
+
+rectangle "Governed Outputs" as OUTPUTS {
+  component "Review / Handoff Artifacts" as REVIEW
+  component "Execution / Recommendation Gates" as GATES
+  component "Audit / Provenance Trace" as AUDIT
+}
+
+WIKIDATA --> NAT
+AU --> ASSIST
+GWB --> ASSIST
+BREXIT --> ASSIST
+FUTURE --> OTHER
+
+NAT --> CLAIM
+ASSIST --> CLAIM
+OTHER --> CLAIM
+
+CLAIM --> CONVERGENCE
+CONVERGENCE --> TEMPORAL
+TEMPORAL --> CONFLICT
+CONFLICT --> POLICY
+
+POLICY --> REVIEW
+POLICY --> GATES
+POLICY --> AUDIT
+
+note right of SUBSTRATE
+One normalized process is now defined in code:
+claim -> convergence -> temporal -> conflict -> policy
+Lane rebinding is the next step.
+end note
+
+@enduml

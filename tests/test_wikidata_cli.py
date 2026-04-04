@@ -1038,6 +1038,205 @@ def test_wikidata_automation_graduation_eval_batch_cli_writes_index_report(tmp_p
     assert payload["summary"]["approved_count"] == 1
     assert payload["summary"]["rejected_count"] == 1
 
+def test_wikidata_nat_migration_batch_export_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+    )
+    out_path = tmp_path / "nat_migration_batch_export.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-migration-batch-export",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["export_id"] == payload["export_id"]
+    assert stdout["row_count"] == payload["summary"]["row_count"]
+    assert payload["family_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset"
+    assert payload["export_status"] == "ready_for_review_export"
+    assert payload["summary"]["candidate_count"] == 2
+    assert len(payload["artifacts"]) == 2
+    assert payload["artifacts"][0]["artifact_kind"] == "openrefine_review_rows"
+
+
+def test_wikidata_nat_migration_executed_rows_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_business_family_migration_execution_proof_20260404.json"
+    )
+    out_path = tmp_path / "nat_migration_executed_rows.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-migration-executed-rows",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["execution_status"] == "ready_execution_receipts"
+    assert stdout["row_count"] == payload["summary"]["row_count"]
+    assert payload["export_id"] == "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f"
+    assert payload["summary"]["row_count"] == 2
+
+
+def test_wikidata_nat_post_write_verification_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+    )
+    out_path = tmp_path / "nat_post_write_verification.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-post-write-verification",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["run_count"] == payload["summary"]["run_count"]
+    assert stdout["verified_run_count"] == payload["summary"]["verified_run_count"]
+    assert payload["summary"]["verification_ready"] is True
+    assert payload["summary"]["verified_run_count"] == 2
+
+
+def test_wikidata_nat_completion_gate_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+    )
+    out_path = tmp_path / "nat_completion_gate.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-completion-gate",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["candidate_yield"] == 2
+    assert stdout["dry_run_pass_rate"] == 1.0
+    assert stdout["live_verification_pass_rate"] == 0.5
+    assert payload["data_loss_zero"] is True
+    assert payload["idempotency_score"] == 1.0
+
+
+def test_wikidata_nat_migration_execution_proof_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    in_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+    )
+    out_path = tmp_path / "nat_migration_execution_proof.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-migration-execution-proof",
+            "--input",
+            str(in_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["family_id"] == payload["family_id"]
+    assert stdout["lifecycle_state"] == payload["summary"]["lifecycle_state"]
+    assert payload["summary"]["lifecycle_state"] == "EXECUTED"
+    assert payload["summary"]["candidate_count"] == 2
+
+
+def test_wikidata_nat_migration_execution_proof_cli_accepts_external_receipts(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent
+    verification_runs_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+    )
+    executed_rows_path = (
+        root
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_business_family_migration_executed_rows_20260404.json"
+    )
+    post_execution_batches_path = verification_runs_path
+    out_path = tmp_path / "nat_migration_execution_proof_external.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-migration-execution-proof",
+            "--input",
+            str(verification_runs_path),
+            "--executed-rows",
+            str(executed_rows_path),
+            "--post-execution-batches",
+            str(post_execution_batches_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert payload["summary"]["execution_status"] == "external_execution_receipts"
+    assert payload["summary"]["lifecycle_state"] == "VERIFIED"
+    assert payload["executed_rows_report"]["summary"]["row_count"] == 2
+
 
 def test_wikidata_automation_graduation_evidence_report_cli_writes_readiness_surface(tmp_path, capsys) -> None:
     root = Path(__file__).resolve().parent

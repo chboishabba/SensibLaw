@@ -1,0 +1,55 @@
+{
+  "schema_version": "sl.wikidata_nat_acquisition_event_report.v0_1",
+  "events": [
+    {
+      "task_id": "Q16572|P361|1:Q16572|P361|1:same_family_after_state",
+      "claim_id": "Q16572|P361|1",
+      "family_id": "parthood_family_safe_reference_transfer_subset",
+      "candidate_id": "Q16572|P361|1",
+      "route_id": "Q16572|P361|1:same_family_after_state",
+      "status": "FAILED",
+      "failure_reason": "verification_target_missing",
+      "verification_summary": {
+        "verified_candidate_count": 1,
+        "counts_by_status": {
+          "target_missing": 1
+        }
+      }
+    },
+    {
+      "task_id": "Q3700011|P361|1:Q3700011|P361|1:same_family_after_state",
+      "claim_id": "Q3700011|P361|1",
+      "family_id": "parthood_family_safe_reference_transfer_subset",
+      "candidate_id": "Q3700011|P361|1",
+      "route_id": "Q3700011|P361|1:same_family_after_state",
+      "status": "FAILED",
+      "failure_reason": "verification_target_missing",
+      "verification_summary": {
+        "verified_candidate_count": 1,
+        "counts_by_status": {
+          "target_missing": 1
+        }
+      }
+    },
+    {
+      "task_id": "Q980357|P361|1:Q980357|P361|1:same_family_after_state",
+      "claim_id": "Q980357|P361|1",
+      "family_id": "parthood_family_safe_reference_transfer_subset",
+      "candidate_id": "Q980357|P361|1",
+      "route_id": "Q980357|P361|1:same_family_after_state",
+      "status": "FAILED",
+      "failure_reason": "verification_target_missing",
+      "verification_summary": {
+        "verified_candidate_count": 1,
+        "counts_by_status": {
+          "target_missing": 1
+        }
+      }
+    }
+  ],
+  "summary": {
+    "task_count": 3,
+    "success_count": 0,
+    "failed_count": 3
+  }
+}

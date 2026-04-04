@@ -8,6 +8,15 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 import requests
 
+from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
+from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
+from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
+from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
+from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
+
+
+BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION = "sl.brexit_national_archives_world_model.v0_1"
+
 
 @dataclass(frozen=True)
 class SearchConstraint:
@@ -222,3 +231,130 @@ def write_brexit_manifest(path: Path) -> Path:
     data = build_brexit_national_archives_manifest()
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def build_brexit_national_archives_world_model_report(
+    records: Sequence[Mapping[str, Any]],
+) -> Mapping[str, Any]:
+    claims: list[dict[str, Any]] = []
+
+    for record in records:
+        if not isinstance(record, Mapping):
+            continue
+        doc_id = str(record.get("doc_id") or "").strip()
+        if not doc_id:
+            continue
+        lane_id = "brexit_national_archives_policy_intent"
+        root_artifact_id = str(record.get("url") or doc_id).strip()
+        canonical_form = {
+            "subject": doc_id,
+            "property": "brexit_policy_intent",
+            "value": str(record.get("title") or "").strip(),
+            "rank": "normal",
+            "window_id": str(record.get("anchor_date") or "").strip(),
+            "qualifiers": {
+                "collection": str(record.get("collection") or "").strip(),
+                "authority_role": str(record.get("authority_role") or "").strip(),
+                "anchor_date": str(record.get("anchor_date") or "").strip(),
+                "intent_tags": list(record.get("intent_tags") or []),
+            },
+            "references": [
+                {"source_url": [str(record.get("url") or "").strip()]}
+            ]
+            if str(record.get("url") or "").strip()
+            else [],
+        }
+        evidence_paths = [
+            {
+                "source_unit_id": f"brexit_archive:{doc_id}",
+                "root_artifact_id": root_artifact_id,
+                "source_family": "brexit_national_archives",
+                "authority_level": "archive_record",
+                "verification_status": "review_only",
+                "provenance_chain": {
+                    "lane_id": lane_id,
+                    "doc_id": doc_id,
+                    "collection": str(record.get("collection") or "").strip(),
+                    "live_fetch": bool(record.get("live_fetch")),
+                },
+                "run_id": str(record.get("anchor_date") or "").strip(),
+            }
+        ]
+        claim = {
+            "claim_id": doc_id,
+            "family_id": lane_id,
+            "cohort_id": lane_id,
+            "candidate_id": doc_id,
+            "status": "REVIEW_ONLY",
+            "state_basis": "brexit_national_archives",
+            "evidence_paths": evidence_paths,
+            "canonical_form": canonical_form,
+            "nat_claim": build_nat_claim_dict(
+                claim_id=doc_id,
+                family_id=lane_id,
+                cohort_id=lane_id,
+                candidate_id=doc_id,
+                canonical_form=canonical_form,
+                source_property="brexit_archive_record",
+                target_property="brexit_policy_intent",
+                state="REVIEW_ONLY",
+                state_basis="brexit_national_archives",
+                root_artifact_id=root_artifact_id,
+                provenance={
+                    "lane_id": lane_id,
+                    "collection": str(record.get("collection") or "").strip(),
+                    "live_fetch": bool(record.get("live_fetch")),
+                },
+                evidence_status="single_run",
+            ),
+        }
+        claim["convergence"] = build_convergence_record(
+            claim_id=doc_id,
+            evidence_paths=evidence_paths,
+            independent_root_artifact_ids=[root_artifact_id],
+            claim_status="REVIEW_ONLY",
+        )
+        claim["temporal"] = build_temporal_envelope(
+            claim_id=doc_id,
+            evidence_paths=evidence_paths,
+            independent_root_artifact_ids=[root_artifact_id],
+        )
+        claim["conflict_set"] = build_conflict_set(
+            claim_id=doc_id,
+            candidate_ids=[doc_id],
+            evidence_rows=[
+                {
+                    "run_id": str(record.get("anchor_date") or "").strip(),
+                    "root_artifact_id": root_artifact_id,
+                    "canonical_form": canonical_form,
+                }
+            ],
+        )
+        claim["action_policy"] = build_action_policy_record(
+            claim_id=doc_id,
+            claim_status="REVIEW_ONLY",
+            convergence=claim["convergence"],
+            temporal=claim["temporal"],
+            conflict_set=claim["conflict_set"],
+        )
+        claims.append(claim)
+
+    return {
+        "schema_version": BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
+        "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
+        "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
+        "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
+        "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
+        "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
+        "lane_id": "brexit_national_archives_policy_intent",
+        "claims": claims,
+        "summary": {
+            "claim_count": len(claims),
+            "must_review_count": sum(
+                1
+                for claim in claims
+                if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
+            ),
+            "live_fetch_count": sum(1 for claim in claims if claim["evidence_paths"][0]["provenance_chain"].get("live_fetch")),
+        },
+    }

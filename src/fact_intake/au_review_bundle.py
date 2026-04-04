@@ -27,6 +27,11 @@ from .projection_helpers import (
     fact_status_for_statement,
     observation_status_from_relation,
 )
+from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
+from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
+from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
+from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
+from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
 from src.policy.compiler_contract import build_au_fact_review_bundle_contract
 from src.policy.legal_follow_graph import (
     build_au_legal_follow_graph,
@@ -59,6 +64,7 @@ _AU_AUTHORITY_ROUTE_TARGET_SCORE = {
     "authority_title_resolution": ("medium", 3),
     "manual_review": ("low", 1),
 }
+AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION = "sl.au_fact_review_bundle_world_model.v0_1"
 
 def _normalize_opt_text(value: Any) -> str | None:
     if value is None:
@@ -828,3 +834,134 @@ def build_au_fact_review_bundle(
             "reasoner_input_artifact": reasoner_input_artifact,
         },
     )
+
+
+def build_au_fact_review_bundle_world_model_report(
+    review_bundle: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(review_bundle, Mapping):
+        raise ValueError("world-model report requires AU fact review bundle object")
+    if str(review_bundle.get("version") or "").strip() != "fact.review.bundle.v1":
+        raise ValueError("world-model report requires AU fact review bundle payload")
+
+    run = review_bundle.get("run", {}) if isinstance(review_bundle.get("run"), Mapping) else {}
+    run_id = str(run.get("fact_run_id") or "").strip()
+    semantic_run_id = str(run.get("semantic_run_id") or "").strip()
+    review_queue = review_bundle.get("review_queue", [])
+    if not isinstance(review_queue, Sequence) or isinstance(review_queue, (str, bytes, bytearray)):
+        review_queue = []
+
+    claims: list[dict[str, Any]] = []
+    for row in review_queue:
+        if not isinstance(row, Mapping):
+            continue
+        claim_id = str(row.get("fact_id") or "").strip()
+        if not claim_id:
+            continue
+        canonical_form = {
+            "subject": claim_id,
+            "property": "au_review_fact",
+            "value": str(row.get("label") or "").strip(),
+            "qualifiers": {
+                "candidate_status": [str(row.get("candidate_status") or "").strip()],
+                "reason_codes": [str(value) for value in row.get("reason_codes", []) if str(value).strip()],
+                "policy_outcomes": [str(value) for value in row.get("policy_outcomes", []) if str(value).strip()],
+            },
+            "references": [],
+            "window_id": run_id,
+        }
+        evidence_paths = [
+            {
+                "evidence_path_id": f"{claim_id}:{run_id}",
+                "run_id": run_id,
+                "source_unit_id": claim_id,
+                "root_artifact_id": run_id,
+                "source_family": "au_fact_review_bundle",
+                "authority_level": "review_bundle",
+                "provenance_chain": {
+                    "run_id": run_id,
+                    "semantic_run_id": semantic_run_id,
+                    "event_ids": [str(value) for value in row.get("event_ids", []) if str(value).strip()],
+                },
+                "verification_status": "review_bundle_selected",
+            }
+        ]
+        root_artifact_ids = [run_id] if run_id else []
+        claim = {
+            "claim_id": claim_id,
+            "candidate_id": claim_id,
+            "family_id": "au_fact_review_bundle",
+            "cohort_id": semantic_run_id,
+            "canonical_form": canonical_form,
+            "evidence_paths": evidence_paths,
+            "independent_count": len(root_artifact_ids),
+            "evidence_count": len(evidence_paths),
+            "independent_root_artifact_ids": root_artifact_ids,
+            "status": "REVIEW_ONLY",
+        }
+        claim["nat_claim"] = build_nat_claim_dict(
+            claim_id=claim_id,
+            family_id="au_fact_review_bundle",
+            cohort_id=semantic_run_id,
+            candidate_id=claim_id,
+            canonical_form=canonical_form,
+            source_property="review_bundle",
+            target_property="review_bundle",
+            state="review_claim",
+            state_basis="review_bundle",
+            root_artifact_id=run_id,
+            provenance={
+                "source_kind": "review_bundle",
+                "run_id": run_id,
+                "semantic_run_id": semantic_run_id,
+            },
+            evidence_status="review_only",
+        )
+        claim["convergence"] = build_convergence_record(
+            claim_id=claim_id,
+            evidence_paths=evidence_paths,
+            independent_root_artifact_ids=root_artifact_ids,
+            claim_status="REVIEW_ONLY",
+        )
+        claim["temporal"] = build_temporal_envelope(
+            claim_id=claim_id,
+            evidence_paths=evidence_paths,
+            independent_root_artifact_ids=root_artifact_ids,
+        )
+        claim["conflict_set"] = build_conflict_set(
+            claim_id=claim_id,
+            candidate_ids=[claim_id],
+            evidence_rows=[
+                {
+                    "run_id": run_id,
+                    "root_artifact_id": run_id,
+                    "canonical_form": canonical_form,
+                }
+            ],
+        )
+        claim["action_policy"] = build_action_policy_record(
+            claim_id=claim_id,
+            claim_status="REVIEW_ONLY",
+            convergence=claim["convergence"],
+            temporal=claim["temporal"],
+            conflict_set=claim["conflict_set"],
+        )
+        claims.append(claim)
+
+    return {
+        "schema_version": AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION,
+        "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
+        "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
+        "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
+        "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
+        "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
+        "run_id": run_id,
+        "semantic_run_id": semantic_run_id,
+        "claims": claims,
+        "summary": {
+            "claim_count": len(claims),
+            "must_review_count": sum(
+                1 for claim in claims if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
+            ),
+        },
+    }

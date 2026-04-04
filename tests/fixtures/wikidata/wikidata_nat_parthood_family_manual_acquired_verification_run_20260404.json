@@ -1,0 +1,100 @@
+{
+  "family_id": "parthood_family_safe_reference_transfer_subset",
+  "cohort_id": "parthood_family_safe_reference_transfer",
+  "candidate_ids": [
+    "Q16572|P361|1"
+  ],
+  "runs": [
+    {
+      "run_id": "run-2026-04-04-parthood-b",
+      "batch_id": "nat-parthood-family-gate-b-batch-v3",
+      "root_artifact_id": "manual-parthood-root-b",
+      "migration_pack": {
+        "source_property": "P361",
+        "target_property": "P99999",
+        "candidates": [
+          {
+            "candidate_id": "Q16572|P361|1",
+            "entity_qid": "Q16572",
+            "candidate_label": "Guangzhou",
+            "candidate_description": "capital city of Guangdong Province, China",
+            "candidate_archetype_hint": "city_or_municipality",
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "claim_bundle_before": {
+              "subject": "Q16572",
+              "property": "P361",
+              "value": "Q1144286",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P813": [
+                    "+2026-04-04T00:00:00Z"
+                  ],
+                  "P854": [
+                    "https://example.org/manual-parthood/guangzhou-second-snapshot"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_05"
+            },
+            "claim_bundle_after": {
+              "subject": "Q16572",
+              "property": "P99999",
+              "value": "Q1144286",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P813": [
+                    "+2026-04-04T00:00:00Z"
+                  ],
+                  "P854": [
+                    "https://example.org/manual-parthood/guangzhou-second-snapshot"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_05"
+            }
+          }
+        ]
+      },
+      "after_payload": {
+        "windows": [
+          {
+            "id": "after-parthood-b",
+            "statement_bundles": [
+              {
+                "subject": "Q16572",
+                "property": "P99999",
+                "value": "Q1144286",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-04T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/guangzhou-second-snapshot"
+                  }
+                ]
+              },
+              {
+                "subject": "Q16572",
+                "property": "P361",
+                "value": "Q1144286",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P813": "+2026-04-04T00:00:00Z",
+                    "P854": "https://example.org/manual-parthood/guangzhou-second-snapshot"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "cohort_id": "business_family_reconciled",
+  "executed_rows": [
+    {
+      "artifact_kinds": [
+        "openrefine_review_rows",
+        "quickstatements_v1_review_rows"
+      ],
+      "candidate_id": "Q1068745|P5991|1",
+      "cohort_id": "business_family_reconciled",
+      "execution_mode": "review_first",
+      "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+      "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset"
+    },
+    {
+      "artifact_kinds": [
+        "openrefine_review_rows",
+        "quickstatements_v1_review_rows"
+      ],
+      "candidate_id": "Q1489170|P5991|1",
+      "cohort_id": "business_family_reconciled",
+      "execution_mode": "review_first",
+      "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+      "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset"
+    }
+  ],
+  "execution_status": "ready_execution_receipts",
+  "export_id": "business_family_reconciled_low_qualifier_checked_safe_subset-migration-export-5d9264e28e7f",
+  "export_status": "ready_for_review_export",
+  "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+  "schema_version": "sl.wikidata_nat_migration_executed_rows.v0_1",
+  "summary": {
+    "artifact_count": 4,
+    "row_count": 2
+  }
+}
