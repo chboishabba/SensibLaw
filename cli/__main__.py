@@ -1220,6 +1220,31 @@ def _handle_wikidata_nat_completion_gate(args: argparse.Namespace) -> None:
     _print_json(metrics)
 
 
+def _handle_wikidata_world_model_lane_summary(args: argparse.Namespace) -> None:
+    from src.reporting.world_model_lane_summary import build_world_model_lane_summary
+
+    reports = [
+        json.loads(Path(path).read_text(encoding="utf-8"))
+        for path in (args.inputs or [])
+    ]
+    summary = build_world_model_lane_summary(reports)
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "lane_count": summary["summary"]["lane_count"],
+                "ready_lane_count": summary["summary"]["ready_lane_count"],
+                "gate_decision": summary["governance_gate"]["decision"],
+            }
+        )
+        return
+    _print_json(summary)
+
+
 def _handle_wikidata_nat_migration_execution_proof(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_nat_automation_graduation import (
         build_nat_migration_batch_export,
@@ -3613,6 +3638,25 @@ def build_parser() -> argparse.ArgumentParser:
     wikidata_nat_completion_gate.set_defaults(
         func=_handle_wikidata_nat_completion_gate
     )
+    wikidata_world_model_lane_summary = wikidata_sub.add_parser(
+        "world-model-lane-summary",
+        help="Build a shared world-model lane summary and governance gate from lane reports",
+    )
+    wikidata_world_model_lane_summary.add_argument(
+        "--input",
+        dest="inputs",
+        action="append",
+        required=True,
+        help="Path to a world-model lane report JSON; repeat for multiple lanes",
+    )
+    wikidata_world_model_lane_summary.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the world-model lane summary JSON",
+    )
+    wikidata_world_model_lane_summary.set_defaults(
+        func=_handle_wikidata_world_model_lane_summary
+    )
     wikidata_nat_migration_execution_proof = wikidata_sub.add_parser(
         "nat-migration-execution-proof",
         help="Build a Nat migration execution proof from verification runs and optional external receipts",
@@ -4178,6 +4222,25 @@ def build_parser() -> argparse.ArgumentParser:
     research_health.add_argument("--db", type=Path, required=True, help="SQLite store path")
     research_health.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
     research_health.set_defaults(func=_handle_research_health)
+    world_model_lane_summary_report = report_sub.add_parser(
+        "world-model-lane-summary",
+        help="Build a shared world-model lane summary and governance gate from lane reports",
+    )
+    world_model_lane_summary_report.add_argument(
+        "--input",
+        dest="inputs",
+        action="append",
+        required=True,
+        help="Path to a world-model lane report JSON; repeat for multiple lanes",
+    )
+    world_model_lane_summary_report.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the world-model lane summary JSON",
+    )
+    world_model_lane_summary_report.set_defaults(
+        func=_handle_wikidata_world_model_lane_summary
+    )
     return parser
 
 

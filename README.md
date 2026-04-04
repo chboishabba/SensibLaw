@@ -360,6 +360,8 @@ Current status:
 - the shared substrate exists in code
 - Nat already emits the shared primitives additively in its convergence
   reports
+- the current canonical operator entrypoint for cross-lane reporting is:
+  `../.venv/bin/python -m cli.__main__ wikidata world-model-lane-summary --input ...`
 - broader lane rebinding is still the next phase
 
 This is the important distinction:

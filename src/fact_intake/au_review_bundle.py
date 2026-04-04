@@ -717,7 +717,10 @@ def build_au_fact_review_bundle(
     review_summary = build_fact_review_run_summary(conn, run_id=fact_run_id)
     operator_views = build_fact_review_operator_views(conn, run_id=fact_run_id)
     operator_views["authority_follow"] = _build_authority_follow_operator_view(semantic_report)
-    legal_follow_graph = build_au_legal_follow_graph(semantic_report)
+    legal_follow_graph = build_au_legal_follow_graph(
+        semantic_report,
+        source_events=source_events,
+    )
     operator_views["legal_follow_graph"] = build_au_legal_follow_operator_view(
         legal_follow_graph
     )

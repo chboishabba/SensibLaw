@@ -87,6 +87,19 @@ def build_world_model_lane_summary(
     reports: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     snapshots = [build_lane_governance_snapshot(report) for report in reports if isinstance(report, Mapping)]
+    total_claim_count = sum(int((snapshot.get("metrics") or {}).get("claim_count") or 0) for snapshot in snapshots)
+    total_must_review_count = sum(
+        int((snapshot.get("metrics") or {}).get("must_review_count") or 0) for snapshot in snapshots
+    )
+    total_must_abstain_count = sum(
+        int((snapshot.get("metrics") or {}).get("must_abstain_count") or 0) for snapshot in snapshots
+    )
+    total_can_act_count = sum(
+        int((snapshot.get("metrics") or {}).get("can_act_count") or 0) for snapshot in snapshots
+    )
+    total_can_recommend_count = sum(
+        int((snapshot.get("metrics") or {}).get("can_recommend_count") or 0) for snapshot in snapshots
+    )
     gate = evaluate_multi_lane_gate(
         [
             LaneGovernanceSnapshot(
@@ -107,6 +120,11 @@ def build_world_model_lane_summary(
             "ready_lane_count": gate.ready_lane_count,
             "total_authority_receipts": gate.total_authority_receipts,
             "open_follow_conjectures": gate.open_follow_conjectures,
+            "total_claim_count": total_claim_count,
+            "total_must_review_count": total_must_review_count,
+            "total_must_abstain_count": total_must_abstain_count,
+            "total_can_act_count": total_can_act_count,
+            "total_can_recommend_count": total_can_recommend_count,
         },
         "governance_gate": {
             "decision": gate.decision,

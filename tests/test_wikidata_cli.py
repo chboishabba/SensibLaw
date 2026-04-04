@@ -8,6 +8,20 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
 from cli import __main__ as cli_main
+from scripts.build_gwb_broader_review import build_gwb_broader_review
+from SensibLaw.src.fact_intake.au_review_bundle import build_au_fact_review_bundle_world_model_report
+from SensibLaw.src.ontology.wikidata_nat_cohort_b_operator_packet import (
+    build_nat_cohort_b_operator_packet_world_model_report,
+)
+from src.policy.gwb_broader_review_world_model import (
+    build_gwb_broader_review_world_model_report,
+)
+from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
+    build_brexit_national_archives_world_model_report,
+    fetch_brexit_archive_records,
+)
+from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
+from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
 
 
 def test_wikidata_project_cli_writes_report(tmp_path, capsys) -> None:
@@ -1164,6 +1178,172 @@ def test_wikidata_nat_completion_gate_cli(tmp_path, capsys) -> None:
     assert stdout["live_verification_pass_rate"] == 0.5
     assert payload["data_loss_zero"] is True
     assert payload["idempotency_score"] == 1.0
+
+
+def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) -> None:
+    root = Path(__file__).resolve().parent
+
+    nat_runs = json.loads(
+        (
+            root
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+    nat_report = build_nat_claim_convergence_report(nat_runs)
+    nat_path = tmp_path / "nat_report.json"
+    nat_path.write_text(json.dumps(nat_report), encoding="utf-8")
+
+    bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au")
+    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_path = tmp_path / "au_report.json"
+    au_path.write_text(json.dumps(au_report), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "src.sources.uk_legislation.fetch_legislation_act_payload",
+        lambda **_kwargs: {},
+    )
+    gwb_result = build_gwb_broader_review(tmp_path / "gwb")
+    gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
+    gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
+    gwb_path = tmp_path / "gwb_report.json"
+    gwb_path.write_text(json.dumps(gwb_report), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
+        lambda _url, **_kwargs: (_ for _ in ()).throw(RuntimeError("dialing blocked")),
+    )
+    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_path = tmp_path / "brexit_report.json"
+    brexit_path.write_text(json.dumps(brexit_report), encoding="utf-8")
+
+    reviewer_packet = json.loads(
+        (
+            root
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_b_operator_packet_20260402.json"
+        ).read_text(encoding="utf-8")
+    )
+    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(reviewer_packet)
+    reviewer_path = tmp_path / "reviewer_report.json"
+    reviewer_path.write_text(json.dumps(reviewer_report), encoding="utf-8")
+
+    out_path = tmp_path / "world_model_lane_summary.json"
+    cli_main.main(
+        [
+            "wikidata",
+            "world-model-lane-summary",
+            "--input",
+            str(nat_path),
+            "--input",
+            str(au_path),
+            "--input",
+            str(gwb_path),
+            "--input",
+            str(brexit_path),
+            "--input",
+            str(reviewer_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["lane_count"] == 5
+    assert stdout["ready_lane_count"] >= 2
+    assert stdout["gate_decision"] == "hold"
+    assert payload["summary"]["lane_count"] == 5
+    assert payload["summary"]["total_claim_count"] >= 14
+    assert payload["summary"]["total_must_review_count"] >= 10
+    assert payload["summary"]["open_follow_conjectures"] > 10
+    assert payload["summary"]["total_can_act_count"] == 2
+    assert "business_family_reconciled_low_qualifier_checked_safe_subset" in payload["governance_gate"]["ready_lanes"]
+
+
+def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch) -> None:
+    root = Path(__file__).resolve().parent
+
+    nat_runs = json.loads(
+        (
+            root
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
+        ).read_text(encoding="utf-8")
+    )
+    nat_report = build_nat_claim_convergence_report(nat_runs)
+    nat_path = tmp_path / "nat_report.json"
+    nat_path.write_text(json.dumps(nat_report), encoding="utf-8")
+
+    bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au_alias")
+    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_path = tmp_path / "au_report.json"
+    au_path.write_text(json.dumps(au_report), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "src.sources.uk_legislation.fetch_legislation_act_payload",
+        lambda **_kwargs: {},
+    )
+    gwb_result = build_gwb_broader_review(tmp_path / "gwb_alias")
+    gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
+    gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
+    gwb_path = tmp_path / "gwb_report.json"
+    gwb_path.write_text(json.dumps(gwb_report), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
+        lambda _url, **_kwargs: (_ for _ in ()).throw(RuntimeError("dialing blocked")),
+    )
+    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_path = tmp_path / "brexit_report.json"
+    brexit_path.write_text(json.dumps(brexit_report), encoding="utf-8")
+
+    reviewer_packet = json.loads(
+        (
+            root
+            / "fixtures"
+            / "wikidata"
+            / "wikidata_nat_cohort_b_operator_packet_20260402.json"
+        ).read_text(encoding="utf-8")
+    )
+    reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(reviewer_packet)
+    reviewer_path = tmp_path / "reviewer_report.json"
+    reviewer_path.write_text(json.dumps(reviewer_report), encoding="utf-8")
+
+    out_path = tmp_path / "world_model_lane_summary_alias.json"
+    cli_main.main(
+        [
+            "report",
+            "world-model-lane-summary",
+            "--input",
+            str(nat_path),
+            "--input",
+            str(au_path),
+            "--input",
+            str(gwb_path),
+            "--input",
+            str(brexit_path),
+            "--input",
+            str(reviewer_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["gate_decision"] == "hold"
+    assert payload["summary"]["lane_count"] == 5
+    assert payload["summary"]["total_claim_count"] >= 14
+    assert payload["summary"]["open_follow_conjectures"] > 10
+    assert payload["summary"]["total_can_act_count"] == 2
 
 
 def test_wikidata_nat_migration_execution_proof_cli(tmp_path, capsys) -> None:

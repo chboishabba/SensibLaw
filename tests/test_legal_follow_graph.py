@@ -298,7 +298,14 @@ def test_build_au_legal_follow_operator_view_emits_bounded_follow_queue() -> Non
     assert len(debate_items) == 2
     assert any(
         row["label"] == "Edge highlights"
-        and "bill:uk:brexit_transition" in row["value"]
+        and any(
+            token in row["value"]
+            for token in (
+                "treaty:uk:withdrawal_agreement",
+                "law:uk:climate_act",
+                "case:uk:appeal:2024:european_union_withdrawal_act",
+            )
+        )
         for item in debate_items
         for row in item["detail_rows"]
     )

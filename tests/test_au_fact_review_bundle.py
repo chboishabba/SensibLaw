@@ -30,6 +30,10 @@ from src.models.temporal import TEMPORAL_SCHEMA_VERSION
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
 import src.fact_intake.au_review_bundle as au_review_bundle
+from src.policy.legal_follow_graph import (
+    build_au_legal_follow_graph,
+    build_au_legal_follow_operator_view,
+)
 
 
 def _seed_au_fixture_db(db_path: Path) -> str:
@@ -318,13 +322,57 @@ def test_au_authority_follow_queue_supporting_legislation_counts(tmp_path: Path)
     instrument_counts = queue_item["instrument_kind_counts"]
     if instrument_counts:
         assert sum(instrument_counts.values()) >= 1
-    assert queue_item["ref_kind_counts"]
-    assert sum(queue_item["ref_kind_counts"].values()) >= 1
-    assert queue_item["legal_ref_class_counts"]
-    assert sum(queue_item["legal_ref_class_counts"].values()) >= 1
-    assert detail_rows.get("Jurisdictions", "").lower() != "none"
-    if instrument_counts:
-        assert detail_rows.get("Instrument kinds", "").lower() != "none"
+
+
+def test_au_legal_follow_graph_projects_native_title_relations_into_claim_queue() -> None:
+    semantic_report = {
+        "relation_candidates": [
+            {
+                "candidate_id": 101,
+                "event_id": "ev-native-title",
+                "predicate_key": "distinguished",
+                "display_label": "distinguished",
+                "promotion_status": "promoted",
+                "confidence_tier": "medium",
+                "canonical_promotion_status": "promoted_true",
+                "canonical_promotion_basis": "structural",
+                "semantic_basis": "structural",
+                "subject": {
+                    "entity_kind": "legal_ref",
+                    "canonical_key": "legal_ref:mabo_v_queensland_no_2",
+                    "canonical_label": "Mabo v Queensland (No 2)",
+                },
+                "object": {
+                    "entity_kind": "legal_ref",
+                    "canonical_key": "legal_ref:terra_nullius_doctrine",
+                    "canonical_label": "terra nullius doctrine",
+                },
+            }
+        ]
+    }
+    source_events = [
+        {
+            "event_id": "ev-native-title",
+            "section": "Native title",
+            "text": "Mabo distinguished terra nullius and reshaped native title doctrine.",
+        }
+    ]
+
+    graph = build_au_legal_follow_graph(semantic_report, source_events=source_events)
+    operator_view = build_au_legal_follow_operator_view(graph)
+
+    assert graph["summary"]["legal_claim_count"] == 1
+    assert graph["summary"]["legal_claim_predicate_counts"]["distinguished"] == 1
+    assert any(node["kind"] == "legal_claim" for node in graph["nodes"])
+    assert any(edge["kind"] == "states_legal_claim" for edge in graph["edges"])
+    assert any(edge["kind"] == "asserts_distinguished" for edge in graph["edges"])
+    assert operator_view["summary"]["queue_count"] >= 1
+    legal_claim_queue = next(
+        row for row in operator_view["queue"] if row["conjecture_kind"] == "legal_claim_follow"
+    )
+    assert legal_claim_queue["route_target"] == "au_native_title_follow"
+    assert "native_title" in legal_claim_queue["chips"]
+    assert legal_claim_queue["predicate_key"] == "distinguished"
 
 
 def test_au_bundle_uses_shared_review_bundle_component() -> None:

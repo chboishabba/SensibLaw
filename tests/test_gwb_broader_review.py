@@ -6,6 +6,10 @@ from pathlib import Path
 
 from scripts import build_gwb_broader_review as module
 from scripts.build_gwb_broader_review import ARTIFACT_VERSION, build_gwb_broader_review
+from src.policy.gwb_broader_review_world_model import (
+    GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
+    build_gwb_broader_review_world_model_report,
+)
 
 
 def test_build_gwb_broader_review(tmp_path: Path) -> None:
@@ -150,3 +154,20 @@ def test_gwb_broader_review_consumes_shared_queueing_component() -> None:
 
     assert "_build_provisional_structured_anchors_impl" in rows_src
     assert "_build_provisional_anchor_bundles_impl" in bundles_src
+
+
+def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_path: Path) -> None:
+    result = build_gwb_broader_review(tmp_path / "out")
+    payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+
+    report = build_gwb_broader_review_world_model_report(payload)
+
+    assert report["schema_version"] == GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION
+    assert report["family_id"] == "gwb_broader_review"
+    assert report["lane_id"] == "gwb"
+    assert report["summary"]["claim_count"] >= 1
+    assert report["summary"]["must_review_count"] >= 1
+    assert report["summary"]["queue_count"] == payload["operator_views"]["legal_follow_graph"]["summary"]["queue_count"]
+    first_claim = report["claims"][0]
+    assert first_claim["nat_claim"]["property"] == "legal_follow_target"
+    assert first_claim["action_policy"]["actionability"] == "must_review"

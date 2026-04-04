@@ -203,6 +203,56 @@ def _edge_kind_for_legal_ref(classification: str, prefix: str) -> str:
     return f"{prefix}_legal_ref"
 
 
+_AU_LEGAL_CLAIM_PREDICATES = {"applied", "followed", "distinguished"}
+_AU_NATIVE_TITLE_HINTS = ("native title", "terra nullius", "mabo")
+
+
+def _relation_entity_node_kind(entity: Mapping[str, Any]) -> str:
+    canonical_key = str(entity.get("canonical_key") or "").strip()
+    entity_kind = str(entity.get("entity_kind") or "").strip() or "semantic_entity"
+    if canonical_key.startswith("legal_ref:"):
+        ref_class = _classify_legal_ref(canonical_key)
+        if ref_class in {"case_ref", "supporting_legislation", "cited_instrument"}:
+            return ref_class
+        return "legal_ref"
+    if entity_kind == "actor":
+        return "actor"
+    return entity_kind
+
+
+def _relation_entity_label(entity: Mapping[str, Any]) -> str:
+    return (
+        str(entity.get("canonical_label") or "").strip()
+        or str(entity.get("canonical_key") or "").strip()
+        or "unknown"
+    )
+
+
+def _native_title_relation_route_target(predicate_key: str, subject_label: str, object_label: str) -> str:
+    combined = " ".join(
+        part.casefold()
+        for part in (predicate_key, subject_label, object_label)
+        if str(part or "").strip()
+    )
+    if any(token in combined for token in _AU_NATIVE_TITLE_HINTS):
+        return "au_native_title_follow"
+    if any(pattern.search(combined) for pattern in _UK_HINT_PATTERNS):
+        return "uk_british_legal_follow"
+    return "au_legal_claim_follow"
+
+
+def _relation_claim_chips(predicate_key: str, route_target: str, subject_label: str, object_label: str) -> list[str]:
+    chips = ["legal_claim", predicate_key]
+    if route_target == "au_native_title_follow":
+        chips.append("native_title")
+    if any(
+        token in " ".join((subject_label, object_label)).casefold()
+        for token in _AU_NATIVE_TITLE_HINTS
+    ):
+        chips.append("terra_nullius_lineage")
+    return chips
+
+
 _SUPPORTING_LEGISLATION_ROLE_HINTS: Sequence[tuple[Sequence[str], str]] = (
     (("support", "supporting", "statute", "enable", "empower", "authoris", "permit", "allow"), "enabling_legislation"),
     (("limit", "restrict", "prohibit", "ban", "forbid", "constrain", "regulate"), "constraining_legislation"),
@@ -438,7 +488,18 @@ def build_au_legal_follow_graph(
     seen_edges: set[tuple[str, str, str]] = set()
     node_index: dict[str, dict[str, Any]] = {}
 
+    relation_candidates = (
+        semantic_report.get("relation_candidates")
+        if isinstance(semantic_report.get("relation_candidates"), list)
+        else []
+    )
+
     event_map: dict[str, Mapping[str, Any]] = {}
+    for row in semantic_report.get("per_event", []) if isinstance(semantic_report.get("per_event"), list) else ():
+        if isinstance(row, Mapping):
+            event_id = str(row.get("event_id") or "").strip()
+            if event_id:
+                event_map[event_id] = row
     for row in source_events or ():
         if isinstance(row, Mapping):
             event_id = str(row.get("event_id") or "").strip()
@@ -456,6 +517,14 @@ def build_au_legal_follow_graph(
             normalized = str(event_id or "").strip()
             if normalized and normalized not in event_map:
                 event_map[normalized] = {"event_id": normalized}
+    for relation in relation_candidates:
+        if not isinstance(relation, Mapping):
+            continue
+        if str(relation.get("predicate_key") or "").strip() not in _AU_LEGAL_CLAIM_PREDICATES:
+            continue
+        event_id = str(relation.get("event_id") or "").strip()
+        if event_id and event_id not in event_map:
+            event_map[event_id] = {"event_id": event_id}
 
     def add_node(node_id: str, *, kind: str, label: str, metadata: Mapping[str, Any] | None = None) -> None:
         clean_metadata = {key: value for key, value in dict(metadata or {}).items() if value is not None}
@@ -792,6 +861,95 @@ def build_au_legal_follow_graph(
                 },
             )
 
+    for relation in relation_candidates:
+        if not isinstance(relation, Mapping):
+            continue
+        predicate_key = str(relation.get("predicate_key") or "").strip()
+        if predicate_key not in _AU_LEGAL_CLAIM_PREDICATES:
+            continue
+        candidate_id = str(relation.get("candidate_id") or "").strip()
+        event_id = str(relation.get("event_id") or "").strip()
+        subject = relation.get("subject") if isinstance(relation.get("subject"), Mapping) else {}
+        object_ = relation.get("object") if isinstance(relation.get("object"), Mapping) else {}
+        subject_key = str(subject.get("canonical_key") or "").strip()
+        object_key = str(object_.get("canonical_key") or "").strip()
+        subject_label = _relation_entity_label(subject)
+        object_label = _relation_entity_label(object_)
+        if not candidate_id or not event_id or not subject_key or not object_key:
+            continue
+
+        subject_node_id = f"{_relation_entity_node_kind(subject)}:{_slug(subject_key)}"
+        object_node_id = f"{_relation_entity_node_kind(object_)}:{_slug(object_key)}"
+        claim_node_id = f"legal_claim:{predicate_key}:{candidate_id}"
+        route_target = _native_title_relation_route_target(predicate_key, subject_label, object_label)
+
+        add_node(
+            subject_node_id,
+            kind=_relation_entity_node_kind(subject),
+            label=subject_label,
+            metadata={
+                "canonical_key": subject_key,
+                "entity_kind": str(subject.get("entity_kind") or "").strip() or None,
+            },
+        )
+        add_node(
+            object_node_id,
+            kind=_relation_entity_node_kind(object_),
+            label=object_label,
+            metadata={
+                "canonical_key": object_key,
+                "entity_kind": str(object_.get("entity_kind") or "").strip() or None,
+            },
+        )
+        add_node(
+            claim_node_id,
+            kind="legal_claim",
+            label=f"{predicate_key}: {subject_label} -> {object_label}",
+            metadata={
+                "candidate_id": candidate_id,
+                "event_id": event_id,
+                "predicate_key": predicate_key,
+                "display_label": str(relation.get("display_label") or predicate_key).strip(),
+                "confidence_tier": str(relation.get("confidence_tier") or "").strip() or None,
+                "promotion_status": str(relation.get("promotion_status") or "").strip() or None,
+                "canonical_promotion_status": str(relation.get("canonical_promotion_status") or "").strip() or None,
+                "canonical_promotion_basis": str(relation.get("canonical_promotion_basis") or "").strip() or None,
+                "semantic_basis": str(relation.get("semantic_basis") or "").strip() or None,
+                "route_target": route_target,
+                "subject_node_id": subject_node_id,
+                "object_node_id": object_node_id,
+            },
+        )
+        add_edge(
+            f"event:{event_id}",
+            claim_node_id,
+            kind="states_legal_claim",
+            metadata={"predicate_key": predicate_key},
+        )
+        add_edge(
+            claim_node_id,
+            subject_node_id,
+            kind="claim_subject",
+            metadata={"predicate_key": predicate_key, "candidate_id": candidate_id},
+        )
+        add_edge(
+            claim_node_id,
+            object_node_id,
+            kind="claim_object",
+            metadata={"predicate_key": predicate_key, "candidate_id": candidate_id},
+        )
+        add_edge(
+            subject_node_id,
+            object_node_id,
+            kind=f"asserts_{predicate_key}",
+            metadata={
+                "candidate_id": candidate_id,
+                "claim_node_id": claim_node_id,
+                "event_id": event_id,
+                "route_target": route_target,
+            },
+        )
+
     uk_supporting_nodes: dict[str, set[str]] = {}
     for node in nodes:
         fields = _uk_hint_fields_for_node(node)
@@ -845,9 +1003,15 @@ def build_au_legal_follow_graph(
             "citation_count": sum(1 for row in nodes if row["kind"] == "citation"),
             "authority_receipt_count": sum(1 for row in nodes if row["kind"] == "authority_receipt"),
             "derived_follow_target_count": sum(1 for row in nodes if row["kind"] == "derived_follow_target"),
+            "legal_claim_count": sum(1 for row in nodes if row["kind"] == "legal_claim"),
             "derived_uk_follow_target_supporting_node_count": len(uk_supporting_nodes),
             "supporting_receipt_count": len(set(supporting_receipt_ids)),
             "supporting_authority_kind_counts": supporting_authority_kinds,
+            "legal_claim_predicate_counts": _metadata_label_counts(
+                nodes,
+                kinds={"legal_claim"},
+                metadata_key="predicate_key",
+            ),
             "reference_kind_counts": _metadata_label_counts(
                 nodes,
                 kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
@@ -930,6 +1094,56 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
 
     queue: list[dict[str, Any]] = []
     for node in nodes:
+        if str(node.get("kind") or "") == "legal_claim":
+            node_id = str(node.get("id") or "").strip()
+            metadata = node.get("metadata") if isinstance(node.get("metadata"), Mapping) else {}
+            predicate_key = str(metadata.get("predicate_key") or "").strip() or "legal_claim"
+            route_target = str(metadata.get("route_target") or "").strip() or "au_legal_claim_follow"
+            queue.append(
+                build_reviewer_packet(
+                    item_id=node_id,
+                    title=str(node.get("label") or predicate_key),
+                    subtitle="legal_claim_follow",
+                    description="Derived AU legal-claim follow item requiring bounded claim-lineage review.",
+                    conjecture_kind="legal_claim_follow",
+                    route_target=route_target,
+                    resolution_status="open",
+                    chips=_relation_claim_chips(
+                        predicate_key,
+                        route_target,
+                        str((node_map.get(str(metadata.get("subject_node_id") or "")) or {}).get("label") or ""),
+                        str((node_map.get(str(metadata.get("object_node_id") or "")) or {}).get("label") or ""),
+                    ),
+                    detail_rows=[
+                        {
+                            "label": "Predicate",
+                            "value": predicate_key,
+                        },
+                        {
+                            "label": "Subject",
+                            "value": str((node_map.get(str(metadata.get("subject_node_id") or "")) or {}).get("label") or "unknown"),
+                        },
+                        {
+                            "label": "Object",
+                            "value": str((node_map.get(str(metadata.get("object_node_id") or "")) or {}).get("label") or "unknown"),
+                        },
+                        {
+                            "label": "Promotion basis",
+                            "value": str(metadata.get("canonical_promotion_basis") or "unknown"),
+                        },
+                    ],
+                    extra={
+                        "candidate_id": metadata.get("candidate_id"),
+                        "event_id": metadata.get("event_id"),
+                        "predicate_key": predicate_key,
+                        "canonical_promotion_status": metadata.get("canonical_promotion_status"),
+                        "semantic_basis": metadata.get("semantic_basis"),
+                        "subject_node_id": metadata.get("subject_node_id"),
+                        "object_node_id": metadata.get("object_node_id"),
+                    },
+                )
+            )
+            continue
         if str(node.get("kind") or "") != "derived_follow_target":
             continue
         node_id = str(node.get("id") or "").strip()
