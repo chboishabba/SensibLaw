@@ -21,6 +21,9 @@ def build_product_gate(
     product_ref: str,
     compiler_contract: Mapping[str, Any],
 ) -> dict[str, Any]:
+    # Product gate decisions are promotion postures over compiled products.
+    # They are intentionally separate from proposition-resolution states such as
+    # "hold" and "abstain" in `proposition_resolution_policy.py`.
     promoted = normalize_promoted_outcomes(
         compiler_contract.get("promoted_outcomes")
         if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
@@ -41,6 +44,10 @@ def build_product_gate(
     ]
 
     if promoted_count <= 0:
+        # "abstain" here means the product gate declines promotion because no
+        # promotable product outcome exists. It is not proposition-resolution
+        # "abstain", and should not be read as the proposition-resolution
+        # neutral state "hold".
         decision = "abstain"
         reason = "no_promoted_outcomes"
     elif review_count > 0 or abstained_count > 0:

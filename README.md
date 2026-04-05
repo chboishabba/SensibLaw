@@ -34,6 +34,28 @@ normalization shells until the underlying concepts are extracted into
 lane-agnostic surfaces that AU, GWB, affidavit, Wikidata/Nat, and future lanes
 can all share.
 
+Another caution also matters: not every decision surface in the suite should
+share one vocabulary.
+
+- product gate:
+  promotion posture over normalized products
+- proposition resolution:
+  resolution posture over proposition identity/relation work
+
+Those are related but distinct ontologies. Today that means:
+
+- product gate uses:
+  `promote | audit | abstain`
+- proposition resolution uses:
+  `hold | abstain`
+
+The important boundary is semantic, not cosmetic. Product-gate `abstain`
+currently means the gate declines promotion, typically because there are no
+promoted outcomes. Proposition-resolution `hold` is the neutral fail-closed
+state for unresolved proposition work. Future normalization should keep those
+layers distinct unless a full cross-consumer migration deliberately changes the
+product-gate contract.
+
 ## What You Can Do With It Today
 
 ### 1. Build structured review artifacts from messy source material

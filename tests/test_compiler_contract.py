@@ -201,6 +201,25 @@ def test_build_product_gate_abstains_when_no_promoted_outcomes_exist() -> None:
     assert gate["reason"] == "no_promoted_outcomes"
 
 
+def test_product_gate_abstain_is_product_level_promotion_posture() -> None:
+    gate = build_product_gate(
+        lane="wikidata_nat",
+        product_ref="wikidata_migration_pack",
+        compiler_contract={
+            "promoted_outcomes": {
+                "promoted_count": 0,
+                "review_count": 4,
+                "abstained_count": 2,
+            },
+            "derived_products": [{"role": "migration_review_pack"}],
+        },
+    )
+
+    assert gate["decision"] == "abstain"
+    assert gate["reason"] == "no_promoted_outcomes"
+    assert gate["decision"] != "hold"
+
+
 def test_normalize_promoted_outcomes_preserves_explicit_values() -> None:
     normalized = normalize_promoted_outcomes(
         PromotedOutcomeContract(

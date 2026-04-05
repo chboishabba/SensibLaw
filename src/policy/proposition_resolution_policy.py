@@ -62,6 +62,7 @@ def build_proposition_resolution_policy() -> dict[str, Any]:
         },
         "notes": [
             "Policy-only resolution layer; no runtime proposition resolution emission.",
+            "This ontology is separate from product-gate promotion posture decisions such as promote, audit, and abstain.",
             "Fail closed to hold unless a later runtime adopter explicitly governs a narrower path.",
             "Abstain remains available for explicit non-resolution without canonical write or promotion.",
             "Review pressure and contradiction labels must not be treated as resolution states.",

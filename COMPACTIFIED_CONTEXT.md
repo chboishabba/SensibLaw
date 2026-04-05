@@ -4,6 +4,34 @@
 Compact snapshot of intent while aligning the new Zelph review-geometry parity
 work with docs, TODOs, and changelog state.
 
+## Current addendum (2026-04-05)
+- refreshed archived-context lookup for the referenced ChatGPT thread:
+  - online UUID:
+    `69d1d8da-5c44-83a0-a69a-48b2336866be`
+  - canonical thread ID:
+    `a8d28b4c2a5caf03a05cb5ab357da933083782fc`
+  - archived title:
+    `Enshittification Failure Model`
+  - source used:
+    local DB via direct archive pull into `/home/c/chat_archive.sqlite`
+  - main observed topics:
+    broader failure-model discussion with pasted SensibLaw state, including
+    the current product-gate / proposition-resolution naming seam
+- governing decision for this turn:
+  the refreshed thread does not materially change repo-facing intent; local
+  docs remain the canonical planning surface
+- ontology clarification now pinned:
+  - product gate is a promotion-posture surface, not a proposition-resolution
+    surface
+  - current product-gate vocabulary:
+    `promote | audit | abstain`
+  - proposition-resolution vocabulary remains:
+    `hold | abstain`
+  - `no_promoted_outcomes` is a product-gate reason, not a replacement
+    ontology
+  - future normalization should preserve that boundary unless a deliberate
+    full migration changes the product-gate contract across all consumers
+
 ## Current phase (2026-03-27)
 Semantic-promotion parity is now the active cross-lane governance lane.
 

@@ -120,6 +120,19 @@
     - validation:
       - `28 passed`
       - touched modules `py_compile` clean
+    - ontology boundary:
+      - keep product-gate decisions separate from proposition-resolution
+        states
+      - current read:
+        - product gate is promotion posture:
+          `promote | audit | abstain`
+        - proposition resolution is resolution posture:
+          `hold | abstain`
+      - `no_promoted_outcomes` is the bounded product-gate reason for
+        `abstain`; it is not evidence that the product-gate enum should be
+        collapsed into the proposition-resolution enum
+      - do not rename product-gate `abstain` to `hold` unless a deliberate
+        full-consumer migration is promoted
   - next pinned lane:
     - first operator-grade workflow layer over normalized outputs
     - DONE first bounded cut:

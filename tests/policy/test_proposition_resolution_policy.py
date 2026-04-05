@@ -21,6 +21,7 @@ def test_build_proposition_resolution_policy_is_fail_closed_and_policy_only() ->
     assert "review_claim" in policy["excluded_categories"]["review_pressure"]
     assert "canonical_form_divergence" in policy["excluded_categories"]["contradiction_labels"]
     assert any("Policy-only resolution layer" in note for note in policy["notes"])
+    assert any("separate from product-gate promotion posture" in note for note in policy["notes"])
 
 
 @pytest.mark.parametrize("state", sorted(PROPOSITION_RESOLUTION_STATES))
