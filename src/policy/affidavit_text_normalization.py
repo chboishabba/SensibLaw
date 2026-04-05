@@ -1,62 +1,16 @@
-"""Shared affidavit text normalization helpers."""
+"""Affidavit text normalization and contested-text helpers."""
 from __future__ import annotations
 
 from functools import lru_cache
 import re
 from typing import Any
-
-_STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "had",
-    "has",
-    "have",
-    "he",
-    "her",
-    "hers",
-    "him",
-    "his",
-    "i",
-    "in",
-    "into",
-    "is",
-    "it",
-    "its",
-    "of",
-    "on",
-    "or",
-    "she",
-    "that",
-    "the",
-    "their",
-    "them",
-    "there",
-    "they",
-    "this",
-    "to",
-    "was",
-    "were",
-    "with",
-    "you",
-    "your",
-}
-
-_TOKEN_NORMALIZATION = {
-    "emphasise": "emphasize",
-    "emphasised": "emphasized",
-    "emphasises": "emphasizes",
-    "emphasising": "emphasizing",
-    "organisation": "organization",
-    "organisations": "organizations",
-}
+from src.text.shared_text_normalization import (
+    split_semicolon_clauses,
+    split_text_clauses,
+    split_text_segments,
+    strip_enumeration_prefix,
+    tokenize_canonical_text,
+)
 
 _MONTH_TOKENS = frozenset(
     month.casefold()
@@ -105,15 +59,58 @@ _PREDICATE_NEUTRAL_TOKENS = frozenset(
     }
 )
 
+tokenize_affidavit_text = tokenize_canonical_text
+
 
 @lru_cache(maxsize=32768)
-def tokenize_affidavit_text(text: str) -> frozenset[str]:
-    tokens = {
-        _TOKEN_NORMALIZATION.get(token, token)
-        for token in re.findall(r"[A-Za-z0-9']+", text.casefold())
-        if len(token) >= 2 and token not in _STOPWORDS
-    }
-    return frozenset(tokens)
+def tokenize_duplicate_filter_text(text: str) -> frozenset[str]:
+    return frozenset(tokenize_affidavit_text(strip_enumeration_prefix(text)))
+
+
+def token_overlap_similarity(left: set[str] | frozenset[str], right: set[str] | frozenset[str]) -> float:
+    if not left or not right:
+        return 0.0
+    shared = set(left) & set(right)
+    if not shared:
+        return 0.0
+    return (2.0 * len(shared)) / (len(left) + len(right))
+
+
+def build_affidavit_duplicate_candidates(affidavit_text: str) -> list[frozenset[str]]:
+    candidates: list[frozenset[str]] = []
+    for raw_line in str(affidavit_text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        tokens = tokenize_duplicate_filter_text(line)
+        if tokens:
+            candidates.append(tokens)
+    return candidates
+
+
+def is_duplicate_affidavit_unit(
+    text: str,
+    affidavit_text: str | None = None,
+    *,
+    affidavit_candidates: list[set[str] | frozenset[str]] | None = None,
+    threshold: float = 0.85,
+) -> bool:
+    candidates = list(affidavit_candidates or ())
+    if not candidates:
+        if affidavit_text is None:
+            return False
+        candidates = build_affidavit_duplicate_candidates(affidavit_text)
+    unit_tokens = tokenize_duplicate_filter_text(text)
+    return any(token_overlap_similarity(unit_tokens, aff_tokens) >= threshold for aff_tokens in candidates)
+
+
+def is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> bool:
+    proposition_tokens = tokenize_affidavit_text(proposition_text)
+    excerpt_tokens = tokenize_affidavit_text(excerpt_text)
+    if not proposition_tokens or not excerpt_tokens:
+        return False
+    shared_ratio = len(proposition_tokens & excerpt_tokens) / len(proposition_tokens)
+    return shared_ratio >= 0.85
 
 
 @lru_cache(maxsize=32768)
@@ -128,29 +125,8 @@ def predicate_focus_tokens(text: str) -> frozenset[str]:
     )
 
 
-@lru_cache(maxsize=16384)
-def split_source_text_segments(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text).strip()
-    if not compact:
-        return []
-    parts = [segment.strip(" -") for segment in re.split(r"(?<=[.!?])\s+", compact) if segment.strip()]
-    return parts or [compact]
-
-
-@lru_cache(maxsize=32768)
-def split_source_segment_clauses(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text).strip()
-    if not compact:
-        return []
-    parts = [
-        part.strip(" ,;:-")
-        for part in re.split(
-            r"(?:,\s+(?:and\s+)?so,\s+|,\s+and\s+|,\s+but\s+|,\s+though\s+|,\s+while\s+|;\s+)",
-            compact,
-        )
-        if part.strip(" ,;:-")
-    ]
-    return parts or [compact]
+split_source_text_segments = split_text_segments
+split_source_segment_clauses = split_text_clauses
 
 
 @lru_cache(maxsize=8192)
@@ -162,13 +138,7 @@ def find_numbered_rebuttal_start(text: str) -> int | None:
     return match.start()
 
 
-@lru_cache(maxsize=16384)
-def split_affidavit_sentence_clauses(text: str) -> list[str]:
-    compact = re.sub(r"\s+", " ", text).strip()
-    if not compact:
-        return []
-    parts = [segment.strip(" -") for segment in re.split(r"\s*;\s*", compact) if segment.strip()]
-    return parts or [compact]
+split_affidavit_sentence_clauses = split_semicolon_clauses
 
 
 def split_affidavit_text(text: str) -> list[dict[str, Any]]:
@@ -203,11 +173,17 @@ def split_affidavit_text(text: str) -> list[dict[str, Any]]:
 
 
 __all__ = [
+    "build_affidavit_duplicate_candidates",
     "find_numbered_rebuttal_start",
+    "is_duplicate_affidavit_unit",
+    "is_duplicate_response_excerpt",
     "predicate_focus_tokens",
     "split_affidavit_sentence_clauses",
     "split_affidavit_text",
     "split_source_segment_clauses",
     "split_source_text_segments",
+    "strip_enumeration_prefix",
+    "token_overlap_similarity",
+    "tokenize_duplicate_filter_text",
     "tokenize_affidavit_text",
 ]

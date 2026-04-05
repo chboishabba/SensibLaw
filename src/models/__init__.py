@@ -14,6 +14,21 @@ from .nat_claim import (
     build_normalized_claim_dict,
     build_normalized_claim_from_candidate,
 )
+from .review_claim_record import (
+    REVIEW_CLAIM_RECORD_SCHEMA_VERSION,
+    ReviewClaimRecord,
+    build_review_claim_record_dict,
+)
+from .proposition_identity import (
+    PROPOSITION_IDENTITY_SCHEMA_VERSION,
+    PropositionIdentity,
+    build_proposition_identity_dict,
+)
+from .proposition_relation import (
+    PROPOSITION_RELATION_SCHEMA_VERSION,
+    PropositionRelation,
+    build_proposition_relation_dict,
+)
 from .temporal import TEMPORAL_SCHEMA_VERSION, TemporalEnvelope, build_temporal_envelope
 from .provision import Provision
 from .sentence import Sentence
@@ -37,9 +52,15 @@ __all__ = [
     "NormalizedClaim",
     "NumericSurface",
     "Provision",
+    "PROPOSITION_IDENTITY_SCHEMA_VERSION",
+    "PROPOSITION_RELATION_SCHEMA_VERSION",
+    "PropositionIdentity",
+    "PropositionRelation",
     "QuantifiedClaim",
     "RangeClaim",
+    "REVIEW_CLAIM_RECORD_SCHEMA_VERSION",
     "RatioClaim",
+    "ReviewClaimRecord",
     "Sentence",
     "SourceUnit",
     "SourceEntity",
@@ -53,5 +74,8 @@ __all__ = [
     "build_nat_claim_from_candidate",
     "build_normalized_claim_dict",
     "build_normalized_claim_from_candidate",
+    "build_proposition_identity_dict",
+    "build_proposition_relation_dict",
+    "build_review_claim_record_dict",
     "build_temporal_envelope",
 ]

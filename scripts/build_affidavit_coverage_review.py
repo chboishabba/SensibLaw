@@ -34,114 +34,38 @@ except Exception:  # pragma: no cover - import path fallback for direct script u
     from policy.semantic_promotion import build_contested_claim_candidate, promote_contested_claim
 
 try:
-    from src.policy.affidavit_text_normalization import (
-        find_numbered_rebuttal_start as _find_numbered_rebuttal_start,
-        predicate_focus_tokens as _predicate_focus_tokens,
-        split_affidavit_sentence_clauses as _split_affidavit_sentence_clauses,
-        split_affidavit_text as _split_affidavit_text,
-        split_source_segment_clauses as _split_source_segment_clauses,
-        split_source_text_segments as _split_source_text_segments,
-        tokenize_affidavit_text as _tokenize,
-    )
+    from src.policy.compiler_contract import build_affidavit_coverage_review_contract
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_text_normalization import (
-        find_numbered_rebuttal_start as _find_numbered_rebuttal_start,
-        predicate_focus_tokens as _predicate_focus_tokens,
-        split_affidavit_sentence_clauses as _split_affidavit_sentence_clauses,
-        split_affidavit_text as _split_affidavit_text,
-        split_source_segment_clauses as _split_source_segment_clauses,
-        split_source_text_segments as _split_source_text_segments,
-        tokenize_affidavit_text as _tokenize,
-    )
+    from policy.compiler_contract import build_affidavit_coverage_review_contract
 
 try:
-    from src.policy.affidavit_claim_root import (
-        derive_claim_root_fields as _derive_claim_root_fields,
-        is_duplicate_response_excerpt as _is_duplicate_response_excerpt,
-    )
+    from src.policy.product_gate import build_product_gate
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_claim_root import (
-        derive_claim_root_fields as _derive_claim_root_fields,
-        is_duplicate_response_excerpt as _is_duplicate_response_excerpt,
-    )
+    from policy.product_gate import build_product_gate
+try:
+    from src.policy.review_workflow_summary import build_count_priority_workflow_summary
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.review_workflow_summary import build_count_priority_workflow_summary
+try:
+    from src.policy.review_claim_records import build_review_claim_records_from_affidavit_rows
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.review_claim_records import build_review_claim_records_from_affidavit_rows
 
 try:
-    from src.policy.affidavit_candidate_alignment import (
-        family_alignment_adjustment as _family_alignment_adjustment,
-        is_quote_rebuttal_support_excerpt as _is_quote_rebuttal_support_excerpt,
-        predicate_alignment_score as _predicate_alignment_score,
+    from src.policy.affidavit_normalized_surface import (
+        matching as _matching_surface,
+        review_hints as _review_hints_surface,
+        semantics as _semantics_surface,
+        structural as _structural_surface,
+        text as _text_surface,
     )
 except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_candidate_alignment import (
-        family_alignment_adjustment as _family_alignment_adjustment,
-        is_quote_rebuttal_support_excerpt as _is_quote_rebuttal_support_excerpt,
-        predicate_alignment_score as _predicate_alignment_score,
-    )
-
-try:
-    from src.policy.affidavit_lexical_heuristics import (
-        LEXICAL_HEURISTIC_HINT_RULES as _LEXICAL_HEURISTIC_HINT_RULES,
-        apply_lexical_heuristic_group as _apply_lexical_heuristic_group_impl,
-        build_justification_packets as _build_justification_packets_impl,
-    )
-except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_lexical_heuristics import (
-        LEXICAL_HEURISTIC_HINT_RULES as _LEXICAL_HEURISTIC_HINT_RULES,
-        apply_lexical_heuristic_group as _apply_lexical_heuristic_group_impl,
-        build_justification_packets as _build_justification_packets_impl,
-    )
-
-try:
-    from src.policy.affidavit_extraction_hints import (
-        DEFAULT_WORKLOAD_CLASS_PRIORITY as _DEFAULT_WORKLOAD_CLASS_PRIORITY,
-        MONTH_PATTERN as _MONTH_PATTERN,
-        PROCEDURAL_EVENT_KEYWORDS as _PROCEDURAL_EVENT_KEYWORDS,
-        build_candidate_anchors as _build_candidate_anchors_impl,
-        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
-        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
-        classify_workload_with_hints as _classify_workload_with_hints_impl,
-        extract_extraction_hints as _extract_extraction_hints_impl,
-        recommend_next_action as _recommend_next_action_impl,
-    )
-except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_extraction_hints import (
-        DEFAULT_WORKLOAD_CLASS_PRIORITY as _DEFAULT_WORKLOAD_CLASS_PRIORITY,
-        MONTH_PATTERN as _MONTH_PATTERN,
-        PROCEDURAL_EVENT_KEYWORDS as _PROCEDURAL_EVENT_KEYWORDS,
-        build_candidate_anchors as _build_candidate_anchors_impl,
-        build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
-        build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
-        classify_workload_with_hints as _classify_workload_with_hints_impl,
-        extract_extraction_hints as _extract_extraction_hints_impl,
-        recommend_next_action as _recommend_next_action_impl,
-    )
-
-try:
-    from src.policy.affidavit_candidate_arbitration import (
-        arbitrate_candidate_selection as _arbitrate_candidate_selection,
-    )
-except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_candidate_arbitration import (
-        arbitrate_candidate_selection as _arbitrate_candidate_selection,
-    )
-
-try:
-    from src.policy.affidavit_response_semantics import (
-        derive_claim_state as _derive_claim_state_impl,
-        derive_missing_dimensions as _derive_missing_dimensions_impl,
-        derive_primary_target_component as _derive_primary_target_component_impl,
-        derive_relation_classification as _derive_relation_classification_impl,
-        derive_semantic_basis as _derive_semantic_basis_impl,
-        infer_response_packet as _infer_response_packet_impl,
-    )
-except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_response_semantics import (
-        derive_claim_state as _derive_claim_state_impl,
-        derive_missing_dimensions as _derive_missing_dimensions_impl,
-        derive_primary_target_component as _derive_primary_target_component_impl,
-        derive_relation_classification as _derive_relation_classification_impl,
-        derive_semantic_basis as _derive_semantic_basis_impl,
-        infer_response_packet as _infer_response_packet_impl,
+    from policy.affidavit_normalized_surface import (
+        matching as _matching_surface,
+        review_hints as _review_hints_surface,
+        semantics as _semantics_surface,
+        structural as _structural_surface,
+        text as _text_surface,
     )
 
 try:
@@ -159,7 +83,20 @@ ARTIFACT_VERSION = "affidavit_coverage_review_v1"
 _PARTIAL_MATCH_THRESHOLD = 0.3
 _COVERED_MATCH_THRESHOLD = 0.6
 
-_WORKLOAD_CLASS_PRIORITY = list(_DEFAULT_WORKLOAD_CLASS_PRIORITY)
+_WORKLOAD_CLASS_PRIORITY = list(_review_hints_surface.DEFAULT_WORKLOAD_CLASS_PRIORITY)
+
+# Compatibility aliases kept stable for focused tests and narrow script imports.
+_MONTH_PATTERN = _review_hints_surface.MONTH_PATTERN
+_PROCEDURAL_EVENT_KEYWORDS = _review_hints_surface.PROCEDURAL_EVENT_KEYWORDS
+_tokenize = _text_surface.tokenize_affidavit_text
+_split_affidavit_text = _text_surface.split_affidavit_text
+_derive_claim_root_fields = _matching_surface.derive_claim_root_fields
+_infer_response_packet_impl = _semantics_surface.infer_response_packet
+_derive_primary_target_component_impl = _semantics_surface.derive_primary_target_component
+_derive_semantic_basis_impl = _semantics_surface.derive_semantic_basis
+_derive_claim_state_impl = _semantics_surface.derive_claim_state
+_derive_missing_dimensions_impl = _semantics_surface.derive_missing_dimensions
+_derive_relation_classification_impl = _semantics_surface.derive_relation_classification
 
 _CHARACTERIZATION_TERMS = {
     "abusive",
@@ -184,6 +121,59 @@ def _emit_trace(trace_callback: Any | None, stage: str, **details: Any) -> None:
         return
     trace_callback(stage, details)
 
+
+def _build_workflow_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else {}
+    counts = {
+        "missing_review_count": int(summary.get("missing_review_count") or 0),
+        "contested_source_count": int(summary.get("contested_source_count") or 0),
+        "unsupported_affidavit_count": int(summary.get("unsupported_affidavit_count") or 0),
+        "partial_count": int(summary.get("partial_count") or 0),
+        "related_review_cluster_count": int(summary.get("related_review_cluster_count") or 0),
+        "provisional_anchor_bundle_count": int(summary.get("provisional_anchor_bundle_count") or 0),
+    }
+    return build_count_priority_workflow_summary(
+        counts=counts,
+        promotion_gate=promotion_gate,
+        rules=(
+            {
+                "count_key": "missing_review_count",
+                "stage": "follow_up",
+                "title": "Review unresolved source rows against the affidavit",
+                "recommended_view": "source_review_rows",
+                "reason_template": "{missing_review_count} source row(s) remain missing review coverage.",
+            },
+            {
+                "count_keys": (
+                    "contested_source_count",
+                    "partial_count",
+                    "unsupported_affidavit_count",
+                ),
+                "stage": "decide",
+                "title": "Assess contested or unsupported affidavit propositions",
+                "recommended_view": "affidavit_rows",
+                "reason_template": "Open contested, partial, or unsupported affidavit propositions remain.",
+            },
+            {
+                "count_keys": (
+                    "related_review_cluster_count",
+                    "provisional_anchor_bundle_count",
+                ),
+                "stage": "inspect",
+                "title": "Inspect clustered review pressure and provisional anchors",
+                "recommended_view": "related_review_clusters",
+                "reason_template": "Related review clusters or provisional anchors are available for inspection.",
+            },
+        ),
+        default_step={
+            "stage": "record",
+            "title": "Record the bounded affidavit review state",
+            "recommended_view": "summary",
+            "reason_template": "No open source-review pressure remains in the current affidavit slice.",
+        },
+    )
+
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -192,21 +182,11 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _apply_lexical_heuristic_group(text: str, group: str) -> dict[str, list[dict[str, Any]]]:
-    return _apply_lexical_heuristic_group_impl(text, group)
-
-
-try:
-    from src.policy.affidavit_structural_sentence import (
-        analyze_structural_sentence as _analyze_structural_sentence_impl,
-    )
-except Exception:  # pragma: no cover - import path fallback for direct script use
-    from policy.affidavit_structural_sentence import (
-        analyze_structural_sentence as _analyze_structural_sentence_impl,
-    )
+    return _semantics_surface.apply_lexical_heuristic_group(text, group)
 
 
 def _analyze_structural_sentence(text: str) -> dict[str, Any]:
-    return _analyze_structural_sentence_impl(
+    return _structural_surface.analyze_structural_sentence(
         text,
         dependencies_getter=_get_dependencies,
     )
@@ -246,28 +226,28 @@ def _classify_workload(reason_codes: list[str], review_status: str) -> dict[str,
 
 
 def _extract_extraction_hints(text: str) -> dict[str, Any]:
-    return _extract_extraction_hints_impl(
+    return _review_hints_surface.extract_extraction_hints(
         text,
-        tokenize=_tokenize,
-        month_pattern=_MONTH_PATTERN,
-        procedural_event_keywords=frozenset(_PROCEDURAL_EVENT_KEYWORDS),
+        tokenize=_text_surface.tokenize_affidavit_text,
+        month_pattern=_review_hints_surface.MONTH_PATTERN,
+        procedural_event_keywords=frozenset(_review_hints_surface.PROCEDURAL_EVENT_KEYWORDS),
     )
 
 
 def _build_candidate_anchors(extraction_hints: Mapping[str, Any]) -> list[dict[str, Any]]:
-    return _build_candidate_anchors_impl(extraction_hints)
+    return _review_hints_surface.build_candidate_anchors(extraction_hints)
 
 
 def _build_provisional_structured_anchors(source_review_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _build_provisional_structured_anchors_impl(source_review_rows)
+    return _review_hints_surface.build_provisional_structured_anchors(source_review_rows)
 
 
 def _build_provisional_anchor_bundles(provisional_structured_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _build_provisional_anchor_bundles_impl(provisional_structured_anchors)
+    return _review_hints_surface.build_provisional_anchor_bundles(provisional_structured_anchors)
 
 
 def _classify_workload_with_hints(reason_codes: list[str], review_status: str, extraction_hints: Mapping[str, Any]) -> dict[str, Any]:
-    return _classify_workload_with_hints_impl(
+    return _review_hints_surface.classify_workload_with_hints(
         reason_codes,
         review_status,
         extraction_hints,
@@ -326,7 +306,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "source_row_id": fact_id,
                     "source_kind": "fact_intake_fact",
                     "text": fact_text,
-                    "tokens": sorted(_tokenize(fact_text)),
+                    "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": str(fact.get("candidate_status") or "candidate").strip() or "candidate",
                     "review_status": None,
                     "reason_codes": [],
@@ -367,7 +347,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "source_row_id": fact_id,
                     "source_kind": "fact_review_fact",
                     "text": fact_text,
-                    "tokens": sorted(_tokenize(fact_text)),
+                    "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": candidate_status,
                     "review_status": str(review_row.get("latest_review_status") or "").strip() or None,
                     "reason_codes": _reason_codes(review_row),
@@ -402,7 +382,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "source_row_id": fact_id,
                     "source_kind": "au_checked_handoff_fact",
                     "text": fact_text,
-                    "tokens": sorted(_tokenize(fact_text)),
+                    "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": "candidate",
                     "review_status": review_status,
                     "reason_codes": ["review_queue"] if review_status == "review_queue" else [],
@@ -439,7 +419,7 @@ def _extract_source_rows(source_payload: Mapping[str, Any]) -> tuple[list[dict[s
                     "source_row_id": fact_id,
                     "source_kind": "au_dense_overlay_fact",
                     "text": fact_text,
-                    "tokens": sorted(_tokenize(fact_text)),
+                    "tokens": sorted(_text_surface.tokenize_affidavit_text(fact_text)),
                     "candidate_status": candidate_status,
                     "review_status": str(review_row.get("latest_review_status") or "").strip() or None,
                     "reason_codes": _reason_codes(review_row),
@@ -484,8 +464,8 @@ def _classify_argumentative_role(
 ) -> dict[str, Any]:
     excerpt = excerpt_text.strip()
     structural = _analyze_structural_sentence(excerpt)
-    proposition_tokens = _tokenize(proposition_text)
-    excerpt_tokens = _tokenize(excerpt)
+    proposition_tokens = _text_surface.tokenize_affidavit_text(proposition_text)
+    excerpt_tokens = _text_surface.tokenize_affidavit_text(excerpt)
     shared_ratio = 0.0
     substantive_shared_tokens = proposition_tokens & excerpt_tokens
     if proposition_tokens:
@@ -529,7 +509,7 @@ def _infer_response_packet(
     response_cues: list[str] | None,
     coverage_status: str,
 ) -> dict[str, Any]:
-    return _infer_response_packet_impl(
+    return _semantics_surface.infer_response_packet(
         proposition_text=proposition_text,
         best_match_excerpt=best_match_excerpt,
         duplicate_match_excerpt=duplicate_match_excerpt,
@@ -541,7 +521,7 @@ def _infer_response_packet(
 
 
 def _derive_primary_target_component(*, response: Mapping[str, Any], response_acts: list[str]) -> str:
-    return _derive_primary_target_component_impl(response=response, response_acts=response_acts)
+    return _semantics_surface.derive_primary_target_component(response=response, response_acts=response_acts)
 
 
 def _derive_semantic_basis(
@@ -551,7 +531,7 @@ def _derive_semantic_basis(
     response_component_bindings: list[dict[str, Any]],
     justifications: list[dict[str, Any]],
 ) -> str:
-    return _derive_semantic_basis_impl(
+    return _semantics_surface.derive_semantic_basis(
         response_cues=response_cues,
         response=response,
         response_component_bindings=response_component_bindings,
@@ -566,7 +546,7 @@ def _derive_claim_state(
     support_status: str,
     duplicate_match_excerpt: str | None,
 ) -> dict[str, str]:
-    return _derive_claim_state_impl(
+    return _semantics_surface.derive_claim_state(
         response_acts=response_acts,
         legal_significance_signals=legal_significance_signals,
         support_status=support_status,
@@ -582,7 +562,7 @@ def _derive_missing_dimensions(
     best_match_excerpt: str | None,
     duplicate_match_excerpt: str | None,
 ) -> list[str]:
-    return _derive_missing_dimensions_impl(
+    return _semantics_surface.derive_missing_dimensions(
         coverage_status=coverage_status,
         support_status=support_status,
         primary_target_component=primary_target_component,
@@ -603,7 +583,7 @@ def _derive_relation_classification(
     duplicate_match_excerpt: str | None,
     alternate_context_excerpt: str | None = None,
 ) -> dict[str, Any]:
-    return _derive_relation_classification_impl(
+    return _semantics_surface.derive_relation_classification(
         coverage_status=coverage_status,
         support_status=support_status,
         conflict_state=conflict_state,
@@ -810,7 +790,7 @@ def _build_response_packet(
 
 
 def _build_justification_packets(excerpt_text: str) -> list[dict[str, Any]]:
-    return _build_justification_packets_impl(excerpt_text)
+    return _semantics_surface.build_justification_packets(excerpt_text)
 
 
 def _build_response_component_bindings(
@@ -894,7 +874,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
     proposition_tokens = proposition.get("tokens", [])
     row_text = str(source_row.get("text") or "")
     comparison_mode = str(source_row.get("comparison_mode") or "").strip()
-    numbered_rebuttal_start = _find_numbered_rebuttal_start(row_text)
+    numbered_rebuttal_start = _text_surface.find_numbered_rebuttal_start(row_text)
     row_score = _similarity_score(proposition_tokens, source_row.get("tokens", []))
     row_entry = {
         "score": row_score,
@@ -902,8 +882,8 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
         "match_excerpt": row_text.strip(),
     }
     segments = []
-    for segment in _split_source_text_segments(row_text):
-        segment_tokens = sorted(_tokenize(segment))
+    for segment in _text_surface.split_source_text_segments(row_text):
+        segment_tokens = sorted(_text_surface.tokenize_affidavit_text(segment))
         score = _similarity_score(proposition_tokens, segment_tokens)
         segments.append(
             {
@@ -913,8 +893,8 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
             }
         )
         if comparison_mode == "contested_narrative":
-            for clause in _split_source_segment_clauses(segment):
-                clause_tokens = sorted(_tokenize(clause))
+            for clause in _text_surface.split_source_segment_clauses(segment):
+                clause_tokens = sorted(_text_surface.tokenize_affidavit_text(clause))
                 clause_score = _similarity_score(proposition_tokens, clause_tokens)
                 segments.append(
                     {
@@ -934,7 +914,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
         )
         candidate["response_role"] = str(role_data["response_role"])
         candidate["response_cues"] = role_data["response_cues"]
-        candidate["is_duplicate_excerpt"] = _is_duplicate_response_excerpt(
+        candidate["is_duplicate_excerpt"] = _text_surface.is_duplicate_response_excerpt(
             str(proposition.get("text") or ""),
             str(candidate["match_excerpt"] or ""),
         )
@@ -950,7 +930,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
             and excerpt_lower
             and (proposition_lower in excerpt_lower or excerpt_lower in proposition_lower)
         )
-        candidate["predicate_alignment_score"] = _predicate_alignment_score(
+        candidate["predicate_alignment_score"] = _matching_surface.predicate_alignment_score(
             str(proposition.get("text") or ""),
             str(candidate["match_excerpt"] or ""),
         )
@@ -968,7 +948,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                 1.0,
                 round(
                     adjusted
-                    + _family_alignment_adjustment(
+                    + _matching_surface.family_alignment_adjustment(
                         str(proposition.get("text") or ""),
                         str(candidate.get("match_excerpt") or ""),
                         row_text,
@@ -1010,7 +990,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                 and (
                     (
                         candidate["response_role"] in {"non_response", "procedural_frame", "restatement_only"}
-                        and _is_quote_rebuttal_support_excerpt(str(candidate.get("match_excerpt") or ""))
+                        and _matching_surface.is_quote_rebuttal_support_excerpt(str(candidate.get("match_excerpt") or ""))
                     )
                     or (
                         candidate["response_role"] in {"dispute", "admission", "explanation", "support_or_corroboration", "procedural_frame"}
@@ -1026,7 +1006,7 @@ def _score_proposition_against_source_row(proposition: Mapping[str, Any], source
                     round(max(float(candidate["adjusted_score"]), best_echo_adjusted_score - 0.03), 6),
                 )
 
-    return _arbitrate_candidate_selection(
+    return _matching_surface.arbitrate_candidate_selection(
         comparison_mode=comparison_mode,
         candidates=candidates,
     )
@@ -1108,7 +1088,7 @@ def _build_related_review_clusters(
             dominant_workload_class = sorted(workload_counter.items(), key=lambda item: (-item[1], item[0]))[0][0]
         has_temporal_hint_cluster = extraction_hint_counter["transcript_timestamp_hint"] > 0 or extraction_hint_counter["calendar_reference_hint"] > 0
         has_event_hint_cluster = extraction_hint_counter["procedural_event_cue"] > 0
-        recommended_next_action = _recommend_next_action_impl(
+        recommended_next_action = _review_hints_surface.recommend_next_action(
             dominant_workload_class,
             has_temporal_hint=has_temporal_hint_cluster,
             has_event_hint=has_event_hint_cluster,
@@ -1192,7 +1172,7 @@ def build_affidavit_coverage_review(
         total=len(source_rows),
         message="Source review rows extracted.",
     )
-    propositions = _split_affidavit_text(affidavit_text)
+    propositions = _text_surface.split_affidavit_text(affidavit_text)
     _emit_progress(
         progress_callback,
         "proposition_split_finished",
@@ -1277,12 +1257,10 @@ def build_affidavit_coverage_review(
             best_row,
             str(best_score_row.get("response_role") or ""),
         )
-        duplicate_root_excerpt = str(best_score_row.get("duplicate_match_excerpt") or "").strip() or None
-        if not duplicate_root_excerpt and top_duplicate_score_row is not None:
-            duplicate_candidate_excerpt = str(top_duplicate_score_row.get("match_excerpt") or "").strip()
-            best_candidate_excerpt = str(best_score_row.get("match_excerpt") or "").strip()
-            if duplicate_candidate_excerpt and duplicate_candidate_excerpt != best_candidate_excerpt:
-                duplicate_root_excerpt = duplicate_candidate_excerpt
+        duplicate_root_excerpt = _matching_surface.resolve_duplicate_match_excerpt(
+            selected_candidate=best_score_row,
+            top_duplicate_candidate=top_duplicate_score_row,
+        )
         matched_rows = [
             {
                 "source_row_id": row["source_row_id"],
@@ -1384,7 +1362,7 @@ def build_affidavit_coverage_review(
                 component_targets=response_object.get("component_targets", []),
                 justification_types=[packet.get("type") for packet in justification_packets if isinstance(packet, Mapping)],
             )
-        claim_root = _derive_claim_root_fields(
+        claim_root = _matching_surface.derive_claim_root_fields(
             proposition_text=str(proposition["text"]),
             duplicate_match_excerpt=duplicate_root_excerpt,
             best_match_excerpt=str(best_score_row.get("match_excerpt") or ""),
@@ -1724,7 +1702,7 @@ def build_affidavit_coverage_review(
         message="Affidavit coverage review build finished.",
     )
 
-    return {
+    payload = {
         "version": ARTIFACT_VERSION,
         "fixture_kind": "affidavit_coverage_review",
         "source_input": {
@@ -1744,6 +1722,26 @@ def build_affidavit_coverage_review(
         "zelph_claim_state_facts": zelph_claim_state_facts,
         "normalized_metrics_v1": normalized_metrics_v1,
     }
+    payload["compiler_contract"] = build_affidavit_coverage_review_contract(payload)
+    payload["promotion_gate"] = build_product_gate(
+        lane="affidavit",
+        product_ref=ARTIFACT_VERSION,
+        compiler_contract=payload["compiler_contract"],
+    )
+    payload["workflow_summary"] = _build_workflow_summary(payload)
+    payload["review_claim_records"] = build_review_claim_records_from_affidavit_rows(
+        rows=affidavit_rows,
+        lane="affidavit",
+        family_id="affidavit_coverage_review",
+        cohort_id=ARTIFACT_VERSION,
+        root_artifact_id=ARTIFACT_VERSION,
+        source_family="affidavit_coverage_review",
+        recommended_view=str(payload["workflow_summary"].get("recommended_view") or "affidavit_rows"),
+        queue_family="affidavit_rows",
+        include_target_proposition_identity=True,
+        include_proposition_relation=True,
+    )
+    return payload
 
 
 def build_summary_markdown(payload: Mapping[str, Any]) -> str:

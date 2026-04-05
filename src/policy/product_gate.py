@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .compiler_contract import normalize_promoted_outcomes
+
 
 PRODUCT_GATE_SCHEMA_VERSION = "sl.product_gate.v0_1"
 
@@ -19,10 +21,10 @@ def build_product_gate(
     product_ref: str,
     compiler_contract: Mapping[str, Any],
 ) -> dict[str, Any]:
-    promoted = (
+    promoted = normalize_promoted_outcomes(
         compiler_contract.get("promoted_outcomes")
         if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else {}
+        else None
     )
     derived_products = (
         compiler_contract.get("derived_products")

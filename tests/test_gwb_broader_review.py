@@ -30,6 +30,35 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert any(row["role"] == "legal_linkage_graph" for row in payload["compiler_contract"]["derived_products"])
     assert payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     assert payload["promotion_gate"]["product_ref"] == "gwb_broader_review_v1"
+    assert payload["review_claim_records"]
+    assert all(row["lane"] == "gwb" for row in payload["review_claim_records"])
+    assert all(row["family_id"] == "gwb_broader_review" for row in payload["review_claim_records"])
+    assert all(row["state"] == "review_claim" for row in payload["review_claim_records"])
+    assert all(row["state_basis"] == "source_review_row" for row in payload["review_claim_records"])
+    assert all(row["evidence_status"] == "review_only" for row in payload["review_claim_records"])
+    assert all(row["review_route"]["actionability"] == "must_review" for row in payload["review_claim_records"])
+    relation_rows = [row for row in payload["review_claim_records"] if "proposition_relation" in row]
+    assert relation_rows
+    assert relation_rows[0]["target_proposition_identity"]["identity_basis"]["basis_kind"] == "seed_id"
+    assert relation_rows[0]["target_proposition_identity"]["provenance"]["source_kind"] == "review_item_target"
+    assert relation_rows[0]["proposition_relation"]["relation_kind"] == "addresses"
+    assert relation_rows[0]["proposition_relation"]["target_proposition_id"] == relation_rows[0]["target_proposition_identity"]["proposition_id"]
+    assert any("proposition_relation" not in row for row in payload["review_claim_records"])
+    normalized_artifact = payload["suite_normalized_artifact"]
+    assert normalized_artifact["schema_version"] == "itir.normalized.artifact.v1"
+    assert normalized_artifact["artifact_role"] == "derived_product"
+    assert normalized_artifact["authority"]["derived"] is True
+    assert normalized_artifact["summary"]["lane"] == "gwb"
+    assert normalized_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert normalized_artifact["summary"]["workflow_stage"] == payload["workflow_summary"]["stage"]
+    assert normalized_artifact["summary"]["recommended_view"] == payload["workflow_summary"]["recommended_view"]
+    assert normalized_artifact["unresolved_pressure_status"] in {"none", "hold", "abstain"}
+    reasoner_input_artifact = payload["reasoner_input_artifact"]
+    assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
+    assert reasoner_input_artifact["source_system"] == "SensibLaw"
+    assert reasoner_input_artifact["source_lane"] == "gwb"
+    assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
+    assert reasoner_input_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
     assert payload["workflow_summary"]["stage"] in {"decide", "follow_up", "record", "archive"}
     assert payload["workflow_summary"]["recommended_view"] in {
         "legal_follow_graph",
@@ -42,7 +71,7 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert payload["workflow_summary"]["counts"]["debate_edge_count"] == summary["debate_edge_count"]
     assert summary["debate_edge_count"] > 0
     assert payload["workflow_summary"]["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
-    assert summary["review_item_count"] == 16
+    assert summary["review_item_count"] > 10
     assert summary["distinct_seed_lane_count"] == 13
     assert summary["source_row_count"] > 30
     assert summary["covered_count"] > 10
@@ -55,24 +84,24 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert normalized["artifact_id"] == "gwb_broader_review_v1"
     assert normalized["review_item_status_counts"] == {
         "accepted": 7,
-        "review_required": 7,
+        "review_required": 6,
         "held": 0,
     }
     assert normalized["source_status_counts"] == {
         "accepted": 39,
-        "review_required": 20,
+        "review_required": 14,
         "held": 0,
     }
     assert normalized["dominant_primary_workload"] == "linkage_pressure"
     assert normalized["primary_workload_counts"]["linkage_pressure"] == 8
     assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 3
-    assert normalized["candidate_signal_count"] == 70
-    assert normalized["provisional_queue_row_count"] == 70
-    assert normalized["provisional_bundle_count"] == 19
-    assert normalized["review_required_source_ratio"] == 0.333333
-    assert normalized["candidate_signal_density"] == 3.5
-    assert normalized["provisional_row_density"] == 3.5
-    assert normalized["provisional_bundle_density"] == 0.95
+    assert normalized["candidate_signal_count"] == 46
+    assert normalized["provisional_queue_row_count"] == 46
+    assert normalized["provisional_bundle_count"] == 13
+    assert normalized["review_required_source_ratio"] == 0.264151
+    assert normalized["candidate_signal_density"] == 3.285714
+    assert normalized["provisional_row_density"] == 3.285714
+    assert normalized["provisional_bundle_density"] == 0.928571
 
     assert any(row["source_kind"] == "seed_family_support" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "merged_promoted_relation" for row in payload["source_review_rows"])

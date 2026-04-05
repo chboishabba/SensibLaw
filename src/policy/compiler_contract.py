@@ -48,6 +48,24 @@ def _labels(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(seen)
 
 
+def normalize_promoted_outcomes(
+    value: Mapping[str, Any] | PromotedOutcomeContract | None,
+) -> dict[str, Any]:
+    if isinstance(value, PromotedOutcomeContract):
+        return {
+            **asdict(value),
+            "outcome_labels": list(value.outcome_labels),
+        }
+    mapping = value if isinstance(value, Mapping) else {}
+    return {
+        "outcome_family": str(mapping.get("outcome_family") or "").strip(),
+        "promoted_count": _int(mapping.get("promoted_count")),
+        "review_count": _int(mapping.get("review_count")),
+        "abstained_count": _int(mapping.get("abstained_count")),
+        "outcome_labels": list(_labels(mapping.get("outcome_labels", []))),
+    }
+
+
 def build_compiler_contract_payload(
     *,
     lane: str,
@@ -59,10 +77,7 @@ def build_compiler_contract_payload(
         "schema_version": COMPILER_CONTRACT_SCHEMA_VERSION,
         "lane": str(lane),
         "evidence_bundle": asdict(evidence_bundle),
-        "promoted_outcomes": {
-            **asdict(promoted_outcomes),
-            "outcome_labels": list(promoted_outcomes.outcome_labels),
-        },
+        "promoted_outcomes": normalize_promoted_outcomes(promoted_outcomes),
         "derived_products": [asdict(product) for product in derived_products],
     }
 
@@ -315,11 +330,61 @@ def build_wikidata_migration_pack_contract(migration_pack: Mapping[str, Any]) ->
     )
 
 
+def build_affidavit_coverage_review_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    source_input = payload.get("source_input") if isinstance(payload.get("source_input"), Mapping) else {}
+    affidavit_rows = payload.get("affidavit_rows") if isinstance(payload.get("affidavit_rows"), list) else []
+    promotion_statuses = [
+        str((row or {}).get("promotion_status") or "").strip()
+        for row in affidavit_rows
+        if isinstance(row, Mapping)
+    ]
+    promoted_true_count = sum(1 for status in promotion_statuses if status == "promoted_true")
+    promoted_false_count = sum(1 for status in promotion_statuses if status == "promoted_false")
+    conflict_count = sum(1 for status in promotion_statuses if status == "candidate_conflict")
+    abstained_count = sum(1 for status in promotion_statuses if status == "abstained")
+
+    return build_compiler_contract_payload(
+        lane="affidavit",
+        evidence_bundle=EvidenceBundleContract(
+            bundle_kind="contested_affidavit_bundle",
+            source_family=str(source_input.get("source_kind") or "affidavit_review"),
+            source_count=1,
+            item_count=_int(summary.get("affidavit_proposition_count")) or len(affidavit_rows),
+            item_label="affidavit_proposition",
+        ),
+        promoted_outcomes=PromotedOutcomeContract(
+            outcome_family="contested_affidavit_claim_outcomes",
+            promoted_count=promoted_true_count + promoted_false_count,
+            review_count=conflict_count,
+            abstained_count=abstained_count,
+            outcome_labels=_labels(
+                label
+                for label, count in (
+                    ("promoted_true", promoted_true_count),
+                    ("promoted_false", promoted_false_count),
+                    ("candidate_conflict", conflict_count),
+                    ("abstained", abstained_count),
+                )
+                if count > 0
+            ),
+        ),
+        derived_products=(
+            DerivedProductContract("packet", "affidavit_coverage_review", True),
+            DerivedProductContract("report", "coverage_summary", True),
+            DerivedProductContract("artifact", "related_review_clusters", False),
+            DerivedProductContract("artifact", "provisional_anchor_bundles", False),
+            DerivedProductContract("artifact", "normalized_metrics_v1", False),
+        ),
+    )
+
+
 __all__ = [
     "COMPILER_CONTRACT_SCHEMA_VERSION",
     "DerivedProductContract",
     "EvidenceBundleContract",
     "PromotedOutcomeContract",
+    "build_affidavit_coverage_review_contract",
     "build_au_public_handoff_contract",
     "build_au_fact_review_bundle_contract",
     "build_compiler_contract_payload",
@@ -327,4 +392,5 @@ __all__ = [
     "build_gwb_public_handoff_contract",
     "build_gwb_public_review_contract",
     "build_wikidata_migration_pack_contract",
+    "normalize_promoted_outcomes",
 ]

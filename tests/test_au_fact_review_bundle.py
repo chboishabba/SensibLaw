@@ -26,6 +26,7 @@ from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION
 from src.models.convergence import CONVERGENCE_SCHEMA_VERSION
 from src.models.conflict import CONFLICT_SCHEMA_VERSION
 from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION
+from src.models.review_claim_record import REVIEW_CLAIM_RECORD_SCHEMA_VERSION
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION
 from src.gwb_us_law.semantic import ensure_gwb_semantic_schema
 from src.wiki_timeline.sqlite_store import load_run_payload_from_normalized, persist_wiki_timeline_aoo_run
@@ -245,6 +246,35 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["semantic_context"]["legal_follow_graph"]["summary"]["edge_count"] >= 1
     assert any(node["kind"] == "authority_receipt" for node in bundle["semantic_context"]["legal_follow_graph"]["nodes"])
     assert any(edge["kind"] == "linked_authority_receipt" for edge in bundle["semantic_context"]["legal_follow_graph"]["edges"])
+    assert bundle["compiler_contract"]["lane"] == "au"
+    assert bundle["compiler_contract"] == bundle["semantic_context"]["compiler_contract"]
+    assert bundle["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
+    assert bundle["promotion_gate"] == bundle["semantic_context"]["promotion_gate"]
+    assert len(bundle["review_claim_records"]) == len(bundle["review_queue"])
+    first_review_claim = bundle["review_claim_records"][0]
+    assert first_review_claim["schema_version"] == REVIEW_CLAIM_RECORD_SCHEMA_VERSION
+    assert first_review_claim["lane"] == "au"
+    assert first_review_claim["source_family"] == "au_fact_review_bundle"
+    assert first_review_claim["state"] == "review_claim"
+    assert first_review_claim["state_basis"] == "review_bundle"
+    assert first_review_claim["evidence_status"] == "review_only"
+    assert first_review_claim["target_proposition_identity"]["identity_basis"]["basis_kind"] == "event_id"
+    assert first_review_claim["target_proposition_identity"]["provenance"]["source_kind"] == "review_bundle_target"
+    assert first_review_claim["target_proposition_identity"]["provenance"]["anchor_refs"]["event_id"]
+    assert first_review_claim["proposition_relation"]["relation_kind"] == "addresses"
+    assert first_review_claim["proposition_relation"]["source_proposition_id"] == first_review_claim["claim_id"]
+    assert (
+        first_review_claim["proposition_relation"]["target_proposition_id"]
+        == first_review_claim["target_proposition_identity"]["proposition_id"]
+    )
+    assert first_review_claim["proposition_relation"]["evidence_status"] == "review_only"
+    assert first_review_claim["proposition_relation"]["provenance"]["source_kind"] == "review_bundle"
+    assert first_review_claim["proposition_relation"]["provenance"]["anchor_refs"]["event_id"]
+    assert first_review_claim["proposition_identity"]["proposition_id"] == first_review_claim["claim_id"]
+    assert first_review_claim["proposition_identity"]["identity_basis"]["basis_kind"] == "review_queue_row"
+    assert first_review_claim["proposition_identity"]["provenance"]["source_kind"] == "review_bundle"
+    assert first_review_claim["review_route"]["actionability"] == "must_review"
+    assert first_review_claim["review_route"]["recommended_view"] == bundle["workflow_summary"]["recommended_view"]
     assert bundle["semantic_context"]["compiler_contract"]["lane"] == "au"
     assert bundle["semantic_context"]["compiler_contract"]["evidence_bundle"]["source_family"] == "au_fact_review_bundle"
     assert bundle["semantic_context"]["compiler_contract"]["derived_products"][0]["role"] == "fact_review_bundle"

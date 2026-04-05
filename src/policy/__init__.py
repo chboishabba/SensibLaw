@@ -25,6 +25,18 @@ from .semantic_promotion import (
     validate_hotspot_pack_candidate,
     validate_relation_candidate,
 )
+from .proposition_contradiction_taxonomy import (
+    PROPOSITION_CONTRADICTION_TAXONOMY_VERSION,
+    PROPOSITION_CONTRADICTION_LABELS,
+    build_proposition_contradiction_taxonomy,
+    validate_proposition_contradiction_label,
+)
+from .proposition_resolution_policy import (
+    PROPOSITION_RESOLUTION_POLICY_VERSION,
+    PROPOSITION_RESOLUTION_STATES,
+    build_proposition_resolution_policy,
+    validate_proposition_resolution_state,
+)
 
 __all__ = [
     "ABSTAINED",
@@ -41,14 +53,22 @@ __all__ = [
     "PROMOTED_FALSE",
     "PROMOTED_TRUE",
     "PROMOTION_STATUSES",
+    "PROPOSITION_CONTRADICTION_LABELS",
+    "PROPOSITION_CONTRADICTION_TAXONOMY_VERSION",
+    "PROPOSITION_RESOLUTION_POLICY_VERSION",
+    "PROPOSITION_RESOLUTION_STATES",
     "SEMANTIC_PROMOTION_VERSION",
     "TRUTH_BEARING_FIELDS",
+    "build_proposition_contradiction_taxonomy",
+    "build_proposition_resolution_policy",
     "build_contested_claim_candidate",
     "build_hotspot_pack_candidate",
     "build_relation_candidate",
     "promote_contested_claim",
     "promote_hotspot_pack_candidate",
     "promote_relation_candidate",
+    "validate_proposition_contradiction_label",
+    "validate_proposition_resolution_state",
     "validate_contested_claim_candidate",
     "validate_hotspot_pack_candidate",
     "validate_relation_candidate",

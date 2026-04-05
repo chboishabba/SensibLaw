@@ -26,6 +26,14 @@ The important design choice is that SensibLaw is not trying to be "the model
 that knows the answer." It is trying to preserve source traceability while
 making reviewable structure.
 
+One caution matters here: a lane-local facade is not the same thing as a
+cross-lane canonical substrate. Files such as
+`src/policy/affidavit_normalized_surface.py` are useful stabilization layers,
+but they are still adapter-local. They should be treated as temporary
+normalization shells until the underlying concepts are extracted into
+lane-agnostic surfaces that AU, GWB, affidavit, Wikidata/Nat, and future lanes
+can all share.
+
 ## What You Can Do With It Today
 
 ### 1. Build structured review artifacts from messy source material
@@ -325,6 +333,13 @@ needed.
   [docs/ARCHITECTURE_LAYERS.md](docs/ARCHITECTURE_LAYERS.md)
 - whole-system world-model view:
   [docs/roadmaps/world_model_metasystem_20260404.puml](docs/roadmaps/world_model_metasystem_20260404.puml)
+  [docs/roadmaps/world_model_metasystem_20260404.svg](docs/roadmaps/world_model_metasystem_20260404.svg)
+- Dad/Johl affidavit lane child view:
+  [docs/roadmaps/affidavit_dad_johl_lane_20260404.puml](docs/roadmaps/affidavit_dad_johl_lane_20260404.puml)
+  [docs/roadmaps/affidavit_dad_johl_lane_20260404.svg](docs/roadmaps/affidavit_dad_johl_lane_20260404.svg)
+- Dad/Johl claim-root arbitration child view:
+  [docs/roadmaps/affidavit_dad_johl_claim_root_arbitration_20260405.puml](docs/roadmaps/affidavit_dad_johl_claim_root_arbitration_20260405.puml)
+  [docs/roadmaps/affidavit_dad_johl_claim_root_arbitration_20260405.svg](docs/roadmaps/affidavit_dad_johl_claim_root_arbitration_20260405.svg)
 - interfaces:
   [docs/interfaces.md](docs/interfaces.md)
 - CLI examples:
@@ -360,15 +375,22 @@ Current status:
 - the shared substrate exists in code
 - Nat already emits the shared primitives additively in its convergence
   reports
+- some lanes still expose lane-local grouped facades as an intermediate step;
+  that is better than raw helper sprawl, but it is not the end-state
 - the current canonical operator entrypoint for cross-lane reporting is:
   `../.venv/bin/python -m cli.__main__ wikidata world-model-lane-summary --input ...`
-- broader lane rebinding is still the next phase
+- broader lane rebinding and shared-surface extraction are still the next
+  phase
 
 This is the important distinction:
 
 - `Nat` proves one source-adapter path into the substrate
 - the world-model moonshot is the broader goal of rebinding all major lanes
   onto that same substrate
+- lane-local facades such as the affidavit grouped surface are transitional;
+  they should converge toward shared `text`, `candidate`, `claim`, `hint`,
+  and `decision` surfaces instead of becoming a permanent second layer of
+  bespoke APIs
 
 ### Wikidata lane
 

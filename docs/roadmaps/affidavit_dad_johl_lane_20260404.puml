@@ -28,16 +28,12 @@ package "Affidavit Coverage Builder" {
   component "write_affidavit_coverage_review(...)" as Writer
   component "build_affidavit_coverage_review(...)" as Builder
 
-  package "Shared affidavit policy helpers" {
-    component "affidavit_text_normalization.py" as TextNorm
-    component "affidavit_claim_root.py" as ClaimRoot
-    component "affidavit_candidate_alignment.py" as Align
-    component "affidavit_candidate_arbitration.py" as Arbitrate
-    component "affidavit_response_semantics.py" as ResponseSem
-    component "affidavit_extraction_hints.py" as Hints
-    component "affidavit_reconciliation_text.py" as Reconcile
-    component "affidavit_structural_sentence.py" as Structural
-    component "affidavit_lexical_heuristics.py" as Lexical
+  package "Normalized affidavit surface" {
+    component "affidavit_normalized_surface.text" as Text
+    component "affidavit_normalized_surface.matching" as Matching
+    component "affidavit_normalized_surface.semantics" as Semantics
+    component "affidavit_normalized_surface.review_hints" as ReviewHints
+    component "affidavit_normalized_surface.structural" as Structural
   }
 }
 
@@ -66,15 +62,11 @@ TextUnits --> Writer : source_payload
 DadAff --> Writer : affidavit_text
 Writer --> Builder : runtime entrypoint
 
-Builder --> TextNorm
-Builder --> ClaimRoot
-Builder --> Align
-Builder --> Arbitrate
-Builder --> ResponseSem
-Builder --> Hints
-Builder --> Reconcile
+Builder --> Text
+Builder --> Matching
+Builder --> Semantics
+Builder --> ReviewHints
 Builder --> Structural
-Builder --> Lexical
 
 Builder --> Persist : normalized contested review payload
 Persist --> SQLite : primary working surface
@@ -94,6 +86,19 @@ note right of SQLite
   - contested review run ids
   - /tmp SQLite inspection DBs
   - query_fact_review contested-rows
+end note
+
+note right of ReviewHints
+  Current implementation leaves behind the normalized facade:
+  - affidavit_text_normalization.py
+  - affidavit_reconciliation_text.py
+  - affidavit_claim_root.py
+  - affidavit_candidate_alignment.py
+  - affidavit_candidate_arbitration.py
+  - affidavit_response_semantics.py
+  - affidavit_extraction_hints.py
+  - affidavit_structural_sentence.py
+  - affidavit_lexical_heuristics.py
 end note
 
 note bottom of SiblingLeaf

@@ -31,6 +31,7 @@ from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_
 from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
 from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
 from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
+from src.models.review_claim_record import REVIEW_CLAIM_RECORD_SCHEMA_VERSION
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
 from src.policy.compiler_contract import build_au_fact_review_bundle_contract
 from src.policy.legal_follow_graph import (
@@ -38,6 +39,7 @@ from src.policy.legal_follow_graph import (
     build_au_legal_follow_operator_view,
 )
 from src.policy.product_gate import build_product_gate
+from src.policy.review_claim_records import build_review_claim_records_from_queue_rows
 from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
 from src.policy.suite_normalized_artifact import build_au_fact_review_bundle_normalized_artifact
 
@@ -65,6 +67,31 @@ _AU_AUTHORITY_ROUTE_TARGET_SCORE = {
     "manual_review": ("low", 1),
 }
 AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION = "sl.au_fact_review_bundle_world_model.v0_1"
+
+
+def _build_au_review_claim_records(
+    *,
+    review_queue: Sequence[Mapping[str, Any]],
+    run_id: str,
+    semantic_run_id: str,
+    workflow_summary: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    recommended_view = str(workflow_summary.get("recommended_view") or "").strip()
+    return build_review_claim_records_from_queue_rows(
+        rows=review_queue,
+        lane="au",
+        family_id="au_fact_review_bundle",
+        cohort_id=semantic_run_id,
+        root_artifact_id=run_id,
+        source_family="au_fact_review_bundle",
+        recommended_view=recommended_view,
+        queue_family=recommended_view or "review_queue",
+        claim_id_key="fact_id",
+        state_basis="review_bundle",
+        basis_kind="review_queue_row",
+        include_target_proposition_identity=True,
+        include_proposition_relation=True,
+    )
 
 def _normalize_opt_text(value: Any) -> str | None:
     if value is None:
@@ -780,6 +807,18 @@ def build_au_fact_review_bundle(
         if review_queue and isinstance(review_queue[0], Mapping)
         else None
     )
+    workflow_summary = build_bundle_workflow_summary(
+        review_summary=review_summary,
+        operator_views=operator_views,
+        promotion_gate=promotion_gate,
+        default_fact_id=default_fact_id,
+    )
+    review_claim_records = _build_au_review_claim_records(
+        review_queue=[row for row in review_queue if isinstance(row, Mapping)],
+        run_id=str((fact_report.get("run") or {}).get("run_id") or ""),
+        semantic_run_id=str(semantic_report.get("run_id") or ""),
+        workflow_summary=workflow_summary,
+    )
     return build_fact_review_bundle_payload(
         fact_report=fact_report,
         review_summary=review_summary,
@@ -790,16 +829,14 @@ def build_au_fact_review_bundle(
         chronology=chronology,
         abstentions=abstentions,
         operator_views=operator_views,
-        workflow_summary=build_bundle_workflow_summary(
-            review_summary=review_summary,
-            operator_views=operator_views,
-            promotion_gate=promotion_gate,
-            default_fact_id=default_fact_id,
-        ),
+        workflow_summary=workflow_summary,
         chronology_summary_extras={
             "legal_procedural_observation_count": len(legal_procedural_observations),
             "legal_procedural_predicate_count": len(legal_procedural_predicates),
         },
+        compiler_contract=compiler_contract,
+        promotion_gate=promotion_gate,
+        review_claim_records=review_claim_records,
         semantic_context={
             "summary": dict(semantic_report.get("summary", {}))
             if isinstance(semantic_report.get("summary"), Mapping)

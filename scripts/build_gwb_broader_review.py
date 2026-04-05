@@ -80,6 +80,28 @@ try:
 except ModuleNotFoundError:
     from policy.product_gate import build_product_gate
 try:
+    from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
+except ModuleNotFoundError:
+    from policy.reasoner_input_artifact import build_reasoner_input_artifact
+try:
+    from src.policy.review_claim_records import (
+        attach_review_item_relations_by_seed_id,
+        build_review_claim_records_from_review_rows,
+    )
+except ModuleNotFoundError:
+    from policy.review_claim_records import (
+        attach_review_item_relations_by_seed_id,
+        build_review_claim_records_from_review_rows,
+    )
+try:
+    from src.policy.review_workflow_summary import build_count_priority_workflow_summary
+except ModuleNotFoundError:
+    from policy.review_workflow_summary import build_count_priority_workflow_summary
+try:
+    from src.policy.suite_normalized_artifact import build_gwb_broader_review_normalized_artifact
+except ModuleNotFoundError:
+    from policy.suite_normalized_artifact import build_gwb_broader_review_normalized_artifact
+try:
     from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
         fetch_brexit_archive_records,
     )
@@ -426,41 +448,39 @@ def _build_workflow_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "archive_follow_live_count": archive_live_count,
         "debate_edge_count": int(summary.get("debate_edge_count") or 0),
     }
-    if archive_live_count > 0:
-        return {
-            "stage": "archive",
-            "title": "Review live National Archives follow evidence",
-            "recommended_view": "archive_follow_rows",
-            "reason": f"{archive_live_count} live archive follow row(s) need review and ranking.",
-            "counts": counts,
-            "promotion_gate": dict(promotion_gate),
-        }
-    if legal_follow_queue_count > 0:
-        return {
-            "stage": "follow_up",
-            "title": "Resolve bounded legal follow items",
-            "recommended_view": "legal_follow_graph",
-            "reason": f"{legal_follow_queue_count} legal follow item(s) remain open.",
-            "counts": counts,
-            "promotion_gate": dict(promotion_gate),
-        }
-    if missing_review_count > 0:
-        return {
-            "stage": "decide",
-            "title": "Review unresolved broader GWB source rows",
-            "recommended_view": "source_review_rows",
-            "reason": f"{missing_review_count} source row(s) remain missing review coverage.",
-            "counts": counts,
-            "promotion_gate": dict(promotion_gate),
-        }
-    return {
-        "stage": "record",
-        "title": "Record the bounded broader GWB review state",
-        "recommended_view": "summary",
-        "reason": "No open legal-follow or source-review pressure remains in the current broader GWB slice.",
-        "counts": counts,
-        "promotion_gate": dict(promotion_gate),
-    }
+    return build_count_priority_workflow_summary(
+        counts=counts,
+        promotion_gate=promotion_gate,
+        rules=(
+            {
+                "count_key": "archive_follow_live_count",
+                "stage": "archive",
+                "title": "Review live National Archives follow evidence",
+                "recommended_view": "archive_follow_rows",
+                "reason_template": "{archive_follow_live_count} live archive follow row(s) need review and ranking.",
+            },
+            {
+                "count_key": "legal_follow_queue_count",
+                "stage": "follow_up",
+                "title": "Resolve bounded legal follow items",
+                "recommended_view": "legal_follow_graph",
+                "reason_template": "{legal_follow_queue_count} legal follow item(s) remain open.",
+            },
+            {
+                "count_key": "missing_review_count",
+                "stage": "decide",
+                "title": "Review unresolved broader GWB source rows",
+                "recommended_view": "source_review_rows",
+                "reason_template": "{missing_review_count} source row(s) remain missing review coverage.",
+            },
+        ),
+        default_step={
+            "stage": "record",
+            "title": "Record the bounded broader GWB review state",
+            "recommended_view": "summary",
+            "reason_template": "No open legal-follow or source-review pressure remains in the current broader GWB slice.",
+        },
+    )
 
 
 def _build_provisional_rows(source_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -611,6 +631,33 @@ def build_gwb_broader_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str,
         compiler_contract=payload["compiler_contract"],
     )
     payload["workflow_summary"] = _build_workflow_summary(payload)
+    payload["review_claim_records"] = attach_review_item_relations_by_seed_id(
+        review_claim_records=build_review_claim_records_from_review_rows(
+            rows=source_review_rows,
+            lane="gwb",
+            family_id="gwb_broader_review",
+            cohort_id=ARTIFACT_VERSION,
+            root_artifact_id=ARTIFACT_VERSION,
+            source_family="gwb_broader_review",
+            recommended_view=str(payload["workflow_summary"].get("recommended_view") or ""),
+            queue_family="source_review_rows",
+            eligible_statuses=("missing_review", "review_required"),
+        ),
+        review_item_rows=review_item_rows,
+    )
+    payload["suite_normalized_artifact"] = build_gwb_broader_review_normalized_artifact(
+        artifact_id=ARTIFACT_VERSION,
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
+        source_input=payload["source_input"],
+        workflow_summary=payload["workflow_summary"],
+    )
+    payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
+        source_system="SensibLaw",
+        suite_normalized_artifact=payload["suite_normalized_artifact"],
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
+    )
     payload["normalized_metrics_v1"] = compute_normalized_metrics_from_profile(
         profile=get_normalized_profile("gwb"),
         artifact_id="gwb_broader_review_v1",

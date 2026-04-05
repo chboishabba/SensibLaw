@@ -6,6 +6,7 @@ from src.fact_intake.review_bundle import (
     build_event_chronology,
     build_fact_review_bundle_payload,
 )
+from src.policy.review_workflow_summary import build_count_priority_workflow_summary
 
 
 def test_build_event_chronology_orders_by_time_then_semantic_order() -> None:
@@ -114,9 +115,46 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
             },
         },
         operator_views={"intake_triage": {"available": True}},
-        semantic_context={"summary": {"relation_candidate_count": 1}},
+        semantic_context={
+            "summary": {"relation_candidate_count": 1},
+            "compiler_contract": {"lane": "transcript"},
+            "promotion_gate": {"decision": "audit"},
+        },
         chronology_summary_extras={"legal_procedural_observation_count": 2},
         workflow_summary={"stage": "decide", "recommended_view": "intake_triage"},
+        review_claim_records=[
+            {
+                "schema_version": "sl.review_claim_record.v0_2",
+                "claim_id": "fact:1",
+                "candidate_id": "fact:1",
+                "family_id": "transcript_review_bundle",
+                "cohort_id": "semantic:1",
+                "root_artifact_id": "factrun:123",
+                "lane": "transcript",
+                "source_family": "transcript_review_bundle",
+                "state": "review_claim",
+                "state_basis": "review_bundle",
+                "evidence_status": "review_only",
+                "proposition_identity": {
+                    "schema_version": "sl.proposition_identity.v0_1",
+                    "proposition_id": "fact:1",
+                    "family_id": "transcript_review_bundle",
+                    "cohort_id": "semantic:1",
+                    "root_artifact_id": "factrun:123",
+                    "lane": "transcript",
+                    "source_family": "transcript_review_bundle",
+                    "identity_basis": {"basis_kind": "review_queue_row", "local_id": "fact:1"},
+                    "provenance": {
+                        "source_kind": "review_bundle",
+                        "upstream_artifact_ids": ["factrun:123", "semantic:1"],
+                        "anchor_refs": {"fact_id": "fact:1"},
+                    },
+                },
+                "provenance": {"source_kind": "review_bundle"},
+                "decision_basis": {"basis_kind": "review_queue_row"},
+                "review_route": {"actionability": "must_review"},
+            }
+        ],
     )
 
     assert bundle["run"]["semantic_run_id"] == "semantic:1"
@@ -126,6 +164,9 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
     assert bundle["chronology_summary"]["legal_procedural_observation_count"] == 2
     assert bundle["review_queue"][0]["fact_id"] == "fact:1"
     assert bundle["workflow_summary"]["recommended_view"] == "intake_triage"
+    assert bundle["compiler_contract"]["lane"] == "transcript"
+    assert bundle["promotion_gate"]["decision"] == "audit"
+    assert bundle["review_claim_records"][0]["claim_id"] == "fact:1"
 
 
 def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
@@ -149,4 +190,49 @@ def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:
     assert summary["stage"] == "follow_up"
     assert summary["recommended_view"] == "authority_follow"
     assert summary["focus_fact_id"] == "fact:1"
+    assert summary["promotion_gate"]["decision"] == "audit"
+
+
+def test_build_count_priority_workflow_summary_uses_first_matching_rule() -> None:
+    summary = build_count_priority_workflow_summary(
+        counts={
+            "archive_follow_live_count": 0,
+            "legal_follow_queue_count": 2,
+            "missing_review_count": 4,
+        },
+        promotion_gate={"decision": "audit"},
+        rules=(
+            {
+                "count_key": "archive_follow_live_count",
+                "stage": "archive",
+                "title": "Archive pressure",
+                "recommended_view": "archive_rows",
+                "reason_template": "{archive_follow_live_count} archive row(s) remain open.",
+            },
+            {
+                "count_key": "legal_follow_queue_count",
+                "stage": "follow_up",
+                "title": "Follow pressure",
+                "recommended_view": "legal_follow_graph",
+                "reason_template": "{legal_follow_queue_count} legal follow item(s) remain open.",
+            },
+            {
+                "count_key": "missing_review_count",
+                "stage": "decide",
+                "title": "Review pressure",
+                "recommended_view": "source_review_rows",
+                "reason_template": "{missing_review_count} source row(s) remain missing review coverage.",
+            },
+        ),
+        default_step={
+            "stage": "record",
+            "title": "Record state",
+            "recommended_view": "summary",
+            "reason_template": "No open pressure remains.",
+        },
+    )
+
+    assert summary["stage"] == "follow_up"
+    assert summary["recommended_view"] == "legal_follow_graph"
+    assert summary["reason"] == "2 legal follow item(s) remain open."
     assert summary["promotion_gate"]["decision"] == "audit"

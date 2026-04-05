@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from src.policy.affidavit_text_normalization import (
+    build_affidavit_duplicate_candidates,
     find_numbered_rebuttal_start,
+    is_duplicate_affidavit_unit,
+    is_duplicate_response_excerpt,
     predicate_focus_tokens,
     split_affidavit_text,
     split_source_segment_clauses,
+    strip_enumeration_prefix,
+    token_overlap_similarity,
+    tokenize_duplicate_filter_text,
     tokenize_affidavit_text,
 )
 
@@ -52,3 +58,37 @@ def test_split_affidavit_text_decomposes_semicolon_clause() -> None:
     assert [row["proposition_id"] for row in propositions] == ["aff-prop:p1-s1", "aff-prop:p1-s2"]
     assert propositions[0]["tokens"]
     assert propositions[1]["tokens"]
+
+
+def test_duplicate_filter_helpers_live_under_text_normalization() -> None:
+    assert strip_enumeration_prefix("  2.1) The respondent cut off my internet") == (
+        "The respondent cut off my internet"
+    )
+
+    tokens = tokenize_duplicate_filter_text("1. The organisation emphasised privacy.")
+    assert "organization" in tokens
+    assert "privacy" in tokens
+
+    assert token_overlap_similarity({"internet", "cut"}, {"internet", "cut"}) == 1.0
+
+    affidavit_text = (
+        "The respondent cut off my internet in November 2024.\n"
+        "The respondent pushed me on the back deck.\n"
+    )
+    candidates = build_affidavit_duplicate_candidates(affidavit_text)
+    assert len(candidates) == 2
+    assert is_duplicate_affidavit_unit(
+        "1. The respondent cut off my internet in November 2024.",
+        affidavit_candidates=candidates,
+    )
+
+
+def test_duplicate_response_excerpt_detection_lives_under_text_surface() -> None:
+    assert is_duplicate_response_excerpt(
+        "The respondent cut off my internet in November 2024.",
+        "The respondent cut off my internet in November 2024.",
+    )
+    assert not is_duplicate_response_excerpt(
+        "The respondent cut off my internet in November 2024.",
+        "I later sent an email about the outage.",
+    )

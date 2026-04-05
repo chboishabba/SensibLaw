@@ -241,6 +241,9 @@ def build_fact_review_bundle_payload(
     semantic_context: Mapping[str, Any],
     chronology_summary_extras: Mapping[str, Any] | None = None,
     workflow_summary: Mapping[str, Any] | None = None,
+    compiler_contract: Mapping[str, Any] | None = None,
+    promotion_gate: Mapping[str, Any] | None = None,
+    review_claim_records: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     chronology_summary = {
         **dict(review_summary.get("chronology_summary", {})),
@@ -249,7 +252,22 @@ def build_fact_review_bundle_payload(
     }
     if chronology_summary_extras:
         chronology_summary.update(dict(chronology_summary_extras))
-    return {
+    semantic_context_dict = dict(semantic_context)
+    compiler_contract_dict = (
+        dict(compiler_contract)
+        if isinstance(compiler_contract, Mapping)
+        else dict(semantic_context_dict.get("compiler_contract", {}))
+        if isinstance(semantic_context_dict.get("compiler_contract"), Mapping)
+        else {}
+    )
+    promotion_gate_dict = (
+        dict(promotion_gate)
+        if isinstance(promotion_gate, Mapping)
+        else dict(semantic_context_dict.get("promotion_gate", {}))
+        if isinstance(semantic_context_dict.get("promotion_gate"), Mapping)
+        else {}
+    )
+    payload = {
         "version": FACT_REVIEW_BUNDLE_VERSION,
         "run": {
             "fact_run_id": str(fact_report["run"]["run_id"]),
@@ -277,5 +295,10 @@ def build_fact_review_bundle_payload(
         "chronology_summary": chronology_summary,
         "workflow_summary": dict(workflow_summary or {}),
         "abstentions": dict(abstentions),
-        "semantic_context": dict(semantic_context),
+        "compiler_contract": compiler_contract_dict,
+        "promotion_gate": promotion_gate_dict,
+        "semantic_context": semantic_context_dict,
     }
+    if review_claim_records is not None:
+        payload["review_claim_records"] = [dict(row) for row in review_claim_records]
+    return payload

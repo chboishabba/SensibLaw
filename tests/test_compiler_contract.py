@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from src.policy.compiler_contract import (
+    PromotedOutcomeContract,
     build_au_fact_review_bundle_contract,
     build_au_public_handoff_contract,
     build_gwb_broader_review_contract,
     build_gwb_public_handoff_contract,
     build_gwb_public_review_contract,
     build_wikidata_migration_pack_contract,
+    normalize_promoted_outcomes,
 )
 from src.policy.product_gate import build_product_gate
 
@@ -197,3 +199,43 @@ def test_build_product_gate_abstains_when_no_promoted_outcomes_exist() -> None:
 
     assert gate["decision"] == "abstain"
     assert gate["reason"] == "no_promoted_outcomes"
+
+
+def test_normalize_promoted_outcomes_preserves_explicit_values() -> None:
+    normalized = normalize_promoted_outcomes(
+        PromotedOutcomeContract(
+            outcome_family="procedural_review_outcomes",
+            promoted_count=2,
+            review_count=1,
+            abstained_count=1,
+            outcome_labels=("captured", "review_queue", "abstained"),
+        )
+    )
+
+    assert normalized == {
+        "outcome_family": "procedural_review_outcomes",
+        "promoted_count": 2,
+        "review_count": 1,
+        "abstained_count": 1,
+        "outcome_labels": ["captured", "review_queue", "abstained"],
+    }
+
+
+def test_normalize_promoted_outcomes_fails_closed_on_malformed_input() -> None:
+    normalized = normalize_promoted_outcomes(
+        {
+            "outcome_family": None,
+            "promoted_count": "bad",
+            "review_count": "3",
+            "abstained_count": object(),
+            "outcome_labels": ["covered", "covered", "", None, "review_required"],
+        }
+    )
+
+    assert normalized == {
+        "outcome_family": "",
+        "promoted_count": 0,
+        "review_count": 3,
+        "abstained_count": 0,
+        "outcome_labels": ["covered", "review_required"],
+    }

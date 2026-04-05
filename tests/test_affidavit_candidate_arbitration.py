@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from src.policy.affidavit_candidate_arbitration import arbitrate_candidate_selection
+from src.policy.affidavit_candidate_arbitration import (
+    arbitrate_candidate_selection,
+    resolve_duplicate_match_excerpt,
+)
 
 
 def test_arbitration_promotes_duplicate_root_alternate() -> None:
@@ -111,3 +114,28 @@ def test_arbitration_prefers_higher_predicate_on_adjusted_tie() -> None:
     )
 
     assert result["match_excerpt"] == "Candidate two"
+
+
+def test_resolve_duplicate_match_excerpt_uses_cross_row_duplicate_context() -> None:
+    assert resolve_duplicate_match_excerpt(
+        selected_candidate={
+            "match_excerpt": "I deny the allegation.",
+            "duplicate_match_excerpt": None,
+        },
+        top_duplicate_candidate={
+            "match_excerpt": "The respondent cut off my internet in November 2024.",
+        },
+    ) == "The respondent cut off my internet in November 2024."
+
+    assert (
+        resolve_duplicate_match_excerpt(
+            selected_candidate={
+                "match_excerpt": "The respondent cut off my internet in November 2024.",
+                "duplicate_match_excerpt": None,
+            },
+            top_duplicate_candidate={
+                "match_excerpt": "The respondent cut off my internet in November 2024.",
+            },
+        )
+        is None
+    )

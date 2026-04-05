@@ -56,6 +56,33 @@
     - reusable promotion gate exists above those products
     - graph stays derived and optional
     - operator workflow no longer lags far behind the architecture
+  - normalization correction:
+    - lane-local grouped facades are not the same thing as a shared canonical
+      substrate
+    - files such as `src/policy/affidavit_normalized_surface.py` are useful
+      temporary adapter shells, but they do not satisfy the cross-lane
+      normalization goal by themselves
+    - the stronger target is extraction of lane-agnostic surfaces for:
+      - text units
+      - candidate units
+      - claim units
+      - hint/advisory units
+      - decision/arbitration units
+  - next normalization priority order:
+    - shared text surface above affidavit/AU/GWB/Nat leaves
+    - shared candidate/alignment surface
+    - shared claim/decision surface
+    - only then keep or remove lane-local facade shells case by case
+  - proposition-unification readiness gate:
+    - do not claim semantic/legal proposition unification until the repo has:
+      - DONE: a shared proposition identity substrate
+      - DONE: a bounded shared proposition-relation vocabulary
+      - DONE: a bounded contradiction taxonomy kept separate from review pressure
+      - DONE: a fail-closed resolution policy with legal plural states such as
+        hold and abstain
+    - weak `review_claim_records` do not satisfy this gate by themselves
+    - proposition runtime work before those four prerequisites land is schema
+      theater
   - first implementation slice:
     - DONE: add one tiny shared `compiler_contract` payload
     - DONE: first adopters:
@@ -604,6 +631,32 @@
   `docs/planning/wikimedia_grant_framing_20260326.md`.
 
 ## Semantic / artifact boundary
+- [P0] Convert lane-local normalization shells into shared cross-lane
+  surfaces:
+  the current affidavit grouped facade improved local shape, but it is still
+  affidavit-specific. The next honest normalization target is not more
+  affidavit-only wrappers. It is extraction of canonical shared surfaces that
+  multiple lanes can bind to directly.
+  - target shared surfaces:
+    - `text_surface`
+    - `candidate_surface`
+    - `claim_surface`
+    - `hint_surface`
+    - `decision_surface`
+  - first proving lanes:
+    - affidavit
+    - AU fact-review / legal-follow
+    - GWB broader review
+    - Wikidata/Nat where the concept truly fits
+  - success condition:
+    - at least two non-affidavit lanes consume one of the extracted shared
+      surfaces without introducing new lane-specific types for the same
+      concept
+    - lane-local facades become adapters, not the organizing truth layer
+  - hold:
+    - do not mass-rename modules before the canonical shared type owners are
+      fixed
+    - do not let temporary facade files become permanent pseudo-substrates
 - [x] Add a canonical persisted receiver for affidavit coverage / contested
   narrative review in `itir.sqlite`, while keeping the JSON/markdown artifact
   as a derived projection/export surface.
@@ -676,9 +729,12 @@
     bundling, and hint-aware workload recommendations, with focused coverage
     in `tests/test_affidavit_extraction_hints.py`.
   Outcome:
-  the planned normalization ladder from reconciliation text through extraction
-  hints is now landed; the remaining open affidavit work is parity/outcome
-  quality, not this helper-extraction umbrella.
+  the planned affidavit-local normalization ladder from reconciliation text
+  through extraction hints is now landed, but that only establishes a local
+  facade and cleaner ownership inside the affidavit lane.
+  It does not yet satisfy the stronger cross-lane normalization target.
+  Next priority is extracting shared text/candidate/claim/hint/decision
+  surfaces that AU, GWB, affidavit, and Nat can all bind to.
 - [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
   resolver matches the documented authority order (`already-ingested/local ->
   JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search

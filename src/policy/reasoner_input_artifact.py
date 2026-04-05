@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .compiler_contract import normalize_promoted_outcomes
+
 
 REASONER_INPUT_ARTIFACT_SCHEMA_VERSION = "sl.reasoner_input.v0_1"
 
@@ -20,10 +22,10 @@ def build_reasoner_input_artifact(
     compiler_contract: Mapping[str, Any],
     promotion_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
-    promoted_outcomes = (
+    promoted_outcomes = normalize_promoted_outcomes(
         compiler_contract.get("promoted_outcomes")
         if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else {}
+        else None
     )
 
     return {

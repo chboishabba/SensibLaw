@@ -16,6 +16,7 @@ rectangle "External Source Families" as SOURCES {
 rectangle "Lane Adapters" as LANES {
   component "Nat Lane" as NAT
   component "Assist / Reviewer Lane" as ASSIST
+  component "Affidavit / Contested Narrative Lane" as AFFIDAVIT
   component "Other Lane Adapters" as OTHER
 }
 
@@ -37,11 +38,13 @@ WIKIDATA --> NAT
 AU --> ASSIST
 GWB --> ASSIST
 BREXIT --> ASSIST
+AU --> AFFIDAVIT
 FUTURE --> OTHER
 
 NAT --> CLAIM
 ASSIST --> CLAIM
 OTHER --> CLAIM
+AFFIDAVIT --> REVIEW
 
 CLAIM --> CONVERGENCE
 CONVERGENCE --> TEMPORAL
@@ -56,6 +59,15 @@ note right of SUBSTRATE
 One normalized process is now defined in code:
 claim -> convergence -> temporal -> conflict -> policy
 Lane rebinding is the next step.
+end note
+
+note bottom of AFFIDAVIT
+Dad/Johl child views:
+- affidavit_dad_johl_lane_20260404.puml
+- affidavit_dad_johl_claim_root_arbitration_20260405.puml
+Current state:
+- normalized affidavit facade and review geometry are real
+- full claim-model rebinding is not yet landed
 end note
 
 @enduml
