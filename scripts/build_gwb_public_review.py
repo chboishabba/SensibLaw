@@ -88,6 +88,13 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _render_source_input_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _year_mentions(text: str) -> list[str]:
     return re.findall(r"\b(1[0-9]{3}|20[0-9]{2}|202[0-9])\b", text or "")
 
@@ -100,25 +107,63 @@ def _build_review_item_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any
             continue
         candidate_events = int(seed.get("candidate_event_count") or 0)
         matched_events = int(seed.get("matched_event_count") or 0)
-        if matched_events and matched_events == candidate_events:
-            coverage_status = "covered"
-        elif matched_events:
-            coverage_status = "partial"
-        else:
-            coverage_status = "unsupported"
-        rows.append(
-            {
-                "review_item_id": f"seed:{seed_id}",
-                "seed_id": seed_id,
-                "action_summary": seed.get("action_summary"),
-                "support_kind": seed.get("support_kind"),
-                "linkage_kind": seed.get("linkage_kind"),
-                "coverage_status": coverage_status,
-                "candidate_event_count": candidate_events,
-                "matched_event_count": matched_events,
-            }
-        )
+        events = [event for event in seed.get("events", []) or [] if isinstance(event, dict)]
+        matched_target_events = [event for event in events if bool(event.get("matched"))]
+        if len(matched_target_events) <= 1:
+            if matched_events and matched_events == candidate_events:
+                coverage_status = "covered"
+            elif matched_events:
+                coverage_status = "partial"
+            else:
+                coverage_status = "unsupported"
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}",
+                    "seed_id": seed_id,
+                    "action_summary": seed.get("action_summary"),
+                    "support_kind": seed.get("support_kind"),
+                    "linkage_kind": seed.get("linkage_kind"),
+                    "coverage_status": coverage_status,
+                    "candidate_event_count": candidate_events,
+                    "matched_event_count": matched_events,
+                }
+            )
+            continue
+        for event_index, event in enumerate(matched_target_events, start=1):
+            event_id = str(event.get("event_id") or "").strip()
+            row_suffix = event_id or f"event_{event_index}"
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}:event:{row_suffix}",
+                    "seed_id": seed_id,
+                    "action_summary": seed.get("action_summary"),
+                    "support_kind": seed.get("support_kind"),
+                    "linkage_kind": seed.get("linkage_kind"),
+                    "coverage_status": "covered",
+                    "candidate_event_count": 1,
+                    "matched_event_count": 1,
+                    "event_id": event_id or None,
+                    "confidence": str(event.get("confidence") or "").strip() or None,
+                }
+            )
     return rows
+
+
+def _summarize_seed_coverage(review_item_rows: list[dict[str, Any]], seed_id: str) -> str | None:
+    statuses = {
+        str(row.get("coverage_status") or "").strip()
+        for row in review_item_rows
+        if str(row.get("seed_id") or "").strip() == seed_id and str(row.get("coverage_status") or "").strip()
+    }
+    if not statuses:
+        return None
+    if statuses == {"covered"}:
+        return "covered"
+    if "covered" in statuses:
+        return "partial"
+    if "partial" in statuses:
+        return "partial"
+    return "unsupported"
 
 
 def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -204,9 +249,7 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
         if row.get("review_status") != "missing_review":
             continue
         by_seed.setdefault(seed_id, []).append(row)
-    review_item_by_seed = {row["seed_id"]: row for row in review_item_rows}
     for seed_id, rows in sorted(by_seed.items()):
-        review_item = review_item_by_seed.get(seed_id, {})
         workload_counts: dict[str, int] = {}
         for row in rows:
             for wc in row.get("workload_classes", []) or []:
@@ -215,7 +258,7 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
             {
                 "cluster_id": f"cluster:{seed_id}",
                 "seed_id": seed_id,
-                "coverage_status": review_item.get("coverage_status"),
+                "coverage_status": _summarize_seed_coverage(review_item_rows, seed_id),
                 "candidate_source_count": len(rows),
                 "workload_class_rollup": sorted(
                     (
@@ -347,8 +390,14 @@ def _build_workflow_summary(payload: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, str]:
-    slice_payload = _load_json(SOURCE_SLICE_PATH)
+def build_gwb_public_review(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    *,
+    baseline_graph_diagnostics: dict[str, Any] | None = None,
+    source_slice_path: Path | None = None,
+) -> dict[str, str]:
+    slice_path = source_slice_path or SOURCE_SLICE_PATH
+    slice_payload = _load_json(slice_path)
     review_item_rows = _build_review_item_rows(slice_payload)
     source_review_rows = _build_source_review_rows(slice_payload)
     related_review_clusters = _build_clusters(review_item_rows, source_review_rows)
@@ -359,7 +408,7 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
         "version": ARTIFACT_VERSION,
         "fixture_kind": "gwb_public_review",
         "source_input": {
-            "path": str(SOURCE_SLICE_PATH.relative_to(REPO_ROOT)),
+            "path": _render_source_input_path(slice_path),
             "source_row_count": len(source_review_rows),
         },
         "summary": {},
@@ -404,6 +453,8 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
         promotion_gate=payload["promotion_gate"],
         source_input=payload["source_input"],
         workflow_summary=payload["workflow_summary"],
+        graph_payload=payload["legal_follow_graph"],
+        baseline_graph_diagnostics=baseline_graph_diagnostics,
     )
     payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
         source_system="SensibLaw",

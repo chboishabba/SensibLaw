@@ -273,6 +273,19 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert first_review_claim["proposition_identity"]["proposition_id"] == first_review_claim["claim_id"]
     assert first_review_claim["proposition_identity"]["identity_basis"]["basis_kind"] == "review_queue_row"
     assert first_review_claim["proposition_identity"]["provenance"]["source_kind"] == "review_bundle"
+    assert first_review_claim["review_candidate"]["candidate_id"] == first_review_claim["claim_id"]
+    assert first_review_claim["review_candidate"]["candidate_kind"] == "review_queue_row"
+    assert first_review_claim["review_candidate"]["source_kind"] == "review_bundle"
+    assert first_review_claim["review_candidate"]["selection_basis"]["basis_kind"] == "review_queue_row"
+    assert first_review_claim["review_candidate"]["selection_basis"]["candidate_status"]
+    assert first_review_claim["review_candidate"]["anchor_refs"]["fact_id"] == first_review_claim["claim_id"]
+    assert (
+        first_review_claim["review_candidate"]["target_proposition_id"]
+        == first_review_claim["target_proposition_identity"]["proposition_id"]
+    )
+    assert first_review_claim["review_text"]["text"] == bundle["review_queue"][0]["label"]
+    assert first_review_claim["review_text"]["text_role"] == "claim_display_label"
+    assert first_review_claim["review_text"]["source_kind"] == "review_bundle"
     assert first_review_claim["review_route"]["actionability"] == "must_review"
     assert first_review_claim["review_route"]["recommended_view"] == bundle["workflow_summary"]["recommended_view"]
     assert bundle["semantic_context"]["compiler_contract"]["lane"] == "au"
@@ -289,6 +302,23 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert normalized_artifact["artifact_role"] == "derived_product"
     assert normalized_artifact["authority"]["derived"] is True
     assert normalized_artifact["summary"]["lane"] == "au"
+    graph_diagnostics = normalized_artifact["graph_diagnostics"]
+    assert graph_diagnostics["schema_version"] == "itir.graph_diagnostics.v1"
+    assert graph_diagnostics["scope"]["substrate_kind"] == "legal_follow_graph"
+    assert graph_diagnostics["scope"]["projection_role"] == "suite_normalized_artifact"
+    assert graph_diagnostics["scope"]["source_lane"] == "au"
+    assert graph_diagnostics["metrics"]["node_count"] == bundle["semantic_context"]["legal_follow_graph"]["summary"]["node_count"]
+    assert graph_diagnostics["metrics"]["edge_count"] == bundle["semantic_context"]["legal_follow_graph"]["summary"]["edge_count"]
+    assert graph_diagnostics["cone"]["seed_set"]
+    assert graph_diagnostics["cone"]["allowed_edge_types"] == [
+        "mentions_authority_title",
+        "mentions_case_ref",
+        "mentions_citation",
+        "mentions_cited_instrument",
+        "mentions_legal_ref",
+        "mentions_supporting_legislation",
+    ]
+    assert graph_diagnostics["cone"]["max_depth"] == 1
     reasoner_input_artifact = bundle["semantic_context"]["reasoner_input_artifact"]
     assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
     assert reasoner_input_artifact["source_system"] == "SensibLaw"
@@ -305,6 +335,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
         "compiled_state",
     ]
     assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
+    assert reasoner_input_artifact["normalized_artifact"]["graph_diagnostics"] == graph_diagnostics
     assert reasoner_input_artifact["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     root_schema = json.loads(
         Path(__file__).resolve().parents[2].joinpath("schemas", "itir.normalized.artifact.v1.schema.json").read_text(encoding="utf-8")

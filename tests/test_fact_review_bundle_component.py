@@ -124,7 +124,7 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
         workflow_summary={"stage": "decide", "recommended_view": "intake_triage"},
         review_claim_records=[
             {
-                "schema_version": "sl.review_claim_record.v0_2",
+                "schema_version": "sl.review_claim_record.v0_4",
                 "claim_id": "fact:1",
                 "candidate_id": "fact:1",
                 "family_id": "transcript_review_bundle",
@@ -150,7 +150,19 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
                         "anchor_refs": {"fact_id": "fact:1"},
                     },
                 },
+                "review_candidate": {
+                    "schema_version": "sl.review_candidate.v0_1",
+                    "candidate_id": "fact:1",
+                    "candidate_kind": "review_queue_row",
+                    "source_kind": "review_bundle",
+                    "selection_basis": {"basis_kind": "review_queue_row"},
+                },
                 "provenance": {"source_kind": "review_bundle"},
+                "review_text": {
+                    "text": "Transcript fact 1",
+                    "text_role": "claim_display_label",
+                    "source_kind": "review_bundle",
+                },
                 "decision_basis": {"basis_kind": "review_queue_row"},
                 "review_route": {"actionability": "must_review"},
             }
@@ -167,6 +179,8 @@ def test_build_fact_review_bundle_payload_shapes_shared_envelope() -> None:
     assert bundle["compiler_contract"]["lane"] == "transcript"
     assert bundle["promotion_gate"]["decision"] == "audit"
     assert bundle["review_claim_records"][0]["claim_id"] == "fact:1"
+    assert bundle["review_claim_records"][0]["review_candidate"]["candidate_kind"] == "review_queue_row"
+    assert bundle["review_claim_records"][0]["review_text"]["text"] == "Transcript fact 1"
 
 
 def test_build_bundle_workflow_summary_prefers_authority_follow() -> None:

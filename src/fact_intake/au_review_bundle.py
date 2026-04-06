@@ -792,6 +792,7 @@ def build_au_fact_review_bundle(
         if isinstance(semantic_report.get("source_documents"), list)
         else [],
         typing_deficit_signals=_collect_au_typing_deficit_signals(semantic_report),
+        graph_payload=legal_follow_graph,
     )
     reasoner_input_artifact = build_reasoner_input_artifact(
         source_system="SensibLaw",

@@ -133,7 +133,7 @@ def test_extract_pdf_streams_pages_incrementally(tmp_path):
 
 def test_iter_process_pdf_emits_compression_stats(tmp_path):
     pdf_ingest = _load_pdf_ingest(
-        [[_make_text_container("Heading 1\nAlice must pay Bob.")]]
+        [[_make_text_container("Heading 1\nAlice must `pay` Bob.")]]
     )
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
@@ -148,10 +148,43 @@ def test_iter_process_pdf_emits_compression_stats(tmp_path):
     )
     build_payload = next(payload for stage, payload in stages if stage == "build")
     document = build_payload["document"]
+    canonical_text = build_payload["canonical_text"]
+    parsed_envelope = build_payload["parsed_envelope"]
     assert document.metadata.compression_stats
     assert document.metadata.compression_stats == compute_compression_stats(
         document.body
     ).to_dict()
+    assert canonical_text["media_type"] == "text"
+    assert canonical_text["text_id"].startswith("sample:text:")
+    assert canonical_text["text"] == document.body
+    assert canonical_text["provenance"]["adapter"] == "pdf_page_media_adapter"
+    assert canonical_text["segments"][0]["text_id"] == canonical_text["text_id"]
+    assert canonical_text["segments"][0]["anchors"]["page"] == 1
+    assert parsed_envelope["canonical_text"]["text_id"] == canonical_text["text_id"]
+    assert parsed_envelope["parse_profile"] == "structural_parse"
+    assert parsed_envelope["ingest_receipt"]["adapter"] == "pdf_page_media_adapter"
+    assert len(parsed_envelope["parsed_segments"]) == len(canonical_text["segments"])
+    paragraph_units = [
+        unit
+        for unit in parsed_envelope["parsed_units"]
+        if unit["segment_id"] == canonical_text["segments"][1]["segment_id"]
+    ]
+    assert [unit["unit_kind"] for unit in paragraph_units] == [
+        "text_run",
+        "code_span",
+        "text_run",
+    ]
+    assert paragraph_units[1]["text"] == "`pay`"
+    assert paragraph_units[1]["anchor_refs"] == {
+        "text_id": canonical_text["text_id"],
+        "segment_id": canonical_text["segments"][1]["segment_id"],
+        "unit_id": paragraph_units[1]["unit_id"],
+        "start_char": paragraph_units[1]["start_char"],
+        "end_char": paragraph_units[1]["end_char"],
+        "order_index": canonical_text["segments"][1]["order_index"],
+        "media_type": "text",
+        "page": 1,
+    }
 
 
 def test_process_pdf_ingests_context_overlays(tmp_path):

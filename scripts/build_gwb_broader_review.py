@@ -269,26 +269,61 @@ def _build_review_item_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any
             continue
         matched_families = list(lane.get("matched_source_families", []))
         source_families = list(lane.get("source_families", []))
-        if len(matched_families) == len(source_families):
-            coverage_status = "covered"
-        elif matched_families:
-            coverage_status = "partial"
-        else:
-            coverage_status = "unsupported"
-        rows.append(
-            {
-                "review_item_id": f"seed:{seed_id}",
-                "seed_id": seed_id,
-                "action_summary": lane.get("action_summary"),
-                "linkage_kind": lane.get("linkage_kind"),
-                "coverage_status": coverage_status,
-                "source_family_count": len(source_families),
-                "matched_source_family_count": len(matched_families),
-                "support_kinds": list(lane.get("support_kinds", [])),
-                "review_statuses": list(lane.get("review_statuses", [])),
-            }
-        )
+        if len(matched_families) <= 1:
+            if len(matched_families) == len(source_families):
+                coverage_status = "covered"
+            elif matched_families:
+                coverage_status = "partial"
+            else:
+                coverage_status = "unsupported"
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}",
+                    "seed_id": seed_id,
+                    "action_summary": lane.get("action_summary"),
+                    "linkage_kind": lane.get("linkage_kind"),
+                    "coverage_status": coverage_status,
+                    "source_family_count": len(source_families),
+                    "matched_source_family_count": len(matched_families),
+                    "support_kinds": list(lane.get("support_kinds", [])),
+                    "review_statuses": list(lane.get("review_statuses", [])),
+                }
+            )
+            continue
+        matched_family_set = set(matched_families)
+        for family in matched_families:
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}:family:{family}",
+                    "seed_id": seed_id,
+                    "action_summary": lane.get("action_summary"),
+                    "linkage_kind": lane.get("linkage_kind"),
+                    "coverage_status": "covered",
+                    "source_family_count": 1,
+                    "matched_source_family_count": 1 if family in matched_family_set else 0,
+                    "source_family": family,
+                    "support_kinds": list(lane.get("support_kinds", [])),
+                    "review_statuses": list(lane.get("review_statuses", [])),
+                }
+            )
     return rows
+
+
+def _summarize_seed_coverage(review_item_rows: list[dict[str, Any]], seed_id: str) -> str | None:
+    statuses = {
+        str(row.get("coverage_status") or "").strip()
+        for row in review_item_rows
+        if str(row.get("seed_id") or "").strip() == seed_id and str(row.get("coverage_status") or "").strip()
+    }
+    if not statuses:
+        return None
+    if statuses == {"covered"}:
+        return "covered"
+    if "covered" in statuses:
+        return "partial"
+    if "partial" in statuses:
+        return "partial"
+    return "unsupported"
 
 
 def _family_row(
@@ -396,7 +431,6 @@ def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, A
 
 
 def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    item_by_seed = {row["seed_id"]: row for row in review_item_rows}
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in source_rows:
         if row.get("seed_id") and row.get("review_status") == "missing_review":
@@ -414,7 +448,7 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
             {
                 "cluster_id": f"cluster:{seed_id}",
                 "seed_id": seed_id,
-                "coverage_status": item_by_seed[seed_id]["coverage_status"],
+                "coverage_status": _summarize_seed_coverage(review_item_rows, seed_id),
                 "candidate_source_count": len(rows),
                 "dominant_workload_class": max(workload, key=workload.get),
                 "workload_class_rollup": dict(sorted(workload.items())),
@@ -523,7 +557,11 @@ def _build_bundles(provisional_rows: list[dict[str, Any]]) -> list[dict[str, Any
     return normalized_bundles
 
 
-def build_gwb_broader_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, str]:
+def build_gwb_broader_review(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    *,
+    baseline_graph_diagnostics: dict[str, Any] | None = None,
+) -> dict[str, str]:
     slice_payload = _load_json(SOURCE_SLICE_PATH)
     review_item_rows = _build_review_item_rows(slice_payload)
     source_review_rows = _build_source_review_rows(slice_payload)
@@ -651,6 +689,8 @@ def build_gwb_broader_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str,
         promotion_gate=payload["promotion_gate"],
         source_input=payload["source_input"],
         workflow_summary=payload["workflow_summary"],
+        graph_payload=payload["legal_follow_graph"],
+        baseline_graph_diagnostics=baseline_graph_diagnostics,
     )
     payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
         source_system="SensibLaw",

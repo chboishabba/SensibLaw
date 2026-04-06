@@ -9,7 +9,9 @@ from src.ingestion.section_parser import (
     LogicTokenClass,
     annotate_logic_tokens,
     fetch_section,
+    parse_canonical_section,
 )
+from src.ingestion.media_adapter import TextDocumentMediaAdapter
 
 
 def test_extract_modality_conditions_and_refs():
@@ -168,3 +170,23 @@ def test_fetch_section_includes_token_classes():
     assert reasons["must"] == "matched rule matcher pattern MODALITY"
     assert reasons["s"] == "matched reference extractor for 's 5B'"
     assert all({"text", "start", "end", "class", "reason"} <= set(entry) for entry in token_classes)
+
+
+def test_parse_canonical_section_accepts_text_adapter_output():
+    adapter = TextDocumentMediaAdapter(source_artifact_ref="section-html")
+    canonical = adapter.adapt("<p>4 The board must consider section 15 before acting.</p>")
+
+    section = parse_canonical_section(canonical)
+
+    assert section.number == "4"
+    assert section.text == "4 The board must consider section 15 before acting."
+    assert section.modality == "must"
+    assert [ref.to_citation_dict() for ref in section.references] == [
+        {
+            "work": "this_act",
+            "section": "section",
+            "pinpoint": "15",
+            "citation_text": "section 15",
+            "glossary_id": None,
+        }
+    ]

@@ -50,6 +50,14 @@ try:
     from src.policy.review_claim_records import build_review_claim_records_from_affidavit_rows
 except Exception:  # pragma: no cover - import path fallback for direct script use
     from policy.review_claim_records import build_review_claim_records_from_affidavit_rows
+try:
+    from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.reasoner_input_artifact import build_reasoner_input_artifact
+try:
+    from src.policy.suite_normalized_artifact import build_affidavit_coverage_review_normalized_artifact
+except Exception:  # pragma: no cover - import path fallback for direct script use
+    from policy.suite_normalized_artifact import build_affidavit_coverage_review_normalized_artifact
 
 try:
     from src.policy.affidavit_normalized_surface import (
@@ -1740,6 +1748,19 @@ def build_affidavit_coverage_review(
         queue_family="affidavit_rows",
         include_target_proposition_identity=True,
         include_proposition_relation=True,
+    )
+    payload["suite_normalized_artifact"] = build_affidavit_coverage_review_normalized_artifact(
+        artifact_id=ARTIFACT_VERSION,
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
+        source_input=payload["source_input"],
+        workflow_summary=payload["workflow_summary"],
+    )
+    payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
+        source_system="SensibLaw",
+        suite_normalized_artifact=payload["suite_normalized_artifact"],
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
     )
     return payload
 

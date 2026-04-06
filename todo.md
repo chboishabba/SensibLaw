@@ -1,5 +1,89 @@
 # SensibLaw TODO
 
+- [P0] Pin and then implement the single-parser spine doctrine before any more
+  source-family expansion.
+  - parser doctrine now reads:
+    - one upstream media adapter
+    - one canonical text substrate for ordinary content
+    - one parser spine over canonical text
+    - structure is discovered post-parse, not declared by input type
+    - source provenance is metadata, not parser identity
+    - extraction profile sits above the parser
+    - mixed-content documents with embedded code stay inside the same parser
+  - current parser-spine lane order:
+    - DONE: refine `CanonicalText`, `CanonicalSegment`, `CanonicalUnit`, and
+      `ParsedEnvelope` with stable IDs, anchors, and ingest receipt fields
+    - DONE: define `parse_canonical_text(...)` as the shared parser-spine contract
+    - DONE: land one non-PDF text adopter against the same envelope contract
+    - DONE: land the first bounded extraction-profile layer on top of the
+      same spine
+    - DONE: make structure and segment graphs a parsed-output property, not an input
+      taxonomy
+    - widen downstream builders only where the shared spine materially helps
+  - current mixed-content contract:
+    - block `segment_kind`:
+      - `heading`
+      - `paragraph`
+      - `list`
+      - `quote`
+      - `table`
+      - `code_block`
+      - `divider`
+    - inline `unit_kind`:
+      - `text_run`
+      - `code_span`
+      - `citation`
+      - `link`
+      - `emphasis`
+  - current no-go list:
+    - no parser split by source family, outlet, or entity scope
+    - no parser split by downstream review lane
+    - no treating structuredness as an input class
+    - no ontology-level `pdf` / `html` / `rows` / `transcript` parser families
+    - no separate code parser for ordinary mixed documents
+  - current bounded normative read:
+    - keep ISO-like extraction on the same parser spine
+    - treat policy/IR/graph work as extraction profiles and derived artifacts
+    - treat non-text inputs as media-adapter concerns that normalize into
+      canonical text when possible
+  - minimal extraction-profile set:
+    - `normative_policy`
+    - `narrative_claim`
+    - `legal_review`
+    - `timeline_event`
+  - first bounded normative pilot:
+    - DONE: run one bounded excerpt-style input through the shared parser
+      spine and apply `normative_policy` to emit `policy_statements` and
+      `ir_queries`
+    - DONE: bind real ISO 42001 excerpt packs to the same projector
+    - current allowed ISO lane:
+      - keep ISO work on the same parser spine and `normative_policy`
+        projection
+      - treat ISO catalogue / PAS discovery as reconnaissance only, not as a
+        canonical semantic source of truth for runtime meaning
+      - use bounded excerpt packs and fixture-quality/reuse review rather than
+        broad ISO ingestion/catalog work
+      - keep `graph_extract` held
+  - first bounded structure-graph seam:
+    - DONE: additive `SegmentGraph` with:
+      - `contains`
+      - `follows`
+      - `heads`
+    - keep it debug/operator-only until a downstream consumer genuinely needs it
+  - verification gate:
+    - docs-only: consistency review only
+    - contract-only: narrow helper/policy tests only
+    - implementation seam: first adopter tests only, then widen only on real
+      shared-surface spread
+  - explicit holds:
+    - do not add new source-family taxonomies
+    - do not reopen OCR
+    - do not reopen emitted `review_alignment`
+    - do not promote claim-sheet or memoir-derived artifacts yet
+    - do not couple parser-spine work to gate/resolution/reporting changes
+    - do not turn the ISO lane into a separate parser family, standards
+      ontology, or broad ingestion/catalog program
+
 - [P0] Reconsider the moonshot normalization read across AU, GWB, and
   Wikidata:
   the previous judgment-architecture pass was useful but too Nat-centric.
@@ -73,6 +157,86 @@
     - shared candidate/alignment surface
     - shared claim/decision surface
     - only then keep or remove lane-local facade shells case by case
+  - current normalization checkpoint:
+    - DONE:
+      - shared `review_text` surface
+      - shared weak `review_candidate` surface
+    - current maximal shared primitive:
+      - `review_candidate`
+    - current hold:
+      - standalone shared `review_alignment`
+      - any promoted alignment primitive above `review_candidate`
+    - reason:
+      - shared methods and structural similarity are not enough by themselves;
+        emitted shared surfaces must wait for semantic convergence
+    - current lane read:
+      - affidavit targeting:
+        proposition -> best source row
+      - GWB targeting:
+        source-review row -> review item / seed-linked target
+      - AU targeting:
+        review-queue row -> event-target subset
+    - doctrine:
+      - normalize shared primitives first
+      - normalize the targeting kernel before emitted alignment semantics
+      - treat weak targeting result as the next structural layer, not a shared
+        semantic verdict
+      - treat higher-order alignment as composition, not primitive
+      - promote shared alignment only when at least two lanes share:
+        - the same source meaning
+        - the same target meaning
+        - the same basis vocabulary
+        - the same downstream interpretation without lane-specific caveats
+    - renewed formalism:
+      - canonical now:
+        - `review_text`
+        - `review_candidate`
+      - bounded carrier:
+        - `selection_basis`
+      - next shared method layer:
+        - `TargetingKernel`
+      - next shared structural layer:
+        - `WeakTargetingResult`
+      - experimental later:
+        - `AlignmentPrimitive`
+      - held:
+        - shared emitted `review_alignment`
+      - stronger kernel read:
+        - one shared `Targeting` primitive
+        - many lane-local targeting interpretations
+    - likely future convergence pair:
+      - affidavit + GWB
+    - AU read:
+      - likely later targeting-kernel adopter rather than first alignment
+        adopter
+    - next safe normalization work:
+      - pin the one-targeting-primitive doctrine explicitly in runtime
+        contracts
+      - define `TargetingKernel`
+      - define `WeakTargetingResult` as a set-based structural contract
+      - define `AlignmentReadinessAssessment`
+      - bound `selection_basis` vocabulary before any stronger emitted
+        alignment surface is reconsidered
+    - doctrine refinement:
+      - all alignment is targeting
+      - not all targeting is alignment
+      - normalize shared computation and weak structure before any attempt to
+        normalize emitted interpretation
+      - normalize to the richest justified targeting structure rather than the
+        weakest current adopter
+      - let singleton lanes remain bounded special cases of a richer
+        selected-set contract
+    - falsification read:
+      - affidavit interpretation overgeneralizes poorly
+      - GWB interpretation remains too seed-structured to universalize
+      - AU interpretation is the weakest and most general, but too lossy as a
+        universal semantic reading
+      - shared process survives:
+        origin -> constrained selection over a candidate set
+      - shared emitted interpretation still does not
+    - next validation question:
+      - does GWB actually have real multi-candidate targeting worth exposing,
+        or is it still honestly singleton today
   - proposition-unification readiness gate:
     - do not claim semantic/legal proposition unification until the repo has:
       - DONE: a shared proposition identity substrate
@@ -102,9 +266,150 @@
     - DONE first bounded cut:
       - emit `compiler_contract` from GWB public review
       - emit `compiler_contract` from GWB broader review
-    - current GWB read:
+  - current GWB read:
       - GWB public handoff, GWB public review, and GWB broader review now
         share the compiler summary shape
+  - targeting/alignment checkpoint:
+    - DONE:
+      - `review_candidate` pinned as the canonical shared emitted primitive
+      - `alignment_readiness_assessment` added as the promotion oracle
+      - internal GWB set-based targeting contract landed
+      - `multi_candidate_unresolved` pinned as the fail-closed ambiguity state
+      - promotion guard pinned:
+        - no shared emitted `review_alignment` surface unless equivalence
+          verdict is `promote`
+      - empirical ambiguity audit before widening:
+        - public: `70 / 70` targeting results were `singleton_seed_linkage`
+        - broader: `27 / 27` targeting results were `singleton_seed_linkage`
+        - ambiguous seeds: `0`
+      - upstream widening now landed:
+        - public review-item construction splits multi-match seeds by matched
+          event
+        - broader review-item construction splits multi-match seeds by matched
+          source family
+      - empirical ambiguity audit after widening:
+        - public:
+          - `28` `singleton_seed_linkage`
+          - `42` `multi_candidate_unresolved`
+        - broader:
+          - `14` `singleton_seed_linkage`
+          - `13` `multi_candidate_unresolved`
+      - synthetic multiplicity checkpoint:
+        - forcing real public-review multiplicity through the widened builder
+          keeps emitted alignment held
+        - affidavit ↔ GWB drops to `hold`, not `prototype_only`, when GWB
+          multiplicity is real but unresolved
+        - reason:
+          multiplicity alone does not instantiate stable target semantics
+    - next honest move:
+      - tighten basis vocabulary and semantic read over ambiguous GWB cases
+        only after confirming that target semantics become stable enough to
+        survive the oracle honestly
+      - keep emitted shared alignment held until the oracle reaches
+        `promote`
+  - Bush-family source-classification checkpoint:
+    - DONE:
+      - classify the added Bush-family/public-record PDFs at the planning
+        level
+    - current read:
+      - `Affidavit_of_George_William_Bush_880921.pdf` is a real affidavit, but
+        for George William Bush / GHWB, not GWB
+      - `CIA-RDP99-01448R000401570001-1.pdf` is declassified documentary
+        public-record support, not an affidavit
+      - `21-3071-2022-10-24.pdf` is unrelated and should remain excluded from
+        Bush normalization work
+      - `Jordan Paust Affidavit.pdf`, `104-10336-10008.pdf`, and
+        `t081-059e-725789-1-59639.pdf` require OCR before honest lane
+        assignment
+    - implication:
+      - the active normalization contract should separate:
+        - `entity_scope`
+        - `source_class`
+        - `source_subtype`
+        - `artifact_kind`
+        - `unit_kind`
+      - current default `source_class` value is:
+        - `text_source`
+      - normative material is currently modeled as a `text_source`
+        provenance/extraction subtype, not a separate top-level class
+      - GHWB affidavit/public-record material now reads as:
+        - `entity_scope`: `ghwb`
+        - `source_class`: `text_source`
+        - `source_subtype`:
+          - `affidavit`
+          - `declassified_public_record`
+      - GWB still lacks a true affidavit-shaped runtime surface
+      - added DoD FOIA and Federal Register GWB sources should be treated as
+        `text_source` provenance subtypes, not affidavit material:
+        - `entity_scope`: `gwb`
+        - `source_class`: `text_source`
+        - `source_subtype`:
+          - `dod_foia`
+          - `federal_register_notice`
+          - `federal_register_document`
+          - `official_record_index`
+          - `official_record_attachment`
+    - next high-value source-family work:
+      - elevate GWB books/memoir material as a priority underused surface
+      - especially the existing `corpus_book_timeline` / `Decision Points`
+        material
+      - first land text-source subtype tightening / extractability proof over
+        that corpus lane
+      - only then derive a bounded memoir/public-record claim sheet rather
+        than forcing an affidavit-shaped artifact
+    - refreshed-thread normalization correction:
+      - proper normalization in this repo now means:
+        - representation fidelity
+        - semantic separability
+        - safe promotion boundaries
+      - current read:
+        - representation fidelity: materially improved
+        - semantic separability: partial helper/design state only
+        - promotion boundary: still correctly blocks shared emitted alignment
+    - active lane map restored from refreshed thread:
+      - GHWB text-source normalization over affidavit/declassified-public-record
+        material
+      - GWB text-source normalization over official-record material
+      - GWB text-source tightening over books/memoir material and claim-sheet
+        readiness
+      - GWB text-source journalistic/public-reporting normalization
+      - affidavit ↔ GWB convergence/oracle work
+      - basis/source-semantics normalization
+      - operator/dev ambiguity inspection
+      - semantic fingerprint schema design
+      - cross-system alignment schema design
+      - bounded text-source ingestion/extraction pilot design for normative
+        material:
+        - Qur'an -> Sharia subset
+        - ISO docsets -> policy / graph / IR extraction
+      - explicit verification lane after each round
+      - docs/UML/commit thresholds only when state justifies
+    - held lane correction:
+      - OCR for `Jordan Paust Affidavit.pdf`, `104-10336-10008.pdf`, and
+        `t081-059e-725789-1-59639.pdf` is not an active lane now
+      - it remains a held blocker to be reopened only if OCR is the real
+        blocker for source-family promotion
+    - standards/governance overlay for those lanes:
+      - ITIL
+      - ISO 9000
+      - ISO 42001
+      - ISO 27001
+      - ISO 27701
+      - ISO 23894
+      - NIST AI RMF
+      - Six Sigma
+      - C4/PlantUML only when topology changes
+    - next helper/design priorities from refreshed thread:
+      - define a semantic fingerprint schema aligned to SL layers
+      - define a cross-system alignment schema with concrete mapping tables
+      - define a bounded normative-docset ingestion/extraction contract that
+        can ingest ISO-like corpora and emit policy / graph / IR surfaces the
+        same way other normalized systems do
+      - keep existential/path-intersection alignment logic helper-only until
+        source and target semantics become stable enough to survive promotion
+      - do not promote Qur'an/Sharia or ISO docset examples into canonical
+        runtime surfaces before they exist as bounded working ingestion and
+        extraction examples
   - current promoted lane:
     - reusable `promote | abstain | audit` gate
     - DONE first bounded cut:
