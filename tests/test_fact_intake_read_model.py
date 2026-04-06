@@ -339,6 +339,9 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert review_summary["review_queue"][0]["primary_contested_reason_text"] == "Later note gives a different date."
     assert review_summary["review_queue"][0]["latest_review_status"] == "needs_followup"
     assert review_summary["review_queue"][0]["latest_review_note"] == "Check primary clinical source."
+    assert review_summary["review_queue"][0]["status_explanation"]["status_scope"] == "review"
+    assert review_summary["review_queue"][0]["status_explanation"]["related_record_id"] == payload["fact_candidates"][0]["fact_id"]
+    assert review_summary["review_queue"][0]["status_explanation"]["why"]
     assert review_summary["review_queue"][0]["chronology_impacted"] is True
     assert review_summary["review_queue"][0]["has_legal_procedural_observations"] is False
     assert review_summary["review_queue"][0]["reason_codes"] == ["contested", "review_followup", "contradictory_chronology"]
@@ -354,9 +357,12 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert review_summary["review_queue"][1]["primary_contested_reason_text"] is None
     assert review_summary["review_queue"][1]["latest_review_status"] is None
     assert review_summary["review_queue"][1]["latest_review_note"] is None
+    assert review_summary["review_queue"][1]["status_explanation"]["status_bucket"] == "review_source"
     assert review_summary["review_queue"][1]["chronology_impacted"] is True
     assert review_summary["review_queue"][1]["reason_codes"] == ["unreviewed", "missing_actor", "procedural_significance"]
     assert review_summary["review_queue"][1]["chronology_bucket"] == "dated"
+    workbench_fact = next(row for row in workbench["facts"] if row["fact_id"] == review_summary["review_queue"][0]["fact_id"])
+    assert workbench_fact["status_explanation"] == review_summary["review_queue"][0]["status_explanation"]
     assert review_summary["contested_summary"]["needs_followup_count"] == 1
     assert review_summary["contested_summary"]["reviewed_count"] == 1
     assert review_summary["contested_summary"]["chronology_impacted_count"] == 1
@@ -368,6 +374,13 @@ def test_persist_report_and_mary_projection_support_provenance_and_review_queue(
     assert operator_views["intake_triage"]["groups"]["contradictory_chronology"][0]["fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert operator_views["intake_triage"]["control_plane"]["version"] == "follow.control.v1"
     assert operator_views["intake_triage"]["queue"][0]["route_target"] in {"chronology_review", "actor_review", "procedural_review", "manual_review"}
+    assert operator_views["intake_triage"]["queue"][0]["description"]
+    assert operator_views["intake_triage"]["queue"][0]["operator_readout"]["headline"] == operator_views["intake_triage"]["queue"][0]["title"]
+    assert operator_views["intake_triage"]["queue"][0]["operator_readout"]["reason_line"] == operator_views["intake_triage"]["queue"][0]["description"]
+    assert any(row["label"] == "Status" for row in operator_views["intake_triage"]["queue"][0]["detail_rows"])
+    assert any(row["label"] == "Next action" for row in operator_views["intake_triage"]["queue"][0]["detail_rows"])
+    assert workbench["operator_views"]["contested_items"]["queue"][0]["operator_readout"]["headline"] == workbench["operator_views"]["contested_items"]["queue"][0]["title"]
+    assert workbench["operator_views"]["contested_items"]["queue"][0]["operator_readout"]["reason_line"] == workbench["operator_views"]["contested_items"]["queue"][0]["description"]
     assert operator_views["procedural_posture"]["items"][0]["fact_id"] == payload["fact_candidates"][1]["fact_id"]
     assert workbench["inspector_defaults"]["selected_fact_id"] == payload["fact_candidates"][0]["fact_id"]
     assert workbench["operator_views"]["contested_items"]["summary"]["count"] == 1
@@ -683,6 +696,7 @@ def test_chat_archive_projection_mode_enriches_openrecall_like_text() -> None:
     assert summary["facts"][0]["source_projection_modes"] == ["chat_archive"]
     assert "chat_archive" in workbench["zelph"]["active_packs"]
     fact = workbench["facts"][0]
+    assert fact["status_explanation"] == summary["review_queue"][0]["status_explanation"]
     assert {"self_correction_signal", "execution_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["signal_classes"])
     assert {"self_correction_signal", "execution_handoff_signal", "uncertainty_preserved", "sequence_signal"} <= set(fact["inferred_signal_classes"])
 

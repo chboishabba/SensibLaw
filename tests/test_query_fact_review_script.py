@@ -203,6 +203,8 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert exit_code == 0
     assert review_payload["contested_summary"]["count"] == 1
     assert review_payload["review_queue"][0]["reason_codes"]
+    assert review_payload["review_queue"][0]["status_explanation"]["status_scope"] == "review"
+    assert review_payload["review_queue"][0]["status_explanation"]["why"]
 
     exit_code = main(["--db-path", str(db_path), "chronology", "--run-id", run_id])
     chronology_payload = json.loads(capsys.readouterr().out)
@@ -217,6 +219,8 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert exit_code == 0
     assert view_payload["view_kind"] == "intake_triage"
     assert view_payload["view"]["summary"]["review_queue_count"] >= 1
+    assert view_payload["view"]["queue"][0]["description"]
+    assert view_payload["view"]["queue"][0]["operator_readout"]["reason_line"] == view_payload["view"]["queue"][0]["description"]
 
     exit_code = main(["--db-path", str(db_path), "workbench", "--run-id", run_id])
     workbench_payload = json.loads(capsys.readouterr().out)
@@ -225,6 +229,8 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     assert "contradictory_chronology" in workbench_payload["workbench"]["operator_views"]["intake_triage"]["groups"]
     assert workbench_payload["workbench"]["operator_views"]["intake_triage"]["control_plane"]["version"] == "follow.control.v1"
     assert isinstance(workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"], list)
+    assert workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][0]["operator_readout"]["headline"] == workbench_payload["workbench"]["operator_views"]["intake_triage"]["queue"][0]["title"]
+    assert workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][0]["operator_readout"]["headline"] == workbench_payload["workbench"]["operator_views"]["contested_items"]["queue"][0]["title"]
     assert workbench_payload["workbench"]["operator_views"]["contested_items"]["control_plane"]["source_family"] == "fact_review"
     assert workbench_payload["workbench"]["reopen_navigation"]["query"]["workflow_kind"] == "transcript_semantic"
     assert "missing_actor" in workbench_payload["workbench"]["issue_filters"]["available_filters"]
@@ -663,6 +669,17 @@ def test_query_fact_review_script_lists_persisted_contested_review_runs(tmp_path
     assert summary_payload["review"]["run"]["review_run_id"] == review_run_id
     assert summary_payload["review"]["summary"]["covered_count"] == 1
     assert summary_payload["review"]["affidavit_rows"][0]["proposition_id"] == "aff-prop:p1-s1"
+    assert summary_payload["review"]["affidavit_rows"][0]["status_explanation"]["status_scope"] == "coverage"
+    assert summary_payload["review"]["affidavit_rows"][0]["status_explanation"]["status_value"] == "covered"
+    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["status_scope"] == "review"
+    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["status_bucket"] in {
+        "resolved",
+        "review_source",
+        "adjudicate",
+        "inspect",
+    }
+    assert summary_payload["review"]["source_review_rows"][0]["status_explanation"]["why"]
+    assert "review coverage" not in summary_payload["review"]["source_review_rows"][0]["status_explanation"]["why"].casefold()
 
 
 def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys) -> None:
@@ -730,13 +747,33 @@ def test_query_fact_review_script_shows_contested_proving_slice(tmp_path, capsys
     assert proving_slice["sections"]["supported"][0]["relation_type"] in {"exact_support", "equivalent_support"}
     assert proving_slice["sections"]["supported"][0]["relation_root"] == "supports"
     assert proving_slice["sections"]["supported"][0]["explanation"]["classification"] == "supported"
+    assert proving_slice["sections"]["supported"][0]["status_explanation"]["status_value"] == "covered"
+    assert "support" in proving_slice["sections"]["supported"][0]["status_explanation"]["why"].casefold()
     assert proving_slice["sections"]["disputed"][0]["relation_type"] in {"explicit_dispute", "implicit_dispute"}
     assert proving_slice["sections"]["disputed"][0]["explanation"]["classification"] == "disputed"
     assert proving_slice["sections"]["missing"][0]["proposition_id"] == "aff-prop:p3-s1"
     assert proving_slice["sections"]["missing"][0]["relation_type"] == "unrelated"
     assert proving_slice["sections"]["missing"][0]["relation_leaf"] == "missing"
     assert proving_slice["sections"]["missing"][0]["explanation"]["classification"] == "missing"
+    assert proving_slice["sections"]["missing"][0]["status_explanation"]["status_bucket"] == "review_source"
+    assert "missing" in proving_slice["sections"]["missing"][0]["status_explanation"]["why"].casefold()
     assert proving_slice["next_steps"]
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "contested-proving-slice",
+            "--review-run-id",
+            review_run_id,
+            "--with-interrogatives",
+        ]
+    )
+    interrogative_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    interrogatives = interrogative_payload["proving_slice"]["sections"]["missing"][0]["interrogatives"]
+    assert interrogatives["why"]
+    assert any(value.startswith("paragraph:") for value in interrogatives["when"])
 
 
 def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) -> None:
@@ -799,3 +836,26 @@ def test_query_fact_review_script_shows_narrow_contested_rows(tmp_path, capsys) 
     assert row["proposition_id"] == "aff-prop:p2-s1"
     assert row["relation_root"] in {"invalidates", "supports", "non_resolving", "unanswered"}
     assert isinstance(row["matched_source_rows"], list)
+    assert row["status_explanation"]["status_value"] == row["coverage_status"]
+    assert row["status_explanation"]["related_record_id"] == row["best_source_row_id"]
+    assert isinstance(row["status_explanation"]["details"]["missing_dimensions"], list)
+    assert row["status_explanation"]["why"]
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "contested-rows",
+            "--review-run-id",
+            review_run_id,
+            "--proposition-id",
+            "aff-prop:p2-s1",
+            "--with-interrogatives",
+        ]
+    )
+    interrogative_payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    interrogative_row = interrogative_payload["rows"][0]
+    assert interrogative_row["interrogatives"]["why"] == interrogative_row["status_explanation"]["why"]
+    assert any(value.startswith("paragraph:") for value in interrogative_row["interrogatives"]["when"])
+    assert interrogative_row["interrogatives"]["what"]

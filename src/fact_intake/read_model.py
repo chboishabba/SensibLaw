@@ -1707,7 +1707,13 @@ def build_contested_affidavit_review_summary(
         "run": run,
         "summary": summary,
         "affidavit_rows": [
-            {
+            (
+                lambda affidavit_row: {
+                **affidavit_row,
+                "status_explanation": _build_affidavit_status_explanation(affidavit_row),
+            }
+            )(
+                {
                 "proposition_id": str(row["proposition_id"]),
                 "paragraph_id": _normalize_opt_text(row["paragraph_id"]),
                 "paragraph_order": int(row["paragraph_order"] or 0),
@@ -1741,10 +1747,17 @@ def build_contested_affidavit_review_summary(
                 "justifications": _json_or_list(row["justifications_json"]),
                 "matched_source_rows": _json_or_list(row["matched_source_rows_json"]),
             }
+            )
             for row in affidavit_rows
         ],
         "source_review_rows": [
-            {
+            (
+                lambda source_row: {
+                **source_row,
+                "status_explanation": _build_source_status_explanation(source_row),
+            }
+            )(
+                {
                 "source_row_id": str(row["source_row_id"]),
                 "source_kind": _normalize_opt_text(row["source_kind"]),
                 "text": str(row["source_text"] or ""),
@@ -1762,6 +1775,7 @@ def build_contested_affidavit_review_summary(
                 "workload_classes": _json_or_list(row["workload_classes_json"]),
                 "candidate_anchors": _json_or_list(row["candidate_anchors_json"]),
             }
+            )
             for row in source_rows
         ],
         "zelph_claim_state_facts": [
@@ -1790,6 +1804,380 @@ _MISSING_AFFIDAVIT_STATUSES = {"unsupported_affidavit"}
 _CLARIFY_AFFIDAVIT_STATUSES = {"partial"}
 _DISPUTED_SOURCE_REVIEW_STATUSES = {"contested_source"}
 _CLARIFY_SOURCE_REVIEW_STATUSES = {"missing_review", "abstained_source"}
+
+
+def _status_label(code: str | None) -> str | None:
+    normalized = str(code or "").strip()
+    if not normalized:
+        return None
+    if normalized in REVIEW_REASON_LABELS:
+        return REVIEW_REASON_LABELS[normalized]
+    return normalized.replace("_", " ").title()
+
+
+def _next_action_for_stage(stage: str) -> str:
+    if stage == "resolved":
+        return "record_state"
+    if stage == "clarify":
+        return "clarify_match"
+    if stage == "review_source":
+        return "review_source_rows"
+    if stage == "adjudicate":
+        return "adjudicate_conflict"
+    return "inspect_row"
+
+
+def _stringify_reason_details(values: Iterable[Any]) -> list[str]:
+    items: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        items.append(text)
+    return list(dict.fromkeys(items))
+
+
+def _render_reason_summary(
+    *,
+    reason_labels: Iterable[str],
+    detail_labels: Iterable[str],
+) -> str | None:
+    parts: list[str] = []
+    seen_keys: set[str] = set()
+    for value in [*_stringify_reason_details(reason_labels), *_stringify_reason_details(detail_labels)]:
+        key = value.casefold()
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        parts.append(value)
+    return "; ".join(parts) if parts else None
+
+
+def _detail_label(value: str | None) -> str | None:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return None
+    return normalized.replace("_", " ")
+
+
+def _is_low_information_detail(value: str | None) -> bool:
+    normalized = str(value or "").strip().casefold()
+    return normalized in {"captured", "candidate", "unknown", "other"}
+
+
+def _build_status_explanation_base(
+    *,
+    status_scope: str,
+    status_value: str | None,
+    status_bucket: str,
+    why: str | None,
+    reason_codes: list[str],
+    related_record_id: str | None,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    normalized_codes = [str(value).strip() for value in reason_codes if str(value).strip()]
+    normalized_bucket = str(status_bucket).strip() or "inspect"
+    normalized_details = dict(details or {})
+    normalized_labels = [label for label in (_status_label(code) for code in normalized_codes) if label]
+    return {
+        "status_scope": str(status_scope).strip(),
+        "status_value": _normalize_opt_text(status_value) or "unknown",
+        "status_bucket": normalized_bucket,
+        "why": _normalize_opt_text(why),
+        "next_action": _next_action_for_stage(normalized_bucket),
+        "primary_reason_code": normalized_codes[0] if normalized_codes else None,
+        "reason_codes": normalized_codes,
+        "reason_labels": normalized_labels,
+        "related_record_id": _normalize_opt_text(related_record_id),
+        "details": normalized_details,
+    }
+
+
+def _build_affidavit_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
+    coverage_status = str(row.get("coverage_status") or "").strip()
+    support_status = str(row.get("support_status") or "").strip()
+    relation_root = str(row.get("relation_root") or "").strip()
+    relation_leaf = str(row.get("relation_leaf") or "").strip()
+    best_source_row_id = _normalize_opt_text(row.get("best_source_row_id"))
+    explanation = row.get("explanation") if isinstance(row.get("explanation"), Mapping) else {}
+    missing_dimensions = [str(value) for value in row.get("missing_dimensions", []) if str(value).strip()]
+    rendered_reason = _normalize_opt_text(explanation.get("reason"))
+    matched_response = _normalize_opt_text(explanation.get("matched_response"))
+    if coverage_status == "covered":
+        status_bucket = "resolved"
+    elif coverage_status == "partial":
+        status_bucket = "clarify"
+    elif coverage_status in {"unsupported_affidavit", "missing_review"}:
+        status_bucket = "review_source"
+    elif coverage_status in {"contested_affidavit", "contested_source", "abstained_source"}:
+        status_bucket = "adjudicate"
+    else:
+        status_bucket = "inspect"
+    reason_codes = [relation_leaf or support_status or coverage_status or "unknown"]
+    details = {
+        "support_status": support_status or None,
+        "relation_root": relation_root or None,
+        "relation_leaf": relation_leaf or None,
+        "matched_response": matched_response,
+        "missing_dimensions": missing_dimensions,
+        "legacy_reason": rendered_reason,
+    }
+    status_explanation = _build_status_explanation_base(
+        status_scope="coverage",
+        status_value=coverage_status,
+        status_bucket=status_bucket,
+        why=None,
+        reason_codes=reason_codes,
+        related_record_id=best_source_row_id,
+        details=details,
+    )
+    detail_labels = [
+        _detail_label(relation_leaf),
+        *(f"missing {value.replace('_', ' ')}" for value in missing_dimensions),
+    ]
+    status_explanation["why"] = _render_reason_summary(
+        reason_labels=status_explanation["reason_labels"],
+        detail_labels=detail_labels,
+    ) or rendered_reason
+    return status_explanation
+
+
+def _build_source_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
+    review_status = str(row.get("review_status") or "").strip()
+    candidate_status = str(row.get("candidate_status") or "").strip()
+    best_match_basis = _normalize_opt_text(row.get("best_match_basis"))
+    best_response_role = _normalize_opt_text(row.get("best_response_role"))
+    reason_codes = [str(value) for value in row.get("reason_codes", []) if str(value).strip()]
+    workload_classes = [str(value) for value in row.get("workload_classes", []) if str(value).strip()]
+    best_affidavit_proposition_id = _normalize_opt_text(row.get("best_affidavit_proposition_id"))
+    matched_affidavit_proposition_ids = [
+        str(value) for value in row.get("matched_affidavit_proposition_ids", []) if str(value).strip()
+    ]
+    related_affidavit_proposition_ids = [
+        str(value) for value in row.get("related_affidavit_proposition_ids", []) if str(value).strip()
+    ]
+    if review_status in _DISPUTED_SOURCE_REVIEW_STATUSES:
+        status_bucket = "adjudicate"
+    elif review_status in _CLARIFY_SOURCE_REVIEW_STATUSES:
+        status_bucket = "review_source"
+    elif review_status == "covered":
+        status_bucket = "resolved"
+    else:
+        status_bucket = "inspect"
+    details = {
+        "candidate_status": candidate_status or None,
+        "best_match_basis": best_match_basis,
+        "best_response_role": best_response_role,
+        "workload_classes": workload_classes,
+        "matched_affidavit_proposition_ids": matched_affidavit_proposition_ids,
+        "related_affidavit_proposition_ids": related_affidavit_proposition_ids,
+    }
+    status_explanation = _build_status_explanation_base(
+        status_scope="review",
+        status_value=review_status,
+        status_bucket=status_bucket,
+        why=None,
+        reason_codes=reason_codes or [review_status or candidate_status or "unknown"],
+        related_record_id=best_affidavit_proposition_id,
+        details=details,
+    )
+    proposition_count = len(related_affidavit_proposition_ids or matched_affidavit_proposition_ids)
+    proposition_label = (
+        f"linked proposition set ({proposition_count} row{'s' if proposition_count != 1 else ''})"
+        if proposition_count
+        else None
+    )
+    detail_labels = [
+        *(value.replace("_", " ") for value in workload_classes),
+        None if _is_low_information_detail(candidate_status) else _detail_label(candidate_status),
+        None if _is_low_information_detail(best_match_basis) else _detail_label(best_match_basis),
+        None if _is_low_information_detail(best_response_role) else _detail_label(best_response_role),
+        proposition_label,
+    ]
+    status_explanation["why"] = _render_reason_summary(
+        reason_labels=status_explanation["reason_labels"],
+        detail_labels=detail_labels,
+    )
+    return status_explanation
+
+
+def _build_review_queue_status_explanation(row: Mapping[str, Any]) -> dict[str, Any]:
+    latest_review_status = str(row.get("latest_review_status") or "").strip()
+    candidate_status = str(row.get("candidate_status") or "").strip()
+    reason_codes = [str(value) for value in row.get("reason_codes", []) if str(value).strip()]
+    source_signal_classes = [str(value) for value in row.get("source_signal_classes", []) if str(value).strip()]
+    primary_contested_reason_text = _normalize_opt_text(row.get("primary_contested_reason_text"))
+    if latest_review_status in {"contested", "disputed"} or bool(row.get("contestation_count")):
+        status_bucket = "adjudicate"
+    elif latest_review_status == "needs_followup":
+        status_bucket = "clarify"
+    elif latest_review_status in {"reviewed", "resolved"}:
+        status_bucket = "resolved"
+    elif latest_review_status in {"review_queue", "open"} or not latest_review_status:
+        status_bucket = "review_source"
+    else:
+        status_bucket = "inspect"
+    details = {
+        "candidate_status": candidate_status or None,
+        "chronology_bucket": _normalize_opt_text(row.get("chronology_bucket")),
+        "chronology_impacted": bool(row.get("chronology_impacted")),
+        "primary_contested_reason_text": primary_contested_reason_text,
+        "source_signal_classes": source_signal_classes,
+        "event_ids": [str(value) for value in row.get("event_ids", []) if str(value).strip()],
+    }
+    status_explanation = _build_status_explanation_base(
+        status_scope="review",
+        status_value=latest_review_status or ("needs_review" if bool(row.get("needs_review")) else candidate_status),
+        status_bucket=status_bucket,
+        why=None,
+        reason_codes=reason_codes or [latest_review_status or candidate_status or "review_pending"],
+        related_record_id=_normalize_opt_text(row.get("fact_id")),
+        details=details,
+    )
+    detail_labels = [
+        None if _is_low_information_detail(candidate_status) else _detail_label(candidate_status),
+        _detail_label(row.get("chronology_bucket")),
+        "chronology impacted" if bool(row.get("chronology_impacted")) else None,
+        primary_contested_reason_text,
+        *(value.replace("_", " ") for value in source_signal_classes),
+    ]
+    status_explanation["why"] = _render_reason_summary(
+        reason_labels=status_explanation["reason_labels"],
+        detail_labels=detail_labels,
+    )
+    return status_explanation
+
+
+def _extract_interrogative_labels_from_relation_graph(
+    relation_graph: Mapping[str, Any] | None,
+    *,
+    node_kind: str,
+) -> list[str]:
+    if not isinstance(relation_graph, Mapping):
+        return []
+    nodes = relation_graph.get("nodes")
+    if not isinstance(nodes, list):
+        return []
+    values: list[str] = []
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        if _normalize_opt_text(node.get("node_kind")) != node_kind:
+            continue
+        label = _normalize_opt_text(node.get("label")) or _normalize_opt_text(node.get("value"))
+        if label:
+            values.append(label)
+    return list(dict.fromkeys(values))
+
+
+def _claim_component_texts(claim: Mapping[str, Any] | None, key: str) -> list[str]:
+    if not isinstance(claim, Mapping):
+        return []
+    components = claim.get("components")
+    if not isinstance(components, Mapping):
+        return []
+    value = components.get(key)
+    if isinstance(value, str):
+        text = _normalize_opt_text(value)
+        return [text] if text else []
+    if isinstance(value, Mapping):
+        values: list[str] = []
+        for candidate_key in ("text", "text_span", "label", "value"):
+            text = _normalize_opt_text(value.get(candidate_key))
+            if text:
+                values.append(text)
+        return list(dict.fromkeys(values))
+    if isinstance(value, list):
+        values = []
+        for item in value:
+            if isinstance(item, str):
+                text = _normalize_opt_text(item)
+                if text:
+                    values.append(text)
+            elif isinstance(item, Mapping):
+                for candidate_key in ("text", "text_span", "label", "value"):
+                    text = _normalize_opt_text(item.get(candidate_key))
+                    if text:
+                        values.append(text)
+        return list(dict.fromkeys(values))
+    return []
+
+
+def build_interrogative_view(
+    record: Mapping[str, Any],
+    *,
+    relation_graph: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    status_explanation = record.get("status_explanation") if isinstance(record.get("status_explanation"), Mapping) else {}
+    details = status_explanation.get("details") if isinstance(status_explanation.get("details"), Mapping) else {}
+    claim = record.get("claim") if isinstance(record.get("claim"), Mapping) else {}
+    response = record.get("response") if isinstance(record.get("response"), Mapping) else {}
+
+    who = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="actor")
+    if not who:
+        who = _claim_component_texts(claim, "actor")
+
+    what = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="object")
+    if not what:
+        what = _claim_component_texts(claim, "predicate_text")
+    if not what:
+        primary_target_component = _normalize_opt_text(record.get("primary_target_component"))
+        if primary_target_component:
+            what = [primary_target_component]
+
+    how = _extract_interrogative_labels_from_relation_graph(relation_graph, node_kind="action")
+    if not how:
+        response_acts = response.get("acts") if isinstance(response.get("acts"), list) else []
+        how = [str(value) for value in response_acts if str(value).strip()]
+    if not how:
+        best_response_role = _normalize_opt_text(record.get("best_response_role"))
+        if best_response_role:
+            how = [best_response_role]
+
+    when = _claim_component_texts(claim, "time")
+    paragraph_order = record.get("paragraph_order")
+    sentence_order = record.get("sentence_order")
+    if paragraph_order not in (None, ""):
+        when.append(f"paragraph:{int(paragraph_order)}")
+    if sentence_order not in (None, ""):
+        when.append(f"sentence:{int(sentence_order)}")
+    when = list(dict.fromkeys(when))
+
+    where_values: list[str] = []
+    for key in ("source_row_id", "best_source_row_id", "related_record_id", "paragraph_id"):
+        text = _normalize_opt_text(record.get(key))
+        if text:
+            where_values.append(f"{key}:{text}")
+    text_ref = record.get("text_ref")
+    if isinstance(text_ref, Mapping):
+        for key in ("text_id", "segment_id", "unit_id", "envelope_id"):
+            text = _normalize_opt_text(text_ref.get(key))
+            if text:
+                where_values.append(f"{key}:{text}")
+    where_values = list(dict.fromkeys(where_values))
+
+    why = _normalize_opt_text(status_explanation.get("why"))
+    if not why:
+        why = _render_reason_summary(
+            reason_labels=status_explanation.get("reason_labels", []),
+            detail_labels=[
+                _detail_label(details.get("relation_leaf")),
+                *(
+                    f"missing {str(value).replace('_', ' ')}"
+                    for value in details.get("missing_dimensions", [])
+                    if str(value).strip()
+                ),
+            ],
+        )
+
+    return {
+        "who": who,
+        "what": what,
+        "when": when,
+        "where": where_values,
+        "why": why,
+        "how": list(dict.fromkeys(how)),
+    }
 _WEAKLY_ADDRESSED_SUPPORT_STATUSES = {
     "textually_addressed",
     "responsive_but_non_substantive",
@@ -3561,6 +3949,7 @@ def _build_fact_review_run_summary_legacy(conn: sqlite3.Connection, *, run_id: s
             "source_ids": list(fact["source_ids"]),
             "statement_ids": list(fact["statement_ids"]),
         }
+        fact_row["status_explanation"] = _build_review_queue_status_explanation(fact_row)
         fact_rows.append(fact_row)
         review_queue.append(fact_row)
     review_queue = [row for row in review_queue if row["needs_review"]]
@@ -3736,9 +4125,11 @@ def _build_fact_review_workbench_payload_legacy(
         limit=20,
     )
     summary_by_fact_id = {row["fact_id"]: row for row in summary["facts"]}
+    review_queue_by_fact_id = {row["fact_id"]: row for row in summary["review_queue"]}
     facts = []
     for fact in report["facts"]:
         queue_row = summary_by_fact_id.get(fact["fact_id"])
+        review_queue_row = review_queue_by_fact_id.get(fact["fact_id"])
         facts.append(
             {
                 **fact,
@@ -3750,6 +4141,7 @@ def _build_fact_review_workbench_payload_legacy(
                 "legal_procedural_predicates": list(queue_row.get("legal_procedural_predicates", [])) if queue_row else [],
                 "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
                 "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
+                "status_explanation": dict(review_queue_row.get("status_explanation", {})) if review_queue_row else None,
                 "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
             }
         )
@@ -4900,9 +5292,11 @@ def build_fact_review_workbench_payload(
         limit=20,
     )
     summary_by_fact_id = {row["fact_id"]: row for row in summary["facts"]}
+    review_queue_by_fact_id = {row["fact_id"]: row for row in summary["review_queue"]}
     facts = []
     for fact in report["facts"]:
         queue_row = summary_by_fact_id.get(fact["fact_id"])
+        review_queue_row = review_queue_by_fact_id.get(fact["fact_id"])
         facts.append(
             {
                 **fact,
@@ -4915,6 +5309,7 @@ def build_fact_review_workbench_payload(
                 "policy_outcomes": list(queue_row.get("policy_outcomes", [])) if queue_row else [],
                 "latest_review_status": queue_row.get("latest_review_status") if queue_row else None,
                 "latest_review_note": queue_row.get("latest_review_note") if queue_row else None,
+                "status_explanation": dict(review_queue_row.get("status_explanation", {})) if review_queue_row else None,
                 "inspector_classification": _inspector_classification_for_fact_row(queue_row or {}),
             }
         )

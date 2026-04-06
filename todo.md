@@ -75,6 +75,35 @@
     - contract-only: narrow helper/policy tests only
     - implementation seam: first adopter tests only, then widen only on real
       shared-surface spread
+  - contested review identifiability:
+    - DONE: keep coarse `coverage_status` / `review_status` stable and
+      non-truth-bearing
+    - DONE: normalize additive `status_explanation` around:
+      - `status_scope`
+      - `status_value`
+      - `status_bucket`
+      - `why`
+      - `next_action`
+      - `primary_reason_code`
+      - `reason_codes`
+      - `reason_labels`
+      - `related_record_id`
+      - optional `details`
+    - DONE: keep `why` as a deterministic render from structured reason/detail
+      fields rather than a repeated hardcoded sentence
+    - DONE: expose optional operator-only `interrogatives` as a derived
+      projection:
+      - `who`
+      - `what`
+      - `when`
+      - `where`
+      - `why`
+      - `how`
+      Keep it query/readout-only and do not persist it.
+    - DONE: normalize ordinary fact-review queue/operator read-model surfaces
+      around the same additive `status_explanation` discipline so contested and
+      non-contested operator rows no longer drift into parallel explanation
+      vocabularies
   - explicit holds:
     - do not add new source-family taxonomies
     - do not reopen OCR
