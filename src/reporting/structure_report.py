@@ -341,6 +341,23 @@ def load_openrecall_units(
     )
 
 
+def load_worldmonitor_units(
+    db_path: str | Path,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    limit: int | None = None,
+) -> list[TextUnit]:
+    from src.reporting.worldmonitor_import import load_worldmonitor_units as _load_worldmonitor_units  # noqa: PLC0415
+
+    return _load_worldmonitor_units(
+        db_path,
+        import_run_id=import_run_id,
+        date=date,
+        limit=limit,
+    )
+
+
 def load_notebooklm_units(
     runs_root: str | Path,
     *,

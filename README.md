@@ -18,6 +18,37 @@ SensibLaw currently provides:
 - export/handoff paths into downstream reasoning and review layers such as
   Zelph
 
+## Observation Substrate Doctrine
+
+OpenRecall and WorldMonitor should be treated as two observation sources in
+the same ingestion substrate, not as separate semantic planes.
+
+- WorldMonitor:
+  external observation source
+- OpenRecall:
+  internal observation source
+- SensibLaw:
+  canonicalization, reconciliation, promotion, and abstention
+- StatiBaker:
+  governance and workflow state
+
+The current bounded rule is:
+
+- normalize WM and OpenRecall into the same observation-style substrate
+- feed that substrate into the existing relation/equivalence path
+- keep the result derived-only and operator-facing first
+
+The current explicit non-goals are also important:
+
+- do not introduce a separate "perception layer" yet
+- do not promote OpenRecall capture/OCR as truth by itself
+- do not land cognitive-join or attention-invariant machinery yet
+- do not let perception-vs-truth divergence or Delta-cone work outrun the
+  shared observation-ingestion contract
+
+The next honest seam on this front is substrate normalization, not a full
+slice-state or epistemic-control regime.
+
 The current architecture direction is no longer lane-by-lane growth. It is a
 single normalized process that different source families and work lanes bind
 onto over time.

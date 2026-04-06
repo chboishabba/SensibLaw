@@ -208,6 +208,16 @@ Important details:
 Vendored `openrecall/` is now integrated as an upstream observer/capture lane,
 not as a semantic authority.
 
+Architecturally, this lane now sits in the same broad observation substrate as
+WorldMonitor:
+
+- WorldMonitor = external observation source
+- OpenRecall = internal observation source
+
+That means the near-term target is one shared observation-ingestion contract
+that both sources can bind onto before any stronger perception/control regime
+is attempted.
+
 Use the bounded importer:
 
 ```bash
@@ -232,29 +242,128 @@ Current non-goals:
 - GUI-first OpenRecall browsing
 - direct SB ingest of raw OpenRecall rows
 - canonical mission/semantic promotion from OCR alone
+- a separate perception plane or cognitive-join layer at this stage
+- Delta-cone / perception-vs-truth divergence machinery before the shared
+  observation substrate is normalized
 
-The next functional step is a query-first helper/CLI seam over imported
-captures so downstream lanes can ask for:
-- latest import runs
-- capture counts by app/title/date
-- screenshot coverage
-- recent capture rows with bounded filters
-
-Use the query CLI:
+OpenRecall is now queryable through the shared observation lane helpers and the generic lane-agnostic CLI:
 
 ```bash
 ../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
   --itir-db-path .cache_local/itir.sqlite \
   runs
 
-../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
+../.venv/bin/python SensibLaw/scripts/query_observation_import.py \
+  --lane openrecall \
   --itir-db-path .cache_local/itir.sqlite \
-  summary --date 2026-03-08
-
-../.venv/bin/python SensibLaw/scripts/query_openrecall_import.py \
-  --itir-db-path .cache_local/itir.sqlite \
-  captures --app-name Firefox --text-query feature --limit 20
+  captures --source-kind Firefox --text-query feature --limit 20
 ```
+
+### Shared observation lane contract (OpenRecall / WorldMonitor)
+
+OpenRecall and WorldMonitor expose the same bounded adapter contract in
+`src.reporting.observation_lanes`, so downstream tooling can use one common set
+of helpers.
+
+Required adapter shape:
+
+- `lane_key` (for example `openrecall`, `worldmonitor`)
+- `source_unit_type` (canonical unit family)
+- `source_label` (human label)
+- `ensure_schema(conn)`
+- `import_data(conn, source_path, import_run_id, **kwargs)`
+- `load_units(db_path, import_run_id=None, date=None, limit=None)`
+- `load_activity_rows(conn, date, limit=None)`
+- `load_import_runs(conn, limit=10)`
+- `build_summary(conn, import_run_id=None, date=None, source_kind=None)`
+- `query_captures(conn, import_run_id=None, date=None, source_kind=None, text_query=None, limit=25)`
+
+Current registrations:
+
+- `OPENRECALL_OBSERVATION_LANE`
+- `WORLDMONITOR_OBSERVATION_LANE`
+
+Contract rule:
+
+- projections are bounded and deterministic
+- projections are non-authoritative
+- SL-only semantic promotion remains downstream
+
+Lane-agnostic operations:
+
+- Import:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_observation.py \
+  --lane openrecall \
+  --source-path /path/to/recall.db \
+  --storage-path /path/to/openrecall/storage \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_observation.py \
+  --lane worldmonitor \
+  --source-path ../worldmonitor/data \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
+```bash
+../.venv/bin/python SensibLaw/scripts/query_observation_import.py \
+  --lane worldmonitor \
+  --itir-db-path .cache_local/itir.sqlite \
+  runs
+```
+
+Legacy lane-specific import/query CLI wrappers still remain available for direct use:
+
+- `import_openrecall.py` / `query_openrecall_import.py`
+- `import_worldmonitor.py` / `query_worldmonitor_import.py`
+
+### WorldMonitor observer import
+
+WorldMonitor exports are now imported through the same observation-substrate lane as
+OpenRecall, with JSON files (single file or directory) as source.
+
+- source identifiers are deterministic `worldmonitor:*` capture IDs
+- no semantic truth is promoted from WorldMonitor alone
+- rows are normalized into:
+  - `worldmonitor_capture_sources`
+  - `worldmonitor_capture_text_units`
+  - `worldmonitor_capture_refs`
+  - `worldmonitor_import_runs`
+
+Use the import CLI:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_worldmonitor.py \
+  --source-path ../worldmonitor/data \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
+Query helpers:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/query_worldmonitor_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  runs
+
+../.venv/bin/python SensibLaw/scripts/query_worldmonitor_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  summary --import-run-id worldmonitor-test-v1
+
+../.venv/bin/python SensibLaw/scripts/query_worldmonitor_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  captures --source-kind facility --limit 20
+```
+
+When the directory path is used, all `*.json` files are ingested in stable
+sorted order. The directory in-repo default is `../worldmonitor`, which keeps
+WorldMonitor data in its own lane and allows parity checks against imported
+OpenRecall activity streams.
 
 ### Parsing contract for HCA AAO payloads (current interim path)
 

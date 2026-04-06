@@ -4,6 +4,7 @@ from src.reporting.source_identity import (
     build_google_public_source_id,
     build_hashed_source_id,
     build_openrecall_capture_id,
+    build_worldmonitor_capture_id,
     format_local_iso_and_date_from_timestamp,
     format_utc_iso_from_timestamp_ms,
 )
@@ -36,4 +37,11 @@ def test_build_openrecall_capture_id_is_stable() -> None:
     assert build_openrecall_capture_id(source_db_path="/tmp/recall.db", source_timestamp=1234) == build_openrecall_capture_id(
         source_db_path="/tmp/recall.db",
         source_timestamp=1234,
+    )
+
+
+def test_build_worldmonitor_capture_id_is_stable() -> None:
+    assert build_worldmonitor_capture_id(source_path="/tmp/worldmonitor/gamma-irradiators.json", source_row_id="row-01") == build_worldmonitor_capture_id(
+        source_path="/tmp/worldmonitor/gamma-irradiators.json",
+        source_row_id="row-01",
     )

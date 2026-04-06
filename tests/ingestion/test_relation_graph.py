@@ -16,6 +16,7 @@ from src.ingestion.relation_graph import (
     relational_signature,
     relational_similarity,
 )
+from src.ontology.wikidata_relation_adapter import build_wikidata_relation_rows
 from src.ingestion.media_adapter import TextDocumentMediaAdapter, parse_canonical_text
 from src.policy.legal_review_profile import build_legal_review_extract
 
@@ -265,6 +266,50 @@ def test_build_seed_relation_clusters_groups_near_equivalent_seed_rows():
             },
         }
     ]
+
+
+def test_build_relation_graph_accepts_wikidata_relation_rows():
+    rows = build_wikidata_relation_rows(
+        {
+            "source_property": "P5991",
+            "target_property": "P14143",
+            "window_basis": {"current": "t1"},
+            "candidates": [
+                {
+                    "candidate_id": "Q1|P5991|1",
+                    "entity_qid": "Q1",
+                    "slot_id": "Q1|P5991",
+                    "statement_index": 1,
+                    "classification": "safe_equivalent",
+                    "action": "migrate",
+                    "claim_bundle_before": {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                    "claim_bundle_after": {
+                        "subject": "Q1",
+                        "property": "P14143",
+                        "value": "100",
+                        "rank": "normal",
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                }
+            ],
+        }
+    )
+
+    graph = build_relation_graph(rows, graph_id="wikidata:migration-pack")
+
+    assert graph.graph_id == "wikidata:migration-pack"
+    assert any(node.node_kind == "actor" and node.label == "Q1" for node in graph.nodes)
+    assert any(node.node_kind == "action" and node.label == "P5991" for node in graph.nodes)
+    assert any(node.node_kind == "object" and node.label == "100" for node in graph.nodes)
+    assert any(edge.edge_kind == "from_source" for edge in graph.edges)
 
 
 def test_build_provisional_invariant_readout_emits_operator_only_seed_summary():

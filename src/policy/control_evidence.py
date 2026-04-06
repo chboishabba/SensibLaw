@@ -142,9 +142,6 @@ def validate_sb_to_sl_contract_payload(payload: Mapping[str, Any]) -> list[str]:
     elif unresolved not in {"none", "follow_needed"}:
         errors.append(f"unsupported unresolved_pressure_status: {unresolved}")
 
-    if unresolved == "follow_needed" and not isinstance(payload.get("follow_obligation"), Mapping):
-        errors.append("follow_obligation required when unresolved_pressure_status=follow_needed")
-
     for index, ref in enumerate(payload.get("casey_observer_refs") or []):
         if not isinstance(ref, Mapping):
             errors.append(f"casey_observer_refs[{index}] must be an object")

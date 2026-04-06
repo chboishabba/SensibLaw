@@ -34,6 +34,7 @@ from src.ontology.wikidata import (
     project_wikidata_payload,
     verify_migration_pack_against_after_state,
 )
+from src.ontology.wikidata_relation_adapter import build_wikidata_relation_rows
 from src.ontology.wikidata_grounding_depth import build_grounding_depth_summary
 
 
@@ -917,6 +918,103 @@ def test_attach_wikidata_phi_text_bridge_enriches_migration_pack_additively() ->
     assert "conflict" in candidate["pressure_summary"].lower()
     assert len(enriched["bridge_cases"]) == 1
     jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_build_wikidata_relation_rows_projects_migration_candidates_to_relation_rows() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "qualifiers": {"P585": ["2024"]},
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    candidate_id = migration_pack["candidates"][0]["candidate_id"]
+    enriched = attach_wikidata_phi_text_bridge(
+        migration_pack,
+        observations_by_candidate={
+            candidate_id: [
+                {
+                    "observation_ref": "obs:1",
+                    "source_ref": "source:doc1",
+                    "anchors": [{"start": 0, "end": 12, "text": "emissions 100"}],
+                    "subject": "Q1",
+                    "predicate": "annual_emissions",
+                    "object": "100",
+                    "qualifiers": {"P585": "2024"},
+                    "promotion_status": "promoted_true",
+                }
+            ]
+        },
+    )
+
+    rows = build_wikidata_relation_rows(enriched)
+
+    assert len(rows) == 1
+    assert rows[0]["source_row_id"] == candidate_id
+    assert rows[0]["source_family"] == "wikidata_migration_pack"
+    assert rows[0]["source_kind"] == "wikidata_candidate_bundle"
+    assert rows[0]["event_id"] == f"wikidata_relation:{candidate_id}"
+    assert rows[0]["source_id"] == f"wikidata_migration_pack:{candidate_id}"
+    assert rows[0]["actor"] == "Q1"
+    assert rows[0]["action"] == "P5991"
+    assert rows[0]["object"] == "100"
+    assert rows[0]["structured_candidate"]["claim_bundle_before"]["qualifiers"] == {
+        "P585": ["2024"]
+    }
+    assert rows[0]["structured_candidate"]["claim_bundle_before"]["references"] == [
+        {"P248": ["Qsrc"]}
+    ]
+    assert {"anchor_kind": "classification", "anchor_value": "safe_with_reference_transfer", "anchor_label": "safe_with_reference_transfer"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "review_action", "anchor_value": "migrate_with_refs", "anchor_label": "migrate_with_refs"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "review_pressure", "anchor_value": "reinforce", "anchor_label": "reinforce"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "text_evidence_ref", "anchor_value": "obs:1", "anchor_label": "obs:1"} in rows[0]["candidate_anchors"]
+
+
+def test_build_wikidata_relation_rows_canonicalizes_nested_values_stably() -> None:
+    rows = build_wikidata_relation_rows(
+        {
+            "source_property": "P5991",
+            "target_property": "P14143",
+            "window_basis": {"current": "t2", "previous": "t1"},
+            "candidates": [
+                {
+                    "candidate_id": "Q9|P5991|1",
+                    "entity_qid": "Q9",
+                    "slot_id": "Q9|P5991",
+                    "statement_index": 1,
+                    "classification": "split_required",
+                    "action": "split",
+                    "claim_bundle_before": {
+                        "subject": "Q9",
+                        "property": "P5991",
+                        "value": {"amount": "100", "unit": "kg", "scopes": ["scope_1", "scope_2"]},
+                        "rank": "normal",
+                        "qualifiers": {"P585": ["2024"]},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                    "claim_bundle_after": {},
+                    "qualifier_diff": {"status": "changed"},
+                    "reference_diff": {"status": "stable"},
+                }
+            ],
+        }
+    )
+
+    assert rows[0]["object"] == '{"amount":"100","scopes":["scope_1","scope_2"],"unit":"kg"}'
 
 
 def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_contract_shape() -> None:

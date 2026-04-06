@@ -1521,6 +1521,13 @@
     and only through ITIR-normalized payloads
   - defer GUI-first OpenRecall browsing until the importer/read-model seam is
     proven stable
+  - treat OpenRecall and WorldMonitor as two observation sources in the same
+    substrate rather than separate semantic planes
+  - normalize the shared observation-ingestion contract before any
+    perception-vs-truth divergence, Delta-cone, attention-invariant, or
+    cognitive-join work
+  - keep OpenRecall-derived signals derived-only and operator-facing until the
+    shared substrate/relation/equivalence path is stable
 - [x] Add the first NotebookLM metadata/review parity slice as a neutral
   producer/query/read-model seam instead of treating `notes_meta` as a fake
   activity ledger. Current v1 now exposes NotebookLM observer date/notebook/

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Supported cross-product access to SL canonical lexer/reducer outputs."""
 
+import hashlib
+
 try:
     from src.text.deterministic_legal_tokenizer import (
         LexemeToken,
@@ -40,6 +42,20 @@ def get_canonical_tokenizer_profile() -> dict[str, str]:
     return get_tokenizer_profile()
 
 
+def get_canonical_tokenizer_profile_receipt() -> dict[str, str]:
+    """Return a bounded receipt for the current tokenizer profile."""
+
+    profile = get_tokenizer_profile()
+    profile_items = sorted(profile.items())
+    profile_seed = "|".join(f"{key}={value}" for key, value in profile_items)
+    return {
+        "profile_id": hashlib.sha256(profile_seed.encode("utf-8")).hexdigest()[:16],
+        "canonical_tokenizer_id": profile["canonical_tokenizer_id"],
+        "canonical_tokenizer_version": profile["canonical_tokenizer_version"],
+        "canonical_mode": profile["canonical_mode"],
+    }
+
+
 def collect_canonical_lexeme_occurrences(
     text: str,
     *,
@@ -68,6 +84,41 @@ def collect_canonical_lexeme_occurrences_with_profile(
         canonical_mode=canonical_mode,
         enable_shadow=enable_shadow,
     )
+
+
+def collect_canonical_lexeme_refs(
+    text: str,
+    *,
+    canonical_mode: str = "deterministic_legal",
+    enable_shadow: bool | None = None,
+) -> list[dict[str, int | str]]:
+    """Collect bounded opaque refs for SL-owned lexeme occurrences."""
+
+    occurrences = collect_canonical_lexeme_occurrences(
+        text,
+        canonical_mode=canonical_mode,
+        enable_shadow=enable_shadow,
+    )
+    refs: list[dict[str, int | str]] = []
+    for occurrence in occurrences:
+        occurrence_seed = "|".join(
+            (
+                occurrence.kind,
+                occurrence.norm_text,
+                str(occurrence.start_char),
+                str(occurrence.end_char),
+                str(occurrence.flags),
+            )
+        )
+        refs.append(
+            {
+                "occurrence_id": hashlib.sha256(occurrence_seed.encode("utf-8")).hexdigest()[:16],
+                "kind": occurrence.kind,
+                "span_start": occurrence.start_char,
+                "span_end": occurrence.end_char,
+            }
+        )
+    return refs
 
 
 def collect_canonical_structure_occurrences(
@@ -104,10 +155,12 @@ __all__ = [
     "LexemeTokenizerProfile",
     "LexemeToken",
     "StructureOccurrence",
+    "collect_canonical_lexeme_refs",
     "collect_canonical_lexeme_occurrences",
     "collect_canonical_lexeme_occurrences_with_profile",
     "collect_canonical_structure_occurrences",
     "get_canonical_tokenizer_profile",
+    "get_canonical_tokenizer_profile_receipt",
     "tokenize_canonical_detailed",
     "tokenize_canonical_with_spans",
 ]

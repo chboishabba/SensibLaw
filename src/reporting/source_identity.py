@@ -44,10 +44,19 @@ def build_openrecall_capture_id(*, source_db_path: str, source_timestamp: int) -
     )
 
 
+def build_worldmonitor_capture_id(*, source_path: str, source_row_id: str) -> str:
+    return build_hashed_source_id(
+        prefix="worldmonitor",
+        raw=f"{source_path}|{source_row_id}",
+        digest_len=16,
+    )
+
+
 __all__ = [
     "build_google_public_source_id",
     "build_hashed_source_id",
     "build_openrecall_capture_id",
+    "build_worldmonitor_capture_id",
     "format_local_iso_and_date_from_timestamp",
     "format_utc_iso_from_timestamp_ms",
 ]
