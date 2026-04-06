@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
+import sys
 
 from src.reporting.observation_lanes import (
+    clear_observation_lane_registry_for_tests,
     get_observation_lanes,
     load_observation_activity_rows,
     load_observation_import_runs,
@@ -98,6 +100,72 @@ def test_observation_lane_registry_is_boundaries_ready() -> None:
             "query_captures",
         ):
             assert callable(getattr(lane, attr_name))
+
+
+def test_observation_lane_registry_loads_plugins_from_environment(tmp_path: Path, monkeypatch) -> None:
+    plugin_path = tmp_path / "dummy_observation_lane_plugin.py"
+    plugin_path.write_text(
+        """
+from pathlib import Path
+
+from src.reporting.observation_lanes import ObservationLaneAdapter
+
+
+def _no_op(conn):
+    return None
+
+
+def _load_units(db_path, **_kwargs):
+    return []
+
+
+def _load_activity_rows(conn, **_kwargs):
+    return []
+
+
+def _load_import_runs(conn, **_kwargs):
+    return []
+
+
+def _build_summary(conn, **_kwargs):
+    return {}
+
+
+def _query_captures(conn, **_kwargs):
+    return []
+
+
+dummy_lane = ObservationLaneAdapter(
+    lane_key="dummy",
+    source_unit_type="dummy_capture",
+    source_label="Dummy Observer",
+    ensure_schema=_no_op,
+    import_data=_no_op,
+    load_units=_load_units,
+    load_activity_rows=_load_activity_rows,
+    load_import_runs=_load_import_runs,
+    build_summary=_build_summary,
+    query_captures=_query_captures,
+)
+
+
+WIZ_OBSERVATION_LANE = dummy_lane
+""".strip(),
+        encoding="utf-8",
+    )
+
+    sys_path_before = list(sys.path)
+    try:
+        sys.path.insert(0, str(tmp_path))
+        clear_observation_lane_registry_for_tests()
+        monkeypatch.setenv("SENSIBLAW_OBSERVATION_LANE_MODULES", "dummy_observation_lane_plugin")
+        lanes = get_observation_lanes()
+    finally:
+        sys.path[:] = sys_path_before
+        clear_observation_lane_registry_for_tests()
+        monkeypatch.delenv("SENSIBLAW_OBSERVATION_LANE_MODULES", raising=False)
+
+    assert "dummy" in lanes
 
 
 def test_observation_lane_contract_openrecall_adapter_roundtrip(tmp_path: Path) -> None:

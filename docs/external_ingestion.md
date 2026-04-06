@@ -265,6 +265,9 @@ OpenRecall and WorldMonitor expose the same bounded adapter contract in
 `src.reporting.observation_lanes`, so downstream tooling can use one common set
 of helpers.
 
+The command examples in this section assume the working directory is
+`SensibLaw/` (so `../.venv/bin/python` resolves correctly).
+
 Required adapter shape:
 
 - `lane_key` (for example `openrecall`, `worldmonitor`)
@@ -282,6 +285,20 @@ Current registrations:
 
 - `OPENRECALL_OBSERVATION_LANE`
 - `WORLDMONITOR_OBSERVATION_LANE`
+
+Additional plugin registration is supported through the environment variable:
+
+- `SENSIBLAW_OBSERVATION_LANE_MODULES`
+
+Example:
+
+```bash
+SENSIBLAW_OBSERVATION_LANE_MODULES="src.reporting.custom_lane" \
+../.venv/bin/python SensibLaw/scripts/import_observation.py --lane custom ...
+```
+
+When present, each module listed as a comma-separated value is imported and any
+attributes matching `*_OBSERVATION_LANE` or `OBSERVATION_LANE` are registered.
 
 Contract rule:
 
@@ -301,6 +318,31 @@ Lane-agnostic operations:
   --itir-db-path .cache_local/itir.sqlite \
   --show-units
 ```
+
+For future lanes, pass lane-specific import parameters through the generic
+`--lane-arg` form (repeatable):
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_observation.py \
+  --lane custom \
+  --source-path /path/to/custom/source \
+  --lane-arg cache_ttl=3600 \
+  --lane-arg source_profile=custom \
+  --itir-db-path .cache_local/itir.sqlite
+```
+
+`--lane-arg` is also useful when a lane needs migration-style arguments:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_observation.py \
+  --lane openrecall \
+  --source-path /path/to/recall.db \
+  --lane-arg storage_path=/path/to/openrecall/storage \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
+`--storage-path` is kept as a compatibility alias for OpenRecall.
 
 ```bash
 ../.venv/bin/python SensibLaw/scripts/import_observation.py \
@@ -344,6 +386,15 @@ Use the import CLI:
   --show-units
 ```
 
+If you run the same command from `SensibLaw/`, use an extra `../`:
+
+```bash
+../.venv/bin/python scripts/import_worldmonitor.py \
+  --source-path ../../worldmonitor/data \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-units
+```
+
 Query helpers:
 
 ```bash
@@ -364,6 +415,35 @@ When the directory path is used, all `*.json` files are ingested in stable
 sorted order. The directory in-repo default is `../worldmonitor`, which keeps
 WorldMonitor data in its own lane and allows parity checks against imported
 OpenRecall activity streams.
+
+Accepted source-root convention:
+
+- from the repo root, `--source-path ../worldmonitor/...` is the normal
+  sibling-repo form
+- from `SensibLaw/`, the equivalent path gains one more `../`
+- importer/runtime identity uses the resolved absolute `source_path`, while
+  capture identity is pinned by `source_path + source_file + source_row_id`
+
+One-command local bridge from the repo root:
+
+```bash
+../.venv/bin/python StatiBaker/scripts/run_worldmonitor_bridge.py \
+  --date 2026-04-06 \
+  --repo-path . \
+  --worldmonitor-repo-path ../worldmonitor
+```
+
+Defaults and optional helper flags:
+
+- if `--source-path` is omitted, the bridge ingests from `../worldmonitor/data`
+- `--bootstrap-worldmonitor` runs `npm install` in the sibling WorldMonitor repo
+- `--smoke-worldmonitor-dev` performs a local `npm run dev` smoke check before ingest
+- if the source tree is unchanged and the importer de-duplicates to zero new
+  captures, the bridge reuses the latest populated run for that same resolved
+  source path instead of emitting an empty SL summary/chronology
+- the bridge exports the whole effective import run into SB by default; use
+  `--captured-date YYYY-MM-DD` only when you deliberately want to narrow the
+  SB export to one WorldMonitor source date
 
 ### Parsing contract for HCA AAO payloads (current interim path)
 

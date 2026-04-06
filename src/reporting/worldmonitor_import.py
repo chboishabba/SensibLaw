@@ -13,6 +13,7 @@ from src.reporting.source_loaders import resolve_loader_path
 from src.reporting.source_identity import build_worldmonitor_capture_id, format_local_iso_and_date_from_timestamp
 from src.reporting.text_unit_builders import build_header_body_text
 from src.reporting.observation_lanes import ObservationLaneAdapter
+from src.fact_intake.review_bundle import build_event_chronology
 
 if TYPE_CHECKING:
     from src.reporting.structure_report import TextUnit
@@ -137,7 +138,8 @@ def _parse_extracted_timestamp(value: Any) -> int | None:
 
 def _stable_fallback_timestamp(raw: str, index: int) -> int:
     digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()
-    return int(digest[:12], 16) + int(index)
+    bounded_seed = int(digest[:12], 16) % 365 * 24 * 60 * 60
+    return 1_700_000_000 + bounded_seed + int(index)
 
 
 def _to_row_text(row: dict[str, Any], *, source_row_id: str, source_kind: str) -> str:
@@ -316,6 +318,7 @@ def import_worldmonitor_data(
         captured_at, captured_date = format_local_iso_and_date_from_timestamp(source_timestamp)
         capture_id = build_worldmonitor_capture_id(
             source_path=str(item["source_path"]),
+            source_file=str(item["source_file"]),
             source_row_id=str(item["source_row_id"]),
         )
         before = conn.total_changes
@@ -689,6 +692,101 @@ def query_worldmonitor_captures(
     return out
 
 
+def build_worldmonitor_chronology(
+    conn: sqlite3.Connection,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    source_kind: str | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    ensure_worldmonitor_capture_schema(conn)
+    where: list[str] = []
+    params: list[Any] = []
+    if import_run_id is not None:
+        where.append("s.import_run_id = ?")
+        params.append(import_run_id)
+    if date is not None:
+        where.append("s.captured_date = ?")
+        params.append(date)
+    if source_kind is not None:
+        where.append("LOWER(s.source_kind) = LOWER(?)")
+        params.append(source_kind)
+    sql = """
+        SELECT
+          s.capture_id,
+          s.import_run_id,
+          s.captured_at,
+          s.captured_date,
+          s.source_file,
+          s.source_row_id,
+          s.source_kind,
+          s.row_label,
+          s.source_timestamp,
+          s.content_sha1
+        FROM worldmonitor_capture_sources s
+    """
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY s.source_timestamp ASC, s.capture_id ASC"
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(int(limit))
+    rows = conn.execute(sql, tuple(params)).fetchall()
+
+    events: list[dict[str, Any]] = []
+    semantic_order: dict[str, int] = {}
+    for index, row in enumerate(rows, start=1):
+        capture_id = str(row["capture_id"] or "").strip()
+        if not capture_id:
+            continue
+        semantic_order[capture_id] = index
+        events.append(
+            {
+                "event_id": capture_id,
+                "source_event_ids": [capture_id],
+                "event_type": "worldmonitor_capture",
+                "primary_actor": str(row["source_kind"] or "worldmonitor_capture"),
+                "object_text": str(row["row_label"] or row["source_row_id"] or ""),
+                "time_start": str(row["captured_at"] or ""),
+                "status": "captured",
+            }
+        )
+
+    chronology = build_event_chronology(events, semantic_order=semantic_order)
+    by_event_id = {str(row["event_id"]): row for row in chronology}
+
+    enriched_chronology: list[dict[str, Any]] = []
+    for row in rows:
+        capture_id = str(row["capture_id"] or "").strip()
+        chronology_row = dict(by_event_id.get(capture_id, {}))
+        if not chronology_row:
+            continue
+        chronology_row.update(
+            {
+                "capture_id": capture_id,
+                "captured_date": str(row["captured_date"] or ""),
+                "source_kind": str(row["source_kind"] or ""),
+                "row_label": str(row["row_label"] or ""),
+                "source_row_id": str(row["source_row_id"] or ""),
+                "source_timestamp": int(row["source_timestamp"] or 0),
+            }
+        )
+        enriched_chronology.append(chronology_row)
+
+    return {
+        "filters": {
+            "importRunId": import_run_id,
+            "date": date,
+            "sourceKind": source_kind,
+        },
+        "chronologyCount": len(enriched_chronology),
+        "firstCapturedAt": enriched_chronology[0]["time_start"] if enriched_chronology else None,
+        "lastCapturedAt": enriched_chronology[-1]["time_start"] if enriched_chronology else None,
+        "chronology": enriched_chronology,
+    }
+
+
 def ensure_worldmonitor_observation_schema(conn: sqlite3.Connection) -> None:
     ensure_worldmonitor_capture_schema(conn)
 
@@ -766,9 +864,9 @@ __all__ = [
     "load_worldmonitor_activity_rows",
     "load_worldmonitor_import_runs",
     "load_worldmonitor_units",
+    "build_worldmonitor_chronology",
     "build_worldmonitor_capture_summary",
     "build_worldmonitor_observation_summary",
     "query_worldmonitor_captures",
     "query_worldmonitor_observation_captures",
 ]
-

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
 import sqlite3
+import importlib
+import os
 from typing import Any
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +39,62 @@ class ObservationLaneAdapter:
 _OBSERVATION_LANE_CACHE: dict[str, ObservationLaneAdapter] | None = None
 
 
+def register_observation_lane(adapter: ObservationLaneAdapter, *, replace: bool = False) -> None:
+    """Register one bounded observation-lane adapter.
+
+    Parameters
+    ----------
+    adapter:
+        Adapter describing one source lane.
+    replace:
+        If False (default), duplicate lane keys raise.
+        If True, explicit replacement is allowed by caller.
+    """
+
+    global _OBSERVATION_LANE_CACHE
+    key = adapter.key
+    if _OBSERVATION_LANE_CACHE is None:
+        _OBSERVATION_LANE_CACHE = {}
+    if key in _OBSERVATION_LANE_CACHE and not replace:
+        raise ValueError(f"duplicate observation lane key: {key}")
+    _OBSERVATION_LANE_CACHE[key] = adapter
+
+
+def clear_observation_lane_registry_for_tests() -> None:
+    """Clear cached lane registry, intended for test isolation."""
+
+    global _OBSERVATION_LANE_CACHE
+    _OBSERVATION_LANE_CACHE = None
+
+
+def _iter_discovery_modules() -> Iterable[str]:
+    seen: set[str] = set()
+    env_modules = os.environ.get("SENSIBLAW_OBSERVATION_LANE_MODULES")
+    if env_modules:
+        for item in env_modules.split(","):
+            module_name = item.strip()
+            if module_name and module_name not in seen:
+                seen.add(module_name)
+                yield module_name
+    for module_name in ("src.reporting.openrecall_import", "src.reporting.worldmonitor_import"):
+        if module_name not in seen:
+            yield module_name
+
+
+def _load_lane_from_module(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+    for name in dir(module):
+        if not name.endswith("_OBSERVATION_LANE"):
+            continue
+        adapter = getattr(module, name, None)
+        if isinstance(adapter, ObservationLaneAdapter):
+            register_observation_lane(adapter)
+    if "OBSERVATION_LANE" in dir(module):
+        adapter = getattr(module, "OBSERVATION_LANE", None)
+        if isinstance(adapter, ObservationLaneAdapter):
+            register_observation_lane(adapter)
+
+
 def get_observation_lanes() -> dict[str, ObservationLaneAdapter]:
     """Return canonical observation lanes for the current process.
 
@@ -45,13 +105,10 @@ def get_observation_lanes() -> dict[str, ObservationLaneAdapter]:
     if _OBSERVATION_LANE_CACHE is not None:
         return dict(_OBSERVATION_LANE_CACHE)
 
-    from src.reporting.openrecall_import import OPENRECALL_OBSERVATION_LANE
-    from src.reporting.worldmonitor_import import WORLDMONITOR_OBSERVATION_LANE
-
-    _OBSERVATION_LANE_CACHE = {
-        OPENRECALL_OBSERVATION_LANE.key: OPENRECALL_OBSERVATION_LANE,
-        WORLDMONITOR_OBSERVATION_LANE.key: WORLDMONITOR_OBSERVATION_LANE,
-    }
+    for module_name in _iter_discovery_modules():
+        _load_lane_from_module(module_name)
+    if _OBSERVATION_LANE_CACHE is None:
+        _OBSERVATION_LANE_CACHE = {}
     return dict(_OBSERVATION_LANE_CACHE)
 
 
@@ -154,7 +211,9 @@ def query_observation_captures(
 
 
 __all__ = [
+    "clear_observation_lane_registry_for_tests",
     "ObservationLaneAdapter",
+    "register_observation_lane",
     "get_observation_lane",
     "get_observation_lanes",
     "load_observation_activity_rows",

@@ -41,7 +41,27 @@ def test_build_openrecall_capture_id_is_stable() -> None:
 
 
 def test_build_worldmonitor_capture_id_is_stable() -> None:
-    assert build_worldmonitor_capture_id(source_path="/tmp/worldmonitor/gamma-irradiators.json", source_row_id="row-01") == build_worldmonitor_capture_id(
-        source_path="/tmp/worldmonitor/gamma-irradiators.json",
+    assert build_worldmonitor_capture_id(
+        source_path="/tmp/worldmonitor",
+        source_file="/tmp/worldmonitor/gamma-irradiators.json",
+        source_row_id="row-01",
+    ) == build_worldmonitor_capture_id(
+        source_path="/tmp/worldmonitor",
+        source_file="/tmp/worldmonitor/gamma-irradiators.json",
         source_row_id="row-01",
     )
+
+
+def test_build_worldmonitor_capture_id_changes_with_source_file() -> None:
+    left = build_worldmonitor_capture_id(
+        source_path="/tmp/worldmonitor",
+        source_file="/tmp/worldmonitor/gamma-irradiators.json",
+        source_row_id="row-01",
+    )
+    right = build_worldmonitor_capture_id(
+        source_path="/tmp/worldmonitor",
+        source_file="/tmp/worldmonitor/facilities.json",
+        source_row_id="row-01",
+    )
+
+    assert left != right

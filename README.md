@@ -38,6 +38,36 @@ The current bounded rule is:
 - feed that substrate into the existing relation/equivalence path
 - keep the result derived-only and operator-facing first
 
+For WorldMonitor specifically, the supported bridge is:
+
+- import WorldMonitor into ITIR through the observation lane
+- export SB-safe `worldmonitor_capture` rows into `StatiBaker/runs/<date>/logs/worldmonitor/<date>.jsonl`
+- run `StatiBaker/scripts/run_day.sh`
+- read the imported lane back through `SensibLaw/scripts/query_observation_import.py --lane worldmonitor summary`
+- build an SL chronology readout through `SensibLaw/scripts/query_worldmonitor_import.py chronology`
+
+The one-command local path is:
+
+```bash
+../.venv/bin/python StatiBaker/scripts/run_worldmonitor_bridge.py \
+  --date 2026-04-06 \
+  --repo-path . \
+  --worldmonitor-repo-path ../worldmonitor
+```
+
+By default this uses `../worldmonitor/data` as the source export path. Add:
+
+- `--bootstrap-worldmonitor` to run `npm install` in the sibling WorldMonitor repo first
+- `--smoke-worldmonitor-dev` to start the local WorldMonitor dev server, wait for it to answer, then stop it before ingest
+
+If the data tree has not changed and WorldMonitor import de-duplicates to zero
+new captures, the bridge reuses the latest populated import run for that same
+resolved source path so the SL summary/chronology and SB export stay non-empty.
+
+The bridge exports the whole effective import run into SB by default. Use
+`--captured-date YYYY-MM-DD` only if you intentionally want to narrow the SB
+observed export to one WorldMonitor source date.
+
 The current explicit non-goals are also important:
 
 - do not introduce a separate "perception layer" yet

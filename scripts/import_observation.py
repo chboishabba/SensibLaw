@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 from pathlib import Path
 import sqlite3
@@ -27,12 +28,68 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _coerce_arg_value(raw: str) -> str | Path | int | float:
+    text = raw.strip()
+    if not text:
+        return text
+    lowered = text.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    for caster in (int, float):
+        try:
+            return caster(text)
+        except ValueError:
+            pass
+    return Path(text) if "/" in text or text.endswith((".sqlite", ".db")) else text
+
+
+def _extract_import_kwargs(lane: Any, args: argparse.Namespace) -> dict[str, object]:
+    raw_kwargs: dict[str, object] = {}
+    if args.storage_path is not None:
+        raw_kwargs["storage_path"] = args.storage_path
+
+    for item in args.lane_arg:
+        if "=" not in item:
+            raise ValueError(f"Invalid --lane-arg value '{item}'; expected key=value")
+        name, value = item.split("=", 1)
+        name = name.strip()
+        if not name:
+            raise ValueError(f"Invalid --lane-arg value '{item}'; expected key=value")
+        raw_kwargs[name] = _coerce_arg_value(value)
+
+    signature = inspect.signature(lane.import_data)
+    has_var_kwargs = any(
+        param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
+    )
+    if has_var_kwargs:
+        return raw_kwargs
+
+    accepted = set(signature.parameters.keys())
+    out: dict[str, object] = {}
+    for key, value in raw_kwargs.items():
+        if key in accepted:
+            out[key] = value
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Import lane-specific observation source rows into itir.sqlite.")
     parser.add_argument("--lane", required=True, help="Observation lane key, for example openrecall or worldmonitor")
     parser.add_argument("--source-path", type=Path, required=True, help="Source DB/file or directory for the lane")
     parser.add_argument("--itir-db-path", type=Path, default=Path(".cache_local/itir.sqlite"), help="Path to target ITIR SQLite DB")
-    parser.add_argument("--storage-path", type=Path, default=None, help="OpenRecall-only storage path override")
+    parser.add_argument(
+        "--storage-path",
+        type=Path,
+        default=None,
+        help="Optional lane-specific source storage override (for backward compatible OpenRecall compatibility)",
+    )
+    parser.add_argument(
+        "--lane-arg",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Generic lane-specific import argument (repeatable).",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Optional max source rows/files to import")
     parser.add_argument("--import-run-id", default=None, help="Optional stable import run id")
     parser.add_argument("--show-units", action="store_true", help="Include a small preview of imported text units")
@@ -50,8 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         "import_run_id": import_run_id,
         "limit": args.limit,
     }
-    if args.storage_path is not None:
-        import_kwargs["storage_path"] = args.storage_path
+    import_kwargs.update(_extract_import_kwargs(lane, args))
 
     with _connect(args.itir_db_path) as conn:
         lane.ensure_schema(conn)

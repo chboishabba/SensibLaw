@@ -149,3 +149,62 @@ def test_import_observation_cli_worldmonitor_and_query_roundtrip(tmp_path: Path)
     )
     assert summary_payload["lane"] == "worldmonitor"
     assert summary_payload["summary"]["captureCount"] == payload["importedCaptureCount"]
+
+
+def test_import_observation_cli_lane_args_are_lane_agnostic(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    source_db, storage = _seed_openrecall_db(tmp_path, timestamp=1_700_000_100, text="lane arg test")
+    itir_db = tmp_path / "itir.sqlite"
+
+    payload = _run_script(
+        [
+            sys.executable,
+            "SensibLaw/scripts/import_observation.py",
+            "--lane",
+            "openrecall",
+            "--source-path",
+            str(source_db),
+            "--lane-arg",
+            f"storage_path={storage}",
+            "--import-run-id",
+            "observation-openrecall-lanearg-v1",
+            "--itir-db-path",
+            str(itir_db),
+            "--show-units",
+        ],
+        cwd=repo_root,
+    )
+    assert payload["ok"] is True
+    assert payload["lane"] == "openrecall"
+    assert payload["importRunId"] == "observation-openrecall-lanearg-v1"
+    assert payload["importedCaptureCount"] == 1
+
+
+def test_import_observation_cli_ignores_unused_lane_args(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    source_dir = _seed_worldmonitor_dir(tmp_path)
+    itir_db = tmp_path / "itir.sqlite"
+
+    payload = _run_script(
+        [
+            sys.executable,
+            "SensibLaw/scripts/import_observation.py",
+            "--lane",
+            "worldmonitor",
+            "--source-path",
+            str(source_dir),
+            "--lane-arg",
+            "storage_path=ignored",
+            "--lane-arg",
+            "sample_flag=true",
+            "--import-run-id",
+            "observation-worldmonitor-lanearg-v1",
+            "--itir-db-path",
+            str(itir_db),
+        ],
+        cwd=repo_root,
+    )
+    assert payload["ok"] is True
+    assert payload["lane"] == "worldmonitor"
+    assert payload["importRunId"] == "observation-worldmonitor-lanearg-v1"
+    assert payload["importedCaptureCount"] > 0

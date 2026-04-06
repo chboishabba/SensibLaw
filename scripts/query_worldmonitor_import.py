@@ -13,6 +13,7 @@ if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
 from src.reporting.worldmonitor_import import (
+    build_worldmonitor_chronology,
     build_worldmonitor_capture_summary,
     ensure_worldmonitor_capture_schema,
     load_worldmonitor_import_runs,
@@ -47,6 +48,12 @@ def main(argv: list[str] | None = None) -> int:
     captures_parser.add_argument("--text-query", default=None, help="Optional source text/title filter")
     captures_parser.add_argument("--limit", type=int, default=25, help="Max captures to return")
 
+    chronology_parser = subparsers.add_parser("chronology", help="Build an ordered chronology view")
+    chronology_parser.add_argument("--import-run-id", default=None, help="Optional import-run filter")
+    chronology_parser.add_argument("--date", default=None, help="Optional captured_date filter (YYYY-MM-DD)")
+    chronology_parser.add_argument("--source-kind", default=None, help="Optional source kind filter")
+    chronology_parser.add_argument("--limit", type=int, default=250, help="Max chronology rows to return")
+
     args = parser.parse_args(argv)
     with _connect(args.itir_db_path) as conn:
         payload: dict[str, object]
@@ -67,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
                     source_kind=args.source_kind,
                 ),
             }
-        else:
+        elif args.command == "captures":
             payload = {
                 "ok": True,
                 "itirDbPath": str(args.itir_db_path.resolve()),
@@ -77,6 +84,18 @@ def main(argv: list[str] | None = None) -> int:
                     date=args.date,
                     source_kind=args.source_kind,
                     text_query=args.text_query,
+                    limit=args.limit,
+                ),
+            }
+        elif args.command == "chronology":
+            payload = {
+                "ok": True,
+                "itirDbPath": str(args.itir_db_path.resolve()),
+                "chronology": build_worldmonitor_chronology(
+                    conn,
+                    import_run_id=args.import_run_id,
+                    date=args.date,
+                    source_kind=args.source_kind,
                     limit=args.limit,
                 ),
             }
