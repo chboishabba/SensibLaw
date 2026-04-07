@@ -11,6 +11,7 @@ from .shared_reducer import (
     tokenize_canonical_with_spans,
 )
 from .story_importer import StoryImporter
+from .text_adapter import build_canonical_conversation_text
 
 __all__ = [
     "LexemeOccurrence",
@@ -18,6 +19,7 @@ __all__ = [
     "LexemeTokenizerProfile",
     "StoryImporter",
     "StructureOccurrence",
+    "build_canonical_conversation_text",
     "collect_canonical_lexeme_occurrences",
     "collect_canonical_lexeme_occurrences_with_profile",
     "collect_canonical_structure_occurrences",
