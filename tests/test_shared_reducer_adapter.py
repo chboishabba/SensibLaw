@@ -4,6 +4,7 @@ from sensiblaw.interfaces.shared_reducer import (
     collect_canonical_lexeme_refs,
     collect_canonical_lexeme_occurrences,
     collect_canonical_lexeme_occurrences_with_profile,
+    collect_canonical_relational_bundle,
     collect_canonical_structure_occurrences,
     get_canonical_tokenizer_profile,
     get_canonical_tokenizer_profile_receipt,
@@ -66,3 +67,26 @@ def test_shared_reducer_span_tokenization_matches_internal_function() -> None:
     text = "Civil Liability Act 2002 (NSW) Pt 4 Div 2 r 7.32 Sch 1 cl 4"
     assert tokenize_canonical_with_spans(text) == tokenize_with_spans(text)
     assert tokenize_canonical_detailed(text) == tokenize_detailed(text)
+
+
+def test_shared_reducer_relational_bundle_is_span_anchored_and_question_shaped() -> None:
+    text = "alice:\nQ: how does crypto promise to hedge asset volatility and uncertainty in 2026"
+
+    bundle = collect_canonical_relational_bundle(text)
+
+    assert bundle["version"] == "relational_bundle_v1"
+    assert bundle["canonical_text"] == text
+    assert bundle["atoms"]
+    assert bundle["relations"]
+    for atom in bundle["atoms"]:
+        start, end = atom["span"]
+        assert text[start:end] == atom["text"]
+
+    relation_types = {relation["type"] for relation in bundle["relations"]}
+    assert {"predicate", "modifier", "conjunction", "temporal", "composition"} <= relation_types
+    composition_relation = next(
+        relation for relation in bundle["relations"] if relation["type"] == "composition"
+    )
+    composition_role = composition_relation["roles"][0]
+    assert composition_role["value"] == "question"
+    assert text[composition_role["span_start"]:composition_role["span_end"]]

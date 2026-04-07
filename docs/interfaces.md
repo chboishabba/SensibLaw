@@ -19,7 +19,8 @@
 - Output: normalized document/provision structures with stable identifiers.
 
 ### Channel B: Structural Egress
-- Output: span-anchored text, logic trees, and extraction artifacts.
+- Output: span-anchored text, logic trees, extraction artifacts, and bounded
+  shared-reducer structural bundles.
 - Consumer: deterministic downstream processing and verification.
 
 ### Channel C: Graph/API Egress

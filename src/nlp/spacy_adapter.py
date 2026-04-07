@@ -66,10 +66,14 @@ def _serialize_token(token: "Token") -> Dict[str, Any]:
     end = token.idx + len(token.text)
     lemma = token.lemma_ if token.lemma_ else token.text
     return {
+        "index": token.i,
         "text": token.text,
         "lemma": lemma,
         "pos": token.pos_,
+        "tag": token.tag_,
         "dep": token.dep_,
+        "head_index": token.head.i,
+        "head_text": token.head.text,
         "start": token.idx,
         "end": end,
     }

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 """Supported cross-product access to SL canonical lexer/reducer outputs."""
 
+from dataclasses import dataclass
 import hashlib
+import re
+from typing import Any
 
 try:
     from src.text.deterministic_legal_tokenizer import (
@@ -34,6 +37,168 @@ except ModuleNotFoundError:  # pragma: no cover - cross-product import path
     )
     from text.operational_structure import StructureOccurrence
     from text.structure_index import collect_structure_occurrences
+try:
+    from src.nlp.spacy_adapter import parse as parse_with_spacy
+except ModuleNotFoundError:  # pragma: no cover - cross-product import path
+    from nlp.spacy_adapter import parse as parse_with_spacy
+
+
+_YEAR_RE = re.compile(r"^\d{4}$")
+
+
+@dataclass(frozen=True, slots=True)
+class RelationalAtom:
+    atom_id: str
+    text: str
+    span_start: int
+    span_end: int
+
+
+def _dedupe_relation_key(relation: dict[str, Any]) -> tuple[Any, ...]:
+    parts: list[Any] = [relation["type"]]
+    for role in relation["roles"]:
+        parts.append((role["role"], role.get("atom"), role.get("value")))
+    return tuple(parts)
+
+
+def _detect_question_span(parsed: dict[str, Any]) -> tuple[bool, tuple[int, int] | None]:
+    for sentence in parsed.get("sents", ()):
+        tokens = sentence.get("tokens", ())
+        if any(token["text"] == "?" for token in tokens):
+            question_mark = next(token for token in tokens if token["text"] == "?")
+            return True, (question_mark["start"], question_mark["end"])
+
+        token_by_index = {token["index"]: token for token in tokens}
+        for token in tokens:
+            if token.get("tag") in {"WP", "WRB", "WDT"}:
+                return True, (token["start"], token["end"])
+            if token["dep"] == "aux":
+                head = token_by_index.get(token["head_index"])
+                if head is not None and head["pos"] in {"VERB", "AUX"} and token["index"] < head["index"]:
+                    return True, (token["start"], token["end"])
+
+    return False, None
+
+
+def collect_canonical_relational_bundle(
+    text: str,
+    *,
+    canonical_mode: str = "deterministic_legal",
+) -> dict[str, Any]:
+    """Emit a deterministic relation bundle over canonical text."""
+
+    del canonical_mode  # reserved for future profile-routing parity
+    parsed = parse_with_spacy(text)
+    sent_tokens = [token for sentence in parsed.get("sents", ()) for token in sentence.get("tokens", ())]
+
+    atoms_by_key: dict[tuple[str, int, int], RelationalAtom] = {}
+    relations: list[dict[str, Any]] = []
+    relation_keys: set[tuple[Any, ...]] = set()
+
+    def ensure_atom(token: dict[str, Any]) -> RelationalAtom:
+        key = (token["text"], token["start"], token["end"])
+        existing = atoms_by_key.get(key)
+        if existing is not None:
+            return existing
+        atom = RelationalAtom(
+            atom_id=f"a{len(atoms_by_key) + 1}",
+            text=token["text"],
+            span_start=key[1],
+            span_end=key[2],
+        )
+        atoms_by_key[key] = atom
+        return atom
+
+    def append_relation(type_: str, roles: list[dict[str, str]]) -> None:
+        relation = {
+            "id": f"e{len(relations) + 1}",
+            "type": type_,
+            "roles": roles,
+        }
+        relation_key = _dedupe_relation_key(relation)
+        if relation_key in relation_keys:
+            return
+        relation_keys.add(relation_key)
+        relations.append(relation)
+
+    token_by_index = {token["index"]: token for token in sent_tokens}
+    nounish = {"NOUN", "PROPN", "PRON", "NUM"}
+    predicate_deps = {"ROOT", "acl", "xcomp", "ccomp", "advcl"}
+    object_deps = {"dobj", "obj", "attr", "oprd"}
+    modifier_deps = {"compound", "amod", "nmod", "appos", "conj"}
+
+    for token in sent_tokens:
+        if token["dep"] in predicate_deps and token["pos"] in {"VERB", "AUX"}:
+            children = [
+                child
+                for child in sent_tokens
+                if child["head_index"] == token["index"] and child["dep"] in object_deps and child["pos"] in nounish
+            ]
+            for child in children:
+                head_atom = ensure_atom(token)
+                argument_atom = ensure_atom(child)
+                append_relation(
+                    "predicate",
+                    [
+                        {"role": "head", "atom": head_atom.atom_id},
+                        {"role": "argument", "atom": argument_atom.atom_id},
+                    ],
+                )
+
+        if token["dep"] in modifier_deps:
+            head = token_by_index.get(token["head_index"])
+            if head is not None and head["pos"] in nounish:
+                head_atom = ensure_atom(head)
+                modifier_atom = ensure_atom(token)
+                append_relation(
+                    "modifier",
+                    [
+                        {"role": "head", "atom": head_atom.atom_id},
+                        {"role": "modifier", "atom": modifier_atom.atom_id},
+                    ],
+                )
+
+        if token["dep"] == "conj":
+            head = token_by_index.get(token["head_index"])
+            if head is not None:
+                head_atom = ensure_atom(head)
+                item_atom = ensure_atom(token)
+                append_relation(
+                    "conjunction",
+                    [
+                        {"role": "item", "atom": head_atom.atom_id},
+                        {"role": "item", "atom": item_atom.atom_id},
+                    ],
+                )
+
+        if token["dep"] in {"npadvmod", "tmod", "pobj"} and _YEAR_RE.match(token["text"]):
+            anchor_atom = ensure_atom(token)
+            append_relation(
+                "temporal",
+                [{"role": "anchor", "atom": anchor_atom.atom_id}],
+            )
+
+    is_question, question_span = _detect_question_span(parsed)
+    if is_question:
+        role: dict[str, Any] = {"role": "mode", "value": "question"}
+        if question_span is not None:
+            role["span_start"], role["span_end"] = question_span
+        append_relation("composition", [role])
+
+    atoms = [
+        {
+            "id": atom.atom_id,
+            "text": atom.text,
+            "span": [atom.span_start, atom.span_end],
+        }
+        for atom in sorted(atoms_by_key.values(), key=lambda value: (value.span_start, value.span_end, value.atom_id))
+    ]
+    return {
+        "version": "relational_bundle_v1",
+        "canonical_text": text,
+        "atoms": atoms,
+        "relations": relations,
+    }
 
 
 def get_canonical_tokenizer_profile() -> dict[str, str]:
@@ -151,6 +316,7 @@ def tokenize_canonical_detailed(text: str) -> list[LexemeToken]:
 
 
 __all__ = [
+    "RelationalAtom",
     "LexemeOccurrence",
     "LexemeTokenizerProfile",
     "LexemeToken",
@@ -158,6 +324,7 @@ __all__ = [
     "collect_canonical_lexeme_refs",
     "collect_canonical_lexeme_occurrences",
     "collect_canonical_lexeme_occurrences_with_profile",
+    "collect_canonical_relational_bundle",
     "collect_canonical_structure_occurrences",
     "get_canonical_tokenizer_profile",
     "get_canonical_tokenizer_profile_receipt",
