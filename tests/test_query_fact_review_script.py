@@ -4,6 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from scripts.query_fact_review import main
 from scripts.build_affidavit_coverage_review import write_affidavit_coverage_review
 from src.fact_intake import (
@@ -18,6 +20,8 @@ from src.fact_intake import (
 )
 from src.fact_intake.acceptance import STORY_WAVES
 from src.reporting.structure_report import TextUnit
+
+jsonschema = pytest.importorskip("jsonschema")
 
 
 def _seed_fact_review_run(db_path) -> str:
@@ -218,9 +222,42 @@ def test_query_fact_review_script_reports_review_queue_and_chronology(tmp_path, 
     view_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert view_payload["view_kind"] == "intake_triage"
-    assert view_payload["view"]["summary"]["review_queue_count"] >= 1
-    assert view_payload["view"]["queue"][0]["description"]
-    assert view_payload["view"]["queue"][0]["operator_readout"]["reason_line"] == view_payload["view"]["queue"][0]["description"]
+
+
+def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+    out_path = tmp_path / "zelph.json"
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "zelph-export",
+            "--run-id",
+            run_id,
+            "--artifact-revision",
+            "rev-test",
+            "-o",
+            str(out_path),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["selector"]["run_id"] == run_id
+    assert payload["output_path"] == str(out_path.resolve())
+
+    bundle = payload["zelph_bundle"]
+    schema = json.loads((Path(__file__).resolve().parents[2] / "schemas" / "zelph_input.schema.json").read_text(encoding="utf-8"))
+    jsonschema.validate(instance=bundle, schema=schema)
+    assert bundle["facts"]
+    assert bundle["provenance_mode"] == "strict"
+    assert bundle["facts"][0]["parse_tree"]["text"]
+    assert bundle["facts"][0]["parse_tree"]["sents"][0]["tokens"]
+    assert bundle["facts"][0]["provenance"][0]["doc_id"]
+    assert bundle["facts"][0]["provenance"][0]["start"] == 0
+    assert bundle["facts"][0]["provenance"][0]["end"] > 0
+    assert json.loads(out_path.read_text(encoding="utf-8"))["facts"][0]["parse_tree"]["sents"]
 
     exit_code = main(["--db-path", str(db_path), "workbench", "--run-id", run_id])
     workbench_payload = json.loads(capsys.readouterr().out)

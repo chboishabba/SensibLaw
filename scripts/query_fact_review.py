@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import importlib.util
 import json
 from pathlib import Path
 import sys
 
 _THIS_DIR = Path(__file__).resolve().parent
 _SENSIBLAW_ROOT = _THIS_DIR.parent
+_REPO_ROOT = _SENSIBLAW_ROOT.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
@@ -38,6 +40,20 @@ from src.fact_intake import (
     resolve_fact_run_link,
 )
 from src.storage.sqlite_runtime import connect_sqlite, resolve_sqlite_db_path
+
+
+def _load_repo_prime_index():
+    module_path = _REPO_ROOT / "tools" / "prime_index.py"
+    spec = importlib.util.spec_from_file_location("repo_prime_index", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"unable to load repo prime_index module from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+prime_index = _load_repo_prime_index()
 
 _ACCEPTANCE_WAVE_CHOICES = [
     "wave1_legal",
@@ -221,6 +237,14 @@ def main(argv: list[str] | None = None) -> int:
     _add_run_selector_args(demo_p)
     demo_p.add_argument("--wave", default="wave1_legal", choices=_ACCEPTANCE_WAVE_CHOICES)
     demo_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
+
+    zelph_p = sub.add_parser(
+        "zelph-export",
+        help="Build a Zelph-ready bundle over the resolved persisted workbench using the repo prime-index bridge",
+    )
+    _add_run_selector_args(zelph_p)
+    zelph_p.add_argument("--artifact-revision", default="rev-query-fact-review")
+    zelph_p.add_argument("-o", "--output", type=Path, default=None)
 
     report_p = sub.add_parser("report", help="Show the full persisted fact-intake report")
     _add_run_selector_args(report_p)
@@ -685,6 +709,37 @@ def main(argv: list[str] | None = None) -> int:
                     conn,
                     workflow_kind=resolved_workflow_kind,
                 ),
+            }
+        elif args.command == "zelph-export":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            workbench = build_fact_review_workbench_payload(conn, run_id=resolved_run_id)
+            bundle = prime_index.build_zelph_bundle_from_payload(
+                workbench,
+                artifact_revision=args.artifact_revision,
+            )
+            if args.output:
+                args.output.write_text(
+                    json.dumps(bundle, ensure_ascii=False, indent=2, sort_keys=True),
+                    encoding="utf-8",
+                )
+            payload = {
+                "ok": True,
+                "dbPath": str(db_path),
+                "selector": {
+                    "run_id": resolved_run_id,
+                    "workflow_kind": getattr(args, "workflow_kind", None),
+                    "workflow_run_id": getattr(args, "workflow_run_id", None),
+                    "source_label": getattr(args, "source_label", None),
+                    "artifact_revision": args.artifact_revision,
+                },
+                "output_path": str(args.output.resolve()) if args.output else None,
+                "zelph_bundle": bundle,
             }
         else:
             resolved_run_id = resolve_fact_run_id(
