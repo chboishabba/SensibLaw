@@ -259,6 +259,40 @@ def test_query_fact_review_script_exports_zelph_bundle_with_parse_tree(tmp_path,
     assert bundle["facts"][0]["provenance"][0]["end"] > 0
     assert json.loads(out_path.read_text(encoding="utf-8"))["facts"][0]["parse_tree"]["sents"]
 
+
+def test_query_fact_review_script_zelph_export_resolves_workflow_selector_variants(tmp_path, capsys) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    run_id = _seed_fact_review_run(db_path)
+    out_path = tmp_path / "selector-zelph.json"
+
+    exit_code = main(
+        [
+            "--db-path",
+            str(db_path),
+            "zelph-export",
+            "--workflow-kind",
+            "transcript_semantic",
+            "--source-label",
+            "query_fact_review_demo",
+            "--artifact-revision",
+            "rev-selector",
+            "-o",
+            str(out_path),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["selector"]["run_id"] == run_id
+    assert payload["selector"]["workflow_kind"] == "transcript_semantic"
+    assert payload["selector"]["workflow_run_id"] == "semantic:query-demo"
+    assert payload["selector"]["source_label"] == "query_fact_review_demo"
+    assert payload["selector"]["artifact_revision"] == "rev-selector"
+    assert payload["output_path"] == str(out_path.resolve())
+
+    bundle = payload["zelph_bundle"]
+    assert bundle["facts"][0]["parse_tree"]["sents"][0]["tokens"]
+    assert json.loads(out_path.read_text(encoding="utf-8")) == bundle
+
     exit_code = main(["--db-path", str(db_path), "workbench", "--run-id", run_id])
     workbench_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0

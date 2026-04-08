@@ -719,6 +719,24 @@ def main(argv: list[str] | None = None) -> int:
                 source_label=getattr(args, "source_label", None),
             )
             workbench = build_fact_review_workbench_payload(conn, run_id=resolved_run_id)
+            resolved_workflow_kind = (
+                getattr(args, "workflow_kind", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_kind")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_kind")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_kind")
+            )
+            resolved_workflow_run_id = (
+                getattr(args, "workflow_run_id", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_run_id")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_run_id")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_run_id")
+            )
+            resolved_source_label = (
+                getattr(args, "source_label", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("source_label")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("source_label")
+                or workbench.get("run", {}).get("source_label")
+            )
             bundle = prime_index.build_zelph_bundle_from_payload(
                 workbench,
                 artifact_revision=args.artifact_revision,
@@ -733,9 +751,9 @@ def main(argv: list[str] | None = None) -> int:
                 "dbPath": str(db_path),
                 "selector": {
                     "run_id": resolved_run_id,
-                    "workflow_kind": getattr(args, "workflow_kind", None),
-                    "workflow_run_id": getattr(args, "workflow_run_id", None),
-                    "source_label": getattr(args, "source_label", None),
+                    "workflow_kind": resolved_workflow_kind,
+                    "workflow_run_id": resolved_workflow_run_id,
+                    "source_label": resolved_source_label,
                     "artifact_revision": args.artifact_revision,
                 },
                 "output_path": str(args.output.resolve()) if args.output else None,
