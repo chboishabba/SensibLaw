@@ -14,6 +14,7 @@ from .shared_text_normalization import (
     strip_enumeration_prefix,
     tokenize_canonical_text,
 )
+from .phrase_cues import extract_text_cues
 
 __all__ = [
     "FastTextLanguageDetector",
@@ -26,4 +27,5 @@ __all__ = [
     "split_text_segments",
     "strip_enumeration_prefix",
     "tokenize_canonical_text",
+    "extract_text_cues",
 ]
