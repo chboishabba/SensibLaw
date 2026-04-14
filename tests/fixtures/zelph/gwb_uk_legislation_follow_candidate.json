@@ -1,0 +1,33 @@
+{
+  "review_item_rows": [
+    {
+      "seed_id": "uk-legislation-seed-1",
+      "action_summary": "Brexit statute review",
+      "linkage_kind": "legal_reference",
+      "support_kinds": [],
+      "review_statuses": [],
+      "coverage_status": "missing_review"
+    }
+  ],
+  "source_review_rows": [
+    {
+      "seed_id": "uk-legislation-seed-1",
+      "source_row_id": "uk-legislation-source-1",
+      "source_kind": "seed_family_support",
+      "text": "Clarify Article 50 exit terms in the Withdrawal Act s 1 and s 20",
+      "review_status": "missing_review",
+      "candidate_anchors": [],
+      "workload_classes": ["linkage_gap"],
+      "receipts": [
+        {
+          "kind": "source_link",
+          "value": "https://www.legislation.gov.uk/ukpga/2018/16/section/1/enacted"
+        },
+        {
+          "kind": "source_link",
+          "value": "https://www.legislation.gov.uk/ukpga/2018/16/section/20/enacted"
+        }
+      ]
+    }
+  ]
+}

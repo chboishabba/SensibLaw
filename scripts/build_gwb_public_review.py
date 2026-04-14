@@ -32,6 +32,40 @@ except ModuleNotFoundError:
         build_provisional_anchor_bundles as _build_provisional_anchor_bundles_impl,
         build_provisional_structured_anchors as _build_provisional_structured_anchors_impl,
     )
+try:
+    from src.policy.compiler_contract import build_gwb_public_review_contract
+except ModuleNotFoundError:
+    from policy.compiler_contract import build_gwb_public_review_contract
+try:
+    from src.policy.gwb_legal_follow_graph import build_gwb_legal_follow_graph, build_gwb_legal_follow_operator_view
+except ModuleNotFoundError:
+    from policy.gwb_legal_follow_graph import build_gwb_legal_follow_graph, build_gwb_legal_follow_operator_view
+try:
+    from src.policy.product_gate import build_product_gate
+except ModuleNotFoundError:
+    from policy.product_gate import build_product_gate
+try:
+    from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
+except ModuleNotFoundError:
+    from policy.reasoner_input_artifact import build_reasoner_input_artifact
+try:
+    from src.policy.review_claim_records import (
+        attach_review_item_relations_by_seed_id,
+        build_review_claim_records_from_review_rows,
+    )
+except ModuleNotFoundError:
+    from policy.review_claim_records import (
+        attach_review_item_relations_by_seed_id,
+        build_review_claim_records_from_review_rows,
+    )
+try:
+    from src.policy.review_workflow_summary import build_count_priority_workflow_summary
+except ModuleNotFoundError:
+    from policy.review_workflow_summary import build_count_priority_workflow_summary
+try:
+    from src.policy.suite_normalized_artifact import build_gwb_public_review_normalized_artifact
+except ModuleNotFoundError:
+    from policy.suite_normalized_artifact import build_gwb_public_review_normalized_artifact
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SENSIBLAW_ROOT = REPO_ROOT / "SensibLaw"
@@ -54,6 +88,13 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _render_source_input_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _year_mentions(text: str) -> list[str]:
     return re.findall(r"\b(1[0-9]{3}|20[0-9]{2}|202[0-9])\b", text or "")
 
@@ -66,25 +107,63 @@ def _build_review_item_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any
             continue
         candidate_events = int(seed.get("candidate_event_count") or 0)
         matched_events = int(seed.get("matched_event_count") or 0)
-        if matched_events and matched_events == candidate_events:
-            coverage_status = "covered"
-        elif matched_events:
-            coverage_status = "partial"
-        else:
-            coverage_status = "unsupported"
-        rows.append(
-            {
-                "review_item_id": f"seed:{seed_id}",
-                "seed_id": seed_id,
-                "action_summary": seed.get("action_summary"),
-                "support_kind": seed.get("support_kind"),
-                "linkage_kind": seed.get("linkage_kind"),
-                "coverage_status": coverage_status,
-                "candidate_event_count": candidate_events,
-                "matched_event_count": matched_events,
-            }
-        )
+        events = [event for event in seed.get("events", []) or [] if isinstance(event, dict)]
+        matched_target_events = [event for event in events if bool(event.get("matched"))]
+        if len(matched_target_events) <= 1:
+            if matched_events and matched_events == candidate_events:
+                coverage_status = "covered"
+            elif matched_events:
+                coverage_status = "partial"
+            else:
+                coverage_status = "unsupported"
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}",
+                    "seed_id": seed_id,
+                    "action_summary": seed.get("action_summary"),
+                    "support_kind": seed.get("support_kind"),
+                    "linkage_kind": seed.get("linkage_kind"),
+                    "coverage_status": coverage_status,
+                    "candidate_event_count": candidate_events,
+                    "matched_event_count": matched_events,
+                }
+            )
+            continue
+        for event_index, event in enumerate(matched_target_events, start=1):
+            event_id = str(event.get("event_id") or "").strip()
+            row_suffix = event_id or f"event_{event_index}"
+            rows.append(
+                {
+                    "review_item_id": f"seed:{seed_id}:event:{row_suffix}",
+                    "seed_id": seed_id,
+                    "action_summary": seed.get("action_summary"),
+                    "support_kind": seed.get("support_kind"),
+                    "linkage_kind": seed.get("linkage_kind"),
+                    "coverage_status": "covered",
+                    "candidate_event_count": 1,
+                    "matched_event_count": 1,
+                    "event_id": event_id or None,
+                    "confidence": str(event.get("confidence") or "").strip() or None,
+                }
+            )
     return rows
+
+
+def _summarize_seed_coverage(review_item_rows: list[dict[str, Any]], seed_id: str) -> str | None:
+    statuses = {
+        str(row.get("coverage_status") or "").strip()
+        for row in review_item_rows
+        if str(row.get("seed_id") or "").strip() == seed_id and str(row.get("coverage_status") or "").strip()
+    }
+    if not statuses:
+        return None
+    if statuses == {"covered"}:
+        return "covered"
+    if "covered" in statuses:
+        return "partial"
+    if "partial" in statuses:
+        return "partial"
+    return "unsupported"
 
 
 def _build_source_review_rows(slice_payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -170,9 +249,7 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
         if row.get("review_status") != "missing_review":
             continue
         by_seed.setdefault(seed_id, []).append(row)
-    review_item_by_seed = {row["seed_id"]: row for row in review_item_rows}
     for seed_id, rows in sorted(by_seed.items()):
-        review_item = review_item_by_seed.get(seed_id, {})
         workload_counts: dict[str, int] = {}
         for row in rows:
             for wc in row.get("workload_classes", []) or []:
@@ -181,7 +258,7 @@ def _build_clusters(review_item_rows: list[dict[str, Any]], source_rows: list[di
             {
                 "cluster_id": f"cluster:{seed_id}",
                 "seed_id": seed_id,
-                "coverage_status": review_item.get("coverage_status"),
+                "coverage_status": _summarize_seed_coverage(review_item_rows, seed_id),
                 "candidate_source_count": len(rows),
                 "workload_class_rollup": sorted(
                     (
@@ -264,8 +341,63 @@ def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, str]:
-    slice_payload = _load_json(SOURCE_SLICE_PATH)
+def _build_workflow_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    operator_views = payload.get("operator_views", {}) if isinstance(payload.get("operator_views"), dict) else {}
+    legal_follow = (
+        operator_views.get("legal_follow_graph")
+        if isinstance(operator_views.get("legal_follow_graph"), dict)
+        else {}
+    )
+    legal_follow_summary = (
+        legal_follow.get("summary") if isinstance(legal_follow.get("summary"), dict) else {}
+    )
+    legal_follow_queue_count = int(legal_follow_summary.get("queue_count") or 0)
+    missing_review_count = int(summary.get("missing_review_count") or 0)
+    provisional_bundle_count = int(summary.get("provisional_anchor_bundle_count") or 0)
+    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), dict) else {}
+
+    counts = {
+        "missing_review_count": missing_review_count,
+        "legal_follow_queue_count": legal_follow_queue_count,
+        "provisional_bundle_count": provisional_bundle_count,
+    }
+    return build_count_priority_workflow_summary(
+        counts=counts,
+        promotion_gate=promotion_gate,
+        rules=(
+            {
+                "count_key": "legal_follow_queue_count",
+                "stage": "follow_up",
+                "title": "Resolve bounded legal follow items",
+                "recommended_view": "legal_follow_graph",
+                "reason_template": "{legal_follow_queue_count} legal follow item(s) remain open.",
+            },
+            {
+                "count_key": "missing_review_count",
+                "stage": "decide",
+                "title": "Review unresolved GWB source rows",
+                "recommended_view": "source_review_rows",
+                "reason_template": "{missing_review_count} source row(s) remain missing review coverage.",
+            },
+        ),
+        default_step={
+            "stage": "record",
+            "title": "Record the bounded GWB review state",
+            "recommended_view": "summary",
+            "reason_template": "No open legal-follow or source-review pressure remains in the current GWB slice.",
+        },
+    )
+
+
+def build_gwb_public_review(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    *,
+    baseline_graph_diagnostics: dict[str, Any] | None = None,
+    source_slice_path: Path | None = None,
+) -> dict[str, str]:
+    slice_path = source_slice_path or SOURCE_SLICE_PATH
+    slice_payload = _load_json(slice_path)
     review_item_rows = _build_review_item_rows(slice_payload)
     source_review_rows = _build_source_review_rows(slice_payload)
     related_review_clusters = _build_clusters(review_item_rows, source_review_rows)
@@ -276,7 +408,7 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
         "version": ARTIFACT_VERSION,
         "fixture_kind": "gwb_public_review",
         "source_input": {
-            "path": str(SOURCE_SLICE_PATH.relative_to(REPO_ROOT)),
+            "path": _render_source_input_path(slice_path),
             "source_row_count": len(source_review_rows),
         },
         "summary": {},
@@ -287,6 +419,49 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
         "provisional_anchor_bundles": provisional_anchor_bundles,
     }
     payload["summary"] = _build_summary(payload | {"summary": slice_payload.get("summary", {})})
+    payload["legal_follow_graph"] = build_gwb_legal_follow_graph(
+        review_item_rows=review_item_rows,
+        source_review_rows=source_review_rows,
+    )
+    payload["operator_views"] = {
+        "legal_follow_graph": build_gwb_legal_follow_operator_view(payload["legal_follow_graph"])
+    }
+    payload["compiler_contract"] = build_gwb_public_review_contract(payload)
+    payload["promotion_gate"] = build_product_gate(
+        lane="gwb",
+        product_ref=ARTIFACT_VERSION,
+        compiler_contract=payload["compiler_contract"],
+    )
+    payload["workflow_summary"] = _build_workflow_summary(payload)
+    payload["review_claim_records"] = attach_review_item_relations_by_seed_id(
+        review_claim_records=build_review_claim_records_from_review_rows(
+            rows=source_review_rows,
+            lane="gwb",
+            family_id="gwb_public_review",
+            cohort_id=ARTIFACT_VERSION,
+            root_artifact_id=ARTIFACT_VERSION,
+            source_family="gwb_public_review",
+            recommended_view=str(payload["workflow_summary"].get("recommended_view") or ""),
+            queue_family="source_review_rows",
+            eligible_statuses=("missing_review",),
+        ),
+        review_item_rows=review_item_rows,
+    )
+    payload["suite_normalized_artifact"] = build_gwb_public_review_normalized_artifact(
+        artifact_id=ARTIFACT_VERSION,
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
+        source_input=payload["source_input"],
+        workflow_summary=payload["workflow_summary"],
+        graph_payload=payload["legal_follow_graph"],
+        baseline_graph_diagnostics=baseline_graph_diagnostics,
+    )
+    payload["reasoner_input_artifact"] = build_reasoner_input_artifact(
+        source_system="SensibLaw",
+        suite_normalized_artifact=payload["suite_normalized_artifact"],
+        compiler_contract=payload["compiler_contract"],
+        promotion_gate=payload["promotion_gate"],
+    )
     payload["normalized_metrics_v1"] = compute_normalized_metrics_from_profile(
         profile=get_normalized_profile("gwb"),
         artifact_id="gwb_checked_public_review_v1",
@@ -313,6 +488,21 @@ def build_gwb_public_review(output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, 
 
 def build_summary_markdown(payload: dict[str, Any]) -> str:
     summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    graph_summary = (
+        payload.get("legal_follow_graph", {}).get("summary", {})
+        if isinstance(payload.get("legal_follow_graph"), dict)
+        else {}
+    )
+    graph_payload = payload.get("legal_follow_graph", {}) if isinstance(payload.get("legal_follow_graph"), dict) else {}
+    graph_nodes = graph_payload.get("nodes", []) if isinstance(graph_payload.get("nodes"), list) else []
+    graph_edges = graph_payload.get("edges", []) if isinstance(graph_payload.get("edges"), list) else []
+
+    def node_label(node_id: str) -> str:
+        for row in graph_nodes:
+            if str(row.get("id") or "") == node_id:
+                return str(row.get("label") or node_id)
+        return node_id
+
     lines = [
         "# GWB Public Review",
         "",
@@ -326,6 +516,66 @@ def build_summary_markdown(payload: dict[str, Any]) -> str:
         f"- Provisional structured anchors: `{summary.get('provisional_structured_anchor_count', 0)}`",
         f"- Provisional anchor bundles: `{summary.get('provisional_anchor_bundle_count', 0)}`",
     ]
+    if graph_summary:
+        lines.extend(
+            [
+                "",
+                "## Derived Legal-Linkage Graph",
+                "",
+                f"- Nodes: `{graph_summary.get('node_count', 0)}`",
+                f"- Edges: `{graph_summary.get('edge_count', 0)}`",
+                f"- Seed lanes: `{graph_summary.get('seed_lane_count', 0)}`",
+                f"- Source rows: `{graph_summary.get('source_row_count', 0)}`",
+                f"- Distinct source-row nodes: `{graph_summary.get('source_row_node_count', 0)}`",
+            ]
+        )
+        source_kind_counts = graph_summary.get("source_kind_counts", {})
+        if isinstance(source_kind_counts, dict) and source_kind_counts:
+            lines.append(
+                f"- Source kinds: `{', '.join(f'{key}: {value}' for key, value in sorted(source_kind_counts.items()))}`"
+            )
+        source_family_counts = graph_summary.get("source_family_label_counts", {})
+        if isinstance(source_family_counts, dict) and source_family_counts:
+            lines.append(
+                f"- Source families: `{', '.join(f'{key}: {value}' for key, value in sorted(source_family_counts.items()))}`"
+            )
+        linkage_kind_counts = graph_summary.get("linkage_kind_counts", {})
+        if isinstance(linkage_kind_counts, dict) and linkage_kind_counts:
+            lines.append(
+                f"- Linkage kinds: `{', '.join(f'{key}: {value}' for key, value in sorted(linkage_kind_counts.items()))}`"
+            )
+        review_status_counts = graph_summary.get("review_status_label_counts", {})
+        if isinstance(review_status_counts, dict) and review_status_counts:
+            lines.append(
+                f"- Review statuses: `{', '.join(f'{key}: {value}' for key, value in sorted(review_status_counts.items()))}`"
+            )
+        support_kind_counts = graph_summary.get("support_kind_label_counts", {})
+        if isinstance(support_kind_counts, dict) and support_kind_counts:
+            lines.append(
+                f"- Support kinds: `{', '.join(f'{key}: {value}' for key, value in sorted(support_kind_counts.items()))}`"
+            )
+        followed_source_cite_class_counts = graph_summary.get("followed_source_cite_class_counts", {})
+        if isinstance(followed_source_cite_class_counts, dict) and followed_source_cite_class_counts:
+            lines.append(
+                f"- Followed legal-cite classes: `{', '.join(f'{key}: {value}' for key, value in sorted(followed_source_cite_class_counts.items()))}`"
+            )
+        if graph_summary.get("brexit_related_follow_count"):
+            lines.append(f"- Brexit-related follows: `{graph_summary.get('brexit_related_follow_count', 0)}`")
+        interesting_nodes = [
+            row
+            for row in graph_nodes
+            if str(row.get("kind") or "") in {"source_family", "linkage_kind", "support_kind", "review_status"}
+        ]
+        if interesting_nodes:
+            lines.extend(["", "### Graph inspection", ""])
+            for row in interesting_nodes[:6]:
+                lines.append(f"- {row.get('kind')}: `{row.get('label')}`")
+        if graph_edges:
+            lines.extend(["", "### Sample typed links", ""])
+            for row in graph_edges[:6]:
+                lines.append(
+                    f"- `{row.get('kind')}`: `{node_label(str(row.get('source') or ''))}` -> `{node_label(str(row.get('target') or ''))}`"
+                )
     normalized_metrics = payload.get("normalized_metrics_v1", {})
     if isinstance(normalized_metrics, dict) and normalized_metrics:
         lines.extend(["", *render_normalized_metrics_markdown(normalized_metrics)])

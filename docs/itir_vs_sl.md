@@ -47,6 +47,9 @@ Differences are policy and enforcement, not architecture.
   shared canonical text handling is needed.
 - Supported import path for that reuse:
   `sensiblaw.interfaces.shared_reducer`.
+- That reducer seam may expose canonical token/span structure and bounded
+  structural binding bundles, but it must not leak interpretive routing or
+  ontology-heavy domain semantics.
 - That reuse does not transfer SL semantic ownership into SB/TiRC.
 - If SB/TiRC receive legal-looking canonical IDs or fixtures, those are opaque
   SL-origin payloads used for preservation, replay, or cross-product

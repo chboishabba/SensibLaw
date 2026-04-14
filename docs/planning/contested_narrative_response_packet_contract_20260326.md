@@ -224,6 +224,38 @@ The nested `claim`, `response`, and `justifications` packets remain
 SensibLaw-internal row fields. They are the extraction substrate, not the
 canonical Zelph bridge.
 
+Persisted/read-model inspection surfaces now also attach an additive
+`status_explanation` packet for operator identifiability. It is not a new
+truth-bearing status layer. The normalized shared fields are:
+
+- `status_scope`
+- `status_value`
+- `status_bucket`
+- `why`
+- `next_action`
+- `primary_reason_code`
+- `reason_codes`
+- `reason_labels`
+- `related_record_id`
+- optional `details`
+
+`why` is a derived operator render from the structured fields above. It should
+stay deterministic, discriminative, and non-truth-bearing. The canonical
+explanation substrate is the structured packet, not the English sentence.
+
+Operator/query surfaces may also attach an optional derived `interrogatives`
+view:
+
+- `who`
+- `what`
+- `when`
+- `where`
+- `why`
+- `how`
+
+This is a read-only projection over the canonical row packet plus provenance. It
+must not be persisted or treated as a canonical schema extension.
+
 ## Current Promotion Rules
 
 - Duplicate opening allegation sentences are preserved as `duplicate_match_excerpt`.

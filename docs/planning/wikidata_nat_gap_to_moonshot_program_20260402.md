@@ -58,7 +58,168 @@ The lane already has:
   - Cohort C operator index over broader real-slice evidence
   - Cohort D review-control index over multiple operator batches
   - Cohort E aggregated disagreement/summary index
-  - automation graduation governance index over repeated evidence snapshots
+- automation graduation governance index over repeated evidence snapshots
+- candidate-level promotion gates for bounded checked-safe rows
+- bounded post-write verification against an after-state slice/export
+
+The lane now also has one bounded measured-automation success:
+
+- exact promoted family subset:
+  `Q1068745|P5991|1` and `Q1489170|P5991|1`
+- promotion scope:
+  pilot-ready only for that exact family subset
+- generalization:
+  explicitly forbidden outside that subset
+
+The lane also has truthful held second-family seeds:
+
+- family id:
+  `climate_family_safe_reference_transfer_subset`
+- current safe row:
+  `Q10651551|P5991|1`
+- current state:
+  one-run hold, not promotion-ready
+- migration read:
+  this lane is now understood as a controlled `P5991 -> P14143` migration
+  protocol problem rather than a generic churn problem
+- blocker read:
+  the exact row is not blocked because no revisions exist; it is blocked
+  because the target after-state is not yet materially present in the observed
+  source revisions
+- explanatory state:
+  climate should be read as `MIGRATION_PENDING` when the migration protocol is
+  active but the required `P14143` after-state is not yet observed for the
+  row
+- governance rule:
+  `MIGRATION_PENDING` is explanatory state only; it does not satisfy
+  promotion, repeated-run readiness, or second-witness requirements
+- operational implication:
+  `before + desired_after` is only a verification template; it becomes
+  evidence only when a real later revision or independent source actually
+  matches that target state
+- acquisition implication:
+  climate should not be pressured indefinitely through same-row reruns alone;
+  the honest next paths are:
+  - migration-aware discovery of already-migrated `P14143` rows
+  - `cross_row_migrated_p14143` acquisition against live enterprise rows that
+    already carry `P14143`
+  - bounded cross-source confirmation from a different root artifact
+  - family expansion if additional safe climate rows become real
+- runtime status:
+  the Nat state machine now reports this family as `MIGRATION_PENDING` rather
+  than generic `AWAITING_EVIDENCE`, and the intake backlog now carries an
+  explicit `cross_row_migrated_p14143` route alongside same-row and text-bridge
+  routes
+- bounded climate v2 seed:
+  the repo now carries `climate_family_v2_live_p14143_subset` as a live-backed
+  migrated-row seed using enterprise `P14143` rows as candidate witnesses for
+  the climate claim shape
+
+Closed-loop migration surfaces now exist in bounded form:
+
+- batch finder:
+  the repo can now emit a migration batch finder report that selects only
+  families that are both `PROMOTED` and live-target-capable for execution-side
+  work
+- execution payload:
+  the repo can now shape review-first OpenRefine / QuickStatements-compatible
+  payload rows from promoted checked-safe candidates without claiming blind
+  write execution
+- pre-execution contracts:
+  the repo can now emit normalized candidate contracts, backend routing plans,
+  receipt contracts, and post-write verification contracts for operator
+  handoff without pretending execution already occurred
+- lifecycle overlay:
+  the repo can now report migration execution state separately from promotion
+  state:
+  `NOT_STARTED -> READY -> EXECUTED -> VERIFIED`
+
+Current operational read:
+
+- `business_family_reconciled_low_qualifier_checked_safe_subset` is the first
+  family that is both promoted and live-target-capable, so it is the first
+  execution-ready batch
+- climate remains `MIGRATION_PENDING`, so it is not execution-ready
+- parthood may be promoted for convergence purposes, but its current synthetic
+  target property keeps it out of live execution batches
+- the repo can now run the local operator chain end to end:
+  review-first export, receipt ingestion, post-write verification, completion
+  gate scoring, and execution proof
+- but genuine external operator receipts still require an actual external
+  action rather than a local proof artifact
+- the real remaining closure gap is therefore provenance:
+  a real handoff that writes back receipts, a QS/OpenRefine wrapper that emits
+  receipts, or a manual signed receipt surface with applied rows and
+  timestamps
+- the near-term automation direction is now clearer:
+  candidate-level promotion first, then bounded post-write verification, then
+  only broader execution claims if those receipts stay stable across repeated
+  runs
+
+- family id:
+  `parthood_family_safe_reference_transfer_subset`
+- current safe rows:
+  `Q16572|P361|1`, `Q3700011|P361|1`, `Q980357|P361|1`
+- current state:
+  one-run hold, not promotion-ready
+- operational note:
+  as of April 4, 2026, these rows are now backed by a bounded live candidate
+  set:
+  Guangzhou, kecamatan, and grammatical category
+- live same-family route status:
+  current live entity exports for all three rows still fail
+  `verification_target_missing` because this bounded parthood family still
+  targets synthetic `P99999` rather than a live Wikidata property
+- live-path robustness status:
+  the lane now has a bounded live revision sweep that can fetch later
+  revision-locked entity exports, route them through the same-family verifier,
+  and promote the family with `state_basis = live_same_family_acquisition`
+  when a later revision actually verifies; the pinned current live exports
+  remain blocked, so this proves live-path capability but not current
+  live-data success for parthood
+- bounded forward path:
+  a manual/acquired independent artifact for `Q16572|P361|1` now proves the
+  family can move to `READY_TO_RERUN` through the existing acquisition runner
+  and convergence chain without bespoke logic
+- bounded family completion path:
+  supplying independent acquired artifacts for the remaining two parthood rows
+  now proves the whole family can reach `PROMOTED` through the same generic
+  acquisition and convergence loop, even though the live same-family route
+  remains blocked
+- provenance read:
+  the Nat state machine now records a separate `state_basis`, so this parthood
+  promotion is explicitly queryable as `supplied_acquired_artifact` rather than
+  being conflated with a baseline or live same-family promotion path
+
+The lane also now has a concrete missing-evidence intake surface:
+
+- single-run claims can emit a machine-readable confirmation intake contract
+- that contract states exactly which candidate needs new evidence, which root
+  artifacts are already seen, and what a new revision-locked artifact bundle
+  must contain before it can enter the same verifier and convergence path
+- those family-scoped intake contracts can now be aggregated into one intake
+  backlog surface, so missing evidence is measurable across multiple held
+  families instead of being tracked family-by-family only
+- intake rows may also carry bounded suggested evidence routes, so acquisition
+  can prefer repo-grounded paths like same-family revision-locked reruns first
+  and additive bridge lanes second where those lanes already exist
+- the lane can now expand those routes into acquisition tasks, accept supplied
+  evidence bundles through a bounded runner, and mark a family `READY_TO_RERUN`
+  without changing any promotion threshold
+- the same state machine now distinguishes:
+  `baseline_runtime`, `live_same_family_acquisition`, and
+  `supplied_acquired_artifact`, so promotion provenance is machine-readable
+  rather than only described in prose
+- held families may also emit a machine-readable family acquisition plan that
+  ranks candidate rows for the next evidence-recovery pass; the current
+  parthood plan is now a concrete live-candidate plan rather than an
+  archetypal placeholder plan
+- for same-family reruns, the bounded runner can now construct a verification
+  bundle directly from a revision-locked entity export and fail closed when the
+  target property is still absent or drifted
+- for family-scoped live proving, the bounded runner can now also sweep recent
+  Wikidata revisions in plan order and stop on the first later revision that
+  both verifies and is independent
 
 The lane does not yet have:
 
@@ -92,8 +253,10 @@ scale:
 ## Gap To Moonshot
 
 The current gap is not "missing one more parser feature." The current gap is
-the distance between a strong review-and-split workbench and a trustworthy
-blind executor.
+the distance between:
+
+- one bounded promoted family subset, plus a strong review-and-split workbench
+- and a trustworthy blind executor
 
 That gap currently has five major classes:
 
@@ -111,6 +274,16 @@ That gap currently has five major classes:
    do not yet cover enough of the structurally different backlog families to
    justify moonshot-level trust.
 
+   More specifically now:
+
+   - family one is real and bounded
+   - family two now exists, but the strongest second-family promotion is still
+     provenance-limited
+   - `parthood` is the first genuine distinct second-family seed and is now
+     promotable through bounded acquired artifacts
+   - the remaining missing ingredient is live or otherwise independently
+     observed confirmation for promoted families beyond the baseline runtime
+
 4. Policy-risk gap
    Cohorts C, D, and E are still review-first branches. They are important
    because they expose the cases most likely to break blind execution.
@@ -126,6 +299,48 @@ That gap currently has five major classes:
 - review-first
 - split-first
 - fail-closed
+- one bounded `Level 2` family promoted via `baseline_runtime`
+- one distinct second family (`parthood`) proven promotable via
+  `supplied_acquired_artifact`
+- climate remains held as `MIGRATION_PENDING` / `AWAITING_EVIDENCE`
+  depending on whether the read is migration-state or evidence-state
+
+### Stage 1: Current best next move
+
+- keep `family_one` frozen as the bounded baseline proof
+- keep `parthood` as the main live-path proving target only where the target
+  property is live-backed
+- stop treating synthetic-target same-family live reruns as a viable proving
+  path
+- treat climate as a migration-aware lane:
+  - explain blocked rows as `MIGRATION_PENDING` where appropriate
+  - do not count migration intent as evidence
+  - prefer already-migrated row discovery or cross-source confirmation over
+    endless same-row retries
+- treat wider `P5991` heterogeneity as a triage problem, not a threshold
+  problem:
+  - `direct_migrate`
+  - `split_required`
+  - `migration_pending`
+  - `out_of_scope`
+  - `needs_review`
+  - only the first class should advance automatically
+
+### Stage 2: Next high-yield proving path
+
+- target a live-backed high-churn family such as membership, temporal, or
+  award rows for the first real `live_same_family_acquisition` family
+  promotion
+- keep the acquisition, convergence, and governance pipeline unchanged
+- change target selection, not thresholds
+
+### Stage 3: Climate-specific recovery path
+
+- add migration-aware acquisition surfaces that can search for:
+  - rows already migrated to `P14143`
+  - bounded cross-source confirmations from different root artifacts
+- keep climate fail-closed until one of those routes produces a genuine second
+  witness
 - bounded safe automation only
 
 ### Stage 1: Grounded Review Workbench
@@ -182,25 +397,30 @@ Exit criteria:
 ## Immediate Priorities
 
 The next priorities should close the largest moonshot gap, not just broaden the
-same company-heavy pattern.
+same company-heavy pattern or keep polishing the first bounded family.
 
-1. Ground the reviewer packets more deeply.
-   Focus on revision-locked evidence depth, not more shallow packet shape.
+1. Make evidence independence explicit.
+   The next gating problem is independent confirmation, not family-one polish.
+   The lane should expose which evidence paths are genuinely independent and
+   which are just restatements of the same artifact.
+   This now includes an executable intake contract for single-run claims, so
+   "missing evidence" is an artifact-level request rather than only a hold note.
 
-2. Broaden across structurally different cohorts.
-   Cohort C is the highest-yield next axis because it changes the decision
-   regime instead of repeating the same company-family split pattern.
+2. Materialize a real second family.
+   Climate is the current seed, but it does not yet have enough independent
+   safe evidence. Either strengthen that seed honestly or build a different
+   structurally distinct family.
 
-3. Turn current helper lanes into promotion evidence.
+3. Drive second-family evidence through the same promotion path.
    Follow depth, claim boundaries, cross-source alignment, reviewer actions,
    and bounded variant comparison should justify or block promotion decisions,
-   not just exist as diagnostics.
+   not just exist as diagnostics. For family two, the exact target is repeated
+   verifier-backed evidence plus the same proposal, evidence, and governance
+   path already used for family one.
 
-4. Define graduation gates.
-   The repo needs explicit criteria for moving a lane from:
-   - review-first
-   - to semi-automated split
-   - to measured blind execution
+4. Keep graduation claims local until Gate C is real.
+   The repo already has explicit criteria. The task now is not to redefine
+   them, but to avoid overclaiming from the first family.
 
 5. Keep parallelism lane-shaped.
    When the work is broad enough, assign one nonblocking lane per worker, but
@@ -208,7 +428,16 @@ same company-heavy pattern.
 
 ## Current Roadmap To Close The Gap
 
-### Priority 1: Grounding
+### Priority 1: Independence and Second-Family Evidence
+
+- add an explicit independence test for promotion evidence
+- separate "same artifact restated twice" from true repeated independent runs
+- add a confirmation-oriented follow path that hunts independent evidence
+  instead of merely more edges
+- use the climate-family and parthood seeds as proving targets, but stop as
+  soon as neither one gains a truthful second run
+
+### Priority 2: Grounding
 
 - deepen revision-locked evidence receipts on representative Nat packets
 - tighten claim-boundary mapping on split-heavy representative rows
@@ -223,7 +452,7 @@ same company-heavy pattern.
 - once a batch/report surface exists, prefer a CLI-backed operator path so the
   evidence surface is reproducible instead of doc-local only
 
-### Priority 2: Structural Breadth
+### Priority 3: Structural Breadth
 
 - exercise Cohort C live preview and operator packet on broader live candidates
 - keep Cohorts D and E review-first, but make their backlog shape measurable
@@ -241,7 +470,7 @@ same company-heavy pattern.
 - once a first batch/report surface exists, prefer broader measured evidence
   across multiple representative cases rather than new one-off examples
 
-### Priority 3: Promotion Gates
+### Priority 4: Promotion Gates
 
 - define measurable lane graduation criteria
 - pin false-positive / abstain / hold expectations
@@ -257,7 +486,7 @@ same company-heavy pattern.
 - once single and batch proposal evaluation exist, prefer repeated-run
   evidence reports over stronger readiness claims
 
-### Priority 4: Moonshot Readiness
+### Priority 5: Moonshot Readiness
 
 - only after the earlier stages are stable, evaluate whether any broad family
   is ready for blind execution
@@ -284,14 +513,14 @@ same company-heavy pattern.
 
 ### S
 
-- strong review-and-split control plane
-- weak basis for broad blind execution
+- one bounded `Level 2` family subset is now real
+- the rest of the lane still has a weak basis for broad blind execution
 
 ### L
 
 1. review-first
-2. semi-automated split
-3. measured blind-safe family
+2. family-scoped measured automation
+3. multi-family measured automation
 4. blind migration bot moonshot
 
 ### P
@@ -308,8 +537,8 @@ same company-heavy pattern.
 
 ### F
 
-- the main gap is trustable automation readiness, not lack of one more packet
-  field
+- the main gap is now independent second-family evidence, not lack of one more
+  packet field
 
 ## ITIL Reading
 

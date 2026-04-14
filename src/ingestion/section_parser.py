@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import spacy
 from spacy.tokens import Doc, Token
 
+from src.ingestion.media_adapter import CanonicalText
 from src.models.provision import RuleReference
 from src.nlp.rules import (
     CONDITION_LABEL,
@@ -633,6 +634,12 @@ def fetch_section(html: str) -> Dict[str, object]:
     return section.to_dict()
 
 
+def parse_canonical_section(canonical_text: CanonicalText) -> Section:
+    """Parse a canonical text substrate as a section without reintroducing format branches."""
+
+    return parse_html_section(canonical_text.text)
+
+
 def _finalize_node(node: ParsedNode) -> None:
     node.text = " ".join(part for part in node._buffer if part).strip()
     node.rule_tokens = _extract_rule_tokens(node.text)
@@ -757,7 +764,14 @@ def parse_sections(text: str) -> List[ParsedNode]:
     return nodes
 
 
-__all__ = ["ParsedNode", "parse_sections", "parse_html_section", "fetch_section", "TOKEN_RE"]
+__all__ = [
+    "ParsedNode",
+    "parse_sections",
+    "parse_html_section",
+    "parse_canonical_section",
+    "fetch_section",
+    "TOKEN_RE",
+]
 """Compatibility re-export for :mod:`section_parser` without overriding new APIs."""
 
 try:  # pragma: no cover - optional legacy dependency

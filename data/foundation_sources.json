@@ -170,5 +170,57 @@
       "formats": ["HTML", "PDF"],
       "citation_template": "{{title}} (NT) s {{section}}"
     }
+  ,
+    {
+      "name": "UK House of Commons Hansard",
+      "jurisdiction": "UK",
+      "jurisdiction_hint": "UK",
+      "base_url": "https://hansard.parliament.uk/commons",
+      "collection_types": ["debate_transcripts"],
+      "formats": ["HTML"],
+      "source_family": "uk_parliament",
+      "source_kind": "debate_transcript",
+      "binding_nature": "interpretive",
+      "proof_context": "Iraq/Brexit debate framing feeds into statute review within the legal follow proof path",
+      "description": "Live Commons debate transcripts that contextualize statute debate and provide extrinsic proof links",
+      "preferred_citation": "UK Parliament, House of Commons, Hansard",
+      "normalized_title": "Commons Hansard debate",
+      "metadata_tags": ["debate", "Hansard", "Commons"]
+      ,"focus_countries": ["UK", "Iraq"]
+    },
+    {
+      "name": "UK House of Lords Hansard",
+      "jurisdiction": "UK",
+      "jurisdiction_hint": "UK",
+      "base_url": "https://hansard.parliament.uk/lords",
+      "collection_types": ["debate_transcripts"],
+      "formats": ["HTML"],
+      "source_family": "uk_parliament",
+      "source_kind": "debate_transcript",
+      "binding_nature": "interpretive",
+      "proof_context": "Iraq/Brexit debate narratives provide extrinsic context feeding into statutory proof arcs",
+      "description": "Lords speeches that augment case/statute reasoning with advisory perspectives",
+      "preferred_citation": "UK Parliament, House of Lords, Hansard",
+      "normalized_title": "Lords Hansard debate",
+      "metadata_tags": ["debate", "Hansard", "Lords"],
+      "focus_countries": ["UK", "Iraq"]
+    },
+    {
+      "name": "UK Select Committee Reports",
+      "jurisdiction": "UK",
+      "jurisdiction_hint": "UK",
+      "base_url": "https://committees.parliament.uk/publications/",
+      "collection_types": ["reports"],
+      "formats": ["HTML", "PDF"],
+      "source_family": "uk_parliament",
+      "source_kind": "committee_report",
+      "binding_nature": "interpretive",
+      "proof_context": "Iraq/Brexit committee outputs connect debate reasoning to statute and case evidence in the proof chain",
+      "description": "Committee fact-finding reports that tie parliamentary debate to evidence used in broader review",
+      "preferred_citation": "UK Parliament, Select Committees",
+      "normalized_title": "Select Committee report",
+      "metadata_tags": ["committee", "report", "analysis"],
+      "focus_countries": ["UK", "Iraq"]
+    }
   ]
 }

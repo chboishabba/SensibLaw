@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import importlib.util
 import json
 from pathlib import Path
 import sys
 
 _THIS_DIR = Path(__file__).resolve().parent
 _SENSIBLAW_ROOT = _THIS_DIR.parent
+_REPO_ROOT = _SENSIBLAW_ROOT.parent
 if str(_SENSIBLAW_ROOT) not in sys.path:
     sys.path.insert(0, str(_SENSIBLAW_ROOT))
 
@@ -25,6 +27,7 @@ from src.fact_intake import (
     build_fact_review_run_summary,
     build_fact_semantic_status_report,
     build_fact_review_workbench_payload,
+    build_interrogative_view,
     find_latest_fact_workflow_link,
     list_fact_intake_runs,
     list_fact_review_sources,
@@ -37,6 +40,20 @@ from src.fact_intake import (
     resolve_fact_run_link,
 )
 from src.storage.sqlite_runtime import connect_sqlite, resolve_sqlite_db_path
+
+
+def _load_repo_prime_index():
+    module_path = _REPO_ROOT / "tools" / "prime_index.py"
+    spec = importlib.util.spec_from_file_location("repo_prime_index", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"unable to load repo prime_index module from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+prime_index = _load_repo_prime_index()
 
 _ACCEPTANCE_WAVE_CHOICES = [
     "wave1_legal",
@@ -60,6 +77,22 @@ def _add_run_selector_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--workflow-kind", default=argparse.SUPPRESS, help="Optional workflow kind for reopen lookup")
     parser.add_argument("--workflow-run-id", default=argparse.SUPPRESS, help="Optional source workflow run_id for reopen lookup")
     parser.add_argument("--source-label", default=argparse.SUPPRESS, help="Optional source label filter when resolving latest workflow links")
+
+
+def _add_interrogative_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--with-interrogatives",
+        action="store_true",
+        help="Attach a derived who/what/when/where/why/how operator view. This is read-only and not persisted.",
+    )
+
+
+def _attach_interrogatives(record: object) -> object:
+    if not isinstance(record, dict):
+        return record
+    payload = dict(record)
+    payload["interrogatives"] = build_interrogative_view(payload)
+    return payload
 
 
 def _utc_now_iso() -> str:
@@ -205,6 +238,14 @@ def main(argv: list[str] | None = None) -> int:
     demo_p.add_argument("--wave", default="wave1_legal", choices=_ACCEPTANCE_WAVE_CHOICES)
     demo_p.add_argument("--fixture-kind", default="unknown", choices=["unknown", "synthetic", "real"])
 
+    zelph_p = sub.add_parser(
+        "zelph-export",
+        help="Build a Zelph-ready bundle over the resolved persisted workbench using the repo prime-index bridge",
+    )
+    _add_run_selector_args(zelph_p)
+    zelph_p.add_argument("--artifact-revision", default="rev-query-fact-review")
+    zelph_p.add_argument("-o", "--output", type=Path, default=None)
+
     report_p = sub.add_parser("report", help="Show the full persisted fact-intake report")
     _add_run_selector_args(report_p)
 
@@ -215,12 +256,14 @@ def main(argv: list[str] | None = None) -> int:
 
     contested_summary_p = sub.add_parser("contested-summary", help="Show one persisted contested affidavit review run")
     contested_summary_p.add_argument("--review-run-id", required=True)
+    _add_interrogative_flag(contested_summary_p)
 
     contested_slice_p = sub.add_parser(
         "contested-proving-slice",
         help="Show the bounded local-first proving-slice read model for one persisted contested affidavit review run",
     )
     contested_slice_p.add_argument("--review-run-id", required=True)
+    _add_interrogative_flag(contested_slice_p)
 
     contested_rows_p = sub.add_parser(
         "contested-rows",
@@ -229,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
     contested_rows_p.add_argument("--review-run-id", required=True)
     contested_rows_p.add_argument("--proposition-id", action="append", default=[])
     contested_rows_p.add_argument("--limit", type=int, default=20)
+    _add_interrogative_flag(contested_rows_p)
 
     authority_runs_p = sub.add_parser("authority-runs", help="List persisted authority ingest runs")
     authority_runs_p.add_argument("--limit", type=int, default=20)
@@ -413,104 +457,105 @@ def main(argv: list[str] | None = None) -> int:
                 ),
             }
         elif args.command == "contested-summary":
+            review = build_contested_affidavit_review_summary(
+                conn,
+                review_run_id=getattr(args, "review_run_id", None),
+            )
+            if getattr(args, "with_interrogatives", False):
+                review = {
+                    **review,
+                    "affidavit_rows": [
+                        _attach_interrogatives(row)
+                        for row in review.get("affidavit_rows", [])
+                        if isinstance(row, dict)
+                    ],
+                    "source_review_rows": [
+                        _attach_interrogatives(row)
+                        for row in review.get("source_review_rows", [])
+                        if isinstance(row, dict)
+                    ],
+                }
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
-                "review": build_contested_affidavit_review_summary(
-                    conn,
-                    review_run_id=getattr(args, "review_run_id", None),
-                ),
+                "review": review,
             }
         elif args.command == "contested-proving-slice":
+            proving_slice = build_contested_affidavit_proving_slice(
+                conn,
+                review_run_id=getattr(args, "review_run_id", None),
+            )
+            if getattr(args, "with_interrogatives", False):
+                sections = proving_slice.get("sections") if isinstance(proving_slice.get("sections"), dict) else {}
+                proving_slice = {
+                    **proving_slice,
+                    "sections": {
+                        key: [
+                            _attach_interrogatives(row)
+                            for row in rows
+                            if isinstance(row, dict)
+                        ]
+                        for key, rows in sections.items()
+                        if isinstance(rows, list)
+                    },
+                }
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
-                "proving_slice": build_contested_affidavit_proving_slice(
-                    conn,
-                    review_run_id=getattr(args, "review_run_id", None),
-                ),
+                "proving_slice": proving_slice,
             }
         elif args.command == "contested-rows":
             review_run_id = str(getattr(args, "review_run_id", None) or "").strip()
             proposition_ids = [str(value).strip() for value in getattr(args, "proposition_id", []) if str(value).strip()]
-            sql = """
-                SELECT
-                  proposition_id,
-                  paragraph_id,
-                  paragraph_order,
-                  sentence_order,
-                  proposition_text,
-                  coverage_status,
-                  best_source_row_id,
-                  best_match_score,
-                  best_adjusted_match_score,
-                  best_match_basis,
-                  best_match_excerpt,
-                  duplicate_match_excerpt,
-                  best_response_role,
-                  support_status,
-                  semantic_basis,
-                  promotion_status,
-                  promotion_basis,
-                  promotion_reason,
-                  support_direction,
-                  conflict_state,
-                  evidentiary_state,
-                  operational_status,
-                  relation_root,
-                  relation_leaf,
-                  primary_target_component,
-                  explanation_json,
-                  missing_dimensions_json,
-                  matched_source_rows_json
-                FROM contested_review_affidavit_rows
-                WHERE review_run_id = ?
-            """
-            params: list[object] = [review_run_id]
+            review = build_contested_affidavit_review_summary(conn, review_run_id=review_run_id)
+            rows = review.get("affidavit_rows") if isinstance(review.get("affidavit_rows"), list) else []
             if proposition_ids:
-                placeholders = ", ".join("?" for _ in proposition_ids)
-                sql += f" AND proposition_id IN ({placeholders})"
-                params.extend(proposition_ids)
-            sql += " ORDER BY paragraph_order, sentence_order, proposition_id LIMIT ?"
-            params.append(int(getattr(args, "limit", 20)))
-            rows = conn.execute(sql, params).fetchall()
+                allowed = set(proposition_ids)
+                rows = [row for row in rows if str(row.get("proposition_id") or "") in allowed]
+            rows = rows[: max(0, int(getattr(args, "limit", 20)))]
+            row_payloads = [
+                {
+                    "proposition_id": str(row.get("proposition_id") or ""),
+                    "paragraph_id": row.get("paragraph_id"),
+                    "paragraph_order": int(row.get("paragraph_order") or 0),
+                    "sentence_order": int(row.get("sentence_order") or 0),
+                    "proposition_text": row.get("text"),
+                    "coverage_status": row.get("coverage_status"),
+                    "best_source_row_id": row.get("best_source_row_id"),
+                    "best_match_score": row["best_match_score"],
+                    "best_adjusted_match_score": row.get("best_adjusted_match_score"),
+                    "best_match_basis": row.get("best_match_basis"),
+                    "best_match_excerpt": row.get("best_match_excerpt"),
+                    "duplicate_match_excerpt": row.get("duplicate_match_excerpt"),
+                    "best_response_role": row.get("best_response_role"),
+                    "support_status": row.get("support_status"),
+                    "semantic_basis": row.get("semantic_basis"),
+                    "promotion_status": row.get("promotion_status"),
+                    "promotion_basis": row.get("promotion_basis"),
+                    "promotion_reason": row.get("promotion_reason"),
+                    "support_direction": row.get("support_direction"),
+                    "conflict_state": row.get("conflict_state"),
+                    "evidentiary_state": row.get("evidentiary_state"),
+                    "operational_status": row.get("operational_status"),
+                    "relation_root": row.get("relation_root"),
+                    "relation_leaf": row.get("relation_leaf"),
+                    "primary_target_component": row.get("primary_target_component"),
+                    "explanation": row.get("explanation") if isinstance(row.get("explanation"), dict) else {},
+                    "missing_dimensions": row.get("missing_dimensions") if isinstance(row.get("missing_dimensions"), list) else [],
+                    "matched_source_rows": row.get("matched_source_rows") if isinstance(row.get("matched_source_rows"), list) else [],
+                    "status_explanation": row.get("status_explanation") if isinstance(row.get("status_explanation"), dict) else {},
+                    "claim": row.get("claim") if isinstance(row.get("claim"), dict) else {},
+                    "response": row.get("response") if isinstance(row.get("response"), dict) else {},
+                }
+                for row in rows
+            ]
+            if getattr(args, "with_interrogatives", False):
+                row_payloads = [_attach_interrogatives(row) for row in row_payloads]
             payload = {
                 "ok": True,
                 "dbPath": str(db_path),
                 "review_run_id": review_run_id,
-                "rows": [
-                    {
-                        "proposition_id": str(row["proposition_id"]),
-                        "paragraph_id": row["paragraph_id"],
-                        "paragraph_order": int(row["paragraph_order"] or 0),
-                        "sentence_order": int(row["sentence_order"] or 0),
-                        "proposition_text": row["proposition_text"],
-                        "coverage_status": row["coverage_status"],
-                        "best_source_row_id": row["best_source_row_id"],
-                        "best_match_score": row["best_match_score"],
-                        "best_adjusted_match_score": row["best_adjusted_match_score"],
-                        "best_match_basis": row["best_match_basis"],
-                        "best_match_excerpt": row["best_match_excerpt"],
-                        "duplicate_match_excerpt": row["duplicate_match_excerpt"],
-                        "best_response_role": row["best_response_role"],
-                        "support_status": row["support_status"],
-                        "semantic_basis": row["semantic_basis"],
-                        "promotion_status": row["promotion_status"],
-                        "promotion_basis": row["promotion_basis"],
-                        "promotion_reason": row["promotion_reason"],
-                        "support_direction": row["support_direction"],
-                        "conflict_state": row["conflict_state"],
-                        "evidentiary_state": row["evidentiary_state"],
-                        "operational_status": row["operational_status"],
-                        "relation_root": row["relation_root"],
-                        "relation_leaf": row["relation_leaf"],
-                        "primary_target_component": row["primary_target_component"],
-                        "explanation": _parse_json_arg(row["explanation_json"], label="explanation_json", default={}),
-                        "missing_dimensions": _parse_json_arg(row["missing_dimensions_json"], label="missing_dimensions_json", default=[]),
-                        "matched_source_rows": _parse_json_arg(row["matched_source_rows_json"], label="matched_source_rows_json", default=[]),
-                    }
-                    for row in rows
-                ],
+                "rows": row_payloads,
             }
         elif args.command == "authority-runs":
             payload = {
@@ -664,6 +709,55 @@ def main(argv: list[str] | None = None) -> int:
                     conn,
                     workflow_kind=resolved_workflow_kind,
                 ),
+            }
+        elif args.command == "zelph-export":
+            resolved_run_id = resolve_fact_run_id(
+                conn,
+                run_id=getattr(args, "run_id", None),
+                workflow_kind=getattr(args, "workflow_kind", None),
+                workflow_run_id=getattr(args, "workflow_run_id", None),
+                source_label=getattr(args, "source_label", None),
+            )
+            workbench = build_fact_review_workbench_payload(conn, run_id=resolved_run_id)
+            resolved_workflow_kind = (
+                getattr(args, "workflow_kind", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_kind")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_kind")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_kind")
+            )
+            resolved_workflow_run_id = (
+                getattr(args, "workflow_run_id", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("workflow_run_id")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("workflow_run_id")
+                or workbench.get("run", {}).get("workflow_link", {}).get("workflow_run_id")
+            )
+            resolved_source_label = (
+                getattr(args, "source_label", None)
+                or workbench.get("reopen_navigation", {}).get("query", {}).get("source_label")
+                or workbench.get("reopen_navigation", {}).get("current", {}).get("source_label")
+                or workbench.get("run", {}).get("source_label")
+            )
+            bundle = prime_index.build_zelph_bundle_from_payload(
+                workbench,
+                artifact_revision=args.artifact_revision,
+            )
+            if args.output:
+                args.output.write_text(
+                    json.dumps(bundle, ensure_ascii=False, indent=2, sort_keys=True),
+                    encoding="utf-8",
+                )
+            payload = {
+                "ok": True,
+                "dbPath": str(db_path),
+                "selector": {
+                    "run_id": resolved_run_id,
+                    "workflow_kind": resolved_workflow_kind,
+                    "workflow_run_id": resolved_workflow_run_id,
+                    "source_label": resolved_source_label,
+                    "artifact_revision": args.artifact_revision,
+                },
+                "output_path": str(args.output.resolve()) if args.output else None,
+                "zelph_bundle": bundle,
             }
         else:
             resolved_run_id = resolve_fact_run_id(

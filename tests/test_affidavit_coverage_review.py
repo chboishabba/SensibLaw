@@ -106,6 +106,38 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert payload["summary"]["contested_source_count"] == 1
     assert payload["summary"]["abstained_source_count"] == 1
     assert payload["summary"]["semantic_basis_counts"]
+    assert payload["compiler_contract"]["lane"] == "affidavit"
+    assert payload["compiler_contract"]["evidence_bundle"]["source_family"] == "fact_review_bundle"
+    assert payload["compiler_contract"]["promoted_outcomes"]["promoted_count"] == 0
+    assert payload["compiler_contract"]["promoted_outcomes"]["review_count"] == 1
+    assert payload["compiler_contract"]["promoted_outcomes"]["abstained_count"] == 2
+    assert "candidate_conflict" in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
+    assert "abstained" in payload["compiler_contract"]["promoted_outcomes"]["outcome_labels"]
+    assert payload["promotion_gate"]["decision"] == "abstain"
+    assert payload["promotion_gate"]["product_ref"] == "affidavit_coverage_review_v1"
+    assert payload["workflow_summary"]["stage"] == "follow_up"
+    assert payload["workflow_summary"]["recommended_view"] == "source_review_rows"
+    assert payload["workflow_summary"]["counts"]["missing_review_count"] == payload["summary"]["missing_review_count"]
+    review_claim_records = {row["claim_id"]: row for row in payload["review_claim_records"]}
+    assert review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"]["identity_basis"]["basis_kind"] == (
+        "best_source_row_id"
+    )
+    assert review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["relation_kind"] == "addresses"
+    assert review_claim_records["aff-prop:p1-s1"]["proposition_relation"]["provenance"]["anchor_refs"][
+        "best_source_row_id"
+    ] == "fact:f1"
+    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["candidate_kind"] == "affidavit_proposition_row"
+    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["selection_basis"]["coverage_status"] == "covered"
+    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["anchor_refs"]["paragraph_id"] == "p1"
+    assert review_claim_records["aff-prop:p1-s1"]["review_candidate"]["target_proposition_id"] == (
+        review_claim_records["aff-prop:p1-s1"]["target_proposition_identity"]["proposition_id"]
+    )
+    assert review_claim_records["aff-prop:p1-s1"]["review_text"]["text_role"] == "claim_text"
+    assert review_claim_records["aff-prop:p1-s1"]["review_text"]["source_kind"] == "affidavit_row"
+    assert "target_proposition_identity" in review_claim_records["aff-prop:p2-s1"]
+    assert "proposition_relation" in review_claim_records["aff-prop:p2-s1"]
+    assert "target_proposition_identity" in review_claim_records["aff-prop:p3-s1"]
+    assert review_claim_records["aff-prop:p3-s1"]["proposition_relation"]["relation_kind"] == "addresses"
 
     affidavit_rows = {row["proposition_id"]: row for row in payload["affidavit_rows"]}
     assert affidavit_rows["aff-prop:p1-s1"]["coverage_status"] == "covered"
@@ -148,6 +180,23 @@ def test_build_affidavit_coverage_review_from_fact_review_bundle(tmp_path: Path)
     assert normalized["provisional_queue_row_count"] == 2
     assert normalized["provisional_bundle_count"] == 1
     assert normalized["review_required_source_ratio"] == 0.25
+    normalized_artifact = payload["suite_normalized_artifact"]
+    assert normalized_artifact["schema_version"] == "itir.normalized.artifact.v1"
+    assert normalized_artifact["artifact_role"] == "derived_product"
+    assert normalized_artifact["authority"]["derived"] is True
+    assert normalized_artifact["summary"]["lane"] == "affidavit"
+    assert normalized_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert normalized_artifact["summary"]["workflow_stage"] == payload["workflow_summary"]["stage"]
+    assert normalized_artifact["summary"]["recommended_view"] == payload["workflow_summary"]["recommended_view"]
+    assert "graph_diagnostics" not in normalized_artifact
+    reasoner_input_artifact = payload["reasoner_input_artifact"]
+    assert reasoner_input_artifact["schema_version"] == "sl.reasoner_input.v0_1"
+    assert reasoner_input_artifact["source_system"] == "SensibLaw"
+    assert reasoner_input_artifact["source_lane"] == "affidavit"
+    assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
+    assert reasoner_input_artifact["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert reasoner_input_artifact["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
+    assert reasoner_input_artifact["summary"]["abstained_count"] == payload["compiler_contract"]["promoted_outcomes"]["abstained_count"]
 
 
 def test_split_affidavit_text_splits_semicolon_clause_into_multiple_propositions() -> None:
@@ -199,6 +248,14 @@ def test_write_affidavit_coverage_review_outputs_files(tmp_path: Path) -> None:
     payload = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert payload["version"] == "affidavit_coverage_review_v1"
     assert payload["summary"]["covered_count"] == 1
+    assert payload["compiler_contract"]["lane"] == "affidavit"
+    assert payload["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
+    assert payload["workflow_summary"]["recommended_view"] in {
+        "source_review_rows",
+        "affidavit_rows",
+        "related_review_clusters",
+        "summary",
+    }
     assert payload["normalized_metrics_v1"]["review_item_status_counts"]["accepted"] == 1
     assert "provenance-first comparison surface" in summary_path.read_text(encoding="utf-8")
     assert "Normalized Metrics" in summary_path.read_text(encoding="utf-8")

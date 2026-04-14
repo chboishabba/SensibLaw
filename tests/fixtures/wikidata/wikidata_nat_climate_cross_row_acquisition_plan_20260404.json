@@ -1,0 +1,90 @@
+{
+  "schema_version": "sl.wikidata_nat_climate_cross_row_acquisition_plan.v0_1",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "plan_kind": "cross_row_migrated_p14143",
+  "candidate_plans": [
+    {
+      "priority": 1,
+      "route_kind": "cross_row_migrated_p14143",
+      "source_family": "wikidata_sparql_p14143",
+      "supports_claim_id": "Q10651551|P5991|1",
+      "candidate_id": "Q253423|P14143|2023_scope2_market_based",
+      "entity_qid": "Q253423",
+      "candidate_label": "Lundin Energy",
+      "why": "Already-migrated live P14143 enterprise rows are the shortest truthful external witness for the climate migration lane.",
+      "claim_signature": {
+        "subject": "Q253423",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "614",
+        "year": "2023",
+        "unit": "co2e",
+        "determination_method": [
+          "Q95441586"
+        ],
+        "role_scope": [
+          "Q124946884"
+        ],
+        "applies_to_part": []
+      }
+    },
+    {
+      "priority": 2,
+      "route_kind": "cross_row_migrated_p14143",
+      "source_family": "wikidata_sparql_p14143",
+      "supports_claim_id": "Q10651551|P5991|1",
+      "candidate_id": "Q253423|P14143|2024_scope1",
+      "entity_qid": "Q253423",
+      "candidate_label": "Lundin Energy",
+      "why": "Already-migrated live P14143 enterprise rows are the shortest truthful external witness for the climate migration lane.",
+      "claim_signature": {
+        "subject": "Q253423",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "13",
+        "year": "2024",
+        "unit": "co2e",
+        "determination_method": [
+          "Q95441586"
+        ],
+        "role_scope": [
+          "Q124946883"
+        ],
+        "applies_to_part": []
+      }
+    },
+    {
+      "priority": 3,
+      "route_kind": "cross_row_migrated_p14143",
+      "source_family": "wikidata_sparql_p14143",
+      "supports_claim_id": "Q10651551|P5991|1",
+      "candidate_id": "Q4680631|P14143|2023_cement",
+      "entity_qid": "Q4680631",
+      "candidate_label": "Adani Group",
+      "why": "Already-migrated live P14143 enterprise rows are the shortest truthful external witness for the climate migration lane.",
+      "claim_signature": {
+        "subject": "Q4680631",
+        "subject_class": "enterprise",
+        "metric_kind": "annual_greenhouse_gas_emissions",
+        "property_family": "annual_greenhouse_gas_emissions",
+        "normalized_value": "8.08",
+        "year": "2023",
+        "unit": "co2e",
+        "determination_method": [
+          "Q130757530"
+        ],
+        "role_scope": [],
+        "applies_to_part": [
+          "Q11451"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "candidate_count": 3,
+    "supports_claim_id": "Q10651551|P5991|1"
+  }
+}

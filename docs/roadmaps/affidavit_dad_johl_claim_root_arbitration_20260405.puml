@@ -1,0 +1,109 @@
+@startuml
+title Dad/Johl Claim-Root And Sibling-Leaf Arbitration 2026-04-05
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment left
+skinparam ArrowColor #444444
+skinparam packageBorderColor #666666
+skinparam componentBorderColor #666666
+skinparam noteBorderColor #888888
+
+legend right
+  This child view zooms into the current Dad/Johl arbitration seam.
+  Goal: keep duplicate-root support visible without losing same-incident
+  sibling-leaf distinctions or side-local wording.
+endlegend
+
+package "Affidavit Proposition" {
+  artifact "Affidavit proposition\nThe respondent cut off my internet\nin November 2024." as Proposition
+}
+
+package "Candidate Source Rows" {
+  artifact "Duplicate-root row\nThe respondent cut off my internet\nin November 2024." as DupRow
+  artifact "Context-swap row\nI cut off the internet in November 2024\nas a final attempt..." as ContextRow
+  artifact "Sibling-leaf clause row\nI acknowledge this likely occurred\non many occasions." as ClauseRow
+}
+
+package "Candidate Scoring" {
+  component "_score_proposition_against_source_row(...)" as Score
+  component "predicate_alignment_score(...)" as PredicateAlign
+  component "family_alignment_adjustment(...)" as FamilyAlign
+  component "is_quote_rebuttal_support_excerpt(...)" as QuoteSupport
+}
+
+package "Duplicate-Root And Claim Root" {
+  component "is_duplicate_response_excerpt(...)" as DupDetect
+  component "derive_claim_root_fields(...)" as ClaimRoot
+  artifact "claim_root_id\nclaim_root_basis\nclaim_root_text\nalternate_context_excerpt" as RootFields
+}
+
+package "Arbitration And Classification" {
+  component "arbitrate_candidate_selection(...)" as Arbitrate
+  component "_infer_response_packet(...)" as ResponsePacket
+  component "_derive_relation_classification(...)" as RelationClass
+  component "_derive_semantic_basis(...)" as SemanticBasis
+  component "_derive_primary_target_component(...)" as PrimaryTarget
+  artifact "relation_root\nrelation_leaf\nbest_source_row_id\nduplicate_match_excerpt" as Selection
+}
+
+package "Review Outcome" {
+  artifact "affidavit_row\ncoverage_status\nexplanation\nmissing_dimensions" as AffidavitRow
+  database "SQLite contested review rows" as SQLiteRows
+  component "query_fact_review.py contested-rows" as Query
+}
+
+Proposition --> Score : compare against each candidate row
+DupRow --> Score
+ContextRow --> Score
+ClauseRow --> Score
+
+Score --> PredicateAlign : predicate-focus weighting
+Score --> FamilyAlign : same-incident / family reward
+Score --> QuoteSupport : acknowledgement support cue
+Score --> DupDetect : duplicate-root check
+
+DupDetect --> ClaimRoot : duplicate excerpt + alternate context
+Proposition --> ClaimRoot
+ClaimRoot --> RootFields
+
+Score --> Arbitrate : ranked candidates
+RootFields --> Arbitrate : duplicate-root context
+Arbitrate --> Selection
+Arbitrate --> ResponsePacket
+ResponsePacket --> RelationClass
+ResponsePacket --> SemanticBasis
+ResponsePacket --> PrimaryTarget
+
+Selection --> AffidavitRow
+RelationClass --> AffidavitRow
+SemanticBasis --> AffidavitRow
+PrimaryTarget --> AffidavitRow
+RootFields --> AffidavitRow
+
+AffidavitRow --> SQLiteRows : persisted contested row
+SQLiteRows --> Query : inspect Dad/Johl proving slice
+
+note right of ClaimRoot
+  Duplicate-root rule:
+  preserve the repeated proposition text as the claim root
+  even when the richer alternate excerpt wins arbitration.
+end note
+
+note right of Arbitrate
+  Current tested behaviors:
+  - promote duplicate-root alternate over context swap
+  - promote clause alternate when duplicate root exists
+  - break adjusted-score ties with predicate alignment
+end note
+
+note bottom of AffidavitRow
+  Open quality boundary:
+  same-incident sibling leaves still need tighter clustering so
+  Dad-side support, Johl-side dispute, and clause-level acknowledgement
+  do not collapse into one flat incident explanation.
+end note
+
+@enduml

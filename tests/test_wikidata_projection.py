@@ -34,6 +34,8 @@ from src.ontology.wikidata import (
     project_wikidata_payload,
     verify_migration_pack_against_after_state,
 )
+from src.ontology.wikidata_relation_adapter import build_wikidata_relation_rows
+from src.ontology.wikidata_grounding_depth import build_grounding_depth_summary
 
 
 def _load_migration_pack_schema() -> dict:
@@ -190,6 +192,16 @@ def _load_nat_review_packet_sidecar_fixture(qid: str) -> dict:
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
+def _load_nat_grounding_depth_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_grounding_depth_packets_20260402.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
 def _load_nat_cohort_a_live_discovery_fixture() -> dict:
     fixture_path = (
         Path(__file__).resolve().parent
@@ -216,6 +228,26 @@ def _load_nat_cohort_a_checked_safe_hunt_fixture() -> dict:
         / "fixtures"
         / "wikidata"
         / "wikidata_nat_cohort_a_checked_safe_hunt_20260401.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_run_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_run_20260403.json"
+    )
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture() -> dict:
+    fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_cohort_a_gate_b_candidate_verification_runs_ready_20260403.json"
     )
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -563,6 +595,9 @@ def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift(
     assert by_entity["Q2"]["classification"] == "reference_drift"
     assert by_entity["Q2"]["reference_diff"]["status"] == "reference_drift"
     assert by_entity["Q3"]["classification"] == "safe_with_reference_transfer"
+    assert by_entity["Q3"]["promotion_class"] == "review_only"
+    assert by_entity["Q3"]["promotion_eligibility"]["eligible"] is False
+    assert by_entity["Q3"]["promotion_gate"]["decision"] == "review_only"
     assert by_entity["Q3"]["claim_bundle_after"]["property"] == "P14143"
 
 
@@ -608,6 +643,9 @@ def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists()
     assert report["candidates"][0]["classification"] == "safe_with_reference_transfer"
     assert report["candidates"][0]["action"] == "migrate_with_refs"
     assert report["candidates"][0]["split_axes"] == []
+    assert report["candidates"][0]["promotion_class"] == "review_only"
+    assert report["candidates"][0]["promotion_eligibility"]["eligible"] is False
+    assert report["candidates"][0]["promotion_gate"]["decision"] == "review_only"
 
 
 def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_split_required() -> None:
@@ -668,6 +706,15 @@ def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_s
         assert candidate["pressure"] is None
         assert candidate["pressure_confidence"] is None
         assert candidate["pressure_summary"] is None
+        assert candidate["promotion_class"] == "review_only"
+        assert candidate["promotion_eligibility"]["eligible"] is False
+        assert candidate["promotion_gate"]["decision"] == "review_only"
+        assert candidate["model_validation"]["lane"] == "ghg_climate_migration"
+        assert candidate["model_validation"]["status"] == "model_safe_with_split"
+        assert candidate["model_validation"]["execution_ready"] is True
+        assert candidate["model_validation"]["resolved_year"] in {"2023", "2024"}
+        assert candidate["execution_hints"]["target_property"] == "P14143"
+        assert candidate["execution_hints"]["execution_ready"] is True
     assert report["bridge_cases"] == []
     jsonschema.validate(report, _load_migration_pack_schema())
 
@@ -886,6 +933,103 @@ def test_attach_wikidata_phi_text_bridge_enriches_migration_pack_additively() ->
     assert "conflict" in candidate["pressure_summary"].lower()
     assert len(enriched["bridge_cases"]) == 1
     jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_build_wikidata_relation_rows_projects_migration_candidates_to_relation_rows() -> None:
+    migration_pack = build_wikidata_migration_pack(
+        {
+            "windows": [
+                {
+                    "id": "t1",
+                    "statement_bundles": [
+                        {
+                            "subject": "Q1",
+                            "property": "P5991",
+                            "value": "100",
+                            "rank": "normal",
+                            "qualifiers": {"P585": ["2024"]},
+                            "references": [{"P248": "Qsrc"}],
+                        }
+                    ],
+                }
+            ]
+        },
+        source_property="P5991",
+        target_property="P14143",
+    )
+    candidate_id = migration_pack["candidates"][0]["candidate_id"]
+    enriched = attach_wikidata_phi_text_bridge(
+        migration_pack,
+        observations_by_candidate={
+            candidate_id: [
+                {
+                    "observation_ref": "obs:1",
+                    "source_ref": "source:doc1",
+                    "anchors": [{"start": 0, "end": 12, "text": "emissions 100"}],
+                    "subject": "Q1",
+                    "predicate": "annual_emissions",
+                    "object": "100",
+                    "qualifiers": {"P585": "2024"},
+                    "promotion_status": "promoted_true",
+                }
+            ]
+        },
+    )
+
+    rows = build_wikidata_relation_rows(enriched)
+
+    assert len(rows) == 1
+    assert rows[0]["source_row_id"] == candidate_id
+    assert rows[0]["source_family"] == "wikidata_migration_pack"
+    assert rows[0]["source_kind"] == "wikidata_candidate_bundle"
+    assert rows[0]["event_id"] == f"wikidata_relation:{candidate_id}"
+    assert rows[0]["source_id"] == f"wikidata_migration_pack:{candidate_id}"
+    assert rows[0]["actor"] == "Q1"
+    assert rows[0]["action"] == "P5991"
+    assert rows[0]["object"] == "100"
+    assert rows[0]["structured_candidate"]["claim_bundle_before"]["qualifiers"] == {
+        "P585": ["2024"]
+    }
+    assert rows[0]["structured_candidate"]["claim_bundle_before"]["references"] == [
+        {"P248": ["Qsrc"]}
+    ]
+    assert {"anchor_kind": "classification", "anchor_value": "safe_with_reference_transfer", "anchor_label": "safe_with_reference_transfer"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "review_action", "anchor_value": "migrate_with_refs", "anchor_label": "migrate_with_refs"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "review_pressure", "anchor_value": "reinforce", "anchor_label": "reinforce"} in rows[0]["candidate_anchors"]
+    assert {"anchor_kind": "text_evidence_ref", "anchor_value": "obs:1", "anchor_label": "obs:1"} in rows[0]["candidate_anchors"]
+
+
+def test_build_wikidata_relation_rows_canonicalizes_nested_values_stably() -> None:
+    rows = build_wikidata_relation_rows(
+        {
+            "source_property": "P5991",
+            "target_property": "P14143",
+            "window_basis": {"current": "t2", "previous": "t1"},
+            "candidates": [
+                {
+                    "candidate_id": "Q9|P5991|1",
+                    "entity_qid": "Q9",
+                    "slot_id": "Q9|P5991",
+                    "statement_index": 1,
+                    "classification": "split_required",
+                    "action": "split",
+                    "claim_bundle_before": {
+                        "subject": "Q9",
+                        "property": "P5991",
+                        "value": {"amount": "100", "unit": "kg", "scopes": ["scope_1", "scope_2"]},
+                        "rank": "normal",
+                        "qualifiers": {"P585": ["2024"]},
+                        "references": [{"P248": "Qsrc"}],
+                    },
+                    "claim_bundle_after": {},
+                    "qualifier_diff": {"status": "changed"},
+                    "reference_diff": {"status": "stable"},
+                }
+            ],
+        }
+    )
+
+    assert rows[0]["object"] == '{"amount":"100","scopes":["scope_1","scope_2"],"unit":"kg"}'
 
 
 def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_contract_shape() -> None:
@@ -1642,6 +1786,57 @@ def test_build_wikidata_review_packet_attaches_nat_source_unit_to_split_plan() -
     assert "no_follow_receipts" not in payload["reviewer_view"]["uncertainty_flags"]
 
 
+def test_build_wikidata_review_packet_captures_grounding_gap_signal() -> None:
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        grounding_depth_summary=build_grounding_depth_summary(
+            fixture=_load_nat_grounding_depth_fixture()
+        ),
+    )
+
+    assert "grounding_gap_class=grounded" in payload["reviewer_view"]["uncertainty_flags"]
+    assert payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+
+
+def test_build_wikidata_review_packet_overrides_next_step_for_live_receipt_review() -> None:
+    live_follow_results = [
+        {
+            "result_rows": [
+                {
+                    "qid": "Q10403939",
+                    "plan_id": "hard_grounding_packet:1",
+                    "target_ref": "review-packet:5bae90b4fcb444f6",
+                    "status": "fetched",
+                    "chosen_source_class": "named_revision_locked_source",
+                    "evidence": {
+                        "source_class": "named_revision_locked_source",
+                        "revision_source": {
+                            "label": "Akademiska Hus",
+                            "revision_url": "https://www.wikidata.org/w/index.php?title=Q10403939&oldid=2419926147",
+                        },
+                    },
+                }
+            ]
+        }
+    ]
+    payload = build_wikidata_review_packet(
+        source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
+        split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
+        split_plan_id="split://Q10403939|P5991",
+        grounding_depth_summary=build_grounding_depth_summary(
+            fixture=_load_nat_grounding_depth_fixture(),
+            live_follow_results=live_follow_results,
+        ),
+    )
+
+    assert payload["reviewer_view"]["recommended_next_step"] == "review_live_follow_receipts"
+    assert "review_live_follow_receipts" in payload["reviewer_view"]["decision_focus"]
+    assert "live_receipts_ready_for_review" in payload["reviewer_view"]["uncertainty_flags"]
+    assert "live_follow_receipts=1" in payload["reviewer_view"]["uncertainty_flags"]
+
+
 def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() -> None:
     payload = build_wikidata_review_packet(
         source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
@@ -2300,6 +2495,44 @@ def test_verify_migration_pack_against_after_state_reports_verified_and_missing(
     assert "Q3|P5991|1" not in by_id
 
 
+def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verified_rows() -> None:
+    payload = _load_nat_cohort_a_gate_b_candidate_verification_run_fixture()
+
+    report = verify_migration_pack_against_after_state(
+        payload["migration_pack"],
+        payload["after_payload"],
+    )
+
+    assert report["verification_scope"] == "checked_safe_subset_only"
+    assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count"]
+    assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+    by_id = {row["candidate_id"]: row for row in report["rows"]}
+    assert by_id["Q1068745|P5991|1"]["status"] == "verified"
+    assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
+    assert by_id["Q1489170|P5991|1"]["status"] == "verified"
+    assert by_id["Q1489170|P5991|1"]["source_still_present"] is True
+
+
+def test_verify_nat_cohort_a_gate_b_candidate_verification_runs_ready_reports_two_clean_runs() -> None:
+    payload = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
+
+    assert len(payload["runs"]) == payload["expected_summary"]["run_count"]
+
+    for run in payload["runs"]:
+        report = verify_migration_pack_against_after_state(
+            run["migration_pack"],
+            run["after_payload"],
+        )
+        assert report["verification_scope"] == "checked_safe_subset_only"
+        assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count_per_run"]
+        assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+        by_id = {row["candidate_id"]: row for row in report["rows"]}
+        assert by_id["Q1068745|P5991|1"]["status"] == "verified"
+        assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
+        assert by_id["Q1489170|P5991|1"]["status"] == "verified"
+        assert by_id["Q1489170|P5991|1"]["source_still_present"] is True
+
+
 def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> None:
     migration_pack = {
         "source_property": "P5991",
@@ -2378,6 +2611,139 @@ def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> Non
     assert plan["proposed_bundle_count"] == 2
     assert plan["reference_propagation"] == "exact"
     assert plan["qualifier_propagation"] == "exact"
+    assert plan["execution_ready"] is False
+    assert len(plan["split_execution_rows"]) == 2
+    jsonschema.validate(report, _load_split_plan_schema())
+
+
+def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_metadata_present() -> None:
+    migration_pack = {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 1,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "model_validation": {
+                    "lane": "ghg_climate_migration",
+                    "status": "model_safe_with_split",
+                    "valid": True,
+                    "issues": [],
+                    "resolved_year": "2023",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "suggested_action": "migrate_with_split",
+                    "execution_ready": True,
+                },
+                "execution_hints": {
+                    "execution_ready": True,
+                    "target_property": "P14143",
+                    "resolved_year": "2023",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "qualifier_properties": ["P585"],
+                    "execution_backend": "openrefine",
+                    "suggested_action": "migrate_with_split",
+                },
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+            {
+                "candidate_id": "Q1|P5991|2",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 2,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "model_validation": {
+                    "lane": "ghg_climate_migration",
+                    "status": "model_safe_with_split",
+                    "valid": True,
+                    "issues": [],
+                    "resolved_year": "2024",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "suggested_action": "migrate_with_split",
+                    "execution_ready": True,
+                },
+                "execution_hints": {
+                    "execution_ready": True,
+                    "target_property": "P14143",
+                    "resolved_year": "2024",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "qualifier_properties": ["P585"],
+                    "execution_backend": "openrefine",
+                    "suggested_action": "migrate_with_split",
+                },
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+        ],
+    }
+
+    report = build_wikidata_split_plan(migration_pack)
+
+    plan = report["plans"][0]
+    assert report["summary"]["counts_by_status"] == {"execution_ready": 1}
+    assert plan["status"] == "execution_ready"
+    assert plan["execution_ready"] is True
+    assert plan["suggested_action"] == "migrate_with_split"
+    assert plan["resolved_scope"] == "TOTAL"
+    assert plan["resolved_unit_qid"] == "Q57084755"
+    assert {row["resolved_year"] for row in plan["split_execution_rows"]} == {"2023", "2024"}
     jsonschema.validate(report, _load_split_plan_schema())
 
 

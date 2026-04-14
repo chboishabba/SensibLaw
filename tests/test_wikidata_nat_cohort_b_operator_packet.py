@@ -3,9 +3,16 @@ from pathlib import Path
 
 import pytest
 
+from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION
+from src.models.convergence import CONVERGENCE_SCHEMA_VERSION
+from src.models.conflict import CONFLICT_SCHEMA_VERSION
+from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION
+from src.models.temporal import TEMPORAL_SCHEMA_VERSION
 from src.ontology.wikidata_nat_cohort_b_operator_packet import (
     WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION,
+    WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_WORLD_MODEL_SCHEMA_VERSION,
     build_nat_cohort_b_operator_packet,
+    build_nat_cohort_b_operator_packet_world_model_report,
 )
 from src.ontology.wikidata_nat_cohort_b_review_bucket import (
     WIKIDATA_NAT_COHORT_B_REVIEW_BUCKET_SCHEMA_VERSION,
@@ -86,3 +93,31 @@ def test_build_nat_cohort_b_operator_packet_requires_valid_cohort_shape() -> Non
                 "review_bucket_rows": [],
             }
         )
+
+
+def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_into_shared_substrate() -> None:
+    operator_packet = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
+
+    report = build_nat_cohort_b_operator_packet_world_model_report(operator_packet)
+
+    assert report["schema_version"] == WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_WORLD_MODEL_SCHEMA_VERSION
+    assert report["claim_schema_version"] == NAT_CLAIM_SCHEMA_VERSION
+    assert report["convergence_schema_version"] == CONVERGENCE_SCHEMA_VERSION
+    assert report["temporal_schema_version"] == TEMPORAL_SCHEMA_VERSION
+    assert report["conflict_schema_version"] == CONFLICT_SCHEMA_VERSION
+    assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
+    assert report["packet_id"] == operator_packet["packet_id"]
+    assert report["decision"] == "review"
+    assert report["summary"]["claim_count"] == 2
+    assert report["summary"]["must_review_count"] == 2
+    first_claim = report["claims"][0]
+    assert first_claim["status"] == "REVIEW_ONLY"
+    assert first_claim["nat_claim"]["state_basis"] == "review_packet"
+    assert first_claim["convergence"]["convergence_state"] == "NORMALIZED"
+    assert first_claim["conflict_set"]["conflict_type"] == "none"
+    assert first_claim["action_policy"]["actionability"] == "must_review"
+
+
+def test_build_nat_cohort_b_operator_packet_world_model_report_requires_operator_packet() -> None:
+    with pytest.raises(ValueError, match="requires Cohort B operator packet payload"):
+        build_nat_cohort_b_operator_packet_world_model_report({"schema_version": "wrong"})

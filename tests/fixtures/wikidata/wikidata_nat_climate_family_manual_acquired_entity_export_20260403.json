@@ -1,0 +1,163 @@
+{
+  "_source_path": "manual://wikidata/Q10651551/rev/after-b",
+  "_source_qid": "Q10651551",
+  "_source_revision": "manual-2435181076",
+  "entities": {
+    "Q10651551": {
+      "id": "Q10651551",
+      "lastrevid": 2435181076,
+      "claims": {
+        "P14143": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P14143",
+              "datatype": "quantity",
+              "datavalue": {
+                "value": {
+                  "amount": "+442",
+                  "unit": "http://www.wikidata.org/entity/Q57084901"
+                },
+                "type": "quantity"
+              }
+            },
+            "rank": "normal",
+            "qualifiers": {
+              "P585": [
+                {
+                  "snaktype": "value",
+                  "property": "P585",
+                  "datatype": "time",
+                  "datavalue": {
+                    "value": {
+                      "time": "+2021-00-00T00:00:00Z"
+                    },
+                    "type": "time"
+                  }
+                }
+              ],
+              "P828": [
+                {
+                  "snaktype": "value",
+                  "property": "P828",
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "value": {
+                      "id": "Q7590"
+                    },
+                    "type": "wikibase-entityid"
+                  }
+                }
+              ]
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P813": [
+                    {
+                      "snaktype": "value",
+                      "property": "P813",
+                      "datatype": "time",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2022-05-19T00:00:00Z"
+                        },
+                        "type": "time"
+                      }
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "snaktype": "value",
+                      "property": "P854",
+                      "datatype": "url",
+                      "datavalue": {
+                        "value": "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191?second-snapshot=1",
+                        "type": "string"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "P5991": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P5991",
+              "datatype": "quantity",
+              "datavalue": {
+                "value": {
+                  "amount": "+442",
+                  "unit": "http://www.wikidata.org/entity/Q57084901"
+                },
+                "type": "quantity"
+              }
+            },
+            "rank": "normal",
+            "qualifiers": {
+              "P585": [
+                {
+                  "snaktype": "value",
+                  "property": "P585",
+                  "datatype": "time",
+                  "datavalue": {
+                    "value": {
+                      "time": "+2021-00-00T00:00:00Z"
+                    },
+                    "type": "time"
+                  }
+                }
+              ],
+              "P828": [
+                {
+                  "snaktype": "value",
+                  "property": "P828",
+                  "datatype": "wikibase-item",
+                  "datavalue": {
+                    "value": {
+                      "id": "Q7590"
+                    },
+                    "type": "wikibase-entityid"
+                  }
+                }
+              ]
+            },
+            "references": [
+              {
+                "snaks": {
+                  "P813": [
+                    {
+                      "snaktype": "value",
+                      "property": "P813",
+                      "datatype": "time",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2022-05-19T00:00:00Z"
+                        },
+                        "type": "time"
+                      }
+                    }
+                  ],
+                  "P854": [
+                    {
+                      "snaktype": "value",
+                      "property": "P854",
+                      "datatype": "url",
+                      "datavalue": {
+                        "value": "http://urn.kb.se/resolve?urn=urn:nbn:se:naturvardsverket:diva-10191?second-snapshot=1",
+                        "type": "string"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

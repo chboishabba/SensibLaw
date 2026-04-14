@@ -3,16 +3,7 @@ from __future__ import annotations
 
 import hashlib
 
-from src.policy.affidavit_text_normalization import tokenize_affidavit_text
-
-
-def is_duplicate_response_excerpt(proposition_text: str, excerpt_text: str) -> bool:
-    proposition_tokens = tokenize_affidavit_text(proposition_text)
-    excerpt_tokens = tokenize_affidavit_text(excerpt_text)
-    if not proposition_tokens or not excerpt_tokens:
-        return False
-    shared_ratio = len(proposition_tokens & excerpt_tokens) / len(proposition_tokens)
-    return shared_ratio >= 0.85
+from src.policy.affidavit_text_normalization import is_duplicate_response_excerpt
 
 
 def normalize_claim_root_text(

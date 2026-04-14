@@ -9,6 +9,10 @@ is invisible, and records are treated as truth rather than artifacts.
 This document states what ITIR/SensibLaw **will not become** regardless of
 pressure, incentives, or convenience.
 
+Operational red-team followthrough lives in:
+
+- `SensibLaw/docs/red_team_anti_panopticon.md`
+
 ## 1. What the system refuses
 ITIR/SensibLaw refuses the panopticon model: subjects legible to power while
 power remains illegible to subjects. The system is opinionated against coercive
@@ -110,3 +114,7 @@ Refusals include:
 Sensor evidence is treated as partial, situated, and lossy. Artifacts and
 absences are recorded; conclusions are not. Lawful access does not imply
 interpretive authority.
+
+## 10. Red-Team Enforcement
+The operational red-team checklist for these boundaries lives in
+`SensibLaw/docs/red_team_anti_panopticon.md`.

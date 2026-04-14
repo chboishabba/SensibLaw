@@ -34,6 +34,7 @@ if str(SENSIBLAW_ROOT) not in sys.path:
 from src.graph.ingest import Graph, ingest_document  # noqa: E402
 from src.models.attribution_claims import SourceEntityType, source_entity_id  # noqa: E402
 from src.pdf_ingest import process_pdf  # noqa: E402
+from src.tools.network_progress import TransferProgressReporter  # noqa: E402
 
 
 CASE_URL_DEFAULT = "https://www.hcourt.gov.au/cases-and-judgments/cases/decided/case-s942025"
@@ -153,7 +154,27 @@ def _fetch(url: str, timeout: int, headers: Optional[Dict[str, str]] = None) -> 
         req_headers.update(headers)
     req = urllib.request.Request(url, headers=req_headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - bounded explicit fetch
-        data = resp.read()
+        total_header = resp.headers.get("Content-Length")
+        try:
+            total_bytes = int(total_header) if total_header else None
+        except (TypeError, ValueError):
+            total_bytes = None
+        reporter = TransferProgressReporter(
+            label=str(urllib.parse.urlparse(url).path or url),
+            total_bytes=total_bytes,
+        )
+        reporter.start()
+        downloaded_bytes = 0
+        chunks: List[bytes] = []
+        while True:
+            chunk = resp.read(64 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            downloaded_bytes += len(chunk)
+            reporter.update(downloaded_bytes)
+        progress = reporter.finish(downloaded_bytes)
+        data = b"".join(chunks)
         content_type = str(resp.headers.get("Content-Type") or "")
         final_url = str(resp.geturl() or url)
     return {
@@ -162,6 +183,7 @@ def _fetch(url: str, timeout: int, headers: Optional[Dict[str, str]] = None) -> 
         "content_type": content_type,
         "bytes": len(data),
         "data": data,
+        "fetch_progress": progress,
     }
 
 

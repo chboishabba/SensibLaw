@@ -833,7 +833,9 @@
           "status": "disagreement"
         }
       ],
-      "diagnostic_flags": [],
+      "diagnostic_flags": [
+        "axis_specific_unreconciled_instance_of"
+      ],
       "non_authoritative": true,
       "primary_candidate_id": "split://Q738421|P5991"
     }

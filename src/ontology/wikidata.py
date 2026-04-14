@@ -26,11 +26,14 @@ from .wikidata_review_packet_reviewer_actions import (
 from .wikidata_review_packet_variant_compare import (
     compare_review_packet_variants,
 )
+from src.policy.compiler_contract import build_wikidata_migration_pack_contract
+from src.policy.product_gate import build_product_gate
 
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
 FINDER_SCHEMA_VERSION = "wikidata_qualifier_drift_finder_v0_1"
 MIGRATION_PACK_SCHEMA_VERSION = "sl.wikidata_migration_pack.v1"
+CANDIDATE_PROMOTION_GATE_SCHEMA_VERSION = "sl.wikidata_candidate_promotion_gate.v0_1"
 SPLIT_PLAN_SCHEMA_VERSION = "sl.wikidata_split_plan.v0_1"
 WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION = "sl.wikidata_phi_text_bridge_case.v1"
 WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION = "sl.wikidata.climate_text_source.v1"
@@ -46,10 +49,35 @@ PROPERTY_PROFILES = {
 TEMPORAL_QUALIFIER_PROPERTIES = frozenset({"P580", "P582", "P585"})
 REVIEW_QUALIFIER_PROPERTIES = frozenset({"P7452"})
 PARTHOOD_PROPERTIES = frozenset({"P361", "P527"})
+GHG_SCOPE_PROPERTIES = frozenset({"P3831", "P518"})
+GHG_DETERMINATION_METHOD_PROPERTY = "P459"
+GHG_PROTOCOL_QIDS = frozenset({"Q56296245"})
+CLIMATE_UNIT_QIDS = frozenset({"Q57084755", "Q57084901"})
 PARTHOOD_INVERSE_RELATIONS = {
     "P361": frozenset({"P361", "P527"}),
     "P527": frozenset({"P527", "P361"}),
 }
+CLIMATE_MODEL_SOURCE_PROPERTIES = frozenset({"P5991"})
+CLIMATE_MODEL_TARGET_PROPERTIES = frozenset({"P14143"})
+CLIMATE_MODEL_METHOD_PROPERTY = "P459"
+CLIMATE_MODEL_SCOPE_PROPERTIES = frozenset({"P3831", "P518"})
+CLIMATE_MODEL_ACCEPTED_UNITS = frozenset({"Q57084755", "Q57084901", "co2e"})
+SUBJECT_RESOLUTION_SCHEMA_VERSION = "sl.wikidata_subject_resolution.v0_1"
+COMPANY_SUBJECT_TYPE_QIDS = frozenset(
+    {
+        "Q783794",   # company
+        "Q6881511",  # enterprise
+        "Q4830453",  # business
+    }
+)
+NON_COMPANY_SUBJECT_TYPE_QIDS = frozenset(
+    {
+        "Q5",        # human
+        "Q43229",    # organization
+        "Q16334295", # group of humans
+        "Q618123",   # geographical object
+    }
+)
 PROPERTY_PRIORITY = {
     "P166": 40,
     "P39": 35,
@@ -109,6 +137,7 @@ class StatementBundle:
     property: str
     value: Any
     rank: str
+    unit: str | None
     qualifiers: tuple[tuple[str, tuple[str, ...]], ...]
     references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
 
@@ -196,6 +225,7 @@ def _split_required_reasons(
     slot_bundles: Sequence[StatementBundle],
     distinct_values: set[str],
     independent_axes: Sequence[Mapping[str, Any]],
+    climate_profile: Mapping[str, Any] | None = None,
 ) -> list[str]:
     reasons: list[str] = [
         _stringify(axis.get("reason"))
@@ -225,8 +255,873 @@ def _split_required_reasons(
 
     if _has_time_range(bundle):
         reasons.append("time_range_requires_split")
+    if climate_profile is not None:
+        climate_status = _stringify(climate_profile.get("status"))
+        if climate_status == "split":
+            reasons.extend(
+                _stringify(reason)
+                for reason in climate_profile.get("reasons", [])
+                if _stringify(reason).strip()
+            )
+        elif climate_status == "invalid":
+            reasons.extend(
+                _stringify(reason)
+                for reason in climate_profile.get("reasons", [])
+                if _stringify(reason).strip()
+            )
 
     return sorted(set(reasons))
+
+
+def _extract_year_candidates(values: Sequence[str]) -> tuple[str, ...]:
+    years: set[str] = set()
+    for value in values:
+        for match in re.findall(r"(?:19|20)\d{2}", _stringify(value)):
+            years.add(match)
+    return tuple(sorted(years))
+
+
+def _resolve_bundle_year(bundle: StatementBundle) -> tuple[str | None, list[str]]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    issues: list[str] = []
+    point_years = _extract_year_candidates(qualifier_map.get("P585", ()))
+    if len(point_years) == 1:
+        return point_years[0], issues
+    if len(point_years) > 1:
+        issues.append("multiple_point_in_time_years")
+        return None, issues
+
+    start_years = _extract_year_candidates(qualifier_map.get("P580", ()))
+    end_years = _extract_year_candidates(qualifier_map.get("P582", ()))
+    if start_years and end_years:
+        if len(start_years) == 1 and len(end_years) == 1 and start_years[0] == end_years[0]:
+            return start_years[0], issues
+        issues.append("multi_year_range")
+        return None, issues
+    if start_years or end_years:
+        issues.append("partial_time_range")
+        return None, issues
+
+    issues.append("missing_time")
+    return None, issues
+
+
+def _extract_bundle_scope_values(bundle: StatementBundle) -> tuple[str, ...]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    values: set[str] = set()
+    for property_id in GHG_SCOPE_PROPERTIES:
+        values.update(_stringify(value) for value in qualifier_map.get(property_id, ()))
+    return tuple(sorted(values))
+
+
+def _extract_bundle_method_values(bundle: StatementBundle) -> tuple[str, ...]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    return tuple(sorted(_stringify(value) for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())))
+
+
+def _extract_bundle_unit_id(bundle: StatementBundle) -> str | None:
+    if bundle.unit:
+        unit = _stringify(bundle.unit).strip()
+        if unit.startswith("http://www.wikidata.org/entity/"):
+            return _extract_qid(unit)
+        if unit:
+            return unit
+    value = bundle.value
+    if isinstance(value, Mapping):
+        unit = value.get("unit")
+        if unit is not None:
+            return _extract_qid(_stringify(unit))
+    return None
+
+
+def _build_candidate_model_validation(
+    bundle: StatementBundle,
+    *,
+    source_property: str,
+    target_property: str,
+    split_reasons: Sequence[str],
+) -> dict[str, Any]:
+    if source_property != "P5991" or target_property != "P14143":
+        return {
+            "lane": "generic",
+            "status": "not_applicable",
+            "valid": False,
+            "issues": [],
+            "resolved_year": None,
+            "resolved_scope": None,
+            "scope_values": [],
+            "determination_method_values": [],
+            "resolved_unit_qid": None,
+            "suggested_action": "review_only",
+            "execution_ready": False,
+        }
+
+    resolved_year, issues = _resolve_bundle_year(bundle)
+    scope_values = list(_extract_bundle_scope_values(bundle))
+    method_values = list(_extract_bundle_method_values(bundle))
+    unit_id = _extract_bundle_unit_id(bundle)
+
+    if len(scope_values) > 1:
+        issues.append("multiple_scope_values")
+    if len(method_values) > 1:
+        issues.append("multiple_determination_methods")
+    if not method_values:
+        issues.append("missing_determination_method")
+    elif not any(value in GHG_PROTOCOL_QIDS for value in method_values):
+        issues.append("non_ghg_protocol_method")
+    if unit_id and unit_id not in CLIMATE_UNIT_QIDS:
+        issues.append("non_climate_unit")
+
+    resolved_scope = None
+    if len(scope_values) == 1:
+        resolved_scope = scope_values[0]
+    elif not scope_values:
+        resolved_scope = "TOTAL"
+
+    execution_ready = bool(
+        split_reasons
+        and resolved_year
+        and "multiple_scope_values" not in issues
+        and "multiple_determination_methods" not in issues
+        and "multi_year_range" not in issues
+        and "partial_time_range" not in issues
+        and "multiple_point_in_time_years" not in issues
+    )
+    if execution_ready:
+        status = "model_safe_with_split"
+    elif resolved_year and not split_reasons:
+        status = "model_safe"
+    else:
+        status = "model_review_required"
+    valid = status in {"model_safe", "model_safe_with_split"}
+
+    return {
+        "lane": "ghg_climate_migration",
+        "status": status,
+        "valid": valid,
+        "issues": sorted(set(issues)),
+        "resolved_year": resolved_year,
+        "resolved_scope": resolved_scope,
+        "scope_values": scope_values,
+        "determination_method_values": method_values,
+        "resolved_unit_qid": unit_id,
+        "suggested_action": "migrate_with_split" if execution_ready else "review_only",
+        "execution_ready": execution_ready,
+    }
+
+
+def _build_candidate_execution_hints(
+    bundle: StatementBundle,
+    *,
+    target_property: str,
+    model_validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    execution_backend = "qs3" if bundle.rank in {"preferred", "deprecated"} else "openrefine"
+    return {
+        "execution_ready": bool(model_validation.get("execution_ready")),
+        "target_property": target_property,
+        "resolved_year": model_validation.get("resolved_year"),
+        "resolved_scope": model_validation.get("resolved_scope"),
+        "scope_values": list(model_validation.get("scope_values", [])),
+        "determination_method_values": list(model_validation.get("determination_method_values", [])),
+        "resolved_unit_qid": model_validation.get("resolved_unit_qid"),
+        "qualifier_properties": sorted(qualifier_map),
+        "execution_backend": execution_backend,
+        "suggested_action": _stringify(model_validation.get("suggested_action")),
+    }
+
+
+def _subject_family_for_candidate(
+    *,
+    subject_resolution: Mapping[str, Any],
+) -> str:
+    resolved_family = _stringify(subject_resolution.get("subject_family"))
+    if resolved_family in {"company", "non_company", "unknown"}:
+        return resolved_family
+    return "unknown"
+
+
+def _build_subject_type_context(window: WindowSlice) -> dict[str, Any]:
+    instance_of_by_subject: dict[str, list[str]] = {}
+    subclass_of_by_subject: dict[str, list[str]] = {}
+    for bundle in window.bundles:
+        if bundle.property == "P31":
+            instance_of_by_subject.setdefault(bundle.subject, []).append(_stringify(bundle.value))
+        elif bundle.property == "P279":
+            subclass_of_by_subject.setdefault(bundle.subject, []).append(_stringify(bundle.value))
+    return {
+        "instance_of_by_subject": {
+            qid: sorted({value for value in values if value})
+            for qid, values in instance_of_by_subject.items()
+        },
+        "subclass_of_by_subject": {
+            qid: sorted({value for value in values if value})
+            for qid, values in subclass_of_by_subject.items()
+        },
+    }
+
+
+def _collect_subject_type_ancestors(
+    *,
+    type_qids: Sequence[str],
+    subclass_of_by_subject: Mapping[str, Sequence[str]],
+) -> tuple[list[str], list[dict[str, str]], list[str]]:
+    ancestors: set[str] = set()
+    traversal: list[dict[str, str]] = []
+    ambiguous_roots: list[str] = []
+    stack: list[tuple[str, str | None]] = [(_stringify(type_qid), None) for type_qid in type_qids if _stringify(type_qid)]
+    seen: set[str] = set()
+    while stack:
+        current, parent = stack.pop()
+        if not current or current in seen:
+            continue
+        seen.add(current)
+        ancestors.add(current)
+        if parent is not None:
+            traversal.append({"from_qid": parent, "to_qid": current, "property": "P279"})
+        for parent_qid in subclass_of_by_subject.get(current, ()):
+            normalized_parent = _stringify(parent_qid)
+            if not normalized_parent:
+                continue
+            if normalized_parent in COMPANY_SUBJECT_TYPE_QIDS and normalized_parent in NON_COMPANY_SUBJECT_TYPE_QIDS:
+                ambiguous_roots.append(normalized_parent)
+            stack.append((normalized_parent, current))
+    return sorted(ancestors), traversal, sorted(set(ambiguous_roots))
+
+
+def _build_subject_resolution(
+    *,
+    entity_qid: str,
+    window: WindowSlice,
+) -> dict[str, Any]:
+    type_context = _build_subject_type_context(window)
+    instance_of_by_subject = type_context["instance_of_by_subject"]
+    subclass_of_by_subject = type_context["subclass_of_by_subject"]
+    direct_instance_of = list(instance_of_by_subject.get(entity_qid, ()))
+    if not direct_instance_of:
+        return {
+            "schema_version": SUBJECT_RESOLUTION_SCHEMA_VERSION,
+            "status": "unresolved",
+            "subject_family": "unknown",
+            "resolution_basis": "no_typed_evidence",
+            "window_id": window.window_id,
+            "direct_instance_of": [],
+            "resolved_via": None,
+            "matched_type_qids": [],
+            "traversed_subclass_of": [],
+            "evidence": [],
+        }
+
+    ancestry_qids, traversed_subclass_of, _ = _collect_subject_type_ancestors(
+        type_qids=direct_instance_of,
+        subclass_of_by_subject=subclass_of_by_subject,
+    )
+    company_matches = sorted(qid for qid in ancestry_qids if qid in COMPANY_SUBJECT_TYPE_QIDS)
+    non_company_matches = sorted(qid for qid in ancestry_qids if qid in NON_COMPANY_SUBJECT_TYPE_QIDS)
+    evidence = [
+        {
+            "property": "P31",
+            "subject_qid": entity_qid,
+            "value_qid": value_qid,
+            "window_id": window.window_id,
+        }
+        for value_qid in direct_instance_of
+    ] + [
+        {
+            "property": edge["property"],
+            "subject_qid": edge["from_qid"],
+            "value_qid": edge["to_qid"],
+            "window_id": window.window_id,
+        }
+        for edge in traversed_subclass_of
+    ]
+
+    if company_matches and not non_company_matches:
+        subject_family = "company"
+        status = "resolved"
+        resolution_basis = "typed_evidence"
+        resolved_via = "p31_p279_chain"
+        matched_type_qids = company_matches
+    elif non_company_matches and not company_matches:
+        subject_family = "non_company"
+        status = "resolved"
+        resolution_basis = "typed_evidence"
+        resolved_via = "p31_p279_chain"
+        matched_type_qids = non_company_matches
+    else:
+        subject_family = "unknown"
+        status = "unresolved"
+        resolution_basis = "conflicting_typed_evidence" if company_matches and non_company_matches else "typed_evidence_not_mapped"
+        resolved_via = None
+        matched_type_qids = sorted(set(company_matches + non_company_matches))
+
+    return {
+        "schema_version": SUBJECT_RESOLUTION_SCHEMA_VERSION,
+        "status": status,
+        "subject_family": subject_family,
+        "resolution_basis": resolution_basis,
+        "window_id": window.window_id,
+        "direct_instance_of": direct_instance_of,
+        "resolved_via": resolved_via,
+        "matched_type_qids": matched_type_qids,
+        "traversed_subclass_of": traversed_subclass_of,
+        "evidence": evidence,
+    }
+
+
+def _ghg_semantic_family_for_candidate(
+    *,
+    model_validation: Mapping[str, Any],
+) -> str:
+    resolved_scope = _stringify(model_validation.get("resolved_scope"))
+    scope_values = [_stringify(value) for value in model_validation.get("scope_values", []) if _stringify(value).strip()]
+    if resolved_scope and resolved_scope != "TOTAL":
+        return "scope_specific_emissions"
+    if resolved_scope == "TOTAL":
+        return "absolute_emissions"
+    if scope_values:
+        return "compound_scope_emissions"
+    return "absolute_emissions"
+
+
+def _reporting_period_kind_for_candidate(
+    *,
+    claim_bundle_before: Mapping[str, Any],
+    model_validation: Mapping[str, Any],
+) -> str:
+    issues = {_stringify(value) for value in model_validation.get("issues", [])}
+    qualifiers = claim_bundle_before.get("qualifiers", {})
+    qualifier_keys = {_stringify(key) for key in qualifiers} if isinstance(qualifiers, Mapping) else set()
+    if "multi_year_range" in issues:
+        return "multi_year_range"
+    if "partial_time_range" in issues:
+        return "partial_time_range"
+    if "multiple_point_in_time_years" in issues:
+        return "conflicting_years"
+    if "P585" in qualifier_keys:
+        return "single_reporting_period"
+    if "P580" in qualifier_keys or "P582" in qualifier_keys:
+        return "single_interval_period" if _stringify(model_validation.get("resolved_year")).strip() else "fiscal_year"
+    return "unresolved"
+
+
+def _scope_resolution_for_candidate(
+    *,
+    model_validation: Mapping[str, Any],
+) -> str:
+    issues = {_stringify(value) for value in model_validation.get("issues", [])}
+    if "multiple_scope_values" in issues:
+        return "conflicting_scope"
+    resolved_scope = _stringify(model_validation.get("resolved_scope"))
+    if resolved_scope and resolved_scope != "TOTAL":
+        return "explicit_scope"
+    if resolved_scope == "TOTAL":
+        return "total_unscoped"
+    return "unresolved"
+
+
+def _method_resolution_for_candidate(
+    *,
+    model_validation: Mapping[str, Any],
+) -> str:
+    issues = {_stringify(value) for value in model_validation.get("issues", [])}
+    method_values = [_stringify(value) for value in model_validation.get("determination_method_values", []) if _stringify(value).strip()]
+    if "missing_determination_method" in issues:
+        return "missing_but_inferable"
+    if "non_ghg_protocol_method" in issues:
+        return "recognized_non_ghg_method"
+    if method_values:
+        return "recognized_method"
+    return "unresolved"
+
+
+def _build_phase2_method_inference(
+    *,
+    method_resolution: str,
+) -> dict[str, Any]:
+    if method_resolution == "missing_but_inferable":
+        return {
+            "status": "pending",
+            "method_family": "unspecified_reporting_method",
+            "confidence": 0.0,
+            "evidence": [],
+            "rule_id": "meth.inference_pending.v0_1",
+        }
+    if method_resolution == "recognized_method":
+        return {
+            "status": "not_needed",
+            "method_family": "direct_reported",
+            "confidence": 1.0,
+            "evidence": ["explicit_method_qualifier"],
+            "rule_id": "meth.explicit_qualifier.v0_1",
+        }
+    return {
+        "status": "not_applicable",
+        "method_family": "not_resolved",
+        "confidence": 0.0,
+        "evidence": [],
+        "rule_id": None,
+    }
+
+
+def _build_phase2_scope_inference(
+    *,
+    scope_resolution: str,
+    model_validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    resolved_scope = _stringify(model_validation.get("resolved_scope"))
+    if scope_resolution == "explicit_scope":
+        return {
+            "status": "not_needed",
+            "resolved_scope": resolved_scope.lower(),
+            "confidence": 1.0,
+            "evidence": ["explicit_scope_qualifier"],
+            "rule_id": "scope.explicit_qualifier.v0_1",
+        }
+    if scope_resolution == "total_unscoped":
+        return {
+            "status": "not_needed",
+            "resolved_scope": "total_unspecified",
+            "confidence": 1.0,
+            "evidence": ["no_scope_qualifier_present"],
+            "rule_id": "scope.total_unscoped.v0_1",
+        }
+    return {
+        "status": "pending",
+        "resolved_scope": "not_resolved",
+        "confidence": 0.0,
+        "evidence": [],
+        "rule_id": "scope.inference_pending.v0_1",
+    }
+
+
+def _build_phase2_fiscal_normalization(
+    *,
+    reporting_period_kind: str,
+    model_validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    resolved_year = _stringify(model_validation.get("resolved_year"))
+    if reporting_period_kind == "single_reporting_period":
+        return {
+            "status": "not_needed",
+            "source_period": resolved_year,
+            "normalized_year": resolved_year,
+            "year_semantics": "calendar_year",
+            "confidence": 1.0,
+            "rule_id": "fiscal.point_in_time_to_calendar_year.v0_1",
+        }
+    if reporting_period_kind == "single_interval_period":
+        return {
+            "status": "normalized",
+            "source_period": resolved_year,
+            "normalized_year": resolved_year,
+            "year_semantics": "fiscal_year_end",
+            "confidence": 0.95,
+            "rule_id": "fiscal.date_range_to_year_end.v0_1",
+        }
+    return {
+        "status": "pending",
+        "source_period": resolved_year or "",
+        "normalized_year": resolved_year or None,
+        "year_semantics": "unresolved",
+        "confidence": 0.0,
+        "rule_id": "fiscal.inference_pending.v0_1",
+    }
+
+
+def _build_candidate_family_classifier(
+    *,
+    source_property: str,
+    target_property: str,
+    classification: str,
+    requires_review: bool,
+    reasons: Sequence[str],
+    model_validation: Mapping[str, Any],
+    claim_bundle_before: Mapping[str, Any],
+    subject_resolution: Mapping[str, Any],
+) -> dict[str, Any]:
+    signals: list[str] = []
+    blocking_signals: list[str] = []
+    phase2_actions: list[str] = []
+    issues = {_stringify(value) for value in model_validation.get("issues", []) if _stringify(value).strip()}
+    subject_family = _subject_family_for_candidate(subject_resolution=subject_resolution)
+    ghg_semantic_family = _ghg_semantic_family_for_candidate(model_validation=model_validation)
+    reporting_period_kind = _reporting_period_kind_for_candidate(
+        claim_bundle_before=claim_bundle_before,
+        model_validation=model_validation,
+    )
+    scope_resolution = _scope_resolution_for_candidate(model_validation=model_validation)
+    method_resolution = _method_resolution_for_candidate(model_validation=model_validation)
+
+    climate_lane = source_property in CLIMATE_MODEL_SOURCE_PROPERTIES and target_property in CLIMATE_MODEL_TARGET_PROPERTIES
+    if climate_lane:
+        signals.append("ghg_property_family")
+    if _stringify(model_validation.get("resolved_year")).strip():
+        signals.append("single_reporting_period")
+    if scope_resolution == "explicit_scope":
+        signals.append("recognized_scope")
+    elif scope_resolution == "total_unscoped":
+        signals.append("total_unscoped")
+    if method_resolution == "recognized_method":
+        signals.append("recognized_method")
+    if _stringify(model_validation.get("resolved_unit_qid")).strip():
+        signals.append("recognized_unit")
+    if classification == "safe_with_reference_transfer":
+        signals.append("reference_transfer_safe")
+    if classification == "split_required":
+        signals.append("deterministic_split_surface")
+
+    if method_resolution == "missing_but_inferable":
+        phase2_actions.append("infer_method")
+    if scope_resolution == "unresolved":
+        phase2_actions.append("infer_scope")
+    if reporting_period_kind == "fiscal_year":
+        phase2_actions.append("normalize_fiscal_year")
+    if not _stringify(model_validation.get("resolved_unit_qid")).strip():
+        phase2_actions.append("normalize_unit")
+
+    hard_blocking_issues = {"multi_year_range", "partial_time_range", "multiple_point_in_time_years", "non_climate_unit"}
+    ontology_mismatch_issues = {"non_ghg_protocol_method", "multiple_determination_methods", "multiple_scope_values"}
+    blocking_signals.extend(sorted(hard_blocking_issues & issues))
+    blocking_signals.extend(sorted(ontology_mismatch_issues & issues))
+    if classification in {"abstain", "non_equivalent"}:
+        blocking_signals.append(f"classification:{classification}")
+
+    if not climate_lane:
+        bucket = "E"
+        bucket_label = "blocked"
+        confidence = 1.0
+        explanation = "candidate is outside the bounded GHG migration lane"
+    elif hard_blocking_issues & issues or classification == "abstain":
+        bucket = "E"
+        bucket_label = "blocked"
+        confidence = 0.98
+        explanation = "hard blocker prevents safe migration or deterministic normalization"
+    elif classification in {"ambiguous_semantics", "needs_human_review", "non_equivalent", "qualifier_drift", "reference_drift"} or ontology_mismatch_issues & issues:
+        bucket = "D"
+        bucket_label = "ontology_mismatch"
+        confidence = 0.9
+        explanation = "row does not cleanly align to the target GHG ontology without semantic review"
+    elif (
+        subject_family == "company"
+        and (
+            classification == "split_required"
+            or _stringify(model_validation.get("status")) == "model_safe_with_split"
+        )
+    ):
+        bucket = "B"
+        bucket_label = "deterministic_split"
+        confidence = 0.9
+        explanation = "row is structurally valid but requires deterministic decomposition before promotion"
+    elif (
+        subject_family == "company"
+        and (
+        classification in {"safe_equivalent", "safe_with_reference_transfer"}
+        and not requires_review
+        and _stringify(model_validation.get("status")) == "model_safe"
+        and method_resolution == "recognized_method"
+        and _stringify(model_validation.get("resolved_unit_qid")).strip()
+        and reporting_period_kind in {"single_reporting_period", "single_interval_period"}
+        )
+    ):
+        bucket = "A"
+        bucket_label = "clean_direct"
+        confidence = 0.97 if classification == "safe_equivalent" else 0.93
+        explanation = "single-period GHG row with stable target mapping and no unresolved ontology defect"
+    else:
+        bucket = "C"
+        bucket_label = "phase2_normalizable"
+        confidence = 0.82
+        explanation = "row is likely salvageable by deterministic normalization rules but is not promotion-safe yet"
+
+    normalization_contract = {
+        "phase1_status": "structurally_classified",
+        "phase2_eligible": bucket == "C",
+        "required_rules": phase2_actions,
+        "hard_blockers": sorted(set(blocking_signals)) if bucket == "E" else [],
+        "soft_blockers": sorted(set(blocking_signals)) if bucket in {"C", "D"} else [],
+    }
+    return {
+        "schema_version": "sl.ghg_family_classifier.v0_1",
+        "bucket": bucket,
+        "bucket_label": bucket_label,
+        "confidence": round(confidence, 6),
+        "signals": sorted(set(signals)),
+        "blocking_signals": sorted(set(blocking_signals)),
+        "normalization_phase": "phase2" if phase2_actions else "phase1",
+        "phase2_needed": bool(phase2_actions),
+        "explanation": explanation,
+        "subject_resolution": dict(subject_resolution),
+        "subject_family": subject_family,
+        "ghg_semantic_family": ghg_semantic_family,
+        "reporting_period_kind": reporting_period_kind,
+        "scope_resolution": scope_resolution,
+        "method_resolution": method_resolution,
+        "phase2_actions": phase2_actions,
+        "normalization_contract": normalization_contract,
+        "phase2_method_inference": _build_phase2_method_inference(method_resolution=method_resolution),
+        "phase2_scope_inference": _build_phase2_scope_inference(
+            scope_resolution=scope_resolution,
+            model_validation=model_validation,
+        ),
+        "phase2_fiscal_normalization": _build_phase2_fiscal_normalization(
+            reporting_period_kind=reporting_period_kind,
+            model_validation=model_validation,
+        ),
+    }
+
+
+def _build_candidate_promotion_gate(
+    *,
+    classification: str,
+    requires_review: bool,
+    pressure: str | None,
+    pressure_confidence: float | None,
+    pressure_summary: str | None,
+    model_validation: Mapping[str, Any],
+    execution_hints: Mapping[str, Any],
+    subject_resolution: Mapping[str, Any],
+) -> dict[str, Any]:
+    model_status = _stringify(model_validation.get("status"))
+    model_valid = bool(model_validation.get("valid"))
+    execution_ready = bool(model_validation.get("execution_ready") or execution_hints.get("execution_ready"))
+    subject_family = _subject_family_for_candidate(subject_resolution=subject_resolution)
+    instance_of_allowed = subject_family == "company"
+
+    if not instance_of_allowed:
+        promotion_class = "review_only"
+        reason = f"hard_defect:subject_family:{subject_family or 'unknown'}"
+    elif not model_valid:
+        promotion_class = "review_only"
+        reason = "hard_defect:model_validation_invalid"
+    elif not execution_ready:
+        promotion_class = "review_only"
+        reason = "soft_defect:execution_not_ready"
+    elif requires_review:
+        promotion_class = "review_only"
+        reason = f"soft_defect:review_required:{classification}"
+    elif classification == "safe_with_reference_transfer":
+        promotion_class = "semi_auto"
+        reason = "soft_defect:reference_transfer_only"
+    elif classification == "safe_equivalent":
+        if pressure is None:
+            promotion_class = "full_auto"
+            reason = "ready:direct_safe_execution"
+        else:
+            promotion_class = "semi_auto"
+            reason = f"soft_defect:pressure:{pressure}"
+    else:
+        promotion_class = "review_only"
+        reason = f"soft_defect:classification:{classification}"
+
+    eligibility = {
+        "eligible": promotion_class != "review_only",
+        "review_only": promotion_class == "review_only",
+        "semi_auto": promotion_class in {"semi_auto", "full_auto"},
+        "full_auto": promotion_class == "full_auto",
+        "instance_of_allowed": instance_of_allowed,
+        "reason": reason,
+    }
+    return {
+        "schema_version": CANDIDATE_PROMOTION_GATE_SCHEMA_VERSION,
+        "decision": promotion_class,
+        "reason": reason,
+        "eligibility": eligibility,
+        "evidence": {
+            "classification": classification,
+            "model_classification": model_status,
+            "model_validation_valid": model_valid,
+            "execution_ready": execution_ready,
+            "requires_review": requires_review,
+            "subject_family": subject_family,
+            "instance_of_allowed": instance_of_allowed,
+            "pressure": pressure,
+            "pressure_confidence": pressure_confidence,
+            "pressure_summary": pressure_summary,
+            "execution_backend": _stringify(execution_hints.get("execution_backend")),
+            "suggested_action": _stringify(execution_hints.get("suggested_action")),
+        },
+    }
+
+
+def _candidate_defect_kind(candidate: Mapping[str, Any]) -> str:
+    promotion_gate = candidate.get("promotion_gate", {})
+    if not isinstance(promotion_gate, Mapping):
+        promotion_gate = {}
+    decision = _stringify(promotion_gate.get("decision"))
+    reason = _stringify(promotion_gate.get("reason"))
+    if decision == "full_auto":
+        return "none"
+    if reason.startswith("hard_defect:"):
+        return "hard"
+    return "soft"
+
+
+def _build_migration_pack_pilot_surface(
+    *,
+    candidates: Sequence[Mapping[str, Any]],
+    checked_safe_subset: Sequence[str],
+    abstained: Sequence[str],
+    ambiguous: Sequence[str],
+    requires_review_count: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidate_count = len(candidates)
+    promotion_class_counts: dict[str, int] = {}
+    defect_kind_counts: dict[str, int] = {"hard": 0, "soft": 0, "none": 0}
+    defect_candidate_ids: dict[str, list[str]] = {"hard": [], "soft": [], "none": []}
+    execution_ready_candidate_count = 0
+    ready_candidate_count = 0
+
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        candidate_id = _stringify(candidate.get("candidate_id"))
+        promotion_class = _stringify(candidate.get("promotion_class"))
+        promotion_class_counts[promotion_class] = promotion_class_counts.get(promotion_class, 0) + 1
+        if bool(candidate.get("execution_ready")):
+            execution_ready_candidate_count += 1
+        if promotion_class == "full_auto":
+            ready_candidate_count += 1
+        defect_kind = _candidate_defect_kind(candidate)
+        defect_kind_counts[defect_kind] = defect_kind_counts.get(defect_kind, 0) + 1
+        defect_candidate_ids.setdefault(defect_kind, []).append(candidate_id)
+
+    ready_state = "ready_subset" if ready_candidate_count > 0 else "review_first"
+    hard_defect_count = defect_kind_counts.get("hard", 0)
+    soft_defect_count = defect_kind_counts.get("soft", 0)
+    safe_subset_count = len(checked_safe_subset)
+    semi_auto_count = promotion_class_counts.get("semi_auto", 0)
+    full_auto_count = promotion_class_counts.get("full_auto", 0)
+    review_only_count = promotion_class_counts.get("review_only", 0)
+
+    pilot_metrics = {
+        "candidate_count": candidate_count,
+        "checked_safe_candidate_count": safe_subset_count,
+        "checked_safe_yield": safe_subset_count / candidate_count if candidate_count else 0.0,
+        "execution_ready_candidate_count": execution_ready_candidate_count,
+        "ready_candidate_count": ready_candidate_count,
+        "ready_yield": ready_candidate_count / candidate_count if candidate_count else 0.0,
+        "full_auto_candidate_count": full_auto_count,
+        "full_auto_rate": full_auto_count / candidate_count if candidate_count else 0.0,
+        "semi_auto_candidate_count": semi_auto_count,
+        "semi_auto_rate": semi_auto_count / candidate_count if candidate_count else 0.0,
+        "review_only_candidate_count": review_only_count,
+        "review_only_rate": review_only_count / candidate_count if candidate_count else 0.0,
+        "hard_defect_count": hard_defect_count,
+        "hard_defect_rate": hard_defect_count / candidate_count if candidate_count else 0.0,
+        "soft_defect_count": soft_defect_count,
+        "soft_defect_rate": soft_defect_count / candidate_count if candidate_count else 0.0,
+        "requires_review_count": requires_review_count,
+    }
+    readiness_surface = {
+        "state": ready_state,
+        "hard_defect_count": hard_defect_count,
+        "soft_defect_count": soft_defect_count,
+        "ready_candidate_count": ready_candidate_count,
+        "checked_safe_candidate_count": safe_subset_count,
+        "execution_ready_candidate_count": execution_ready_candidate_count,
+        "review_only_candidate_count": review_only_count,
+        "semi_auto_candidate_count": semi_auto_count,
+        "full_auto_candidate_count": full_auto_count,
+        "abstained_count": len(abstained),
+        "ambiguous_count": len(ambiguous),
+    }
+    defect_surface = {
+        "hard_defect_candidate_ids": defect_candidate_ids.get("hard", []),
+        "soft_defect_candidate_ids": defect_candidate_ids.get("soft", []),
+        "ready_candidate_ids": defect_candidate_ids.get("none", []),
+    }
+    return pilot_metrics, {
+        "state": ready_state,
+        "readiness": readiness_surface,
+        "pilot_metrics": pilot_metrics,
+        "defect_surface": defect_surface,
+    }
+
+
+def _claim_bundle_qualifier_map(raw: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
+    qualifiers = raw.get("qualifiers", {})
+    if not isinstance(qualifiers, Mapping):
+        return {}
+    return { _stringify(prop): _normalize_value_list(value) for prop, value in qualifiers.items() }
+
+
+def _resolve_claim_bundle_year(raw: Mapping[str, Any]) -> tuple[str | None, list[str]]:
+    qualifier_map = _claim_bundle_qualifier_map(raw)
+    bundle = StatementBundle(
+        subject=_stringify(raw.get("subject")),
+        property=_stringify(raw.get("property")),
+        value=raw.get("value"),
+        rank=_stringify(raw.get("rank")),
+        unit=_extract_claim_bundle_unit_id(raw),
+        qualifiers=tuple(sorted(qualifier_map.items())),
+        references=tuple(),
+    )
+    return _resolve_bundle_year(bundle)
+
+
+def _extract_claim_bundle_scope_values(raw: Mapping[str, Any]) -> tuple[str, ...]:
+    qualifier_map = _claim_bundle_qualifier_map(raw)
+    values: set[str] = set()
+    for property_id in GHG_SCOPE_PROPERTIES:
+        values.update(_stringify(value) for value in qualifier_map.get(property_id, ()))
+    return tuple(sorted(values))
+
+
+def _extract_claim_bundle_method_values(raw: Mapping[str, Any]) -> tuple[str, ...]:
+    qualifier_map = _claim_bundle_qualifier_map(raw)
+    return tuple(sorted(_stringify(value) for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())))
+
+
+def _extract_claim_bundle_unit_id(raw: Mapping[str, Any]) -> str | None:
+    unit = raw.get("unit")
+    if unit is not None:
+        return _extract_qid(_stringify(unit))
+    value = raw.get("value")
+    if isinstance(value, Mapping):
+        unit = value.get("unit")
+        if unit is not None:
+            return _extract_qid(_stringify(unit))
+    return None
+
+
+def _build_split_execution_row(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    claim_after = candidate.get("claim_bundle_after", {})
+    if not isinstance(claim_after, Mapping):
+        claim_after = {}
+    model_validation = candidate.get("model_validation", {})
+    if not isinstance(model_validation, Mapping):
+        model_validation = {}
+    execution_hints = candidate.get("execution_hints", {})
+    if not isinstance(execution_hints, Mapping) or not execution_hints:
+        execution_hints = candidate.get("execution_profile", {})
+    if not isinstance(execution_hints, Mapping):
+        execution_hints = {}
+    resolved_year, _ = _resolve_claim_bundle_year(claim_after)
+    return {
+        "candidate_id": _stringify(candidate.get("candidate_id")),
+        "subject": _stringify(claim_after.get("subject")),
+        "property": _stringify(claim_after.get("property")),
+        "value": claim_after.get("value"),
+        "rank": _stringify(claim_after.get("rank")),
+        "resolved_year": execution_hints.get("resolved_year") or model_validation.get("resolved_year") or resolved_year,
+        "scope_values": list(
+            execution_hints.get("scope_values")
+            or model_validation.get("scope_values")
+            or _extract_claim_bundle_scope_values(claim_after)
+        ),
+        "determination_method_values": list(
+            execution_hints.get("determination_method_values")
+            or model_validation.get("determination_method_values")
+            or _extract_claim_bundle_method_values(claim_after)
+        ),
+        "resolved_scope": execution_hints.get("resolved_scope") or model_validation.get("resolved_scope"),
+        "resolved_unit_qid": execution_hints.get("resolved_unit_qid") or model_validation.get("resolved_unit_qid") or _extract_claim_bundle_unit_id(claim_after),
+        "qualifiers": dict(claim_after.get("qualifiers", {})) if isinstance(claim_after.get("qualifiers"), Mapping) else {},
+        "references": list(claim_after.get("references", [])) if isinstance(claim_after.get("references"), list) else [],
+        "execution_ready": bool(execution_hints.get("execution_ready") or model_validation.get("execution_ready")),
+    }
 
 
 def _suggest_migration_action(*, classification: str) -> str:
@@ -269,6 +1164,153 @@ def _bridge_temporal_years(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str
 
 def _bridge_scope_values(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str, ...]:
     return tuple(sorted(set(_stringify(value) for value in qualifiers.get(SCOPE_QUALIFIER_PROPERTY, ()))))
+
+
+def _bundle_qualifier_values(bundle: StatementBundle, property_pid: str) -> tuple[str, ...]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    return qualifier_map.get(property_pid, tuple())
+
+
+def _climate_bundle_years(bundle: StatementBundle) -> tuple[str, ...]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    years = set(_bridge_temporal_years(qualifier_map))
+    if not years:
+        for prop in TEMPORAL_QUALIFIER_PROPERTIES:
+            years.update(_extract_property_ids(_stringify(qualifier_map.get(prop, ()))))
+    return tuple(sorted(years))
+
+
+def _climate_bundle_scope_values(bundle: StatementBundle) -> tuple[str, ...]:
+    qualifier_map = _bundle_qualifier_map(bundle)
+    values = set(_bridge_scope_values(qualifier_map))
+    values.update(_stringify(value) for value in _bundle_qualifier_values(bundle, "P518"))
+    return tuple(sorted(value for value in values if value))
+
+
+def _climate_bundle_method_values(bundle: StatementBundle) -> tuple[str, ...]:
+    return tuple(sorted(set(_bundle_qualifier_values(bundle, CLIMATE_MODEL_METHOD_PROPERTY))))
+
+
+def _normalize_climate_unit(unit: str | None) -> str:
+    normalized = _stringify(unit).strip()
+    if not normalized or normalized == "null":
+        return ""
+    if normalized.startswith("http://www.wikidata.org/entity/"):
+        normalized = normalized.rsplit("/", 1)[-1]
+    return normalized.lower()
+
+
+def _climate_bundle_model_profile(
+    bundle: StatementBundle,
+    *,
+    slot_bundles: Sequence[StatementBundle],
+) -> dict[str, Any]:
+    has_climate_signal = bool(
+        bundle.unit
+        or _bundle_qualifier_values(bundle, "P459")
+        or _bundle_qualifier_values(bundle, SCOPE_QUALIFIER_PROPERTY)
+        or _bundle_qualifier_values(bundle, "P518")
+        or _bundle_qualifier_values(bundle, "P580")
+        or _bundle_qualifier_values(bundle, "P582")
+        or _bundle_qualifier_values(bundle, "P585")
+    )
+    if not has_climate_signal:
+        return {
+            "status": "unknown",
+            "reasons": [],
+            "year_values": tuple(),
+            "scope_values": tuple(),
+            "method_values": tuple(),
+            "unit": "",
+            "unit_status": "unknown",
+        }
+
+    year_values = _climate_bundle_years(bundle)
+    scope_values = _climate_bundle_scope_values(bundle)
+    method_values = _climate_bundle_method_values(bundle)
+    unit = _normalize_climate_unit(bundle.unit)
+    unit_status = "unknown"
+    if unit:
+        unit_status = "recognized" if unit in CLIMATE_MODEL_ACCEPTED_UNITS else "unrecognized"
+
+    slot_year_signatures = {
+        _climate_bundle_years(sibling) for sibling in slot_bundles if _climate_bundle_years(sibling)
+    }
+    slot_scope_signatures = {
+        _climate_bundle_scope_values(sibling) for sibling in slot_bundles if _climate_bundle_scope_values(sibling)
+    }
+    slot_method_signatures = {
+        _climate_bundle_method_values(sibling) for sibling in slot_bundles if _climate_bundle_method_values(sibling)
+    }
+
+    reasons: list[str] = []
+    status = "direct"
+    if not year_values:
+        status = "invalid"
+        reasons.append("ghg_model_missing_year")
+    elif len(year_values) > 1 or len(slot_year_signatures) > 1:
+        status = "split"
+        reasons.append(f"ghg_model_years={','.join(year_values)}")
+
+    if not method_values:
+        if status == "direct":
+            status = "invalid"
+        reasons.append("ghg_model_missing_determination_method")
+    elif len(method_values) > 1 or len(slot_method_signatures) > 1:
+        status = "split"
+        reasons.append(f"ghg_model_methods={','.join(method_values)}")
+
+    if len(scope_values) > 1 or len(slot_scope_signatures) > 1:
+        status = "split"
+        reasons.append(f"ghg_model_scopes={','.join(scope_values)}")
+
+    if unit_status == "unrecognized":
+        status = "invalid"
+        reasons.append(f"ghg_model_unit={unit}")
+
+    if status == "direct":
+        reasons.append("ghg_model_direct")
+    elif status == "split":
+        reasons.append("ghg_model_split_required")
+    else:
+        reasons.append("ghg_model_invalid")
+
+    return {
+        "status": status,
+        "reasons": sorted(set(reasons)),
+        "year_values": year_values,
+        "scope_values": scope_values,
+        "method_values": method_values,
+        "unit": unit,
+        "unit_status": unit_status,
+    }
+
+
+def _climate_model_pressure(
+    profile: Mapping[str, Any],
+) -> tuple[str | None, float | None, str | None]:
+    status = _stringify(profile.get("status"))
+    if status == "direct":
+        return "reinforce", 0.92, _climate_model_summary(profile)
+    if status == "split":
+        return "split_pressure", 0.84, _climate_model_summary(profile)
+    if status == "invalid":
+        return "abstain", 0.2, _climate_model_summary(profile)
+    return None, None, None
+
+
+def _climate_model_summary(profile: Mapping[str, Any]) -> str:
+    unit = _stringify(profile.get("unit", "")).strip()
+    year_values = ",".join(_stringify(value) for value in profile.get("year_values", []) if _stringify(value).strip())
+    scope_values = ",".join(_stringify(value) for value in profile.get("scope_values", []) if _stringify(value).strip())
+    method_values = ",".join(_stringify(value) for value in profile.get("method_values", []) if _stringify(value).strip())
+    return (
+        f"ghg_model={_stringify(profile.get('status'))}"
+        f" year={year_values or 'unknown'}"
+        f" scope={scope_values or 'none'}"
+        f" method={method_values or 'none'}"
+        f" unit={unit or 'unknown'}"
+    )
 
 
 def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
@@ -601,6 +1643,7 @@ def _reviewer_view_for_packet(
     parsed_page: Mapping[str, Any],
     page_signals: Mapping[str, Any],
     follow_receipts: Sequence[Mapping[str, Any]],
+    grounding_depth_row: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     decision_focus = ["confirm_split_axes", "confirm_target_bundle_count"]
     if _stringify(split_plan.get("reference_propagation")) != "exact":
@@ -627,11 +1670,133 @@ def _reviewer_view_for_packet(
         uncertainty_flags.append("qualifier_propagation_requires_review")
     if not follow_receipts:
         uncertainty_flags.append("no_follow_receipts")
+    return_recommended_next_step = _stringify(
+        split_plan.get("suggested_action", "review_only")
+    )
+    if grounding_depth_row is not None:
+        grounding_gap_class = _stringify(grounding_depth_row.get("grounding_gap_class"))
+        recommended_follow_target = _stringify(
+            grounding_depth_row.get("recommended_follow_target")
+        )
+        if grounding_gap_class:
+            uncertainty_flags.append(f"grounding_gap_class={grounding_gap_class}")
+        if grounding_gap_class == "live_receipts_ready_for_review":
+            uncertainty_flags.append("live_receipts_ready_for_review")
+            if "review_live_follow_receipts" not in decision_focus:
+                decision_focus.append("review_live_follow_receipts")
+        if grounding_depth_row.get("live_follow_count"):
+            uncertainty_flags.append(
+                f"live_follow_receipts={int(grounding_depth_row.get('live_follow_count') or 0)}"
+            )
+        if recommended_follow_target and recommended_follow_target != _stringify(
+            split_plan.get("suggested_action")
+        ):
+            return_recommended_next_step = recommended_follow_target
     return {
         "decision_focus": decision_focus,
         "uncertainty_flags": uncertainty_flags,
-        "recommended_next_step": _stringify(split_plan.get("suggested_action", "review_only")),
+        "recommended_next_step": return_recommended_next_step,
     }
+
+
+def _packet_grounding_depth_row(
+    *,
+    grounding_depth_summary: Mapping[str, Any] | None,
+    qid: str,
+    split_plan_id: str,
+) -> dict[str, Any] | None:
+    if not isinstance(grounding_depth_summary, Mapping):
+        return None
+    packets = grounding_depth_summary.get("packets")
+    if not isinstance(packets, Sequence):
+        return None
+    def _normalize_key(value: Any) -> str:
+        normalized = _stringify(value).strip()
+        return "" if normalized.lower() in {"", "null"} else normalized
+
+    match_qid = _normalize_key(qid)
+    target_plan = _normalize_key(split_plan_id)
+    for row in packets:
+        if not isinstance(row, Mapping):
+            continue
+        plan_match = _normalize_key(row.get("split_plan_id"))
+        if plan_match and target_plan and plan_match != target_plan:
+            continue
+        if match_qid and _stringify(row.get("qid")) != match_qid:
+            continue
+        grounding_row = dict(row)
+        grounding_gap_class = _stringify(grounding_row.get("grounding_gap_class")).strip()
+        if grounding_gap_class.lower() in {"", "null"}:
+            grounding_gap_class = _derive_grounding_gap_class(grounding_row)
+        if grounding_gap_class == "live_receipts_ready_for_review":
+            grounding_row["recommended_follow_target"] = "review_live_follow_receipts"
+        else:
+            recommended_follow_target = _stringify(
+                grounding_row.get("recommended_follow_target")
+            ).strip()
+            if recommended_follow_target.lower() in {"", "null"}:
+                grounding_row["recommended_follow_target"] = (
+                    "" if grounding_gap_class == "grounded" else _derive_grounding_recommended_target(
+                        grounding_gap_class
+                    )
+                )
+            else:
+                grounding_row["recommended_follow_target"] = recommended_follow_target
+        live_follow_receipts = grounding_row.get("live_follow_receipts")
+        if isinstance(live_follow_receipts, Sequence):
+            grounding_row["live_follow_count"] = len(live_follow_receipts)
+        grounding_row["grounding_gap_class"] = grounding_gap_class
+        return grounding_row
+    return None
+
+
+def _derive_grounding_gap_class(
+    grounding_row: Mapping[str, Any],
+) -> str:
+    status = _stringify(grounding_row.get("grounding_status")).strip()
+    if (
+        status == "grounded"
+        and _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
+        and grounding_row.get("live_follow_receipts")
+    ):
+        return "live_receipts_ready_for_review"
+    if status == "grounded":
+        return "grounded"
+    evidence = grounding_row.get("revision_evidence")
+    if not isinstance(evidence, Sequence):
+        evidence = []
+    evidence_count = len(evidence)
+    if evidence_count == 0:
+        return "no_revision_evidence"
+    missing = {
+        field
+        for item in evidence
+        if isinstance(item, Mapping)
+        for field in item.get("missing_fields", [])
+        if _stringify(field).strip()
+    }
+    if {"excerpt", "excerpt_summary"} <= missing:
+        return "revision_evidence_missing"
+    if missing:
+        return "partial_revision_evidence"
+    if (
+        _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
+        and grounding_row.get("live_follow_receipts")
+    ):
+        return "live_receipts_ready_for_review"
+    return "ungrounded_other"
+
+
+def _derive_grounding_recommended_target(gap_class: str) -> str:
+    if gap_class == "live_receipts_ready_for_review":
+        return "review_live_follow_receipts"
+    if gap_class == "no_revision_evidence":
+        return "revision_locked_packet"
+    if gap_class in {"revision_evidence_missing", "partial_revision_evidence"}:
+        return "revision_locked_evidence"
+    if gap_class == "grounded":
+        return ""
+    return "packet_review"
 
 
 def _comparison_variants_from_split_plan_payload(
@@ -856,6 +2021,7 @@ def build_wikidata_review_packet(
     source_unit_id: str | None = None,
     follow_receipts: Sequence[Mapping[str, Any]] | None = None,
     follow_depth_source_text_by_url: Mapping[str, str] | None = None,
+    grounding_depth_summary: Mapping[str, Any] | None = None,
     comparison_variants: Sequence[Mapping[str, Any]] | None = None,
     include_semantic_decomposition: bool = False,
 ) -> dict[str, Any]:
@@ -882,10 +2048,16 @@ def build_wikidata_review_packet(
         f"{_stringify(split_plan.get('split_plan_id'))}"
     )
     packet_id = f"review-packet:{hashlib.sha1(packet_key.encode('utf-8')).hexdigest()[:16]}"
+    review_entity_qid = _stringify(split_plan.get("entity_qid"))
+    grounding_depth_row = _packet_grounding_depth_row(
+        grounding_depth_summary=grounding_depth_summary,
+        qid=review_entity_qid,
+        split_plan_id=_stringify(split_plan.get("split_plan_id")),
+    )
     packet = {
         "schema_version": WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION,
         "packet_id": packet_id,
-        "review_entity_qid": _stringify(split_plan.get("entity_qid")),
+        "review_entity_qid": review_entity_qid,
         "source_surface": {
             "source_unit_id": _stringify(source.get("source_unit_id")),
             "source_entity_qid": _stringify(source.get("entity_qid")),
@@ -932,6 +2104,7 @@ def build_wikidata_review_packet(
             parsed_page=parsed_page,
             page_signals=page_signals,
             follow_receipts=normalized_receipts,
+            grounding_depth_row=grounding_depth_row,
         ),
     }
     if include_semantic_decomposition:
@@ -2059,6 +3232,20 @@ def _normalize_references(raw: Any) -> tuple[tuple[tuple[str, tuple[str, ...]], 
     return tuple(sorted(blocks))
 
 
+def _extract_bundle_unit(raw: Mapping[str, Any]) -> str | None:
+    unit = raw.get("unit")
+    if unit is None and isinstance(raw.get("value"), Mapping):
+        unit = raw.get("value", {}).get("unit")
+    if unit is None and isinstance(raw.get("mainsnak"), Mapping):
+        mainsnak = raw.get("mainsnak")
+        if isinstance(mainsnak, Mapping) and isinstance(mainsnak.get("datavalue"), Mapping):
+            unit = mainsnak.get("datavalue", {}).get("value", {}).get("unit")
+    if unit is None:
+        return None
+    normalized = _stringify(unit).strip()
+    return normalized or None
+
+
 def _parse_bundle(raw: Mapping[str, Any]) -> StatementBundle:
     subject = raw.get("subject")
     prop = raw.get("property")
@@ -2069,6 +3256,7 @@ def _parse_bundle(raw: Mapping[str, Any]) -> StatementBundle:
         property=_stringify(prop),
         value=raw.get("value"),
         rank=_stringify(raw.get("rank", "normal")),
+        unit=_extract_bundle_unit(raw),
         qualifiers=_normalize_qualifiers(raw.get("qualifiers")),
         references=_normalize_references(raw.get("references")),
     )
@@ -2185,6 +3373,7 @@ def build_slice_from_entity_exports(
                                 "property": prop,
                                 "value": extracted,
                                 "rank": _stringify(statement.get("rank", "normal")),
+                                "unit": _extract_bundle_unit(statement),
                                 "qualifiers": dict(_extract_qualifiers_from_wikidata(statement.get("qualifiers"))),
                                 "references": [
                                     {key: list(values) for key, values in block}
@@ -3272,9 +4461,56 @@ def _bundle_to_claim_bundle(bundle: StatementBundle, *, window_id: str, property
         "property": property_override or bundle.property,
         "value": _stringify(bundle.value),
         "rank": bundle.rank,
+        **({"unit": bundle.unit} if bundle.unit else {}),
         "qualifiers": {prop: list(values) for prop, values in bundle.qualifiers},
         "references": [{prop: list(values) for prop, values in block} for block in bundle.references],
         "window_id": window_id,
+    }
+
+
+def _climate_split_model_axis(slot_candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+    year_signatures: set[str] = set()
+    scope_signatures: set[tuple[str, ...]] = set()
+    method_signatures: set[tuple[str, ...]] = set()
+    for candidate in slot_candidates:
+        before = candidate.get("claim_bundle_before")
+        if not isinstance(before, Mapping):
+            continue
+        year, _ = _resolve_claim_bundle_year(before)
+        scopes = _extract_claim_bundle_scope_values(before)
+        methods = _extract_claim_bundle_method_values(before)
+        if year:
+            year_signatures.add(year)
+        if scopes:
+            scope_signatures.add(tuple(scopes))
+        if methods:
+            method_signatures.add(tuple(methods))
+
+    if not any((year_signatures, scope_signatures, method_signatures)):
+        return None
+    reason_bits: list[str] = []
+    if len(year_signatures) > 1:
+        reason_bits.append(
+            "years="
+            + "|".join(sorted(year_signatures))
+        )
+    if len(scope_signatures) > 1:
+        reason_bits.append(
+            "scopes="
+            + "|".join(",".join(signature) for signature in sorted(scope_signatures))
+        )
+    if len(method_signatures) > 1:
+        reason_bits.append(
+            "methods="
+            + "|".join(",".join(signature) for signature in sorted(method_signatures))
+        )
+    if not reason_bits:
+        return None
+    return {
+        "property": "__ghg_model__",
+        "source": "slot",
+        "reason": "ghg_model_split_required;" + ";".join(reason_bits),
+        "cardinality": max(len(year_signatures), len(scope_signatures), len(method_signatures), 1),
     }
 
 
@@ -3297,6 +4533,7 @@ def build_wikidata_migration_pack(
     )
     current_window = filtered_windows[-1]
     previous_window = filtered_windows[-2] if len(filtered_windows) >= 2 else None
+    current_full_window = windows[-1]
 
     slot_reports: dict[str, dict[str, Any]] = {}
     for window in filtered_windows:
@@ -3313,6 +4550,7 @@ def build_wikidata_migration_pack(
 
     candidates: list[dict[str, Any]] = []
     counts_by_bucket: dict[str, int] = {}
+    family_summary: dict[str, int] = {bucket: 0 for bucket in ("A", "B", "C", "D", "E")}
     checked_safe_subset: list[str] = []
     abstained: list[str] = []
     ambiguous: list[str] = []
@@ -3331,6 +4569,9 @@ def build_wikidata_migration_pack(
             confidence = 0.95 if not bundle.references else 0.9
             requires_review = False
             reasons: list[str] = []
+            pressure: str | None = None
+            pressure_confidence: float | None = None
+            pressure_summary: str | None = None
             evidence_gate_met = int(current_slot.get("sum_e", 0)) >= max(int(e0), 1)
             independent_axes = _detect_independent_axes(
                 bundle,
@@ -3342,6 +4583,17 @@ def build_wikidata_migration_pack(
                 slot_bundles=slot_bundles,
                 distinct_values=distinct_values,
                 independent_axes=independent_axes,
+            )
+            model_validation = _build_candidate_model_validation(
+                bundle,
+                source_property=source_property,
+                target_property=target_property,
+                split_reasons=split_reasons,
+            )
+            execution_hints = _build_candidate_execution_hints(
+                bundle,
+                target_property=target_property,
+                model_validation=model_validation,
             )
 
             if not evidence_gate_met:
@@ -3364,10 +4616,79 @@ def build_wikidata_migration_pack(
                 confidence = 0.45
                 requires_review = True
                 reasons.append(f"qualifier_drift:{qualifier_row['severity']}")
+            if source_property in CLIMATE_MODEL_SOURCE_PROPERTIES and target_property in CLIMATE_MODEL_TARGET_PROPERTIES:
+                model_status = _stringify(model_validation.get("status"))
+                if model_status in {"model_safe", "model_safe_with_split"}:
+                    model_year = _stringify(model_validation.get("resolved_year"))
+                    model_scope = ",".join(
+                        _stringify(value)
+                        for value in model_validation.get("scope_values", [])
+                        if _stringify(value).strip()
+                    )
+                    model_methods = ",".join(
+                        _stringify(value)
+                        for value in model_validation.get("determination_method_values", [])
+                        if _stringify(value).strip()
+                    )
+                    model_unit = _stringify(model_validation.get("resolved_unit_qid"))
+                    reasons.append(model_status)
+                    if model_status == "model_safe":
+                        pressure = "reinforce"
+                        pressure_confidence = 0.92
+                        pressure_summary = (
+                            f"{model_status}; year={model_year or 'unknown'}; "
+                            f"scope={model_scope or 'none'}; method={model_methods or 'none'}; "
+                            f"unit={model_unit or 'unknown'}; execution_ready="
+                            f"{bool(model_validation.get('execution_ready'))}"
+                        )
+                    elif model_scope:
+                        pressure = "split_pressure"
+                        pressure_confidence = 0.84
+                        pressure_summary = (
+                            f"{model_status}; year={model_year or 'unknown'}; "
+                            f"scope={model_scope}; method={model_methods or 'none'}; "
+                            f"unit={model_unit or 'unknown'}; execution_ready="
+                            f"{bool(model_validation.get('execution_ready'))}"
+                        )
+                    if model_status == "model_safe_with_split" and classification in {"safe_equivalent", "safe_with_reference_transfer"}:
+                        classification = "split_required"
+                        confidence = 0.35
+                        requires_review = True
 
             candidate_id = f"{slot_id}|{index}"
             action = _suggest_migration_action(classification=classification)
+            claim_bundle_before = _bundle_to_claim_bundle(bundle, window_id=current_window.window_id)
+            claim_bundle_after = _bundle_to_claim_bundle(
+                bundle,
+                window_id=current_window.window_id,
+                property_override=target_property,
+            )
+            subject_resolution = _build_subject_resolution(
+                entity_qid=bundle.subject,
+                window=current_full_window,
+            )
+            family_classifier = _build_candidate_family_classifier(
+                source_property=source_property,
+                target_property=target_property,
+                classification=classification,
+                requires_review=requires_review,
+                reasons=reasons,
+                model_validation=model_validation,
+                claim_bundle_before=claim_bundle_before,
+                subject_resolution=subject_resolution,
+            )
+            promotion_gate = _build_candidate_promotion_gate(
+                classification=classification,
+                requires_review=requires_review,
+                pressure=pressure,
+                pressure_confidence=pressure_confidence,
+                pressure_summary=pressure_summary,
+                model_validation=model_validation,
+                execution_hints=execution_hints,
+                subject_resolution=subject_resolution,
+            )
             counts_by_bucket[classification] = counts_by_bucket.get(classification, 0) + 1
+            family_summary[family_classifier["bucket"]] = family_summary.get(family_classifier["bucket"], 0) + 1
             if classification in {"safe_equivalent", "safe_with_reference_transfer"}:
                 checked_safe_subset.append(candidate_id)
             elif classification == "abstain":
@@ -3421,22 +4742,40 @@ def build_wikidata_migration_pack(
                     "split_axes": independent_axes,
                     "text_evidence_refs": [],
                     "bridge_case_ref": None,
-                    "pressure": None,
-                    "pressure_confidence": None,
-                    "pressure_summary": None,
-                    "claim_bundle_before": _bundle_to_claim_bundle(bundle, window_id=current_window.window_id),
-                    "claim_bundle_after": _bundle_to_claim_bundle(
-                        bundle,
-                        window_id=current_window.window_id,
-                        property_override=target_property,
-                    ),
+                    "claim_bundle_before": claim_bundle_before,
+                    "claim_bundle_after": claim_bundle_after,
+                    "pressure": pressure,
+                    "pressure_confidence": pressure_confidence,
+                    "pressure_summary": pressure_summary,
+                    "model_classification": _stringify(model_validation.get("status")),
+                    "execution_ready": bool(model_validation.get("execution_ready")),
+                    "model_validation": model_validation,
+                    "execution_hints": execution_hints,
+                    "execution_profile": execution_hints,
+                    "promotion_class": promotion_gate["decision"],
+                    "promotion_eligibility": promotion_gate["eligibility"],
+                    "promotion_gate": promotion_gate,
+                    "family_classifier": family_classifier,
+                    "family_bucket": family_classifier["bucket"],
+                    "family_confidence": family_classifier["confidence"],
+                    "subject_resolution": subject_resolution,
+                    "subject_family": family_classifier["subject_family"],
+                    "ghg_semantic_family": family_classifier["ghg_semantic_family"],
+                    "reporting_period_kind": family_classifier["reporting_period_kind"],
+                    "scope_resolution": family_classifier["scope_resolution"],
+                    "method_resolution": family_classifier["method_resolution"],
+                    "phase2_actions": family_classifier["phase2_actions"],
+                    "normalization_contract": family_classifier["normalization_contract"],
+                    "phase2_method_inference": family_classifier["phase2_method_inference"],
+                    "phase2_scope_inference": family_classifier["phase2_scope_inference"],
+                    "phase2_fiscal_normalization": family_classifier["phase2_fiscal_normalization"],
                     "qualifier_diff": qualifier_diff,
                     "reference_diff": reference_diff,
                 }
             )
 
     candidates.sort(key=lambda item: (item["entity_qid"], item["statement_index"], item["candidate_id"]))
-    return {
+    migration_pack = {
         "schema_version": MIGRATION_PACK_SCHEMA_VERSION,
         "source_property": source_property,
         "target_property": target_property,
@@ -3454,12 +4793,33 @@ def build_wikidata_migration_pack(
         "summary": {
             "candidate_count": len(candidates),
             "counts_by_bucket": counts_by_bucket,
+            "family_summary": family_summary,
             "checked_safe_subset": checked_safe_subset,
             "abstained": abstained,
             "ambiguous": ambiguous,
             "requires_review_count": sum(1 for item in candidates if item["requires_review"]),
         },
     }
+    pilot_metrics, readiness_surface = _build_migration_pack_pilot_surface(
+        candidates=candidates,
+        checked_safe_subset=checked_safe_subset,
+        abstained=abstained,
+        ambiguous=ambiguous,
+        requires_review_count=migration_pack["summary"]["requires_review_count"],
+    )
+    migration_pack["compiler_contract"] = build_wikidata_migration_pack_contract(migration_pack)
+    if isinstance(migration_pack["compiler_contract"], dict):
+        migration_pack["compiler_contract"]["pilot_metrics"] = pilot_metrics
+        migration_pack["compiler_contract"]["readiness_surface"] = readiness_surface
+    migration_pack["promotion_gate"] = build_product_gate(
+        lane="wikidata_nat",
+        product_ref="wikidata_migration_pack",
+        compiler_contract=migration_pack["compiler_contract"],
+    )
+    if isinstance(migration_pack["promotion_gate"], dict):
+        migration_pack["promotion_gate"]["pilot_metrics"] = pilot_metrics
+        migration_pack["promotion_gate"]["readiness_surface"] = readiness_surface
+    return migration_pack
 
 
 def export_migration_pack_openrefine_csv(
@@ -3752,11 +5112,17 @@ def build_wikidata_split_plan(
 
         source_candidate_ids = [_stringify(item.get("candidate_id")) for item in slot_candidates]
         proposed_target_bundles: list[dict[str, Any]] = []
+        execution_rows: list[dict[str, Any]] = []
         seen_bundle_signatures: set[str] = set()
         exact_reference_preservation = True
         exact_qualifier_preservation = True
         all_split_actions = True
         merged_axes: dict[tuple[str, str, str], dict[str, Any]] = {}
+        execution_ready = True
+        resolved_years: set[str] = set()
+        resolved_scopes: set[str] = set()
+        resolved_units: set[str] = set()
+        execution_backends: set[str] = set()
 
         for candidate in slot_candidates:
             before = candidate.get("claim_bundle_before", {})
@@ -3772,6 +5138,32 @@ def build_wikidata_split_plan(
             if bundle_signature not in seen_bundle_signatures:
                 proposed_target_bundles.append(dict(after))
                 seen_bundle_signatures.add(bundle_signature)
+
+            execution_row = _build_split_execution_row(candidate)
+            execution_rows.append(execution_row)
+            execution_ready = execution_ready and bool(execution_row.get("execution_ready"))
+            resolved_year = _stringify(execution_row.get("resolved_year")).strip()
+            if resolved_year:
+                resolved_years.add(resolved_year)
+            for scope_value in execution_row.get("scope_values", []):
+                scope_text = _stringify(scope_value).strip()
+                if scope_text:
+                    resolved_scopes.add(scope_text)
+            resolved_unit = _stringify(execution_row.get("resolved_unit_qid")).strip()
+            if resolved_unit:
+                resolved_units.add(resolved_unit)
+            execution_backend = "qs3" if _stringify(execution_row.get("rank")) in {"preferred", "deprecated"} else "openrefine"
+            execution_backends.add(execution_backend)
+
+            model_classification = _stringify(candidate.get("model_classification")).strip()
+            if model_classification == "model_safe_with_split":
+                key = ("__ghg_model__", "model", "ontology_validated_split")
+                merged_axes[key] = {
+                    "property": key[0],
+                    "source": key[1],
+                    "reason": key[2],
+                    "cardinality": len(slot_candidates),
+                }
 
             for axis in candidate.get("split_axes", []):
                 if not isinstance(axis, Mapping):
@@ -3791,13 +5183,50 @@ def build_wikidata_split_plan(
                         "cardinality": cardinality,
                     }
 
+        climate_model_axis = None
+        if (
+            _stringify(migration_pack.get("source_property")) in CLIMATE_MODEL_SOURCE_PROPERTIES
+            and _stringify(migration_pack.get("target_property")) in CLIMATE_MODEL_TARGET_PROPERTIES
+        ):
+            climate_model_axis = _climate_split_model_axis(slot_candidates)
+        if climate_model_axis is not None:
+            key = (
+                _stringify(climate_model_axis.get("property")),
+                _stringify(climate_model_axis.get("source")),
+                _stringify(climate_model_axis.get("reason")),
+            )
+            merged_axes[key] = climate_model_axis
+
         structurally_decomposable = (
             all_split_actions
             and len(proposed_target_bundles) >= 2
             and len(proposed_target_bundles) == len(slot_candidates)
             and bool(merged_axes)
         )
-        status = "structurally_decomposable" if structurally_decomposable else "review_only"
+        proposed_target_bundles = sorted(
+            proposed_target_bundles,
+            key=_claim_bundle_signature,
+        )
+        resolved_scope = None
+        if len(resolved_scopes) == 1:
+            resolved_scope = next(iter(resolved_scopes))
+        elif not resolved_scopes and execution_rows:
+            resolved_scope = "TOTAL"
+        resolved_year = next(iter(resolved_years)) if len(resolved_years) == 1 else None
+        resolved_unit_qid = next(iter(resolved_units)) if len(resolved_units) == 1 else None
+        execution_backend = next(iter(execution_backends)) if len(execution_backends) == 1 else ""
+        plan_execution_ready = bool(
+            structurally_decomposable
+            and execution_ready
+            and resolved_scope is not None
+            and resolved_unit_qid is not None
+            and exact_reference_preservation
+            and exact_qualifier_preservation
+        )
+        if plan_execution_ready:
+            status = "execution_ready"
+        else:
+            status = "structurally_decomposable" if structurally_decomposable else "review_only"
         counts_by_status[status] = counts_by_status.get(status, 0) + 1
 
         plans.append(
@@ -3807,16 +5236,22 @@ def build_wikidata_split_plan(
                 "source_slot_id": slot_id,
                 "source_candidate_ids": source_candidate_ids,
                 "status": status,
-                "review_required": True,
+                "review_required": status != "execution_ready",
+                "execution_ready": plan_execution_ready,
                 "merged_split_axes": sorted(
                     merged_axes.values(),
                     key=lambda item: (item["property"], item["source"], item["reason"]),
                 ),
                 "proposed_target_bundles": proposed_target_bundles,
+                "split_execution_rows": execution_rows,
                 "proposed_bundle_count": len(proposed_target_bundles),
                 "reference_propagation": "exact" if exact_reference_preservation else "review_required",
                 "qualifier_propagation": "exact" if exact_qualifier_preservation else "review_required",
-                "suggested_action": "review_structured_split" if structurally_decomposable else "review_only",
+                "resolved_year": resolved_year,
+                "resolved_scope": resolved_scope,
+                "resolved_unit_qid": resolved_unit_qid,
+                "execution_backend": execution_backend,
+                "suggested_action": "migrate_with_split" if status == "execution_ready" else "review_structured_split" if structurally_decomposable else "review_only",
             }
         )
 

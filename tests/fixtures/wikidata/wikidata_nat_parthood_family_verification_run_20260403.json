@@ -1,0 +1,294 @@
+{
+  "family_id": "parthood_family_safe_reference_transfer_subset",
+  "cohort_id": "parthood_family_safe_reference_transfer",
+  "candidate_ids": [
+    "Q16572|P361|1",
+    "Q3700011|P361|1",
+    "Q980357|P361|1"
+  ],
+  "runs": [
+    {
+      "run_id": "run-2026-04-04-parthood-live-a",
+      "batch_id": "nat-parthood-family-gate-b-batch-v2",
+      "migration_pack": {
+        "schema_version": "sl.wikidata_migration_pack.v1",
+        "source_property": "P361",
+        "target_property": "P99999",
+        "window_basis": {
+          "current_window_id": "live_2026_04_04",
+          "previous_window_id": null
+        },
+        "source_slice": {
+          "window_ids": [
+            "live_2026_04_04"
+          ],
+          "source_property": "P361",
+          "target_property": "P99999"
+        },
+        "candidates": [
+          {
+            "candidate_id": "Q16572|P361|1",
+            "entity_qid": "Q16572",
+            "candidate_label": "Guangzhou",
+            "candidate_description": "capital city of Guangdong Province, China",
+            "candidate_archetype_hint": "city_or_municipality",
+            "source_revision": "2475945368",
+            "root_artifact_id": "wikidata_entity_export:Q16572:2475945368",
+            "slot_id": "Q16572|P361",
+            "statement_index": 1,
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "confidence": 0.9,
+            "requires_review": false,
+            "reasons": [],
+            "split_axes": [],
+            "text_evidence_refs": [],
+            "bridge_case_ref": null,
+            "pressure": null,
+            "pressure_confidence": null,
+            "pressure_summary": null,
+            "claim_bundle_before": {
+              "subject": "Q16572",
+              "property": "P361",
+              "value": "Q1144286",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P143": [
+                    "Q19826574"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            },
+            "claim_bundle_after": {
+              "subject": "Q16572",
+              "property": "P99999",
+              "value": "Q1144286",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P143": [
+                    "Q19826574"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            }
+          },
+          {
+            "candidate_id": "Q3700011|P361|1",
+            "entity_qid": "Q3700011",
+            "candidate_label": "kecamatan",
+            "candidate_description": "third-level administrative region under the county and city",
+            "candidate_archetype_hint": "district_or_subdivision",
+            "source_revision": "2475626330",
+            "root_artifact_id": "wikidata_entity_export:Q3700011:2475626330",
+            "slot_id": "Q3700011|P361",
+            "statement_index": 1,
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "confidence": 0.9,
+            "requires_review": false,
+            "reasons": [],
+            "split_axes": [],
+            "text_evidence_refs": [],
+            "bridge_case_ref": null,
+            "pressure": null,
+            "pressure_confidence": null,
+            "pressure_summary": null,
+            "claim_bundle_before": {
+              "subject": "Q3700011",
+              "property": "P361",
+              "value": "Q3199141",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P248": [
+                    "Q129566940"
+                  ],
+                  "P958": [
+                    "Pasal 66 ayat (1)"
+                  ],
+                  "P1683": [
+                    "Kecamatan merupakan perangkat Daerah Kabupaten dan Daerah Kota yang dipimpin oleh Kepala Kecamatan"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            },
+            "claim_bundle_after": {
+              "subject": "Q3700011",
+              "property": "P99999",
+              "value": "Q3199141",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P248": [
+                    "Q129566940"
+                  ],
+                  "P958": [
+                    "Pasal 66 ayat (1)"
+                  ],
+                  "P1683": [
+                    "Kecamatan merupakan perangkat Daerah Kabupaten dan Daerah Kota yang dipimpin oleh Kepala Kecamatan"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            }
+          },
+          {
+            "candidate_id": "Q980357|P361|1",
+            "entity_qid": "Q980357",
+            "candidate_label": "grammatical category",
+            "candidate_description": "analytical class within the grammar of a language",
+            "candidate_archetype_hint": "class_or_type_ontology",
+            "source_revision": "2474581003",
+            "root_artifact_id": "wikidata_entity_export:Q980357:2474581003",
+            "slot_id": "Q980357|P361",
+            "statement_index": 1,
+            "classification": "safe_with_reference_transfer",
+            "action": "migrate_with_refs",
+            "confidence": 0.9,
+            "requires_review": false,
+            "reasons": [],
+            "split_axes": [],
+            "text_evidence_refs": [],
+            "bridge_case_ref": null,
+            "pressure": null,
+            "pressure_confidence": null,
+            "pressure_summary": null,
+            "claim_bundle_before": {
+              "subject": "Q980357",
+              "property": "P361",
+              "value": "Q315",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P854": [
+                    "http://www-01.sil.org/linguistics/GlossaryOflinguisticTerms/WhatIsAGrammaticalCategory.htm"
+                  ],
+                  "P813": [
+                    "+2015-10-11T00:00:00Z"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            },
+            "claim_bundle_after": {
+              "subject": "Q980357",
+              "property": "P99999",
+              "value": "Q315",
+              "rank": "normal",
+              "qualifiers": {},
+              "references": [
+                {
+                  "P854": [
+                    "http://www-01.sil.org/linguistics/GlossaryOflinguisticTerms/WhatIsAGrammaticalCategory.htm"
+                  ],
+                  "P813": [
+                    "+2015-10-11T00:00:00Z"
+                  ]
+                }
+              ],
+              "window_id": "live_2026_04_04"
+            }
+          }
+        ]
+      },
+      "after_payload": {
+        "windows": [
+          {
+            "id": "after-parthood-live-a",
+            "statement_bundles": [
+              {
+                "subject": "Q16572",
+                "property": "P99999",
+                "value": "Q1144286",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P143": "Q19826574"
+                  }
+                ]
+              },
+              {
+                "subject": "Q16572",
+                "property": "P361",
+                "value": "Q1144286",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P143": "Q19826574"
+                  }
+                ]
+              },
+              {
+                "subject": "Q3700011",
+                "property": "P99999",
+                "value": "Q3199141",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P248": "Q129566940",
+                    "P958": "Pasal 66 ayat (1)",
+                    "P1683": "Kecamatan merupakan perangkat Daerah Kabupaten dan Daerah Kota yang dipimpin oleh Kepala Kecamatan"
+                  }
+                ]
+              },
+              {
+                "subject": "Q3700011",
+                "property": "P361",
+                "value": "Q3199141",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P248": "Q129566940",
+                    "P958": "Pasal 66 ayat (1)",
+                    "P1683": "Kecamatan merupakan perangkat Daerah Kabupaten dan Daerah Kota yang dipimpin oleh Kepala Kecamatan"
+                  }
+                ]
+              },
+              {
+                "subject": "Q980357",
+                "property": "P99999",
+                "value": "Q315",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P854": "http://www-01.sil.org/linguistics/GlossaryOflinguisticTerms/WhatIsAGrammaticalCategory.htm",
+                    "P813": "+2015-10-11T00:00:00Z"
+                  }
+                ]
+              },
+              {
+                "subject": "Q980357",
+                "property": "P361",
+                "value": "Q315",
+                "rank": "normal",
+                "qualifiers": {},
+                "references": [
+                  {
+                    "P854": "http://www-01.sil.org/linguistics/GlossaryOflinguisticTerms/WhatIsAGrammaticalCategory.htm",
+                    "P813": "+2015-10-11T00:00:00Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

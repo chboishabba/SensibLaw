@@ -138,12 +138,11 @@
     ],
     "candidate_count": 57,
     "checked_safe_subset": [
-      "Q10651551|P5991|1",
-      "Q56404383|P5991|1"
+      "Q10651551|P5991|1"
     ],
     "counts_by_bucket": {
       "ambiguous_semantics": 55,
-      "safe_with_reference_transfer": 2
+      "safe_with_reference_transfer": 1
     },
     "requires_review_count": 55
   },

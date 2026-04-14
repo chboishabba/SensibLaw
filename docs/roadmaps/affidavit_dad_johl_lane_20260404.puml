@@ -1,0 +1,111 @@
+@startuml
+title Dad/Johl Affidavit Lane 2026-04-04
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment left
+skinparam ArrowColor #444444
+skinparam packageBorderColor #666666
+skinparam componentBorderColor #666666
+skinparam noteBorderColor #888888
+
+legend right
+  This child view shows the current Dad/Johl affidavit lane as it exists now.
+  Working surface: SQLite-first persisted contested review.
+  JSON/markdown affidavit artifacts are derived exports, not the primary runtime.
+endlegend
+
+package "Source Intake" {
+  artifact "Dad affidavit Google Doc\nor affidavit draft text" as DadAff
+  artifact "Johl response Google Doc\nor contested narrative source rows" as JohlResp
+  component "build_google_docs_contested_narrative_review.py" as GDocs
+  component "build_fact_intake_payload_from_text_units(...)" as TextUnits
+}
+
+package "Affidavit Coverage Builder" {
+  component "write_affidavit_coverage_review(...)" as Writer
+  component "build_affidavit_coverage_review(...)" as Builder
+
+  package "Normalized affidavit surface" {
+    component "affidavit_normalized_surface.text" as Text
+    component "affidavit_normalized_surface.matching" as Matching
+    component "affidavit_normalized_surface.semantics" as Semantics
+    component "affidavit_normalized_surface.review_hints" as ReviewHints
+    component "affidavit_normalized_surface.structural" as Structural
+  }
+}
+
+package "Persisted Receiver" {
+  database "SQLite\ncontested_review_runs\ncontested_review_affidavit_rows\ncontested_review_source_rows" as SQLite
+  component "persist_contested_affidavit_review(...)" as Persist
+}
+
+package "Inspection and Derived Outputs" {
+  component "query_fact_review.py contested-rows" as Query
+  artifact "Derived JSON\naffidavit_coverage_review_v1.json" as JsonArtifact
+  artifact "Derived Markdown\naffidavit_coverage_review_v1.summary.md" as MdArtifact
+  artifact "Normalized metrics\nnormalized_metrics_v1" as Metrics
+}
+
+package "Current Quality Boundary" {
+  component "Duplicate-root clustering" as DupRoot
+  component "Same-incident sibling-leaf routing" as SiblingLeaf
+  component "Side-local wording preservation" as SideLocal
+}
+
+DadAff --> GDocs : fetch / extract affidavit text
+JohlResp --> GDocs : fetch / extract contested response text
+GDocs --> TextUnits : grouped response units
+TextUnits --> Writer : source_payload
+DadAff --> Writer : affidavit_text
+Writer --> Builder : runtime entrypoint
+
+Builder --> Text
+Builder --> Matching
+Builder --> Semantics
+Builder --> ReviewHints
+Builder --> Structural
+
+Builder --> Persist : normalized contested review payload
+Persist --> SQLite : primary working surface
+
+Builder --> JsonArtifact : optional --write-artifacts
+Builder --> MdArtifact : optional --write-artifacts
+Builder --> Metrics : review geometry / queue pressure
+
+SQLite --> Query : inspect persisted Dad/Johl rows
+SQLite --> DupRoot
+SQLite --> SiblingLeaf
+SQLite --> SideLocal
+
+note right of SQLite
+  Current live Dad/Johl loop is SQLite-first.
+  Example runtime seams noted in compacted context:
+  - contested review run ids
+  - /tmp SQLite inspection DBs
+  - query_fact_review contested-rows
+end note
+
+note right of ReviewHints
+  Current implementation leaves behind the normalized facade:
+  - affidavit_text_normalization.py
+  - affidavit_reconciliation_text.py
+  - affidavit_claim_root.py
+  - affidavit_candidate_alignment.py
+  - affidavit_candidate_arbitration.py
+  - affidavit_response_semantics.py
+  - affidavit_extraction_hints.py
+  - affidavit_structural_sentence.py
+  - affidavit_lexical_heuristics.py
+end note
+
+note bottom of SiblingLeaf
+  Current open gap:
+  duplicate-root and same-incident sibling-leaf handling
+  across Dad-side and Johl-side claims without flattening
+  side-local wording.
+end note
+
+@enduml

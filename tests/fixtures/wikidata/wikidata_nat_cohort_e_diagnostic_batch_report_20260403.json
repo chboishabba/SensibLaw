@@ -17,7 +17,33 @@
         "notes": []
       }
     ],
-    "diagnostic_flags": [],
+    "diagnostic_flags": [
+      "axis_specific_unreconciled_instance_of"
+    ],
+    "hold_reason": "unreconciled instance of",
+    "non_authoritative": true
+  },
+  {
+    "lane_id": "wikidata_nat_cohort_e_unreconciled_instanceof",
+    "primary_candidate_id": "Q10422059|P5991|5",
+    "comparisons": [
+      {
+        "comparison_id": "Q10651551|P5991|1",
+        "status": "disagreement",
+        "primary_action": "review_structured_split",
+        "comparison_action": "review_only",
+        "agreements": [],
+        "disagreements": [
+          "P3831",
+          "P585",
+          "__value__"
+        ],
+        "notes": []
+      }
+    ],
+    "diagnostic_flags": [
+      "axis_specific_unreconciled_instance_of"
+    ],
     "hold_reason": "unreconciled instance of",
     "non_authoritative": true
   },
@@ -39,7 +65,9 @@
         "notes": []
       }
     ],
-    "diagnostic_flags": [],
+    "diagnostic_flags": [
+      "axis_specific_unreconciled_instance_of"
+    ],
     "hold_reason": "unreconciled instance of",
     "non_authoritative": true
   }

@@ -146,6 +146,25 @@ def finalize_candidate_selection(
     }
 
 
+def resolve_duplicate_match_excerpt(
+    *,
+    selected_candidate: Mapping[str, Any],
+    top_duplicate_candidate: Mapping[str, Any] | None = None,
+) -> str | None:
+    duplicate_match_excerpt = str(selected_candidate.get("duplicate_match_excerpt") or "").strip() or None
+    if duplicate_match_excerpt is not None:
+        return duplicate_match_excerpt
+    if not isinstance(top_duplicate_candidate, Mapping):
+        return None
+    duplicate_candidate_excerpt = str(top_duplicate_candidate.get("match_excerpt") or "").strip() or None
+    if not duplicate_candidate_excerpt:
+        return None
+    selected_excerpt = str(selected_candidate.get("match_excerpt") or "").strip() or None
+    if duplicate_candidate_excerpt == selected_excerpt:
+        return None
+    return duplicate_candidate_excerpt
+
+
 def arbitrate_candidate_selection(
     *,
     comparison_mode: str,
@@ -190,5 +209,6 @@ __all__ = [
     "promote_clause_alternate",
     "promote_duplicate_root_alternate",
     "promote_non_echo_alternate",
+    "resolve_duplicate_match_excerpt",
     "select_best_candidate",
 ]

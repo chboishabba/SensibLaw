@@ -1,0 +1,76 @@
+{
+  "schema_version": "sl.wikidata_nat_family_seed.v0_1",
+  "seed_id": "nat-climate-family-seed-20260403",
+  "family_id": "climate_family_safe_reference_transfer_subset",
+  "cohort_id": "climate_family_safe_reference_transfer",
+  "source_manifest_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/manifest.json",
+  "source_migration_pack_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json",
+  "source_property": "P5991",
+  "target_property": "P14143",
+  "candidate_count": 57,
+  "checked_safe_subset": [
+    "Q10651551|P5991|1"
+  ],
+  "counts_by_bucket": {
+    "safe_with_reference_transfer": 1,
+    "split_required": 56
+  },
+  "unresolved_pressure_status": "hold",
+  "hold_reason": "single_checked_safe_row_not_enough_for_second_family_promotion",
+  "follow_obligation": {
+    "trigger": "climate_family_safe_reference_transfer_subset",
+    "status": "hold"
+  },
+  "receipt_ids": [
+    "climate-pilot-manifest",
+    "climate-pilot-migration-pack"
+  ],
+  "replay_path": "SensibLaw/data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328",
+  "pressure_candidates": [
+    {
+      "candidate_id": "Q10403939|P5991|1",
+      "entity_qid": "Q10403939",
+      "classification": "split_required",
+      "action": "split",
+      "requires_review": true,
+      "slot_id": "Q10403939|P5991",
+      "reasons": [
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
+      ]
+    },
+    {
+      "candidate_id": "Q10403939|P5991|2",
+      "entity_qid": "Q10403939",
+      "classification": "split_required",
+      "action": "split",
+      "requires_review": true,
+      "slot_id": "Q10403939|P5991",
+      "reasons": [
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
+      ]
+    },
+    {
+      "candidate_id": "Q10422059|P5991|1",
+      "entity_qid": "Q10422059",
+      "classification": "split_required",
+      "action": "split",
+      "requires_review": true,
+      "slot_id": "Q10422059|P5991",
+      "reasons": [
+        "mixed_temporal_resolution",
+        "multi_value_slot",
+        "multi_valued_dimension",
+        "multiple_time_qualifiers",
+        "time_range_requires_split"
+      ]
+    }
+  ]
+}

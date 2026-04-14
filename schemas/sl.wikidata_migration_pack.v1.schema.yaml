@@ -68,8 +68,30 @@ properties:
         - pressure
         - pressure_confidence
         - pressure_summary
+        - model_classification
+        - execution_ready
+        - model_validation
+        - execution_hints
+        - execution_profile
+        - promotion_class
+        - promotion_eligibility
+        - promotion_gate
         - claim_bundle_before
         - claim_bundle_after
+        - family_classifier
+        - family_bucket
+        - family_confidence
+        - subject_resolution
+        - subject_family
+        - ghg_semantic_family
+        - reporting_period_kind
+        - scope_resolution
+        - method_resolution
+        - phase2_actions
+        - normalization_contract
+        - phase2_method_inference
+        - phase2_scope_inference
+        - phase2_fiscal_normalization
         - qualifier_diff
         - reference_diff
       properties:
@@ -155,10 +177,185 @@ properties:
           maximum: 1
         pressure_summary:
           type: [string, "null"]
+        model_classification:
+          type: string
+        execution_ready:
+          type: boolean
+        model_validation:
+          type: object
+          additionalProperties: false
+          required:
+            - lane
+            - valid
+            - status
+            - issues
+            - resolved_year
+            - resolved_scope
+            - scope_values
+            - determination_method_values
+            - resolved_unit_qid
+            - suggested_action
+            - execution_ready
+          properties:
+            lane:
+              type: string
+            valid:
+              type: boolean
+            status:
+              type: string
+            issues:
+              type: array
+              items:
+                type: string
+            resolved_year:
+              type: [string, "null"]
+            resolved_scope:
+              type: [string, "null"]
+            scope_values:
+              type: array
+              items:
+                type: string
+            determination_method_values:
+              type: array
+              items:
+                type: string
+            resolved_unit_qid:
+              type: [string, "null"]
+            suggested_action:
+              type: string
+            execution_ready:
+              type: boolean
+        execution_hints:
+          type: object
+          additionalProperties: false
+          required:
+            - execution_ready
+            - target_property
+            - resolved_year
+            - resolved_scope
+            - scope_values
+            - determination_method_values
+            - resolved_unit_qid
+            - qualifier_properties
+            - execution_backend
+            - suggested_action
+          properties:
+            execution_ready:
+              type: boolean
+            target_property:
+              type: string
+            resolved_year:
+              type: [string, "null"]
+            resolved_scope:
+              type: [string, "null"]
+            scope_values:
+              type: array
+              items:
+                type: string
+            determination_method_values:
+              type: array
+              items:
+                type: string
+            resolved_unit_qid:
+              type: [string, "null"]
+            qualifier_properties:
+              type: array
+              items:
+                type: string
+            execution_backend:
+              type: string
+            suggested_action:
+              type: string
+        execution_profile:
+          type: object
+          additionalProperties: false
+          required:
+            - execution_ready
+            - target_property
+            - resolved_year
+            - resolved_scope
+            - scope_values
+            - determination_method_values
+            - resolved_unit_qid
+            - qualifier_properties
+            - execution_backend
+            - suggested_action
+          properties:
+            execution_ready:
+              type: boolean
+            target_property:
+              type: string
+            resolved_year:
+              type: [string, "null"]
+            resolved_scope:
+              type: [string, "null"]
+            scope_values:
+              type: array
+              items:
+                type: string
+            determination_method_values:
+              type: array
+              items:
+                type: string
+            resolved_unit_qid:
+              type: [string, "null"]
+            qualifier_properties:
+              type: array
+              items:
+                type: string
+            execution_backend:
+              type: string
+            suggested_action:
+              type: string
+        post_write_readiness:
+          $ref: "#/definitions/post_write_readiness"
+        promotion_class:
+          type: string
+          enum:
+            - review_only
+            - semi_auto
+            - full_auto
+        promotion_eligibility:
+          $ref: "#/definitions/promotion_eligibility"
+        promotion_gate:
+          $ref: "#/definitions/candidate_promotion_gate"
         claim_bundle_before:
           $ref: "#/definitions/claim_bundle"
         claim_bundle_after:
           $ref: "#/definitions/claim_bundle"
+        family_classifier:
+          $ref: "#/definitions/family_classifier"
+        family_bucket:
+          type: string
+          enum: [A, B, C, D, E]
+        family_confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        subject_resolution:
+          $ref: "#/definitions/subject_resolution"
+        subject_family:
+          type: string
+        ghg_semantic_family:
+          type: string
+        reporting_period_kind:
+          type: string
+        scope_resolution:
+          type: string
+        method_resolution:
+          type: string
+        phase2_actions:
+          type: array
+          items:
+            type: string
+        normalization_contract:
+          $ref: "#/definitions/normalization_contract"
+        phase2_method_inference:
+          $ref: "#/definitions/phase2_method_inference"
+        phase2_scope_inference:
+          $ref: "#/definitions/phase2_scope_inference"
+        phase2_fiscal_normalization:
+          $ref: "#/definitions/phase2_fiscal_normalization"
         qualifier_diff:
           $ref: "#/definitions/drift_summary"
         reference_diff:
@@ -173,6 +370,7 @@ properties:
     required:
       - candidate_count
       - counts_by_bucket
+      - family_summary
       - checked_safe_subset
       - abstained
       - ambiguous
@@ -184,10 +382,29 @@ properties:
         type: object
         additionalProperties:
           type: integer
+      family_summary:
+        type: object
+        additionalProperties: false
+        required: [A, B, C, D, E]
+        properties:
+          A:
+            type: integer
+          B:
+            type: integer
+          C:
+            type: integer
+          D:
+            type: integer
+          E:
+            type: integer
       checked_safe_subset:
         type: array
         items:
           type: string
+      pilot_metrics_ready:
+        type: boolean
+      pilot_metrics:
+        $ref: "#/definitions/pilot_metrics_summary"
       abstained:
         type: array
         items:
@@ -198,7 +415,253 @@ properties:
           type: string
       requires_review_count:
         type: integer
+  compiler_contract:
+    type: object
+  promotion_gate:
+    type: object
 definitions:
+  family_classifier:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - bucket
+      - bucket_label
+      - confidence
+      - signals
+      - blocking_signals
+      - normalization_phase
+      - phase2_needed
+      - explanation
+      - subject_resolution
+      - subject_family
+      - ghg_semantic_family
+      - reporting_period_kind
+      - scope_resolution
+      - method_resolution
+      - phase2_actions
+      - normalization_contract
+      - phase2_method_inference
+      - phase2_scope_inference
+      - phase2_fiscal_normalization
+    properties:
+      schema_version:
+        type: string
+        const: sl.ghg_family_classifier.v0_1
+      bucket:
+        type: string
+        enum: [A, B, C, D, E]
+      bucket_label:
+        type: string
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      signals:
+        type: array
+        items:
+          type: string
+      blocking_signals:
+        type: array
+        items:
+          type: string
+      normalization_phase:
+        type: string
+      phase2_needed:
+        type: boolean
+      explanation:
+        type: string
+      subject_resolution:
+        $ref: "#/definitions/subject_resolution"
+      subject_family:
+        type: string
+      ghg_semantic_family:
+        type: string
+      reporting_period_kind:
+        type: string
+      scope_resolution:
+        type: string
+      method_resolution:
+        type: string
+      phase2_actions:
+        type: array
+        items:
+          type: string
+      normalization_contract:
+        $ref: "#/definitions/normalization_contract"
+      phase2_method_inference:
+        $ref: "#/definitions/phase2_method_inference"
+      phase2_scope_inference:
+        $ref: "#/definitions/phase2_scope_inference"
+      phase2_fiscal_normalization:
+        $ref: "#/definitions/phase2_fiscal_normalization"
+  normalization_contract:
+    type: object
+    additionalProperties: false
+    required:
+      - phase1_status
+      - phase2_eligible
+      - required_rules
+      - hard_blockers
+      - soft_blockers
+    properties:
+      phase1_status:
+        type: string
+      phase2_eligible:
+        type: boolean
+      required_rules:
+        type: array
+        items:
+          type: string
+      hard_blockers:
+        type: array
+        items:
+          type: string
+      soft_blockers:
+        type: array
+        items:
+          type: string
+  subject_resolution:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - status
+      - subject_family
+      - resolution_basis
+      - window_id
+      - direct_instance_of
+      - resolved_via
+      - matched_type_qids
+      - traversed_subclass_of
+      - evidence
+    properties:
+      schema_version:
+        type: string
+        const: sl.wikidata_subject_resolution.v0_1
+      status:
+        type: string
+        enum: [resolved, unresolved]
+      subject_family:
+        type: string
+        enum: [company, non_company, unknown]
+      resolution_basis:
+        type: string
+      window_id:
+        type: string
+      direct_instance_of:
+        type: array
+        items:
+          type: string
+      resolved_via:
+        type: [string, "null"]
+      matched_type_qids:
+        type: array
+        items:
+          type: string
+      traversed_subclass_of:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [from_qid, to_qid, property]
+          properties:
+            from_qid:
+              type: string
+            to_qid:
+              type: string
+            property:
+              type: string
+              const: P279
+      evidence:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [property, subject_qid, value_qid, window_id]
+          properties:
+            property:
+              type: string
+              enum: [P31, P279]
+            subject_qid:
+              type: string
+            value_qid:
+              type: string
+            window_id:
+              type: string
+  phase2_method_inference:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - method_family
+      - confidence
+      - evidence
+      - rule_id
+    properties:
+      status:
+        type: string
+      method_family:
+        type: string
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      evidence:
+        type: array
+        items:
+          type: string
+      rule_id:
+        type: [string, "null"]
+  phase2_scope_inference:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - resolved_scope
+      - confidence
+      - evidence
+      - rule_id
+    properties:
+      status:
+        type: string
+      resolved_scope:
+        type: string
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      evidence:
+        type: array
+        items:
+          type: string
+      rule_id:
+        type: [string, "null"]
+  phase2_fiscal_normalization:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - source_period
+      - normalized_year
+      - year_semantics
+      - confidence
+      - rule_id
+    properties:
+      status:
+        type: string
+      source_period:
+        type: string
+      normalized_year:
+        type: [string, "null"]
+      year_semantics:
+        type: string
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      rule_id:
+        type: [string, "null"]
   claim_bundle:
     type: object
     additionalProperties: false
@@ -279,6 +742,187 @@ definitions:
         type: number
       qualifier_entropy_t2:
         type: number
+      qualifier_entropy_delta:
+        type: number
+      reference_property_set_t1:
+        type: array
+        items:
+          type: string
+      reference_property_set_t2:
+        type: array
+        items:
+          type: string
+      reference_signatures_t1:
+        type: array
+        items:
+          type: string
+      reference_signatures_t2:
+        type: array
+        items:
+          type: string
+      reference_entropy_t1:
+        type: number
+      reference_entropy_t2:
+        type: number
+  promotion_eligibility:
+    type: object
+    additionalProperties: false
+    required:
+      - eligible
+      - review_only
+      - semi_auto
+      - full_auto
+      - instance_of_allowed
+      - reason
+    properties:
+      eligible:
+        type: boolean
+      review_only:
+        type: boolean
+      semi_auto:
+        type: boolean
+      full_auto:
+        type: boolean
+      instance_of_allowed:
+        type: boolean
+      reason:
+        type: string
+  post_write_readiness:
+    type: object
+    additionalProperties: false
+    required:
+      - ready
+      - verification_status
+      - current_state
+      - required_observed_fields
+      - missing_observed_fields
+    properties:
+      ready:
+        type: boolean
+      verification_status:
+        type: string
+      current_state:
+        type: string
+      required_observed_fields:
+        type: array
+        items:
+          type: string
+      missing_observed_fields:
+        type: array
+        items:
+          type: string
+      expected_after_state_fields:
+        type: array
+        items:
+          type: string
+      rollback_required:
+        type: boolean
+      notes:
+        type: [string, "null"]
+  pilot_metrics_summary:
+    type: object
+    additionalProperties: false
+    required:
+      - ready
+      - candidate_count
+      - checked_safe_count
+      - verified_count
+    properties:
+      ready:
+        type: boolean
+      candidate_count:
+        type: integer
+      checked_safe_count:
+        type: integer
+      review_only_count:
+        type: integer
+      split_required_count:
+        type: integer
+      post_write_ready_count:
+        type: integer
+      verified_count:
+        type: integer
+      direct_safe_yield:
+        type: number
+        minimum: 0
+        maximum: 1
+      split_required_rate:
+        type: number
+        minimum: 0
+        maximum: 1
+      review_rate:
+        type: number
+        minimum: 0
+        maximum: 1
+      post_write_verification_pass_rate:
+        type: number
+        minimum: 0
+        maximum: 1
+  candidate_promotion_gate:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - decision
+      - reason
+      - eligibility
+      - evidence
+    properties:
+      schema_version:
+        type: string
+        const: sl.wikidata_candidate_promotion_gate.v0_1
+      decision:
+        type: string
+        enum:
+          - review_only
+          - semi_auto
+          - full_auto
+      reason:
+        type: string
+      eligibility:
+        $ref: "#/definitions/promotion_eligibility"
+      evidence:
+        type: object
+        additionalProperties: false
+        required:
+          - classification
+          - model_classification
+          - model_validation_valid
+          - execution_ready
+          - requires_review
+          - subject_family
+          - instance_of_allowed
+          - execution_backend
+          - suggested_action
+        properties:
+          classification:
+            type: string
+          model_classification:
+            type: string
+          model_validation_valid:
+            type: boolean
+          execution_ready:
+            type: boolean
+          requires_review:
+            type: boolean
+          subject_family:
+            type: string
+          instance_of_allowed:
+            type: boolean
+          pressure:
+            type: [string, "null"]
+          pressure_confidence:
+            type: [number, "null"]
+            minimum: 0
+            maximum: 1
+          pressure_summary:
+            type: [string, "null"]
+          execution_backend:
+            type: string
+          suggested_action:
+            type: string
+          post_write_readiness:
+            $ref: "#/definitions/post_write_readiness"
       qualifier_entropy_delta:
         type: number
       reference_property_set_t1:

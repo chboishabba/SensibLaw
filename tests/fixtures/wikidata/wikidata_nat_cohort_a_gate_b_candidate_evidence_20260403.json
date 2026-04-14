@@ -1,0 +1,67 @@
+{
+  "evidence_batch_id": "nat-cohort-a-gate-b-candidate-v1",
+  "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+  "cohort_id": "business_family_reconciled",
+  "candidate_ids": [
+    "Q1068745|P5991|1",
+    "Q1489170|P5991|1"
+  ],
+  "runs": [
+    {
+      "run_id": "run-2026-04-03a",
+      "batch_id": "nat-cohort-a-gate-b-batch-v1",
+      "proposals": [
+        {
+          "proposal_id": "nat-cohort-a-gate-b-candidate-v1",
+          "gate_id": "B",
+          "from_level": 1,
+          "to_level": 2,
+          "family_id": "business_family_reconciled_low_qualifier_checked_safe_subset",
+          "cohort_id": "business_family_reconciled",
+          "candidate_ids": [
+            "Q1068745|P5991|1",
+            "Q1489170|P5991|1"
+          ],
+          "gate_families_passed": [
+            "evidence_grounding",
+            "claim_boundary_reliability",
+            "verification_quality",
+            "policy_risk_containment",
+            "operational_control_and_rollback"
+          ],
+          "evidence_signals": [
+            "repeated_family_scoped_direct_safe_behavior",
+            "stable_after_state_verification_across_repeated_tranches",
+            "false_positive_rate_within_family_budget",
+            "hold_and_abstain_paths_effective"
+          ],
+          "risk_signals": [],
+          "metrics": {
+            "direct_safe_yield_by_family": {
+              "observed": 1.0
+            },
+            "split_required_rate_by_family": {
+              "observed": 0.0
+            },
+            "hold_abstain_rate_and_reason_distribution": {
+              "observed": 0.0
+            },
+            "after_state_verification_pass_rate": {
+              "observed": 1.0
+            },
+            "false_positive_rate_and_severity": {
+              "observed": 0.0
+            },
+            "rollback_invocation_and_recovery_success": {
+              "observed": 1.0
+            },
+            "receipt_completeness_coverage": {
+              "observed": 1.0
+            }
+          },
+          "recommendation": "promote"
+        }
+      ]
+    }
+  ]
+}

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Set, Tuple
 
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTAnno, LTChar, LTTextContainer
@@ -28,6 +28,11 @@ from src.culture.overlay import get_default_overlay
 from src.glossary.linker import GlossaryLinker
 from src.glossary.service import lookup as lookup_gloss
 from src.ingestion.cache import HTTPCache
+from src.ingestion.media_adapter import (
+    CanonicalText,
+    PdfPageMediaAdapter,
+    parse_canonical_text,
+)
 from src.models.document import Document, DocumentMetadata, DocumentTOCEntry
 from src.models.provision import (
     Atom,
@@ -538,6 +543,10 @@ def _collect_glyphs_from_layout(layout) -> List[Glyph]:
     glyphs: List[Glyph] = []
 
     def _walk(element) -> None:
+        if isinstance(element, (list, tuple)):
+            for child in element:
+                _walk(child)
+            return
         if isinstance(element, LTChar):
             glyphs.append(
                 Glyph(
@@ -591,6 +600,21 @@ def _collect_layout_text_blocks(layout) -> List[tuple[float, float, str]]:
     blocks: List[tuple[float, float, str]] = []
 
     def _walk(node) -> None:
+        if isinstance(node, (list, tuple)):
+            for child in node:
+                _walk(child)
+            return
+        if hasattr(node, "get_text") and not isinstance(node, LTTextContainer):
+            raw_text = node.get_text()
+            if raw_text:
+                blocks.append(
+                    (
+                        float(getattr(node, "y0", 0.0)),
+                        float(getattr(node, "x0", 0.0)),
+                        str(raw_text),
+                    )
+                )
+            return
         children = tuple(
             child for child in getattr(node, "_objs", ()) if isinstance(child, LTTextContainer)
         )
@@ -653,6 +677,16 @@ def extract_pdf_text(pdf_path: Path) -> Iterator[dict]:
                 "lines": lines,
                 "links": page_links,
             }
+
+
+def build_pdf_canonical_text(pages: Sequence[Mapping[str, Any]], source: Path) -> CanonicalText:
+    """Normalize extracted PDF pages into the shared canonical-text contract."""
+
+    adapter = PdfPageMediaAdapter(
+        source_artifact_ref=source.stem,
+        provenance={"source_path": str(source)},
+    )
+    return adapter.adapt(pages)
 
 
 def _normalise_toc_candidate(parts: List[str]) -> str:
@@ -2947,13 +2981,8 @@ def build_document(
     first_page_lines = pages[0].get("lines") if pages else None
     inferred_date = _extract_document_date_from_lines(first_page_lines or [])
 
-    full_body_parts = [
-        f"{str(page.get('heading') or '')}\n{str(page.get('text') or '')}".strip()
-        for page in pages
-        if str(page.get("heading") or "").strip()
-        or str(page.get("text") or "").strip()
-    ]
-    full_body = "\n\n".join(full_body_parts).strip()
+    canonical_text = build_pdf_canonical_text(pages, source)
+    full_body = canonical_text.text
     detected_date = _extract_document_date(pages)
 
     toc_entries = parse_table_of_contents(pages)
@@ -2964,13 +2993,7 @@ def build_document(
     if not body_pages:
         body_pages = non_toc_pages or pages
 
-    section_body_parts = [
-        f"{str(page.get('heading') or '')}\n{str(page.get('text') or '')}".strip()
-        for page in body_pages
-        if str(page.get("heading") or "").strip()
-        or str(page.get("text") or "").strip()
-    ]
-    section_body = "\n\n".join(section_body_parts).strip()
+    section_body = build_pdf_canonical_text(body_pages, source).text
 
     body = section_body or full_body
     checksum = _compute_document_checksum(body)
@@ -3187,6 +3210,7 @@ def iter_process_pdf(
             },
         )
 
+        canonical_text = build_pdf_canonical_text(pages, pdf)
         doc = build_document(
             pages,
             pdf,
@@ -3200,7 +3224,18 @@ def iter_process_pdf(
         from src.text.compression_stats import compute_compression_stats
 
         doc.metadata.compression_stats = compute_compression_stats(doc.body).to_dict()
-        yield ("build", {"document": doc})
+        parsed_envelope = parse_canonical_text(
+            canonical_text,
+            ingest_receipt={"adapter": "pdf_page_media_adapter", "source_path": str(pdf)},
+        )
+        yield (
+            "build",
+            {
+                "document": doc,
+                "canonical_text": canonical_text.to_dict(),
+                "parsed_envelope": parsed_envelope.to_dict(),
+            },
+        )
     finally:
         if registry is not None:
             registry.close()

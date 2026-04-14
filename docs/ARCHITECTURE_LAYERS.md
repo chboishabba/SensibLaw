@@ -12,6 +12,13 @@ This note tracks the six-layer architecture that underpins the timeline stream v
 
 These layers provide the shared vocabulary for the Streamline roadmap and its dependencies.
 
+For current compiler-shaped legal work, read them with one extra boundary:
+
+- evidence and promoted outcomes remain canonical
+- legal-follow, claim-boundary, and graph surfaces are derived outputs over
+  that material
+- no graph layer becomes a silent truth or surveillance layer
+
 ## Out Of Scope: Predictive Behavior Modeling
 Descriptive aggregation over a corpus (counts/rates) may be used for institutional
 review, but **predictive or person-scoring behavior modeling is not part of the

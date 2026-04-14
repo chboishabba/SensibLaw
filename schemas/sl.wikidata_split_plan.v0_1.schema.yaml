@@ -48,9 +48,12 @@ properties:
         status:
           type: string
           enum:
+            - execution_ready
             - structurally_decomposable
             - review_only
         review_required:
+          type: boolean
+        execution_ready:
           type: boolean
         merged_split_axes:
           type: array
@@ -79,6 +82,65 @@ properties:
           type: array
           items:
             $ref: "#/definitions/claim_bundle"
+        split_execution_rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - candidate_id
+              - subject
+              - property
+              - value
+              - rank
+              - resolved_year
+              - scope_values
+              - determination_method_values
+              - resolved_scope
+              - resolved_unit_qid
+              - qualifiers
+              - references
+              - execution_ready
+            properties:
+              candidate_id:
+                type: string
+              subject:
+                type: string
+              property:
+                type: string
+              value: {}
+              rank:
+                type: string
+              resolved_year:
+                type: [string, "null"]
+              scope_values:
+                type: array
+                items:
+                  type: string
+              determination_method_values:
+                type: array
+                items:
+                  type: string
+              resolved_scope:
+                type: [string, "null"]
+              resolved_unit_qid:
+                type: [string, "null"]
+              qualifiers:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+              references:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: string
+              execution_ready:
+                type: boolean
         proposed_bundle_count:
           type: integer
           minimum: 0
@@ -92,9 +154,18 @@ properties:
           enum:
             - exact
             - review_required
+        resolved_year:
+          type: [string, "null"]
+        resolved_scope:
+          type: [string, "null"]
+        resolved_unit_qid:
+          type: [string, "null"]
+        execution_backend:
+          type: string
         suggested_action:
           type: string
           enum:
+            - migrate_with_split
             - review_structured_split
             - review_only
   summary:

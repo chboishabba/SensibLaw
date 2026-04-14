@@ -16,7 +16,9 @@
       "notes": []
     }
   ],
-  "diagnostic_flags": [],
+  "diagnostic_flags": [
+    "axis_specific_unreconciled_instance_of"
+  ],
   "hold_reason": "unreconciled instance of",
   "non_authoritative": true
 }

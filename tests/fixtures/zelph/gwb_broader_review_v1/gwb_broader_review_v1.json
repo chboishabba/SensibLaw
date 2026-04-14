@@ -1,5 +1,2920 @@
 {
+  "compiler_contract": {
+    "derived_products": [
+      {
+        "default_surface": true,
+        "product_kind": "packet",
+        "role": "broader_review"
+      },
+      {
+        "default_surface": true,
+        "product_kind": "report",
+        "role": "normalized_review_summary"
+      },
+      {
+        "default_surface": false,
+        "product_kind": "graph",
+        "role": "legal_linkage_graph"
+      },
+      {
+        "default_surface": false,
+        "product_kind": "graph",
+        "role": "downstream_reasoning_projection"
+      }
+    ],
+    "evidence_bundle": {
+      "bundle_kind": "public_source_bundle",
+      "item_count": 48,
+      "item_label": "source_row",
+      "source_count": 1,
+      "source_family": "gwb_broader_review"
+    },
+    "lane": "gwb",
+    "promoted_outcomes": {
+      "abstained_count": 0,
+      "outcome_family": "action_relation_review_outcomes",
+      "outcome_labels": [
+        "covered",
+        "review_required"
+      ],
+      "promoted_count": 37,
+      "review_count": 11
+    },
+    "schema_version": "sl.compiler_contract.v0_1"
+  },
   "fixture_kind": "gwb_broader_review",
+  "legal_follow_graph": {
+    "challengeable": true,
+    "derived_only": true,
+    "edges": [
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:clear_skies_2003"
+        },
+        "source": "seed:gwb_us_law_clear_skies_2003",
+        "target": "source:gwb_us_law_clear_skies_2003_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_clear_skies_2003_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_clear_skies_2003_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_clear_skies_2003_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_clear_skies_2003_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_clear_skies_2003",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:congressional_subpoena_litigation"
+        },
+        "source": "seed:gwb_us_law_congressional_subpoena_litigation",
+        "target": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "litigation_and_subpoena"
+        },
+        "source": "seed:gwb_us_law_congressional_subpoena_litigation",
+        "target": "linkage_kind:litigation_and_subpoena"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:congressional_subpoena_litigation"
+        },
+        "source": "seed:gwb_us_law_congressional_subpoena_litigation",
+        "target": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:defense_executive_operations"
+        },
+        "source": "seed:gwb_us_law_defense_executive_operations",
+        "target": "source:gwb_us_law_defense_executive_operations_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "institutional_anchor"
+        },
+        "source": "seed:gwb_us_law_defense_executive_operations",
+        "target": "linkage_kind:institutional_anchor"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:defense_executive_operations"
+        },
+        "source": "seed:gwb_us_law_defense_executive_operations",
+        "target": "source:gwb_us_law_defense_executive_operations_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:defense_executive_operations"
+        },
+        "source": "seed:gwb_us_law_defense_executive_operations",
+        "target": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act"
+        },
+        "source": "seed:gwb_us_law_genetic_information_nondiscrimination_act",
+        "target": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_genetic_information_nondiscrimination_act",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act"
+        },
+        "source": "seed:gwb_us_law_genetic_information_nondiscrimination_act",
+        "target": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:iraq_2002_authorization"
+        },
+        "source": "seed:gwb_us_law_iraq_2002_authorization",
+        "target": "source:gwb_us_law_iraq_2002_authorization_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_checked_handoff",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "congressional_authority"
+        },
+        "source": "seed:gwb_us_law_iraq_2002_authorization",
+        "target": "linkage_kind:congressional_authority"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:iraq_2002_authorization"
+        },
+        "source": "seed:gwb_us_law_iraq_2002_authorization",
+        "target": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:iraq_2002_authorization"
+        },
+        "source": "seed:gwb_us_law_iraq_2002_authorization",
+        "target": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:military_commissions_2006"
+        },
+        "source": "seed:gwb_us_law_military_commissions_2006",
+        "target": "source:gwb_us_law_military_commissions_2006_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "statute_and_litigation"
+        },
+        "source": "seed:gwb_us_law_military_commissions_2006",
+        "target": "linkage_kind:statute_and_litigation"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:military_commissions_2006"
+        },
+        "source": "seed:gwb_us_law_military_commissions_2006",
+        "target": "source:gwb_us_law_military_commissions_2006_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:military_commissions_2006"
+        },
+        "source": "seed:gwb_us_law_military_commissions_2006",
+        "target": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:no_child_left_behind_act"
+        },
+        "source": "seed:gwb_us_law_no_child_left_behind_act",
+        "target": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_no_child_left_behind_act",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument"
+        },
+        "source": "seed:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument",
+        "target": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "executive_proclamation"
+        },
+        "source": "seed:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument",
+        "target": "linkage_kind:executive_proclamation"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:nsa_surveillance_review"
+        },
+        "source": "seed:gwb_us_law_nsa_surveillance_review",
+        "target": "source:gwb_us_law_nsa_surveillance_review_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "statute_and_litigation"
+        },
+        "source": "seed:gwb_us_law_nsa_surveillance_review",
+        "target": "linkage_kind:statute_and_litigation"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:nsa_surveillance_review"
+        },
+        "source": "seed:gwb_us_law_nsa_surveillance_review",
+        "target": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:schip_veto"
+        },
+        "source": "seed:gwb_us_law_schip_veto",
+        "target": "source:gwb_us_law_schip_veto_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_schip_veto_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_schip_veto_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_schip_veto_checked_handoff",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_schip_veto",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:schip_veto"
+        },
+        "source": "seed:gwb_us_law_schip_veto",
+        "target": "source:gwb_us_law_schip_veto_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:schip_veto"
+        },
+        "source": "seed:gwb_us_law_schip_veto",
+        "target": "source:gwb_us_law_schip_veto_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:stem_cell_research_enhancement_act"
+        },
+        "source": "seed:gwb_us_law_stem_cell_research_enhancement_act",
+        "target": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_stem_cell_research_enhancement_act",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:stem_cell_research_enhancement_act"
+        },
+        "source": "seed:gwb_us_law_stem_cell_research_enhancement_act",
+        "target": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:supreme_court_appointments"
+        },
+        "source": "seed:gwb_us_law_supreme_court_appointments",
+        "target": "source:gwb_us_law_supreme_court_appointments_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "court_and_confirmation"
+        },
+        "source": "seed:gwb_us_law_supreme_court_appointments",
+        "target": "linkage_kind:court_and_confirmation"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:supreme_court_appointments"
+        },
+        "source": "seed:gwb_us_law_supreme_court_appointments",
+        "target": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:supreme_court_appointments"
+        },
+        "source": "seed:gwb_us_law_supreme_court_appointments",
+        "target": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "target": "support_kind:support_kind:broad_cue"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "target": "review_status:review_status:candidate_only"
+      },
+      {
+        "kind": "supports_source_row",
+        "metadata": {
+          "seed_id": "gwb_us_law:syria_accountability_act"
+        },
+        "source": "seed:gwb_us_law_syria_accountability_act",
+        "target": "source:gwb_us_law_syria_accountability_act_checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:gwb_us_law_syria_accountability_act_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:gwb_us_law_syria_accountability_act_checked_handoff",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_support_kind",
+        "metadata": {
+          "anchor_kind": "support_kind"
+        },
+        "source": "source:gwb_us_law_syria_accountability_act_checked_handoff",
+        "target": "support_kind:support_kind:direct"
+      },
+      {
+        "kind": "mentions_review_status",
+        "metadata": {
+          "anchor_kind": "review_status"
+        },
+        "source": "source:gwb_us_law_syria_accountability_act_checked_handoff",
+        "target": "review_status:review_status:matched"
+      },
+      {
+        "kind": "uses_linkage_kind",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        },
+        "source": "seed:gwb_us_law_syria_accountability_act",
+        "target": "linkage_kind:domestic_statute"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff,corpus_book_timeline"
+        },
+        "source": "source:relation_1",
+        "target": "source_family:checked_handoff_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_1",
+        "target": "predicate:predicate:nominated"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_1",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_1",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff,corpus_book_timeline"
+        },
+        "source": "source:relation_2",
+        "target": "source_family:checked_handoff_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_2",
+        "target": "predicate:predicate:nominated"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_2",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_2",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_3",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_3",
+        "target": "predicate:predicate:nominated"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_3",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:relation_4",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_4",
+        "target": "predicate:predicate:ruled_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_4",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_5",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_5",
+        "target": "predicate:predicate:ruled_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_5",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_6",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_6",
+        "target": "predicate:predicate:ruled_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_6",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_7",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_7",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_7",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_8",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_8",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_8",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_9",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_9",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_9",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:relation_10",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_10",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_10",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:relation_11",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_11",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_11",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_12",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_12",
+        "target": "predicate:predicate:signed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_12",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff,public_bios_timeline,corpus_book_timeline"
+        },
+        "source": "source:relation_13",
+        "target": "source_family:checked_handoff_public_bios_timeline_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_13",
+        "target": "predicate:predicate:subject_of_review_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_13",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_13",
+        "target": "source_family:source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_13",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_14",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_14",
+        "target": "predicate:predicate:vetoed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_14",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_15",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_15",
+        "target": "predicate:predicate:vetoed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_15",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff,corpus_book_timeline"
+        },
+        "source": "source:relation_16",
+        "target": "source_family:checked_handoff_corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_16",
+        "target": "predicate:predicate:vetoed"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_16",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_16",
+        "target": "source_family:source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_17",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_17",
+        "target": "predicate:predicate:confirmed_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_17",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:relation_18",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_predicate",
+        "metadata": {
+          "anchor_kind": "predicate"
+        },
+        "source": "source:relation_18",
+        "target": "predicate:predicate:confirmed_by"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "anchor_kind": "source_family"
+        },
+        "source": "source:relation_18",
+        "target": "source_family:source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "checked_handoff"
+        },
+        "source": "source:family_summary_checked_handoff",
+        "target": "source_family:checked_handoff"
+      },
+      {
+        "kind": "mentions_ambiguous_event_count",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count"
+        },
+        "source": "source:family_summary_checked_handoff",
+        "target": "anchor:ambiguous_event_count:9"
+      },
+      {
+        "kind": "mentions_unresolved_surface_count",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count"
+        },
+        "source": "source:family_summary_checked_handoff",
+        "target": "anchor:unresolved_surface_count:7"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        },
+        "source": "source:family_summary_public_bios_timeline",
+        "target": "source_family:public_bios_timeline"
+      },
+      {
+        "kind": "mentions_ambiguous_event_count",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count"
+        },
+        "source": "source:family_summary_public_bios_timeline",
+        "target": "anchor:ambiguous_event_count:10"
+      },
+      {
+        "kind": "mentions_unresolved_surface_count",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count"
+        },
+        "source": "source:family_summary_public_bios_timeline",
+        "target": "anchor:unresolved_surface_count:12"
+      },
+      {
+        "kind": "mentions_source_family",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        },
+        "source": "source:family_summary_corpus_book_timeline",
+        "target": "source_family:corpus_book_timeline"
+      },
+      {
+        "kind": "mentions_ambiguous_event_count",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count"
+        },
+        "source": "source:family_summary_corpus_book_timeline",
+        "target": "anchor:ambiguous_event_count:144"
+      },
+      {
+        "kind": "mentions_unresolved_surface_count",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count"
+        },
+        "source": "source:family_summary_corpus_book_timeline",
+        "target": "anchor:unresolved_surface_count:91"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "seed:gwb_us_law_clear_skies_2003",
+        "kind": "seed_lane",
+        "label": "Clear Skies legislative and Clean Air amendment lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:clear_skies_2003",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_congressional_subpoena_litigation",
+        "kind": "seed_lane",
+        "label": "Congressional subpoena and immunity litigation lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "litigation_and_subpoena",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_defense_executive_operations",
+        "kind": "seed_lane",
+        "label": "Department of Defense institutional review lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "institutional_anchor",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:defense_executive_operations",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_genetic_information_nondiscrimination_act",
+        "kind": "seed_lane",
+        "label": "Genetic discrimination legislation lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_iraq_2002_authorization",
+        "kind": "seed_lane",
+        "label": "Iraq war authorization and related executive decision path",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "congressional_authority",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:iraq_2002_authorization",
+          "support_kinds": [
+            "broad_cue"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_military_commissions_2006",
+        "kind": "seed_lane",
+        "label": "Military commissions and detainee-review lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "statute_and_litigation",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:military_commissions_2006",
+          "support_kinds": [
+            "broad_cue"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_no_child_left_behind_act",
+        "kind": "seed_lane",
+        "label": "No Child Left Behind education law lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:no_child_left_behind_act",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument",
+        "kind": "seed_lane",
+        "label": "Northwestern Hawaiian Islands Marine National Monument proclamation lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "executive_proclamation",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_nsa_surveillance_review",
+        "kind": "seed_lane",
+        "label": "NSA surveillance and review/litigation lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "statute_and_litigation",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:nsa_surveillance_review",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_schip_veto",
+        "kind": "seed_lane",
+        "label": "SCHIP veto and congressional funding lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:schip_veto",
+          "support_kinds": [
+            "broad_cue"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_stem_cell_research_enhancement_act",
+        "kind": "seed_lane",
+        "label": "Stem cell veto and bioethics legislation lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:stem_cell_research_enhancement_act",
+          "support_kinds": [
+            "broad_cue"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_supreme_court_appointments",
+        "kind": "seed_lane",
+        "label": "Supreme Court nominations and legitimacy lane",
+        "metadata": {
+          "coverage_status": "partial",
+          "linkage_kind": "court_and_confirmation",
+          "review_statuses": [
+            "matched",
+            "candidate_only"
+          ],
+          "seed_id": "gwb_us_law:supreme_court_appointments",
+          "support_kinds": [
+            "broad_cue"
+          ]
+        }
+      },
+      {
+        "id": "seed:gwb_us_law_syria_accountability_act",
+        "kind": "seed_lane",
+        "label": "Syria sanctions legislation lane",
+        "metadata": {
+          "coverage_status": "covered",
+          "linkage_kind": "domestic_statute",
+          "review_statuses": [
+            "matched"
+          ],
+          "seed_id": "gwb_us_law:syria_accountability_act",
+          "support_kinds": [
+            "direct"
+          ]
+        }
+      },
+      {
+        "id": "source:gwb_us_law_clear_skies_2003_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:clear_skies_2003 in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:clear_skies_2003:checked_handoff"
+        }
+      },
+      {
+        "id": "source_family:checked_handoff",
+        "kind": "source_family",
+        "label": "checked_handoff",
+        "metadata": {
+          "source_family": "checked_handoff"
+        }
+      },
+      {
+        "id": "source_family:source_family:checked_handoff",
+        "kind": "source_family",
+        "label": "checked_handoff",
+        "metadata": {
+          "anchor_kind": "source_family",
+          "anchor_value": "checked_handoff"
+        }
+      },
+      {
+        "id": "support_kind:support_kind:direct",
+        "kind": "support_kind",
+        "label": "direct",
+        "metadata": {
+          "anchor_kind": "support_kind",
+          "anchor_value": "direct"
+        }
+      },
+      {
+        "id": "review_status:review_status:matched",
+        "kind": "review_status",
+        "label": "matched",
+        "metadata": {
+          "anchor_kind": "review_status",
+          "anchor_value": "matched"
+        }
+      },
+      {
+        "id": "linkage_kind:domestic_statute",
+        "kind": "linkage_kind",
+        "label": "domestic_statute",
+        "metadata": {
+          "linkage_kind": "domestic_statute"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_congressional_subpoena_litigation_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:congressional_subpoena_litigation in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:checked_handoff"
+        }
+      },
+      {
+        "id": "review_status:review_status:candidate_only",
+        "kind": "review_status",
+        "label": "candidate_only",
+        "metadata": {
+          "anchor_kind": "review_status",
+          "anchor_value": "candidate_only"
+        }
+      },
+      {
+        "id": "linkage_kind:litigation_and_subpoena",
+        "kind": "linkage_kind",
+        "label": "litigation_and_subpoena",
+        "metadata": {
+          "linkage_kind": "litigation_and_subpoena"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_congressional_subpoena_litigation_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:congressional_subpoena_litigation in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source_family:corpus_book_timeline",
+        "kind": "source_family",
+        "label": "corpus_book_timeline",
+        "metadata": {
+          "source_family": "corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source_family:source_family:corpus_book_timeline",
+        "kind": "source_family",
+        "label": "corpus_book_timeline",
+        "metadata": {
+          "anchor_kind": "source_family",
+          "anchor_value": "corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_defense_executive_operations_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:defense_executive_operations in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:defense_executive_operations:checked_handoff"
+        }
+      },
+      {
+        "id": "linkage_kind:institutional_anchor",
+        "kind": "linkage_kind",
+        "label": "institutional_anchor",
+        "metadata": {
+          "linkage_kind": "institutional_anchor"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_defense_executive_operations_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:defense_executive_operations in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:defense_executive_operations:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source_family:public_bios_timeline",
+        "kind": "source_family",
+        "label": "public_bios_timeline",
+        "metadata": {
+          "source_family": "public_bios_timeline"
+        }
+      },
+      {
+        "id": "source_family:source_family:public_bios_timeline",
+        "kind": "source_family",
+        "label": "public_bios_timeline",
+        "metadata": {
+          "anchor_kind": "source_family",
+          "anchor_value": "public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_defense_executive_operations_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:defense_executive_operations in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:defense_executive_operations:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_genetic_information_nondiscrimination_act_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:genetic_information_nondiscrimination_act in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:checked_handoff"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_genetic_information_nondiscrimination_act_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:genetic_information_nondiscrimination_act in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_iraq_2002_authorization_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:iraq_2002_authorization in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:checked_handoff"
+        }
+      },
+      {
+        "id": "support_kind:support_kind:broad_cue",
+        "kind": "support_kind",
+        "label": "broad_cue",
+        "metadata": {
+          "anchor_kind": "support_kind",
+          "anchor_value": "broad_cue"
+        }
+      },
+      {
+        "id": "linkage_kind:congressional_authority",
+        "kind": "linkage_kind",
+        "label": "congressional_authority",
+        "metadata": {
+          "linkage_kind": "congressional_authority"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_iraq_2002_authorization_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:iraq_2002_authorization in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_iraq_2002_authorization_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:iraq_2002_authorization in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:iraq_2002_authorization:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_military_commissions_2006_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:military_commissions_2006 in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:military_commissions_2006:checked_handoff"
+        }
+      },
+      {
+        "id": "linkage_kind:statute_and_litigation",
+        "kind": "linkage_kind",
+        "label": "statute_and_litigation",
+        "metadata": {
+          "linkage_kind": "statute_and_litigation"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_military_commissions_2006_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:military_commissions_2006 in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:military_commissions_2006:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_military_commissions_2006_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:military_commissions_2006 in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:military_commissions_2006:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_no_child_left_behind_act_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:no_child_left_behind_act in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:no_child_left_behind_act:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_northwestern_hawaiian_islands_marine_national_monument_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:northwestern_hawaiian_islands_marine_national_monument:public_bios_timeline"
+        }
+      },
+      {
+        "id": "linkage_kind:executive_proclamation",
+        "kind": "linkage_kind",
+        "label": "executive_proclamation",
+        "metadata": {
+          "linkage_kind": "executive_proclamation"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_nsa_surveillance_review_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:nsa_surveillance_review in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:checked_handoff"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_nsa_surveillance_review_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:nsa_surveillance_review in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:nsa_surveillance_review:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_schip_veto_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:schip_veto in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:schip_veto:checked_handoff"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_schip_veto_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:schip_veto in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_schip_veto_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:schip_veto in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:schip_veto:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_stem_cell_research_enhancement_act_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:stem_cell_research_enhancement_act in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:checked_handoff"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_stem_cell_research_enhancement_act_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:stem_cell_research_enhancement_act in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:stem_cell_research_enhancement_act:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_supreme_court_appointments_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:supreme_court_appointments in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:checked_handoff"
+        }
+      },
+      {
+        "id": "linkage_kind:court_and_confirmation",
+        "kind": "linkage_kind",
+        "label": "court_and_confirmation",
+        "metadata": {
+          "linkage_kind": "court_and_confirmation"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_supreme_court_appointments_public_bios_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:supreme_court_appointments in public_bios_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_supreme_court_appointments_corpus_book_timeline",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:supreme_court_appointments in corpus_book_timeline",
+        "metadata": {
+          "primary_workload_class": "linkage_gap",
+          "review_status": "missing_review",
+          "source_row_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "source:gwb_us_law_syria_accountability_act_checked_handoff",
+        "kind": "seed_family_support",
+        "label": "gwb_us_law:syria_accountability_act in checked_handoff",
+        "metadata": {
+          "primary_workload_class": "support_breadth_gap",
+          "review_status": "covered",
+          "source_row_id": "gwb_us_law:syria_accountability_act:checked_handoff"
+        }
+      },
+      {
+        "id": "source:relation_1",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush nominated Harriet Miers",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:1"
+        }
+      },
+      {
+        "id": "source_family:checked_handoff_corpus_book_timeline",
+        "kind": "source_family",
+        "label": "checked_handoff,corpus_book_timeline",
+        "metadata": {
+          "source_family": "checked_handoff,corpus_book_timeline"
+        }
+      },
+      {
+        "id": "predicate:predicate:nominated",
+        "kind": "predicate",
+        "label": "nominated",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "nominated"
+        }
+      },
+      {
+        "id": "source:relation_2",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush nominated John Roberts",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:2"
+        }
+      },
+      {
+        "id": "source:relation_3",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush nominated Samuel Alito",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:3"
+        }
+      },
+      {
+        "id": "source:relation_4",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush ruled_by Supreme Court of the United States",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:4"
+        }
+      },
+      {
+        "id": "predicate:predicate:ruled_by",
+        "kind": "predicate",
+        "label": "ruled_by",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "ruled_by"
+        }
+      },
+      {
+        "id": "source:relation_5",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush ruled_by United States Court of Appeals for the Sixth Circuit",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:5"
+        }
+      },
+      {
+        "id": "source:relation_6",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush ruled_by United States district court",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:6"
+        }
+      },
+      {
+        "id": "source:relation_7",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed Genetic Information Nondiscrimination Act",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:7"
+        }
+      },
+      {
+        "id": "predicate:predicate:signed",
+        "kind": "predicate",
+        "label": "signed",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "signed"
+        }
+      },
+      {
+        "id": "source:relation_8",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed Military Commissions Act",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:8"
+        }
+      },
+      {
+        "id": "source:relation_9",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed Military Commissions Act of 2006",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:9"
+        }
+      },
+      {
+        "id": "source:relation_10",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed No Child Left Behind Act",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:10"
+        }
+      },
+      {
+        "id": "source:relation_11",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed Northwestern Hawaiian Islands Marine National Monument",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:11"
+        }
+      },
+      {
+        "id": "source:relation_12",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush signed Syria Accountability Act",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:12"
+        }
+      },
+      {
+        "id": "source:relation_13",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush subject_of_review_by Supreme Court of the United States",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:13"
+        }
+      },
+      {
+        "id": "source_family:checked_handoff_public_bios_timeline_corpus_book_timeline",
+        "kind": "source_family",
+        "label": "checked_handoff,public_bios_timeline,corpus_book_timeline",
+        "metadata": {
+          "source_family": "checked_handoff,public_bios_timeline,corpus_book_timeline"
+        }
+      },
+      {
+        "id": "predicate:predicate:subject_of_review_by",
+        "kind": "predicate",
+        "label": "subject_of_review_by",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "subject_of_review_by"
+        }
+      },
+      {
+        "id": "source:relation_14",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush vetoed SCHIP",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:14"
+        }
+      },
+      {
+        "id": "predicate:predicate:vetoed",
+        "kind": "predicate",
+        "label": "vetoed",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "vetoed"
+        }
+      },
+      {
+        "id": "source:relation_15",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush vetoed State Children's Health Insurance Program",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:15"
+        }
+      },
+      {
+        "id": "source:relation_16",
+        "kind": "merged_promoted_relation",
+        "label": "George W. Bush vetoed Stem Cell Research Enhancement Act",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:16"
+        }
+      },
+      {
+        "id": "source:relation_17",
+        "kind": "merged_promoted_relation",
+        "label": "John Roberts confirmed_by U.S. Senate",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:17"
+        }
+      },
+      {
+        "id": "predicate:predicate:confirmed_by",
+        "kind": "predicate",
+        "label": "confirmed_by",
+        "metadata": {
+          "anchor_kind": "predicate",
+          "anchor_value": "confirmed_by"
+        }
+      },
+      {
+        "id": "source:relation_18",
+        "kind": "merged_promoted_relation",
+        "label": "Samuel Alito confirmed_by U.S. Senate",
+        "metadata": {
+          "primary_workload_class": "covered",
+          "review_status": "covered",
+          "source_row_id": "relation:18"
+        }
+      },
+      {
+        "id": "source:family_summary_checked_handoff",
+        "kind": "source_family_summary",
+        "label": "checked_handoff ambiguous_events=9 unresolved_surfaces=7",
+        "metadata": {
+          "primary_workload_class": "event_extraction_gap",
+          "review_status": "missing_review",
+          "source_row_id": "family_summary:checked_handoff"
+        }
+      },
+      {
+        "id": "anchor:ambiguous_event_count:9",
+        "kind": "anchor",
+        "label": "9",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count",
+          "anchor_value": 9
+        }
+      },
+      {
+        "id": "anchor:unresolved_surface_count:7",
+        "kind": "anchor",
+        "label": "7",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count",
+          "anchor_value": 7
+        }
+      },
+      {
+        "id": "source:family_summary_public_bios_timeline",
+        "kind": "source_family_summary",
+        "label": "public_bios_timeline ambiguous_events=10 unresolved_surfaces=12",
+        "metadata": {
+          "primary_workload_class": "event_extraction_gap",
+          "review_status": "missing_review",
+          "source_row_id": "family_summary:public_bios_timeline"
+        }
+      },
+      {
+        "id": "anchor:ambiguous_event_count:10",
+        "kind": "anchor",
+        "label": "10",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count",
+          "anchor_value": 10
+        }
+      },
+      {
+        "id": "anchor:unresolved_surface_count:12",
+        "kind": "anchor",
+        "label": "12",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count",
+          "anchor_value": 12
+        }
+      },
+      {
+        "id": "source:family_summary_corpus_book_timeline",
+        "kind": "source_family_summary",
+        "label": "corpus_book_timeline ambiguous_events=144 unresolved_surfaces=91",
+        "metadata": {
+          "primary_workload_class": "event_extraction_gap",
+          "review_status": "missing_review",
+          "source_row_id": "family_summary:corpus_book_timeline"
+        }
+      },
+      {
+        "id": "anchor:ambiguous_event_count:144",
+        "kind": "anchor",
+        "label": "144",
+        "metadata": {
+          "anchor_kind": "ambiguous_event_count",
+          "anchor_value": 144
+        }
+      },
+      {
+        "id": "anchor:unresolved_surface_count:91",
+        "kind": "anchor",
+        "label": "91",
+        "metadata": {
+          "anchor_kind": "unresolved_surface_count",
+          "anchor_value": 91
+        }
+      }
+    ],
+    "summary": {
+      "brexit_related_follow_count": 0,
+      "edge_count": 232,
+      "followed_source_cite_class_counts": {},
+      "followed_source_count": 0,
+      "followed_source_kind_counts": {},
+      "followed_source_receipt_kind_counts": {},
+      "linkage_kind_counts": {
+        "congressional_authority": 1,
+        "court_and_confirmation": 1,
+        "domestic_statute": 1,
+        "executive_proclamation": 1,
+        "institutional_anchor": 1,
+        "litigation_and_subpoena": 1,
+        "statute_and_litigation": 1
+      },
+      "node_count": 92,
+      "predicate_count": 6,
+      "review_status_count": 2,
+      "review_status_label_counts": {
+        "candidate_only": 1,
+        "matched": 1
+      },
+      "seed_lane_count": 13,
+      "source_family_count": 8,
+      "source_family_label_counts": {
+        "checked_handoff": 2,
+        "checked_handoff,corpus_book_timeline": 1,
+        "checked_handoff,public_bios_timeline,corpus_book_timeline": 1,
+        "corpus_book_timeline": 2,
+        "public_bios_timeline": 2
+      },
+      "source_kind_counts": {
+        "merged_promoted_relation": 18,
+        "seed_family_support": 27,
+        "source_family_summary": 3
+      },
+      "source_row_count": 48,
+      "source_row_node_count": 48,
+      "support_kind_count": 2,
+      "support_kind_label_counts": {
+        "broad_cue": 1,
+        "direct": 1
+      }
+    },
+    "typing_deficit_signals": [],
+    "version": "gwb.legal_follow_graph.v1"
+  },
   "normalized_metrics_v1": {
     "artifact_id": "gwb_broader_review_v1",
     "candidate_signal_count": 38,
@@ -40,6 +2955,189 @@
       "queue_pressure": 0,
       "structural_pressure": 0
     }
+  },
+  "operator_views": {
+    "legal_follow_graph": {
+      "available": true,
+      "control_plane": {
+        "conjecture_kind": "follow_needed_conjecture",
+        "hint_kind": "legal_follow_hint",
+        "receipt_kind": "followed_source",
+        "resolution_statuses": [
+          "open",
+          "resolved",
+          "reviewed"
+        ],
+        "route_targets": [
+          "citation_follow",
+          "eur_lex_follow",
+          "manual_review",
+          "uk_legislation_follow"
+        ],
+        "source_family": "gwb_legal_follow",
+        "substrate_kind": "legal_follow_graph",
+        "version": "follow.control.v1"
+      },
+      "highlight_nodes": [
+        {
+          "id": "source_family:checked_handoff",
+          "kind": "source_family",
+          "label": "checked_handoff"
+        },
+        {
+          "id": "source_family:source_family:checked_handoff",
+          "kind": "source_family",
+          "label": "checked_handoff"
+        },
+        {
+          "id": "support_kind:support_kind:direct",
+          "kind": "support_kind",
+          "label": "direct"
+        },
+        {
+          "id": "review_status:review_status:matched",
+          "kind": "review_status",
+          "label": "matched"
+        },
+        {
+          "id": "linkage_kind:domestic_statute",
+          "kind": "linkage_kind",
+          "label": "domestic_statute"
+        },
+        {
+          "id": "review_status:review_status:candidate_only",
+          "kind": "review_status",
+          "label": "candidate_only"
+        },
+        {
+          "id": "linkage_kind:litigation_and_subpoena",
+          "kind": "linkage_kind",
+          "label": "litigation_and_subpoena"
+        },
+        {
+          "id": "source_family:corpus_book_timeline",
+          "kind": "source_family",
+          "label": "corpus_book_timeline"
+        }
+      ],
+      "queue": [],
+      "sample_edges": [
+        {
+          "kind": "supports_source_row",
+          "source": "Clear Skies legislative and Clean Air amendment lane",
+          "target": "gwb_us_law:clear_skies_2003 in checked_handoff"
+        },
+        {
+          "kind": "mentions_source_family",
+          "source": "gwb_us_law:clear_skies_2003 in checked_handoff",
+          "target": "checked_handoff"
+        },
+        {
+          "kind": "mentions_source_family",
+          "source": "gwb_us_law:clear_skies_2003 in checked_handoff",
+          "target": "checked_handoff"
+        },
+        {
+          "kind": "mentions_support_kind",
+          "source": "gwb_us_law:clear_skies_2003 in checked_handoff",
+          "target": "direct"
+        },
+        {
+          "kind": "mentions_review_status",
+          "source": "gwb_us_law:clear_skies_2003 in checked_handoff",
+          "target": "matched"
+        },
+        {
+          "kind": "uses_linkage_kind",
+          "source": "Clear Skies legislative and Clean Air amendment lane",
+          "target": "domestic_statute"
+        },
+        {
+          "kind": "supports_source_row",
+          "source": "Congressional subpoena and immunity litigation lane",
+          "target": "gwb_us_law:congressional_subpoena_litigation in checked_handoff"
+        },
+        {
+          "kind": "mentions_source_family",
+          "source": "gwb_us_law:congressional_subpoena_litigation in checked_handoff",
+          "target": "checked_handoff"
+        }
+      ],
+      "summary": {
+        "brexit_related_follow_count": 0,
+        "edge_count": 232,
+        "followed_source_cite_class_counts": {},
+        "followed_source_count": 0,
+        "followed_source_kind_counts": {},
+        "followed_source_receipt_kind_counts": {},
+        "highest_authority_yield": "low",
+        "highest_priority_score": 0,
+        "linkage_kind_counts": {
+          "congressional_authority": 1,
+          "court_and_confirmation": 1,
+          "domestic_statute": 1,
+          "executive_proclamation": 1,
+          "institutional_anchor": 1,
+          "litigation_and_subpoena": 1,
+          "statute_and_litigation": 1
+        },
+        "node_count": 92,
+        "predicate_count": 6,
+        "priority_band_counts": {
+          "high": 0,
+          "low": 0,
+          "medium": 0
+        },
+        "queue_count": 0,
+        "resolution_status_counts": {},
+        "review_status_count": 2,
+        "review_status_label_counts": {
+          "candidate_only": 1,
+          "matched": 1
+        },
+        "route_target_counts": {},
+        "seed_lane_count": 13,
+        "source_family_count": 8,
+        "source_family_label_counts": {
+          "checked_handoff": 2,
+          "checked_handoff,corpus_book_timeline": 1,
+          "checked_handoff,public_bios_timeline,corpus_book_timeline": 1,
+          "corpus_book_timeline": 2,
+          "public_bios_timeline": 2
+        },
+        "source_kind_counts": {
+          "merged_promoted_relation": 18,
+          "seed_family_support": 27,
+          "source_family_summary": 3
+        },
+        "source_row_count": 48,
+        "source_row_node_count": 48,
+        "support_kind_count": 2,
+        "support_kind_label_counts": {
+          "broad_cue": 1,
+          "direct": 1
+        }
+      },
+      "typing_deficit_signals": []
+    }
+  },
+  "promotion_gate": {
+    "decision": "audit",
+    "evidence": {
+      "abstained_count": 0,
+      "product_roles": [
+        "broader_review",
+        "normalized_review_summary",
+        "legal_linkage_graph",
+        "downstream_reasoning_projection"
+      ],
+      "promoted_count": 37,
+      "review_count": 11
+    },
+    "lane": "gwb",
+    "product_ref": "gwb_broader_review_v1",
+    "reason": "mixed_promote_review_or_abstain_pressure",
+    "schema_version": "sl.product_gate.v0_1"
   },
   "provisional_review_bundles": [
     {
@@ -112,344 +3210,534 @@
   "provisional_review_rows": [
     {
       "anchor_kind": "ambiguous_event_count",
-      "anchor_label": "9",
+      "anchor_label": null,
+      "anchor_value": 9,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:checked_handoff::ambiguous_event_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 1,
       "priority_score": 16,
       "provisional_review_id": "family_summary:checked_handoff#p1",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:checked_handoff"
     },
     {
       "anchor_kind": "unresolved_surface_count",
-      "anchor_label": "7",
+      "anchor_label": null,
+      "anchor_value": 7,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:checked_handoff::unresolved_surface_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 2,
       "priority_score": 16,
       "provisional_review_id": "family_summary:checked_handoff#p2",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:checked_handoff"
     },
     {
       "anchor_kind": "ambiguous_event_count",
-      "anchor_label": "144",
+      "anchor_label": null,
+      "anchor_value": 144,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:corpus_book_timeline::ambiguous_event_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 3,
       "priority_score": 16,
       "provisional_review_id": "family_summary:corpus_book_timeline#p1",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:corpus_book_timeline"
     },
     {
       "anchor_kind": "unresolved_surface_count",
-      "anchor_label": "91",
+      "anchor_label": null,
+      "anchor_value": 91,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:corpus_book_timeline::unresolved_surface_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 4,
       "priority_score": 16,
       "provisional_review_id": "family_summary:corpus_book_timeline#p2",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:corpus_book_timeline"
     },
     {
       "anchor_kind": "ambiguous_event_count",
-      "anchor_label": "10",
+      "anchor_label": null,
+      "anchor_value": 10,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:public_bios_timeline::ambiguous_event_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 5,
       "priority_score": 16,
       "provisional_review_id": "family_summary:public_bios_timeline#p1",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:public_bios_timeline"
     },
     {
       "anchor_kind": "unresolved_surface_count",
-      "anchor_label": "12",
+      "anchor_label": null,
+      "anchor_value": 12,
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "family_summary:public_bios_timeline::unresolved_surface_count::",
+      "primary_workload_class": "event_extraction_gap",
       "priority_rank": 6,
       "priority_score": 16,
       "provisional_review_id": "family_summary:public_bios_timeline#p2",
-      "seed_id": null,
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "family_summary:public_bios_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "corpus_book_timeline",
+      "anchor_label": null,
+      "anchor_value": "corpus_book_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 7,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline#p1",
-      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "public_bios_timeline",
+      "anchor_label": null,
+      "anchor_value": "public_bios_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:defense_executive_operations:public_bios_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 8,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:defense_executive_operations:public_bios_timeline#p1",
-      "seed_id": "gwb_us_law:defense_executive_operations",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:defense_executive_operations:public_bios_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "corpus_book_timeline",
+      "anchor_label": null,
+      "anchor_value": "corpus_book_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 9,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline#p1",
-      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "public_bios_timeline",
+      "anchor_label": null,
+      "anchor_value": "public_bios_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:military_commissions_2006:public_bios_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 10,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:military_commissions_2006:public_bios_timeline#p1",
-      "seed_id": "gwb_us_law:military_commissions_2006",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:military_commissions_2006:public_bios_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "corpus_book_timeline",
+      "anchor_label": null,
+      "anchor_value": "corpus_book_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:corpus_book_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 11,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:schip_veto:corpus_book_timeline#p1",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:corpus_book_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "public_bios_timeline",
+      "anchor_label": null,
+      "anchor_value": "public_bios_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:public_bios_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 12,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:schip_veto:public_bios_timeline#p1",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:public_bios_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "corpus_book_timeline",
+      "anchor_label": null,
+      "anchor_value": "corpus_book_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:corpus_book_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 13,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline#p1",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline"
     },
     {
       "anchor_kind": "source_family",
-      "anchor_label": "public_bios_timeline",
+      "anchor_label": null,
+      "anchor_value": "public_bios_timeline",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:public_bios_timeline::source_family::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 14,
       "priority_score": 12,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline#p1",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "direct",
+      "anchor_label": null,
+      "anchor_value": "direct",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 15,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline#p2",
-      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "direct",
+      "anchor_label": null,
+      "anchor_value": "direct",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:defense_executive_operations:public_bios_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 16,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:defense_executive_operations:public_bios_timeline#p2",
-      "seed_id": "gwb_us_law:defense_executive_operations",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:defense_executive_operations:public_bios_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "direct",
+      "anchor_label": null,
+      "anchor_value": "direct",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 17,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline#p2",
-      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "broad_cue",
+      "anchor_label": null,
+      "anchor_value": "broad_cue",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:military_commissions_2006:public_bios_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 18,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:military_commissions_2006:public_bios_timeline#p2",
-      "seed_id": "gwb_us_law:military_commissions_2006",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:military_commissions_2006:public_bios_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "broad_cue",
+      "anchor_label": null,
+      "anchor_value": "broad_cue",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:corpus_book_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 19,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:schip_veto:corpus_book_timeline#p2",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:corpus_book_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "broad_cue",
+      "anchor_label": null,
+      "anchor_value": "broad_cue",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:public_bios_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 20,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:schip_veto:public_bios_timeline#p2",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:public_bios_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "broad_cue",
+      "anchor_label": null,
+      "anchor_value": "broad_cue",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:corpus_book_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 21,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline#p2",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline"
     },
     {
       "anchor_kind": "support_kind",
-      "anchor_label": "broad_cue",
+      "anchor_label": null,
+      "anchor_value": "broad_cue",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:public_bios_timeline::support_kind::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 22,
       "priority_score": 8,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline#p2",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 23,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline#p3",
-      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 24,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline#p4",
-      "seed_id": "gwb_us_law:congressional_subpoena_litigation",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:congressional_subpoena_litigation:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:defense_executive_operations:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 25,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:defense_executive_operations:public_bios_timeline#p3",
-      "seed_id": "gwb_us_law:defense_executive_operations",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:defense_executive_operations:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:defense_executive_operations:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 26,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:defense_executive_operations:public_bios_timeline#p4",
-      "seed_id": "gwb_us_law:defense_executive_operations",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:defense_executive_operations:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 27,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline#p3",
-      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 28,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline#p4",
-      "seed_id": "gwb_us_law:genetic_information_nondiscrimination_act",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:genetic_information_nondiscrimination_act:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:military_commissions_2006:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 29,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:military_commissions_2006:public_bios_timeline#p3",
-      "seed_id": "gwb_us_law:military_commissions_2006",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:military_commissions_2006:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:military_commissions_2006:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 30,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:military_commissions_2006:public_bios_timeline#p4",
-      "seed_id": "gwb_us_law:military_commissions_2006",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:military_commissions_2006:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 31,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:schip_veto:corpus_book_timeline#p3",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 32,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:schip_veto:corpus_book_timeline#p4",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 33,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:schip_veto:public_bios_timeline#p3",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:schip_veto:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 34,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:schip_veto:public_bios_timeline#p4",
-      "seed_id": "gwb_us_law:schip_veto",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:schip_veto:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 35,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline#p3",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:corpus_book_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 36,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline#p4",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:corpus_book_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "matched",
+      "anchor_label": null,
+      "anchor_value": "matched",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 37,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline#p3",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline"
     },
     {
       "anchor_kind": "review_status",
-      "anchor_label": "candidate_only",
+      "anchor_label": null,
+      "anchor_value": "candidate_only",
+      "best_affidavit_proposition_id": null,
+      "dedupe_key": "gwb_us_law:supreme_court_appointments:public_bios_timeline::review_status::",
+      "primary_workload_class": "linkage_gap",
       "priority_rank": 38,
       "priority_score": 5,
       "provisional_review_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline#p4",
-      "seed_id": "gwb_us_law:supreme_court_appointments",
+      "recommended_next_action": null,
+      "review_disposition": "provisional_anchor_candidate",
       "source_row_id": "gwb_us_law:supreme_court_appointments:public_bios_timeline"
     }
   ],
@@ -2160,5 +5448,34 @@
     "source_family_count": 3,
     "source_row_count": 48
   },
-  "version": "gwb_broader_review_v1"
+  "version": "gwb_broader_review_v1",
+  "workflow_summary": {
+    "counts": {
+      "legal_follow_queue_count": 0,
+      "missing_review_count": 11,
+      "provisional_bundle_count": 11
+    },
+    "promotion_gate": {
+      "decision": "audit",
+      "evidence": {
+        "abstained_count": 0,
+        "product_roles": [
+          "broader_review",
+          "normalized_review_summary",
+          "legal_linkage_graph",
+          "downstream_reasoning_projection"
+        ],
+        "promoted_count": 37,
+        "review_count": 11
+      },
+      "lane": "gwb",
+      "product_ref": "gwb_broader_review_v1",
+      "reason": "mixed_promote_review_or_abstain_pressure",
+      "schema_version": "sl.product_gate.v0_1"
+    },
+    "reason": "11 source row(s) remain missing review coverage.",
+    "recommended_view": "source_review_rows",
+    "stage": "decide",
+    "title": "Review unresolved broader GWB source rows"
+  }
 }

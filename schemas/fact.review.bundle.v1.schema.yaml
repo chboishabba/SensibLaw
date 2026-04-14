@@ -249,6 +249,46 @@ properties:
           items: {type: string}
   operator_views:
     type: object
+  workflow_summary:
+    type: object
+  review_claim_records:
+    type: array
+    items:
+      type: object
+      required:
+        - schema_version
+        - claim_id
+        - candidate_id
+        - family_id
+        - cohort_id
+        - root_artifact_id
+        - lane
+        - source_family
+        - state
+        - state_basis
+        - evidence_status
+        - proposition_identity
+        - provenance
+        - decision_basis
+        - review_route
+      properties:
+        schema_version: {type: string}
+        claim_id: {type: string}
+        candidate_id: {type: string}
+        family_id: {type: string}
+        cohort_id: {type: string}
+        root_artifact_id: {type: string}
+        lane: {type: string}
+        source_family: {type: string}
+        state: {type: string}
+        state_basis: {type: string}
+        evidence_status: {type: string}
+        proposition_identity: {type: object}
+        target_proposition_identity: {type: object}
+        proposition_relation: {type: object}
+        provenance: {type: object}
+        decision_basis: {type: object}
+        review_route: {type: object}
   contested_summary:
     type: object
     properties:
@@ -290,6 +330,10 @@ properties:
           statement_abstentions: {type: integer}
           observation_abstentions: {type: integer}
           fact_abstentions: {type: integer}
+  compiler_contract:
+    type: object
+  promotion_gate:
+    type: object
   semantic_context:
     type: object
     required: [summary, review_summary, text_debug]
@@ -297,4 +341,7 @@ properties:
       summary: {type: object}
       review_summary: {type: object}
       text_debug: {type: object}
+      compiler_contract: {type: object}
+      promotion_gate: {type: object}
+      suite_normalized_artifact: {type: object}
 additionalProperties: false

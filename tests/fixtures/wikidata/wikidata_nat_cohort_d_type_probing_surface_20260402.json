@@ -37,6 +37,9 @@
       ],
       "smallest_typing_check": "resolve_page_open_questions",
       "promotion_guard": "hold",
+      "cohort_flags": [
+        "missing_instance_of_typing_deficit"
+      ],
       "execution_allowed": false
     },
     {
@@ -50,10 +53,16 @@
       ],
       "smallest_typing_check": "resolve_page_open_questions",
       "promotion_guard": "hold",
+      "cohort_flags": [
+        "missing_instance_of_typing_deficit"
+      ],
       "execution_allowed": false
     }
   ],
   "unresolved_packet_refs": [],
+  "surface_flags": [
+    "missing_instance_of_typing_deficit"
+  ],
   "non_claims": [
     "non_executing_type_probe_surface",
     "no_direct_migration_execution",

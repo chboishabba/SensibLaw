@@ -1,10 +1,12 @@
 {
   "total_batch_runs": 2,
   "total_agreements": 0,
-  "total_disagreements": 2,
+  "total_disagreements": 6,
   "axis_disagreement_counts": {
-    "P3831": 2,
-    "P459": 2,
-    "__value__": 2
-  }
+    "P3831": 4,
+    "P459": 4,
+    "P585": 4,
+    "__value__": 6
+  },
+  "lane_id": "wikidata_nat_cohort_e_unreconciled_instanceof"
 }

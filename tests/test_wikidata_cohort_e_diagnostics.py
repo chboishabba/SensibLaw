@@ -33,6 +33,7 @@ def test_build_cohort_e_diagnostic_report_holds_on_mismatch() -> None:
     assert report["comparisons"][0]["status"] == "disagreement"
     assert "__value__" in report["comparisons"][0]["disagreements"]
     assert report["non_authoritative"] is True
+    assert "axis_specific_unreconciled_instance_of" in report["diagnostic_flags"]
 
 
 def test_diagnostic_fixture_matches_helper() -> None:

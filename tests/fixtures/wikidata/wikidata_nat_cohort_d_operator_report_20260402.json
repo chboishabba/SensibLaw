@@ -11,6 +11,20 @@
     "medium_priority_count": 0,
     "unresolved_packet_ref_count": 0
   },
+  "workflow_summary": {
+    "stage": "follow_up",
+    "recommended_view": "operator_queue",
+    "reason": "2 high-priority typing check(s) should be reviewed first.",
+    "counts": {
+      "queue_size": 2,
+      "high_priority_count": 2,
+      "medium_priority_count": 0,
+      "unresolved_packet_ref_count": 0
+    },
+    "promotion_gate": {
+      "decision": "hold"
+    }
+  },
   "queue_preview": [
     {
       "review_entity_qid": "Q1785637",

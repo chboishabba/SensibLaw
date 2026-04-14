@@ -8,6 +8,8 @@ import sqlite3
 from typing import TYPE_CHECKING
 from typing import Any
 
+from src.reporting.observation_lanes import ObservationLaneAdapter
+
 from src.reporting.source_loaders import find_timestamped_artifact_path, resolve_loader_path
 from src.reporting.source_identity import build_openrecall_capture_id, format_local_iso_and_date_from_timestamp
 from src.reporting.text_unit_builders import build_header_body_text
@@ -569,3 +571,89 @@ def query_openrecall_captures(
             }
         )
     return out
+
+
+def ensure_openrecall_observation_schema(conn: sqlite3.Connection) -> None:
+    ensure_openrecall_capture_schema(conn)
+
+
+def import_openrecall_source(
+    conn: sqlite3.Connection,
+    source_path: str | Path,
+    import_run_id: str,
+    *,
+    storage_path: str | Path | None = None,
+    limit: int | None = None,
+) -> OpenRecallImportSummary:
+    return import_openrecall_db(
+        conn,
+        source_db_path=source_path,
+        import_run_id=import_run_id,
+        storage_path=storage_path,
+        limit=limit,
+    )
+
+
+def build_openrecall_observation_summary(
+    conn: sqlite3.Connection,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    source_kind: str | None = None,
+) -> dict[str, Any]:
+    return build_openrecall_capture_summary(
+        conn,
+        import_run_id=import_run_id,
+        date=date,
+        app_name=source_kind,
+    )
+
+
+def query_openrecall_observation_captures(
+    conn: sqlite3.Connection,
+    *,
+    import_run_id: str | None = None,
+    date: str | None = None,
+    source_kind: str | None = None,
+    text_query: str | None = None,
+    limit: int = 25,
+) -> list[dict[str, Any]]:
+    return query_openrecall_captures(
+        conn,
+        import_run_id=import_run_id,
+        date=date,
+        app_name=source_kind,
+        text_query=text_query,
+        limit=limit,
+    )
+
+
+OPENRECALL_OBSERVATION_LANE = ObservationLaneAdapter(
+    lane_key="openrecall",
+    source_unit_type="openrecall_capture",
+    source_label="OpenRecall",
+    ensure_schema=ensure_openrecall_observation_schema,
+    import_data=import_openrecall_source,
+    load_units=load_openrecall_units,
+    load_activity_rows=load_openrecall_activity_rows,
+    load_import_runs=load_openrecall_import_runs,
+    build_summary=build_openrecall_observation_summary,
+    query_captures=query_openrecall_observation_captures,
+)
+
+
+__all__ = [
+    "OPENRECALL_OBSERVATION_LANE",
+    "OpenRecallImportSummary",
+    "ensure_openrecall_capture_schema",
+    "ensure_openrecall_observation_schema",
+    "import_openrecall_db",
+    "import_openrecall_source",
+    "load_openrecall_activity_rows",
+    "load_openrecall_import_runs",
+    "load_openrecall_units",
+    "build_openrecall_capture_summary",
+    "build_openrecall_observation_summary",
+    "query_openrecall_captures",
+    "query_openrecall_observation_captures",
+]

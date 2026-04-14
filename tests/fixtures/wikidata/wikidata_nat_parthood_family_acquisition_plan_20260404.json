@@ -1,0 +1,113 @@
+{
+  "schema_version": "sl.wikidata_nat_family_acquisition_plan.v0_1",
+  "family_id": "parthood_family_safe_reference_transfer_subset",
+  "cohort_id": "parthood_family_safe_reference_transfer",
+  "family_state": "AWAITING_EVIDENCE",
+  "minimum_independent_paths_required": 2,
+  "current_blocker": "missing_independent_after_state_artifact",
+  "plan_status": "ready_for_acquisition",
+  "family_kind": "concrete_candidate_family",
+  "candidate_plans": [
+    {
+      "candidate_id": "Q16572|P361|1",
+      "entity_qid": "Q16572",
+      "candidate_label": "Guangzhou",
+      "candidate_description": "capital city of Guangdong Province, China",
+      "source_revision": "2475945368",
+      "route_kind": "same_family_after_state",
+      "priority": 1,
+      "expected_success_band": "higher",
+      "candidate_archetype": "city_or_municipality",
+      "why": "Administrative and municipal parthood rows are more likely to experience direct whole-part cleanup and reference churn.",
+      "placeholder_candidate": false,
+      "query": {
+        "entity_qid": "Q16572",
+        "property": "P361",
+        "current_value": "Q1144286",
+        "look_for": [
+          "changed_parent_item",
+          "added_or_removed_reference",
+          "added_or_removed_qualifier",
+          "statement_rank_change",
+          "containment_cleanup_against_neighboring_admin_properties"
+        ],
+        "time_window": "recent_revisions_first",
+        "accept_only_if": [
+          "after_state_differs_from_seen_roots",
+          "verify_migration_pack_against_after_state_passes",
+          "artifact_is_revision_locked"
+        ]
+      },
+      "stop_condition": "stop_on_first_revision_locked_after_state_that_verifies_and_is_independent"
+    },
+    {
+      "candidate_id": "Q3700011|P361|1",
+      "entity_qid": "Q3700011",
+      "candidate_label": "kecamatan",
+      "candidate_description": "third-level administrative region under the county and city",
+      "source_revision": "2475626330",
+      "route_kind": "same_family_after_state",
+      "priority": 2,
+      "expected_success_band": "medium",
+      "candidate_archetype": "district_or_subdivision",
+      "why": "Subdivision containment rows are a plausible second path because parent containment and references can change without changing the overall family shape.",
+      "placeholder_candidate": false,
+      "query": {
+        "entity_qid": "Q3700011",
+        "property": "P361",
+        "current_value": "Q3199141",
+        "look_for": [
+          "changed_parent_item",
+          "added_or_removed_reference",
+          "added_or_removed_qualifier",
+          "statement_rank_change",
+          "containment_cleanup_against_neighboring_admin_properties"
+        ],
+        "time_window": "recent_revisions_first",
+        "accept_only_if": [
+          "after_state_differs_from_seen_roots",
+          "verify_migration_pack_against_after_state_passes",
+          "artifact_is_revision_locked"
+        ]
+      },
+      "stop_condition": "stop_on_first_revision_locked_after_state_that_verifies_and_is_independent"
+    },
+    {
+      "candidate_id": "Q980357|P361|1",
+      "entity_qid": "Q980357",
+      "candidate_label": "grammatical category",
+      "candidate_description": "analytical class within the grammar of a language",
+      "source_revision": "2474581003",
+      "route_kind": "same_family_after_state",
+      "priority": 3,
+      "expected_success_band": "lower",
+      "candidate_archetype": "class_or_type_ontology",
+      "why": "Ontology-heavy parthood rows can churn, but they are less likely to produce a clean second after-state quickly than administrative containment rows.",
+      "placeholder_candidate": false,
+      "query": {
+        "entity_qid": "Q980357",
+        "property": "P361",
+        "current_value": "Q315",
+        "look_for": [
+          "changed_parent_item",
+          "added_or_removed_reference",
+          "added_or_removed_qualifier",
+          "statement_rank_change",
+          "ontology_cleanup_against_neighboring_membership_properties"
+        ],
+        "time_window": "recent_revisions_first",
+        "accept_only_if": [
+          "after_state_differs_from_seen_roots",
+          "verify_migration_pack_against_after_state_passes",
+          "artifact_is_revision_locked"
+        ]
+      },
+      "stop_condition": "stop_on_first_revision_locked_after_state_that_verifies_and_is_independent"
+    }
+  ],
+  "summary": {
+    "candidate_count": 3,
+    "placeholder_candidate_count": 0,
+    "top_priority_candidate_id": "Q16572|P361|1"
+  }
+}

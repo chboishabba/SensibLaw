@@ -18,6 +18,7 @@ from .read_model import (
     build_fact_intake_report,
     build_fact_review_operator_views,
     build_fact_review_run_summary,
+    build_interrogative_view,
     build_contested_affidavit_proving_slice,
     build_contested_affidavit_review_summary,
     build_fact_review_workbench_payload,
@@ -58,7 +59,9 @@ from .acceptance_fixtures import (
     load_fact_review_acceptance_fixture_manifest,
 )
 from .au_review_bundle import (
+    AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION,
     build_au_fact_review_bundle,
+    build_au_fact_review_bundle_world_model_report,
     build_fact_intake_payload_from_au_semantic_report,
 )
 from .control_plane import (
@@ -115,6 +118,7 @@ __all__ = [
     "FACT_SEMANTIC_LAYER_VERSION",
     "FACT_INTAKE_CONTRACT_VERSION",
     "AUTHORITY_INGEST_VERSION",
+    "AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION",
     "FEEDBACK_RECEIPT_VERSION",
     "MARY_FACT_WORKFLOW_VERSION",
     "OBSERVATION_PREDICATE_FAMILIES",
@@ -125,6 +129,7 @@ __all__ = [
     "build_fact_intake_payload_from_au_semantic_report",
     "build_fact_intake_payload_from_transcript_report",
     "build_au_fact_review_bundle",
+    "build_au_fact_review_bundle_world_model_report",
     "build_fact_review_acceptance_batch_report",
     "build_fact_review_acceptance_report",
     "build_fact_review_acceptance_fixture",
@@ -132,6 +137,7 @@ __all__ = [
     "build_fact_intake_report",
     "build_fact_review_operator_views",
     "build_fact_review_run_summary",
+    "build_interrogative_view",
     "build_contested_affidavit_proving_slice",
     "build_contested_affidavit_review_summary",
     "build_fact_review_workbench_payload",

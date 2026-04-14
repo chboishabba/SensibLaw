@@ -20,6 +20,8 @@ from src.gwb_us_law.semantic import build_gwb_semantic_report, ensure_gwb_semant
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
 from src.zelph_bridge import run_zelph_inference
+from src.policy.compiler_contract import build_gwb_public_handoff_contract
+from src.policy.product_gate import build_product_gate
 
 ARTIFACT_VERSION = "gwb_public_handoff_v1"
 DEFAULT_OUTPUT_DIR = SENSIBLAW_ROOT / "tests" / "fixtures" / "zelph" / ARTIFACT_VERSION
@@ -244,6 +246,12 @@ def build_handoff_artifact(output_dir: Path, *, timeline_path: Path | None = Non
     timeline_payload = _load_timeline_payload(timeline_path=timeline_path)
     linkage_report, semantic_report = _build_reports(timeline_payload=timeline_payload)
     slice_payload = _build_slice(linkage_report, semantic_report, timeline_payload=timeline_payload)
+    slice_payload["compiler_contract"] = build_gwb_public_handoff_contract(slice_payload)
+    slice_payload["promotion_gate"] = build_product_gate(
+        lane="gwb",
+        product_ref=ARTIFACT_VERSION,
+        compiler_contract=slice_payload["compiler_contract"],
+    )
     summary_text = _build_summary_text(slice_payload)
     facts_text = _build_facts(slice_payload)
     rules_text = _build_rules()

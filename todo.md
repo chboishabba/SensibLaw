@@ -1,5 +1,661 @@
 # SensibLaw TODO
 
+- [P0] Pin and then implement the single-parser spine doctrine before any more
+  source-family expansion.
+  - parser doctrine now reads:
+    - one upstream media adapter
+    - one canonical text substrate for ordinary content
+    - one parser spine over canonical text
+    - structure is discovered post-parse, not declared by input type
+    - source provenance is metadata, not parser identity
+    - extraction profile sits above the parser
+    - mixed-content documents with embedded code stay inside the same parser
+  - current parser-spine lane order:
+    - DONE: refine `CanonicalText`, `CanonicalSegment`, `CanonicalUnit`, and
+      `ParsedEnvelope` with stable IDs, anchors, and ingest receipt fields
+    - DONE: define `parse_canonical_text(...)` as the shared parser-spine contract
+    - DONE: land one non-PDF text adopter against the same envelope contract
+    - DONE: land the first bounded extraction-profile layer on top of the
+      same spine
+    - DONE: make structure and segment graphs a parsed-output property, not an input
+      taxonomy
+    - widen downstream builders only where the shared spine materially helps
+  - current mixed-content contract:
+    - block `segment_kind`:
+      - `heading`
+      - `paragraph`
+      - `list`
+      - `quote`
+      - `table`
+      - `code_block`
+      - `divider`
+    - inline `unit_kind`:
+      - `text_run`
+      - `code_span`
+      - `citation`
+      - `link`
+      - `emphasis`
+  - current no-go list:
+    - no parser split by source family, outlet, or entity scope
+    - no parser split by downstream review lane
+    - no treating structuredness as an input class
+    - no ontology-level `pdf` / `html` / `rows` / `transcript` parser families
+    - no separate code parser for ordinary mixed documents
+  - current bounded normative read:
+    - keep ISO-like extraction on the same parser spine
+    - treat policy/IR/graph work as extraction profiles and derived artifacts
+    - treat non-text inputs as media-adapter concerns that normalize into
+      canonical text when possible
+  - minimal extraction-profile set:
+    - `normative_policy`
+    - `narrative_claim`
+    - `legal_review`
+    - `timeline_event`
+  - first bounded normative pilot:
+    - DONE: run one bounded excerpt-style input through the shared parser
+      spine and apply `normative_policy` to emit `policy_statements` and
+      `ir_queries`
+    - DONE: bind real ISO 42001 excerpt packs to the same projector
+    - current allowed ISO lane:
+      - keep ISO work on the same parser spine and `normative_policy`
+        projection
+      - treat ISO catalogue / PAS discovery as reconnaissance only, not as a
+        canonical semantic source of truth for runtime meaning
+      - use bounded excerpt packs and fixture-quality/reuse review rather than
+        broad ISO ingestion/catalog work
+      - keep `graph_extract` held
+  - first bounded structure-graph seam:
+    - DONE: additive `SegmentGraph` with:
+      - `contains`
+      - `follows`
+      - `heads`
+    - keep it debug/operator-only until a downstream consumer genuinely needs it
+  - verification gate:
+    - docs-only: consistency review only
+    - contract-only: narrow helper/policy tests only
+    - implementation seam: first adopter tests only, then widen only on real
+      shared-surface spread
+  - contested review identifiability:
+    - DONE: keep coarse `coverage_status` / `review_status` stable and
+      non-truth-bearing
+    - DONE: normalize additive `status_explanation` around:
+      - `status_scope`
+      - `status_value`
+      - `status_bucket`
+      - `why`
+      - `next_action`
+      - `primary_reason_code`
+      - `reason_codes`
+      - `reason_labels`
+      - `related_record_id`
+      - optional `details`
+    - DONE: keep `why` as a deterministic render from structured reason/detail
+      fields rather than a repeated hardcoded sentence
+    - DONE: expose optional operator-only `interrogatives` as a derived
+      projection:
+      - `who`
+      - `what`
+      - `when`
+      - `where`
+      - `why`
+      - `how`
+      Keep it query/readout-only and do not persist it.
+    - DONE: normalize ordinary fact-review queue/operator read-model surfaces
+      around the same additive `status_explanation` discipline so contested and
+      non-contested operator rows no longer drift into parallel explanation
+      vocabularies
+  - explicit holds:
+    - do not add new source-family taxonomies
+    - do not reopen OCR
+    - do not reopen emitted `review_alignment`
+    - do not promote claim-sheet or memoir-derived artifacts yet
+    - do not couple parser-spine work to gate/resolution/reporting changes
+    - do not turn the ISO lane into a separate parser family, standards
+      ontology, or broad ingestion/catalog program
+
+- [P0] Reconsider the moonshot normalization read across AU, GWB, and
+  Wikidata:
+  the previous judgment-architecture pass was useful but too Nat-centric.
+  The stronger cross-lane target is:
+  bounded evidence bundle in -> promoted outcomes out -> derived
+  review/product/graph surfaces after that.
+  - next orchestration order:
+    - shared evidence-bundle -> promoted-outcome contract
+    - AU product normalization
+    - GWB product normalization
+    - Nat text-bridge / grounding as one adopter family
+    - minimal shared primitive/comparison support only where it directly helps
+      those products
+  - current promotion order:
+    - `Ramanujan`
+    - `Erdos`
+    - `Lorentz`
+    - `Euler`
+    - `Ohm`
+    - `Huygens`
+  - control note:
+    - `../docs/planning/moonshot_compiler_normalization_reconsideration_20260402.md`
+      controls lane order if a support note differs
+  - checkpoint re-read:
+    - order unchanged
+    - one worker per lane unchanged
+    - no further allocation change justified at this checkpoint
+    - rechecked again with no change
+    - repeated checkpoint confirmation: still no change
+    - further docs-only reaffirmation now adds no new governance signal
+    - convergence point reached: the next honest move is implementation
+      promotion under the same lane ownership and order
+    - docs-only orchestration updates are frozen for this checkpoint unless
+      new lane evidence materially changes ownership, order, or contract scope
+  - keep graph explicitly derived and optional, not the organizing truth layer
+  - planning note:
+    `../docs/planning/moonshot_compiler_normalization_reconsideration_20260402.md`
+  - completion roadmap:
+    - land the shared evidence-bundle -> promoted-outcome contract as the
+      cross-lane compiler spine
+    - normalize AU onto that contract
+    - normalize GWB onto that contract
+    - land the reusable `promote | abstain | audit` gate above those
+      normalized products
+    - then shift priority to the first operator-grade workflow layer and the
+      remaining high-priority workflow lanes
+  - progress read:
+    - reusable substrate / canonical-surface program: roughly `90-95%`
+    - moonshot compiler-contract reframing: roughly `70-80%`
+    - full project overall: roughly `45-50%`
+  - completion condition:
+    - AU, GWB, and Wikidata/Nat all accept bounded evidence bundles and emit
+      promoted outcomes plus derived products under one shared contract
+    - reusable promotion gate exists above those products
+    - graph stays derived and optional
+    - operator workflow no longer lags far behind the architecture
+  - normalization correction:
+    - lane-local grouped facades are not the same thing as a shared canonical
+      substrate
+    - files such as `src/policy/affidavit_normalized_surface.py` are useful
+      temporary adapter shells, but they do not satisfy the cross-lane
+      normalization goal by themselves
+    - the stronger target is extraction of lane-agnostic surfaces for:
+      - text units
+      - candidate units
+      - claim units
+      - hint/advisory units
+      - decision/arbitration units
+  - next normalization priority order:
+    - shared text surface above affidavit/AU/GWB/Nat leaves
+    - shared candidate/alignment surface
+    - shared claim/decision surface
+    - only then keep or remove lane-local facade shells case by case
+  - current normalization checkpoint:
+    - DONE:
+      - shared `review_text` surface
+      - shared weak `review_candidate` surface
+    - current maximal shared primitive:
+      - `review_candidate`
+    - current hold:
+      - standalone shared `review_alignment`
+      - any promoted alignment primitive above `review_candidate`
+    - reason:
+      - shared methods and structural similarity are not enough by themselves;
+        emitted shared surfaces must wait for semantic convergence
+    - current lane read:
+      - affidavit targeting:
+        proposition -> best source row
+      - GWB targeting:
+        source-review row -> review item / seed-linked target
+      - AU targeting:
+        review-queue row -> event-target subset
+    - doctrine:
+      - normalize shared primitives first
+      - normalize the targeting kernel before emitted alignment semantics
+      - treat weak targeting result as the next structural layer, not a shared
+        semantic verdict
+      - treat higher-order alignment as composition, not primitive
+      - promote shared alignment only when at least two lanes share:
+        - the same source meaning
+        - the same target meaning
+        - the same basis vocabulary
+        - the same downstream interpretation without lane-specific caveats
+    - renewed formalism:
+      - canonical now:
+        - `review_text`
+        - `review_candidate`
+      - bounded carrier:
+        - `selection_basis`
+      - next shared method layer:
+        - `TargetingKernel`
+      - next shared structural layer:
+        - `WeakTargetingResult`
+      - experimental later:
+        - `AlignmentPrimitive`
+      - held:
+        - shared emitted `review_alignment`
+      - stronger kernel read:
+        - one shared `Targeting` primitive
+        - many lane-local targeting interpretations
+    - likely future convergence pair:
+      - affidavit + GWB
+    - AU read:
+      - likely later targeting-kernel adopter rather than first alignment
+        adopter
+    - next safe normalization work:
+      - pin the one-targeting-primitive doctrine explicitly in runtime
+        contracts
+      - define `TargetingKernel`
+      - define `WeakTargetingResult` as a set-based structural contract
+      - define `AlignmentReadinessAssessment`
+      - bound `selection_basis` vocabulary before any stronger emitted
+        alignment surface is reconsidered
+    - doctrine refinement:
+      - all alignment is targeting
+      - not all targeting is alignment
+      - normalize shared computation and weak structure before any attempt to
+        normalize emitted interpretation
+      - normalize to the richest justified targeting structure rather than the
+        weakest current adopter
+      - let singleton lanes remain bounded special cases of a richer
+        selected-set contract
+    - falsification read:
+      - affidavit interpretation overgeneralizes poorly
+      - GWB interpretation remains too seed-structured to universalize
+      - AU interpretation is the weakest and most general, but too lossy as a
+        universal semantic reading
+      - shared process survives:
+        origin -> constrained selection over a candidate set
+      - shared emitted interpretation still does not
+    - next validation question:
+      - does GWB actually have real multi-candidate targeting worth exposing,
+        or is it still honestly singleton today
+  - proposition-unification readiness gate:
+    - do not claim semantic/legal proposition unification until the repo has:
+      - DONE: a shared proposition identity substrate
+      - DONE: a bounded shared proposition-relation vocabulary
+      - DONE: a bounded contradiction taxonomy kept separate from review pressure
+      - DONE: a fail-closed resolution policy with legal plural states such as
+        hold and abstain
+    - weak `review_claim_records` do not satisfy this gate by themselves
+    - proposition runtime work before those four prerequisites land is schema
+      theater
+  - first implementation slice:
+    - DONE: add one tiny shared `compiler_contract` payload
+    - DONE: first adopters:
+      - AU public handoff
+      - GWB public handoff
+      - Wikidata migration pack
+    - do not normalize doctrinal or migration semantics at this layer
+  - current promoted lane:
+    - AU product normalization
+    - DONE first bounded cut:
+      - emit `semantic_context.compiler_contract` in the AU fact-review bundle
+  - current AU read:
+    - AU public handoff and AU fact-review bundle now share the compiler
+      summary shape
+  - next promoted lane:
+    - GWB product normalization
+    - DONE first bounded cut:
+      - emit `compiler_contract` from GWB public review
+      - emit `compiler_contract` from GWB broader review
+  - current GWB read:
+      - GWB public handoff, GWB public review, and GWB broader review now
+        share the compiler summary shape
+  - targeting/alignment checkpoint:
+    - DONE:
+      - `review_candidate` pinned as the canonical shared emitted primitive
+      - `alignment_readiness_assessment` added as the promotion oracle
+      - internal GWB set-based targeting contract landed
+      - `multi_candidate_unresolved` pinned as the fail-closed ambiguity state
+      - promotion guard pinned:
+        - no shared emitted `review_alignment` surface unless equivalence
+          verdict is `promote`
+      - empirical ambiguity audit before widening:
+        - public: `70 / 70` targeting results were `singleton_seed_linkage`
+        - broader: `27 / 27` targeting results were `singleton_seed_linkage`
+        - ambiguous seeds: `0`
+      - upstream widening now landed:
+        - public review-item construction splits multi-match seeds by matched
+          event
+        - broader review-item construction splits multi-match seeds by matched
+          source family
+      - empirical ambiguity audit after widening:
+        - public:
+          - `28` `singleton_seed_linkage`
+          - `42` `multi_candidate_unresolved`
+        - broader:
+          - `14` `singleton_seed_linkage`
+          - `13` `multi_candidate_unresolved`
+      - synthetic multiplicity checkpoint:
+        - forcing real public-review multiplicity through the widened builder
+          keeps emitted alignment held
+        - affidavit ↔ GWB drops to `hold`, not `prototype_only`, when GWB
+          multiplicity is real but unresolved
+        - reason:
+          multiplicity alone does not instantiate stable target semantics
+    - next honest move:
+      - tighten basis vocabulary and semantic read over ambiguous GWB cases
+        only after confirming that target semantics become stable enough to
+        survive the oracle honestly
+      - keep emitted shared alignment held until the oracle reaches
+        `promote`
+  - Bush-family source-classification checkpoint:
+    - DONE:
+      - classify the added Bush-family/public-record PDFs at the planning
+        level
+    - current read:
+      - `Affidavit_of_George_William_Bush_880921.pdf` is a real affidavit, but
+        for George William Bush / GHWB, not GWB
+      - `CIA-RDP99-01448R000401570001-1.pdf` is declassified documentary
+        public-record support, not an affidavit
+      - `21-3071-2022-10-24.pdf` is unrelated and should remain excluded from
+        Bush normalization work
+      - `Jordan Paust Affidavit.pdf`, `104-10336-10008.pdf`, and
+        `t081-059e-725789-1-59639.pdf` require OCR before honest lane
+        assignment
+    - implication:
+      - the active normalization contract should separate:
+        - `entity_scope`
+        - `source_class`
+        - `source_subtype`
+        - `artifact_kind`
+        - `unit_kind`
+      - current default `source_class` value is:
+        - `text_source`
+      - normative material is currently modeled as a `text_source`
+        provenance/extraction subtype, not a separate top-level class
+      - GHWB affidavit/public-record material now reads as:
+        - `entity_scope`: `ghwb`
+        - `source_class`: `text_source`
+        - `source_subtype`:
+          - `affidavit`
+          - `declassified_public_record`
+      - GWB still lacks a true affidavit-shaped runtime surface
+      - added DoD FOIA and Federal Register GWB sources should be treated as
+        `text_source` provenance subtypes, not affidavit material:
+        - `entity_scope`: `gwb`
+        - `source_class`: `text_source`
+        - `source_subtype`:
+          - `dod_foia`
+          - `federal_register_notice`
+          - `federal_register_document`
+          - `official_record_index`
+          - `official_record_attachment`
+    - next high-value source-family work:
+      - elevate GWB books/memoir material as a priority underused surface
+      - especially the existing `corpus_book_timeline` / `Decision Points`
+        material
+      - first land text-source subtype tightening / extractability proof over
+        that corpus lane
+      - only then derive a bounded memoir/public-record claim sheet rather
+        than forcing an affidavit-shaped artifact
+    - refreshed-thread normalization correction:
+      - proper normalization in this repo now means:
+        - representation fidelity
+        - semantic separability
+        - safe promotion boundaries
+      - current read:
+        - representation fidelity: materially improved
+        - semantic separability: partial helper/design state only
+        - promotion boundary: still correctly blocks shared emitted alignment
+    - active lane map restored from refreshed thread:
+      - GHWB text-source normalization over affidavit/declassified-public-record
+        material
+      - GWB text-source normalization over official-record material
+      - GWB text-source tightening over books/memoir material and claim-sheet
+        readiness
+      - GWB text-source journalistic/public-reporting normalization
+      - affidavit ↔ GWB convergence/oracle work
+      - basis/source-semantics normalization
+      - operator/dev ambiguity inspection
+      - semantic fingerprint schema design
+      - cross-system alignment schema design
+      - bounded text-source ingestion/extraction pilot design for normative
+        material:
+        - Qur'an -> Sharia subset
+        - ISO docsets -> policy / graph / IR extraction
+      - explicit verification lane after each round
+      - docs/UML/commit thresholds only when state justifies
+    - held lane correction:
+      - OCR for `Jordan Paust Affidavit.pdf`, `104-10336-10008.pdf`, and
+        `t081-059e-725789-1-59639.pdf` is not an active lane now
+      - it remains a held blocker to be reopened only if OCR is the real
+        blocker for source-family promotion
+    - standards/governance overlay for those lanes:
+      - ITIL
+      - ISO 9000
+      - ISO 42001
+      - ISO 27001
+      - ISO 27701
+      - ISO 23894
+      - NIST AI RMF
+      - Six Sigma
+      - C4/PlantUML only when topology changes
+    - next helper/design priorities from refreshed thread:
+      - define a semantic fingerprint schema aligned to SL layers
+      - define a cross-system alignment schema with concrete mapping tables
+      - define a bounded normative-docset ingestion/extraction contract that
+        can ingest ISO-like corpora and emit policy / graph / IR surfaces the
+        same way other normalized systems do
+      - keep existential/path-intersection alignment logic helper-only until
+        source and target semantics become stable enough to survive promotion
+      - do not promote Qur'an/Sharia or ISO docset examples into canonical
+        runtime surfaces before they exist as bounded working ingestion and
+        extraction examples
+  - current promoted lane:
+    - reusable `promote | abstain | audit` gate
+    - DONE first bounded cut:
+      - add one shared gate record above normalized products
+      - adopt it first in AU, GWB, and Wikidata normalized outputs
+    - landed adopters:
+      - AU public handoff
+      - AU fact-review bundle
+      - GWB public handoff
+      - GWB public review
+      - GWB broader review
+      - Wikidata migration pack
+    - validation:
+      - `28 passed`
+      - touched modules `py_compile` clean
+    - ontology boundary:
+      - keep product-gate decisions separate from proposition-resolution
+        states
+      - current read:
+        - product gate is promotion posture:
+          `promote | audit | abstain`
+        - proposition resolution is resolution posture:
+          `hold | abstain`
+      - `no_promoted_outcomes` is the bounded product-gate reason for
+        `abstain`; it is not evidence that the product-gate enum should be
+        collapsed into the proposition-resolution enum
+      - do not rename product-gate `abstain` to `hold` unless a deliberate
+        full-consumer migration is promoted
+  - next pinned lane:
+    - first operator-grade workflow layer over normalized outputs
+    - DONE first bounded cut:
+      - emit `semantic_context` and one derived `workflow_summary` from the
+        fact-review workbench payload
+      - surface one explicit inspect -> decide -> record -> follow-up card in
+        the fact-review route
+    - validation:
+      - backend focused gate: `30 passed`
+      - `read_model.py` `py_compile` clean
+      - repo-wide `npm run check` still blocked by unrelated pre-existing
+        `wiki-timeline-aoo-all` errors
+  - next pinned lane:
+    - first bounded annotation / QA workbench slice over the existing
+      fact-review/read-model/operator-view spine
+  - legal moonshot expansion:
+    - AU should deepen first through product normalization, not a separate
+      speculative doctrine engine
+    - next bounded AU cut:
+      - emit one derived `legal_follow_graph` from existing authority
+        receipts, legal refs, and citation candidates
+      - keep the graph derived and reviewable
+    - explicit safety boundary:
+      - `docs/red_team_anti_panopticon.md`
+      - `docs/panopticon_refusal.md`
+  - legal moonshot expansion:
+    - AU should now widen through normalized legal-follow products, not a
+      parallel bespoke graph lane
+    - first bounded slice:
+      - derive one `legal_follow_graph` from authority receipts, legal refs,
+        citations, and follow-needed conjectures inside the AU fact-review
+        bundle semantic context
+    - keep the graph:
+      - derived
+      - non-predictive
+      - non-authoritative
+      - challengeable by source and receipt
+    - governing notes:
+      - `../docs/planning/legal_surface_expansion_and_graph_union_20260402.md`
+      - `../docs/planning/anti_panopticon_red_team_provisions_20260402.md`
+  - revised legal-expansion read:
+    - AU legal follow is now the next strong legal adopter lane
+    - prioritize:
+      - case follow
+      - authority follow
+      - supporting legislation / cited instrument understanding
+      - derived legal-follow graph surfaces
+      - publish `supporting_legislation_role_counts` for derived graphs
+    - keep graph derived, optional, and challengeable
+    - do not widen into predictive legal decisionmaking or surveillance logic
+  - immediate bounded slice:
+    - emit one AU derived legal-follow graph from existing authority receipts,
+      legal refs, and citation hints inside the fact-review bundle semantic
+      context
+    - DONE:
+      - `src/policy/legal_follow_graph.py`
+      - `semantic_context.legal_follow_graph`
+      - `operator_views.legal_follow_graph.summary`
+      - AU compiler contract now lists `legal_follow_graph` as a derived
+        product
+      - AU authority receipts now include structured legal-ref and citation
+        detail for downstream graph consumers
+      - legal-follow graph now distinguishes case refs, supporting
+        legislation, and cited instruments
+      - authority-follow operator packets now expose reference-class counts
+        plus structured legal-ref and citation detail
+    - validation:
+      - focused gate: `19 passed`
+      - touched modules `py_compile` clean
+  - anti-panopticon hardening:
+    - keep `panopticon_refusal.md` as a controlling boundary
+    - make the red-team posture explicit in:
+      `docs/red_team_anti_panopticon.md`
+  - next legal-expansion lane:
+    - deepen supporting-legislation / cited-instrument attachment surfaces on
+      top of the derived legal-follow graph
+    - DONE bounded provenance cut:
+      - legal-follow graph now merges richer receipt/conjecture metadata into
+        shared nodes rather than keeping only the first sparse version
+      - supporting-legislation and cited-instrument nodes/edges now retain
+        structured ref detail where available
+      - citation and authority-receipt nodes now retain structured citation,
+        paragraph, and linkage provenance where available
+      - attachment-bearing graph nodes now also accumulate bounded
+        supporting event and supporting receipt provenance where available
+    - validation:
+      - focused AU/legal/compiler gate: `21 passed`
+  - current bounded AU legal/UI round:
+    - deepen supporting-legislation / cited-instrument attachment provenance
+      further where it materially improves inspectability
+    - surface the derived legal-follow graph in the fact-review workbench as
+      a read-only derived inspection surface
+    - keep it explicitly non-authoritative and challengeable by source and
+      receipt
+    - DONE bounded cut:
+      - graph summary now exposes supporting receipt counts and supporting
+        authority-kind counts for downstream inspection
+      - AU authority-follow payloads now also expose bounded
+        `jurisdiction_hint_counts` and `instrument_kind_counts`
+      - AU authority-follow payloads now also expose bounded
+        `ref_kind_counts`
+      - AU authority-follow payloads now also expose bounded
+        `citation_court_hint_counts` and `citation_year_counts`
+      - AU legal-follow graph now preserves those same jurisdiction /
+        instrument hints on supporting-legislation and cited-instrument
+        nodes and edges, and reports bounded summary counts for them
+      - AU legal-follow graph now also reports bounded
+        `reference_kind_counts`, `reference_class_counts`, `ref_kind_counts`,
+        `edge_kind_counts`, `edge_reference_class_counts`, and
+        `edge_ref_kind_counts`
+      - AU legal-follow graph now also reports bounded
+        `citation_court_hint_counts` and `citation_year_counts`
+      - fact-review workbench now surfaces the graph as a read-only derived
+        inspection pane with summary, authority/receipt, ref/citation, and
+        typed-link views
+      - that workbench pane can also render bounded distribution grids when
+        the derived graph provides them
+    - validation:
+      - focused AU/legal/compiler gate: `21 passed`
+      - touched Python modules `py_compile` clean
+      - `itir-svelte` `npm run check` still fails only on unrelated
+        `wiki-timeline-aoo-all` errors
+  - next bounded legal parity cut:
+    - DONE: added one derived GWB `legal_follow_graph` helper and adopted it
+      in:
+      - `gwb_public_review`
+      - `gwb_broader_review`
+    - DONE: existing GWB review summaries now expose that graph via a bounded
+      "Derived Legal-Linkage Graph" section
+    - DONE: existing GWB review summaries now also expose bounded
+      source-kind/source-family/linkage-kind/review-status/support-kind
+      distributions from that graph so operators can inspect the linkage
+      surface without a separate UI lane
+    - DONE: those GWB review summaries now also expose bounded
+      `Graph inspection` and `Sample typed links` sections for read-only
+      graph inspection without inventing a separate UI lane
+    - DONE: the existing fact-review legal-follow pane is typed to render
+      those bounded graph distributions when present, keeping the same
+      derived-only surface available to AU and GWB
+    - DONE: GWB compiler contracts now list `legal_linkage_graph` as an
+      explicit derived product for those review outputs
+    - DONE: GWB review payloads now also expose one bounded JSON
+      `operator_views.legal_follow_graph` surface with summary,
+      highlight-node, and sample-edge inspection data
+    - DONE: the fact-review workbench now renders that same bounded
+      `operator_views.legal_follow_graph` block for GWB workflows
+    - DONE: GWB legal-linkage graphs now add bounded followed-source nodes
+      when source-review receipts already carry HTTP links
+    - keep the surface product-shaped, not doctrinally overclaimed
+    - validation:
+      - focused AU+GWB/compiler gate: `25 passed`
+      - touched modules `py_compile` clean
+  - legal moonshot is now normal program state:
+    - AU legal-follow and GWB legal-linkage/follow are standard
+      compiler-shaped legal lanes now
+    - next bounded AU cross-jurisdiction requirement:
+      - allow one explicit AU -> UK/British follow hop where current
+        authority receipts, refs, or citation detail already point there
+      - keep it provenance-backed, derived-only, and review-first
+      - do not widen into general common-law ancestry crawl
+    - next bounded GWB cohort candidates:
+      - previous US presidents with visible executive/litigation follow
+      - UK Brexit-era politicians where UK/EU legal interactions are legible
+    - named proving-ground rule:
+      - treat Brexit as a first-class bounded legal-union proving ground, not
+        only as a cohort example
+      - use it to test UK domestic law / EU-law interaction surfaces through
+        bounded reviewable products
+      - keep it anti-panopticon-safe and explicitly non-surveillance
+    - DONE bounded cut:
+      - AU legal-follow now derives one explicit UK/British follow target when
+        current receipt/ref/citation evidence already points there
+      - GWB legal-linkage now classifies followed-source legal URLs into
+        bounded cite classes and reports Brexit-related follow counts where
+        source text/URLs already carry that pressure
+      - GWB legal-linkage now also seeds followed-source receipts from the
+        canonical foundation-source catalog when a review row already names a
+        known UK/EU legal source
+    - keep cohort expansion bounded, review-first, and anti-panopticon-safe
+    - progress/full-flow checkpoint:
+      - recent legal/compiler program: roughly `70-80%`
+      - broader legal-moonshot preparation: roughly `35-45%`
+      - full end-state moonshot: roughly `15-25%`
+      - end-state remains:
+        evidence intake -> canonicalization -> typed extraction -> bounded
+        follow -> promote/abstain/hold -> derived graph -> cross-system union
+        -> commonality/conflict analysis -> operator inspection -> bounded
+        products under anti-panopticon governance
+
 ## Wikidata
 - [x] Implement the bounded `P31` / `P279` Wikidata control-plane prototype described in `docs/planning/wikidata_transition_plan_20260306.md`.
 - [x] Add a bounded live-case fixture anchored on the current `alphabet` / `writing system` example.
@@ -230,6 +886,62 @@
   - guided next-step workflow clarity through `itir-svelte`
   - a real annotation / QA workbench slice
   - more direct user-feedback evidence beyond proxy/story notes
+- [ ] Push the next reusable judgment-architecture split above the now-settled
+  substrate layer:
+  - use `../docs/planning/judgment_architecture_lane_split_20260402.md` as the
+    current lane note
+  - current read:
+    - the next highest-value work is not more generic infrastructure cleanup
+    - it is reusable semantic/judgment scaffolding that can help both the
+      Nat moonshot and the broader legal/text-heavy lanes
+  - current bounded priority order:
+    - first executable text bridge over representative temporal / multi-value
+      climate rows
+    - first legal doctrinal primitive scaffold over bounded AU
+      procedural-meaning cases
+    - first common typed primitive/comparison pattern shared across those lanes
+    - deeper grounding depth on representative Nat hard packets
+    - disciplined competing-interpretation / claim-boundary graph surface
+    - stronger promotion / abstain / audit gates
+  - worker split:
+    - `Ramanujan`: text bridge
+    - `Erdos`: legal doctrinal primitives
+    - `Euler`: domain-agnostic primitive architecture
+    - `Lorentz`: Nat grounding depth
+    - `Ohm`: graph discipline
+    - `Huygens`: governance gates
+  - returned-brief read:
+    - `Ramanujan` is ready first on one pinned climate pilot family with
+      additive bridge fields only and explicit abstain outside the bounded
+      temporal / multi-value pattern
+    - `Erdos` should start as a bounded doctrinal projection/review layer over
+      AU procedural-meaning cases, not as a semantic-core rewrite
+    - `Euler` should keep the common layer tiny: one typed primitive plus one
+      bounded comparison surface, with lane-local decisions kept above it
+    - `Lorentz` should deepen grounded hard-packet evidence without widening
+      packet shape
+    - `Ohm` should stay overlay-only and off by default
+    - `Huygens` should formalize `promote | abstain | audit` without hardcoding
+      Nat-only thresholds into the general abstraction
+  - confirmed promotion order:
+    - `Ramanujan`
+    - `Erdos`
+    - `Euler`
+    - `Lorentz`
+    - `Ohm`
+    - `Huygens`
+  - immediate execution checkpoint:
+    - promote `Ramanujan` next on the pinned additive climate text-bridge
+      slice
+    - hold the remaining lanes in ranked order unless the first slice exposes
+      hidden coupling or a better bounded promotion
+    - rechecked orchestration state is unchanged: same lane ownership, same
+      promotion order, no new selection round needed before implementation
+  - keep explicit:
+    - text stays grounded evidence until promoted
+    - legal sources remain truth anchors in legal lanes
+    - graph work must not silently turn chronology into causality
+    - stronger judgment layers must stay fail-closed and auditable
 - [x] Land a shared SQLite runtime substrate for repo-relative path resolution
   and connection plumbing; first adopters are the wiki-timeline query runtime
   and fact-review query surface.
@@ -266,6 +978,32 @@
   `docs/planning/wikimedia_grant_framing_20260326.md`.
 
 ## Semantic / artifact boundary
+- [P0] Convert lane-local normalization shells into shared cross-lane
+  surfaces:
+  the current affidavit grouped facade improved local shape, but it is still
+  affidavit-specific. The next honest normalization target is not more
+  affidavit-only wrappers. It is extraction of canonical shared surfaces that
+  multiple lanes can bind to directly.
+  - target shared surfaces:
+    - `text_surface`
+    - `candidate_surface`
+    - `claim_surface`
+    - `hint_surface`
+    - `decision_surface`
+  - first proving lanes:
+    - affidavit
+    - AU fact-review / legal-follow
+    - GWB broader review
+    - Wikidata/Nat where the concept truly fits
+  - success condition:
+    - at least two non-affidavit lanes consume one of the extracted shared
+      surfaces without introducing new lane-specific types for the same
+      concept
+    - lane-local facades become adapters, not the organizing truth layer
+  - hold:
+    - do not mass-rename modules before the canonical shared type owners are
+      fixed
+    - do not let temporary facade files become permanent pseudo-substrates
 - [x] Add a canonical persisted receiver for affidavit coverage / contested
   narrative review in `itir.sqlite`, while keeping the JSON/markdown artifact
   as a derived projection/export surface.
@@ -338,9 +1076,12 @@
     bundling, and hint-aware workload recommendations, with focused coverage
     in `tests/test_affidavit_extraction_hints.py`.
   Outcome:
-  the planned normalization ladder from reconciliation text through extraction
-  hints is now landed; the remaining open affidavit work is parity/outcome
-  quality, not this helper-extraction umbrella.
+  the planned affidavit-local normalization ladder from reconciliation text
+  through extraction hints is now landed, but that only establishes a local
+  facade and cleaner ownership inside the affidavit lane.
+  It does not yet satisfy the stronger cross-lane normalization target.
+  Next priority is extracting shared text/candidate/claim/hint/decision
+  surfaces that AU, GWB, affidavit, and Nat can all bind to.
 - [x] Extend `src/ingestion/citation_follow.py` so the implemented bounded
   resolver matches the documented authority order (`already-ingested/local ->
   JADE exact MNC -> AustLII explicit/deterministic case URL -> AustLII search
@@ -780,6 +1521,13 @@
     and only through ITIR-normalized payloads
   - defer GUI-first OpenRecall browsing until the importer/read-model seam is
     proven stable
+  - treat OpenRecall and WorldMonitor as two observation sources in the same
+    substrate rather than separate semantic planes
+  - normalize the shared observation-ingestion contract before any
+    perception-vs-truth divergence, Delta-cone, attention-invariant, or
+    cognitive-join work
+  - keep OpenRecall-derived signals derived-only and operator-facing until the
+    shared substrate/relation/equivalence path is stable
 - [x] Add the first NotebookLM metadata/review parity slice as a neutral
   producer/query/read-model seam instead of treating `notes_meta` as a fake
   activity ledger. Current v1 now exposes NotebookLM observer date/notebook/

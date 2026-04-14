@@ -32,6 +32,20 @@ PROFILE_RULES: dict[ProfileName, dict[str, set[str]]] = {
         "allowed_axes": {"deployment_scope", "hosting", "severity"},
         "allowed_overlays": {"ops_label", "incident_marker", "metric_annotation"},
     },
+    "non_business_overlay_profile": {
+        "allowed_groups": set(),
+        "allowed_axes": set(),
+        "allowed_overlays": {
+            "citation",
+            "holding",
+            "norm_constraint",
+            "actor_role",
+            "activity_label",
+            "transition_label",
+            "evidence_link",
+            "receipt",
+        },
+    },
 }
 
 
@@ -152,4 +166,3 @@ def apply_profile_admissibility(
     result["axes"] = kept_axes
     result["overlays"] = kept_overlays
     return result, issues
-
