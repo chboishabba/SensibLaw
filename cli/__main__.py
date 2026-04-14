@@ -1181,6 +1181,54 @@ def _handle_wikidata_nat_post_write_verification(args: argparse.Namespace) -> No
         executed_receipts if isinstance(executed_receipts, list) else [],
         require_all_verified=not args.allow_drift,
     )
+    subject_rows = []
+    for run in report.get("runs", []):
+        if not isinstance(run, dict):
+            continue
+        verification_report = run.get("verification_report", {})
+        if not isinstance(verification_report, dict):
+            continue
+        for row in verification_report.get("rows", []):
+            if not isinstance(row, dict):
+                continue
+            subject_rows.append(
+                {
+                    "candidate_id": str(row.get("candidate_id", "")).strip(),
+                    "entity_qid": str(row.get("entity_qid", "")).strip(),
+                    "status": str(row.get("status", "")).strip(),
+                    "verification_status": str(run.get("verification_status", "")).strip(),
+                }
+            )
+    subject_aware_summary = report.get("subject_aware_summary")
+    if not isinstance(subject_aware_summary, dict):
+        subject_ids = sorted({row["entity_qid"] for row in subject_rows if row["entity_qid"]})
+        verified_subject_ids = sorted(
+            {
+                row["entity_qid"]
+                for row in subject_rows
+                if row["entity_qid"] and row["status"] == "verified"
+            }
+        )
+        drift_subject_ids = sorted(
+            {
+                row["entity_qid"]
+                for row in subject_rows
+                if row["entity_qid"] and row["status"] != "verified"
+            }
+        )
+        subject_aware_summary = {
+            "subject_count": len(subject_ids),
+            "verified_subject_count": len(verified_subject_ids),
+            "drift_subject_count": len(drift_subject_ids),
+            "subject_aware_ready": bool(subject_ids) and len(subject_ids) == len(verified_subject_ids),
+            "subject_aware_state": "verified" if subject_ids and len(subject_ids) == len(verified_subject_ids) else "executed",
+            "subject_aware_subject_ids": subject_ids,
+            "verified_subject_ids": verified_subject_ids,
+            "drift_subject_ids": drift_subject_ids,
+            "verified_subject_rate": (
+                len(verified_subject_ids) / len(subject_ids) if subject_ids else 0.0
+            ),
+        }
     if args.output:
         Path(args.output).write_text(
             json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -1189,6 +1237,39 @@ def _handle_wikidata_nat_post_write_verification(args: argparse.Namespace) -> No
         _print_json(
             {
                 "output": str(args.output),
+                "run_count": report["summary"]["run_count"],
+                "verified_run_count": report["summary"]["verified_run_count"],
+                "verification_ready": report["summary"]["verification_ready"],
+                "subject_aware_summary": subject_aware_summary,
+            }
+        )
+        return
+    report["subject_aware_summary"] = subject_aware_summary
+    _print_json(report)
+
+
+def _handle_wikidata_nat_sandbox_post_write_verification(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_nat_automation_graduation import (
+        build_nat_sandbox_post_write_verification_report,
+    )
+
+    sandbox_packet = json.loads(Path(args.packet).read_text(encoding="utf-8"))
+    observed_after_state = json.loads(Path(args.observed).read_text(encoding="utf-8"))
+    report = build_nat_sandbox_post_write_verification_report(
+        sandbox_packet,
+        observed_after_state,
+        require_all_verified=not args.allow_drift,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "sandbox_packet_id": report["sandbox_packet_id"],
+                "observed_capture_id": report["observed_capture_id"],
                 "run_count": report["summary"]["run_count"],
                 "verified_run_count": report["summary"]["verified_run_count"],
                 "verification_ready": report["summary"]["verification_ready"],
@@ -3619,6 +3700,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_nat_post_write_verification.set_defaults(
         func=_handle_wikidata_nat_post_write_verification
+    )
+    wikidata_nat_sandbox_post_write_verification = wikidata_sub.add_parser(
+        "nat-sandbox-post-write-verification",
+        help="Verify a sandbox microbatch packet directly against an observed after-state capture",
+    )
+    wikidata_nat_sandbox_post_write_verification.add_argument(
+        "--packet",
+        type=Path,
+        required=True,
+        help="Path to sandbox microbatch packet JSON",
+    )
+    wikidata_nat_sandbox_post_write_verification.add_argument(
+        "--observed",
+        type=Path,
+        required=True,
+        help="Path to observed sandbox after-state capture JSON",
+    )
+    wikidata_nat_sandbox_post_write_verification.add_argument(
+        "--allow-drift",
+        action="store_true",
+        help="Do not require every sandbox row to verify cleanly",
+    )
+    wikidata_nat_sandbox_post_write_verification.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the sandbox post-write verification report JSON",
+    )
+    wikidata_nat_sandbox_post_write_verification.set_defaults(
+        func=_handle_wikidata_nat_sandbox_post_write_verification
     )
     wikidata_nat_completion_gate = wikidata_sub.add_parser(
         "nat-completion-gate",

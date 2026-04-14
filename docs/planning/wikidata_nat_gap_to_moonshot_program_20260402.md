@@ -59,6 +59,8 @@ The lane already has:
   - Cohort D review-control index over multiple operator batches
   - Cohort E aggregated disagreement/summary index
 - automation graduation governance index over repeated evidence snapshots
+- candidate-level promotion gates for bounded checked-safe rows
+- bounded post-write verification against an after-state slice/export
 
 The lane now also has one bounded measured-automation success:
 
@@ -149,6 +151,10 @@ Current operational read:
   a real handoff that writes back receipts, a QS/OpenRefine wrapper that emits
   receipts, or a manual signed receipt surface with applied rows and
   timestamps
+- the near-term automation direction is now clearer:
+  candidate-level promotion first, then bounded post-write verification, then
+  only broader execution claims if those receipts stay stable across repeated
+  runs
 
 - family id:
   `parthood_family_safe_reference_transfer_subset`

@@ -24,6 +24,7 @@ from src.ontology.wikidata_nat_automation_graduation import (
     AUTOMATION_GRADUATION_MIGRATION_POST_WRITE_CONTRACT_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_MIGRATION_RECEIPT_CONTRACT_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_MIGRATION_SIMULATION_CONTRACT_SCHEMA_VERSION,
+    AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_P5991_SEMANTIC_FAMILY_SELECTOR_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_P5991_SEMANTIC_TRIAGE_SCHEMA_VERSION,
     AUTOMATION_GRADUATION_EVIDENCE_REPORT_SCHEMA_VERSION,
@@ -76,6 +77,7 @@ from src.ontology.wikidata_nat_automation_graduation import (
     build_nat_state_machine_report,
     evaluate_nat_automation_promotion,
     build_nat_post_write_verification_report,
+    build_nat_sandbox_post_write_verification_report,
     build_nat_post_write_contract,
     build_nat_execution_receipt_contract,
     classify_nat_p5991_semantic_bucket,
@@ -1571,6 +1573,22 @@ def test_classify_nat_p5991_semantic_bucket_abstains_on_split_shapes() -> None:
     candidate = {
         "candidate_id": "Qsplit|P5991|1",
         "classification": "split_required",
+        "model_validation": {
+            "status": "model_safe_with_split",
+            "resolved_year": "2023",
+            "resolved_scope": "TOTAL",
+            "resolved_unit_qid": "Q57084755",
+            "suggested_action": "migrate_with_split",
+            "execution_ready": True,
+        },
+        "execution_hints": {
+            "execution_ready": True,
+            "target_property": "P14143",
+            "resolved_year": "2023",
+            "resolved_scope": "TOTAL",
+            "resolved_unit_qid": "Q57084755",
+            "execution_backend": "openrefine",
+        },
         "claim_bundle_before": {
             "property": "P5991",
             "subject": "Qsplit",
@@ -1600,6 +1618,8 @@ def test_classify_nat_p5991_semantic_bucket_abstains_on_split_shapes() -> None:
     assert triage["semantic_bucket"] == "split_required"
     assert triage["abstain"] is True
     assert "multi_value_qualifiers_present" in triage["semantic_signals"]
+    assert "model_validation:model_safe_with_split" in triage["semantic_signals"]
+    assert "deterministic_split_execution_ready" in triage["semantic_signals"]
     assert triage["multi_value_qualifier_properties"] == ["P518"]
 
 
@@ -1702,6 +1722,79 @@ def test_migration_execution_payload_shapes_review_first_rows_for_promoted_famil
     assert qs_row["references"]
 
 
+def test_migration_execution_payload_consumes_model_aware_split_metadata() -> None:
+    verification_runs = copy.deepcopy(_load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture())
+    candidate = verification_runs["runs"][0]["migration_pack"]["candidates"][0]
+    candidate["classification"] = "model_safe_with_split"
+    candidate["model_classification"] = "model_safe_with_split"
+    candidate["execution_ready"] = True
+    candidate["execution_backend"] = "qs3"
+    candidate["model_validation"] = {
+        "valid": False,
+        "issues": ["split_plan_required"],
+        "resolved_year": "2021",
+        "resolved_scope": "TOTAL",
+        "resolved_unit_qid": "Q57084755",
+        "execution_ready": True,
+    }
+    candidate["split_plan"] = {
+        "split_plan_id": "split://Q1068745|P5991|1",
+        "status": "execution_ready",
+        "suggested_action": "migrate_with_split",
+        "reference_propagation": "exact",
+        "qualifier_propagation": "exact",
+        "resolved_year": "2021",
+        "resolved_scope": "TOTAL",
+        "resolved_unit_qid": "Q57084755",
+        "execution_backend": "qs3",
+        "execution_ready": True,
+        "proposed_bundle_count": 1,
+        "proposed_target_bundles": [candidate["claim_bundle_after"]],
+    }
+    candidate["execution_profile"] = {"execution_backend": "qs3", "execution_mode": "review_first"}
+
+    payload = build_nat_migration_execution_payload(verification_runs)
+    candidate_contracts = build_nat_migration_candidate_contracts(verification_runs)
+    backend_plan = build_nat_migration_backend_plan(verification_runs)
+    receipt_contract = build_nat_execution_receipt_contract(verification_runs)
+    post_write_contract = build_nat_post_write_contract(verification_runs)
+
+    assert payload["summary"]["row_count"] == 2
+    assert payload["summary"]["model_aware_row_count"] >= 1
+    model_row = next(row for row in payload["openrefine_rows"] if row["candidate_id"] == "Q1068745|P5991|1")
+    assert model_row["model_classification"] == "model_safe_with_split"
+    assert model_row["execution_strategy"] == "split_followthrough"
+    assert model_row["execution_backend"] == "qs3"
+    assert model_row["model_validation"]["resolved_unit_qid"] == "Q57084755"
+    assert model_row["split_plan"]["split_plan_id"] == "split://Q1068745|P5991|1"
+
+    first_contract = next(
+        contract for contract in candidate_contracts["candidate_contracts"] if contract["candidate_id"] == "Q1068745|P5991|1"
+    )
+    assert first_contract["model_validation"]["resolved_year"] == "2021"
+    assert first_contract["split_plan"]["suggested_action"] == "migrate_with_split"
+    assert first_contract["normalization"]["resolved_scope"] == "TOTAL"
+
+    model_backend_row = next(row for row in backend_plan["backend_rows"] if row["candidate_id"] == "Q1068745|P5991|1")
+    assert backend_plan["summary"]["model_aware_count"] >= 1
+    assert model_backend_row["execution_backend"] == "qs3"
+    assert model_backend_row["model_classification"] == "model_safe_with_split"
+    assert model_backend_row["split_plan"]["status"] == "execution_ready"
+    assert model_backend_row["quickstatements_row"]["split_plan"]["split_plan_id"] == "split://Q1068745|P5991|1"
+
+    receipt_row = next(row for row in receipt_contract["statement_results"] if row["candidate_id"] == "Q1068745|P5991|1")
+    assert "model_classification" in receipt_contract["required_fields"]
+    assert receipt_row["model_classification"] == "model_safe_with_split"
+    assert receipt_row["split_plan"]["execution_backend"] == "qs3"
+
+    check = next(item for item in post_write_contract["entity_checks"] if item["candidate_id"] == "Q1068745|P5991|1")
+    assert "split_plan_match" in check["must_verify"]
+    assert "resolved_year_match" in check["must_verify"]
+    assert "resolved_scope_match" in check["must_verify"]
+    assert "resolved_unit_match" in check["must_verify"]
+    assert check["execution_lifecycle_state"] == "ready"
+
+
 def test_migration_batch_export_pins_review_artifacts_for_business_family() -> None:
     report = build_nat_migration_batch_export(
         _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
@@ -1731,6 +1824,9 @@ def test_migration_candidate_contracts_capture_pre_execution_business_shape() ->
     assert report["summary"] == {
         "candidate_count": 2,
         "target_property": "P14143",
+        "counts_by_promotion_class": {
+            "review_only": 2,
+        },
     }
     first = report["candidate_contracts"][0]
     assert first["candidate_id"] == "Q1068745|P5991|1"
@@ -1738,8 +1834,73 @@ def test_migration_candidate_contracts_capture_pre_execution_business_shape() ->
     assert first["source_statement"]["value"] == {"raw": "100"}
     assert first["target_statement"]["property"] == "P14143"
     assert first["target_statement"]["rank"] == "normal"
+    assert first["promotion_class"] == "review_only"
+    assert first["promotion_gate"]["decision"] == "review_only"
     assert first["normalization"]["year_basis"] == "point_in_time"
     assert first["normalization"]["quantity_unit_normalized"] is False
+
+
+def test_migration_candidate_contracts_surface_subject_resolution_gate_and_distribution() -> None:
+    verification_runs = copy.deepcopy(_load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture())
+    candidates = verification_runs["runs"][0]["migration_pack"]["candidates"]
+    for candidate in candidates:
+        candidate["promotion_class"] = "full_auto"
+        candidate["promotion_gate"] = {
+            "decision": "full_auto",
+            "reason": "subject_resolution_ready",
+            "eligibility": {
+                "eligible": True,
+                "review_only": False,
+                "semi_auto": True,
+                "full_auto": True,
+            },
+        }
+
+    candidates[0]["subject_resolution"] = {
+        "status": "known",
+        "subject_family": "company",
+        "instance_of_allowed": True,
+    }
+    candidates[1]["subject_resolution"] = {
+        "status": "unknown",
+    }
+
+    report = build_nat_migration_candidate_contracts(verification_runs)
+
+    assert report["summary"]["subject_resolution_counts"] == {
+        "known": 1,
+        "unknown": 1,
+        "absent": 0,
+    }
+    assert report["summary"]["subject_resolution_allowed_count"] == 1
+    assert report["summary"]["subject_resolution_blocked_count"] == 1
+    assert report["summary"]["subject_resolution_gate_ready"] is False
+    assert report["summary"]["subject_resolution_distribution_by_promotion_class"] == {
+        "full_auto": {
+            "absent": 0,
+            "known": 1,
+            "unknown": 1,
+        }
+    }
+
+    known_candidate = next(
+        contract for contract in report["candidate_contracts"] if contract["candidate_id"] == "Q1068745|P5991|1"
+    )
+    unknown_candidate = next(
+        contract for contract in report["candidate_contracts"] if contract["candidate_id"] == "Q1489170|P5991|1"
+    )
+
+    assert known_candidate["subject_resolution"]["status"] == "known"
+    assert known_candidate["promotion_gate"]["eligibility"]["instance_of_allowed"] is True
+    assert known_candidate["promotion_gate"]["readiness"]["ready"] is True
+    assert "subject_resolution_unknown" not in known_candidate["promotion_gate"]["readiness"]["hard_defects"]
+
+    assert unknown_candidate["subject_resolution"]["status"] == "unknown"
+    assert unknown_candidate["promotion_gate"]["eligibility"]["instance_of_allowed"] is False
+    assert unknown_candidate["promotion_gate"]["eligibility"]["eligible"] is False
+    assert unknown_candidate["promotion_gate"]["decision"] == "review_only"
+    assert unknown_candidate["promotion_gate"]["readiness"]["ready"] is False
+    assert "subject_resolution_unknown" in unknown_candidate["promotion_gate"]["readiness"]["hard_defects"]
 
 
 def test_migration_backend_plan_routes_normal_rows_to_openrefine() -> None:
@@ -1791,6 +1952,28 @@ def test_post_write_contract_requires_observed_after_state_fields() -> None:
 
     assert report["schema_version"] == AUTOMATION_GRADUATION_MIGRATION_POST_WRITE_CONTRACT_SCHEMA_VERSION
     assert report["verification_status"] == "awaiting_observed_after_state"
+    assert report["execution_lifecycle_contract"] == {
+        "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
+        "state_order": ["not_started", "ready", "executed", "verified"],
+        "current_state": "ready",
+        "promotion_status": "hold",
+        "fail_closed_on_mismatch": True,
+        "eligible_row_count": 2,
+        "verified_row_count": 0,
+        "executed_row_count": 0,
+    }
+    assert report["verification_contract"] == {
+        "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
+        "verification_status": "awaiting_observed_after_state",
+        "required_observed_fields": [
+            "candidate_id",
+            "entity_qid",
+            "after_state_value",
+            "after_state_references",
+            "after_state_qualifiers",
+        ],
+        "fail_closed_on_mismatch": True,
+    }
     assert report["summary"] == {
         "candidate_count": 2,
         "required_verification_fields": 5,
@@ -1802,6 +1985,7 @@ def test_post_write_contract_requires_observed_after_state_fields() -> None:
         "reference_match",
         "rank_match",
     ]
+    assert report["entity_checks"][0]["execution_lifecycle_state"] == "ready"
 
 
 def test_migration_simulation_contract_owns_the_full_pre_execution_loop() -> None:
@@ -1815,10 +1999,77 @@ def test_migration_simulation_contract_owns_the_full_pre_execution_loop() -> Non
         "candidate_count": 2,
         "openrefine_count": 2,
         "qs3_count": 0,
+        "counts_by_promotion_class": {
+            "review_only": 2,
+        },
+    }
+    assert contract["readiness_contract"] == {
+        "promotion_status": "hold",
+        "execution_lifecycle_state": "ready",
+        "post_write_verification_status": "awaiting_observed_after_state",
+        "review_first": True,
+        "ready_for_external_execution": True,
     }
     assert contract["candidate_contracts"]["summary"]["candidate_count"] == 2
     assert contract["receipt_contract"]["receipt_status"] == "awaiting_external_execution_receipt"
     assert contract["post_write_contract"]["verification_status"] == "awaiting_observed_after_state"
+
+
+def test_subject_resolution_metrics_flow_through_post_write_and_simulation_surfaces() -> None:
+    verification_runs = copy.deepcopy(_load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture())
+    candidates = verification_runs["runs"][0]["migration_pack"]["candidates"]
+    for candidate in candidates:
+        candidate["promotion_class"] = "full_auto"
+        candidate["promotion_gate"] = {
+            "decision": "full_auto",
+            "reason": "subject_resolution_ready",
+            "eligibility": {
+                "eligible": True,
+                "review_only": False,
+                "semi_auto": True,
+                "full_auto": True,
+            },
+        }
+
+    candidates[0]["subject_resolution"] = {
+        "status": "known",
+        "subject_family": "company",
+        "instance_of_allowed": True,
+    }
+    candidates[1]["subject_resolution"] = {
+        "status": "unknown",
+    }
+
+    post_write = build_nat_post_write_contract(verification_runs)
+    simulation = build_nat_migration_simulation_contract(verification_runs)
+
+    expected_counts = {
+        "known": 1,
+        "unknown": 1,
+        "absent": 0,
+    }
+
+    assert post_write["summary"]["subject_resolution_counts"] == expected_counts
+    assert post_write["summary"]["subject_resolution_gate_ready"] is False
+    assert post_write["readiness_surface"]["subject_resolution_counts"] == expected_counts
+    assert post_write["readiness_surface"]["subject_resolution_gate_ready"] is False
+    assert post_write["readiness_surface"]["ready_for_external_execution"] is False
+    assert post_write["pilot_metrics"]["subject_resolution_counts"] == expected_counts
+    assert post_write["pilot_metrics"]["subject_resolution_gate_ready"] is False
+    assert post_write["pilot_metrics"]["subject_resolution_hard_defect_count"] == 1
+    assert all("subject_resolution_match" in item["must_verify"] for item in post_write["entity_checks"])
+
+    assert simulation["summary"]["subject_resolution_counts"] == expected_counts
+    assert simulation["summary"]["subject_resolution_distribution_by_promotion_class"] == {
+        "full_auto": {
+            "absent": 0,
+            "known": 1,
+            "unknown": 1,
+        }
+    }
+    assert simulation["readiness_contract"]["subject_resolution_counts"] == expected_counts
+    assert simulation["readiness_contract"]["subject_resolution_gate_ready"] is False
+    assert simulation["readiness_contract"]["ready_for_external_execution"] is False
 
 
 def test_migration_executed_rows_are_derived_from_export_artifact() -> None:
@@ -2558,10 +2809,32 @@ def test_post_write_verification_report_marks_verified_runs() -> None:
     report = build_nat_post_write_verification_report(runs)
 
     assert report["schema_version"] == AUTOMATION_GRADUATION_POST_WRITE_VERIFICATION_SCHEMA_VERSION
+    assert report["execution_lifecycle_contract"] == {
+        "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
+        "state_order": ["not_started", "ready", "executed", "verified"],
+        "current_state": "verified",
+        "promotion_status": "ready",
+        "fail_closed_on_mismatch": True,
+        "run_count": len(runs),
+        "verified_run_count": len(runs),
+    }
+    assert report["verification_contract"] == {
+        "schema_version": AUTOMATION_GRADUATION_POST_WRITE_LIFECYCLE_CONTRACT_SCHEMA_VERSION,
+        "verification_status": "verified",
+        "require_all_verified": True,
+        "fail_closed_on_mismatch": True,
+        "promotion_status": "ready",
+    }
     assert report["summary"]["run_count"] == len(runs)
     assert report["summary"]["verified_run_count"] == len(runs)
     assert report["summary"]["verification_ready"] is True
+    assert report["subject_aware_summary"]["uses_subject_resolution"] is False
+    assert report["subject_aware_summary"]["subject_count"] == 2
+    assert report["subject_aware_summary"]["verified_subject_count"] == 2
+    assert report["subject_aware_summary"]["subject_aware_ready"] is True
     assert all(row["verification_status"] == "verified" for row in report["runs"])
+    assert all(row["lifecycle_state"] == "verified" for row in report["runs"])
+    assert all(row["promotion_status"] == "ready" for row in report["runs"])
 
 
 def test_post_write_verification_report_detects_drifts() -> None:
@@ -2575,9 +2848,132 @@ def test_post_write_verification_report_detects_drifts() -> None:
     assert report["summary"]["run_count"] == 1
     assert report["summary"]["verified_run_count"] == 0
     assert report["summary"]["verification_ready"] is False
+    assert report["execution_lifecycle_contract"]["current_state"] == "executed"
+    assert report["execution_lifecycle_contract"]["promotion_status"] == "hold"
+    assert report["verification_contract"]["verification_status"] == "verification_drift"
+    assert report["verification_contract"]["promotion_status"] == "hold"
     assert report["summary"]["pending_drifts"] == ["run-drift"]
     assert report["runs"][0]["verification_status"] == "verification_drift"
+    assert report["runs"][0]["lifecycle_state"] == "executed"
+    assert report["runs"][0]["promotion_status"] == "hold"
     assert report["runs"][0]["counts_by_status"].get("target_missing", 0) >= 1
+
+
+def test_post_write_verification_report_falls_back_when_only_unknown_subject_resolution_is_present() -> None:
+    runs = _load_nat_verification_runs_fixture()["runs"]
+    run = copy.deepcopy(runs[0])
+    candidate = run["migration_pack"]["candidates"][0]
+    candidate["subject_resolution"] = {
+        "schema_version": "sl.wikidata_subject_resolution.v0_1",
+        "status": "unresolved",
+        "subject_family": "unknown",
+        "resolution_basis": "no_typed_evidence",
+        "window_id": "t2",
+        "direct_instance_of": [],
+        "resolved_via": None,
+        "matched_type_qids": [],
+        "traversed_subclass_of": [],
+        "evidence": [],
+    }
+    report = build_nat_post_write_verification_report([run])
+
+    assert report["subject_aware_summary"]["uses_subject_resolution"] is False
+    assert report["subject_aware_summary"]["unknown_subject_count"] == report["subject_aware_summary"]["subject_count"]
+    assert report["subject_aware_summary"]["subject_aware_ready"] is True
+
+
+def test_post_write_verification_report_requires_verified_company_subjects_when_typed() -> None:
+    runs = _load_nat_verification_runs_fixture()["runs"]
+    company_run = copy.deepcopy(runs[0])
+    company_run["migration_pack"]["candidates"][0]["subject_resolution"] = {
+        "schema_version": "sl.wikidata_subject_resolution.v0_1",
+        "status": "resolved",
+        "subject_family": "company",
+        "resolution_basis": "typed_evidence",
+        "window_id": "t2",
+        "direct_instance_of": ["Q6881511"],
+        "resolved_via": "p31_p279_chain",
+        "matched_type_qids": ["Q6881511"],
+        "traversed_subclass_of": [],
+        "evidence": [{"property": "P31", "subject_qid": "Q309865", "value_qid": "Q6881511", "window_id": "t2"}],
+    }
+    unknown_run = copy.deepcopy(runs[1])
+    unknown_run["migration_pack"]["candidates"][0]["subject_resolution"] = {
+        "schema_version": "sl.wikidata_subject_resolution.v0_1",
+        "status": "unresolved",
+        "subject_family": "unknown",
+        "resolution_basis": "typed_evidence_not_mapped",
+        "window_id": "t2",
+        "direct_instance_of": ["Q999999"],
+        "resolved_via": None,
+        "matched_type_qids": [],
+        "traversed_subclass_of": [],
+        "evidence": [{"property": "P31", "subject_qid": "Q10403939", "value_qid": "Q999999", "window_id": "t2"}],
+    }
+
+    report = build_nat_post_write_verification_report([company_run, unknown_run])
+
+    assert report["subject_aware_summary"]["uses_subject_resolution"] is True
+    assert report["subject_aware_summary"]["company_subject_count"] == 1
+    assert report["subject_aware_summary"]["verified_company_subject_count"] == 1
+    assert report["subject_aware_summary"]["unknown_subject_count"] == 1
+    assert report["subject_aware_summary"]["subject_aware_ready"] is False
+    assert report["subject_aware_summary"]["subject_aware_state"] == "executed"
+
+
+def test_sandbox_post_write_verification_report_marks_verified_rows() -> None:
+    sandbox_packet = {
+        "packet_id": "nat-sandbox-packet",
+        "target_item": {"qid": "Q4115189"},
+        "rows": [
+            {
+                "row_id": "sandbox-row-1",
+                "subject": "Q4115189",
+                "expected_after_state": {
+                    "subject": "Q4115189",
+                    "property": "P14143",
+                    "value": "+13",
+                    "unit_qid": "Q57084755",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
+                    "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                },
+            }
+        ],
+    }
+    observed_after_state = {
+        "capture_id": "sandbox-capture-1",
+        "target_item": "Q4115189",
+        "observed_rows": [
+            {
+                "row_id": "sandbox-row-1",
+                "observed": {
+                    "subject": "Q4115189",
+                    "property": "P14143",
+                    "value": "+13",
+                    "unit_qid": "Q57084755",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
+                    "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                },
+            }
+        ],
+    }
+
+    report = build_nat_sandbox_post_write_verification_report(
+        sandbox_packet,
+        observed_after_state,
+    )
+
+    assert report["schema_version"] == AUTOMATION_GRADUATION_POST_WRITE_VERIFICATION_SCHEMA_VERSION
+    assert report["sandbox_packet_id"] == "nat-sandbox-packet"
+    assert report["observed_capture_id"] == "sandbox-capture-1"
+    assert report["summary"]["run_count"] == 1
+    assert report["summary"]["verified_run_count"] == 1
+    assert report["summary"]["verification_ready"] is True
+    assert report["sandbox_summary"]["packet_row_count"] == 1
+    assert report["sandbox_summary"]["observed_row_count"] == 1
+    assert report["runs"][0]["counts_by_status"]["verified"] == 1
 
 
 def test_governance_summary_holds_when_any_governance_index_not_ready() -> None:

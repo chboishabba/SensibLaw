@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-04-03
+Last updated: 2026-04-12
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -36,6 +36,28 @@ migration-bot moonshot, use:
 The Nat lane's long-term P0 moonshot is blind migration automation, but the
 current operating posture stays review-first, split-first, and fail-closed
 until that moonshot is earned by the smaller lanes.
+
+Current plain-language posture:
+
+- full auto is not the default yet
+- candidate-level promotion now has a machine-checkable gate surface
+- post-write verification now has a machine-checkable surface
+- a bounded sandbox post-write verification path now exists for first
+  write-path proof without touching real climate items
+- the runtime now separates clean rows, deterministic split rows,
+  phase-2-normalizable rows, ontology-mismatch rows, and blocked rows
+- broad automation still needs the remaining evidence, receipts, and rollback
+  proof before it is honest
+
+Current plain-language readiness for Nat:
+
+- the lane is ready for sandbox-first write-path testing
+- the lane is not yet ready for unattended live-item migration
+- the next honest gate is subject resolution:
+  prove that the target subject, scope, method, and reporting period still
+  resolve cleanly after the write path, not just before it
+- no live write verification has been claimed yet; the remaining gap is still
+  real receipts plus observed after-state plus rollback evidence
 
 The current executable moonshot-gap surfaces now include reproducible
 operator/report paths for:
@@ -77,8 +99,9 @@ shared handoff.
   broader authority or riskier execution
 
 ## Current focus
-- bounded slice now includes structural `P31` / `P279` review plus phase-2
-  qualifier drift on bounded qualifier-bearing properties
+- bounded slice now includes structural `P31` / `P279` review plus the
+  migration-family classifier and phase-2 normalization surfaces on the
+  climate lane
 - checked and dense review-geometry surfaces now exist above the structural
   handoff:
   - checked review:
@@ -145,6 +168,22 @@ shared handoff.
     temporal/multi-value slots can graduate from coarse ambiguity into
     `split_required`, and candidate rows now emit a narrow action field
     (`migrate`, `migrate_with_refs`, `split`, `review`, `abstain`)
+  - the next classification layer is now landed:
+    candidate rows also emit a family classifier that separates:
+    - `A` clean direct rows
+    - `B` deterministic split rows
+    - `C` phase-2-normalizable rows
+    - `D` ontology-mismatch rows
+    - `E` blocked rows
+  - the same family-classifier surface now publishes plain phase-2 actions
+    where appropriate:
+    - infer method
+    - infer scope
+    - normalize fiscal year
+    - normalize unit
+  - current use of that classifier:
+    it is a review and gating surface, not a claim that the row is already
+    safe to write
   - split detection is now framed generically rather than climate-only:
     the runtime looks for independent axes in the statement bundle / sibling
     slot context, not just hardcoded time fields
@@ -230,6 +269,23 @@ shared handoff.
         - bounded variant comparison
         - deeper SensibLaw-style semantic decomposition should still stay
           explicit and separate from the shallow parser coverage
+    - the lane now has a candidate-level promotion gate shape, so `PROMOTED`
+      versus `HOLD` versus `ABSTAIN` can be evaluated per candidate rather
+      than only as a coarse family outcome
+    - the lane now has a bounded post-write verification shape, so an operator
+      can compare the checked-safe candidate set against the after-state slice
+      or export before calling the write path complete
+    - the lane now also has a bounded sandbox adapter for that same proof step:
+      `sensiblaw wikidata nat-sandbox-post-write-verification`
+      verifies a sandbox microbatch packet directly against an observed
+      sandbox after-state capture
+    - current recommended write-path order:
+      sandbox item first, then a tiny real tranche, then broader execution
+      only if the same verification path keeps passing
+    - next promotion gate in plain language:
+      subject resolution must hold through the write path
+      this means the same entity, scope, method, and reporting-period meaning
+      must come back cleanly in the observed after-state
     - the non-company moonshot-gap lanes now also have executable operator
       surfaces beyond packet-only notes:
       - grounding depth:

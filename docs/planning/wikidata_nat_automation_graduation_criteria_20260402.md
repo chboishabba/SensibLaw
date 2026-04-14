@@ -225,6 +225,12 @@ Current lane posture is now split:
   artifacts, while current live same-family exports still remain blocked
 - overall lane posture remains below Gate C
 
+The next machine-checkable direction is narrower than blind execution:
+
+- candidate-level promotion gates
+- bounded post-write verification against the claimed after-state
+- repeated-run proof that the write path and the verifier agree
+
 Current promotion provenance read:
 
 - `family_one` is promoted by `baseline_runtime`
@@ -232,6 +238,12 @@ Current promotion provenance read:
   `supplied_acquired_artifact`
 - no family is yet promoted by observed live same-family success in the
   current pinned real-world revisions
+
+Current readiness read:
+
+- the lane can now score a candidate or family against promotion criteria
+- the lane can now verify a write against an after-state slice or export
+- the lane still does not have enough evidence for blanket blind execution
 
 Current climate read:
 

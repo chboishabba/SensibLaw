@@ -1146,6 +1146,90 @@ def test_wikidata_nat_post_write_verification_cli(tmp_path, capsys) -> None:
     assert stdout["verified_run_count"] == payload["summary"]["verified_run_count"]
     assert payload["summary"]["verification_ready"] is True
     assert payload["summary"]["verified_run_count"] == 2
+    assert stdout["subject_aware_summary"]["subject_count"] == 2
+    assert stdout["subject_aware_summary"]["verified_subject_count"] == 2
+    assert stdout["subject_aware_summary"]["drift_subject_count"] == 0
+    assert stdout["subject_aware_summary"]["subject_aware_ready"] is True
+    assert stdout["subject_aware_summary"]["subject_aware_state"] == "verified"
+
+
+def test_wikidata_nat_sandbox_post_write_verification_cli(tmp_path, capsys) -> None:
+    packet_path = tmp_path / "sandbox_packet.json"
+    observed_path = tmp_path / "sandbox_observed.json"
+    out_path = tmp_path / "sandbox_post_write_verification.json"
+
+    packet_path.write_text(
+        json.dumps(
+            {
+                "packet_id": "nat-sandbox-packet",
+                "target_item": {"qid": "Q4115189"},
+                "rows": [
+                    {
+                        "row_id": "sandbox-row-1",
+                        "subject": "Q4115189",
+                        "expected_after_state": {
+                            "subject": "Q4115189",
+                            "property": "P14143",
+                            "value": "+13",
+                            "unit_qid": "Q57084755",
+                            "rank": "normal",
+                            "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
+                            "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    observed_path.write_text(
+        json.dumps(
+            {
+                "capture_id": "sandbox-capture-1",
+                "target_item": "Q4115189",
+                "observed_rows": [
+                    {
+                        "row_id": "sandbox-row-1",
+                        "observed": {
+                            "subject": "Q4115189",
+                            "property": "P14143",
+                            "value": "+13",
+                            "unit_qid": "Q57084755",
+                            "rank": "normal",
+                            "qualifiers": {"P585": ["+2024-00-00T00:00:00Z"]},
+                            "references": [{"P854": ["https://www.wikidata.org/wiki/Property:P14143"]}],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cli_main.main(
+        [
+            "wikidata",
+            "nat-sandbox-post-write-verification",
+            "--packet",
+            str(packet_path),
+            "--observed",
+            str(observed_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["sandbox_packet_id"] == "nat-sandbox-packet"
+    assert stdout["observed_capture_id"] == "sandbox-capture-1"
+    assert stdout["verified_run_count"] == 1
+    assert stdout["verification_ready"] is True
+    assert payload["sandbox_packet_id"] == "nat-sandbox-packet"
+    assert payload["observed_capture_id"] == "sandbox-capture-1"
+    assert payload["summary"]["verified_run_count"] == 1
 
 
 def test_wikidata_nat_completion_gate_cli(tmp_path, capsys) -> None:

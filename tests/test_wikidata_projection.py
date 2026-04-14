@@ -595,6 +595,9 @@ def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift(
     assert by_entity["Q2"]["classification"] == "reference_drift"
     assert by_entity["Q2"]["reference_diff"]["status"] == "reference_drift"
     assert by_entity["Q3"]["classification"] == "safe_with_reference_transfer"
+    assert by_entity["Q3"]["promotion_class"] == "review_only"
+    assert by_entity["Q3"]["promotion_eligibility"]["eligible"] is False
+    assert by_entity["Q3"]["promotion_gate"]["decision"] == "review_only"
     assert by_entity["Q3"]["claim_bundle_after"]["property"] == "P14143"
 
 
@@ -640,6 +643,9 @@ def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists()
     assert report["candidates"][0]["classification"] == "safe_with_reference_transfer"
     assert report["candidates"][0]["action"] == "migrate_with_refs"
     assert report["candidates"][0]["split_axes"] == []
+    assert report["candidates"][0]["promotion_class"] == "review_only"
+    assert report["candidates"][0]["promotion_eligibility"]["eligible"] is False
+    assert report["candidates"][0]["promotion_gate"]["decision"] == "review_only"
 
 
 def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_split_required() -> None:
@@ -700,6 +706,15 @@ def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_s
         assert candidate["pressure"] is None
         assert candidate["pressure_confidence"] is None
         assert candidate["pressure_summary"] is None
+        assert candidate["promotion_class"] == "review_only"
+        assert candidate["promotion_eligibility"]["eligible"] is False
+        assert candidate["promotion_gate"]["decision"] == "review_only"
+        assert candidate["model_validation"]["lane"] == "ghg_climate_migration"
+        assert candidate["model_validation"]["status"] == "model_safe_with_split"
+        assert candidate["model_validation"]["execution_ready"] is True
+        assert candidate["model_validation"]["resolved_year"] in {"2023", "2024"}
+        assert candidate["execution_hints"]["target_property"] == "P14143"
+        assert candidate["execution_hints"]["execution_ready"] is True
     assert report["bridge_cases"] == []
     jsonschema.validate(report, _load_migration_pack_schema())
 
@@ -2596,6 +2611,139 @@ def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> Non
     assert plan["proposed_bundle_count"] == 2
     assert plan["reference_propagation"] == "exact"
     assert plan["qualifier_propagation"] == "exact"
+    assert plan["execution_ready"] is False
+    assert len(plan["split_execution_rows"]) == 2
+    jsonschema.validate(report, _load_split_plan_schema())
+
+
+def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_metadata_present() -> None:
+    migration_pack = {
+        "source_property": "P5991",
+        "target_property": "P14143",
+        "candidates": [
+            {
+                "candidate_id": "Q1|P5991|1",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 1,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "model_validation": {
+                    "lane": "ghg_climate_migration",
+                    "status": "model_safe_with_split",
+                    "valid": True,
+                    "issues": [],
+                    "resolved_year": "2023",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "suggested_action": "migrate_with_split",
+                    "execution_ready": True,
+                },
+                "execution_hints": {
+                    "execution_ready": True,
+                    "target_property": "P14143",
+                    "resolved_year": "2023",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "qualifier_properties": ["P585"],
+                    "execution_backend": "openrefine",
+                    "suggested_action": "migrate_with_split",
+                },
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "100",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2023"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+            {
+                "candidate_id": "Q1|P5991|2",
+                "entity_qid": "Q1",
+                "slot_id": "Q1|P5991",
+                "statement_index": 2,
+                "classification": "split_required",
+                "action": "split",
+                "split_axes": [
+                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
+                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                ],
+                "model_validation": {
+                    "lane": "ghg_climate_migration",
+                    "status": "model_safe_with_split",
+                    "valid": True,
+                    "issues": [],
+                    "resolved_year": "2024",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "suggested_action": "migrate_with_split",
+                    "execution_ready": True,
+                },
+                "execution_hints": {
+                    "execution_ready": True,
+                    "target_property": "P14143",
+                    "resolved_year": "2024",
+                    "resolved_scope": "TOTAL",
+                    "scope_values": [],
+                    "determination_method_values": ["Q56296245"],
+                    "resolved_unit_qid": "Q57084755",
+                    "qualifier_properties": ["P585"],
+                    "execution_backend": "openrefine",
+                    "suggested_action": "migrate_with_split",
+                },
+                "claim_bundle_before": {
+                    "subject": "Q1",
+                    "property": "P5991",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+                "claim_bundle_after": {
+                    "subject": "Q1",
+                    "property": "P14143",
+                    "value": "120",
+                    "rank": "normal",
+                    "qualifiers": {"P585": ["2024"], "P459": ["Q56296245"]},
+                    "references": [{"P248": ["Qsrc"]}],
+                    "window_id": "t1",
+                },
+            },
+        ],
+    }
+
+    report = build_wikidata_split_plan(migration_pack)
+
+    plan = report["plans"][0]
+    assert report["summary"]["counts_by_status"] == {"execution_ready": 1}
+    assert plan["status"] == "execution_ready"
+    assert plan["execution_ready"] is True
+    assert plan["suggested_action"] == "migrate_with_split"
+    assert plan["resolved_scope"] == "TOTAL"
+    assert plan["resolved_unit_qid"] == "Q57084755"
+    assert {row["resolved_year"] for row in plan["split_execution_rows"]} == {"2023", "2024"}
     jsonschema.validate(report, _load_split_plan_schema())
 
 

@@ -9,6 +9,7 @@ from scripts.materialize_wikidata_migration_pack import (
     _load_qids_from_file,
     _resolve_qid_rows,
 )
+from src.ontology.wikidata import build_wikidata_migration_pack, build_wikidata_split_plan
 
 
 def test_load_qids_from_file_supports_text_lines(tmp_path: Path) -> None:
@@ -243,7 +244,316 @@ def test_materializer_writes_climate_observation_claim_and_enriched_pack(monkeyp
     assert migration_pack["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "revision_text_evidence_bundle"
     assert migration_pack["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     assert migration_pack["promotion_gate"]["product_ref"] == "wikidata_migration_pack"
+    assert migration_pack["candidates"][0]["promotion_class"] == "review_only"
+    assert migration_pack["candidates"][0]["promotion_eligibility"]["eligible"] is False
+    assert migration_pack["candidates"][0]["promotion_gate"]["decision"] == "review_only"
     assert len(migration_pack["bridge_cases"]) == 1
     assert len(observation_claim["observations"]) == 2
     assert manifest["climate_text_source"] == str(climate_text_source)
     assert manifest["climate_observation_claim"] == str(out_dir / "climate_observation_claim.json")
+
+
+def test_build_wikidata_migration_pack_marks_climate_direct_rows() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946884"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    }
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate = migration_pack["candidates"][0]
+    assert candidate["classification"] == "safe_with_reference_transfer"
+    assert candidate["pressure"] == "reinforce"
+    assert candidate["pressure_summary"].startswith("model_safe;")
+    assert "model_safe" in candidate["reasons"]
+    assert candidate["promotion_class"] == "review_only"
+    assert candidate["promotion_eligibility"]["eligible"] is False
+    assert candidate["promotion_gate"]["decision"] == "review_only"
+    assert candidate["family_bucket"] == "C"
+    assert candidate["family_classifier"]["bucket_label"] == "phase2_normalizable"
+    assert candidate["subject_family"] == "unknown"
+    assert candidate["subject_resolution"]["status"] == "unresolved"
+    assert candidate["subject_resolution"]["resolution_basis"] == "no_typed_evidence"
+    assert candidate["family_classifier"]["subject_resolution"]["subject_family"] == "unknown"
+    assert candidate["promotion_eligibility"]["instance_of_allowed"] is False
+    assert candidate["ghg_semantic_family"] == "scope_specific_emissions"
+    assert candidate["reporting_period_kind"] == "single_reporting_period"
+    assert candidate["scope_resolution"] == "explicit_scope"
+    assert candidate["method_resolution"] == "recognized_method"
+    assert candidate["phase2_actions"] == []
+    assert candidate["normalization_contract"]["phase2_eligible"] is True
+    assert migration_pack["summary"]["family_summary"]["C"] == 1
+
+
+def test_build_wikidata_split_plan_emits_climate_model_axis() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946884"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+120",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946885"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    },
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+    split_plan = build_wikidata_split_plan(migration_pack)
+
+    assert migration_pack["candidates"][0]["classification"] == "split_required"
+    assert migration_pack["candidates"][0]["pressure"] == "split_pressure"
+    assert migration_pack["candidates"][0]["pressure_summary"].startswith("model_safe_with_split;")
+    assert migration_pack["candidates"][0]["family_bucket"] == "C"
+    assert migration_pack["candidates"][0]["family_classifier"]["bucket_label"] == "phase2_normalizable"
+    assert migration_pack["candidates"][0]["promotion_eligibility"]["instance_of_allowed"] is False
+    assert migration_pack["summary"]["family_summary"]["C"] == 2
+    assert split_plan["plans"][0]["status"] == "structurally_decomposable"
+    assert any(axis["property"] == "__ghg_model__" for axis in split_plan["plans"][0]["merged_split_axes"])
+    assert split_plan["plans"][0]["proposed_bundle_count"] == 2
+
+
+def test_build_wikidata_migration_pack_resolves_company_subject_family_from_typed_evidence() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946884"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P31",
+                        "value": "Q6881511",
+                        "rank": "normal",
+                        "unit": None,
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate = migration_pack["candidates"][0]
+    assert candidate["subject_family"] == "company"
+    assert candidate["subject_resolution"]["status"] == "resolved"
+    assert candidate["subject_resolution"]["resolution_basis"] == "typed_evidence"
+    assert candidate["subject_resolution"]["direct_instance_of"] == ["Q6881511"]
+    assert candidate["subject_resolution"]["matched_type_qids"] == ["Q6881511"]
+    assert candidate["family_bucket"] == "A"
+    assert candidate["family_classifier"]["bucket_label"] == "clean_direct"
+    assert candidate["promotion_eligibility"]["instance_of_allowed"] is True
+    assert candidate["promotion_class"] == "review_only"
+
+
+def test_build_wikidata_migration_pack_resolves_non_company_subject_family_from_typed_evidence() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946884"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P31",
+                        "value": "Q5",
+                        "rank": "normal",
+                        "unit": None,
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate = migration_pack["candidates"][0]
+    assert candidate["subject_family"] == "non_company"
+    assert candidate["subject_resolution"]["status"] == "resolved"
+    assert candidate["subject_resolution"]["matched_type_qids"] == ["Q5"]
+    assert candidate["family_bucket"] == "C"
+    assert candidate["promotion_eligibility"]["instance_of_allowed"] is False
+
+
+def test_build_wikidata_migration_pack_keeps_unknown_when_typed_evidence_is_not_mapped() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                            "P459": ["Q56296245"],
+                            "P3831": ["Q124946884"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    },
+                    {
+                        "subject": "Q1",
+                        "property": "P31",
+                        "value": "Q999999",
+                        "rank": "normal",
+                        "unit": None,
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                    {
+                        "subject": "Q999999",
+                        "property": "P279",
+                        "value": "Q888888",
+                        "rank": "normal",
+                        "unit": None,
+                        "qualifiers": {},
+                        "references": [],
+                    },
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate = migration_pack["candidates"][0]
+    assert candidate["subject_family"] == "unknown"
+    assert candidate["subject_resolution"]["status"] == "unresolved"
+    assert candidate["subject_resolution"]["resolution_basis"] == "typed_evidence_not_mapped"
+    assert candidate["subject_resolution"]["direct_instance_of"] == ["Q999999"]
+    assert candidate["subject_resolution"]["traversed_subclass_of"] == [
+        {"from_qid": "Q999999", "to_qid": "Q888888", "property": "P279"}
+    ]
+    assert candidate["family_bucket"] == "C"
+    assert candidate["promotion_eligibility"]["instance_of_allowed"] is False
+
+
+def test_build_wikidata_migration_pack_marks_phase2_normalizable_rows() -> None:
+    payload = {
+        "windows": [
+            {
+                "id": "t1",
+                "statement_bundles": [
+                    {
+                        "subject": "Q1",
+                        "property": "P5991",
+                        "value": "+100",
+                        "rank": "normal",
+                        "unit": "http://www.wikidata.org/entity/Q57084901",
+                        "qualifiers": {
+                            "P585": ["+2023-00-00T00:00:00Z"],
+                        },
+                        "references": [{"P854": ["https://example.org/report.pdf"]}],
+                    }
+                ],
+            }
+        ]
+    }
+
+    migration_pack = build_wikidata_migration_pack(
+        payload,
+        source_property="P5991",
+        target_property="P14143",
+    )
+
+    candidate = migration_pack["candidates"][0]
+    assert candidate["family_bucket"] == "C"
+    assert candidate["family_classifier"]["bucket_label"] == "phase2_normalizable"
+    assert candidate["method_resolution"] == "missing_but_inferable"
+    assert "infer_method" in candidate["phase2_actions"]
+    assert candidate["normalization_contract"]["phase2_eligible"] is True
+    assert candidate["phase2_method_inference"]["status"] == "pending"
+    assert migration_pack["summary"]["family_summary"]["C"] == 1
