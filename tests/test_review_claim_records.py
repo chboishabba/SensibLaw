@@ -17,6 +17,7 @@ from src.policy.review_claim_records import (
     attach_review_item_relations_by_seed_id,
     build_affidavit_target_proposition_identity,
     build_gwb_targeting_results_from_review_claim_records,
+    build_review_candidate_from_composed_candidate_node,
     build_review_queue_target_proposition_identity,
     build_review_queue_proposition_relation,
     build_review_claim_records_from_affidavit_rows,
@@ -125,6 +126,63 @@ def test_build_review_claim_records_from_review_rows_preserves_gwb_review_fields
     assert record["provenance"]["seed_id"] == "seed:1"
     assert record["decision_basis"]["linkage_kind"] == "legal_interaction"
     assert record["review_route"]["actionability"] == "must_review"
+
+
+def test_build_review_claim_records_from_review_rows_uses_composed_candidate_node_when_present() -> None:
+    records = build_review_claim_records_from_review_rows(
+        rows=[
+            {
+                "source_row_id": "row:2",
+                "source_kind": "gwb_seed_event",
+                "source_family": "gwb_public_review",
+                "text": "Section 2 imposes a filing requirement.",
+                "seed_id": "seed:2",
+                "review_status": "missing_review",
+                "primary_workload_class": "linkage_gap",
+                "workload_classes": ["linkage_gap"],
+                "support_kinds": ["authority"],
+                "linkage_kind": "legal_interaction",
+                "composed_candidate_node": {
+                    "schema_version": "sl.composed_candidate_node.v1",
+                    "kind": " composed_candidate_node ",
+                    "predicate_family": " legal_procedural ",
+                    "slots": {"subject": "actor:judge"},
+                    "content_refs": [{"kind": " source_unit ", "value": " source://demo/transcript/2 "}],
+                    "authority_wrapper": {"kind": " authority_wrapper ", "value": " judicial_review_gate "},
+                    "status": " candidate ",
+                    "support_phi_ids": [" phi:demo:002 "],
+                    "span_refs": [{"kind": " source_span ", "value": " span://demo/2 "}],
+                    "provenance_receipts": [{"kind": " source ", "value": " demo_transcript "}],
+                    "section": " Judicial review ",
+                    "genre": " legal_ir ",
+                },
+            }
+        ],
+        lane="gwb",
+        family_id="gwb_public_review",
+        cohort_id="gwb_public_review_v1",
+        root_artifact_id="gwb_public_review_v1",
+        source_family="gwb_public_review",
+        recommended_view="source_review_rows",
+    )
+
+    assert len(records) == 1
+    record = records[0]
+    assert record["review_candidate"]["candidate_id"] == "phi:demo:002"
+    assert record["review_candidate"]["candidate_kind"] == "composed_candidate_node"
+    assert record["review_candidate"]["source_kind"] == "composed_candidate_node"
+    assert record["review_candidate"]["selection_basis"]["basis_kind"] == "composed_candidate_node"
+    assert record["review_candidate"]["selection_basis"]["predicate_family"] == "legal_procedural"
+    assert record["review_candidate"]["selection_basis"]["status"] == "candidate"
+    assert record["review_candidate"]["selection_basis"]["section"] == "Judicial review"
+    assert record["review_candidate"]["selection_basis"]["genre"] == "legal_ir"
+    assert record["review_candidate"]["anchor_refs"]["support_phi_ids"] == ["phi:demo:002"]
+    assert record["review_candidate"]["anchor_refs"]["content_refs"][0]["value"] == "source://demo/transcript/2"
+    assert record["review_candidate"]["anchor_refs"]["span_refs"][0]["value"] == "span://demo/2"
+    assert record["review_candidate"]["anchor_refs"]["provenance_receipts"][0]["value"] == "demo_transcript"
+    assert "target_proposition_id" not in record["review_candidate"]
+    assert "target_proposition_identity" not in record
+    assert "proposition_relation" not in record
 
 
 def test_build_review_claim_records_from_queue_rows_preserves_explicit_text_ref() -> None:
@@ -736,3 +794,120 @@ def test_build_review_claim_records_from_affidavit_rows_can_emit_weak_relation_s
     second = records[1]
     assert "target_proposition_identity" not in second
     assert "proposition_relation" not in second
+
+
+def test_build_review_candidate_from_composed_candidate_node_exposes_review_candidate_semantics() -> None:
+    review_candidate = build_review_candidate_from_composed_candidate_node(
+        {
+            "schema_version": "sl.composed_candidate_node.v1",
+            "kind": " composed_candidate_node ",
+            "predicate_family": " legal_procedural ",
+            "slots": {
+                "subject": "actor:john_roberts",
+                "predicate": "confirmed_by",
+                "object": "actor:u_s_senate",
+            },
+            "content_refs": [
+                {
+                    "kind": " source_unit ",
+                    "value": " source://demo/transcript/1 ",
+                }
+            ],
+            "authority_wrapper": {
+                "kind": " authority_wrapper ",
+                "value": " judicial_review_gate ",
+            },
+            "status": " candidate ",
+            "support_phi_ids": [" phi:demo:001 "],
+            "span_refs": [
+                {
+                    "kind": " source_span ",
+                    "value": " span://demo/1 ",
+                    "start_char": 0,
+                    "end_char": 42,
+                }
+            ],
+            "provenance_receipts": [
+                {
+                    "kind": " source ",
+                    "value": " demo_transcript ",
+                }
+            ],
+            "section": " Judicial review ",
+            "genre": " legal_ir ",
+        }
+    )
+
+    assert review_candidate is not None
+    assert review_candidate["schema_version"] == "sl.review_candidate.v0_1"
+    assert review_candidate["candidate_id"] == "phi:demo:001"
+    assert review_candidate["candidate_kind"] == "composed_candidate_node"
+    assert review_candidate["source_kind"] == "composed_candidate_node"
+    assert review_candidate["selection_basis"]["basis_kind"] == "composed_candidate_node"
+    assert review_candidate["selection_basis"]["predicate_family"] == "legal_procedural"
+    assert review_candidate["selection_basis"]["status"] == "candidate"
+    assert review_candidate["selection_basis"]["section"] == "Judicial review"
+    assert review_candidate["selection_basis"]["genre"] == "legal_ir"
+    assert review_candidate["selection_basis"]["support_phi_count"] == 1
+    assert review_candidate["selection_basis"]["content_ref_count"] == 1
+    assert review_candidate["selection_basis"]["span_ref_count"] == 1
+    assert review_candidate["selection_basis"]["provenance_receipt_count"] == 1
+    assert review_candidate["selection_basis"]["authority_wrapper_kind"] == "authority_wrapper"
+    assert review_candidate["anchor_refs"]["support_phi_ids"] == ["phi:demo:001"]
+    assert review_candidate["anchor_refs"]["content_refs"][0]["kind"] == "source_unit"
+    assert review_candidate["anchor_refs"]["content_refs"][0]["value"] == "source://demo/transcript/1"
+    assert review_candidate["anchor_refs"]["span_refs"][0]["kind"] == "source_span"
+    assert review_candidate["anchor_refs"]["span_refs"][0]["value"] == "span://demo/1"
+    assert review_candidate["anchor_refs"]["provenance_receipts"][0]["value"] == "demo_transcript"
+    assert "target_proposition_id" not in review_candidate
+
+
+def test_build_review_candidate_from_composed_candidate_node_can_be_embedded_without_promoted_fields() -> None:
+    review_candidate = build_review_candidate_from_composed_candidate_node(
+        {
+            "schema_version": "sl.composed_candidate_node.v1",
+            "kind": "composed_candidate_node",
+            "predicate_family": "legal_procedural",
+            "slots": {"subject": "actor:john_roberts"},
+            "content_refs": [{"kind": "source_unit", "value": "source://demo/transcript/1"}],
+            "authority_wrapper": {"kind": "authority_wrapper", "value": "judicial_review_gate"},
+            "status": "candidate",
+            "support_phi_ids": ["phi:demo:001"],
+            "span_refs": [{"kind": "source_span", "value": "span://demo/1"}],
+            "provenance_receipts": [{"kind": "source", "value": "demo_transcript"}],
+            "section": "Judicial review",
+            "genre": "legal_ir",
+        }
+    )
+
+    record = build_review_claim_record_dict(
+        claim_id="review:1",
+        candidate_id="review:1",
+        family_id="gwb_public_review",
+        cohort_id="gwb_public_review_v1",
+        root_artifact_id="gwb_public_review_v1",
+        lane="gwb",
+        source_family="gwb_public_review",
+        state="review_claim",
+        state_basis="source_review_row",
+        evidence_status="review_only",
+        proposition_identity={
+            "proposition_id": "review:1",
+            "family_id": "gwb_public_review",
+            "cohort_id": "gwb_public_review_v1",
+            "root_artifact_id": "gwb_public_review_v1",
+            "lane": "gwb",
+            "source_family": "gwb_public_review",
+            "identity_basis": {"basis_kind": "source_review_row"},
+            "provenance": {"anchor_refs": {"source_row_id": "review:1"}},
+        },
+        review_candidate=review_candidate,
+        review_text={"text": "Section 1 imposes a filing requirement.", "text_role": "claim_display_label"},
+        provenance={"source_kind": "review_bundle"},
+        decision_basis={"basis_kind": "source_review_row"},
+        review_route={"actionability": "must_review"},
+    )
+
+    assert record["review_candidate"]["candidate_kind"] == "composed_candidate_node"
+    assert "target_proposition_identity" not in record
+    assert "proposition_relation" not in record

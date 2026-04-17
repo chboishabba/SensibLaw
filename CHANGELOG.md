@@ -1,6 +1,36 @@
 # Changelog
 
 ## Unreleased
+- Composed candidate review adapter:
+  - Extended `src/policy/review_claim_records.py` with
+    `build_review_candidate_from_composed_candidate_node(...)` so
+    `sl.composed_candidate_node.v1` payloads can enter the existing
+    `review_candidate` envelope without widening fact-intake or review-bundle
+    contracts.
+  - The adapter keeps the bridge non-promotive:
+    - composed candidate node in
+    - `review_candidate` out
+    - no `target_proposition_id`
+    - no promoted-output path
+  - Added focused coverage in `tests/test_review_claim_records.py`.
+  - Validation:
+    `PYTHONPATH=SensibLaw ./.venv/bin/python -m pytest SensibLaw/tests/test_composed_candidate_node.py SensibLaw/tests/test_composed_candidate_admissibility.py SensibLaw/tests/test_review_claim_records.py -q`
+    -> `30 passed`
+- Composed candidate node + admissibility gate:
+  - Added `src/models/composed_candidate_node.py`,
+    `schemas/sl.composed_candidate_node.v1.schema.yaml`, and
+    `examples/composed_candidate_node_minimal.json` as the first bounded
+    contract for candidate nodes above minimal `Phi` emissions.
+  - Added `src/composed_candidate_admissibility.py` as a fail-closed
+    node-level gate returning `promote | audit | abstain` from provenance,
+    wrapper, slot/content, section/genre, and accepted-constraint checks.
+  - Exported the composed-candidate helpers through `src/models/__init__.py`.
+  - Added focused coverage in
+    `tests/test_composed_candidate_node.py` and
+    `tests/test_composed_candidate_admissibility.py`.
+  - Validation:
+    `PYTHONPATH=SensibLaw ./.venv/bin/python -m pytest SensibLaw/tests/test_composed_candidate_node.py SensibLaw/tests/test_composed_candidate_admissibility.py -q`
+    -> `10 passed`
 - Added provider-backed ontology enrichment helpers on the normalized
   `src/ontology` surface, including candidate lookup, deterministic
   filtering, JSON emission, and optional interactive upsert into the existing

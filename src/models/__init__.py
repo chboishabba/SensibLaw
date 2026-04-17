@@ -24,6 +24,13 @@ from .proposition_identity import (
     PropositionIdentity,
     build_proposition_identity_dict,
 )
+from .composed_candidate_node import (
+    COMPOSED_CANDIDATE_NODE_SCHEMA_VERSION,
+    ComposedCandidateNode,
+    build_composed_candidate_node_dict,
+    load_composed_candidate_node_schema,
+    validate_composed_candidate_node_dict,
+)
 from .proposition_relation import (
     PROPOSITION_RELATION_SCHEMA_VERSION,
     PropositionRelation,
@@ -41,6 +48,8 @@ __all__ = [
     "ActionPolicyRecord",
     "CONVERGENCE_SCHEMA_VERSION",
     "CONFLICT_SCHEMA_VERSION",
+    "COMPOSED_CANDIDATE_NODE_SCHEMA_VERSION",
+    "ComposedCandidateNode",
     "ConvergenceRecord",
     "ConflictSet",
     "Document",
@@ -70,6 +79,7 @@ __all__ = [
     "build_action_policy_record",
     "build_convergence_record",
     "build_conflict_set",
+    "build_composed_candidate_node_dict",
     "build_nat_claim_dict",
     "build_nat_claim_from_candidate",
     "build_normalized_claim_dict",
@@ -78,4 +88,6 @@ __all__ = [
     "build_proposition_relation_dict",
     "build_review_claim_record_dict",
     "build_temporal_envelope",
+    "load_composed_candidate_node_schema",
+    "validate_composed_candidate_node_dict",
 ]

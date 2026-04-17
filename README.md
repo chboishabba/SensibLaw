@@ -146,6 +146,12 @@ normalization shells until the underlying concepts are extracted into
 lane-agnostic surfaces that AU, GWB, affidavit, Wikidata/Nat, and future lanes
 can all share.
 
+The same caution applies if the suite adopts minimal cross-lane `Phi` atoms:
+`Phi` belongs in canonical normalized substrate, composition above `Phi`
+belongs in challengeable candidate state, and admissibility/promotion remains
+the authority boundary. MDL or latent naming may compress repeated candidate
+signatures later, but must not silently become the truth gate.
+
 Another caution also matters: not every decision surface in the suite should
 share one vocabulary.
 

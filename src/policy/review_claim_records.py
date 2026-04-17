@@ -96,6 +96,137 @@ def _build_review_candidate(
     )
 
 
+def _copy_kind_value_refs(values: Any) -> list[dict[str, Any]] | None:
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+        return None
+
+    copied: list[dict[str, Any]] = []
+    for value in values:
+        if not isinstance(value, Mapping):
+            return None
+        kind = _clean_text(value.get("kind"))
+        ref_value = _clean_text(value.get("value"))
+        if not kind or not ref_value:
+            return None
+        copied.append(
+            {
+                str(key): item
+                for key, item in value.items()
+                if item not in (None, "", [], {})
+            }
+        )
+        copied[-1]["kind"] = kind
+        copied[-1]["value"] = ref_value
+    return copied
+
+
+def build_review_candidate_from_composed_candidate_node(
+    candidate: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not isinstance(candidate, Mapping):
+        return None
+
+    candidate_kind = _clean_text(candidate.get("kind")) or "composed_candidate_node"
+    predicate_family = _clean_text(candidate.get("predicate_family"))
+    status = _clean_text(candidate.get("status"))
+    section = _clean_text(candidate.get("section"))
+    genre = _clean_text(candidate.get("genre"))
+    support_phi_values = candidate.get("support_phi_ids", [])
+    if not isinstance(support_phi_values, Sequence) or isinstance(support_phi_values, (str, bytes)):
+        support_phi_values = []
+    support_phi_ids = [
+        cleaned
+        for cleaned in (_clean_text(value) for value in support_phi_values)
+        if cleaned
+    ]
+    content_refs = _copy_kind_value_refs(candidate.get("content_refs"))
+    authority_wrapper = candidate.get("authority_wrapper")
+    span_refs = _copy_kind_value_refs(candidate.get("span_refs"))
+    provenance_receipts = _copy_kind_value_refs(candidate.get("provenance_receipts"))
+    if (
+        not predicate_family
+        or not status
+        or not section
+        or not genre
+        or not support_phi_ids
+        or not content_refs
+        or not isinstance(authority_wrapper, Mapping)
+        or not _clean_text(authority_wrapper.get("kind") or authority_wrapper.get("wrapper_kind"))
+        or not span_refs
+        or not provenance_receipts
+    ):
+        return None
+
+    wrapper_kind = _clean_text(
+        authority_wrapper.get("kind")
+        or authority_wrapper.get("wrapper_kind")
+        or authority_wrapper.get("authority_kind")
+    )
+    wrapper_status = _clean_text(
+        authority_wrapper.get("status")
+        or authority_wrapper.get("decision")
+        or authority_wrapper.get("validity")
+    )
+    candidate_id = support_phi_ids[0]
+    selection_basis: dict[str, Any] = {
+        "basis_kind": "composed_candidate_node",
+        "predicate_family": predicate_family,
+        "status": status,
+        "section": section,
+        "genre": genre,
+        "support_phi_count": len(support_phi_ids),
+        "content_ref_count": len(content_refs),
+        "span_ref_count": len(span_refs),
+        "provenance_receipt_count": len(provenance_receipts),
+    }
+    if wrapper_kind:
+        selection_basis["authority_wrapper_kind"] = wrapper_kind
+    if wrapper_status:
+        selection_basis["authority_wrapper_status"] = wrapper_status
+
+    return build_review_candidate_dict(
+        candidate_id=candidate_id,
+        candidate_kind=candidate_kind,
+        source_kind="composed_candidate_node",
+        selection_basis=selection_basis,
+        anchor_refs={
+            "support_phi_ids": support_phi_ids,
+            "content_refs": content_refs,
+            "span_refs": span_refs,
+            "provenance_receipts": provenance_receipts,
+        },
+    )
+
+
+def _build_review_candidate_for_review_row(
+    *,
+    row: Mapping[str, Any],
+    claim_id: str,
+    basis_kind: str,
+    review_status: str,
+) -> dict[str, Any]:
+    composed_candidate = row.get("composed_candidate_node")
+    if isinstance(composed_candidate, Mapping):
+        review_candidate = build_review_candidate_from_composed_candidate_node(composed_candidate)
+        if review_candidate is not None:
+            return review_candidate
+    return _build_review_candidate(
+        candidate_id=claim_id,
+        candidate_kind="review_source_row",
+        source_kind=str(row.get("source_kind") or "").strip() or "source_review_row",
+        selection_basis={
+            "basis_kind": basis_kind,
+            "review_status": review_status,
+            "primary_workload_class": str(row.get("primary_workload_class") or "").strip(),
+            "linkage_kind": str(row.get("linkage_kind") or "").strip(),
+        },
+        anchor_refs={
+            "source_row_id": claim_id,
+            "seed_id": str(row.get("seed_id") or "").strip(),
+        },
+    )
+
+
 def build_affidavit_target_proposition_identity(
     *,
     row: Mapping[str, Any],
@@ -584,20 +715,11 @@ def build_review_claim_records_from_review_rows(
                 state_basis="source_review_row",
                 evidence_status="review_only",
                 proposition_identity=proposition_identity,
-                review_candidate=_build_review_candidate(
-                    candidate_id=claim_id,
-                    candidate_kind="review_source_row",
-                    source_kind=str(row.get("source_kind") or "").strip() or "source_review_row",
-                    selection_basis={
-                        "basis_kind": basis_kind,
-                        "review_status": review_status,
-                        "primary_workload_class": str(row.get("primary_workload_class") or "").strip(),
-                        "linkage_kind": str(row.get("linkage_kind") or "").strip(),
-                    },
-                    anchor_refs={
-                        "source_row_id": claim_id,
-                        "seed_id": str(row.get("seed_id") or "").strip(),
-                    },
+                review_candidate=_build_review_candidate_for_review_row(
+                    row=row,
+                    claim_id=claim_id,
+                    basis_kind=basis_kind,
+                    review_status=review_status,
                 ),
                 provenance={
                     "source_kind": str(row.get("source_kind") or "").strip(),
