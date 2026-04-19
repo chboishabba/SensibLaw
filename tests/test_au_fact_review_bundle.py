@@ -239,6 +239,8 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["supporting_legislation_role_counts"], dict)
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["route_target_counts"], dict)
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["resolution_status_counts"], dict)
+    assert bundle["operator_views"]["legal_follow_graph"]["pressure"]["kind"] == "pressure_lattice"
+    assert bundle["operator_views"]["legal_follow_graph"]["summary"]["pressure"] == bundle["operator_views"]["legal_follow_graph"]["pressure"]
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["queue"], list)
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])
@@ -302,6 +304,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert normalized_artifact["artifact_role"] == "derived_product"
     assert normalized_artifact["authority"]["derived"] is True
     assert normalized_artifact["summary"]["lane"] == "au"
+    assert normalized_artifact["legal_follow_pressure"] == bundle["semantic_context"]["legal_follow_graph"]["pressure"]
     graph_diagnostics = normalized_artifact["graph_diagnostics"]
     assert graph_diagnostics["schema_version"] == "itir.graph_diagnostics.v1"
     assert graph_diagnostics["scope"]["substrate_kind"] == "legal_follow_graph"
@@ -335,6 +338,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
         "compiled_state",
     ]
     assert reasoner_input_artifact["normalized_artifact"]["artifact_id"] == normalized_artifact["artifact_id"]
+    assert reasoner_input_artifact["normalized_artifact"]["legal_follow_pressure"] == normalized_artifact["legal_follow_pressure"]
     assert reasoner_input_artifact["normalized_artifact"]["graph_diagnostics"] == graph_diagnostics
     assert reasoner_input_artifact["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     root_schema = json.loads(

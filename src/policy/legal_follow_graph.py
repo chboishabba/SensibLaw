@@ -16,6 +16,7 @@ from src.review_geometry.reviewer_packets import (
 
 LEGAL_FOLLOW_GRAPH_VERSION = "au.legal_follow_graph.v1"
 FOLLOW_CONTROL_PLANE_VERSION = "follow.control.v1"
+LEGAL_FOLLOW_PRESSURE_VERSION = "sl.legal_follow_pressure.v1"
 
 
 def _build_follow_control_plane(
@@ -44,6 +45,43 @@ def _build_follow_control_plane(
             {str(value) for value in resolution_statuses or [] if str(value).strip()}
         ),
         "state_awareness_priority": priority,
+    }
+
+
+def _legal_follow_pressure_value(summary: Mapping[str, Any]) -> str:
+    legal_claim_count = int(summary.get("legal_claim_count") or 0)
+    derived_follow_target_count = int(summary.get("derived_follow_target_count") or 0)
+    debate_record_count = int(summary.get("debate_record_count") or 0)
+    queue_count = legal_claim_count + derived_follow_target_count + debate_record_count
+
+    if legal_claim_count > 0 and derived_follow_target_count > 0:
+        return "critical"
+    if legal_claim_count > 0 or derived_follow_target_count > 0:
+        return "high"
+    if queue_count >= 2:
+        return "medium"
+    if queue_count == 1:
+        return "low"
+    return "none"
+
+
+def _legal_follow_pressure_payload(summary: Mapping[str, Any]) -> dict[str, Any]:
+    legal_claim_count = int(summary.get("legal_claim_count") or 0)
+    derived_follow_target_count = int(summary.get("derived_follow_target_count") or 0)
+    debate_record_count = int(summary.get("debate_record_count") or 0)
+    queue_count = legal_claim_count + derived_follow_target_count + debate_record_count
+    return {
+        "kind": "pressure_lattice",
+        "version": LEGAL_FOLLOW_PRESSURE_VERSION,
+        "value": _legal_follow_pressure_value(summary),
+        "basis": {
+            "queue_driving_node_counts": {
+                "legal_claim_count": legal_claim_count,
+                "derived_follow_target_count": derived_follow_target_count,
+                "debate_record_count": debate_record_count,
+            },
+            "queue_count": queue_count,
+        },
     }
 
 
@@ -981,81 +1019,84 @@ def build_au_legal_follow_graph(
     for row in nodes:
         for kind in row["metadata"].get("supporting_authority_kinds", []):
             supporting_authority_kinds[kind] = supporting_authority_kinds.get(kind, 0) + 1
+    summary = {
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "event_count": sum(1 for row in nodes if row["kind"] == "event"),
+        "authority_title_count": sum(1 for row in nodes if row["kind"] == "authority_title"),
+        "legal_ref_count": sum(
+            1
+            for row in nodes
+            if row["kind"] in {"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"}
+        ),
+        "case_ref_count": sum(1 for row in nodes if row["kind"] == "case_ref"),
+        "supporting_legislation_count": sum(1 for row in nodes if row["kind"] == "supporting_legislation"),
+        "cited_instrument_count": sum(1 for row in nodes if row["kind"] == "cited_instrument"),
+        "citation_count": sum(1 for row in nodes if row["kind"] == "citation"),
+        "authority_receipt_count": sum(1 for row in nodes if row["kind"] == "authority_receipt"),
+        "derived_follow_target_count": sum(1 for row in nodes if row["kind"] == "derived_follow_target"),
+        "legal_claim_count": sum(1 for row in nodes if row["kind"] == "legal_claim"),
+        "debate_record_count": sum(1 for row in nodes if row["kind"] == "debate_record"),
+        "derived_uk_follow_target_supporting_node_count": len(uk_supporting_nodes),
+        "supporting_receipt_count": len(set(supporting_receipt_ids)),
+        "supporting_authority_kind_counts": supporting_authority_kinds,
+        "legal_claim_predicate_counts": _metadata_label_counts(
+            nodes,
+            kinds={"legal_claim"},
+            metadata_key="predicate_key",
+        ),
+        "reference_kind_counts": _metadata_label_counts(
+            nodes,
+            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            metadata_key="reference_kind",
+        ),
+        "reference_class_counts": _metadata_label_counts(
+            nodes,
+            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            metadata_key="reference_class",
+        ),
+        "ref_kind_counts": _metadata_label_counts(
+            nodes,
+            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            metadata_key="ref_kind",
+        ),
+        "jurisdiction_hint_counts": _metadata_label_counts(
+            nodes,
+            kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
+            metadata_key="jurisdiction_hint",
+        ),
+        "instrument_kind_counts": _metadata_label_counts(
+            nodes,
+            kinds={"supporting_legislation", "cited_instrument"},
+            metadata_key="instrument_kind",
+        ),
+        "supporting_legislation_role_counts": _list_metadata_counts(
+            nodes,
+            kinds={"supporting_legislation"},
+            metadata_key="supporting_legislation_roles",
+        ),
+        "citation_court_hint_counts": _metadata_label_counts(
+            nodes,
+            kinds={"citation"},
+            metadata_key="court_hint",
+        ),
+        "citation_year_counts": _metadata_numeric_counts(
+            nodes,
+            kinds={"citation"},
+            metadata_key="year_hint",
+        ),
+        "edge_kind_counts": _kind_counts(edges, field="kind"),
+        "edge_reference_class_counts": _edge_metadata_label_counts(edges, metadata_key="reference_class"),
+        "edge_ref_kind_counts": _edge_metadata_label_counts(edges, metadata_key="ref_kind"),
+    }
     return {
         "version": LEGAL_FOLLOW_GRAPH_VERSION,
         "derived_only": True,
         "challengeable": True,
         "nodes": nodes,
         "edges": edges,
-        "summary": {
-            "node_count": len(nodes),
-            "edge_count": len(edges),
-            "event_count": sum(1 for row in nodes if row["kind"] == "event"),
-            "authority_title_count": sum(1 for row in nodes if row["kind"] == "authority_title"),
-            "legal_ref_count": sum(
-                1
-                for row in nodes
-                if row["kind"] in {"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"}
-            ),
-            "case_ref_count": sum(1 for row in nodes if row["kind"] == "case_ref"),
-            "supporting_legislation_count": sum(1 for row in nodes if row["kind"] == "supporting_legislation"),
-            "cited_instrument_count": sum(1 for row in nodes if row["kind"] == "cited_instrument"),
-            "citation_count": sum(1 for row in nodes if row["kind"] == "citation"),
-            "authority_receipt_count": sum(1 for row in nodes if row["kind"] == "authority_receipt"),
-            "derived_follow_target_count": sum(1 for row in nodes if row["kind"] == "derived_follow_target"),
-            "legal_claim_count": sum(1 for row in nodes if row["kind"] == "legal_claim"),
-            "derived_uk_follow_target_supporting_node_count": len(uk_supporting_nodes),
-            "supporting_receipt_count": len(set(supporting_receipt_ids)),
-            "supporting_authority_kind_counts": supporting_authority_kinds,
-            "legal_claim_predicate_counts": _metadata_label_counts(
-                nodes,
-                kinds={"legal_claim"},
-                metadata_key="predicate_key",
-            ),
-            "reference_kind_counts": _metadata_label_counts(
-                nodes,
-                kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
-                metadata_key="reference_kind",
-            ),
-            "reference_class_counts": _metadata_label_counts(
-                nodes,
-                kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
-                metadata_key="reference_class",
-            ),
-            "ref_kind_counts": _metadata_label_counts(
-                nodes,
-                kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
-                metadata_key="ref_kind",
-            ),
-            "jurisdiction_hint_counts": _metadata_label_counts(
-                nodes,
-                kinds={"legal_ref", "case_ref", "supporting_legislation", "cited_instrument"},
-                metadata_key="jurisdiction_hint",
-            ),
-            "instrument_kind_counts": _metadata_label_counts(
-                nodes,
-                kinds={"supporting_legislation", "cited_instrument"},
-                metadata_key="instrument_kind",
-            ),
-            "supporting_legislation_role_counts": _list_metadata_counts(
-                nodes,
-                kinds={"supporting_legislation"},
-                metadata_key="supporting_legislation_roles",
-            ),
-            "citation_court_hint_counts": _metadata_label_counts(
-                nodes,
-                kinds={"citation"},
-                metadata_key="court_hint",
-            ),
-            "citation_year_counts": _metadata_numeric_counts(
-                nodes,
-                kinds={"citation"},
-                metadata_key="year_hint",
-            ),
-            "edge_kind_counts": _kind_counts(edges, field="kind"),
-            "edge_reference_class_counts": _edge_metadata_label_counts(edges, metadata_key="reference_class"),
-            "edge_ref_kind_counts": _edge_metadata_label_counts(edges, metadata_key="ref_kind"),
-        },
+        "summary": summary,
+        "pressure": _legal_follow_pressure_payload(summary),
     }
 
 
@@ -1221,6 +1262,11 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
         )
 
     queue_summary = summarize_reviewer_packets(queue)
+    pressure = (
+        graph.get("pressure")
+        if isinstance(graph.get("pressure"), Mapping)
+        else _legal_follow_pressure_payload(summary)
+    )
     return {
         "available": bool(nodes),
         "control_plane": _build_follow_control_plane(
@@ -1245,7 +1291,9 @@ def build_au_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, A
             "route_target_counts": queue_summary["route_target_counts"],
             "resolution_status_counts": queue_summary["resolution_status_counts"],
             "queue_count": queue_summary["queue_count"],
+            "pressure": dict(pressure),
         },
+        "pressure": dict(pressure),
         "queue": queue,
         "parliamentary_follow_control": compute_parliamentary_weight([
             "debate",

@@ -55,6 +55,8 @@
   - SL provides structured representation, MDL compression, admissibility
     filtering, and dependency graph output.
   - A typed canonical boundary contract is preferred over ad hoc pipeline glue.
+  - For legal-follow pressure specifically, SL owns only the emitted metadata
+    surface, not the reusable pressure algebra itself.
 - Runtime bridge stubs exist in `src/qg_unification.py` as a staged prototype.
 - Fixture-backed replay exists for the same boundary:
   - `SensibLaw/tests/fixtures/qg_unification/da51_valid_demo.json`
@@ -74,6 +76,9 @@
     reversal or symmetry involution
   - keep phase kinematics separate from admissibility; cone, contraction, and
     MDL remain the bounded gate on what can be promoted or proven
+  - legal-follow pressure, when surfaced, must remain additive deterministic
+    metadata on derived graph/review products and must not replace existing
+    decision/reason fields
   - do not read this as granting proposal layers (`ZOS`-style retrieval or
     ranking) any proof or truth authority
 - Stage-3 and Stage-3b adapters support `--dry-run` and persistence modes:

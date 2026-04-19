@@ -90,6 +90,9 @@ def test_build_au_legal_follow_graph_is_derived_and_challengeable() -> None:
     assert graph["version"] == LEGAL_FOLLOW_GRAPH_VERSION
     assert graph["derived_only"] is True
     assert graph["challengeable"] is True
+    assert graph["pressure"]["kind"] == "pressure_lattice"
+    assert graph["pressure"]["version"] == "sl.legal_follow_pressure.v1"
+    assert graph["pressure"]["value"] in {"none", "low", "medium", "high", "critical"}
     assert graph["summary"]["event_count"] == 2
     assert graph["summary"]["authority_receipt_count"] == 1
     assert graph["summary"]["node_count"] >= 5
@@ -205,6 +208,8 @@ def test_operator_view_exposes_parliamentary_control() -> None:
     assert control["score"] > 0.2
     assert "debate" in control["sources"]
     assert view.get("parliamentary_samples")
+    assert view["pressure"] == graph["pressure"]
+    assert view["summary"]["pressure"] == graph["pressure"]
 
 
 def test_build_au_legal_follow_graph_supporting_legislation_summary_counts() -> None:
@@ -257,6 +262,7 @@ def test_build_au_legal_follow_graph_derives_uk_follow_target() -> None:
 
     assert graph["summary"]["derived_follow_target_count"] == 1
     assert graph["summary"]["derived_uk_follow_target_supporting_node_count"] == 2
+    assert graph["pressure"]["value"] == "high"
 
 
 def test_build_au_legal_follow_operator_view_emits_bounded_follow_queue() -> None:
