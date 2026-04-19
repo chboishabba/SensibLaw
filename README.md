@@ -83,6 +83,30 @@ The current architecture direction is no longer lane-by-lane growth. It is a
 single normalized process that different source families and work lanes bind
 onto over time.
 
+For the current legal-IR graph slice, the active control boundary is:
+
+- minimal `Phi` atoms as canonical normalized substrate
+- composed candidate nodes above `Phi`
+- fail-closed node and edge admissibility gates over those candidates
+- promoted records only after admissibility
+- derived graph views only after promotion
+
+The next bounded derived-graph step is narrower than a general "full legal
+graph": when the AU legal-follow graph reuses promoted legal claims, its
+derived `asserts_*` edges should carry typed edge-admissibility output from the
+structural gate. That keeps relation semantics attached to structural inputs
+instead of making the derived view infer meaning ad hoc.
+
+The current bounded operator step stays on that same structural surface: the
+existing typed edge-admissibility output now ranks legal-claim review pressure
+and can steer AU workflow guidance toward legal-follow review when that
+structural pressure dominates. That is queue policy over a derived review
+view, not a new graph owner, semantic layer, or promotion path.
+
+That means contradiction, support, and related edge semantics must remain
+structural and typed. They are not inferred from free-text markers at the
+admissibility layer.
+
 ## Canonical Ingestion Doctrine
 
 The stronger parser doctrine is now:

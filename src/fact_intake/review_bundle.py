@@ -97,6 +97,33 @@ def build_abstentions(fact_report: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _legal_follow_queue_and_pressure(operator_views: Mapping[str, Any]) -> tuple[int, int, int]:
+    legal_follow_graph = (
+        operator_views.get("legal_follow_graph")
+        if isinstance(operator_views.get("legal_follow_graph"), Mapping)
+        else {}
+    )
+    legal_follow_summary = (
+        legal_follow_graph.get("summary")
+        if isinstance(legal_follow_graph.get("summary"), Mapping)
+        else {}
+    )
+    queue = (
+        legal_follow_graph.get("queue")
+        if isinstance(legal_follow_graph.get("queue"), list)
+        else []
+    )
+    edge_counts = (
+        legal_follow_summary.get("edge_admissibility_counts")
+        if isinstance(legal_follow_summary.get("edge_admissibility_counts"), Mapping)
+        else {}
+    )
+    queue_count = int(legal_follow_summary.get("queue_count") or len(queue))
+    promote_count = int(edge_counts.get("promote") or 0)
+    review_pressure = int(edge_counts.get("audit") or 0) + int(edge_counts.get("abstain") or 0) + int(edge_counts.get("unknown") or 0)
+    return queue_count, promote_count, review_pressure
+
+
 def build_bundle_workflow_summary(
     *,
     review_summary: Mapping[str, Any],
@@ -153,6 +180,9 @@ def build_bundle_workflow_summary(
     authority_follow_queue_count = int(
         authority_follow_summary.get("queue_count") or len(authority_follow_queue)
     )
+    legal_follow_queue_count, legal_follow_promote_count, legal_follow_review_pressure = _legal_follow_queue_and_pressure(
+        operator_views
+    )
     undated_event_count = int(chronology_summary.get("undated_event_count") or 0)
     no_event_fact_count = int(chronology_summary.get("no_event_fact_count") or 0)
     gate_decision = (
@@ -165,10 +195,27 @@ def build_bundle_workflow_summary(
         "review_queue_count": review_queue_count,
         "contested_followup_count": contested_followup_count,
         "authority_follow_queue_count": authority_follow_queue_count,
+        "legal_follow_queue_count": legal_follow_queue_count,
+        "legal_follow_promote_count": legal_follow_promote_count,
+        "legal_follow_review_pressure": legal_follow_review_pressure,
         "undated_event_count": undated_event_count,
         "no_event_fact_count": no_event_fact_count,
     }
 
+    if legal_follow_queue_count > 0 and legal_follow_review_pressure > legal_follow_promote_count:
+        return {
+            "stage": "follow_up",
+            "title": "Resolve legal-follow admissibility items",
+            "recommended_view": "legal_follow_graph",
+            "recommended_filter": None,
+            "focus_fact_id": default_fact_id,
+            "reason": (
+                f"{legal_follow_queue_count} legal-follow item(s) remain open and "
+                f"admissibility review pressure dominates promotion pressure."
+            ),
+            "counts": counts,
+            "promotion_gate": dict(promotion_gate or {}),
+        }
     if authority_follow_queue_count > 0:
         return {
             "stage": "follow_up",

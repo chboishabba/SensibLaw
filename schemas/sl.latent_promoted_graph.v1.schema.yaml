@@ -54,13 +54,13 @@ properties:
       properties:
         src_node_type:
           type: string
-          enum: [fact]
+          enum: [fact, legal_claim]
         edge_type:
           type: string
-          enum: [instantiated_by, refers_to, member_of, applies_to]
+          enum: [instantiated_by, refers_to, member_of, applies_to, grounds_claim, claim_subject, claim_object]
         dst_node_type:
           type: string
-          enum: [actor, legal_ref, document, motif, authority]
+          enum: [actor, legal_ref, document, motif, authority, legal_claim]
   nodes:
     type: array
     minItems: 1
@@ -86,7 +86,7 @@ properties:
           minLength: 1
         node_type:
           type: string
-          enum: [actor, legal_ref, fact, motif, authority, document]
+          enum: [actor, legal_ref, fact, motif, authority, document, legal_claim]
         label:
           type: string
           minLength: 1
@@ -132,7 +132,7 @@ properties:
           minLength: 1
         edge_type:
           type: string
-          enum: [instantiated_by, refers_to, member_of, applies_to]
+          enum: [instantiated_by, refers_to, member_of, applies_to, grounds_claim, claim_subject, claim_object]
         payload:
           type: object
         provenance_refs:
@@ -192,6 +192,7 @@ properties:
         - object_node_ref
         - document_node_ref
         - authority_node_ref
+        - legal_claim_node_ref
         - motif_node_refs
       properties:
         record_ref:
@@ -212,6 +213,8 @@ properties:
         authority_node_ref:
           type: string
           minLength: 1
+        legal_claim_node_ref:
+          type: [string, "null"]
         motif_node_refs:
           type: array
           minItems: 1
@@ -271,6 +274,7 @@ properties:
       - constraint_count
       - fact_node_count
       - motif_node_count
+      - legal_claim_node_count
       - node_type_counts
       - edge_type_counts
     properties:
@@ -289,6 +293,9 @@ properties:
       motif_node_count:
         type: integer
         minimum: 1
+      legal_claim_node_count:
+        type: integer
+        minimum: 0
       node_type_counts:
         type: object
         additionalProperties:

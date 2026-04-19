@@ -88,6 +88,11 @@ def _typing_rules() -> list[dict[str, str]]:
         {"src_node_type": "fact", "edge_type": "refers_to", "dst_node_type": "document"},
         {"src_node_type": "fact", "edge_type": "member_of", "dst_node_type": "motif"},
         {"src_node_type": "fact", "edge_type": "applies_to", "dst_node_type": "authority"},
+        {"src_node_type": "fact", "edge_type": "grounds_claim", "dst_node_type": "legal_claim"},
+        {"src_node_type": "legal_claim", "edge_type": "claim_subject", "dst_node_type": "actor"},
+        {"src_node_type": "legal_claim", "edge_type": "claim_subject", "dst_node_type": "legal_ref"},
+        {"src_node_type": "legal_claim", "edge_type": "claim_object", "dst_node_type": "actor"},
+        {"src_node_type": "legal_claim", "edge_type": "claim_object", "dst_node_type": "legal_ref"},
     ]
 
 
@@ -114,6 +119,22 @@ def _constraint_rows(system_id: str) -> list[dict[str, Any]]:
             "constraint_type": "type_constraint",
             "scope": "edge:member_of",
             "expression": "member_of edges may only connect fact nodes to motif nodes.",
+            "provenance_refs": [],
+            "severity": "error",
+        },
+        {
+            "constraint_id": f"constraint://{system_id}/fact-grounds-claim-typing",
+            "constraint_type": "type_constraint",
+            "scope": "edge:grounds_claim",
+            "expression": "grounds_claim edges may only connect fact nodes to legal_claim nodes.",
+            "provenance_refs": [],
+            "severity": "error",
+        },
+        {
+            "constraint_id": f"constraint://{system_id}/legal-claim-role-typing",
+            "constraint_type": "type_constraint",
+            "scope": "edge:claim_subject|claim_object",
+            "expression": "claim_subject and claim_object edges may only connect legal_claim nodes to actor or legal_ref nodes.",
             "provenance_refs": [],
             "severity": "error",
         },
@@ -276,9 +297,63 @@ def build_latent_promoted_graph(
                 "object_node_ref": entity_refs["object"],
                 "document_node_ref": document_node_ref,
                 "authority_node_ref": authority_node_ref,
+                "legal_claim_node_ref": None,
                 "motif_node_refs": [],
             }
         )
+
+        if str(record.get("rule_type") or "").strip() == "review_relation":
+            legal_claim_node_ref = _node_ref(system_id, "legal_claim", record_ref)
+            ensure_node(
+                node_ref=legal_claim_node_ref,
+                node_type="legal_claim",
+                label=str(record.get("display_label") or record.get("predicate_key") or record_ref),
+                payload={
+                    "record_ref": record_ref,
+                    "event_id": record["event_id"],
+                    "predicate_key": record["predicate_key"],
+                    "display_label": record["display_label"],
+                    "promotion_status": record.get("promotion_status"),
+                    "rule_type": record.get("rule_type"),
+                    "subject_node_ref": entity_refs["subject"],
+                    "object_node_ref": entity_refs["object"],
+                },
+                provenance_refs=[record_ref],
+            )
+            edges.append(
+                {
+                    "edge_ref": _edge_ref(system_id, "grounds_claim", fact_node_ref, legal_claim_node_ref),
+                    "src": fact_node_ref,
+                    "dst": legal_claim_node_ref,
+                    "edge_type": "grounds_claim",
+                    "payload": {"record_ref": record_ref},
+                    "provenance_refs": [record_ref],
+                    "confidence": 1.0,
+                }
+            )
+            edges.append(
+                {
+                    "edge_ref": _edge_ref(system_id, "claim_subject", legal_claim_node_ref, entity_refs["subject"]),
+                    "src": legal_claim_node_ref,
+                    "dst": entity_refs["subject"],
+                    "edge_type": "claim_subject",
+                    "payload": {"role": "subject", "record_ref": record_ref},
+                    "provenance_refs": [record_ref],
+                    "confidence": 1.0,
+                }
+            )
+            edges.append(
+                {
+                    "edge_ref": _edge_ref(system_id, "claim_object", legal_claim_node_ref, entity_refs["object"]),
+                    "src": legal_claim_node_ref,
+                    "dst": entity_refs["object"],
+                    "edge_type": "claim_object",
+                    "payload": {"role": "object", "record_ref": record_ref},
+                    "provenance_refs": [record_ref],
+                    "confidence": 1.0,
+                }
+            )
+            record_index[-1]["legal_claim_node_ref"] = legal_claim_node_ref
 
     for signature, member_refs in motif_members.items():
         motif_node_ref = _node_ref(system_id, "motif", "|".join(signature))
@@ -341,9 +416,10 @@ def build_latent_promoted_graph(
         "summary": {
             "node_count": len(nodes),
             "edge_count": len(edges),
-            "constraint_count": 3,
+            "constraint_count": len(_constraint_rows(system_id)),
             "fact_node_count": node_type_counts["fact"],
             "motif_node_count": node_type_counts["motif"],
+            "legal_claim_node_count": node_type_counts["legal_claim"],
             "node_type_counts": dict(sorted(node_type_counts.items())),
             "edge_type_counts": dict(sorted(edge_type_counts.items())),
         },
