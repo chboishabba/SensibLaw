@@ -255,6 +255,8 @@ def build_au_fact_review_bundle_normalized_artifact(
             cone_max_depth=1,
             baseline_graph_diagnostics=baseline_graph_diagnostics,
         )
+        if isinstance(graph_payload.get("pressure"), Mapping):
+            artifact["legal_follow_pressure"] = dict(graph_payload.get("pressure") or {})
     return artifact
 
 

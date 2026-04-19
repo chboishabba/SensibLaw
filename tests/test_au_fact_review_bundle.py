@@ -243,6 +243,8 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["resolution_status_counts"], dict)
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["summary"]["edge_admissibility_counts"], dict)
     assert bundle["operator_views"]["legal_follow_graph"]["summary"]["assert_edge_admissibility_count"] >= 1
+    assert bundle["operator_views"]["legal_follow_graph"]["pressure"]["kind"] == "pressure_lattice"
+    assert bundle["operator_views"]["legal_follow_graph"]["summary"]["pressure"] == bundle["operator_views"]["legal_follow_graph"]["pressure"]
     assert isinstance(bundle["operator_views"]["legal_follow_graph"]["queue"], list)
     assert bundle["semantic_context"]["workflow"]["workflow_kind"] == "au_semantic"
     assert {"appealed", "challenged", "heard_by"} & set(bundle["semantic_context"]["legal_procedural_summary"]["predicates"])
@@ -250,6 +252,7 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["semantic_context"]["legal_follow_graph"]["summary"]["edge_count"] >= 1
     assert isinstance(bundle["semantic_context"]["legal_follow_graph"]["summary"]["edge_admissibility_counts"], dict)
     assert bundle["semantic_context"]["legal_follow_graph"]["summary"]["assert_edge_admissibility_count"] >= 1
+    assert bundle["semantic_context"]["legal_follow_graph"]["pressure"]["kind"] == "pressure_lattice"
     assert any(node["kind"] == "authority_receipt" for node in bundle["semantic_context"]["legal_follow_graph"]["nodes"])
     assert any(edge["kind"] == "linked_authority_receipt" for edge in bundle["semantic_context"]["legal_follow_graph"]["edges"])
     assert bundle["compiler_contract"]["lane"] == "au"
@@ -264,6 +267,10 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert first_review_claim["state"] == "review_claim"
     assert first_review_claim["state_basis"] == "review_bundle"
     assert first_review_claim["evidence_status"] == "review_only"
+    normalized_artifact = bundle["semantic_context"]["suite_normalized_artifact"]
+    assert normalized_artifact["legal_follow_pressure"] == bundle["semantic_context"]["legal_follow_graph"]["pressure"]
+    reasoner_input_artifact = bundle["semantic_context"]["reasoner_input_artifact"]
+    assert reasoner_input_artifact["normalized_artifact"]["legal_follow_pressure"] == normalized_artifact["legal_follow_pressure"]
 
 
 def test_build_bundle_workflow_summary_prefers_legal_follow_when_admissibility_pressure_dominates() -> None:

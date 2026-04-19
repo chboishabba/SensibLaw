@@ -1,3 +1,19 @@
+# 2026-04-19
+
+- document the legal-follow pressure ownership split across `README.md`,
+  `docs/interfaces.md`, and `todo.md`
+- clarify that reusable pressure algebra is owned outside SensibLaw, while SL
+  may only emit additive deterministic pressure metadata on derived legal-follow
+  graph/review surfaces
+- implement the first bounded typed legal-follow pressure payload in
+  `src/policy/legal_follow_graph.py` and preserve it into the AU normalized
+  artifact as `legal_follow_pressure`
+- keep older string/score surfaces
+  (`unresolved_pressure_status`, `priority_band_counts`,
+  `highest_priority_score`)
+  as separate workflow/readout channels rather than reusing them as the typed
+  payload
+
 # Changelog
 
 ## Unreleased

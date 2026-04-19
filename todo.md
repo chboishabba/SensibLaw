@@ -533,6 +533,14 @@
         legislation, and cited instruments
       - authority-follow operator packets now expose reference-class counts
         plus structured legal-ref and citation detail
+      - DONE: typed legal-follow pressure now emits from
+        `src/policy/legal_follow_graph.py`
+        as additive deterministic metadata on the derived graph/operator-view
+        surface and is preserved into the AU normalized artifact as
+        `legal_follow_pressure`
+      - keep it distinct from `unresolved_pressure_status` and queue priority
+        scores, which remain separate legacy workflow/readout surfaces
+      - do not let it replace existing decision/reason fields
     - validation:
       - focused gate: `19 passed`
       - touched modules `py_compile` clean

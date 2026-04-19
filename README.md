@@ -15,6 +15,8 @@ SensibLaw currently provides:
 - deterministic review/report surfaces instead of free-form narrative output
 - provenance-backed JSON artifacts and handoff bundles
 - bounded Wikidata diagnostics over pinned slices
+- derived legal-follow graph surfaces whose follow pressure remains additive
+  workflow metadata rather than legal truth or decision authority
 - export/handoff paths into downstream reasoning and review layers such as
   Zelph
 
@@ -106,6 +108,30 @@ view, not a new graph owner, semantic layer, or promotion path.
 That means contradiction, support, and related edge semantics must remain
 structural and typed. They are not inferred from free-text markers at the
 admissibility layer.
+
+## Legal-Follow Pressure Ownership
+
+The current ownership split for legal-follow pressure is:
+
+- reusable pressure algebra belongs outside SensibLaw
+- SensibLaw may only emit pressure as additive deterministic metadata on
+  derived review/graph surfaces
+- pressure must not replace decision/reason fields
+- pressure must not be treated as legal truth, verdict, prediction, or
+  canonical rewrite authority
+
+Current runtime status:
+
+- `legal_follow_graph.py` is the intended future emission seam for any typed
+  legal-follow pressure payload
+- the repo today still carries string/score pressure surfaces such as
+  `unresolved_pressure_status`, `priority_band_counts`, and
+  `highest_priority_score`
+- the legal-follow graph lane now also emits a bounded typed pressure payload
+  alongside those older string/score surfaces
+- that payload remains additive deterministic metadata on the derived
+  legal-follow graph/operator-view lane and is also preserved on the AU
+  normalized artifact as `legal_follow_pressure`
 
 ## Canonical Ingestion Doctrine
 
