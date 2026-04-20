@@ -3,7 +3,12 @@ from __future__ import annotations
 from src.policy.sl_to_sb_observer import build_sl_to_sb_iso_run_observer_payload
 
 
-def _normalized_artifact(*, unresolved_pressure_status: str = "none", follow_obligation=None) -> dict:
+def _normalized_artifact(
+    *,
+    unresolved_pressure_status: str = "none",
+    follow_obligation=None,
+    legal_follow_pressure=None,
+) -> dict:
     return {
         "schema_version": "itir.normalized.artifact.v1",
         "artifact_role": "derived_product",
@@ -25,6 +30,7 @@ def _normalized_artifact(*, unresolved_pressure_status: str = "none", follow_obl
         },
         "text_ref": {"text_id": "text:iso42001:clause-5.2"},
         "follow_obligation": follow_obligation,
+        "legal_follow_pressure": legal_follow_pressure,
         "unresolved_pressure_status": unresolved_pressure_status,
     }
 
@@ -69,6 +75,26 @@ def test_build_sl_to_sb_iso_run_observer_payload_is_reference_heavy() -> None:
     assert payload["casey_observer_refs"][0]["operation_id"] == "op:casey:1"
     assert "workspace_payload" not in payload["casey_observer_refs"][0]
     assert "summary" not in payload
+
+
+def test_build_sl_to_sb_iso_run_observer_payload_keeps_legal_follow_pressure_additive() -> None:
+    payload = build_sl_to_sb_iso_run_observer_payload(
+        suite_normalized_artifact=_normalized_artifact(
+            unresolved_pressure_status="none",
+            legal_follow_pressure={
+                "kind": "pressure_lattice",
+                "version": "sl.legal_follow_pressure.v1",
+                "value": "high",
+            },
+        ),
+        state_date="2026-04-06",
+    )
+    assert payload["unresolved_pressure_status"] == "none"
+    assert payload["legal_follow_pressure"] == {
+        "kind": "pressure_lattice",
+        "version": "sl.legal_follow_pressure.v1",
+        "value": "high",
+    }
 
 
 def test_build_sl_to_sb_iso_run_observer_payload_requires_state_anchor() -> None:

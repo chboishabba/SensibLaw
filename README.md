@@ -100,10 +100,11 @@ structural gate. That keeps relation semantics attached to structural inputs
 instead of making the derived view infer meaning ad hoc.
 
 The current bounded operator step stays on that same structural surface: the
-existing typed edge-admissibility output now ranks legal-claim review pressure
-and can steer AU workflow guidance toward legal-follow review when that
-structural pressure dominates. That is queue policy over a derived review
-view, not a new graph owner, semantic layer, or promotion path.
+operator view derived from typed edge-admissibility rows now ranks
+legal-claim review pressure and can steer AU workflow guidance toward
+legal-follow review when that structural pressure dominates. That is queue
+policy over a derived review view, not a new graph owner, semantic layer, or
+promotion path.
 
 That means contradiction, support, and related edge semantics must remain
 structural and typed. They are not inferred from free-text markers at the

@@ -19,8 +19,9 @@
 ## Unreleased
 - AU legal-follow priority steering:
   - Extended `src/policy/legal_follow_graph.py` so derived legal-claim review
-    packets are now ranked from structural `edge_admissibility` pressure and
-    the operator summary exposes bounded priority rollups.
+    packets are now ranked from structural `edge_admissibility` rows, and the
+    operator summary exposes bounded priority rollups over the legal-follow
+    queue.
   - Extended `src/fact_intake/review_bundle.py` so AU workflow guidance can
     recommend `legal_follow_graph` when legal-follow admissibility review
     pressure dominates promotion pressure.

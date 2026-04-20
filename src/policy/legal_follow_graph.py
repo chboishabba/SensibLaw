@@ -20,7 +20,6 @@ from src.review_geometry.reviewer_packets import (
 LEGAL_FOLLOW_GRAPH_VERSION = "au.legal_follow_graph.v1"
 FOLLOW_CONTROL_PLANE_VERSION = "follow.control.v1"
 LEGAL_FOLLOW_PRESSURE_VERSION = "sl.legal_follow_pressure.v1"
-LEGAL_FOLLOW_PRESSURE_VERSION = "sl.legal_follow_pressure.v1"
 
 
 def _build_follow_control_plane(
@@ -49,43 +48,6 @@ def _build_follow_control_plane(
             {str(value) for value in resolution_statuses or [] if str(value).strip()}
         ),
         "state_awareness_priority": priority,
-    }
-
-
-def _legal_follow_pressure_value(summary: Mapping[str, Any]) -> str:
-    legal_claim_count = int(summary.get("legal_claim_count") or 0)
-    derived_follow_target_count = int(summary.get("derived_follow_target_count") or 0)
-    debate_record_count = int(summary.get("debate_record_count") or 0)
-    queue_count = legal_claim_count + derived_follow_target_count + debate_record_count
-
-    if legal_claim_count > 0 and derived_follow_target_count > 0:
-        return "critical"
-    if legal_claim_count > 0 or derived_follow_target_count > 0:
-        return "high"
-    if queue_count >= 2:
-        return "medium"
-    if queue_count == 1:
-        return "low"
-    return "none"
-
-
-def _legal_follow_pressure_payload(summary: Mapping[str, Any]) -> dict[str, Any]:
-    legal_claim_count = int(summary.get("legal_claim_count") or 0)
-    derived_follow_target_count = int(summary.get("derived_follow_target_count") or 0)
-    debate_record_count = int(summary.get("debate_record_count") or 0)
-    queue_count = legal_claim_count + derived_follow_target_count + debate_record_count
-    return {
-        "kind": "pressure_lattice",
-        "version": LEGAL_FOLLOW_PRESSURE_VERSION,
-        "value": _legal_follow_pressure_value(summary),
-        "basis": {
-            "queue_driving_node_counts": {
-                "legal_claim_count": legal_claim_count,
-                "derived_follow_target_count": derived_follow_target_count,
-                "debate_record_count": debate_record_count,
-            },
-            "queue_count": queue_count,
-        },
     }
 
 
