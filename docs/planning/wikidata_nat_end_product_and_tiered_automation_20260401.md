@@ -66,6 +66,34 @@ and review-first.
 
 The honest end state is tiered, not uniform.
 
+## April 21 Family-To-Tier Mapping
+
+The April 12 routing update adds an action taxonomy over the older Nat source
+cohorts. The Nat cohorts still describe where rows came from. The families
+below describe what the system should do with an inspected row.
+
+- Family A: clean model-aligned rows map to Tier 1 / `full_auto`.
+- Family B: structured rows that need decomposition map to Tier 2 /
+  `split_auto`.
+- Family C: model-incomplete rows map to repair plus migrate review before any
+  promotion.
+- Family D: valid subjects with weaker typing map to Tier 3 or Tier 4
+  review-only typed hold.
+- Family E: broken or legacy mixed rows map to manual reconstruction, not
+  automation.
+
+The property boundary is conservative:
+
+- annual organization-level emissions can route to `P14143`
+- product or lifecycle carbon footprint should stay on `P5991`
+- emissions intensity should be held, not forced into `P14143`
+- avoided emissions, offsets, and removals should be held until a specific
+  target property is confirmed
+- non-emissions metrics are blocked
+
+This means broad automation readiness is measured by stable Family A evidence,
+not by Nat Cohort A population size.
+
 ### Tier 1: Fully Automated
 
 Use for rows that repeatedly prove safe under the same checks:

@@ -115,6 +115,100 @@ Gap:
 
 ## Mapping Into Migration-Pack Protocol
 
+## April 21 Routing Overlay
+
+Update source:
+
+- April 12 working-note from chb on the current climate migration routing
+  table
+- scope: `P5991 -> P14143` climate-family rows and adjacent non-emissions
+  rows
+
+This overlay does not replace the Nat sandbox cohorts below. The Nat cohorts
+remain source/population buckets from the sandbox page. The routing families
+below are the action taxonomy used after a row is inspected.
+
+### Family A: clean model-aligned rows
+
+Signals:
+
+- company item
+- `CO2e` unit
+- `GHG Protocol`
+- single year
+- clear scope or total
+
+Default route:
+
+- `full_auto`
+- target property: `P14143` annual greenhouse gas emissions
+
+### Family B: structured but needs split
+
+Signals:
+
+- multiple scopes on the same item
+- totals and scopes mixed
+- multiple years
+
+Default route:
+
+- `split_auto`
+- generate or verify structured split plans before migration
+
+### Family C: model incomplete
+
+Signals:
+
+- missing `P459`
+- unclear method
+- missing scope
+- partial qualifiers
+
+Default route:
+
+- repair plus migrate
+- keep as review-first until method, scope, and qualifier intent are explicit
+
+### Family D: valid subjects with weaker typing
+
+Signals:
+
+- not companies, or weaker organization typing such as banks or general
+  organizations
+- unusual `instance of`
+- emissions not clearly organization-level
+- semantic mismatch to the greenhouse-gas model
+- emissions intensity, avoided emissions, offsets, removals, product-level
+  emissions, or other non-org-level metrics
+
+Default route:
+
+- review-only typed hold
+- do not force into `P14143`
+
+### Family E: broken or legacy mixed rows
+
+Signals:
+
+- wrong units
+- inconsistent qualifiers
+- duplicate semantics
+- mixed meanings in one statement
+
+Default route:
+
+- manual reconstruction
+
+### Conservative Property Routing
+
+- Annual organization-level emissions route to `P14143`.
+- Product or lifecycle carbon footprint stays on `P5991`.
+- Emissions intensity is a typed hold and should not be forced into `P14143`.
+- Avoided emissions, offsets, and removals are typed holds until a specific
+  target property is confirmed.
+- Non-emissions metrics are blocked.
+
 ### Cohort A: reconciled business-family subjects
 
 Page bucket:

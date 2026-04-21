@@ -103,6 +103,33 @@ It is that the lane is now fail-closed in a normalized way:
 
 That is the correct ontology-group posture for this stage.
 
+## April 21 Routing Clarification
+
+The Nat source cohorts and the April 12 routing families should be kept
+separate:
+
+- Nat cohorts describe where the row came from in the sandbox population.
+- Routing families describe what action is justified after inspection.
+
+Current routing table:
+
+- Family A: clean model-aligned rows route to `full_auto`.
+- Family B: structured rows with multiple scopes, totals, or years route to
+  `split_auto`.
+- Family C: model-incomplete rows, including missing `P459`, route to repair
+  plus migrate review.
+- Family D: valid but weakly typed or semantically mismatched subjects route to
+  review-only typed hold.
+- Family E: broken or legacy mixed rows route to manual reconstruction.
+
+Conservative property boundary:
+
+- annual organization-level emissions route to `P14143`
+- product or lifecycle carbon footprint stays on `P5991`
+- emissions intensity, avoided emissions, offsets, and removals stay held
+  unless a specific target property is confirmed
+- non-emissions metrics are blocked
+
 ## Current Cohort A Result
 
 Bounded tranche:

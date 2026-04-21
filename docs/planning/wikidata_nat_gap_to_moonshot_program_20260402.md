@@ -227,6 +227,8 @@ The lane does not yet have:
 - claim-boundary grounding strong enough to remove reviewer dependence for hard
   rows
 - stable policy handling across the non-company cohorts
+- measured Family A/B/C/D/E routing evidence across representative climate
+  rows
 - quantitative evidence that blind execution would be safer than reviewer-gated
   execution
 - broader operator/governance indexes that stay stable under repeated batch
@@ -257,6 +259,19 @@ the distance between:
 
 - one bounded promoted family subset, plus a strong review-and-split workbench
 - and a trustworthy blind executor
+
+As of the April 12 routing update, that gap should be measured through the
+Family A-E action taxonomy:
+
+- Family A rows are the only rows that can justify `full_auto`.
+- Family B rows must prove `split_auto` safety through split verification.
+- Family C rows need repair plus migrate review before promotion.
+- Family D rows remain review-only typed holds.
+- Family E rows require manual reconstruction.
+
+This means scaling Nat Cohort A is not itself evidence for broad automation.
+The relevant automation signal is stable Family A yield, with reliable holds
+for Families C, D, and E and correct decomposition for Family B.
 
 That gap currently has five major classes:
 
