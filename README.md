@@ -7,6 +7,37 @@ structured, inspectable outputs instead of opaque summaries. It is used for
 legal/normative review, structured evidence handling, and bounded ontology
 diagnostics such as the current Wikidata work.
 
+## Public Interface Boundary
+
+The supported downstream import boundary is `sensiblaw.interfaces`.
+
+Implemented public surface now:
+- canonical text adaptation through `build_canonical_conversation_text(...)`
+- parser adapter helpers such as `parse_canonical_text(...)`
+- shared reducer helpers such as `collect_canonical_relational_bundle(...)`
+- IR types and adapter helpers such as `build_query_tree(...)` and
+  `project_interaction_mode(...)`
+- descriptive signals helpers such as `collect_signal_state(...)`
+
+Release-sensitive surface:
+- downstreams spanning older revisions should still feature-detect the newer
+  IR/signals exports until their baseline guarantees them
+
+The intended downstream-facing flow is:
+
+```text
+canonical text -> parse -> IR -> signals
+```
+
+This flow is an evidence/extraction contract only. It does not grant route
+authority, Telegram policy, or downstream execution authority to SensibLaw.
+
+If a downstream needs routing, admissibility, or delivery behavior, that logic
+must remain local to the downstream product. The public interface documents are:
+
+- `docs/interfaces.md`
+- `docs/parser_ir_interface.md`
+
 ## What SensibLaw Does
 
 SensibLaw currently provides:

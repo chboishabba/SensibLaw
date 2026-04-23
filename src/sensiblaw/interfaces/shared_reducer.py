@@ -7,6 +7,10 @@ import hashlib
 import re
 from typing import Any
 
+from ._compat import install_src_package_aliases
+
+install_src_package_aliases()
+
 try:
     from src.text.deterministic_legal_tokenizer import (
         LexemeToken,
@@ -23,24 +27,11 @@ try:
     from src.text.operational_structure import StructureOccurrence
     from src.text.structure_index import collect_structure_occurrences
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
-    from text.deterministic_legal_tokenizer import (
-        LexemeToken,
-        tokenize_detailed,
-        tokenize_with_spans,
-    )
-    from text.lexeme_index import (
-        LexemeOccurrence,
-        LexemeTokenizerProfile,
-        collect_lexeme_occurrences,
-        collect_lexeme_occurrences_with_profile,
-        get_tokenizer_profile,
-    )
-    from text.operational_structure import StructureOccurrence
-    from text.structure_index import collect_structure_occurrences
+    raise
 try:
     from src.nlp.spacy_adapter import parse as parse_with_spacy
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
-    from nlp.spacy_adapter import parse as parse_with_spacy
+    raise
 
 
 _YEAR_RE = re.compile(r"^\d{4}$")
