@@ -169,6 +169,7 @@ def _build_inline_text_unit(
     metadata: Mapping[str, Any] | None = None,
 ) -> CanonicalUnit:
     actual_end_char = start_char + len(text) if end_char is None else end_char
+    normalized_metadata = dict(metadata or {})
     anchor_refs: dict[str, Any] = {
         "text_id": text_id,
         "segment_id": segment_id,
@@ -188,7 +189,7 @@ def _build_inline_text_unit(
         start_char=start_char,
         end_char=actual_end_char,
         anchor_refs=anchor_refs,
-        metadata=dict(metadata or {}),
+        metadata=normalized_metadata,
     )
 
 
@@ -297,7 +298,10 @@ class PdfPageMediaAdapter(MediaAdapter):
                 order_index=order_index,
                 media_type=self.media_type.value,
                 page=page_index,
-                metadata={"page": page_index},
+                metadata={
+                    "page": page_index,
+                    "body_qualified": segment_kind == SegmentKind.PARAGRAPH.value,
+                },
             )
             segments.append(
                 CanonicalSegment(
@@ -313,7 +317,10 @@ class PdfPageMediaAdapter(MediaAdapter):
                         "char_range": [start_char, end_char],
                         "page": page_index,
                     },
-                    metadata={"page": page_index},
+                    metadata={
+                        "page": page_index,
+                        "body_qualified": segment_kind == SegmentKind.PARAGRAPH.value,
+                    },
                 )
             )
 

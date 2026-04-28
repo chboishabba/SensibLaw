@@ -67,10 +67,14 @@ def test_pdf_page_media_adapter_emits_heading_and_paragraph_segments():
     ]
     assert canonical.segments[1].metadata["page"] == 1
     assert canonical.segments[3].metadata["page"] == 2
+    assert canonical.segments[0].metadata["body_qualified"] is False
+    assert canonical.segments[1].metadata["body_qualified"] is True
     assert canonical.segments[0].anchors["page"] == 1
     assert canonical.segments[0].text_id == canonical.text_id
     assert canonical.segments[0].units[0].anchor_refs["page"] == 1
     assert canonical.segments[0].units[0].anchor_refs["order_index"] == 0
+    assert canonical.segments[0].units[0].metadata["body_qualified"] is False
+    assert canonical.segments[1].units[0].metadata["body_qualified"] is True
 
     envelope = build_parsed_envelope(canonical)
     assert envelope.envelope_id.startswith(f"{canonical.text_id}:envelope:")

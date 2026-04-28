@@ -537,6 +537,19 @@ def _extract_pdf_links(data: bytes) -> Dict[int, List[PdfLink]]:
     return links
 
 
+def _count_pdf_pages(pdf_path: Path) -> int | None:
+    """Return the total page count for ``pdf_path`` when available."""
+
+    try:
+        with pdf_path.open("rb") as handle:
+            parser = PDFParser(handle)
+            document = PDFDocument(parser)
+            parser.set_document(document)
+            return sum(1 for _ in PDFPage.create_pages(document))
+    except Exception:
+        return None
+
+
 def _collect_glyphs_from_layout(layout) -> List[Glyph]:
     """Collect glyphs (characters) with bounding boxes from a pdfminer layout."""
 
@@ -1428,7 +1441,13 @@ _MODALITY_DISPLAY = {
     Modality.SHALL_NOT: "shall not",
 }
 
-_FRONT_MISLEADING_TITLES = {"sticker label signal", "case name"}
+_FRONT_MISLEADING_TITLES = {
+    "sticker label signal",
+    "case name",
+    "jade.io",
+    "barnet jade",
+    "view this document in a browser",
+}
 _JURISDICTION_EXCLUDE_TOKENS = {
     "appl",
     "applied",
@@ -1443,6 +1462,37 @@ _JURISDICTION_EXCLUDE_TOKENS = {
     "signal",
 }
 _FRONT_CITATION_START = {"citation", "citation year"}
+_PDF_WRAPPER_LINE_MARKERS = (
+    "barnet publication information",
+    "user: anonymous",
+    "content retrieved:",
+    "download/print",
+    "view all citations",
+    "jade citator",
+    "citations filtered to show only",
+    "showing 1165 hca and appellate citations",
+    "showing 1165",
+    "more than 1000 citations",
+)
+_PDF_WRAPPER_LINE_EXACT = {
+    "jade.io",
+    "barnet jade",
+    "view this document in a browser",
+    "attribution",
+}
+_PDF_CITATION_PANEL_PREFIXES = (
+    "following paragraph cited by:",
+    "decisions following paragraph cited by:",
+)
+_INLINE_BODY_START_MARKERS = (
+    "HIGH COURT OF AUSTRALIA",
+)
+_INLINE_BODY_TRUNCATION_MARKERS = (
+    "Following paragraph cited by:",
+    "Decisions Following paragraph cited by:",
+    "Decisions Commonwealth of Australia v ",
+    "Commonwealth of Australia v Yunupingu",
+)
 
 
 def _normalize_principle_text(text: Optional[str]) -> Optional[str]:
@@ -2057,6 +2107,242 @@ def _looks_like_title_line(line: str) -> bool:
     return bool(_TITLE_KEYWORD_RE.search(line))
 
 
+def _looks_like_sentence_line(line: str) -> bool:
+    stripped = str(line or "").strip()
+    if not stripped:
+        return False
+    if stripped[-1:] in ".!?":
+        return True
+    tokens = stripped.split()
+    lowercase_tokens = sum(1 for token in tokens if any(ch.islower() for ch in token))
+    return len(tokens) >= 5 and lowercase_tokens >= 3
+
+
+def _looks_like_wrapper_heading(line: str) -> bool:
+    lowered = " ".join(str(line or "").strip().lower().split())
+    if not lowered:
+        return False
+    if lowered in _FRONT_MISLEADING_TITLES:
+        return True
+    return "." in lowered and " " not in lowered and len(lowered) <= 32
+
+
+def _is_wrapper_line(line: str) -> bool:
+    lowered = " ".join(str(line or "").strip().lower().split())
+    if not lowered:
+        return False
+    if lowered in _PDF_WRAPPER_LINE_EXACT:
+        return True
+    return any(marker in lowered for marker in _PDF_WRAPPER_LINE_MARKERS)
+
+
+def _looks_like_citation_panel_line(line: str) -> bool:
+    lowered = " ".join(str(line or "").strip().lower().split())
+    if not lowered:
+        return False
+    if lowered.startswith(_PDF_CITATION_PANEL_PREFIXES):
+        return True
+    case_ref_count = len(re.findall(r"\bv\.?\b", lowered))
+    if lowered.startswith("decisions ") and case_ref_count >= 1:
+        return True
+    return case_ref_count >= 2 and len(lowered) >= 80
+
+
+def _looks_like_case_reference_line(line: str) -> bool:
+    stripped = str(line or "").strip()
+    lowered = " ".join(str(line or "").strip().lower().split())
+    if not lowered:
+        return False
+    case_ref_count = len(re.findall(r"\bv\.?\b", lowered))
+    if lowered.startswith(_PDF_CITATION_PANEL_PREFIXES):
+        return True
+    if re.search(
+        r"\b[A-Z][A-Za-z'&.-]+(?:\s+[A-Z][A-Za-z'&.-]+){0,8}\s+v\.?\s+[A-Z]",
+        stripped,
+    ):
+        return True
+    if case_ref_count >= 1 and not _looks_like_sentence_line(line):
+        return True
+    return False
+
+
+def _looks_like_substantive_prose_line(line: str) -> bool:
+    stripped = str(line or "").strip()
+    if _is_wrapper_line(line):
+        return False
+    if _looks_like_citation_panel_line(line):
+        return False
+    if re.match(r"^\(\d{1,2}\s+[A-Z][a-z]+\s+\d{4}\)", stripped):
+        return False
+    if re.match(r"^\(\d{1,2}\s+[A-Z][a-z]+$", stripped):
+        return False
+    if re.match(r"^\d{4}\)\s+\(", stripped):
+        return False
+    if _looks_like_case_reference_line(stripped) and stripped[-1:] not in ".!?;:":
+        return False
+    if re.search(r"\b(?:CJ|ACJ|DCJ|JA|JJ|JJA|J)\)?\.?$", stripped) and stripped[-1:] == ")":
+        return False
+    return _looks_like_sentence_line(line)
+
+
+def _looks_like_citation_digest_continuation_line(line: str) -> bool:
+    stripped = str(line or "").strip()
+    if not stripped:
+        return False
+    if _looks_like_case_reference_line(stripped):
+        return True
+    if re.match(r"^\(\d{1,2}\s+[A-Z][a-z]+\s+\d{4}\)", stripped):
+        return True
+    if re.match(r"^\(\d{1,2}\s+[A-Z][a-z]+$", stripped):
+        return True
+    if re.match(r"^\d{4}\)\s+\(", stripped):
+        return True
+    if re.search(r"\b(?:CJ|ACJ|DCJ|P|JA|JJ|J)\)?\.?$", stripped):
+        return True
+    if (
+        re.search(r"\b(?:CJ|ACJ|DCJ|JA|JJ|J)\b", stripped)
+        and len(stripped.split()) <= 24
+        and not _looks_like_sentence_line(stripped)
+    ):
+        return True
+    if _looks_like_substantive_prose_line(stripped):
+        return False
+    return False
+
+
+def _find_inline_citation_digest_start(line: str) -> int | None:
+    normalized = re.sub(r"\s+", " ", str(line or "")).strip()
+    if not normalized:
+        return None
+    lowered = normalized.lower()
+    for marker in _INLINE_BODY_TRUNCATION_MARKERS:
+        marker_index = lowered.find(marker.lower())
+        if marker_index > 0:
+            return marker_index
+
+    case_match = re.search(
+        r"\b[A-Z][A-Za-z'&.-]+(?:\s+[A-Z][A-Za-z'&.-]+){0,6}\s+v\.?\s+[A-Z]",
+        normalized,
+    )
+    if case_match is None or case_match.start() == 0:
+        return None
+    prefix = normalized[: case_match.start()].rstrip()
+    if not prefix or prefix[-1] not in ".!?;:\"”)]":
+        return None
+    remainder = normalized[case_match.start() :]
+    case_ref_count = len(re.findall(r"\bv\.?\b", remainder.lower()))
+    neutral_citation_count = len(re.findall(r"\[\d{4}\]\s+[A-Z]{2,}", remainder))
+    if case_ref_count >= 2 or neutral_citation_count >= 2:
+        return case_match.start()
+    return None
+
+
+def _looks_like_document_heading(line: str) -> bool:
+    stripped = str(line or "").strip()
+    if not stripped:
+        return False
+    lowered = stripped.lower()
+    if lowered in _FRONT_MISLEADING_TITLES:
+        return False
+    if _looks_like_wrapper_heading(stripped):
+        return False
+    if _looks_like_sentence_line(stripped):
+        return False
+    if _looks_like_jurisdiction_line(stripped):
+        return False
+    if _CASE_NAME_RE.search(stripped):
+        return True
+    if _looks_like_title_line(stripped):
+        return True
+    return False
+
+
+def _clean_page_lines_for_body(lines: Iterable[str], *, is_first_page: bool) -> list[str]:
+    cleaned: list[str] = []
+    dropping_front_wrapper = is_first_page
+    skipping_citation_digest = False
+    for raw_line in lines:
+        line = re.sub(r"\s+", " ", str(raw_line or "")).strip()
+        if not line:
+            continue
+        lowered_line = line.lower()
+        for marker in _INLINE_BODY_START_MARKERS:
+            lowered_marker = marker.lower()
+            marker_index = lowered_line.find(lowered_marker)
+            if marker_index != -1 and marker_index != 0:
+                line = line[marker_index:].strip()
+                lowered_line = line.lower()
+                break
+        marker_index = _find_inline_citation_digest_start(line)
+        opened_inline_citation_digest = marker_index is not None
+        if marker_index is not None:
+            line = line[:marker_index].strip()
+            lowered_line = line.lower()
+        if not line:
+            continue
+        if skipping_citation_digest:
+            if _looks_like_citation_digest_continuation_line(line):
+                continue
+            if _looks_like_substantive_prose_line(line) and not _looks_like_case_reference_line(line):
+                skipping_citation_digest = False
+            else:
+                continue
+        if _is_wrapper_line(line):
+            continue
+        if _looks_like_citation_panel_line(line):
+            skipping_citation_digest = True
+            continue
+        if line == "Decisions":
+            skipping_citation_digest = True
+            continue
+        if _looks_like_case_reference_line(line) and not _looks_like_substantive_prose_line(line):
+            skipping_citation_digest = True
+            continue
+        if dropping_front_wrapper and _looks_like_wrapper_heading(line):
+            continue
+        dropping_front_wrapper = False
+        cleaned.append(line)
+        if opened_inline_citation_digest:
+            skipping_citation_digest = True
+    if not cleaned:
+        return cleaned
+
+    while len(cleaned) > 1 and _looks_like_case_reference_line(cleaned[0]):
+        if _looks_like_substantive_prose_line(cleaned[0]):
+            break
+        cleaned.pop(0)
+    if not cleaned:
+        return cleaned
+
+    heading = cleaned[0]
+    body_lines = cleaned[1:]
+    while body_lines and _looks_like_case_reference_line(body_lines[0]):
+        if _looks_like_substantive_prose_line(body_lines[0]):
+            break
+        body_lines.pop(0)
+    return [heading, *body_lines]
+
+
+def _normalize_extracted_pages_for_body(pages: List[dict]) -> List[dict]:
+    normalized_pages: List[dict] = []
+    for index, page in enumerate(pages):
+        lines = page.get("lines") or []
+        cleaned_lines = _clean_page_lines_for_body(
+            lines, is_first_page=index == 0
+        )
+        heading = cleaned_lines[0] if cleaned_lines else ""
+        body = " ".join(cleaned_lines[1:]) if len(cleaned_lines) > 1 else ""
+        normalized_pages.append(
+            {
+                **page,
+                "heading": heading,
+                "text": body,
+                "lines": cleaned_lines,
+            }
+        )
+    return normalized_pages
+
+
 def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[str]]:
     if not pages:
         return None, None
@@ -2070,7 +2356,7 @@ def _infer_cover_metadata(pages: List[dict]) -> Tuple[Optional[str], Optional[st
     title: Optional[str] = None
 
     for index, line in enumerate(lines[:10]):
-        if title is None and _looks_like_title_line(line):
+        if title is None and _looks_like_document_heading(line):
             title = line
             if index >= 1 and jurisdiction is None:
                 potential = lines[index - 1]
@@ -2133,6 +2419,16 @@ def _determine_document_title(
 ) -> Optional[str]:
     """Return a best-effort title for the document."""
 
+    def _title_from_filename() -> Optional[str]:
+        stem = source.stem.replace("_", " ").strip()
+        stem = re.sub(r"(?i)\\.pdf$", "", stem)
+        stem = stem.strip()
+        if not stem:
+            return None
+        # Drop a leading year and court code if present.
+        stem = re.sub(r"^\\d{3,4}\\s+[A-Z]{2,}\\s+", "", stem)
+        return stem or None
+
     if provided_title:
         candidate = provided_title.strip()
         if candidate:
@@ -2146,24 +2442,17 @@ def _determine_document_title(
             if not tokens.intersection(_JURISDICTION_EXCLUDE_TOKENS):
                 return candidate
 
-    for page in pages:
+    filename_title = _title_from_filename()
+    if filename_title and not inferred_title:
+        return filename_title
+
+    for page in pages[:2]:
         heading = str(page.get("heading") or "").strip()
         if heading:
             lowered = heading.lower()
-            if lowered not in _FRONT_MISLEADING_TITLES:
+            if lowered not in _FRONT_MISLEADING_TITLES and _looks_like_document_heading(heading):
                 return heading
 
-    def _title_from_filename() -> Optional[str]:
-        stem = source.stem.replace("_", " ").strip()
-        stem = re.sub(r"(?i)\\.pdf$", "", stem)
-        stem = stem.strip()
-        if not stem:
-            return None
-        # Drop a leading year and court code if present.
-        stem = re.sub(r"^\\d{3,4}\\s+[A-Z]{2,}\\s+", "", stem)
-        return stem or None
-
-    filename_title = _title_from_filename()
     if filename_title:
         return filename_title
 
@@ -2977,21 +3266,23 @@ def build_document(
         glossary_registry: Glossary registry for definition lookups.
     """
 
-    inferred_jurisdiction, inferred_title = _infer_cover_metadata(pages)
-    first_page_lines = pages[0].get("lines") if pages else None
+    cleaned_pages = _normalize_extracted_pages_for_body(pages)
+
+    inferred_jurisdiction, inferred_title = _infer_cover_metadata(cleaned_pages)
+    first_page_lines = cleaned_pages[0].get("lines") if cleaned_pages else None
     inferred_date = _extract_document_date_from_lines(first_page_lines or [])
 
-    canonical_text = build_pdf_canonical_text(pages, source)
+    canonical_text = build_pdf_canonical_text(cleaned_pages, source)
     full_body = canonical_text.text
-    detected_date = _extract_document_date(pages)
+    detected_date = _extract_document_date(cleaned_pages)
 
-    toc_entries = parse_table_of_contents(pages)
+    toc_entries = parse_table_of_contents(cleaned_pages)
     toc_heading_candidates = _collect_toc_heading_candidates(toc_entries)
 
-    non_toc_pages = [page for page in pages if not _is_table_of_contents_page(page)]
+    non_toc_pages = [page for page in cleaned_pages if not _is_table_of_contents_page(page)]
     body_pages = _filter_pages_with_toc(non_toc_pages, toc_entries)
     if not body_pages:
-        body_pages = non_toc_pages or pages
+        body_pages = non_toc_pages or cleaned_pages
 
     section_body = build_pdf_canonical_text(body_pages, source).text
 
@@ -2999,7 +3290,7 @@ def build_document(
     checksum = _compute_document_checksum(body)
 
     resolved_title = _determine_document_title(
-        pages, source, title, inferred_title=inferred_title
+        cleaned_pages, source, title, inferred_title=inferred_title
     )
     resolved_jurisdiction = jurisdiction or inferred_jurisdiction or ""
     resolved_date = (
@@ -3181,6 +3472,8 @@ def iter_process_pdf(
         registry = GlossaryRegistry(storage)
         char_threshold = break_after_chars if break_after_chars and break_after_chars > 0 else None
         pages: List[dict] = []
+        total_pages = _count_pdf_pages(pdf)
+        words_seen = 0
         char_count = 0
         breakpoint_triggered = False
         for page in extract_pdf_text(pdf):
@@ -3188,6 +3481,33 @@ def iter_process_pdf(
             body_text = str(page.get("text") or "")
             heading_text = str(page.get("heading") or "")
             char_count += len(body_text) + len(heading_text)
+            page_words = len(
+                [
+                    token
+                    for token in f"{heading_text} {body_text}".split()
+                    if token.strip()
+                ]
+            )
+            words_seen += page_words
+            pages_seen = len(pages)
+            estimated_total_words = None
+            if total_pages is not None and total_pages > 0 and pages_seen > 0:
+                estimated_total_words = max(
+                    words_seen,
+                    int(round((words_seen / pages_seen) * total_pages)),
+                )
+            yield (
+                "extraction_progress",
+                {
+                    "page": page.get("page"),
+                    "pages_seen": pages_seen,
+                    "total_pages": total_pages,
+                    "page_word_count": page_words,
+                    "words_seen": words_seen,
+                    "estimated_total_words": estimated_total_words,
+                    "char_count": char_count,
+                },
+            )
             if char_threshold is not None and not breakpoint_triggered and char_count >= char_threshold:
                 breakpoint_triggered = True
                 yield (
