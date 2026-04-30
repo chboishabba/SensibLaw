@@ -349,3 +349,8 @@ describing:
 If you want the same runtime as one compact diagram, use:
 
 - `SensibLaw/docs/planning/wikidata_climate_review_demonstrator_flow_20260429.puml`
+
+That diagram shows the full path from the bounded input files to the final
+review outcome. It matters because it lets a reviewer see, in one place, how the
+candidate list, the climate text evidence, and the residual pressure combine to
+justify a held or promotable decision.
