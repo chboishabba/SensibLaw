@@ -99,6 +99,32 @@ routing table makes that sharper:
 - Family D is a review-only typed-hold target.
 - Family E is manual reconstruction.
 
+Recent repo progress has mostly been general compiler/admissibility work rather
+than new Wikidata-specific routing code. That still helps this lane indirectly:
+
+- stronger bounded extraction discipline
+- stricter canonical-text and body-qualified substrate handling
+- a clearer non-authoritative candidate layer through typed predicate carriers
+- a more explicit residual/gating surface for exact, partial, mismatch, and
+  contradiction states
+- clearer shared candidate/report surfaces
+- stronger separation between detection, review, and promotion/gating
+
+So the Wikidata update should be framed as:
+
+- no major change to the routing table itself
+- some strengthening of the generalized review/control layer around it
+- a stronger reason to treat all signals, including LLM outputs, as
+  non-authoritative until they pass through a bounded review/gating surface
+
+One concrete bounded example is now written down separately:
+
+- `SensibLaw/docs/planning/wikidata_pnf_residual_review_example_20260429.md`
+
+That note uses the real `Q10403939` (`Akademiska Hus`) climate case to show
+why the newer canonical-text / PNF / residual framing strengthens the current
+held split/review posture without claiming direct migration automation.
+
 The useful next work is not another blind widening pass. It is measured routing
 evidence: how many real rows land in A/B/C/D/E, and whether the Family A rows
 stay stable across repeated verification.

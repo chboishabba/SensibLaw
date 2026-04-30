@@ -18,6 +18,7 @@ from src.ontology.wikidata import (
     attach_wikidata_phi_text_bridge_from_observation_claim,
     attach_wikidata_phi_text_bridge_from_source_units,
     attach_wikidata_phi_text_bridge_from_revision_locked_climate_text,
+    build_wikidata_climate_review_demonstrator,
     build_wikidata_review_packet,
     build_nat_cohort_c_population_scan,
     build_nat_cohort_c_population_scan_from_sparql_results,
@@ -2075,6 +2076,51 @@ def test_attach_wikidata_phi_text_bridge_from_revision_locked_climate_text_build
     assert len(enriched["bridge_cases"]) == 1
     assert len(observation_claim_payload["observations"]) == 2
     jsonschema.validate(enriched, _load_migration_pack_schema())
+
+
+def test_build_wikidata_climate_review_demonstrator_for_real_q10403939_packet() -> None:
+    root = Path(__file__).resolve().parents[1]
+    migration_pack = json.loads(
+        (
+            root
+            / "data"
+            / "ontology"
+            / "wikidata_migration_packs"
+            / "p5991_p14143_climate_pilot_20260328"
+            / "migration_pack.json"
+        ).read_text(encoding="utf-8")
+    )
+    climate_text_payload = json.loads(
+        (
+            root
+            / "data"
+            / "ontology"
+            / "wikidata_migration_packs"
+            / "p5991_p14143_climate_pilot_20260328"
+            / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
+        ).read_text(encoding="utf-8")
+    )
+    review_packet = _load_nat_review_packet_fixture()
+
+    payload = build_wikidata_climate_review_demonstrator(
+        migration_pack,
+        climate_text_payload=climate_text_payload,
+        review_packet=review_packet,
+    )
+
+    assert payload["schema_version"] == "sl.wikidata_climate_review_demonstrator.v0_1"
+    assert payload["inputs"]["entity_qid"] == "Q10403939"
+    assert payload["candidate_change_surface"]["candidate_count"] == 24
+    assert payload["text_side_predicate_carrier"]["observation_count"] == 3
+    assert payload["text_side_predicate_carrier"]["claim_count"] == 3
+    assert payload["residual_completeness_surface"]["bridge_case_count"] == 24
+    assert payload["residual_completeness_surface"]["pressure_counts"] == {"split_pressure": 24}
+    assert payload["review_disposition"]["final_state"] == "held"
+    assert payload["review_disposition"]["held_candidate_count"] == 24
+    assert payload["review_disposition"]["promotable_candidate_count"] == 0
+    assert {
+        row["disposition"] for row in payload["review_disposition"]["candidate_dispositions"]
+    } == {"held_split_review"}
 
 
 def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_claim_and_bridge() -> None:

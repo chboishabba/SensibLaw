@@ -1430,6 +1430,59 @@ def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch
     assert payload["summary"]["total_can_act_count"] == 2
 
 
+def test_wikidata_climate_review_demonstrator_cli(tmp_path, capsys) -> None:
+    root = Path(__file__).resolve().parent.parent
+    migration_pack_path = (
+        root
+        / "data"
+        / "ontology"
+        / "wikidata_migration_packs"
+        / "p5991_p14143_climate_pilot_20260328"
+        / "migration_pack.json"
+    )
+    climate_text_path = (
+        root
+        / "data"
+        / "ontology"
+        / "wikidata_migration_packs"
+        / "p5991_p14143_climate_pilot_20260328"
+        / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
+    )
+    review_packet_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "wikidata"
+        / "wikidata_nat_review_packet_20260401.json"
+    )
+    out_path = tmp_path / "climate_review_demonstrator.json"
+
+    cli_main.main(
+        [
+            "wikidata",
+            "climate-review-demonstrator",
+            "--migration-pack",
+            str(migration_pack_path),
+            "--climate-text",
+            str(climate_text_path),
+            "--review-packet",
+            str(review_packet_path),
+            "--output",
+            str(out_path),
+        ]
+    )
+
+    stdout = json.loads(capsys.readouterr().out)
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+
+    assert stdout["output"] == str(out_path)
+    assert stdout["entity_qid"] == "Q10403939"
+    assert stdout["candidate_count"] == 24
+    assert stdout["bridge_case_count"] == 24
+    assert stdout["final_state"] == "held"
+    assert payload["review_disposition"]["final_state"] == "held"
+    assert payload["residual_completeness_surface"]["pressure_counts"] == {"split_pressure": 24}
+
+
 def test_wikidata_nat_migration_execution_proof_cli(tmp_path, capsys) -> None:
     root = Path(__file__).resolve().parent
     in_path = (

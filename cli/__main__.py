@@ -1326,6 +1326,41 @@ def _handle_wikidata_world_model_lane_summary(args: argparse.Namespace) -> None:
     _print_json(summary)
 
 
+def _handle_wikidata_climate_review_demonstrator(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata import build_wikidata_climate_review_demonstrator
+
+    migration_pack = json.loads(Path(args.migration_pack).read_text(encoding="utf-8"))
+    climate_text_payload = json.loads(Path(args.climate_text).read_text(encoding="utf-8"))
+    review_packet = (
+        json.loads(Path(args.review_packet).read_text(encoding="utf-8"))
+        if args.review_packet
+        else None
+    )
+    payload = build_wikidata_climate_review_demonstrator(
+        migration_pack,
+        climate_text_payload=climate_text_payload,
+        review_packet=review_packet,
+        entity_qid=args.entity_qid,
+        candidate_ids=args.candidate_ids or None,
+    )
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "entity_qid": payload["inputs"]["entity_qid"],
+                "candidate_count": payload["candidate_change_surface"]["candidate_count"],
+                "bridge_case_count": payload["residual_completeness_surface"]["bridge_case_count"],
+                "final_state": payload["review_disposition"]["final_state"],
+            }
+        )
+        return
+    _print_json(payload)
+
+
 def _handle_wikidata_nat_migration_execution_proof(args: argparse.Namespace) -> None:
     from src.ontology.wikidata_nat_automation_graduation import (
         build_nat_migration_batch_export,
@@ -3766,6 +3801,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_world_model_lane_summary.set_defaults(
         func=_handle_wikidata_world_model_lane_summary
+    )
+    wikidata_climate_review_demonstrator = wikidata_sub.add_parser(
+        "climate-review-demonstrator",
+        help="Build a bounded climate review demonstrator showing candidate change, text-side carrier, residual surface, and held/promotable disposition",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--migration-pack",
+        type=Path,
+        required=True,
+        help="Path to the migration pack JSON",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--climate-text",
+        type=Path,
+        required=True,
+        help="Path to the revision-locked climate text JSON",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--review-packet",
+        type=Path,
+        help="Optional path to a review packet JSON used to select candidate ids and packet context",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--entity-qid",
+        help="Optional entity QID to restrict the demonstrator",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--candidate-ids",
+        nargs="+",
+        help="Optional candidate IDs to restrict the demonstrator",
+    )
+    wikidata_climate_review_demonstrator.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the demonstrator JSON",
+    )
+    wikidata_climate_review_demonstrator.set_defaults(
+        func=_handle_wikidata_climate_review_demonstrator
     )
     wikidata_nat_migration_execution_proof = wikidata_sub.add_parser(
         "nat-migration-execution-proof",

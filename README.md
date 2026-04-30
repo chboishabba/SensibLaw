@@ -109,6 +109,29 @@ Current runtime status:
   legal-follow graph/operator-view lane and is also preserved on the AU
   normalized artifact as `legal_follow_pressure`
 
+## Market-News Predicate Projector
+
+SensibLaw now exposes a narrow callable market-news projector for downstream
+consumers that already hold canonical text and parsed-envelope receipts.
+
+Public import surface:
+
+```python
+from src.sensiblaw.interfaces import project_event_text_to_predicate_atoms
+```
+
+Current boundary:
+
+- input: canonical text plus parsed envelope plus source provenance
+- output: native `PredicateAtom` carriers marked as evidence-only
+  `derived_candidate` projections
+- owner: SensibLaw canonical text, shared reducer, and observation substrate
+- non-goal: route, advice, asset, or runtime trading semantics
+
+This projector is intentionally narrow. It stamps market-news receipts and
+provenance onto shared-reducer predicate atoms, but it does not promote those
+atoms to truth or decision authority.
+
 ## Canonical Ingestion Doctrine
 
 The stronger parser doctrine is now:
@@ -940,6 +963,10 @@ This is the important distinction:
 
 - current status:
   [docs/wikidata_working_group_status.md](docs/wikidata_working_group_status.md)
+- Ontology Cleaning Task Force entrypoint:
+  [docs/planning/wikidata_octf_entrypoint_20260421.md](docs/planning/wikidata_octf_entrypoint_20260421.md)
+- current working-group routing roundup:
+  [docs/planning/wikidata_working_group_roundup_20260421.md](docs/planning/wikidata_working_group_roundup_20260421.md)
 - current review pass:
   [docs/planning/wikidata_working_group_review_pass_20260307.md](docs/planning/wikidata_working_group_review_pass_20260307.md)
 - current report contract:

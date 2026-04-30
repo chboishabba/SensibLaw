@@ -7,11 +7,12 @@ from pathlib import Path
 
 import pytest
 
-# Ensure src/ is importable during collection (before fixtures run).
+# Ensure the repo root is importable during collection so `src.*` imports work
+# regardless of the caller's current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 EXPECTED_VENV_PYTHON = PROJECT_ROOT.parent / ".venv" / "bin" / "python"
 
@@ -30,11 +31,11 @@ from src.models.provision import RuleReference
 
 @pytest.fixture(autouse=True)
 def prefer_venv_python(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure subprocesses use the project venv and see the src package.
+    """Ensure subprocesses use the project venv and see the project packages.
 
     Many CLI tests shell out with a literal ``python -m src.cli ...``. This fixture
-    prefixes PATH with the repo's .venv/bin and sets PYTHONPATH to ``src`` so those
-    subprocesses run in the same environment as pytest.
+    prefixes PATH with the repo's .venv/bin and sets PYTHONPATH to the repo root so
+    those subprocesses run in the same environment as pytest.
     """
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -42,9 +43,13 @@ def prefer_venv_python(monkeypatch: pytest.MonkeyPatch) -> None:
     path = os.environ.get("PATH", "")
     if venv_bin.exists():
         monkeypatch.setenv("PATH", f"{venv_bin}:{path}")
-    monkeypatch.setenv("PYTHONPATH", str(repo_root / "src"))
-    if str(repo_root / "src") not in sys.path:
-        sys.path.insert(0, str(repo_root / "src"))
+    existing_pythonpath = os.environ.get("PYTHONPATH", "")
+    pythonpath_parts = [str(repo_root)]
+    if existing_pythonpath:
+        pythonpath_parts.append(existing_pythonpath)
+    monkeypatch.setenv("PYTHONPATH", ":".join(pythonpath_parts))
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
 
 
 @dataclass(frozen=True)

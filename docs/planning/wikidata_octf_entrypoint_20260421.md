@@ -39,6 +39,70 @@ is:
 That makes the current work a review/check layer, not an approval layer and not
 a blind edit bot.
 
+## Generalized progress since this handoff
+
+The most recent repo churn is not mainly new Wikidata-specific code. It is
+broader work on canonical substrate, bounded extraction, and cross-lane
+admissibility/report surfaces.
+
+That still matters for OCTF because the Wikidata lane already sits on the same
+general discipline:
+
+- preserve bounded source slices
+- emit explicit candidate/review surfaces rather than direct edits
+- keep promotion/governance separate from detection
+- aggregate lane state through a shared summary/gate surface when needed
+
+So the current honest claim is:
+
+- direct Wikidata routing policy has not materially changed since the April 21
+  handoff
+- but the surrounding compiler/admissibility/report stack is still getting
+  stronger in ways that support the same review-first posture
+
+## What the newer PNF/body work adds
+
+The stronger claim is still not "the Wikidata lane is now automated."
+
+It is narrower:
+
+- the canonical substrate is getting stricter
+- the candidate layer is getting more explicit
+- the comparison/gating layer is getting more deterministic
+
+In current code this shows up as:
+
+- canonical text and media-adapter discipline above parsing
+- explicit predicate-normal-form carriers separating:
+  - structure
+  - typed roles
+  - qualifiers
+  - wrapper/evidence-only state
+- a deterministic residual lattice with ordered outcomes such as:
+  - `exact`
+  - `partial`
+  - `no_typed_meet`
+  - `contradiction`
+
+That matters for OCTF because it sharpens the same boundary this note is
+already describing:
+
+- LLM suggestions remain candidate signals
+- subclass/disjointness/constraint signals remain candidate signals
+- even a correct signal may still be partial, scope-mismatched, or
+  locally incomplete
+- the decision boundary is therefore not "did a signal fire?"
+- the decision boundary is "did a bounded pack expose enough typed structure
+  and residual state for reviewable action?"
+
+So the current repo stance is slightly stronger than a generic "human in the
+loop" claim:
+
+- signals are non-authoritative intermediate state
+- bounded packs/reports are the review surface
+- only checked-safe, locally complete rows are staged
+- unresolved rows remain visibly unresolved
+
 ## Best first path
 
 Start with the climate migration lane because it has the clearest end-to-end
@@ -61,6 +125,11 @@ If you want the simplest plain-language handoff, read:
 
 That file is named for a specific collaborator, but it is currently the shortest
 plain-language overview of the migration/review lane.
+
+If you want one concrete note showing how a real Wikidata climate case should
+be read through the newer canonical-text / PNF / residual framing, read:
+
+- `SensibLaw/docs/planning/wikidata_pnf_residual_review_example_20260429.md`
 
 ## Programmatic entry points
 
@@ -121,6 +190,40 @@ cd SensibLaw
   --input data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
   --output /tmp/p5991_p14143_split_plan.json
 ```
+
+Cross-lane governance summary:
+
+```bash
+cd SensibLaw
+../.venv/bin/python -m cli.__main__ wikidata world-model-lane-summary \
+  --input path/to/lane_report_1.json \
+  --input path/to/lane_report_2.json \
+  --output /tmp/wikidata_world_model_lane_summary.json
+```
+
+This is not a replacement for the bounded migration/disjointness/hotspot
+surfaces above. It is the current shared summary surface when a reviewer wants
+one governance-oriented view across multiple lane reports.
+
+## OCTF-facing vocabulary
+
+The current repo vocabulary that maps most cleanly to OCTF review work is:
+
+- `candidate-only`
+  - a signal or structured candidate exists, but it is not an edit claim
+- `reviewable`
+  - the bounded artifact exposes enough local structure and provenance for
+    human inspection
+- `held`
+  - the case stays visible, but it is not ready for direct migration/promotion
+- `promotable`
+  - the artifact has passed its local gate and can move to the next governed
+    step
+
+For Wikidata specifically, this means a useful tool should not only say "there
+may be a problem here." It should also say whether the case is still merely a
+candidate, is concretely reviewable, should stay held, or is promotable under
+the current bounded rules.
 
 ## Parallel review lanes
 

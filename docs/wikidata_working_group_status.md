@@ -1,6 +1,6 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-04-12
+Last updated: 2026-04-29
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
@@ -14,6 +14,27 @@ If you need the shortest practical onboarding note for Shixiong Zhao on the
 current climate migration + Nat packet lane, tailored to his Wikidata
 validation / inspection work, start with:
 - `planning/wikidata_shixiong_handoff_20260402.md`
+
+If you need one concrete docs-first example showing how a real climate case
+maps from bounded source evidence into the newer canonical-text / PNF /
+residual framing, use:
+- `planning/wikidata_pnf_residual_review_example_20260429.md`
+
+If you need one executable bounded packet showing:
+- candidate change
+- text-side predicate carrier
+- residual/completeness object
+- final held/promotable disposition
+
+use:
+- `../.venv/bin/python -m cli.__main__ wikidata climate-review-demonstrator \
+  --migration-pack data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/migration_pack.json \
+  --climate-text data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json \
+  --review-packet tests/fixtures/wikidata/wikidata_nat_review_packet_20260401.json \
+  --output /tmp/q10403939_climate_review_demonstrator.json`
+
+If you want the same runtime as one compact diagram, use:
+- `planning/wikidata_climate_review_demonstrator_flow_20260429.puml`
 
 If you need the current execution-order roadmap across the Nat migration lane
 and the broader Peter/Ege/Rosario assist lane, use:
@@ -435,32 +456,17 @@ shared handoff.
       - `schemas/sl.wikidata.climate_text_source.v1.schema.yaml`
       - `build_observation_claim_payload_from_revision_locked_climate_text_sources(...)`
       - `attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(...)`
-  - current remaining bottleneck:
-      real revision-locked climate text artifacts are still needed beyond
-      fixture-shaped inputs
-    - current live target-selection result:
-      `HSBC` / `Q190464` is not a valid target for this lane right now because
-      it does not currently expose live `P5991`
-    - next real artifact hunt should therefore pivot to already-pinned
-      entities with live `P5991`, especially:
-      - `Q10422059` (`Atrium Ljungberg`)
-      - `Q10403939` (`Akademiska Hus`)
-    - first non-fixture artifact now exists:
-      `data/ontology/wikidata_migration_packs/p5991_p14143_climate_pilot_20260328/climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json`
-      built from official Akademiska Hus annual report excerpts for 2018,
-      2019, and 2020
-    - first real bridge result:
-      the artifact yields `3` promoted observations / claims and, after the
-      new temporal gating pass, drives `split_pressure` on all `24` current
-      `Q10403939` candidates
-    - interpretation:
-      this is the correct conservative outcome because the text slice is older
-      scope-1 evidence while the current structured bundle is 2023 multi-scope
-      data, so the bridge should surface dimensional mismatch rather than hard
-      contradiction
-    - next narrowing:
-      add simple scope-tag carriage / matching so the bridge can tell
-      "different scope" apart from generic temporal split pressure
+  - current bounded real-climate proof is now split cleanly:
+    - canonical narrative / interpretation:
+      `docs/planning/wikidata_pnf_residual_review_example_20260429.md`
+    - canonical runtime surface:
+      `wikidata climate-review-demonstrator`
+    - current real case:
+      `Q10403939` (`Akademiska Hus`)
+    - current conservative result:
+      the older scope-1 text slices drive `split_pressure` against the
+      newer multi-scope structured bundle, so the packet stays held in
+      split/review posture rather than promoting to direct migration
   - Nat WDU sandbox followthrough is now normalized enough for ontology-group
     handoff:
     - handoff note:

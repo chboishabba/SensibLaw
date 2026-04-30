@@ -17,6 +17,38 @@
 # Changelog
 
 ## Unreleased
+- Added `wikidata climate-review-demonstrator`, a bounded runtime report over
+  the pinned `Q10403939` / Akademiska Hus climate packet. The command binds:
+  - migration-pack candidate change surface
+  - revision-locked climate text observations / claims
+  - emitted bridge/residual comparison objects
+  - final held/promotable disposition
+  into one executable JSON artifact, without claiming broader Wikidata
+  automation.
+- Added
+  [docs/planning/wikidata_climate_review_demonstrator_flow_20260429.puml](/home/c/Documents/code/ITIR-suite/SensibLaw/docs/planning/wikidata_climate_review_demonstrator_flow_20260429.puml)
+  as the compact diagram companion to the new climate review demonstrator.
+- Refreshed `docs/wikidata_working_group_status.md` so the live OCTF-facing
+  status page points to the new runtime demonstrator and stops treating the
+  `Q10403939` proof mostly as repeated prose.
+- Added
+  [docs/planning/wikidata_pnf_residual_review_example_20260429.md](/home/c/Documents/code/ITIR-suite/SensibLaw/docs/planning/wikidata_pnf_residual_review_example_20260429.md)
+  as a bounded docs-first OCTF example. It uses the real `Q10403939`
+  (`Akademiska Hus`) climate case to connect:
+  - current migration-pack truth (`split_required`)
+  - current text-bridge truth (`split_pressure`)
+  - and the newer canonical-text / predicate-normal-form / residual framing
+  without claiming a new executable Wikidata migration policy.
+- Tightened the OCTF/Wikidata handoff docs so the LLM/governance language now
+  matches the current predicate-normal-form, body-qualified extraction, and
+  residual-lattice code paths more closely. The docs now say more precisely
+  that:
+  - LLMs, subclass checks, disjointness checks, and external ontologies are
+    candidate-signal sources
+  - the newer code makes the non-authoritative candidate layer and
+    deterministic residual/gating surface more explicit
+  - this strengthens the review/control boundary around the Wikidata lanes,
+    without claiming a new Wikidata routing policy or broader automation
 - Added provider-backed ontology enrichment helpers on the normalized
   `src/ontology` surface, including candidate lookup, deterministic
   filtering, JSON emission, and optional interactive upsert into the existing

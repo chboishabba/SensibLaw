@@ -1,3 +1,8 @@
+from .market_news_projector import (
+    PROJECTOR_VERSION,
+    SUPPORTED_EXTRACTION_PROFILE,
+    project_event_text_to_predicate_atoms,
+)
 from .shared_reducer import (
     LexemeOccurrence,
     LexemeToken,
@@ -62,6 +67,9 @@ __all__ = [
     "TypedArg",
     "WrapperState",
     "build_canonical_conversation_text",
+    "PROJECTOR_VERSION",
+    "SUPPORTED_EXTRACTION_PROFILE",
+    "project_event_text_to_predicate_atoms",
     "build_predicate_index",
     "build_predicate_ref_map",
     "collect_candidate_predicate_refs",

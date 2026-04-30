@@ -1,0 +1,58 @@
+@startuml
+title Wikidata Climate Review Demonstrator Flow 2026-04-29
+
+left to right direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Monospace
+
+rectangle "Bounded Inputs" as INPUTS {
+  component "Migration Pack JSON\nschema: sl.wikidata_migration_pack.v1\nreads: candidates[*]\nfields used: candidate_id, entity_qid,\nclassification, action, split_axes,\nclaim_bundle_before/after" as PACK
+  component "Review Packet JSON\nschema: sl.wikidata_review_packet.v0_1\nselector only\nfields used: review_entity_qid,\nsplit_review_context.source_candidate_ids,\nsplit_review_context.split_plan_id" as PACKET
+  component "Climate Text Source JSON\nschema: sl.wikidata.climate_text_source.v1\n3 source rows for Q10403939\nfields used: source_id, entity_qid,\nsource_unit_id, revision_id,\nrevision_timestamp, text" as TEXT
+}
+
+rectangle "Deterministic Runtime" as RUNTIME {
+  component "_select_demonstrator_candidates(...)\nfilters migration_pack.candidates by:\nreview packet candidate ids,\nentity_qid, explicit candidate ids" as SELECT
+  component "build_observation_claim_payload_from_\nrevision_locked_climate_text_sources(...)\nlegacy climate text -> source units ->\nobservations / claims / evidence_links" as OBS
+  component "attach_wikidata_phi_text_bridge_from_\nrevision_locked_climate_text(...)\nvia build_wikidata_phi_text_bridge_case(...)\nemits bridge_cases + pressure onto\nselected migration-pack candidates" as BRIDGE
+  component "build_wikidata_climate_review_demonstrator(...)\nassembles inputs, selected candidates,\ntext-side carrier, residual surface,\nreview disposition" as DEMO
+}
+
+rectangle "Output JSON" as SURFACES {
+  component "inputs\nsource_property / target_property /\nentity_qid / candidate_ids /\npacket_context" as INPUTOBJ
+  component "candidate_change_surface\ncandidate_stage= candidate_only\nreview_stage= reviewable\nselected candidate rows from migration pack" as CANDIDATE
+  component "text_side_predicate_carrier\npayload_version= sl.observation_claim.contract.v1\nobservation_count / claim_count /\nevidence_link_count" as CARRIER
+  component "residual_completeness_surface\nbridge_case_count / pressure_counts /\nbridge_cases[*]" as RESIDUAL
+  component "review_disposition\ncandidate_dispositions[*]\nsummary / final_state\nheld | promotable | mixed" as DISPOSITION
+}
+
+PACK --> SELECT
+PACKET --> SELECT
+TEXT --> OBS
+SELECT --> BRIDGE
+OBS --> BRIDGE
+BRIDGE --> DEMO
+
+DEMO --> INPUTOBJ
+DEMO --> CANDIDATE
+DEMO --> CARRIER
+DEMO --> RESIDUAL
+DEMO --> DISPOSITION
+
+note right of DISPOSITION
+Current real bounded case:
+- entity: Q10403939
+- candidate_count: 24
+- bridge_case_count: 24
+- pressure: split_pressure
+- final_state: held
+end note
+
+note bottom of BRIDGE
+Signals remain non-authoritative.
+The output is a review artifact,
+not direct edit authority.
+end note
+
+@enduml

@@ -36,6 +36,9 @@ MIGRATION_PACK_SCHEMA_VERSION = "sl.wikidata_migration_pack.v1"
 CANDIDATE_PROMOTION_GATE_SCHEMA_VERSION = "sl.wikidata_candidate_promotion_gate.v0_1"
 SPLIT_PLAN_SCHEMA_VERSION = "sl.wikidata_split_plan.v0_1"
 WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION = "sl.wikidata_phi_text_bridge_case.v1"
+WIKIDATA_CLIMATE_REVIEW_DEMONSTRATOR_SCHEMA_VERSION = (
+    "sl.wikidata_climate_review_demonstrator.v0_1"
+)
 WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION = "sl.wikidata.climate_text_source.v1"
 SOURCE_UNIT_SCHEMA_VERSION = "sl.source_unit.v1"
 WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION = "sl.wikidata_review_packet.v0_1"
@@ -3041,6 +3044,285 @@ def attach_wikidata_phi_text_bridge_from_source_units(
     return enriched, observation_claim_payload
 
 
+def _normalize_string_list(values: Any) -> list[str]:
+    if isinstance(values, str):
+        text = values.strip()
+        return [text] if text else []
+    if isinstance(values, Sequence) and not isinstance(values, (str, bytes, bytearray)):
+        result: list[str] = []
+        for value in values:
+            text = _stringify(value).strip()
+            if text:
+                result.append(text)
+        return result
+    return []
+
+
+def _select_demonstrator_candidates(
+    enriched_pack: Mapping[str, Any],
+    *,
+    review_packet: Mapping[str, Any] | None = None,
+    entity_qid: str | None = None,
+    candidate_ids: Sequence[str] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any], str]:
+    candidates = enriched_pack.get("candidates")
+    if not isinstance(candidates, list):
+        raise ValueError("migration pack candidates must be a list")
+
+    packet_candidate_ids = (
+        _normalize_string_list(
+            ((review_packet or {}).get("split_review_context") or {}).get("source_candidate_ids")
+        )
+        if isinstance(review_packet, Mapping)
+        else []
+    )
+    explicit_candidate_ids = _normalize_string_list(candidate_ids or [])
+    selected_candidate_ids = explicit_candidate_ids or packet_candidate_ids
+
+    resolved_entity_qid = str(entity_qid).strip() if entity_qid is not None else ""
+    if not resolved_entity_qid and isinstance(review_packet, Mapping):
+        resolved_entity_qid = _stringify(review_packet.get("review_entity_qid", "")).strip()
+
+    selected: list[dict[str, Any]] = []
+    for row in candidates:
+        if not isinstance(row, dict):
+            continue
+        row_candidate_id = _stringify(row.get("candidate_id", "")).strip()
+        row_entity_qid = _stringify(row.get("entity_qid", "")).strip()
+        if selected_candidate_ids and row_candidate_id not in selected_candidate_ids:
+            continue
+        if resolved_entity_qid and row_entity_qid != resolved_entity_qid:
+            continue
+        selected.append(row)
+
+    if not selected:
+        raise ValueError("no candidates matched the requested review packet / entity / candidate ids")
+    if not resolved_entity_qid:
+        resolved_entity_qid = _stringify(selected[0].get("entity_qid", "")).strip()
+
+    packet_context = {
+        "packet_id": _stringify((review_packet or {}).get("packet_id", "")).strip() or None,
+        "review_entity_qid": _stringify((review_packet or {}).get("review_entity_qid", "")).strip() or None,
+        "split_plan_id": _stringify(
+            ((review_packet or {}).get("split_review_context") or {}).get("split_plan_id", "")
+        ).strip()
+        or None,
+        "source_candidate_ids": selected_candidate_ids,
+    }
+    return selected, packet_context, resolved_entity_qid
+
+
+def _derive_demonstrator_candidate_disposition(
+    candidate: Mapping[str, Any],
+    *,
+    bridge_case: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    classification = _stringify(candidate.get("classification", "")).strip()
+    action = _stringify(candidate.get("action", "")).strip()
+    pressure = _stringify(candidate.get("pressure", "")).strip()
+    if not pressure and isinstance(bridge_case, Mapping):
+        pressure = _stringify(bridge_case.get("pressure", "")).strip()
+    promotion_gate = candidate.get("promotion_gate")
+    gate_decision = (
+        _stringify(promotion_gate.get("decision", "")).strip()
+        if isinstance(promotion_gate, Mapping)
+        else ""
+    )
+
+    state = "held"
+    disposition = "held_review"
+    rationale: list[str] = []
+
+    if classification == "split_required" or pressure == "split_pressure":
+        disposition = "held_split_review"
+        rationale.extend(
+            [text for text in (classification, pressure or "split_pressure") if text]
+        )
+    elif pressure == "contradiction":
+        disposition = "held_conflict"
+        rationale.append("contradiction")
+    elif classification in {"reference_drift", "qualifier_drift"}:
+        disposition = "held_repair_review"
+        rationale.append(classification)
+    elif gate_decision == "promote":
+        state = "promotable"
+        disposition = "promotable"
+        rationale.append("promotion_gate:promote")
+    elif (
+        classification in {"safe_equivalent", "safe_with_reference_transfer"}
+        and pressure in {"", "reinforce"}
+        and gate_decision not in {"review_only", "abstain"}
+    ):
+        state = "promotable"
+        disposition = "promotable"
+        rationale.extend([classification, pressure or "no_bridge_pressure"])
+    else:
+        rationale.extend(
+            [text for text in (classification or "unclassified", pressure or gate_decision or "held") if text]
+        )
+
+    return {
+        "candidate_id": _stringify(candidate.get("candidate_id", "")).strip(),
+        "classification": classification,
+        "action": action,
+        "pressure": pressure or None,
+        "promotion_gate_decision": gate_decision or None,
+        "review_stage": "reviewable",
+        "final_state": state,
+        "disposition": disposition,
+        "rationale": rationale,
+    }
+
+
+def build_wikidata_climate_review_demonstrator(
+    migration_pack: Mapping[str, Any],
+    *,
+    climate_text_payload: Mapping[str, Any],
+    review_packet: Mapping[str, Any] | None = None,
+    entity_qid: str | None = None,
+    candidate_ids: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    enriched_pack, observation_claim_payload = attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+        migration_pack,
+        climate_text_payload=climate_text_payload,
+    )
+    selected_candidates, packet_context, resolved_entity_qid = _select_demonstrator_candidates(
+        enriched_pack,
+        review_packet=review_packet,
+        entity_qid=entity_qid,
+        candidate_ids=candidate_ids,
+    )
+    selected_candidate_ids = [
+        _stringify(candidate.get("candidate_id", "")).strip()
+        for candidate in selected_candidates
+    ]
+    bridge_case_map = {
+        _stringify(case.get("candidate_id", "")).strip(): case
+        for case in enriched_pack.get("bridge_cases", [])
+        if isinstance(case, Mapping)
+    }
+    selected_bridge_cases = [
+        deepcopy(bridge_case_map[candidate_id])
+        for candidate_id in selected_candidate_ids
+        if candidate_id in bridge_case_map
+    ]
+
+    filtered_claims = [
+        deepcopy(row)
+        for row in observation_claim_payload.get("claims", [])
+        if isinstance(row, Mapping)
+        and _stringify(row.get("subject_id", "")).strip() == resolved_entity_qid
+    ]
+    observation_ids = {
+        _stringify(row.get("observation_id", "")).strip()
+        for row in filtered_claims
+        if _stringify(row.get("observation_id", "")).strip()
+    }
+    filtered_observations = [
+        deepcopy(row)
+        for row in observation_claim_payload.get("observations", [])
+        if isinstance(row, Mapping)
+        and _stringify(row.get("observation_id", "")).strip() in observation_ids
+    ]
+    claim_ids = {
+        _stringify(row.get("claim_id", "")).strip()
+        for row in filtered_claims
+        if _stringify(row.get("claim_id", "")).strip()
+    }
+    filtered_evidence_links = [
+        deepcopy(row)
+        for row in observation_claim_payload.get("evidence_links", [])
+        if isinstance(row, Mapping)
+        and (
+            _stringify(row.get("observation_id", "")).strip() in observation_ids
+            or _stringify(row.get("claim_id", "")).strip() in claim_ids
+        )
+    ]
+
+    pressure_counts: dict[str, int] = {}
+    candidate_dispositions: list[dict[str, Any]] = []
+    for candidate in selected_candidates:
+        candidate_id = _stringify(candidate.get("candidate_id", "")).strip()
+        bridge_case = bridge_case_map.get(candidate_id)
+        if isinstance(bridge_case, Mapping):
+            pressure_key = _stringify(bridge_case.get("pressure", "")).strip() or "unclassified"
+            pressure_counts[pressure_key] = pressure_counts.get(pressure_key, 0) + 1
+        candidate_dispositions.append(
+            _derive_demonstrator_candidate_disposition(candidate, bridge_case=bridge_case)
+        )
+
+    held_count = sum(1 for row in candidate_dispositions if row["final_state"] == "held")
+    promotable_count = sum(1 for row in candidate_dispositions if row["final_state"] == "promotable")
+    final_state = (
+        "promotable"
+        if promotable_count and held_count == 0
+        else "held"
+        if held_count and promotable_count == 0
+        else "mixed"
+    )
+    selected_candidate_rows = [
+        {
+            "candidate_id": _stringify(candidate.get("candidate_id", "")).strip(),
+            "entity_qid": _stringify(candidate.get("entity_qid", "")).strip(),
+            "slot_id": _stringify(candidate.get("slot_id", "")).strip(),
+            "statement_index": int(candidate.get("statement_index", 0)),
+            "classification": _stringify(candidate.get("classification", "")).strip(),
+            "action": _stringify(candidate.get("action", "")).strip(),
+            "requires_review": bool(candidate.get("requires_review", False)),
+            "reasons": deepcopy(candidate.get("reasons", [])),
+            "split_axes": deepcopy(candidate.get("split_axes", [])),
+            "claim_bundle_before": deepcopy(candidate.get("claim_bundle_before", {})),
+            "claim_bundle_after": deepcopy(candidate.get("claim_bundle_after", {})),
+        }
+        for candidate in selected_candidates
+    ]
+
+    return {
+        "schema_version": WIKIDATA_CLIMATE_REVIEW_DEMONSTRATOR_SCHEMA_VERSION,
+        "inputs": {
+            "source_property": _stringify(migration_pack.get("source_property", "")).strip(),
+            "target_property": _stringify(migration_pack.get("target_property", "")).strip(),
+            "entity_qid": resolved_entity_qid,
+            "candidate_ids": selected_candidate_ids,
+            "packet_context": packet_context,
+        },
+        "candidate_change_surface": {
+            "candidate_stage": "candidate_only",
+            "review_stage": "reviewable",
+            "candidate_count": len(selected_candidate_rows),
+            "candidates": selected_candidate_rows,
+        },
+        "text_side_predicate_carrier": {
+            "payload_version": _stringify(observation_claim_payload.get("payload_version", "")).strip(),
+            "observation_count": len(filtered_observations),
+            "claim_count": len(filtered_claims),
+            "evidence_link_count": len(filtered_evidence_links),
+            "observations": filtered_observations,
+            "claims": filtered_claims,
+            "evidence_links": filtered_evidence_links,
+        },
+        "residual_completeness_surface": {
+            "bridge_case_count": len(selected_bridge_cases),
+            "pressure_counts": pressure_counts,
+            "bridge_cases": selected_bridge_cases,
+        },
+        "review_disposition": {
+            "reviewable": bool(selected_candidate_rows),
+            "final_state": final_state,
+            "held_candidate_count": held_count,
+            "promotable_candidate_count": promotable_count,
+            "candidate_dispositions": candidate_dispositions,
+            "summary": (
+                "All selected candidates remain held."
+                if final_state == "held"
+                else "All selected candidates are promotable."
+                if final_state == "promotable"
+                else "Selected candidates are mixed across held and promotable states."
+            ),
+        },
+    }
+
+
 def _stringify(value: Any) -> str:
     if value is None:
         return "null"
@@ -5417,6 +5699,7 @@ __all__ = [
     "build_nat_cohort_c_operator_packet",
     "build_observation_claim_payload_from_source_units",
     "build_observation_claim_payload_from_revision_locked_climate_text_sources",
+    "build_wikidata_climate_review_demonstrator",
     "attach_wikidata_phi_text_bridge_from_source_units",
     "attach_wikidata_phi_text_bridge_from_revision_locked_climate_text",
     "build_slice_from_entity_exports",
