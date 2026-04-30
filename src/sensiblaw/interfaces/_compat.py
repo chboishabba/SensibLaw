@@ -23,6 +23,6 @@ def install_src_package_aliases() -> None:
         if alias_name in sys.modules:
             child_module = sys.modules[alias_name]
         else:
-            child_module = importlib.import_module(child_name)
+            child_module = importlib.import_module(alias_name)
             sys.modules[alias_name] = child_module
         setattr(src_package, child_name, child_module)
