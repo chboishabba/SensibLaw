@@ -127,6 +127,29 @@ def _collect_au_typing_deficit_signals(semantic_report: Mapping[str, Any]) -> li
     return []
 
 
+def _edge_admissibility_counts(graph: Mapping[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {"promote": 0, "audit": 0, "abstain": 0, "unknown": 0}
+    edge_count = 0
+    for edge in graph.get("edges", []):
+        if not isinstance(edge, Mapping):
+            continue
+        if not str(edge.get("kind") or "").startswith("asserts_"):
+            continue
+        edge_count += 1
+        metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        admissibility = metadata.get("edge_admissibility") if isinstance(metadata, Mapping) else {}
+        decision = str((admissibility or {}).get("decision") or "").strip().casefold()
+        if decision in counts:
+            counts[decision] += 1
+        else:
+            counts["unknown"] += 1
+
+    counts = {key: value for key, value in counts.items() if value}
+    if edge_count:
+        counts["assert_edge_count"] = edge_count
+    return counts
+
+
 def _lexical_mode(source_type: str) -> str | None:
     return _LEXICAL_MODE_BY_SOURCE_TYPE.get(str(source_type or "").strip())
 
@@ -748,9 +771,33 @@ def build_au_fact_review_bundle(
         semantic_report,
         source_events=source_events,
     )
+    legal_follow_edge_admissibility = _edge_admissibility_counts(legal_follow_graph)
+    if isinstance(legal_follow_graph.get("summary"), Mapping):
+        legal_follow_graph["summary"] = {
+            **dict(legal_follow_graph["summary"]),
+            "edge_admissibility_counts": legal_follow_edge_admissibility,
+            "assert_edge_admissibility_count": int(legal_follow_edge_admissibility.get("assert_edge_count") or 0),
+        }
     operator_views["legal_follow_graph"] = build_au_legal_follow_operator_view(
         legal_follow_graph
     )
+    if isinstance(operator_views.get("legal_follow_graph"), Mapping):
+        legal_follow_operator_view = dict(operator_views["legal_follow_graph"])
+        legal_follow_operator_summary = (
+            dict(legal_follow_operator_view.get("summary", {}))
+            if isinstance(legal_follow_operator_view.get("summary"), Mapping)
+            else {}
+        )
+        legal_follow_operator_summary.update(
+            {
+                "edge_admissibility_counts": legal_follow_edge_admissibility,
+                "assert_edge_admissibility_count": int(legal_follow_edge_admissibility.get("assert_edge_count") or 0),
+            }
+        )
+        operator_views["legal_follow_graph"] = {
+            **legal_follow_operator_view,
+            "summary": legal_follow_operator_summary,
+        }
     events = list(fact_report.get("events", [])) if isinstance(fact_report.get("events"), list) else []
     semantic_order = {
         str(row.get("event_id") or ""): index

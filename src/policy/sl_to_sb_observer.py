@@ -91,6 +91,11 @@ def build_sl_to_sb_iso_run_observer_payload(
         if isinstance(suite_normalized_artifact.get("follow_obligation"), Mapping)
         else None
     )
+    legal_follow_pressure = (
+        dict(suite_normalized_artifact.get("legal_follow_pressure"))
+        if isinstance(suite_normalized_artifact.get("legal_follow_pressure"), Mapping)
+        else None
+    )
     unresolved_pressure_status = _text(suite_normalized_artifact.get("unresolved_pressure_status")) or "none"
     lineage_refs = _nonempty_strings(lineage.get("upstream_artifact_ids") or [])
     source_artifact_refs = _nonempty_strings([source_artifact_id, artifact_id])
@@ -119,6 +124,7 @@ def build_sl_to_sb_iso_run_observer_payload(
             *_bounded_output_refs(output_refs),
         ],
         "follow_obligation": follow_obligation,
+        "legal_follow_pressure": legal_follow_pressure,
         "unresolved_pressure_status": unresolved_pressure_status,
         "lineage_refs": lineage_refs,
         "source_artifact_refs": source_artifact_refs,

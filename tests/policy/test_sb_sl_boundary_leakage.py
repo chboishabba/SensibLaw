@@ -43,6 +43,25 @@ def test_build_sb_to_sl_contract_payload_extracts_allowed_wrapper_fields() -> No
     assert payload["casey_observer_refs"][0]["operation_id"] == "op:123"
 
 
+def test_build_sb_to_sl_contract_payload_preserves_legal_follow_pressure_additively() -> None:
+    payload = build_sb_to_sl_contract_payload(
+        suite_normalized_artifact={
+            **_compiled_state_artifact(unresolved_pressure_status="none"),
+            "legal_follow_pressure": {
+                "kind": "pressure_lattice",
+                "version": "sl.legal_follow_pressure.v1",
+                "value": "high",
+            },
+        },
+    )
+    assert payload["unresolved_pressure_status"] == "none"
+    assert payload["legal_follow_pressure"] == {
+        "kind": "pressure_lattice",
+        "version": "sl.legal_follow_pressure.v1",
+        "value": "high",
+    }
+
+
 def test_validate_sb_to_sl_contract_payload_rejects_forbidden_semantic_or_state_fields() -> None:
     errors = validate_sb_to_sl_contract_payload(
         {
@@ -73,6 +92,22 @@ def test_validate_sb_to_sl_contract_payload_rejects_casey_mutable_payloads() -> 
         }
     )
     assert any("unsupported field: workspace_payload" in error for error in errors)
+
+
+def test_validate_sb_to_sl_contract_payload_accepts_bounded_legal_follow_pressure() -> None:
+    errors = validate_sb_to_sl_contract_payload(
+        {
+            "compiled_state_id": "statiBaker.compiled_state:2026-04-06",
+            "compiled_state_version": "itir.normalized.artifact.v1",
+            "unresolved_pressure_status": "follow_needed",
+            "legal_follow_pressure": {
+                "kind": "pressure_lattice",
+                "version": "sl.legal_follow_pressure.v1",
+                "value": "high",
+            },
+        }
+    )
+    assert errors == []
 
 
 def test_profile_abstains_when_only_workflow_refs_exist_without_semantic_grounding() -> None:

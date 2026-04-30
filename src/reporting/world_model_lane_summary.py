@@ -27,6 +27,32 @@ def _as_list(value: Any) -> list[Any]:
     return []
 
 
+def _legal_follow_pressure(report: Mapping[str, Any]) -> dict[str, Any] | None:
+    direct = report.get("legal_follow_pressure")
+    if isinstance(direct, Mapping) and direct:
+        return dict(direct)
+
+    suite_normalized_artifact = (
+        report.get("suite_normalized_artifact")
+        if isinstance(report.get("suite_normalized_artifact"), Mapping)
+        else {}
+    )
+    pressure = suite_normalized_artifact.get("legal_follow_pressure")
+    if isinstance(pressure, Mapping) and pressure:
+        return dict(pressure)
+
+    normalized_artifact = (
+        report.get("normalized_artifact")
+        if isinstance(report.get("normalized_artifact"), Mapping)
+        else {}
+    )
+    pressure = normalized_artifact.get("legal_follow_pressure")
+    if isinstance(pressure, Mapping) and pressure:
+        return dict(pressure)
+
+    return None
+
+
 def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(report, Mapping):
         raise ValueError("world-model lane summary requires mapping reports")
@@ -66,8 +92,9 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
         authority_receipt_count=claim_count,
         follow_queue_open=must_review_count + must_abstain_count,
         unresolved_pressure_status="open" if (must_review_count + must_abstain_count) else "clear",
+        legal_follow_pressure=_legal_follow_pressure(report),
     )
-    return {
+    payload = {
         "lane_name": snapshot.lane_name,
         "promotion_gate_decision": snapshot.promotion_gate_decision,
         "authority_receipt_count": snapshot.authority_receipt_count,
@@ -81,6 +108,9 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
             "can_recommend_count": can_recommend_count,
         },
     }
+    if snapshot.legal_follow_pressure is not None:
+        payload["legal_follow_pressure"] = dict(snapshot.legal_follow_pressure)
+    return payload
 
 
 def build_world_model_lane_summary(
@@ -108,6 +138,11 @@ def build_world_model_lane_summary(
                 authority_receipt_count=int(snapshot.get("authority_receipt_count") or 0),
                 follow_queue_open=int(snapshot.get("follow_queue_open") or 0),
                 unresolved_pressure_status=_as_text(snapshot.get("unresolved_pressure_status")) or None,
+                legal_follow_pressure=(
+                    dict(snapshot.get("legal_follow_pressure"))
+                    if isinstance(snapshot.get("legal_follow_pressure"), Mapping)
+                    else None
+                ),
             )
             for snapshot in snapshots
         ]
@@ -125,10 +160,12 @@ def build_world_model_lane_summary(
             "total_must_abstain_count": total_must_abstain_count,
             "total_can_act_count": total_can_act_count,
             "total_can_recommend_count": total_can_recommend_count,
+            "lanes_with_legal_follow_pressure": len(gate.legal_follow_pressure_lanes),
         },
         "governance_gate": {
             "decision": gate.decision,
             "ready_lanes": list(gate.ready_lanes),
+            "legal_follow_pressure_lanes": list(gate.legal_follow_pressure_lanes),
             "gating_thresholds": dict(gate.gating_thresholds),
         },
     }

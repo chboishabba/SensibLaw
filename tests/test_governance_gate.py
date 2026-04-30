@@ -45,6 +45,7 @@ def test_evaluate_multi_lane_gate_goes_when_multi_lane_thresholds_pass() -> None
                 promotion_gate_decision="audit",
                 authority_receipt_count=2,
                 follow_queue_open=3,
+                legal_follow_pressure={"kind": "pressure_lattice", "value": "high"},
             ),
             LaneGovernanceSnapshot(
                 lane_name="reviewer_packet",
@@ -60,6 +61,7 @@ def test_evaluate_multi_lane_gate_goes_when_multi_lane_thresholds_pass() -> None
     assert summary.total_authority_receipts == 6
     assert summary.open_follow_conjectures == 6
     assert summary.ready_lanes == ("nat", "au")
+    assert summary.legal_follow_pressure_lanes == ("au",)
     assert summary.gating_thresholds == {
         "required_ready_lanes": 2,
         "min_total_receipts": 5,

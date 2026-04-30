@@ -1,28 +1,41 @@
-# Logic graph layers: structural vs interpretive
+# Legal-follow graph layers: authority boundary and operator steering
 
-## Structural graph (what exists now)
-- Purpose: show how text is deterministically decomposed into spans/scopes.
-- Built from: tokenizer + sentence/clause segmentation + logic tree node typing.
-- Node types: ROOT, CLAUSE, CONDITION, MODAL, EXCEPTION, REFERENCE, TOKEN.
-- Edge types:
-  - STRUCTURAL (parent/child containment) — drives hierarchy.
-  - SEQUENCE (traversal/ordering) — non-constraining, may be hidden.
-- Guarantees: span-anchored, deterministic, non-inferential. No claims or reasoning added.
-- Good for: ingestion/debugging, reproducibility, verifying offsets and scopes.
+## Layer order (current code reality)
+- `Phi` substrate: canonical normalized atoms are the base ownership layer.
+- Composed candidate layer: source-anchored candidate legal-claim rows (`relation_candidates`) plus promoted latent-graph rows reused as candidate-shape inputs.
+- Structural admissibility layer: fail-closed endpoint and edge admissibility over legal-claim assertions (`promote | audit | abstain`).
+- Promoted record ownership layer: authoritative ownership remains promoted records, not the derived follow graph.
+- Derived/operator layer: `au_legal_follow_graph` is explicitly `derived_only: true, challengeable: true`; operator steering is built in `build_au_legal_follow_operator_view(...)`.
 
-## Interpretive graph (future / ITIR overlay)
-- Purpose: capture reasoning/claims/hypotheses over the structural substrate.
-- Nodes: claims, actors, hypotheses, timelines, principle mentions (span-backed).
-- Edges: supports / contradicts / applies / distinguishes / overrules (provenance-required), uncertainty flags.
-- Built after ingestion; may be branched/forked; always points back to SL spans.
-- Must never mutate structural spans or invent text.
+## Structural admissibility boundary
+- Node admissibility for legal-claim endpoints is computed from relation promotion status (promoted -> `promote`, otherwise `audit`) and section context.
+- Edge admissibility is evaluated per `asserts_*` edge through `evaluate_legal_edge_admissibility(...)`.
+- Relation kind and contradiction checks are structural/typed gate checks; they are not lexical-intent inference.
+- The legal-follow graph can expose review pressure counts (`assert_edge_admissibility_counts`) but does not become the promotion authority.
 
-## Naming and visualization
-- Call the current export a **Span Decomposition Graph** (structural).
-- Interpretive graphs should be a separate export/profile (ITIR overlays).
-- Structural DOT default: hides TOKEN nodes, makes SEQUENCE edges `constraint=false` (already implemented).
-- Interpretive DOT/KG: distinct node/edge palette; always includes span provenance.
+## Promoted ownership vs derived views
+- Promoted records are extracted from report state and mapped into latent promoted graph rows before reuse.
+- Reused promoted rows are still represented inside the derived legal-follow graph as candidate-lineage context (`semantic_basis: promoted_anchor`), not as a new ownership domain.
+- Derived follow targets (for example UK/British follow suggestions) are conjecture nodes for review routing only.
+- Parliamentary/debate edges are advisory and explicitly non-binding.
 
-## Invariants to keep distinct
-- Structural layer: no inference, deterministic, span-only references.
-- Interpretive layer: hypotheses allowed, but every edge must cite structural spans; no silent text duplication.
+## Operator steering boundary
+- Operator queue items are derived from:
+  - legal-claim nodes + their `asserts_*` admissibility rows
+  - derived follow-target suggestions
+  - advisory debate records
+- Priority/ranking is derived queue policy for review workflow pressure.
+- Queue steering never mutates promoted ownership and never upgrades a candidate without the existing promotion path.
+
+## Invariants (must stay explicit)
+- `Phi` and promoted records are ownership surfaces.
+- Composed candidates and legal-follow graph nodes are challengeable, derived surfaces.
+- Admissibility is fail-closed and typed (`promote | audit | abstain`), with reasons carried in edge metadata.
+- Operator views are derived steering products over graph state, not a new semantic owner.
+
+## UML freshness note
+- Reviewed against:
+  - `src/policy/legal_follow_graph.py`
+  - `src/fact_intake/review_bundle.py`
+  - `src/fact_intake/au_review_bundle.py`
+- No `.puml` update is required for this lane because the referenced roadmap diagrams are metasystem/affidavit snapshots and do not currently encode the AU legal-follow admissibility-owner boundary at this level.

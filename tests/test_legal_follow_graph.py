@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from src.cross_system_phi import extract_promoted_records_from_report
+from src.latent_promoted_graph import build_latent_promoted_graph
 from src.policy.legal_follow_graph import (
     LEGAL_FOLLOW_GRAPH_VERSION,
     build_au_legal_follow_graph,
     build_au_legal_follow_operator_view,
 )
+from tests.test_cross_system_phi_prototype import _build_au_report
 
 
 def _semantic_report() -> dict[str, object]:
@@ -81,6 +86,119 @@ def _semantic_report() -> dict[str, object]:
                 }
             ],
         }
+    }
+
+
+def _admissibility_report() -> dict[str, object]:
+    return {
+        "per_event": [
+            {
+                "event_id": "ev-1",
+                "section": "Appeal",
+                "text": "The court applied the statute.",
+            }
+        ],
+        "authority_receipts": {"items": [], "follow_needed_events": []},
+        "relation_candidates": [
+            {
+                "candidate_id": "cand-1",
+                "event_id": "ev-1",
+                "predicate_key": "applied",
+                "display_label": "Applied",
+                "subject": {
+                    "entity_kind": "actor",
+                    "canonical_key": "actor:court",
+                    "canonical_label": "Court",
+                },
+                "object": {
+                    "entity_kind": "legal_ref",
+                    "canonical_key": "legal_ref:native_title_act_1994",
+                    "canonical_label": "Native Title Act 1994",
+                },
+            }
+        ],
+    }
+
+
+def _priority_report() -> dict[str, object]:
+    return {
+        "per_event": [
+            {
+                "event_id": "ev-audit",
+                "section": "Appeal",
+                "text": "The court applied the statute.",
+            },
+            {
+                "event_id": "ev-promoted",
+                "section": "Appeal",
+                "text": "The court followed the statute.",
+            },
+        ],
+        "authority_receipts": {
+            "items": [
+                {
+                    "ingest_run_id": "ingest:1",
+                    "authority_kind": "austlii",
+                    "citation": "[1936] HCA 40",
+                    "link_status": "linked",
+                    "resolved_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+                    "linked_event_ids": ["ev-audit"],
+                    "matched_authority_titles": ["House v The King"],
+                    "matched_legal_refs": [],
+                    "matched_legal_ref_details": [],
+                    "structured_summary": {
+                        "detected_neutral_citations": ["[1936] HCA 40"],
+                        "detected_neutral_citation_details": [
+                            {
+                                "raw_text": "[1936] HCA 40",
+                                "neutral_citation": "[1936] HCA 40",
+                                "court_hint": "HCA",
+                                "year_hint": 1936,
+                            }
+                        ],
+                        "selected_paragraph_numbers": [1],
+                        "linked_event_sections": ["Appeal"],
+                    },
+                }
+            ],
+            "follow_needed_events": [],
+        },
+        "relation_candidates": [
+            {
+                "candidate_id": "cand-audit",
+                "event_id": "ev-audit",
+                "predicate_key": "applied",
+                "display_label": "Applied",
+                "subject": {
+                    "entity_kind": "actor",
+                    "canonical_key": "actor:court",
+                    "canonical_label": "Court",
+                },
+                "object": {
+                    "entity_kind": "legal_ref",
+                    "canonical_key": "legal_ref:native_title_act_1994",
+                    "canonical_label": "Native Title Act 1994",
+                },
+            },
+            {
+                "candidate_id": "cand-promoted",
+                "event_id": "ev-promoted",
+                "predicate_key": "followed",
+                "display_label": "Followed",
+                "promotion_status": "promoted_true",
+                "canonical_promotion_status": "promoted_true",
+                "subject": {
+                    "entity_kind": "actor",
+                    "canonical_key": "actor:court",
+                    "canonical_label": "Court",
+                },
+                "object": {
+                    "entity_kind": "legal_ref",
+                    "canonical_key": "legal_ref:native_title_act_1994",
+                    "canonical_label": "Native Title Act 1994",
+                },
+            },
+        ],
     }
 
 
@@ -263,6 +381,136 @@ def test_build_au_legal_follow_graph_derives_uk_follow_target() -> None:
     assert graph["summary"]["derived_follow_target_count"] == 1
     assert graph["summary"]["derived_uk_follow_target_supporting_node_count"] == 2
     assert graph["pressure"]["value"] == "high"
+
+
+def test_build_au_legal_follow_graph_reuses_promoted_legal_claims_from_latent_graph(tmp_path: Path) -> None:
+    au_report = _build_au_report(tmp_path)
+    records = extract_promoted_records_from_report(system_id="au_hca", report=au_report)
+    latent_graph = build_latent_promoted_graph(
+        system_id="au_hca",
+        promoted_basis_ref=f"promoted://au_hca/run/{au_report['run_id']}",
+        records=records,
+    )
+
+    graph = build_au_legal_follow_graph(
+        {
+            "run_id": au_report["run_id"],
+            "per_event": au_report["per_event"],
+            "authority_receipts": {"items": [], "follow_needed_events": []},
+            "relation_candidates": [],
+            "promoted_relations": au_report["promoted_relations"],
+        },
+        latent_promoted_graph=latent_graph,
+    )
+
+    promoted_claim_nodes = [
+        node for node in graph["nodes"]
+        if node["kind"] == "legal_claim"
+        and node["metadata"].get("semantic_basis") == "promoted_anchor"
+    ]
+    assert promoted_claim_nodes
+    assert graph["summary"]["legal_claim_count"] == len(promoted_claim_nodes)
+    assert all(node["metadata"]["canonical_promotion_status"] == "promoted_true" for node in promoted_claim_nodes)
+    assert all(node["metadata"]["promoted_record_ref"] for node in promoted_claim_nodes)
+    assert any(edge["kind"] == "states_legal_claim" for edge in graph["edges"])
+    claim_edges = [edge for edge in graph["edges"] if edge["kind"].startswith("asserts_")]
+    assert claim_edges
+    assert all(edge["metadata"]["edge_admissibility"]["version"] == "sl.legal_edge_admissibility.v1" for edge in claim_edges)
+    assert all("decision" in edge["metadata"]["edge_admissibility"] for edge in claim_edges)
+
+
+def test_build_au_legal_follow_graph_summarizes_assert_edge_admissibility() -> None:
+    graph = build_au_legal_follow_graph(_admissibility_report())
+
+    assert graph["summary"]["assert_edge_count"] == 1
+    assert graph["summary"]["assert_edge_admissibility_counts"] == {"audit": 1}
+    assert graph["summary"]["assert_edge_admissibility_review_count"] == 1
+
+
+def test_build_au_legal_follow_graph_attaches_edge_admissibility_to_supported_relation_candidates() -> None:
+    graph = build_au_legal_follow_graph(
+        {
+            "per_event": [
+                {
+                    "event_id": "ev-1",
+                    "section": "Appeal",
+                    "text": "The court applied the statute.",
+                }
+            ],
+            "authority_receipts": {"items": [], "follow_needed_events": []},
+            "relation_candidates": [
+                {
+                    "candidate_id": "cand-1",
+                    "event_id": "ev-1",
+                    "predicate_key": "applied",
+                    "display_label": "Applied",
+                    "subject": {
+                        "entity_kind": "actor",
+                        "canonical_key": "actor:court",
+                        "canonical_label": "Court",
+                    },
+                    "object": {
+                        "entity_kind": "legal_ref",
+                        "canonical_key": "legal_ref:native_title_act_1994",
+                        "canonical_label": "Native Title Act 1994",
+                    },
+                }
+            ],
+        }
+    )
+
+    claim_edge = next(edge for edge in graph["edges"] if edge["kind"] == "asserts_applied")
+    admissibility = claim_edge["metadata"]["edge_admissibility"]
+
+    assert admissibility["version"] == "sl.legal_edge_admissibility.v1"
+    assert admissibility["decision"] == "audit"
+    assert admissibility["edge"]["relation_kind"] == "applies"
+    assert "source_endpoint_audit" in admissibility["reasons"]
+    assert admissibility["checks"]["shared_support_linkage_present"] is True
+
+
+def test_build_au_legal_follow_operator_view_exposes_edge_admissibility_queue_and_details() -> None:
+    graph = build_au_legal_follow_graph(_admissibility_report())
+    view = build_au_legal_follow_operator_view(graph)
+
+    assert view["summary"]["edge_admissibility_counts"] == {"audit": 1}
+    assert view["summary"]["edge_admissibility_review_count"] == 1
+    assert len(view["edge_admissibility_queue"]) == 1
+
+    queue_row = view["edge_admissibility_queue"][0]
+    assert queue_row["decision"] == "audit"
+    assert queue_row["edge_kind"] == "asserts_applied"
+    assert "source_endpoint_audit" in queue_row["reasons"]
+
+    legal_claim_packet = next(item for item in view["queue"] if item["subtitle"] == "legal_claim_follow")
+    assert any(row["label"] == "Edge admissibility" for row in legal_claim_packet["detail_rows"])
+    assert any(row["label"] == "Edge admissibility reasons" for row in legal_claim_packet["detail_rows"])
+    assert "edge_admissibility_rows" in legal_claim_packet
+
+
+def test_build_au_legal_follow_operator_view_prioritizes_legal_claim_packets_by_admissibility_pressure() -> None:
+    graph = build_au_legal_follow_graph(_priority_report())
+    view = build_au_legal_follow_operator_view(graph)
+
+    assert view["summary"]["priority_band_counts"]["medium"] == 1
+    assert view["summary"]["priority_band_counts"]["low"] >= 1
+    assert view["summary"]["highest_priority_score"] > 0
+    assert view["summary"]["highest_priority_band"] == "medium"
+
+    first = view["queue"][0]
+    second = view["queue"][1]
+    assert first["subtitle"] == "legal_claim_follow"
+    assert second["subtitle"] == "legal_claim_follow"
+    assert first["candidate_id"] == "cand-audit"
+    assert second["candidate_id"] == "cand-promoted"
+    assert first["priority_rank"] == 1
+    assert first["priority_score"] > second["priority_score"]
+    assert first["priority_band"] == "medium"
+    assert second["priority_band"] == "low"
+    assert first["priority_reasons"]
+    assert first["priority_reason_counts"]["source_endpoint_audit"] >= 1
+    assert any(row["label"] == "Priority score" for row in first["detail_rows"])
+    assert any(row["label"] == "Priority band" for row in first["detail_rows"])
 
 
 def test_build_au_legal_follow_operator_view_emits_bounded_follow_queue() -> None:

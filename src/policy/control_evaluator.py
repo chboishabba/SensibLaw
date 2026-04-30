@@ -26,6 +26,20 @@ def _sb_payload(bundle: Mapping[str, Any]) -> Mapping[str, Any]:
     return payload if isinstance(payload, Mapping) else {}
 
 
+def _legal_follow_pressure_evidence_refs(sb_payload: Mapping[str, Any]) -> list[str]:
+    pressure = sb_payload.get("legal_follow_pressure")
+    if not isinstance(pressure, Mapping):
+        return []
+    refs: list[str] = []
+    version = _normalize_opt_text(pressure.get("version"))
+    value = _normalize_opt_text(pressure.get("value"))
+    if version:
+        refs.append(f"legal_follow_pressure.version:{version}")
+    if value:
+        refs.append(f"legal_follow_pressure.value:{value}")
+    return refs
+
+
 def _clause_result(
     *,
     clause_id: str,
@@ -72,6 +86,7 @@ def evaluate_clause(
 
     if clause_id == "follow_pressure_visibility":
         unresolved = _normalize_opt_text(sb_payload.get("unresolved_pressure_status"))
+        legal_follow_pressure_refs = _legal_follow_pressure_evidence_refs(sb_payload)
         if not unresolved:
             return _clause_result(
                 clause_id=clause_id,
@@ -83,15 +98,19 @@ def evaluate_clause(
             return _clause_result(
                 clause_id=clause_id,
                 status="satisfied",
-                reason="no unresolved pressure remains",
-                evidence_refs=["unresolved_pressure_status:none"],
+                reason=(
+                    "no unresolved pressure remains"
+                    if not legal_follow_pressure_refs
+                    else "no unresolved pressure remains; legal follow pressure metadata preserved separately"
+                ),
+                evidence_refs=["unresolved_pressure_status:none", *legal_follow_pressure_refs],
             )
         if isinstance(sb_payload.get("follow_obligation"), Mapping):
             return _clause_result(
                 clause_id=clause_id,
                 status="satisfied",
                 reason="follow obligation is present for unresolved pressure",
-                evidence_refs=["follow_obligation"],
+                evidence_refs=["follow_obligation", *legal_follow_pressure_refs],
             )
         return _clause_result(
             clause_id=clause_id,

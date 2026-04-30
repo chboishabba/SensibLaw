@@ -55,6 +55,34 @@ def test_build_lane_governance_snapshot_maps_promoted_nat_report() -> None:
     assert snapshot["lane_name"] == report["family_id"]
     assert snapshot["promotion_gate_decision"] == "promote"
     assert snapshot["metrics"]["can_act_count"] == 2
+    assert "legal_follow_pressure" not in snapshot
+
+
+def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_present() -> None:
+    snapshot = build_lane_governance_snapshot(
+        {
+            "lane_id": "au_fact_review_bundle",
+            "summary": {
+                "claim_count": 2,
+                "must_review_count": 1,
+                "must_abstain_count": 0,
+            },
+            "claims": [],
+            "suite_normalized_artifact": {
+                "unresolved_pressure_status": "hold",
+                "legal_follow_pressure": {
+                    "kind": "pressure_lattice",
+                    "version": "sl.legal_follow_pressure.v1",
+                    "value": "high",
+                },
+            },
+        }
+    )
+
+    assert snapshot["lane_name"] == "au_fact_review_bundle"
+    assert snapshot["unresolved_pressure_status"] == "open"
+    assert snapshot["legal_follow_pressure"]["kind"] == "pressure_lattice"
+    assert snapshot["legal_follow_pressure"]["value"] == "high"
 
 
 def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tmp_path: Path) -> None:
@@ -94,5 +122,7 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
     assert summary["summary"]["total_can_act_count"] == 2
     assert summary["summary"]["total_can_recommend_count"] == 0
     assert summary["summary"]["open_follow_conjectures"] > 10
+    assert summary["summary"]["lanes_with_legal_follow_pressure"] >= 0
     assert "business_family_reconciled_low_qualifier_checked_safe_subset" in summary["governance_gate"]["ready_lanes"]
+    assert isinstance(summary["governance_gate"]["legal_follow_pressure_lanes"], list)
     assert summary["governance_gate"]["decision"] == "hold"

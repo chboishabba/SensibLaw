@@ -1,0 +1,40 @@
+{
+  "schema_version": "sl.composed_candidate_node.v1",
+  "kind": "composed_candidate_node",
+  "predicate_family": "legal_procedural",
+  "slots": {
+    "subject": "actor:john_roberts",
+    "predicate": "confirmed_by",
+    "object": "actor:u_s_senate"
+  },
+  "content_refs": [
+    {
+      "kind": "source_unit",
+      "value": "source://demo/transcript/1"
+    }
+  ],
+  "authority_wrapper": {
+    "kind": "authority_wrapper",
+    "value": "judicial_review_gate"
+  },
+  "status": "candidate",
+  "support_phi_ids": [
+    "phi:demo:001"
+  ],
+  "span_refs": [
+    {
+      "kind": "source_span",
+      "value": "span://demo/1",
+      "start_char": 0,
+      "end_char": 42
+    }
+  ],
+  "provenance_receipts": [
+    {
+      "kind": "source",
+      "value": "demo_transcript"
+    }
+  ],
+  "section": "Judicial review",
+  "genre": "legal_ir"
+}

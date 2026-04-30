@@ -11,6 +11,7 @@ SB_TO_SL_ALLOWED_FIELDS = {
     "compiled_state_id",
     "compiled_state_version",
     "follow_obligation",
+    "legal_follow_pressure",
     "unresolved_pressure_status",
     "lineage_refs",
     "provenance_refs",
@@ -100,6 +101,11 @@ def build_sb_to_sl_contract_payload(
             if isinstance(suite_normalized_artifact.get("follow_obligation"), Mapping)
             else None
         ),
+        "legal_follow_pressure": (
+            dict(suite_normalized_artifact.get("legal_follow_pressure"))
+            if isinstance(suite_normalized_artifact.get("legal_follow_pressure"), Mapping)
+            else None
+        ),
         "unresolved_pressure_status": _normalize_opt_text(
             suite_normalized_artifact.get("unresolved_pressure_status")
         ),
@@ -142,6 +148,21 @@ def validate_sb_to_sl_contract_payload(payload: Mapping[str, Any]) -> list[str]:
     elif unresolved not in {"none", "follow_needed"}:
         errors.append(f"unsupported unresolved_pressure_status: {unresolved}")
 
+    legal_follow_pressure = payload.get("legal_follow_pressure")
+    if legal_follow_pressure is not None:
+        if not isinstance(legal_follow_pressure, Mapping):
+            errors.append("legal_follow_pressure must be an object")
+        else:
+            pressure_kind = _normalize_opt_text(legal_follow_pressure.get("kind"))
+            pressure_version = _normalize_opt_text(legal_follow_pressure.get("version"))
+            pressure_value = _normalize_opt_text(legal_follow_pressure.get("value"))
+            if pressure_kind is None:
+                errors.append("legal_follow_pressure.kind required when legal_follow_pressure is present")
+            if pressure_version is None:
+                errors.append("legal_follow_pressure.version required when legal_follow_pressure is present")
+            if pressure_value is None:
+                errors.append("legal_follow_pressure.value required when legal_follow_pressure is present")
+
     for index, ref in enumerate(payload.get("casey_observer_refs") or []):
         if not isinstance(ref, Mapping):
             errors.append(f"casey_observer_refs[{index}] must be an object")
@@ -179,6 +200,18 @@ def build_compliance_evidence_bundle(
             *(payload.get("source_artifact_refs") or []),
             *(semantic_evidence_refs or []),
             *(native_artifact_refs or []),
+            *(
+                [
+                    f"legal_follow_pressure:{value}"
+                    for value in (
+                        _normalize_opt_text((payload.get("legal_follow_pressure") or {}).get("value")),
+                        _normalize_opt_text((payload.get("legal_follow_pressure") or {}).get("version")),
+                    )
+                    if value
+                ]
+                if isinstance(payload.get("legal_follow_pressure"), Mapping)
+                else []
+            ),
             *[
                 ref.get("annotation_id")
                 for ref in payload.get("observer_overlay_refs", [])

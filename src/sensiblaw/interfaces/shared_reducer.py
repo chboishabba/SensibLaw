@@ -8,6 +8,10 @@ import re
 import time
 from typing import Any
 
+from ._compat import install_src_package_aliases
+
+install_src_package_aliases()
+
 try:
     from src.text.deterministic_legal_tokenizer import (
         LexemeToken,
@@ -97,7 +101,7 @@ except ModuleNotFoundError:  # pragma: no cover - cross-product import path
 try:
     from src.nlp.spacy_adapter import parse as parse_with_spacy
 except ModuleNotFoundError:  # pragma: no cover - cross-product import path
-    from nlp.spacy_adapter import parse as parse_with_spacy
+    raise
 
 
 _YEAR_RE = re.compile(r"^\d{4}$")

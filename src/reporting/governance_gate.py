@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any, Iterable, Mapping
 
 
 READY_DECISIONS = {"promote", "audit"}
@@ -18,6 +18,7 @@ class LaneGovernanceSnapshot:
     authority_receipt_count: int
     follow_queue_open: int
     unresolved_pressure_status: str | None = None
+    legal_follow_pressure: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +28,7 @@ class MultiLaneGateSummary:
     total_authority_receipts: int
     open_follow_conjectures: int
     ready_lanes: tuple[str, ...]
+    legal_follow_pressure_lanes: tuple[str, ...]
     gating_thresholds: dict[str, int]
 
 
@@ -46,6 +48,7 @@ def evaluate_multi_lane_gate(
 
     snapshots = tuple(snapshots)
     ready_lanes = []
+    legal_follow_pressure_lanes = []
     total_authority_receipts = 0
     open_follow_conjectures = 0
 
@@ -54,6 +57,8 @@ def evaluate_multi_lane_gate(
         open_follow_conjectures += snapshot.follow_queue_open
         if snapshot.promotion_gate_decision in READY_DECISIONS:
             ready_lanes.append(snapshot.lane_name)
+        if isinstance(snapshot.legal_follow_pressure, Mapping) and snapshot.legal_follow_pressure:
+            legal_follow_pressure_lanes.append(snapshot.lane_name)
 
     decision = "hold"
     if (
@@ -69,6 +74,7 @@ def evaluate_multi_lane_gate(
         total_authority_receipts=total_authority_receipts,
         open_follow_conjectures=open_follow_conjectures,
         ready_lanes=tuple(ready_lanes),
+        legal_follow_pressure_lanes=tuple(legal_follow_pressure_lanes),
         gating_thresholds={
             "required_ready_lanes": required_ready_lanes,
             "min_total_receipts": min_total_receipts,

@@ -7,6 +7,37 @@ structured, inspectable outputs instead of opaque summaries. It is used for
 legal/normative review, structured evidence handling, and bounded ontology
 diagnostics such as the current Wikidata work.
 
+## Public Interface Boundary
+
+The supported downstream import boundary is `sensiblaw.interfaces`.
+
+Implemented public surface now:
+- canonical text adaptation through `build_canonical_conversation_text(...)`
+- parser adapter helpers such as `parse_canonical_text(...)`
+- shared reducer helpers such as `collect_canonical_relational_bundle(...)`
+- IR types and adapter helpers such as `build_query_tree(...)` and
+  `project_interaction_mode(...)`
+- descriptive signals helpers such as `collect_signal_state(...)`
+
+Release-sensitive surface:
+- downstreams spanning older revisions should still feature-detect the newer
+  IR/signals exports until their baseline guarantees them
+
+The intended downstream-facing flow is:
+
+```text
+canonical text -> parse -> IR -> signals
+```
+
+This flow is an evidence/extraction contract only. It does not grant route
+authority, Telegram policy, or downstream execution authority to SensibLaw.
+
+If a downstream needs routing, admissibility, or delivery behavior, that logic
+must remain local to the downstream product. The public interface documents are:
+
+- `docs/interfaces.md`
+- `docs/parser_ir_interface.md`
+
 ## What SensibLaw Does
 
 SensibLaw currently provides:
@@ -85,6 +116,30 @@ The current architecture direction is no longer lane-by-lane growth. It is a
 single normalized process that different source families and work lanes bind
 onto over time.
 
+For the current legal-IR graph slice, the active control boundary is:
+
+- minimal `Phi` atoms as canonical normalized substrate
+- composed candidate nodes above `Phi`
+- fail-closed node and edge admissibility gates over those candidates
+- promoted records only after admissibility
+- derived graph views only after promotion
+
+The next bounded derived-graph step is narrower than a general "full legal
+graph": when the AU legal-follow graph reuses promoted legal claims, its
+derived `asserts_*` edges should carry typed edge-admissibility output from the
+structural gate. That keeps relation semantics attached to structural inputs
+instead of making the derived view infer meaning ad hoc.
+
+The current bounded operator step stays on that same structural surface: the
+operator view derived from typed edge-admissibility rows now ranks
+legal-claim review pressure and can steer AU workflow guidance toward
+legal-follow review when that structural pressure dominates. That is queue
+policy over a derived review view, not a new graph owner, semantic layer, or
+promotion path.
+
+That means contradiction, support, and related edge semantics must remain
+structural and typed. They are not inferred from free-text markers at the
+admissibility layer.
 ## Legal-Follow Pressure Ownership
 
 The current ownership split for legal-follow pressure is:
@@ -131,7 +186,6 @@ Current boundary:
 This projector is intentionally narrow. It stamps market-news receipts and
 provenance onto shared-reducer predicate atoms, but it does not promote those
 atoms to truth or decision authority.
-
 ## Canonical Ingestion Doctrine
 
 The stronger parser doctrine is now:
@@ -194,6 +248,12 @@ but they are still adapter-local. They should be treated as temporary
 normalization shells until the underlying concepts are extracted into
 lane-agnostic surfaces that AU, GWB, affidavit, Wikidata/Nat, and future lanes
 can all share.
+
+The same caution applies if the suite adopts minimal cross-lane `Phi` atoms:
+`Phi` belongs in canonical normalized substrate, composition above `Phi`
+belongs in challengeable candidate state, and admissibility/promotion remains
+the authority boundary. MDL or latent naming may compress repeated candidate
+signatures later, but must not silently become the truth gate.
 
 Another caution also matters: not every decision surface in the suite should
 share one vocabulary.

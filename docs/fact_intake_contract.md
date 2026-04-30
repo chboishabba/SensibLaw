@@ -140,6 +140,28 @@ The semantic layer is additive beside the raw fact-intake tables.
 Cross-entity semantics such as authority-boundary relations belong in
 `entity_relations`, not flattened tags.
 
+## Composed candidate normalization boundary
+
+Composed candidate nodes are the explicit bridge between the structural,
+source-anchored substrate and downstream promoted or interpretive outputs.
+They are normalized derivations, not canonical source rows, and they must stay
+reconstructable from the preserved evidence chain.
+
+- canonical contract surface: `sl.composed_candidate_node.v1`
+- purpose: group source-backed structural signals into a reusable candidate
+  node before any promotion or interpretive reuse
+- required boundary rules:
+  - keep source anchoring intact
+  - preserve normalized `kind` / `value` semantics without rewriting the
+    underlying substrate
+  - treat the node as fail-closed until admissibility explicitly returns
+    `promote`, `audit`, or `abstain`
+  - do not collapse candidate normalization into the final review or
+    projection surfaces
+- placement:
+  - above raw fact-intake observation and event derivation
+  - below promoted facts, review projections, and interpretive overlays
+
 The lexical Zelph graph remains derived/materialized rather than normalized
 into OLTP token tables.
 

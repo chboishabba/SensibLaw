@@ -49,9 +49,112 @@
     deterministic residual/gating surface more explicit
   - this strengthens the review/control boundary around the Wikidata lanes,
     without claiming a new Wikidata routing policy or broader automation
-- Added provider-backed ontology enrichment helpers on the normalized
-  `src/ontology` surface, including candidate lookup, deterministic
-  filtering, JSON emission, and optional interactive upsert into the existing
+- AU legal-follow priority steering:
+  - Extended `src/policy/legal_follow_graph.py` so derived legal-claim review
+    packets are now ranked from structural `edge_admissibility` rows, and the
+    operator summary exposes bounded priority rollups over the legal-follow
+    queue.
+  - Extended `src/fact_intake/review_bundle.py` so AU workflow guidance can
+    recommend `legal_follow_graph` when legal-follow admissibility review
+    pressure dominates promotion pressure.
+  - Added focused coverage in `tests/test_legal_follow_graph.py` and
+    `tests/test_au_fact_review_bundle.py`.
+  - Validation:
+    - from `SensibLaw/`:
+      `PYTHONPATH=. ../.venv/bin/python -m pytest tests/test_legal_follow_graph.py tests/test_au_fact_review_bundle.py tests/test_latent_promoted_graph.py tests/test_cross_system_phi_prototype.py -q`
+      -> `29 passed`
+- AU legal-follow admissibility exposure:
+  - Extended `src/policy/legal_follow_graph.py` so derived `asserts_*` edges
+    now roll up into summary-level admissibility counts and one bounded
+    `edge_admissibility_queue` for operator inspection.
+  - Legal-claim reviewer packets now expose edge-admissibility detail rows
+    without changing the derived-only ownership posture.
+  - Extended `src/fact_intake/au_review_bundle.py` so AU bundle summaries now
+    expose legal-follow edge-admissibility counts in both
+    `semantic_context.legal_follow_graph.summary` and
+    `operator_views.legal_follow_graph.summary`.
+  - Added focused coverage in `tests/test_legal_follow_graph.py` and
+    `tests/test_au_fact_review_bundle.py`.
+  - Validation:
+    - from `SensibLaw/`:
+      `PYTHONPATH=. ../.venv/bin/python -m pytest tests/test_legal_follow_graph.py tests/test_au_fact_review_bundle.py tests/test_latent_promoted_graph.py tests/test_cross_system_phi_prototype.py -q`
+      -> `26 passed`
+- Derived legal-claim edge admissibility:
+  - Updated `src/policy/legal_follow_graph.py` so derived `asserts_*` edges
+    now carry typed `sl.legal_edge_admissibility.v1` output in edge metadata.
+    Promoted-anchor reuse keeps the current owner surface, while lower-layer
+    relation candidates remain auditable instead of looking silently promoted.
+  - Extended `tests/test_legal_follow_graph.py` to pin both promoted-anchor
+    reuse metadata and the candidate-edge audit path.
+  - Updated `README.md` to pin the next bounded legal-graph step as typed
+    edge-admissibility metadata on derived legal-claim edges, not a new
+    promoted edge owner layer.
+  - Validation:
+    from `SensibLaw/`:
+    `PYTHONPATH=. ../.venv/bin/python -m pytest tests/test_legal_follow_graph.py tests/test_latent_promoted_graph.py tests/test_cross_system_phi_prototype.py -q`
+    -> `16 passed`
+- Composed candidate review adapter:
+  - Extended `src/policy/review_claim_records.py` with
+    `build_review_candidate_from_composed_candidate_node(...)` so
+    `sl.composed_candidate_node.v1` payloads can enter the existing
+    `review_candidate` envelope without widening fact-intake or review-bundle
+    contracts.
+  - The adapter keeps the bridge non-promotive:
+    - composed candidate node in
+    - `review_candidate` out
+    - no `target_proposition_id`
+    - no promoted-output path
+  - Added focused coverage in `tests/test_review_claim_records.py`.
+  - Validation:
+    `PYTHONPATH=SensibLaw ./.venv/bin/python -m pytest SensibLaw/tests/test_composed_candidate_node.py SensibLaw/tests/test_composed_candidate_admissibility.py SensibLaw/tests/test_review_claim_records.py -q`
+    -> `30 passed`
+- Legal edge admissibility gate:
+  - Added `src/legal_edge_admissibility.py` as the first bounded structural
+    edge gate above composed-candidate admissibility.
+  - The gate evaluates typed `relation_kind`, endpoint admissibility inputs,
+    wrapper/status compatibility, section/genre compatibility, shared support
+    linkage, shared content identity where required, and structural
+    status-conflict requirements for `contradicts` / `overrules`.
+  - The gate remains fail-closed and non-lexical:
+    raw text does not decide relation meaning or contradiction.
+  - Added focused coverage in `tests/test_legal_edge_admissibility.py`.
+  - Validation:
+    `PYTHONPATH=SensibLaw ./.venv/bin/python -m pytest SensibLaw/tests/test_composed_candidate_node.py SensibLaw/tests/test_composed_candidate_admissibility.py SensibLaw/tests/test_review_claim_records.py SensibLaw/tests/test_legal_edge_admissibility.py -q`
+    -> `38 passed`
+- Promoted legal graph ownership:
+  - Extended `src/latent_promoted_graph.py` and
+    `schemas/sl.latent_promoted_graph.v1.schema.yaml` so promoted
+    `review_relation` rows emit promoted `legal_claim` nodes plus typed
+    `grounds_claim`, `claim_subject`, and `claim_object` edges.
+  - Extended `src/policy/legal_follow_graph.py` so the AU legal-follow graph
+    can reuse that promoted-anchor surface when present instead of rebuilding
+    all legal claims from lower-layer candidates.
+  - Added focused coverage in `tests/test_latent_promoted_graph.py` and
+    `tests/test_legal_follow_graph.py`, while keeping
+    `tests/test_cross_system_phi_prototype.py` green against the widened
+    latent-graph schema.
+  - Validation:
+    from `SensibLaw/`:
+    `PYTHONPATH=. ../.venv/bin/python -m pytest tests/test_latent_promoted_graph.py tests/test_legal_follow_graph.py tests/test_cross_system_phi_prototype.py -q`
+    -> `15 passed`
+- Composed candidate node + admissibility gate:
+  - Added `src/models/composed_candidate_node.py`,
+    `schemas/sl.composed_candidate_node.v1.schema.yaml`, and
+    `examples/composed_candidate_node_minimal.json` as the first bounded
+    contract for candidate nodes above minimal `Phi` emissions.
+  - Added `src/composed_candidate_admissibility.py` as a fail-closed
+    node-level gate returning `promote | audit | abstain` from provenance,
+    wrapper, slot/content, section/genre, and accepted-constraint checks.
+  - Exported the composed-candidate helpers through `src/models/__init__.py`.
+  - Added focused coverage in
+    `tests/test_composed_candidate_node.py` and
+    `tests/test_composed_candidate_admissibility.py`.
+  - Validation:
+     `PYTHONPATH=SensibLaw ./.venv/bin/python -m pytest SensibLaw/tests/test_composed_candidate_node.py SensibLaw/tests/test_composed_candidate_admissibility.py -q`
+     -> `10 passed`
+  - Added provider-backed ontology enrichment helpers on the normalized
+    `src/ontology` surface, including candidate lookup, deterministic
+    filtering, JSON emission, and optional interactive upsert into the existing
   concept/actor external-reference tables.
 - Documented the enrichment boundary in `docs/external_ontologies.md` so the
   new helpers stay advisory and do not create a parallel ontology package.
