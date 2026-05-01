@@ -240,11 +240,58 @@ Current import behavior:
 
 Current non-goals:
 - GUI-first OpenRecall browsing
-- direct SB ingest of raw OpenRecall rows
+- treating raw OpenRecall rows as the default or authority-bearing ingest path
 - canonical mission/semantic promotion from OCR alone
 - a separate perception plane or cognitive-join layer at this stage
 - Delta-cone / perception-vs-truth divergence machinery before the shared
   observation substrate is normalized
+
+### Raw-row staging scaffold
+
+SensibLaw now also has a bounded raw-row staging scaffold for OpenRecall rows.
+This is for inspection, migration work, and future adapter hardening. It is not
+the default ingest path and it does not bypass the observer-first normalized
+capture lane above.
+
+Use the raw-row import CLI:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/import_openrecall_raw_rows.py \
+  --source-db /path/to/recall.db \
+  --storage-path /path/to/openrecall/storage \
+  --itir-db-path .cache_local/itir.sqlite \
+  --show-rows
+```
+
+Current raw-row staging behavior:
+- copies source `entries` rows into `openrecall_raw_entry_rows`
+- preserves source-local fields such as:
+  - `captured_date`
+  - `timestamp`
+  - `text`
+  - `normalized_text` and normalization metadata when present
+  - screenshot path/hash when discoverable
+- stores one `source_row_json` payload per staged row for bounded inspection
+- keeps these rows outside the mission/semantic authority path unless a later
+  explicit adapter consumes them
+
+Use the query CLI to inspect staged rows:
+
+```bash
+../.venv/bin/python SensibLaw/scripts/query_openrecall_raw_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  runs
+
+../.venv/bin/python SensibLaw/scripts/query_openrecall_raw_import.py \
+  --itir-db-path .cache_local/itir.sqlite \
+  rows --text-query feature --limit 20
+```
+
+Governance rule:
+- the normalized observer import remains the canonical OpenRecall-to-ITIR path
+- raw-row staging is additive and review-oriented
+- raw-row staging must not silently promote OCR capture into mission/semantic
+  truth or bypass provenance review
 
 OpenRecall is now queryable through the shared observation lane helpers and the generic lane-agnostic CLI:
 
@@ -362,6 +409,7 @@ For future lanes, pass lane-specific import parameters through the generic
 Legacy lane-specific import/query CLI wrappers still remain available for direct use:
 
 - `import_openrecall.py` / `query_openrecall_import.py`
+- `import_openrecall_raw_rows.py` / `query_openrecall_raw_import.py`
 - `import_worldmonitor.py` / `query_worldmonitor_import.py`
 
 ### WorldMonitor observer import

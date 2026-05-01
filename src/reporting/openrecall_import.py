@@ -27,6 +27,40 @@ class OpenRecallImportSummary:
     latest_source_timestamp: int | None
 
 
+def load_openrecall_source_rows(
+    source_db_path: str | Path,
+    *,
+    limit: int | None = None,
+) -> tuple[Path, list[sqlite3.Row]]:
+    resolved_source = resolve_loader_path(source_db_path)
+    with sqlite3.connect(str(resolved_source)) as src:
+        src.row_factory = sqlite3.Row
+        columns = {
+            str(row["name"])
+            for row in src.execute("PRAGMA table_info(entries)").fetchall()
+        }
+        select_fields = ["id", "app", "title", "text", "timestamp", "embedding"]
+        for optional in (
+            "captured_date",
+            "normalized_text",
+            "normalization_version",
+            "normalization_issues_json",
+        ):
+            if optional in columns:
+                select_fields.append(optional)
+        query = f"""
+            SELECT {", ".join(select_fields)}
+            FROM entries
+            ORDER BY timestamp ASC
+        """
+        params: tuple[Any, ...] = ()
+        if limit is not None:
+            query += " LIMIT ?"
+            params = (int(limit),)
+        rows = src.execute(query, params).fetchall()
+    return resolved_source, rows
+
+
 def _coverage_payload(with_screenshot: int, total: int) -> dict[str, Any]:
     without = max(int(total) - int(with_screenshot), 0)
     pct = 0.0
@@ -130,20 +164,11 @@ def import_openrecall_db(
     limit: int | None = None,
 ) -> OpenRecallImportSummary:
     ensure_openrecall_capture_schema(conn)
-    resolved_source = resolve_loader_path(source_db_path)
+    resolved_source, rows = load_openrecall_source_rows(
+        source_db_path,
+        limit=limit,
+    )
     resolved_storage = resolve_loader_path(storage_path) if storage_path is not None else None
-    with sqlite3.connect(str(resolved_source)) as src:
-        src.row_factory = sqlite3.Row
-        query = """
-            SELECT id, app, title, text, timestamp, embedding
-            FROM entries
-            ORDER BY timestamp ASC
-        """
-        params: tuple[Any, ...] = ()
-        if limit is not None:
-            query += " LIMIT ?"
-            params = (int(limit),)
-        rows = src.execute(query, params).fetchall()
     conn.execute(
         """
         INSERT INTO openrecall_import_runs(import_run_id, source_db_path, storage_path, imported_at, source_entry_count, imported_capture_count, latest_source_timestamp)
@@ -170,7 +195,12 @@ def import_openrecall_db(
     for row in rows:
         ts = int(row["timestamp"])
         capture_id = build_openrecall_capture_id(source_db_path=str(resolved_source), source_timestamp=ts)
-        captured_at, captured_date = format_local_iso_and_date_from_timestamp(ts)
+        captured_at, fallback_captured_date = format_local_iso_and_date_from_timestamp(ts)
+        captured_date = (
+            str(row["captured_date"] or fallback_captured_date)
+            if "captured_date" in row.keys()
+            else fallback_captured_date
+        )
         app_name = str(row["app"] or "")
         window_title = str(row["title"] or "")
         ocr_text = str(row["text"] or "")
@@ -647,6 +677,7 @@ __all__ = [
     "OpenRecallImportSummary",
     "ensure_openrecall_capture_schema",
     "ensure_openrecall_observation_schema",
+    "load_openrecall_source_rows",
     "import_openrecall_db",
     "import_openrecall_source",
     "load_openrecall_activity_rows",

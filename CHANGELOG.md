@@ -2045,6 +2045,12 @@
   `scripts/query_openrecall_import.py` provides a bounded JSON CLI for
   `runs`, `summary`, and `captures` without introducing GUI-first coupling or
   bypassing the observer-first ingest boundary.
+- OpenRecall integration: add a bounded raw-row staging scaffold. New
+  `src/reporting/openrecall_raw_import.py`,
+  `scripts/import_openrecall_raw_rows.py`, and
+  `scripts/query_openrecall_raw_import.py` can copy source `entries` rows into
+  additive staging tables for inspection and migration work while keeping the
+  normalized observer import as the canonical OpenRecall-to-ITIR path.
 - NotebookLM metadata/review parity: added the first neutral NotebookLM
   observer read-model in `src/reporting/notebooklm_observer.py` plus bounded
   JSON CLI `scripts/query_notebooklm_observer.py`. The new slice summarizes

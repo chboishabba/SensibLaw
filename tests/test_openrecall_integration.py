@@ -16,6 +16,12 @@ from src.reporting.openrecall_import import (
     load_openrecall_units,
     query_openrecall_captures,
 )
+from src.reporting.openrecall_raw_import import (
+    ensure_openrecall_raw_row_schema,
+    import_openrecall_raw_rows,
+    load_openrecall_raw_import_runs,
+    query_openrecall_raw_rows,
+)
 from src.reporting.structure_report import TextUnit
 from src.transcript_semantic.semantic import build_transcript_semantic_report, run_transcript_semantic_pipeline
 
@@ -332,3 +338,81 @@ def test_query_openrecall_import_cli_returns_json_read_models(tmp_path: Path) ->
     )
     assert len(captures_payload["captures"]) == 1
     assert captures_payload["captures"][0]["appName"] == "Firefox"
+
+
+def test_openrecall_raw_row_scaffold_preserves_source_row_fields(tmp_path: Path) -> None:
+    source_ts = int(datetime(2026, 3, 8, 10, 15, tzinfo=timezone.utc).timestamp())
+    storage_dir = tmp_path / "openrecall"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    screenshot_dir = storage_dir / "screenshots"
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    (screenshot_dir / f"{source_ts}.webp").write_bytes(b"fake-image")
+    source_db = storage_dir / "recall.db"
+    with sqlite3.connect(source_db) as conn:
+        conn.execute(
+            """
+            CREATE TABLE entries (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              app TEXT,
+              title TEXT,
+              text TEXT,
+              captured_date TEXT,
+              timestamp INTEGER UNIQUE,
+              embedding BLOB,
+              normalized_text TEXT,
+              normalization_version TEXT,
+              normalization_issues_json TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO entries(
+              app, title, text, captured_date, timestamp, embedding,
+              normalized_text, normalization_version, normalization_issues_json
+            ) VALUES (?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "Firefox",
+                "Notification routing feature PR",
+                "Please implement the notification routing feature before Friday close of business.",
+                "2026-03-08",
+                source_ts,
+                b"embed",
+                "Please implement the notification routing feature before Friday close of business.",
+                "openrecall.ocr_normalize.v1",
+                '{"extra_text":0}',
+            ),
+        )
+        conn.commit()
+
+    itir_db = tmp_path / "itir.sqlite"
+    with sqlite3.connect(itir_db) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_openrecall_raw_row_schema(conn)
+        summary = import_openrecall_raw_rows(
+            conn,
+            source_db_path=source_db,
+            storage_path=storage_dir,
+            import_run_id="openrecall-raw-v1",
+        )
+        conn.commit()
+        assert summary.imported_row_count == 1
+        runs = load_openrecall_raw_import_runs(conn, limit=5)
+        assert runs[0]["importRunId"] == "openrecall-raw-v1"
+        rows = query_openrecall_raw_rows(conn, import_run_id="openrecall-raw-v1", limit=5)
+        assert len(rows) == 1
+        assert rows[0]["capturedDate"] == "2026-03-08"
+        assert rows[0]["normalizationVersion"] == "openrecall.ocr_normalize.v1"
+        stored = conn.execute(
+            """
+            SELECT raw_text, normalized_text, source_row_json
+            FROM openrecall_raw_entry_rows
+            """
+        ).fetchone()
+        assert stored is not None
+        assert "notification routing feature" in str(stored["raw_text"]).casefold()
+        assert "notification routing feature" in str(stored["normalized_text"]).casefold()
+        payload = json.loads(str(stored["source_row_json"]))
+        assert payload["captured_date"] == "2026-03-08"
+        assert payload["normalization_version"] == "openrecall.ocr_normalize.v1"
