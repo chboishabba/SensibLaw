@@ -1,0 +1,696 @@
+{
+  "schema_version": "sl.wikidata_change_review_packet.v0_1",
+  "focus_item": "Q27968055",
+  "authority_policy": "review_only",
+  "property_scope": [
+    "P31",
+    "P279",
+    "P1269",
+    "P2738",
+    "P11260",
+    "P8225"
+  ],
+  "check_families": [
+    "subclass_consistency",
+    "class_order_pressure",
+    "metaclass_pressure",
+    "disjointness",
+    "downstream_use",
+    "minimality"
+  ],
+  "pnf_index": {
+    "receipt_index": {
+      "status": "diagnostic_only_no_pnf_emission_receipts"
+    },
+    "predicate_pnf_index": {
+      "status": "deferred_v0"
+    },
+    "structural_signature_index": {
+      "status": "deferred_v0"
+    },
+    "constraint_pnf_index": {
+      "status": "deferred_v0"
+    },
+    "shape_pnf_index": {
+      "status": "deferred_v0"
+    },
+    "residual_index": {
+      "status": "deferred_v0"
+    },
+    "pressure_index": {
+      "status": "diagnostic_only"
+    },
+    "candidate_index": {
+      "status": "packet_candidate_repairs"
+    },
+    "mutation_pnf_index": {
+      "status": "packet_supplied_review_only"
+    },
+    "disposition_index": {
+      "status": "diagnostic_only"
+    },
+    "promotion_boundary": {
+      "status": "external_governance_required",
+      "edit_authority": false
+    }
+  },
+  "wikidata_grounding": {
+    "schema_version": "sl.wikidata_pnf_grounding.v0_1",
+    "direction": "PredicatePNF_to_Wikidata",
+    "authority_policy": "review_only",
+    "candidate_source_policy": "packet_supplied_candidates_only",
+    "qid_pid_policy": "no_fabricated_qids_or_pids",
+    "receipt_policy": "no_fabricated_PNFEmissionReceipt",
+    "grounding_status": "packet_supplied_candidates_only",
+    "receipt_status": "diagnostic_only_no_pnf_emission_receipts",
+    "source_pnf": {
+      "predicate": "edition_like_subclass",
+      "structural_signature": "event_edition_fibre",
+      "subject_role": "recurring_event_edition_class",
+      "object_role": "edition_like_class",
+      "wrapper": "review_only_candidate"
+    },
+    "components": {
+      "subject_qid_candidates": [
+        {
+          "qid": "Q27968055",
+          "label": "recurring event edition",
+          "grounding_residual": "exact_grounding",
+          "authority_status": "candidate_only"
+        }
+      ],
+      "object_qid_candidates": [
+        {
+          "qid": "Q3331189",
+          "label": "version, edition or translation",
+          "shape": "publication/work-edition",
+          "target_fibre": "event-edition",
+          "meet_status": "no_typed_meet",
+          "grounding_residual": "no_typed_meet",
+          "reason": "publication/work-edition shape does not type-meet the event-edition fibre",
+          "fabricated": false
+        },
+        {
+          "qid": "Q1656682",
+          "label": "event",
+          "shape": "event_occurrence",
+          "grounding_residual": "partial_grounding",
+          "reason": "event_region_matches_but_not_event_edition_relation",
+          "fabricated": false
+        }
+      ],
+      "pid_candidates": [
+        {
+          "pid": "P279",
+          "label": "subclass of",
+          "grounding_residual": "partial_grounding",
+          "reason": "candidate relation only after structural fibre check",
+          "fabricated": false
+        },
+        {
+          "pid": "P179",
+          "label": "part of the series",
+          "grounding_residual": "partial_grounding",
+          "reason": "event_edition_series_shape_candidate",
+          "fabricated": false
+        },
+        {
+          "pid": "P361",
+          "label": "part of",
+          "grounding_residual": "partial_grounding",
+          "reason": "event_context_mereology_candidate",
+          "fabricated": false
+        }
+      ],
+      "qualifier_pid_candidates": [
+        {
+          "pid": "P580",
+          "label": "start time",
+          "grounding_residual": "partial_grounding"
+        },
+        {
+          "pid": "P582",
+          "label": "end time",
+          "grounding_residual": "partial_grounding"
+        },
+        {
+          "pid": "P585",
+          "label": "point in time",
+          "grounding_residual": "partial_grounding"
+        }
+      ],
+      "statement_shape_candidates": [
+        {
+          "id": "event_edition_of_series_shape",
+          "subject_role": "event_edition",
+          "relation_family": "series_or_mereology",
+          "object_role": "recurring_event_series",
+          "grounding_residual": "partial_grounding"
+        },
+        {
+          "id": "publication_edition_shape",
+          "subject_role": "publication_edition",
+          "relation_family": "edition_translation_of_work",
+          "object_role": "work",
+          "target_fibre": "event-edition",
+          "grounding_residual": "no_typed_meet"
+        }
+      ],
+      "constraint_surface_candidates": [
+        {
+          "family": "class_order_pressure",
+          "grounding_residual": "partial_grounding"
+        },
+        {
+          "family": "metaclass_pressure",
+          "grounding_residual": "partial_grounding"
+        }
+      ],
+      "abstract_q_obligations": [
+        {
+          "id": "Q_hat_event_edition_class_refinement",
+          "obligation_type": "candidate_class_obligation",
+          "qid": null,
+          "qid_pid_assignment": "not_implied",
+          "fabricates_qid": false,
+          "creates_wikidata_entity": false,
+          "promotion_required": true
+        }
+      ],
+      "abstract_p_obligations": [
+        {
+          "id": "P_hat_event_edition_of_series",
+          "obligation_type": "candidate_property_obligation",
+          "pid": null,
+          "qid_pid_assignment": "not_implied",
+          "fabricates_pid": false,
+          "creates_wikidata_property": false,
+          "promotion_required": true
+        }
+      ],
+      "grounding_residuals": [
+        {
+          "target": "Q3331189",
+          "grounding_residual": "no_typed_meet",
+          "reason": "publication/work-edition shape does not type-meet the event-edition fibre"
+        },
+        {
+          "target": "P279",
+          "grounding_residual": "partial_grounding",
+          "reason": "relation candidate needs role-compatible grounding"
+        }
+      ]
+    },
+    "no_fabricated_qids": true,
+    "no_fabricated_pids": true,
+    "no_fabricated_pnf_receipts": true,
+    "edit_authority": false,
+    "promotion_boundary": {
+      "status": "external_governance_required",
+      "abstract_qp_obligations_only": true,
+      "edit_authority": false
+    }
+  },
+  "pressure_attribution": {
+    "local_statement_pressure": {
+      "focus_item": "Q27968055",
+      "statement_slots": [
+        "P31:Q3331189",
+        "P279:Q3331189",
+        "P279:Q1656682"
+      ],
+      "signals": [
+        "mixed_instance_and_subclass_use"
+      ]
+    },
+    "upstream_inheritance_pressure": {
+      "upstream_classes": [
+        "Q3331189",
+        "Q1656682"
+      ],
+      "shared_parent": "Q24017414",
+      "signals": [
+        "same_depth_upstream_split"
+      ]
+    },
+    "sibling_shape_pressure": {
+      "sibling_classes": [
+        "Q3331189",
+        "Q1656682"
+      ],
+      "signals": [
+        "parallel_upstream_shape"
+      ]
+    },
+    "downstream_dependency_pressure": {
+      "known_dependency_count": 0,
+      "dependency_index_status": "deferred",
+      "signals": [
+        "downstream_use_deferred"
+      ]
+    }
+  },
+  "candidate_repairs": [
+    {
+      "id": "keep_current",
+      "operation": "keep_current",
+      "pressure_attribution": {
+        "local_statement_pressure": {
+          "statement_slots": [
+            "P31:Q3331189",
+            "P279:Q3331189",
+            "P279:Q1656682"
+          ]
+        },
+        "upstream_inheritance_pressure": {
+          "upstream_classes": [
+            "Q3331189",
+            "Q1656682"
+          ],
+          "shared_parent": "Q24017414"
+        },
+        "sibling_shape_pressure": {
+          "sibling_classes": [
+            "Q3331189",
+            "Q1656682"
+          ]
+        },
+        "downstream_dependency_pressure": {
+          "dependency_index_status": "deferred"
+        }
+      },
+      "expected_review_reasons": [
+        "held_upstream_ontology_pressure",
+        "held_same_depth_split_required"
+      ],
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "keep_current",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    },
+    {
+      "id": "remove_p279_q3331189",
+      "operation": "remove",
+      "subject": "Q27968055",
+      "property": "P279",
+      "value": "Q3331189",
+      "pressure_delta": {
+        "local_statement_pressure": -1,
+        "upstream_inheritance_pressure": -1,
+        "sibling_shape_pressure": 0,
+        "downstream_dependency_pressure": 0
+      },
+      "pressure_attribution": {
+        "upstream_inheritance_pressure": {
+          "status": "reduced",
+          "review_reason": "held_upstream_ontology_pressure",
+          "signals": [
+            "local_remove_reduces_publication_edition_inheritance_pressure"
+          ]
+        }
+      },
+      "review_reasons": [
+        "held_upstream_ontology_pressure"
+      ],
+      "grounding_delta": {
+        "publication_edition_mismatch": -1,
+        "event_edition_obligation": 0
+      },
+      "candidate_grounding": {
+        "direction": "PredicatePNF_to_Wikidata",
+        "candidate_effect": "removes_no_typed_meet_object_grounding",
+        "edit_authority": false
+      },
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "remove_p279_q3331189",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "operation": "remove",
+        "statement_slot": "P279:Q3331189",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    },
+    {
+      "id": "remove_p279_q1656682",
+      "operation": "remove",
+      "subject": "Q27968055",
+      "property": "P279",
+      "value": "Q1656682",
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "remove_p279_q1656682",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "operation": "remove",
+        "statement_slot": "P279:Q1656682",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    },
+    {
+      "id": "test_weaker_p279_q24017414",
+      "operation": "weaken",
+      "match": {
+        "subject": "Q27968055",
+        "property": "P279",
+        "value": "Q3331189"
+      },
+      "replacement": {
+        "value": "Q24017414"
+      },
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "test_weaker_p279_q24017414",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "operation": "weaken",
+        "statement_slot": "P279:Q3331189",
+        "replacement_slot": "P279:Q24017414",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    },
+    {
+      "id": "hold_for_class_order_review",
+      "operation": "hold",
+      "expected_disposition": "held",
+      "pressure_attribution": {
+        "local_statement_pressure": {
+          "statement_slots": [
+            "P31:Q3331189",
+            "P279:Q3331189",
+            "P279:Q1656682"
+          ],
+          "signals": [
+            "mixed_instance_and_subclass_use"
+          ]
+        },
+        "upstream_inheritance_pressure": {
+          "upstream_classes": [
+            "Q3331189",
+            "Q1656682"
+          ],
+          "shared_parent": "Q24017414",
+          "signals": [
+            "same_depth_upstream_split"
+          ]
+        },
+        "sibling_shape_pressure": {
+          "sibling_classes": [
+            "Q3331189",
+            "Q1656682"
+          ],
+          "signals": [
+            "parallel_upstream_shape"
+          ]
+        },
+        "downstream_dependency_pressure": {
+          "known_dependency_count": 0,
+          "dependency_index_status": "deferred",
+          "signals": [
+            "downstream_use_deferred"
+          ]
+        }
+      },
+      "expected_review_reasons": [
+        "held_upstream_ontology_pressure",
+        "held_same_depth_split_required",
+        "held_series_mereology_required"
+      ],
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "hold_for_class_order_review",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "operation": "hold",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    },
+    {
+      "id": "hold_upstream_abstract_obligation",
+      "operation": "review_hold",
+      "expected_disposition": "held",
+      "candidate_obligation": true,
+      "promotion_required": true,
+      "obligation_type": "upstream_split_new_abstract_class_or_property",
+      "obligation_payload": {
+        "lane": "Q27968055_change_review",
+        "trigger": "same_depth_upstream_split",
+        "candidate_shape": "abstract_class_or_property",
+        "review_posture": "review_only",
+        "qid_pid_assignment": "not_implied"
+      },
+      "candidate_grounding": {
+        "direction": "PredicatePNF_to_Wikidata",
+        "candidate_effect": "records_abstract_qp_grounding_obligation",
+        "creates_wikidata_entity": false,
+        "creates_wikidata_property": false,
+        "edit_authority": false
+      },
+      "expected_review_reasons": [
+        "held_upstream_ontology_pressure",
+        "held_same_depth_split_required"
+      ],
+      "pressure_attribution": {
+        "upstream_inheritance_pressure": {
+          "upstream_classes": [
+            "Q3331189",
+            "Q1656682"
+          ],
+          "shared_parent": "Q24017414",
+          "signals": [
+            "same_depth_upstream_split"
+          ]
+        }
+      },
+      "mutation_pnf": {
+        "schema_version": "sl.wikidata_candidate_mutation_pnf.v0_1",
+        "candidate_id": "hold_upstream_abstract_obligation",
+        "review_posture": "review_only",
+        "mutation_scope": "bounded_slice_in_memory",
+        "operation": "review_hold",
+        "receipt_status": "diagnostic_only_no_pnf_emission_receipts"
+      }
+    }
+  ],
+  "expected_report_surface": {
+    "authority_policy": "review_only",
+    "edit_authority": false,
+    "pressure_attribution": {
+      "local_statement_pressure": {
+        "focus_item": "Q27968055",
+        "statement_slots": [
+          "P31:Q3331189",
+          "P279:Q3331189",
+          "P279:Q1656682"
+        ],
+        "signals": [
+          "mixed_instance_and_subclass_use"
+        ]
+      },
+      "upstream_inheritance_pressure": {
+        "upstream_classes": [
+          "Q3331189",
+          "Q1656682"
+        ],
+        "shared_parent": "Q24017414",
+        "signals": [
+          "same_depth_upstream_split"
+        ]
+      },
+      "sibling_shape_pressure": {
+        "sibling_classes": [
+          "Q3331189",
+          "Q1656682"
+        ],
+        "signals": [
+          "parallel_upstream_shape"
+        ]
+      },
+      "downstream_dependency_pressure": {
+        "known_dependency_count": 0,
+        "dependency_index_status": "deferred",
+        "signals": [
+          "downstream_use_deferred"
+        ]
+      }
+    },
+    "pnf_index": {
+      "expected_layer_names": [
+        "receipt_index",
+        "predicate_pnf_index",
+        "structural_signature_index",
+        "constraint_pnf_index",
+        "shape_pnf_index",
+        "residual_index",
+        "pressure_index",
+        "candidate_index",
+        "mutation_pnf_index",
+        "disposition_index",
+        "promotion_boundary"
+      ],
+      "receipt_status": "diagnostic_only_no_pnf_emission_receipts",
+      "compiler_status": "packet_metadata_only_no_pnf_compiler",
+      "no_fabricated_pnf_receipts": true
+    },
+    "wikidata_grounding": {
+      "direction": "PredicatePNF_to_Wikidata",
+      "grounding_status": "packet_supplied_candidates_only",
+      "receipt_status": "diagnostic_only_no_pnf_emission_receipts",
+      "q3331189_meet_status": "no_typed_meet",
+      "q3331189_mismatch_reason": "publication/work-edition shape does not type-meet the event-edition fibre",
+      "no_fabricated_qids": true,
+      "no_fabricated_pids": true,
+      "edit_authority": false,
+      "abstract_q_obligation_count": 1,
+      "abstract_p_obligation_count": 1
+    },
+    "candidate_reports": {
+      "hold_for_class_order_review": {
+        "disposition": "held",
+        "authority_policy": "review_only",
+        "edit_authority": false,
+        "review_reasons": [
+          "held_same_depth_split_required",
+          "held_series_mereology_required",
+          "held_upstream_ontology_pressure"
+        ],
+        "pressure_attribution": {
+          "local_statement_pressure": {
+            "focus_item": "Q27968055",
+            "statement_slots": [
+              "P31:Q3331189",
+              "P279:Q3331189",
+              "P279:Q1656682"
+            ],
+            "signals": [
+              "mixed_instance_and_subclass_use"
+            ]
+          },
+          "upstream_inheritance_pressure": {
+            "upstream_classes": [
+              "Q3331189",
+              "Q1656682"
+            ],
+            "shared_parent": "Q24017414",
+            "signals": [
+              "same_depth_upstream_split"
+            ]
+          },
+          "sibling_shape_pressure": {
+            "sibling_classes": [
+              "Q3331189",
+              "Q1656682"
+            ],
+            "signals": [
+              "parallel_upstream_shape"
+            ]
+          },
+          "downstream_dependency_pressure": {
+            "known_dependency_count": 0,
+            "dependency_index_status": "deferred",
+            "signals": [
+              "downstream_use_deferred"
+            ]
+          }
+        }
+      },
+      "hold_upstream_abstract_obligation": {
+        "disposition": "held",
+        "authority_policy": "review_only",
+        "edit_authority": false,
+        "candidate_obligation": true,
+        "promotion_required": true,
+        "obligation_type": "upstream_split_new_abstract_class_or_property",
+        "obligation_payload": {
+          "lane": "Q27968055_change_review",
+          "trigger": "same_depth_upstream_split",
+          "candidate_shape": "abstract_class_or_property",
+          "review_posture": "review_only",
+          "qid_pid_assignment": "not_implied"
+        }
+      }
+    }
+  },
+  "bounded_slice": {
+    "metadata": {
+      "purpose": "Synthetic minimal Q27968055 ChangeReviewPacket fixture for review-only candidate comparison tests.",
+      "label_map": {
+        "Q27968055": "Q27968055 review focus",
+        "Q3331189": "candidate upstream class A",
+        "Q1656682": "candidate upstream class B",
+        "Q24017414": "second-order class",
+        "QOCTFDisjointHolder": "synthetic disjointness holder"
+      }
+    },
+    "windows": [
+      {
+        "id": "q27968055-current",
+        "statement_bundles": [
+          {
+            "subject": "QOCTFDisjointHolder",
+            "property": "P2738",
+            "value": "QOCTFDisjointHolder",
+            "rank": "preferred",
+            "qualifiers": {
+              "P11260": [
+                "Q3331189",
+                "Q1656682"
+              ]
+            },
+            "references": []
+          },
+          {
+            "subject": "Q27968055",
+            "property": "P31",
+            "value": "Q3331189",
+            "rank": "preferred",
+            "references": [
+              {
+                "P248": "Qsynthetic_review_fixture"
+              }
+            ]
+          },
+          {
+            "subject": "Q27968055",
+            "property": "P279",
+            "value": "Q3331189",
+            "rank": "preferred",
+            "references": [
+              {
+                "P248": "Qsynthetic_review_fixture"
+              }
+            ]
+          },
+          {
+            "subject": "Q27968055",
+            "property": "P279",
+            "value": "Q1656682",
+            "rank": "preferred",
+            "references": [
+              {
+                "P248": "Qsynthetic_review_fixture"
+              }
+            ]
+          },
+          {
+            "subject": "Q3331189",
+            "property": "P279",
+            "value": "Q24017414",
+            "rank": "normal",
+            "references": []
+          },
+          {
+            "subject": "Q1656682",
+            "property": "P279",
+            "value": "Q24017414",
+            "rank": "normal",
+            "references": []
+          }
+        ]
+      }
+    ]
+  }
+}

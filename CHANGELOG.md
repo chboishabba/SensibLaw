@@ -17,6 +17,132 @@
 # Changelog
 
 ## Unreleased
+- Documented Claire/Superraptor's `Wikibase-Wikidata-Pipeline` and `wikiodk`
+  as adjacent Wikibase/Wikidata reference surfaces for the OCTF roadmap. The
+  docs now distinguish external transport/sandbox capabilities from the
+  ITIR/SensibLaw bounded review layer: external tools may emit mapped candidate
+  deltas or provide local Wikibase setup, while SensibLaw normalizes deltas
+  into review packets and emits review-only dispositions before any staged
+  export or upload handoff.
+- Added pinned `fact_extraction_probe_v0_1` coverage for the fact-intake
+  observation lane. The read-only probe consumes supplied PredicatePNF carriers
+  and source/excerpt/statement/observation receipts, then computes residual
+  status for 10 cases: ordinary observation, procedural fact, uncertain
+  fragment, contradiction, lifecycle transition, successor/blocker chain,
+  constraint carrier, constraint violation, cross-fibre `no_typed_meet`, and
+  missing receipt. It preserves the boundary that raw sentences, LLM summaries,
+  keyword hits, Wikidata labels, and fabricated receipts are not fact authority.
+- Added pinned `archive_thread_timeline_probe_v0_1` coverage for the StatiBaker
+  task-memory lane. The fixture uses 10 archive-derived seeds to prove
+  bidirectional reconciliation between canonical archive thread events and
+  SB-facing task timeline receipts, including prior/seed/later source anchors,
+  `TaskPNF`, Γ residual evidence, lifecycle receipts, successor tasks, blocked
+  follow-ups, and missing expected slots. This remains a read-only proof: no raw
+  archive keyword tasking, live StatiBaker mutation, promotion, completion, or
+  fabricated lifecycle receipts.
+- Added a first deterministic StatiBaker free-text -> todo/Kanban Level-0
+  helper as a receipt-only extension of the semantic-memory bridge. It builds
+  `sl.statibaker_task_memory.v0_1` candidate task receipts and
+  `sl.statibaker_kanban_projection.v0_1` read-only board projections from
+  `TaskLike(Γ, TaskPNF)` structural action-frame judgments over task PNF plus Γ
+  as `ProjectContextPNFIndex`. Γ is normalized from canonical text and
+  structured project systems rather than maintained as a hand-written context
+  blob, and taskhood is a residual/meet comparison against Γ-PNF indexes.
+  `Actionable`, `ProjectRelevant`, `PromotableWrapper`, `HasLifecycleTransition`,
+  `ClosedOrNegated`, and `PurelyPhatic` are structural frame roles, not
+  keyword/list categories; spaCy and dependency frames are evidence only, not
+  taskhood authority. The tests pin task merge/status receipts, raw-text
+  non-promotion, held candidates for missing grounding/acceptance evidence, and
+  an archive-derived free-text query probe from `robust-context-fetch` that is
+  only admitted after explicit `TaskPNF` normalization and Γ meet. They also pin
+  the boundary that this performs no raw keyword tasking, no live StatiBaker
+  mutation, promotion, or completion, and no fabricated receipts.
+- Added a first deterministic semantic-memory helper. It builds
+  `sl.semantic_memory_index.v0_1` records from supplied document atoms,
+  grounding candidates, and ontology closure paths, then answers
+  natural-language topic queries with explanation paths. The initial tests pin
+  the private-memory case where "great dane" is retrievable through the broader
+  "dog" topic, while preserving wrapper filtering and the boundary that this is
+  not public Wikidata truth, not live entity linking, and not belief inference.
+- Schema/documented optional review-only `pnf_grounding` /
+  `wikidata_grounding` surfaces for `ChangeReviewPacket` and report sidecars.
+  The only valid direction is `PredicatePNF_to_Wikidata`, candidates must be
+  packet-supplied, and the surface cannot fabricate QIDs/PIDs,
+  `PNFEmissionReceipt` objects, or edit authority.
+- Clarified review-only abstract obligation candidates in
+  `ChangeReviewPacket`. The packet schema now admits
+  `split_class_obligation`, `new_class_obligation`,
+  `new_property_obligation`, `relation_family_correction`,
+  `upstream_repair_obligation`, and `sibling_normalization_obligation`, with
+  docs stating that these are existential review objects only, not Wikidata
+  QIDs/PIDs, entity/property creation, PNF receipts, or edit authority.
+- Added the first review-only Wikidata `ChangeReviewPacket` candidate
+  comparison harness. `wikidata compare-candidates` loads a bounded packet,
+  applies keep/remove/add/replace/retype/weaken/hold candidates in memory, runs
+  existing Wikidata projection and bounded disjointness diagnostics, and emits
+  `sl.wikidata_change_review_report.v0_1` with conservative dispositions and
+  `edit_authority: false`. The v0 gate now holds candidates that introduce any
+  positive diagnostic-family regression instead of relying only on aggregate
+  blocker totals. Packet/report schemas, schema-version rejection, explicit
+  check-coverage reporting, a synthetic `Q27968055` fixture, and focused tests
+  pin the Level 0 ontology-repair comparison surface; this does not add live
+  Wikidata writes, fabricated runtime receipts, or global monotonicity claims.
+- Added bounded first-class `mereology` / `temporal_exclusivity` coverage to
+  the review-only `ChangeReviewPacket` lane. The harness now counts parthood
+  typing, temporal-exclusive overlap, and missing temporal qualifiers, exposes
+  temporal/mereology evidence in candidate reports, and conservatively holds
+  candidates that regress those families. The synthetic `P361`/`P527` fixture
+  uses a packet-local curated policy; it is not live Wikidata authority or a
+  promotion receipt.
+- Added review-only pressure attribution to `ChangeReviewPacket` reports.
+  Packets and candidates can now carry local/upstream/sibling/downstream-style
+  pressure components, candidate `pressure_delta`, `review_reasons`, and
+  specific `held_*` reasons. The synthetic `Q27968055` fixture now demonstrates
+  the intended split: removing `Q27968055 P279 Q3331189` can be locally
+  reviewable while still surfacing upstream ontology pressure as a non-authority
+  caveat.
+- Clarified the Wikidata docs to separate the latest global-latent formalism
+  from the current bounded runtime. The practical README, OCTF entrypoint, and
+  migration-pack contract now state that the formal endstate is monotone
+  structural coherence over a snapshot-derived global ontology index, while
+  today's executable surfaces remain bounded migration packs, PNF/residual
+  review packets, hotspot packs, disjointness diagnostics, and review/grounding
+  lanes. This is docs-only; no global index, QID-only repair bot, runtime
+  behavior, promotion gate, or edit authority changed.
+- Clarified the Wikidata migration-pack docs for Peter's orientation questions.
+  The practical README and migration-pack contract now explain how bounded
+  proposals become row-level review dispositions, what windows and schemas mean
+  in this lane, why `sensiblaw` exists only after package installation, and how
+  `manifest.json`, `slice.json`, `migration_pack.json`,
+  `schemas/sl.wikidata_migration_pack.v1.schema.yaml`,
+  `src/ontology/wikidata.py`, and `cli/__main__.py` fit together. This is
+  docs-only; no runtime behavior, promotion gate, or edit authority changed.
+- Refined the Wikidata OCTF entrypoint and practical README for the four named
+  reader paths: Dave/general OCTF, Peter, Ege, and Rosario. The entrypoint now
+  adds the reader matrix near the top, places the worked climate example before
+  the technical PNF/body section, gates CLI commands for technical
+  contributors, and explains hotspot/disjointness outputs before their command
+  surfaces. This is docs-only; no runtime behavior, promotion gate, or edit
+  authority changed.
+- Added
+  [docs/wikidata/README.md](/home/c/Documents/code/ITIR-suite/SensibLaw/docs/wikidata/README.md)
+  as the practical start-to-finish guide for current Wikidata reviewer stories:
+  climate migration, climate PNF/residual review, structural hotspot packs, and
+  `P2738` disjointness diagnostics.
+- Refreshed
+  [docs/planning/wikidata_octf_entrypoint_20260421.md](/home/c/Documents/code/ITIR-suite/SensibLaw/docs/planning/wikidata_octf_entrypoint_20260421.md)
+  so it leads with the Wikidata reviewer problem, moves the "not an edit bot"
+  boundary near the top, adds a worked climate example, and dual-labels the
+  `candidate-only` / `reviewable` / `held` / `promotable` states in plain
+  language. This is docs-only; no runtime behavior, promotion gates, or edit
+  authority changed.
+- Added
+  [docs/planning/wikidata_temporal_pnf_constraint_contract_20260502.md](/home/c/Documents/code/ITIR-suite/SensibLaw/docs/planning/wikidata_temporal_pnf_constraint_contract_20260502.md)
+  as a docs-only PNF/residual contract that unifies temporal climate and
+  mereology/parthood checks. It names `TempFam(P, I)`, `INCOMPLETE_tau`
+  (`missing_temporal_qualifier`), and `CONTRADICTION_mu`
+  (`temporal_exclusive_overlap`) without changing runtime behavior,
+  promotion gates, or edit authority.
 - Added `wikidata climate-review-demonstrator`, a bounded runtime report over
   the pinned `Q10403939` / Akademiska Hus climate packet. The command binds:
   - migration-pack candidate change surface

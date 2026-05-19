@@ -24,6 +24,82 @@ Implemented in bounded `v0.1` form through:
 - CLI:
   - `sensiblaw wikidata build-migration-pack`
 
+`sensiblaw` is the installed console-script name from `pyproject.toml`. In a
+plain checkout where that script has not been installed, use the module form
+instead:
+
+```bash
+cd SensibLaw
+../.venv/bin/python -m cli.__main__ wikidata build-migration-pack --help
+```
+
+## How this produces recommendations
+
+This contract does not describe a system that invents new Wikidata ontology
+policy. It describes a deterministic review packet for a bounded proposal.
+
+This is the current bounded runtime slice of a broader formalism. In the latest
+ITIR/SensibLaw framing, bounded migration packs are local projections of a
+possible snapshot-derived global ontology index. The global formalism compiles
+statements, constraints, disjointness surfaces, class-order surfaces, and
+upstream references into typed carriers, computes residual/severity state, and
+admits only candidate mutations satisfying:
+
+```text
+severity(after) <= severity(before)
+```
+
+If every applied edit in a finite residual lattice respects that filter, the
+aggregate structural incoherence cannot increase and eventually reaches a fixed
+point. This contract does not implement that whole global latent layer. It
+implements one bounded review artifact that can later be one local projection
+inside that larger coherence framework.
+
+For the current climate lane, the bounded proposal is:
+
+```text
+review whether selected P5991 statements can be represented as P14143
+```
+
+The runtime recommendation is the row-level `action` field on each candidate,
+such as `migrate`, `migrate_with_refs`, `split`, `review`, or `abstain`.
+Those actions are review aids. They are not edit commands and they do not
+override Wikidata community review.
+
+The flow is:
+
+1. Start with a bounded task, source property, target property, and source
+   exports.
+2. Build `slice.json`, grouping normalized statement bundles into windows.
+3. Run `wikidata build-migration-pack` over the slice.
+4. Produce `migration_pack.json`.
+5. Classify each current-window source statement into buckets such as
+   `safe_with_reference_transfer`, `split_required`, or `abstain`.
+6. Export only review surfaces or checked-safe staging rows; keep uncertain
+   rows held.
+
+## File roles
+
+| File or object | Role |
+| --- | --- |
+| `manifest.json` | Materialization inventory. It records the chosen QIDs, revision pairs, source export files, `slice.json`, `migration_pack.json`, and summary counts for a pack directory. |
+| `slice.json` | Bounded source slice. It is the input to `build-migration-pack` and contains the normalized statement bundles grouped by window. |
+| `migration_pack.json` | Contract output. It contains candidate rows, classifications, row-level actions, model/gate metadata, diffs, and summary counts. |
+| `schemas/sl.wikidata_migration_pack.v1.schema.yaml` | Machine-readable contract for `migration_pack.json`. It is used to keep downstream code and review artifacts aligned on the same field names and allowed values. |
+| `src/ontology/wikidata.py` | Manually written deterministic implementation that parses slices, builds candidates, computes diffs, classifies rows, builds gates, and exports review surfaces. |
+| `cli/__main__.py` | Manually written CLI wiring that exposes `src/ontology/wikidata.py` functions as `wikidata ...` subcommands. |
+
+## Generated versus authored
+
+`schemas/sl.wikidata_migration_pack.v1.schema.yaml` is authored in the repo.
+It is not generated from the Python program. When the payload shape changes,
+the schema is updated deliberately and tests should validate that emitted packs
+still conform.
+
+`src/ontology/wikidata.py` is also authored in the repo. It is not generated
+from the schema. The schema and program are kept aligned by tests, examples,
+and review discipline, not by code generation.
+
 ## Contract shape
 Schema version:
 

@@ -1,0 +1,476 @@
+{
+  "fixture_id": "fact_extraction_probe_v0_1",
+  "schema_version": "sl.fact_extraction_probe.v0_1",
+  "description": "Deterministic fact extraction probe over receipt-backed PredicatePNF observation classes.",
+  "source": {
+    "kind": "local_test_fixture",
+    "live_query": false,
+    "receipt_policy": "no_fabricated_PNFEmissionReceipt"
+  },
+  "fact_cases": [
+    {
+      "case_id": "ordinary_observed_fact",
+      "lane": "observation_fact",
+      "source_span": "The clinic changed the medication on 2026-03-19.",
+      "receipts": {
+        "source_receipt_id": "src:ordinary",
+        "excerpt_receipt_id": "excerpt:ordinary",
+        "statement_receipt_id": "statement:ordinary",
+        "observation_receipt_id": "obs:ordinary"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:ordinary",
+        "label": "clinic changed medication on 2026-03-19",
+        "predicate_atom": {
+          "atom_id": "query:ordinary",
+          "predicate": "performed_action",
+          "structural_signature": "event_action(actor,action,object,time)",
+          "roles": {
+            "actor": {"value": "clinic", "entity_type": "organization"},
+            "action": {"value": "changed", "entity_type": "action"},
+            "object": {"value": "medication", "entity_type": "medical_object"},
+            "time": {"value": "2026-03-19", "entity_type": "date"}
+          },
+          "qualifiers": {"polarity": "positive", "certainty": "asserted"},
+          "wrapper": {"status": "asserted_personal_observation", "evidence_only": true},
+          "provenance": ["statement:ordinary"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:ordinary",
+          "predicate": "performed_action",
+          "structural_signature": "event_action(actor,action,object,time)",
+          "roles": {
+            "actor": {"value": "clinic", "entity_type": "organization"},
+            "action": {"value": "changed", "entity_type": "action"},
+            "object": {"value": "medication", "entity_type": "medical_object"},
+            "time": {"value": "2026-03-19", "entity_type": "date"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_personal_observation", "evidence_only": true},
+          "provenance": ["obs:ordinary"]
+        }
+      ],
+      "promotion_gate": {"promote": true}
+    },
+    {
+      "case_id": "procedural_deadline_fact",
+      "lane": "procedural_fact",
+      "source_span": "The registry said the response must be filed by 2026-04-02.",
+      "receipts": {
+        "source_receipt_id": "src:deadline",
+        "excerpt_receipt_id": "excerpt:deadline",
+        "statement_receipt_id": "statement:deadline",
+        "observation_receipt_id": "obs:deadline"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:deadline",
+        "label": "response filing deadline 2026-04-02",
+        "predicate_atom": {
+          "atom_id": "query:deadline",
+          "predicate": "ordered",
+          "structural_signature": "procedural_deadline(authority,action,object,due_date)",
+          "roles": {
+            "authority": {"value": "registry", "entity_type": "legal_institution"},
+            "action": {"value": "file", "entity_type": "procedure"},
+            "object": {"value": "response", "entity_type": "document"},
+            "due_date": {"value": "2026-04-02", "entity_type": "date"}
+          },
+          "qualifiers": {"polarity": "positive", "modality": "reported_official_procedure"},
+          "wrapper": {"status": "reported_official_procedure", "evidence_only": true},
+          "provenance": ["statement:deadline"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:deadline",
+          "predicate": "ordered",
+          "structural_signature": "procedural_deadline(authority,action,object,due_date)",
+          "roles": {
+            "authority": {"value": "registry", "entity_type": "legal_institution"},
+            "action": {"value": "file", "entity_type": "procedure"},
+            "object": {"value": "response", "entity_type": "document"},
+            "due_date": {"value": "2026-04-02", "entity_type": "date"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "reported_official_procedure", "evidence_only": true},
+          "provenance": ["obs:deadline"]
+        }
+      ],
+      "promotion_gate": {"promote": false}
+    },
+    {
+      "case_id": "uncertain_fragment",
+      "lane": "uncertain_fact",
+      "source_span": "I think the call may have happened before the appointment, but I am not sure.",
+      "receipts": {
+        "source_receipt_id": "src:uncertain",
+        "excerpt_receipt_id": "excerpt:uncertain",
+        "statement_receipt_id": "statement:uncertain",
+        "observation_receipt_id": "obs:uncertain"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:uncertain",
+        "label": "call before appointment",
+        "predicate_atom": {
+          "atom_id": "query:uncertain",
+          "predicate": "temporal_relation",
+          "structural_signature": "temporal_order(event,anchor)",
+          "roles": {
+            "event": {"value": "call", "entity_type": "event"},
+            "anchor": {"value": "appointment", "entity_type": "event"},
+            "certainty": {"value": "uncertain", "entity_type": "epistemic_state"}
+          },
+          "qualifiers": {"polarity": "positive", "certainty": "uncertain"},
+          "wrapper": {"status": "uncertain", "evidence_only": true},
+          "provenance": ["statement:uncertain"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:uncertain",
+          "predicate": "temporal_relation",
+          "structural_signature": "temporal_order(event,anchor)",
+          "roles": {
+            "event": {"value": "call", "entity_type": "event"},
+            "anchor": {"value": "appointment", "entity_type": "event"}
+          },
+          "qualifiers": {"polarity": "positive", "certainty": "uncertain"},
+          "wrapper": {"status": "uncertain", "evidence_only": true},
+          "provenance": ["obs:uncertain"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["uncertainty_preserved"]}
+    },
+    {
+      "case_id": "contradictory_chronology",
+      "lane": "contested_fact",
+      "source_span": "The call happened before the appointment. The appointment happened before the call.",
+      "receipts": {
+        "source_receipt_id": "src:chronology",
+        "excerpt_receipt_id": "excerpt:chronology",
+        "statement_receipt_id": "statement:chronology",
+        "observation_receipt_id": "obs:chronology"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:chronology",
+        "label": "call happened before appointment",
+        "predicate_atom": {
+          "atom_id": "query:chronology",
+          "predicate": "temporal_relation",
+          "structural_signature": "temporal_order(event,anchor)",
+          "roles": {
+            "event": {"value": "call", "entity_type": "event"},
+            "anchor": {"value": "appointment", "entity_type": "event"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_personal_observation", "evidence_only": true},
+          "provenance": ["statement:chronology:a"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:chronology:a",
+          "predicate": "temporal_relation",
+          "structural_signature": "temporal_order(event,anchor)",
+          "roles": {
+            "event": {"value": "call", "entity_type": "event"},
+            "anchor": {"value": "appointment", "entity_type": "event"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_personal_observation", "evidence_only": true},
+          "provenance": ["obs:chronology:a"]
+        },
+        {
+          "atom_id": "evidence:chronology:b",
+          "predicate": "temporal_relation",
+          "structural_signature": "temporal_order(event,anchor)",
+          "roles": {
+            "event": {"value": "appointment", "entity_type": "event"},
+            "anchor": {"value": "call", "entity_type": "event"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_personal_observation", "evidence_only": true},
+          "provenance": ["obs:chronology:b"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["contradictory_chronology"]}
+    },
+    {
+      "case_id": "lifecycle_task_transition",
+      "lane": "lifecycle_fact",
+      "source_span": "Move the evidence bundle review into progress; Alice is handling it.",
+      "receipts": {
+        "source_receipt_id": "src:lifecycle",
+        "excerpt_receipt_id": "excerpt:lifecycle",
+        "statement_receipt_id": "statement:lifecycle",
+        "observation_receipt_id": "obs:lifecycle"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:lifecycle",
+        "label": "evidence bundle review in progress",
+        "predicate_atom": {
+          "atom_id": "query:lifecycle",
+          "predicate": "task_lifecycle",
+          "structural_signature": "task_transition(task,effect,owner)",
+          "roles": {
+            "task": {"value": "evidence bundle review", "entity_type": "task"},
+            "effect": {"value": "mark_in_progress", "entity_type": "lifecycle_effect"},
+            "owner": {"value": "Alice", "entity_type": "person"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "committed_in_progress", "evidence_only": true},
+          "provenance": ["statement:lifecycle"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:lifecycle",
+          "predicate": "task_lifecycle",
+          "structural_signature": "task_transition(task,effect,owner)",
+          "roles": {
+            "task": {"value": "evidence bundle review", "entity_type": "task"},
+            "effect": {"value": "mark_in_progress", "entity_type": "lifecycle_effect"},
+            "owner": {"value": "Alice", "entity_type": "person"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "committed_in_progress", "evidence_only": true},
+          "provenance": ["obs:lifecycle"]
+        }
+      ],
+      "promotion_gate": {"promote": false}
+    },
+    {
+      "case_id": "successor_blocker_chain",
+      "lane": "lifecycle_fact",
+      "source_span": "Close the draft checklist, then create the filing checklist; filing is blocked until the receipt arrives.",
+      "receipts": {
+        "source_receipt_id": "src:successor",
+        "excerpt_receipt_id": "excerpt:successor",
+        "statement_receipt_id": "statement:successor",
+        "observation_receipt_id": "obs:successor"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:successor",
+        "label": "filing checklist successor blocked on receipt",
+        "predicate_atom": {
+          "atom_id": "query:successor",
+          "predicate": "task_lifecycle",
+          "structural_signature": "task_successor_blocker(source_task,successor_task,blocker)",
+          "roles": {
+            "source_task": {"value": "draft checklist", "entity_type": "task"},
+            "successor_task": {"value": "filing checklist", "entity_type": "task"},
+            "blocker": {"value": "receipt arrives", "entity_type": "receipt_condition"},
+            "status": {"value": "blocked", "entity_type": "task_status"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+          "provenance": ["statement:successor"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:successor",
+          "predicate": "task_lifecycle",
+          "structural_signature": "task_successor_blocker(source_task,successor_task,blocker)",
+          "roles": {
+            "source_task": {"value": "draft checklist", "entity_type": "task"},
+            "successor_task": {"value": "filing checklist", "entity_type": "task"},
+            "blocker": {"value": "receipt arrives", "entity_type": "receipt_condition"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+          "provenance": ["obs:successor"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["blocked_until_receipt"]}
+    },
+    {
+      "case_id": "constraint_carrier",
+      "lane": "constraint_fact",
+      "source_span": "Do not promote clinic summaries unless the discharge paper is attached.",
+      "receipts": {
+        "source_receipt_id": "src:constraint",
+        "excerpt_receipt_id": "excerpt:constraint",
+        "statement_receipt_id": "statement:constraint",
+        "observation_receipt_id": "obs:constraint"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:constraint",
+        "label": "clinic summary promotion requires discharge paper",
+        "predicate_atom": {
+          "atom_id": "query:constraint",
+          "predicate": "promotion_constraint",
+          "structural_signature": "constraint_carrier(target,requirement)",
+          "roles": {
+            "target": {"value": "clinic summaries", "entity_type": "fact_family"},
+            "requirement": {"value": "discharge paper attached", "entity_type": "receipt_requirement"}
+          },
+          "qualifiers": {"polarity": "positive", "modality": "policy_constraint"},
+          "wrapper": {"status": "policy_constraint", "evidence_only": true},
+          "provenance": ["statement:constraint"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:constraint",
+          "predicate": "promotion_constraint",
+          "structural_signature": "constraint_carrier(target,requirement)",
+          "roles": {
+            "target": {"value": "clinic summaries", "entity_type": "fact_family"},
+            "requirement": {"value": "discharge paper attached", "entity_type": "receipt_requirement"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "policy_constraint", "evidence_only": true},
+          "provenance": ["obs:constraint"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["constraint_carrier_not_fact_promotion"]}
+    },
+    {
+      "case_id": "constraint_violation",
+      "lane": "constraint_fact",
+      "source_span": "Promote the medication-change fact even though the discharge paper is not attached.",
+      "receipts": {
+        "source_receipt_id": "src:violation",
+        "excerpt_receipt_id": "excerpt:violation",
+        "statement_receipt_id": "statement:violation",
+        "observation_receipt_id": "obs:violation"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:violation",
+        "label": "promote medication-change without discharge paper",
+        "predicate_atom": {
+          "atom_id": "query:violation",
+          "predicate": "promotion_constraint",
+          "structural_signature": "constraint_carrier(target,requirement)",
+          "roles": {
+            "target": {"value": "clinic summaries", "entity_type": "fact_family"},
+            "requirement": {"value": "discharge paper attached", "entity_type": "receipt_requirement"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "requested", "evidence_only": true},
+          "provenance": ["statement:violation"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:violation",
+          "predicate": "promotion_constraint",
+          "structural_signature": "constraint_carrier(target,requirement)",
+          "roles": {
+            "target": {"value": "clinic summaries", "entity_type": "fact_family"},
+            "requirement": {"value": "discharge paper attached", "entity_type": "receipt_requirement"}
+          },
+          "qualifiers": {"polarity": "negative"},
+          "wrapper": {"status": "constraint_violation", "evidence_only": true},
+          "provenance": ["obs:violation"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["constraint_violation"]}
+    },
+    {
+      "case_id": "no_typed_meet",
+      "lane": "abstention_fact",
+      "source_span": "Add the thing from yesterday to the board.",
+      "receipts": {
+        "source_receipt_id": "src:no_typed_meet",
+        "excerpt_receipt_id": "excerpt:no_typed_meet",
+        "statement_receipt_id": "statement:no_typed_meet",
+        "observation_receipt_id": "obs:no_typed_meet"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:no_typed_meet",
+        "label": "thing from yesterday",
+        "predicate_atom": {
+          "atom_id": "query:no_typed_meet",
+          "predicate": "task_lifecycle",
+          "structural_signature": "task_transition(task,effect)",
+          "roles": {
+            "task": {"value": "thing from yesterday", "entity_type": "unknown"},
+            "effect": {"value": "create_candidate", "entity_type": "lifecycle_effect"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "requested", "evidence_only": true},
+          "provenance": ["statement:no_typed_meet"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:no_typed_meet",
+          "predicate": "mentioned",
+          "structural_signature": "topic_mention(topic)",
+          "roles": {
+            "topic": {"value": "yesterday", "entity_type": "date_expression"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "evidence_only", "evidence_only": true},
+          "provenance": ["obs:no_typed_meet"]
+        }
+      ],
+      "promotion_gate": {"promote": false, "blockers": ["no_typed_meet"]}
+    },
+    {
+      "case_id": "missing_receipt",
+      "lane": "blocked_fact",
+      "source_span": "The discharge paper confirms the medication change.",
+      "receipts": {
+        "source_receipt_id": "src:missing",
+        "excerpt_receipt_id": "excerpt:missing",
+        "statement_receipt_id": "statement:missing"
+      },
+      "fact_candidate": {
+        "fact_id": "fact:missing",
+        "label": "discharge paper confirms medication change",
+        "predicate_atom": {
+          "atom_id": "query:missing",
+          "predicate": "document_reference",
+          "structural_signature": "document_support(document,claim)",
+          "roles": {
+            "document": {"value": "discharge paper", "entity_type": "document"},
+            "claim": {"value": "medication change", "entity_type": "claim"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "reported_documentary_support", "evidence_only": true},
+          "provenance": ["statement:missing"]
+        }
+      },
+      "evidence_atoms": [
+        {
+          "atom_id": "evidence:missing",
+          "predicate": "document_reference",
+          "structural_signature": "document_support(document,claim)",
+          "roles": {
+            "document": {"value": "discharge paper", "entity_type": "document"},
+            "claim": {"value": "medication change", "entity_type": "claim"}
+          },
+          "qualifiers": {"polarity": "positive"},
+          "wrapper": {"status": "reported_documentary_support", "evidence_only": true},
+          "provenance": ["obs:missing"]
+        }
+      ],
+      "promotion_gate": {"promote": true}
+    }
+  ],
+  "expected": {
+    "case_count": 10,
+    "status_counts": {
+      "abstained": 1,
+      "blocked_missing_receipt": 1,
+      "candidate": 2,
+      "contested": 2,
+      "promoted": 1,
+      "supported": 3
+    },
+    "residual_counts": {
+      "contradiction": 2,
+      "exact": 5,
+      "no_typed_meet": 1,
+      "partial": 2
+    },
+    "missing_receipt_cases": 1,
+    "contested_cases": 2,
+    "abstained_cases": 1
+  }
+}

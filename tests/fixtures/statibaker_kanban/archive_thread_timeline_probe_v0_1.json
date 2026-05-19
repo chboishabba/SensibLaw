@@ -1,0 +1,626 @@
+{
+  "fixture_id": "archive_thread_timeline_probe_v0_1",
+  "description": "Pinned 10-seed archive-derived bidirectional task timeline reconciliation probe.",
+  "source": {
+    "resolver": "robust-context-fetch",
+    "db": "~/chat_archive.sqlite",
+    "decision_reason": "db_thread_timeline_analysis",
+    "note": "Seeds and event receipts were selected from local archive inspection; tests use this pinned fixture and do not query the live archive."
+  },
+  "timeline_cases": [
+    {
+      "timeline_id": "archive_timeline:phase4_readiness",
+      "task_id": "task:phase4_readiness",
+      "task_title": "Resolve Phase-4 readiness blockers",
+      "canonical_thread_id": "7de7c9848a74164f1d90f05e6c830b74976c4446",
+      "thread_title": "Phase-4 Data Wait",
+      "seed_role": "blocker_diagnosis_request",
+      "seed_task_pnf": {
+        "predicate_family": "decision",
+        "action_type": "identify",
+        "object": "Phase-4 readiness blockers",
+        "lifecycle_effect": "create_candidate"
+      },
+      "expected_event_slots": ["prior_phase_context", "blocker_list", "blocker_diagnosis"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:phase4:prior",
+          "timestamp": "2026-01-14T23:40:00+00:00",
+          "speaker": "thread",
+          "text_span": "Phase-4 lane and data-wait context already active.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "prior_phase_context",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:phase4:seed",
+        "timestamp": "2026-01-14T23:45:15+00:00",
+        "speaker": "user",
+        "text_span": "What are our blockers? How can we move forwards?",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "blocker_list",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:phase4:later1",
+          "timestamp": "2026-01-14T23:48:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Blockers identified and ES/NQ explored.",
+          "lifecycle_event_type": "answered",
+          "expected_slot": "blocker_list",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:phase4:later2",
+          "timestamp": "2026-01-15T00:05:00+00:00",
+          "speaker": "thread",
+          "text_span": "Hidden blocker isolated: history was not persisting across runs.",
+          "lifecycle_event_type": "blocked",
+          "expected_slot": "blocker_diagnosis",
+          "status_after": "progressed_to_blocker_diagnosis",
+          "task_graph_effects": ["blocked"],
+          "residual": "exact"
+        }
+      ],
+      "final_task_status": "progressed_to_blocker_diagnosis",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:d0_execution_model",
+      "task_id": "task:d0_execution_model",
+      "task_title": "Write D0 execution model",
+      "canonical_thread_id": "556d267322e2a0dc38a319cd72e604fc477760b5",
+      "thread_title": "JavaCrust Project Idea",
+      "seed_role": "deliverable_request",
+      "seed_task_pnf": {
+        "predicate_family": "action",
+        "action_type": "write",
+        "object": "D0 execution model",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["spec_request", "deliverable", "successor_tasks"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:d0:prior",
+          "timestamp": "2026-01-13T15:30:00+00:00",
+          "speaker": "thread",
+          "text_span": "Execution-model lane already established in JavaCrust planning.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "spec_request",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:d0:seed",
+        "timestamp": "2026-01-13T15:36:01+00:00",
+        "speaker": "user",
+        "text_span": "write the D0 execution model spec outline...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "spec_request",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:d0:later1",
+          "timestamp": "2026-01-13T15:45:00+00:00",
+          "speaker": "assistant",
+          "text_span": "D0 execution model spec and D1 checklist delivered.",
+          "lifecycle_event_type": "deliverable_created",
+          "expected_slot": "deliverable",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:d0:later2",
+          "timestamp": "2026-01-13T16:05:00+00:00",
+          "speaker": "user",
+          "text_span": "Day 1/2/3 and JS pass/fail tests requested.",
+          "lifecycle_event_type": "spawned_successor",
+          "expected_slot": "successor_tasks",
+          "status_after": "closed_with_successors",
+          "task_graph_effects": ["closed", "spawned_successor"],
+          "residual": "exact"
+        }
+      ],
+      "successor_tasks": [
+        {"title": "Create D1 checklist", "status": "todo"},
+        {"title": "Write Day 1/2/3 plan", "status": "todo"},
+        {"title": "Add JS pass/fail tests", "status": "todo"}
+      ],
+      "final_task_status": "closed_with_successors",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:host_core_api",
+      "task_id": "task:host_core_api",
+      "task_title": "Define host core API",
+      "canonical_thread_id": "556d267322e2a0dc38a319cd72e604fc477760b5",
+      "thread_title": "JavaCrust Project Idea",
+      "seed_role": "sanity_check_request",
+      "seed_task_pnf": {
+        "predicate_family": "review",
+        "action_type": "define",
+        "object": "host/core API",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["prior_execution_model", "api_spec", "implementation_shape"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:host_api:prior",
+          "timestamp": "2026-01-14T03:35:00+00:00",
+          "speaker": "thread",
+          "text_span": "Execution model and D0 lane already active.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "prior_execution_model",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:host_api:seed",
+        "timestamp": "2026-01-14T03:41:02+00:00",
+        "speaker": "user",
+        "text_span": "sanity-check it against the execution model...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "api_spec",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:host_api:later1",
+          "timestamp": "2026-01-14T03:48:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Host/core API and exit criteria delivered.",
+          "lifecycle_event_type": "deliverable_created",
+          "expected_slot": "api_spec",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:host_api:later2",
+          "timestamp": "2026-01-14T04:00:00+00:00",
+          "speaker": "user",
+          "text_span": "Patch op encoding, Rust encoder, JS decoder, and hash requested.",
+          "lifecycle_event_type": "spawned_successor",
+          "expected_slot": "implementation_shape",
+          "status_after": "spec_created_then_implementation_shape_requested",
+          "task_graph_effects": ["spawned_successor"],
+          "residual": "exact"
+        }
+      ],
+      "successor_tasks": [
+        {"title": "Implement patch op encoding", "status": "todo"}
+      ],
+      "final_task_status": "spec_created_then_implementation_shape_requested",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:phase5_blurb",
+      "task_id": "task:phase5_blurb",
+      "task_title": "Draft Phase 5 proof blurb",
+      "canonical_thread_id": "556d267322e2a0dc38a319cd72e604fc477760b5",
+      "thread_title": "JavaCrust Project Idea",
+      "seed_role": "phase_closeout_request",
+      "seed_task_pnf": {
+        "predicate_family": "action",
+        "action_type": "draft",
+        "object": "Phase 5 proved/not-proved blurb",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["prior_demo", "blurb", "next_phase"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:phase5:prior",
+          "timestamp": "2026-01-14T06:35:00+00:00",
+          "speaker": "user",
+          "text_span": "Virtualization demo reported.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "prior_demo",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:phase5:seed",
+        "timestamp": "2026-01-14T06:41:03+00:00",
+        "speaker": "user",
+        "text_span": "drafting the Phase 5 proved / not proved blurb...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "blurb",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:phase5:later1",
+          "timestamp": "2026-01-14T06:45:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Proved/not-proved blurb delivered.",
+          "lifecycle_event_type": "deliverable_created",
+          "expected_slot": "blurb",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:phase5:later2",
+          "timestamp": "2026-01-14T06:50:00+00:00",
+          "speaker": "user",
+          "text_span": "Phase 6 option and guardrail requested.",
+          "lifecycle_event_type": "moved_on",
+          "expected_slot": "next_phase",
+          "status_after": "phase_closeout_then_next_phase",
+          "task_graph_effects": ["closed", "spawned_successor"],
+          "residual": "exact"
+        }
+      ],
+      "successor_tasks": [
+        {"title": "Define Phase 6 option and guardrail", "status": "todo"}
+      ],
+      "final_task_status": "phase_closeout_then_next_phase",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:servo_multithreaded_js",
+      "task_id": "task:servo_multithreaded_js",
+      "task_title": "Implement Servo multithreaded JS",
+      "canonical_thread_id": "556d267322e2a0dc38a319cd72e604fc477760b5",
+      "thread_title": "JavaCrust Project Idea",
+      "seed_role": "architecture_intent",
+      "seed_task_pnf": {
+        "predicate_family": "architecture",
+        "action_type": "implement",
+        "object": "Servo multithreaded JS",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["premise_check", "reframing", "architecture_lane"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:servo_js:prior",
+          "timestamp": "2026-01-14T06:50:00+00:00",
+          "speaker": "thread",
+          "text_span": "Phase 6 architecture lane opened.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "premise_check",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:servo_js:seed",
+        "timestamp": "2026-01-14T06:52:50+00:00",
+        "speaker": "user",
+        "text_span": "We basically want to implement multithreaded JS in servo...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "premise_check",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:servo_js:later1",
+          "timestamp": "2026-01-14T07:00:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Servo premise corrected and true parallel JS heap target reframed.",
+          "lifecycle_event_type": "reframed",
+          "expected_slot": "reframing",
+          "task_graph_effects": ["reframed"],
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:servo_js:later2",
+          "timestamp": "2026-01-14T07:20:00+00:00",
+          "speaker": "thread",
+          "text_span": "Work moved into Servo/Verso architecture mapping.",
+          "lifecycle_event_type": "spawned_successor",
+          "expected_slot": "architecture_lane",
+          "status_after": "reframed_then_architecture_lane",
+          "task_graph_effects": ["spawned_successor"],
+          "residual": "exact"
+        }
+      ],
+      "successor_tasks": [
+        {"title": "Map Servo/Verso architecture lane", "status": "todo"}
+      ],
+      "final_task_status": "reframed_then_architecture_lane",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:servo_architecture_diagram",
+      "task_id": "task:servo_architecture_diagram",
+      "task_title": "Turn into Servo architecture diagram",
+      "canonical_thread_id": "556d267322e2a0dc38a319cd72e604fc477760b5",
+      "thread_title": "JavaCrust Project Idea",
+      "seed_role": "artifact_request",
+      "seed_task_pnf": {
+        "predicate_family": "action",
+        "action_type": "draw",
+        "object": "Servo architecture diagram",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["mapping_context", "diagram_delivered"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:servo_diagram:prior",
+          "timestamp": "2026-01-14T11:10:00+00:00",
+          "speaker": "thread",
+          "text_span": "Servo mapping and parallelism checklist existed before the diagram request.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "mapping_context",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:servo_diagram:seed",
+        "timestamp": "2026-01-14T11:16:36+00:00",
+        "speaker": "user",
+        "text_span": "turn your servo_mapping plus parallelism_checklist...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "diagram_delivered",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:servo_diagram:later1",
+          "timestamp": "2026-01-14T11:25:00+00:00",
+          "speaker": "assistant",
+          "text_span": "One-page architecture diagram, Servo/Verso PR boundaries, and first parallelism win delivered.",
+          "lifecycle_event_type": "deliverable_created",
+          "expected_slot": "diagram_delivered",
+          "status_after": "deliverable_created",
+          "task_graph_effects": ["closed"],
+          "residual": "exact"
+        }
+      ],
+      "final_task_status": "deliverable_created",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:qfeat_formulas",
+      "task_id": "task:qfeat_formulas",
+      "task_title": "Write qfeat legitimacy formulas",
+      "canonical_thread_id": "1d9f9019a112887ce7f3d3b2abad6dc1b4e43e22",
+      "thread_title": "Branch · Branch · DASHI learner context5 -- trading",
+      "seed_role": "formula_request",
+      "seed_task_pnf": {
+        "predicate_family": "action",
+        "action_type": "write",
+        "object": "ell_T ell_R ell_H formulas",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["formula_request", "formula_delivered", "implementation_accepted"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:qfeat:prior",
+          "timestamp": "2026-01-14T03:30:00+00:00",
+          "speaker": "thread",
+          "text_span": "Qfeat legitimacy lane active.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "formula_request",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:qfeat:seed",
+        "timestamp": "2026-01-14T03:37:30+00:00",
+        "speaker": "user",
+        "text_span": "write the exact ell_T / ell_R / ell_H formulas...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "formula_request",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:qfeat:later1",
+          "timestamp": "2026-01-14T03:45:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Exact formulas delivered.",
+          "lifecycle_event_type": "deliverable_created",
+          "expected_slot": "formula_delivered",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:qfeat:later2",
+          "timestamp": "2026-01-14T04:10:00+00:00",
+          "speaker": "thread",
+          "text_span": "Modulation and logs wired; Phase 2 marked clean/accepted.",
+          "lifecycle_event_type": "accepted",
+          "expected_slot": "implementation_accepted",
+          "status_after": "formula_spec_to_implementation_to_acceptance",
+          "task_graph_effects": ["implemented", "closed"],
+          "residual": "exact"
+        }
+      ],
+      "final_task_status": "formula_spec_to_implementation_to_acceptance",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:learnable_weight_diff",
+      "task_id": "task:learnable_weight_diff",
+      "task_title": "Review learnable weight diff",
+      "canonical_thread_id": "1d9f9019a112887ce7f3d3b2abad6dc1b4e43e22",
+      "thread_title": "Branch · Branch · DASHI learner context5 -- trading",
+      "seed_role": "review_request",
+      "seed_task_pnf": {
+        "predicate_family": "review",
+        "action_type": "review",
+        "object": "learnable weight diff",
+        "lifecycle_effect": "create_candidate"
+      },
+      "expected_event_slots": ["review_request", "review_answer", "successor_unlock", "option_tape_available"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:weight_diff:prior",
+          "timestamp": "2026-01-14T04:45:00+00:00",
+          "speaker": "thread",
+          "text_span": "Learner qfeat weight lane active before diff review.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "review_request",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:weight_diff:seed",
+        "timestamp": "2026-01-14T04:49:52+00:00",
+        "speaker": "user",
+        "text_span": "review the weight diff semantically...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "review_request",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:weight_diff:later1",
+          "timestamp": "2026-01-14T04:55:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Learnable weight diff reviewed.",
+          "lifecycle_event_type": "answered",
+          "expected_slot": "review_answer",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:weight_diff:later2",
+          "timestamp": "2026-01-14T05:05:00+00:00",
+          "speaker": "thread",
+          "text_span": "Tenor/moneyness unlock requested, then blocked because tape is option-empty.",
+          "lifecycle_event_type": "blocked",
+          "expected_slot": "successor_unlock",
+          "status_after": "completed_then_spawned_blocked_successor",
+          "task_graph_effects": ["closed", "spawned_successor", "blocked"],
+          "residual": "exact"
+        }
+      ],
+      "missing_expected_slots": ["option_tape_available"],
+      "successor_tasks": [
+        {
+          "title": "Unlock option tenor/moneyness",
+          "status": "blocked",
+          "blocker": "option-empty tape"
+        }
+      ],
+      "final_task_status": "completed_then_spawned_blocked_successor",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "incomplete"
+    },
+    {
+      "timeline_id": "archive_timeline:runner_gpu_split",
+      "task_id": "task:runner_gpu_split",
+      "task_title": "Review runner.py GPU kernel split",
+      "canonical_thread_id": "f4c463941d986532579284e61c138ddab176bf7a",
+      "thread_title": "DASHI learner context5 -- trading",
+      "seed_role": "code_review_request",
+      "seed_task_pnf": {
+        "predicate_family": "review",
+        "action_type": "review",
+        "object": "runner.py GPU kernel split",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["review_request", "review_answer", "stabilized", "next_task"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:runner:prior",
+          "timestamp": "2026-01-13T01:35:00+00:00",
+          "speaker": "thread",
+          "text_span": "Runner/GPU split lane active.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "review_request",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:runner:seed",
+        "timestamp": "2026-01-13T01:43:03+00:00",
+        "speaker": "user",
+        "text_span": "review the exact runner.py diff...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "review_request",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:runner:later1",
+          "timestamp": "2026-01-13T01:52:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Diff and GPU split reviewed.",
+          "lifecycle_event_type": "answered",
+          "expected_slot": "review_answer",
+          "residual": "exact"
+        },
+        {
+          "source_message_id": "archive:runner:later2",
+          "timestamp": "2026-01-13T02:10:00+00:00",
+          "speaker": "thread",
+          "text_span": "Runner marked semantically correct/stable; user moved to qfeat feature list/CPU reference.",
+          "lifecycle_event_type": "spawned_successor",
+          "expected_slot": "next_task",
+          "status_after": "review_to_stabilized_to_next_task",
+          "task_graph_effects": ["closed", "spawned_successor"],
+          "residual": "exact"
+        }
+      ],
+      "successor_tasks": [
+        {"title": "Build qfeat feature list and CPU reference", "status": "todo"}
+      ],
+      "final_task_status": "review_to_stabilized_to_next_task",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "exact"
+    },
+    {
+      "timeline_id": "archive_timeline:market_sentiment",
+      "task_id": "task:market_sentiment",
+      "task_title": "Fact check market sentiment claims",
+      "canonical_thread_id": "d7cfb09c0491bfff345a5aafdf60b2303af07888",
+      "thread_title": "Burryology Market Sentiment",
+      "seed_role": "fact_check_request",
+      "seed_task_pnf": {
+        "predicate_family": "verification",
+        "action_type": "fact_check",
+        "object": "market sentiment claims",
+        "lifecycle_effect": "promote_todo"
+      },
+      "expected_event_slots": ["fact_check_request", "fact_check_answer", "same_thread_followup"],
+      "prior_event_receipts": [
+        {
+          "source_message_id": "archive:market:prior",
+          "timestamp": "2025-12-27T04:25:00+00:00",
+          "speaker": "thread",
+          "text_span": "Burryology market sentiment context established.",
+          "lifecycle_event_type": "prior_context",
+          "expected_slot": "fact_check_request",
+          "residual": "exact"
+        }
+      ],
+      "seed_message_receipt": {
+        "source_message_id": "archive:market:seed",
+        "timestamp": "2025-12-27T04:31:12+00:00",
+        "speaker": "user",
+        "text_span": "fact check these online...",
+        "lifecycle_event_type": "seed_candidate",
+        "expected_slot": "fact_check_request",
+        "residual": "exact"
+      },
+      "later_event_receipts": [
+        {
+          "source_message_id": "archive:market:later1",
+          "timestamp": "2025-12-27T04:40:00+00:00",
+          "speaker": "assistant",
+          "text_span": "Online fact-check framing answered once.",
+          "lifecycle_event_type": "answered",
+          "expected_slot": "fact_check_answer",
+          "status_after": "answered_once_no_same_thread_continuation",
+          "residual": "exact"
+        }
+      ],
+      "missing_expected_slots": ["same_thread_followup"],
+      "final_task_status": "answered_once_no_same_thread_continuation",
+      "task_identity_residual": "exact",
+      "lifecycle_residual": "incomplete"
+    }
+  ],
+  "expected": {
+    "timeline_count": 10,
+    "with_prior_evidence": 10,
+    "with_later_evidence": 10,
+    "with_successors": 6
+  }
+}

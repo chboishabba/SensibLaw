@@ -1,73 +1,195 @@
 @startuml
-title SensibLaw World-Model Metasystem 2026-04-04
+title SensibLaw / ITIR World-Model Metasystem\nUpdated 2026-05-06
+
+top to bottom direction
 
 skinparam componentStyle rectangle
 skinparam shadowing false
-skinparam defaultFontName Monospace
-
-rectangle "External Source Families" as SOURCES {
-  component "Wikidata" as WIKIDATA
-  component "AU" as AU
-  component "GWB" as GWB
-  component "Brexit" as BREXIT
-  component "Future Sources" as FUTURE
+skinparam defaultFontName SansSerif
+skinparam wrapWidth 150
+skinparam maxMessageSize 120
+skinparam rectangle {
+  RoundCorner 8
 }
 
-rectangle "Lane Adapters" as LANES {
-  component "Nat Lane" as NAT
-  component "Assist / Reviewer Lane" as ASSIST
-  component "Affidavit / Contested Narrative Lane" as AFFIDAVIT
-  component "Other Lane Adapters" as OTHER
+legend bottom
+Current posture: bounded review and projection, not global truth or edit authority.
+The April lane sketch has been replaced by the current normalized substrate:
+canonical text -> PNF/typed carriers -> residual/pressure -> governed artifacts.
+endlegend
+
+rectangle "Source + Observation Families" as SOURCES {
+  component "Canonical documents\nPDF / HTML / JSON / transcript" as CANON_SRC
+  component "Wikidata / Wikipedia\nbounded graph + text slices" as WIKI_SRC
+  component "WorldMonitor\nexternal observation source" as WM_SRC
+  component "OpenRecall\ninternal observation source" as OR_SRC
+  component "Legal / narrative lanes\nAU, affidavit, GWB, Brexit" as LEGAL_SRC
+  component "Future bounded producers" as FUTURE_SRC
 }
 
-rectangle "Shared World-Model Substrate" as SUBSTRATE {
-  component "Cross-Domain Claim Model" as CLAIM
-  component "Multi-Source Convergence" as CONVERGENCE
-  component "Temporal Update Discipline" as TEMPORAL
-  component "Contradiction Management" as CONFLICT
-  component "Unified Action Policy" as POLICY
+rectangle "Adapter + Canonicalization Layer" as ADAPTERS {
+  component "Media adapters\nsource provenance only" as MEDIA_ADAPT
+  component "Canonical text substrate\none parser spine" as CANON_TEXT
+  component "Extraction profiles\nnormative_policy and domain profiles" as PROFILES
+  component "Observation substrate\nWM + OpenRecall normalized together" as OBS_SUB
+  component "Grounding catalogs\nQID / PID / closure paths" as GROUNDING
+}
+
+rectangle "Typed Predicate / PNF Substrate" as PNF {
+  component "Predicate extraction" as PRED_EXTRACT
+  component "Role binding\nsubject / object / qualifiers / wrapper" as ROLE_BIND
+  component "Predicate-normal-form carriers\nroles + qualifiers + provenance" as PNF_CARRIER
+  component "Soft type inference\nfrom role, participation, context" as SOFT_TYPE
+  component "Residual lattice\nexact / partial / no_typed_meet / contradiction" as RESIDUAL
+  component "Pressure index\nlocal, upstream, sibling, downstream,\ntemporal/mereology, metaclass, disjointness" as PRESSURE
+}
+
+rectangle "World-Model Control Plane" as CONTROL {
+  component "Cross-domain claim model\nminimal Phi atoms" as PHI
+  component "Composed candidate nodes\nabove Phi" as CANDIDATES
+  component "Admissibility gates\nfail-closed node + edge checks" as GATES
+  component "Temporal update discipline\nrevision/window/snapshot aware" as TEMPORAL
+  component "Contradiction management\nhold vs repair vs promote" as CONFLICT
+  component "Unified action policy\nreview-first, receipt-gated" as POLICY
+}
+
+rectangle "Implemented Bounded Lanes" as LANES {
+  component "Wikidata migration packs\nP5991 -> P14143 climate lane" as MIGRATION
+  component "ChangeReviewPacket harness\ncandidate repair comparison\nQ27968055 / P31 / P279" as CHANGE_REVIEW
+  component "Disjointness + hotspot packs\nP2738 / P11260 / structural clusters" as HOTSPOTS
+  component "Temporal PNF contract\nclimate + mereology preconditions" as TEMP_PNF
+  component "Semantic memory helper\nprivate retrieval records\nfrom atoms + groundings" as SEM_MEMORY
+  component "Legal follow graph\nadditive pressure metadata" as LEGAL_FOLLOW
+  component "Market-news predicate projector\nevidence-only PredicateAtom output" as MARKET_NEWS
+}
+
+rectangle "ITIR MCP / Projection Boundary" as MCP {
+  component "itir-mcp registry\nnamespaced bounded tools" as MCP_REG
+  component "SensibLaw adapters\nobligations + review surfaces" as MCP_SL
+  component "Observation comparison\ncompare / score / envelope" as MCP_OBS
+  component "Docstore tools\nstatus + open questions" as DOCSTORE
+  component "Obsidian observer\ncandidate hints only" as OBSIDIAN
+  component "Markdown projections\nreplaceable generated pages" as MARKDOWN
+  component "Bridge safe_call\nclassification + verification + receipt" as SAFE_CALL
 }
 
 rectangle "Governed Outputs" as OUTPUTS {
-  component "Review / Handoff Artifacts" as REVIEW
-  component "Execution / Recommendation Gates" as GATES
-  component "Audit / Provenance Trace" as AUDIT
+  component "Review packets / reports\ncandidate-only, reviewable,\nheld, promotable" as REVIEW
+  component "OpenRefine / checked-safe CSV\nstaging artifact only" as CSV
+  component "Split plans / obligations\nexternal governance receipt required" as SPLIT
+  component "Operator queues + indexes\nCohort B/C/D/E and governance summaries" as OPERATOR
+  component "Audit / provenance trace\nreceipts, reasons, after-state checks" as AUDIT
+  component "Downstream handoff artifacts\nZelph / StatiBaker / external reviewers" as HANDOFF
 }
 
-WIKIDATA --> NAT
-AU --> ASSIST
-GWB --> ASSIST
-BREXIT --> ASSIST
-AU --> AFFIDAVIT
-FUTURE --> OTHER
+CANON_SRC --> MEDIA_ADAPT
+LEGAL_SRC --> MEDIA_ADAPT
+WIKI_SRC --> GROUNDING
+WIKI_SRC --> MEDIA_ADAPT
+WM_SRC --> OBS_SUB
+OR_SRC --> OBS_SUB
+FUTURE_SRC --> MEDIA_ADAPT
 
-NAT --> CLAIM
-ASSIST --> CLAIM
-OTHER --> CLAIM
-AFFIDAVIT --> REVIEW
+MEDIA_ADAPT --> CANON_TEXT
+CANON_TEXT --> PROFILES
+PROFILES --> PRED_EXTRACT
+OBS_SUB --> PRED_EXTRACT
+GROUNDING --> SOFT_TYPE
 
-CLAIM --> CONVERGENCE
-CONVERGENCE --> TEMPORAL
+PRED_EXTRACT --> ROLE_BIND
+ROLE_BIND --> PNF_CARRIER
+PNF_CARRIER --> SOFT_TYPE
+SOFT_TYPE --> RESIDUAL
+RESIDUAL --> PRESSURE
+
+PNF_CARRIER --> PHI
+RESIDUAL --> CANDIDATES
+PRESSURE --> CANDIDATES
+PHI --> CANDIDATES
+CANDIDATES --> GATES
+GATES --> TEMPORAL
 TEMPORAL --> CONFLICT
 CONFLICT --> POLICY
 
-POLICY --> REVIEW
-POLICY --> GATES
-POLICY --> AUDIT
+WIKI_SRC --> MIGRATION
+WIKI_SRC --> CHANGE_REVIEW
+WIKI_SRC --> HOTSPOTS
+PNF_CARRIER --> TEMP_PNF
+GROUNDING --> SEM_MEMORY
+PHI --> LEGAL_FOLLOW
+PNF_CARRIER --> MARKET_NEWS
 
-note right of SUBSTRATE
-One normalized process is now defined in code:
-claim -> convergence -> temporal -> conflict -> policy
-Lane rebinding is the next step.
+MIGRATION --> REVIEW
+MIGRATION --> CSV
+MIGRATION --> SPLIT
+CHANGE_REVIEW --> REVIEW
+HOTSPOTS --> REVIEW
+TEMP_PNF --> GATES
+SEM_MEMORY --> DOCSTORE
+LEGAL_FOLLOW --> OPERATOR
+MARKET_NEWS --> REVIEW
+
+POLICY --> REVIEW
+POLICY --> CSV
+POLICY --> SPLIT
+POLICY --> OPERATOR
+POLICY --> AUDIT
+POLICY --> HANDOFF
+
+REVIEW --> MCP_SL
+OPERATOR --> MCP_SL
+OBS_SUB --> MCP_OBS
+AUDIT --> DOCSTORE
+REVIEW --> DOCSTORE
+DOCSTORE --> OBSIDIAN
+DOCSTORE --> MARKDOWN
+MCP_SL --> MCP_REG
+MCP_OBS --> MCP_REG
+DOCSTORE --> MCP_REG
+MCP_REG --> SAFE_CALL
+SAFE_CALL --> AUDIT
+MARKDOWN --> HANDOFF
+
+note right of WIKI_SRC
+Current Wikidata mode:
+- bounded graph/text slices
+- migration packs
+- PNF/residual demonstrator
+- hotspot and disjointness reports
+- ChangeReviewPacket comparison
+- no blind edit authority
 end note
 
-note bottom of AFFIDAVIT
-Dad/Johl child views:
-- affidavit_dad_johl_lane_20260404.puml
-- affidavit_dad_johl_claim_root_arbitration_20260405.puml
-Current state:
-- normalized affidavit facade and review geometry are real
-- full claim-model rebinding is not yet landed
+note right of CHANGE_REVIEW
+Current repair-comparison harness:
+- mutates bounded slices in memory
+- compares candidate diagnostics
+- attributes pressure by component
+- emits review-only dispositions
+end note
+
+note right of SEM_MEMORY
+Semantic memory is deterministic and private:
+it consumes supplied atoms, grounding rows,
+and ontology closure paths. It is not an
+entity linker and does not promote truth.
+end note
+
+note bottom of POLICY
+Governance boundary:
+tool findings, LLM suggestions, subclass checks,
+constraints, and disjointness signals are candidate
+evidence. Only locally complete checked-safe rows
+move to governed staging, and community or downstream
+authority still decides desirability.
+end note
+
+note bottom of MCP
+MCP is a projection and adapter boundary.
+It exposes bounded tools and generated pages
+without taking canonical ownership from
+SensibLaw, StatiBaker, Wikidata lanes, or
+other producers.
 end note
 
 @enduml

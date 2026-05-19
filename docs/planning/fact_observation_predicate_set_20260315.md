@@ -168,6 +168,24 @@ It should not yet claim:
 - Bayesian integration
 - event-candidate assembly beyond deterministic scaffolding
 
+## Pinned Probe
+
+The first deterministic probe for this lane is
+`tests/fixtures/fact_intake/fact_extraction_probe_v0_1.json`.
+
+It proves a small fixture packet for:
+
+- canonical text / statement input represented by explicit receipts
+- PredicatePNF observation-class carriers over the initial predicate discipline
+- source, excerpt, statement, and observation provenance
+- residual statuses for exact, partial, contradiction, and `no_typed_meet`
+- ordinary facts, procedural facts, uncertain fragments, lifecycle facts,
+  constraint carriers, constraint violations, and missing-receipt blockers
+
+It must not claim broad automatic extraction, doctrinal interpretation,
+Wikidata predicate authority, Bayesian integration, raw sentence-as-fact,
+fabricated provenance, or live downstream mutation.
+
 ## Follow-on seam
 
 The immediate next layer after this predicate catalog is the deterministic

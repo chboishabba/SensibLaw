@@ -1,0 +1,122 @@
+{
+  "schema_version": "sl.wikidata_change_review_packet.v0_1",
+  "focus_item": "Qdistrict_sample",
+  "authority_policy": "review_only",
+  "property_scope": [
+    "P31",
+    "P361",
+    "P527",
+    "P580",
+    "P582",
+    "P585"
+  ],
+  "check_families": [
+    "mereology",
+    "temporal_exclusivity"
+  ],
+  "check_family_policy": {
+    "mereology": {
+      "properties": [
+        "P361",
+        "P527"
+      ],
+      "diagnostics": [
+        "parthood_typing",
+        "inverse_pair_review"
+      ]
+    },
+    "temporal_exclusivity": {
+      "exclusive_properties": [
+        "P361"
+      ],
+      "non_exclusive_properties": [
+        "P527"
+      ],
+      "temporal_key_properties": [
+        "P580",
+        "P582",
+        "P585"
+      ],
+      "monotonicity_assumption": "filter_respecting_bounded_slice_only"
+    }
+  },
+  "temporal_exclusivity_policy": {
+    "exclusive_properties": [
+      "P361"
+    ],
+    "compatible_wholes": []
+  },
+  "runtime_expectation": {
+    "sl.wikidata_change_review_packet.v0_1": "The packet requests mereology and temporal_exclusivity as first-class review-only families. Coverage is bounded by the supplied slice and curated temporal_exclusivity_policy."
+  },
+  "candidate_repairs": [
+    {
+      "id": "add_overlapping_part_of_region_b",
+      "operation": "add",
+      "statement": {
+        "subject": "Qdistrict_sample",
+        "property": "P361",
+        "value": "Qregion_b",
+        "rank": "preferred",
+        "qualifiers": {
+          "P580": [
+            "2020-01-01"
+          ],
+          "P582": [
+            "2022-12-31"
+          ]
+        },
+        "references": []
+      }
+    }
+  ],
+  "bounded_slice": {
+    "metadata": {
+      "purpose": "Synthetic minimal ChangeReviewPacket fixture for first-class mereology and temporal exclusivity review-only tests.",
+      "authority_boundary": "No live Wikidata authority, no PNF receipt claim, and no labels by inspection."
+    },
+    "windows": [
+      {
+        "id": "mereology-temporal-current",
+        "statement_bundles": [
+          {
+            "subject": "Qdistrict_sample",
+            "property": "P31",
+            "value": "Qclass_admin_area",
+            "rank": "preferred",
+            "references": []
+          },
+          {
+            "subject": "Qregion_a",
+            "property": "P31",
+            "value": "Qclass_admin_area",
+            "rank": "preferred",
+            "references": []
+          },
+          {
+            "subject": "Qregion_b",
+            "property": "P31",
+            "value": "Qclass_admin_area",
+            "rank": "preferred",
+            "references": []
+          },
+          {
+            "subject": "Qdistrict_sample",
+            "property": "P361",
+            "value": "Qregion_a",
+            "rank": "preferred",
+            "qualifiers": {
+              "P580": [
+                "2020-01-01"
+              ],
+              "P582": [
+                "2022-12-31"
+              ]
+            },
+            "references": []
+          }
+        ]
+      }
+    ]
+  }
+}

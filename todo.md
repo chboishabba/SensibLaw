@@ -1,5 +1,108 @@
 # SensibLaw TODO
 
+- [P0] Keep the Wikidata ontology-repair lane honest as it moves from bounded
+  candidate comparison toward the global structural-coherence roadmap.
+  - DONE: land the first review-only `ChangeReviewPacket` harness:
+    `wikidata compare-candidates`
+  - DONE: pin a synthetic `Q27968055` packet fixture with keep/remove/weaken/hold
+    candidates
+  - DONE: keep candidate mutation in memory and emit `edit_authority: false`
+  - DONE: add packet/report JSON schemas and reject unknown packet schema
+    versions
+  - DONE: hold candidates that regress any diagnostic family, even when the
+    aggregate blocker count does not increase
+  - DONE: expose requested check-family coverage, omitted checks, and deferred
+    v0 check families
+  - DONE: wire bounded first-class `mereology` / `temporal_exclusivity`
+    coverage into `compare-candidates`, including parthood typing,
+    temporal-exclusive overlap, missing temporal qualifier counts, and
+    conservative holds for family regressions
+  - DONE: add a review-only pressure-attribution surface for
+    local/upstream/sibling/downstream pressure, with candidate `pressure_delta`,
+    `review_reasons`, and specific `held_*` reasons such as
+    `held_upstream_ontology_pressure`
+  - DONE: document and schema-pin abstract obligation candidate operations
+    (`split_class_obligation`, `new_class_obligation`,
+    `new_property_obligation`, `relation_family_correction`,
+    `upstream_repair_obligation`, `sibling_normalization_obligation`) as
+    existential review objects, not Wikidata QIDs/PIDs or edit authority
+  - DONE: schema/document optional review-only `pnf_grounding` /
+    `wikidata_grounding` surfaces for `PredicatePNF_to_Wikidata` grounding
+    over packet-supplied QID/PID/statement-shape candidates only
+  - current Level 0 scope:
+    - expert-supplied or expert-approved candidates only
+    - deterministic bounded-slice diagnostics and deltas
+    - conservative dispositions:
+      - `checked_safe_reviewable`
+      - `held`
+      - `contradictory`
+      - `insufficiently_supported`
+  - current no-go list:
+    - no live Wikidata write path
+    - no fabricated QIDs/PIDs
+    - no fabricated `PNFEmissionReceipt`
+    - no labels by inspection
+    - no global monotonicity claim without a filter-respecting edit stream
+  - next honest implementation seams:
+    - replace blocker-count v0 scoring with typed residual/severity ordering
+    - add real statement/revision/receipt carriers
+    - add ontology-index intake for `P279+`, disjointness, constraint
+      signatures, and upstream references
+
+- [P0] Keep the semantic-memory bridge bounded as it grows out of
+  `PredicatePNF_to_Wikidata` grounding.
+  - DONE: add
+    `docs/planning/semantic_memory_bridge_future_lane_20260506.md` as the
+    planning boundary for:
+    raw note/transcript -> ITIR atoms/PNF -> Wikidata/Wikipedia/local
+    grounding -> ontology closure -> private semantic-memory retrieval
+  - DONE: land a first deterministic helper that builds
+    `sl.semantic_memory_index.v0_1` from supplied document atoms, grounding
+    candidates, and ontology closure paths
+  - DONE: pin the "great dane" -> "dog" retrieval path with explanation
+    evidence and wrapper-aware filtering
+  - DONE: document the StatiBaker free-text -> todo/Kanban Level-0 boundary as
+    `TaskLike(Γ, TaskPNF)`: a structural action-frame judgment over task PNF
+    plus Γ as `ProjectContextPNFIndex`, where Γ is normalized from canonical
+    text and structured project systems and taskhood is residual/meet
+    comparison against Γ-PNF indexes, not list/keyword predicates
+  - DONE: land the first deterministic StatiBaker task-memory helper that emits
+    `sl.statibaker_task_memory.v0_1` candidate task receipts and a
+    `sl.statibaker_kanban_projection.v0_1` read-only board projection from
+    supplied atoms and groundings
+  - DONE: pin a small archive-derived free-text query probe from
+    `robust-context-fetch` as a deterministic fixture, preserving the current
+    boundary that real text is admitted only after explicit `TaskPNF`
+    normalization and Γ-PNF residual/meet comparison
+  - DONE: pin `archive_thread_timeline_probe_v0_1` as a deterministic 10-seed
+    archive-derived task timeline probe that proves bidirectional
+    reconciliation between archive thread events and SB-facing task timeline
+    receipts, preserving prior/seed/later anchors, `TaskPNF`, Γ residuals,
+    explicit lifecycle receipts, successor/blocker state, and the no-mutation
+    boundary
+  - current no-go list:
+    - no live Wikidata lookup or Wikipedia lookup
+    - no fabricated QIDs/PIDs
+    - no public Wikidata truth claim
+    - no belief inference from a private memory hit
+    - no retrieval result without source snippet and grounding path
+    - no raw keyword tasking from free text
+    - no list-shaped or keyword-only task categories as taskhood authority
+    - no hand-maintained project-context blob as Γ authority
+    - no task timeline reconciliation without reciprocal source/task receipts
+      and residual state
+    - no live StatiBaker mutation, promotion, or completion without receipts
+  - next honest implementation seams:
+    - connect the helper to canonical-text/TaskPNF action-frame extraction
+      outputs where spaCy/dependency frames are evidence only
+    - define the bounded `ProjectContextPNFIndex` normalization contract for
+      canonical text plus structured project-system inputs
+    - define a receipt-only packet schema for SB todo/Kanban candidates once
+      the helper shape stabilizes
+    - add a local-entity candidate fixture
+    - add ontology snapshot manifests and stale-index handling
+    - add a small CLI/read-model only after the packet shape stabilizes
+
 - [P0] Pin and then implement the single-parser spine doctrine before any more
   source-family expansion.
   - parser doctrine now reads:
@@ -1254,6 +1357,15 @@
   prove `snapshot -> timeline candidates -> AAO events`; the next step is a
   deterministic sender from that output into Mary-parity observation/event
   storage rather than stopping at readiness scoring.
+- [x] Pin `fact_extraction_probe_v0_1` as the first deterministic
+  fact-observation extraction probe:
+  - source/excerpt/statement/observation receipts are required for promotion
+  - `PredicatePNF` structural fibres gate residual comparison
+  - ordinary, procedural, uncertain, contradictory, lifecycle,
+    successor/blocker, constraint-carrier, constraint-violation,
+    `no_typed_meet`, and missing-receipt cases are covered
+  - raw sentences, LLM summaries, keyword hits, Wikidata labels, and
+    fabricated receipts are not fact authority
 - [ ] Keep the adapter thin and SL-owned:
   no competing canonical identity store, no semantic authority transfer, and
   no local fallback path silently promoted to canonical.

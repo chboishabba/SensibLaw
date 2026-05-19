@@ -1,10 +1,14 @@
 # Wikidata Working Group Status
 
-Last updated: 2026-04-29
+Last updated: 2026-05-05
 
 This is the single working-group link for the bounded Wikidata control-plane
 work in SensibLaw/ITIR. Keep this document current and treat it as the top-level
 entry point for Niklas, Ege, Peter, and related reviewers.
+
+If you need the practical start-to-finish README for the current documented
+Wikidata task stories, start with:
+- `wikidata/README.md`
 
 If you need one short plain-language handoff that also works for the Zelph
 developer, start with:
@@ -19,6 +23,10 @@ If you need one concrete docs-first example showing how a real climate case
 maps from bounded source evidence into the newer canonical-text / PNF /
 residual framing, use:
 - `planning/wikidata_pnf_residual_review_example_20260429.md`
+
+If you need the formal PNF/residual contract that unifies temporal climate
+statements and temporally bounded mereology statements, use:
+- `planning/wikidata_temporal_pnf_constraint_contract_20260502.md`
 
 If you need one executable bounded packet showing:
 - candidate change
@@ -35,6 +43,12 @@ use:
 
 If you want the same runtime as one compact diagram, use:
 - `planning/wikidata_climate_review_demonstrator_flow_20260429.puml`
+
+If you need the first executable bounded ontology-repair candidate comparison
+surface, use:
+- `../.venv/bin/python -m cli.__main__ wikidata compare-candidates \
+  --packet tests/fixtures/wikidata/q27968055_change_review_packet.json \
+  --output /tmp/q27968055_change_review_report.json`
 
 If you need the current execution-order roadmap across the Nat migration lane
 and the broader Peter/Ege/Rosario assist lane, use:
@@ -69,6 +83,9 @@ Current plain-language posture:
   phase-2-normalizable rows, ontology-mismatch rows, and blocked rows
 - broad automation still needs the remaining evidence, receipts, and rollback
   proof before it is honest
+- bounded ontology-repair candidate comparison now has a first v0 harness, but
+  it is review-only and in-memory; it does not provide Wikidata edit authority,
+  global monotonicity, or fabricated runtime receipts
 
 Current plain-language readiness for Nat:
 
@@ -905,12 +922,16 @@ The report now exposes:
 - Treat canonical text/token/lexeme layers as strictly separate from Wikidata
   semantics.
 - The next formalism-facing extension is not generic ontology cleanup; it is a
-  bounded mereology/parthood lane. The current highest-yield question for the
-  working group is typed/disambiguated parthood:
+  bounded temporal-PNF constraint lane that now connects the climate and
+  mereology/parthood cases through one residual precondition. The current
+  highest-yield question for the working group is typed/disambiguated parthood:
   - class-class parthood
   - instance-instance parthood
   - instance-class parthood
   - when inverse pairs are semantically valid vs merely redundant
+  - when an item/property slice has become temporally bounded and therefore
+    missing or overlapping temporal qualifiers should route to
+    `INCOMPLETE_tau` or `CONTRADICTION_mu`
 - DASHI-style epistemic/projection machinery is a candidate downstream lens for
   this work, but it does not replace the bounded deterministic diagnostic layer.
 - Financial-flow / time-series modeling is now explicitly recognized as a

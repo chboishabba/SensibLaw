@@ -75,6 +75,7 @@ from .transcript_review_bundle import (
     build_transcript_fact_review_bundle,
 )
 from .review_bundle import FACT_REVIEW_BUNDLE_VERSION
+from .fact_extraction_probe import FACT_EXTRACTION_PROBE_SCHEMA_VERSION, build_fact_extraction_probe
 from .personal_handoff_bundle import (
     PERSONAL_HANDOFF_REPORT_VERSION,
     build_personal_handoff_report,
@@ -117,6 +118,7 @@ __all__ = [
     "FACT_REVIEW_ZELPH_RULESET_VERSION",
     "FACT_SEMANTIC_LAYER_VERSION",
     "FACT_INTAKE_CONTRACT_VERSION",
+    "FACT_EXTRACTION_PROBE_SCHEMA_VERSION",
     "AUTHORITY_INGEST_VERSION",
     "AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION",
     "FEEDBACK_RECEIPT_VERSION",
@@ -135,6 +137,7 @@ __all__ = [
     "build_fact_review_acceptance_fixture",
     "build_fact_review_acceptance_fixture_set",
     "build_fact_intake_report",
+    "build_fact_extraction_probe",
     "build_fact_review_operator_views",
     "build_fact_review_run_summary",
     "build_interrogative_view",

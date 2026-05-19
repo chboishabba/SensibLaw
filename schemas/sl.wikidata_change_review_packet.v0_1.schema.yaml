@@ -1,0 +1,274 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_change_review_packet.v0_1
+type: object
+additionalProperties: true
+required:
+  - schema_version
+  - focus_item
+  - authority_policy
+  - property_scope
+  - candidate_repairs
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_change_review_packet.v0_1
+  focus_item:
+    type: string
+    minLength: 1
+  authority_policy:
+    type: string
+    const: review_only
+  property_scope:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      minLength: 1
+  check_families:
+    type: array
+    description: Requested review-only diagnostic families. Unknown families may be reported as omitted by older runtimes, but packet authors should use this vocabulary when possible.
+    items:
+      type: string
+      enum:
+        - subclass_consistency
+        - class_order_pressure
+        - metaclass_pressure
+        - disjointness
+        - downstream_use
+        - minimality
+        - mereology
+        - temporal_exclusivity
+  pressure_attribution_surface:
+    type: array
+    description: Optional review-only attribution buckets for explaining where candidate pressure appears inside the bounded slice. These buckets do not grant edit authority, do not create PNF receipts, and must not be filled from label inspection.
+    items:
+      type: string
+      enum:
+        - local
+        - upstream
+        - sibling
+        - downstream
+        - temporal_mereology
+        - metaclass_order
+        - disjointness
+  pressure_attribution:
+    type: object
+    description: Optional review-only pressure component evidence keyed by local/upstream/sibling/downstream-style component names. This is evidence routing, not edit authority.
+    additionalProperties: true
+  pnf_grounding:
+    $ref: "#/definitions/pnf_to_wikidata_grounding_surface"
+  wikidata_grounding:
+    $ref: "#/definitions/pnf_to_wikidata_grounding_surface"
+  check_family_policy:
+    type: object
+    description: Optional packet-local policy for first-class review families that are not live Wikidata authority.
+    additionalProperties: true
+    properties:
+      mereology:
+        type: object
+        additionalProperties: true
+        properties:
+          properties:
+            type: array
+            items:
+              type: string
+          diagnostics:
+            type: array
+            items:
+              type: string
+      temporal_exclusivity:
+        type: object
+        additionalProperties: true
+        properties:
+          exclusive_properties:
+            type: array
+            items:
+              type: string
+          non_exclusive_properties:
+            type: array
+            items:
+              type: string
+          temporal_key_properties:
+            type: array
+            items:
+              type: string
+          monotonicity_assumption:
+            type: string
+  temporal_exclusivity_policy:
+    type: object
+    description: Runtime-facing curated temporal exclusivity policy for review-only overlap checks.
+    additionalProperties: true
+    properties:
+      exclusive_properties:
+        type: array
+        items:
+          type: string
+      compatible_wholes:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+  candidate_repairs:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - operation
+      properties:
+        id:
+          type: string
+          minLength: 1
+        operation:
+          type: string
+          description: >
+            Candidate operation name. The *_obligation values are abstract
+            review obligations only: they represent existential review objects,
+            not real Wikidata QIDs/PIDs, not live entity/property creation, and
+            not edit authority.
+          enum:
+            - keep_current
+            - hold
+            - review_hold
+            - remove
+            - add
+            - replace
+            - retype
+            - weaken
+            - split_class_obligation
+            - new_class_obligation
+            - new_property_obligation
+            - relation_family_correction
+            - upstream_repair_obligation
+            - sibling_normalization_obligation
+        obligation_payload:
+          type: object
+          description: >
+            Optional metadata for an abstract review obligation candidate. This
+            payload is review input only and must not be interpreted as a
+            Wikidata entity/property identifier, a PNF receipt, or edit
+            authority.
+          additionalProperties: true
+        abstract_candidates:
+          type: array
+          description: >
+            Optional existential candidates attached to an abstract review
+            obligation. Entries describe reviewer-facing alternatives only and
+            do not mint Wikidata QIDs/PIDs.
+          items:
+            type: object
+            additionalProperties: true
+        expected_disposition:
+          type: string
+        pressure_delta:
+          type: object
+          description: Optional per-pressure-component candidate delta supplied by the review packet.
+          additionalProperties:
+            type: integer
+        pressure_attribution:
+          type: object
+          description: Optional candidate-specific pressure attribution merged over the packet-level attribution.
+          additionalProperties: true
+        pressure_attribution_surface:
+          type: array
+          items:
+            type: string
+        grounding_delta:
+          type: object
+          description: Optional packet-supplied delta over PNF-to-Wikidata grounding pressure.
+          additionalProperties:
+            type: integer
+        candidate_grounding:
+          type: object
+          description: Optional candidate-local PNF-to-Wikidata grounding echo. This is review evidence only, not QID/PID creation or edit authority.
+          additionalProperties: true
+        review_reasons:
+          type: array
+          items:
+            type: string
+        held_reasons:
+          type: array
+          items:
+            type: string
+        expected_review_reasons:
+          type: array
+          items:
+            type: string
+        match:
+          type: object
+          additionalProperties: true
+        replacement:
+          type: object
+          additionalProperties: true
+  bounded_slice:
+    type: object
+    additionalProperties: true
+    required:
+      - windows
+    properties:
+      windows:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+  bounded_slice_path:
+    type: string
+  slice_path:
+    type: string
+definitions:
+  pnf_to_wikidata_grounding_surface:
+    type: object
+    description: >
+      Optional review-only grounding surface for mapping PredicatePNF carriers
+      to candidate Wikidata QIDs/PIDs/statement shapes. Direction is only
+      PredicatePNF_to_Wikidata. Candidate QIDs, PIDs, and statement shapes must
+      be supplied by the ChangeReviewPacket; this surface must not fabricate
+      Wikidata identifiers, PNFEmissionReceipt objects, or edit authority.
+    additionalProperties: true
+    required:
+      - direction
+      - authority_policy
+      - candidate_source_policy
+      - qid_pid_policy
+      - receipt_policy
+      - edit_authority
+    properties:
+      direction:
+        type: string
+        const: PredicatePNF_to_Wikidata
+      authority_policy:
+        type: string
+        const: review_only
+      candidate_source_policy:
+        type: string
+        const: packet_supplied_candidates_only
+      qid_pid_policy:
+        type: string
+        const: no_fabricated_qids_or_pids
+      receipt_policy:
+        type: string
+        const: no_fabricated_PNFEmissionReceipt
+      edit_authority:
+        type: boolean
+        const: false
+      predicate_pnf_refs:
+        type: array
+        description: Packet-supplied PredicatePNF locators or references.
+        items:
+          type: object
+          additionalProperties: true
+      candidate_wikidata_shapes:
+        type: array
+        description: Packet-supplied candidate QID/PID/statement-shape rows.
+        items:
+          type: object
+          additionalProperties: true
+anyOf:
+  - required:
+      - bounded_slice
+  - required:
+      - bounded_slice_path
+  - required:
+      - slice_path

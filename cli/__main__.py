@@ -67,10 +67,10 @@ from src.activation import (
 from . import receipts as receipts_cli
 
 
-def _print_json(data: object) -> None:
+def _print_json(data: object, *, sort_keys: bool = False) -> None:
     """Serialise ``data`` to JSON and print it to stdout."""
 
-    print(json.dumps(data, ensure_ascii=False))
+    print(json.dumps(data, ensure_ascii=False, sort_keys=sort_keys))
 
 
 def _load_text_arg(text: Optional[str], text_file: Optional[Path], *, label: str) -> str:
@@ -630,6 +630,20 @@ def _handle_wikidata_project(args: argparse.Namespace) -> None:
         _print_json({"output": str(args.output), "schema_version": report["schema_version"]})
         return
     _print_json(report)
+
+
+def _handle_wikidata_compare_candidates(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_change_review import build_change_review_report_from_path
+
+    report = build_change_review_report_from_path(Path(args.packet))
+    if args.output:
+        Path(args.output).write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json({"output": str(args.output), "schema_version": report["schema_version"]})
+        return
+    _print_json(report, sort_keys=True)
 
 
 def _handle_wikidata_build_slice(args: argparse.Namespace) -> None:
@@ -3196,6 +3210,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Evidence threshold for preferred/deprecated rank gating",
     )
     wikidata_project.set_defaults(func=_handle_wikidata_project)
+    wikidata_compare_candidates = wikidata_sub.add_parser(
+        "compare-candidates",
+        help="Compare review-only Wikidata candidate mutations against a bounded slice",
+    )
+    wikidata_compare_candidates.add_argument(
+        "--packet",
+        type=Path,
+        required=True,
+        help="Path to ChangeReviewPacket JSON",
+    )
+    wikidata_compare_candidates.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write report JSON",
+    )
+    wikidata_compare_candidates.set_defaults(func=_handle_wikidata_compare_candidates)
     wikidata_build_slice = wikidata_sub.add_parser(
         "build-slice",
         help="Build a bounded slice from local Wikidata entity-export JSON files",

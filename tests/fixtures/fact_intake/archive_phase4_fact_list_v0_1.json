@@ -1,0 +1,351 @@
+{
+  "schema_version": "sl.archive_fact_list.v0_1",
+  "artifact_id": "archive_phase4_fact_list_v0_1",
+  "description": "Receipt-backed fact list extracted from one local chat archive message for the Phase-4 Data Wait thread.",
+  "source": {
+    "kind": "local_chat_archive_db",
+    "db": "~/chat_archive.sqlite",
+    "live_query": false,
+    "message_id": "ffa5d006a43da9dc71cd3aedf1410535eee35dc2",
+    "canonical_thread_id": "7de7c9848a74164f1d90f05e6c830b74976c4446",
+    "thread_title": "Phase-4 Data Wait",
+    "timestamp": "2026-01-14T23:45:15+00:00",
+    "role": "user"
+  },
+  "extraction_policy": {
+    "source_text_from_db": true,
+    "predicate_atoms_supplied": true,
+    "automatic_nlp_extraction": false,
+    "raw_sentence_as_fact": false,
+    "review_only": true
+  },
+  "source_text": "What are our blockers?\nHow can we move forwards?\n\n\u2022 You\u2019re exactly right\u2014this isn\u2019t an endless loop, it\u2019s the closure gate doing its job. All the wiring is now in place and Phase\u20114.1 simply waits until density arrives.\n\n  - configs/phase4_monitor_profiles.json and scripts/phase4_monitor_runner.py now treat the strict bundle as the canonical entry gate (with \u201cnone\u201d as the opt-out), so code can\u2019t sneak past the contract.\n  - docs/phase4_density_monitor.md and docs/phase4_phase5_strategy.md explain in clear language that Phase\u20114.1 is blocked unless every strict-check bullet (ontology balance, bin counts/balance, effect size, persistence, monotonicity, three-pass debounce)\n    passes, and that waiting is the intended behavior.\n  - TODO.md records \u201cwaiting for density\u201d rather than \u201cfixing code,\u201d plus the ES/NQ ingest reminder you asked for.\n\n  If you want a daily catalog of why it\u2019s still closed, paste a strict-profile log line and I\u2019ll turn it into consistent blocking labels. Otherwise, keep feeding ES/NQ proposals/prices and log the blocking reason each run; once the strict profile reports\n  OPEN three times the gate opens automatically.",
+  "receipts": {
+    "source_receipt_id": "dbmsg:ffa5d006a43da9dc71cd3aedf1410535eee35dc2",
+    "excerpt_receipt_id_prefix": "excerpt:ffa5d006a43da9dc71cd3aedf1410535eee35dc2",
+    "statement_receipt_id_prefix": "statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2",
+    "observation_receipt_id_prefix": "obs:ffa5d006a43da9dc71cd3aedf1410535eee35dc2"
+  },
+  "facts": [
+    {
+      "fact_id": "fact:phase4:blocker_query",
+      "source_span": "What are our blockers? How can we move forwards?",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:blocker_query",
+        "predicate": "task_lifecycle",
+        "structural_signature": "task_blocker_query(task,question)",
+        "roles": {
+          "task": {"value": "Phase-4 readiness", "entity_type": "project_phase"},
+          "question": {"value": "blockers and forward path", "entity_type": "question_scope"}
+        },
+        "qualifiers": {"polarity": "positive", "modality": "interrogative_request"},
+        "wrapper": {"status": "requested", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:0"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:not_endless_loop",
+      "source_span": "this isn\u2019t an endless loop, it\u2019s the closure gate doing its job",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:not_endless_loop",
+        "predicate": "classified_state",
+        "structural_signature": "state_classification(subject,classification)",
+        "roles": {
+          "subject": {"value": "Phase-4 closure condition", "entity_type": "workflow_state"},
+          "classification": {"value": "closure gate functioning as intended", "entity_type": "state_interpretation"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:1"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:wiring_in_place",
+      "source_span": "All the wiring is now in place",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:wiring_in_place",
+        "predicate": "implementation_state",
+        "structural_signature": "implementation_state(component,state)",
+        "roles": {
+          "component": {"value": "Phase-4 wiring", "entity_type": "implementation_surface"},
+          "state": {"value": "in place", "entity_type": "completion_state"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:2"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:waiting_for_density",
+      "source_span": "Phase\u20114.1 simply waits until density arrives",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:waiting_for_density",
+        "predicate": "blocked_until",
+        "structural_signature": "blocker_condition(task,condition)",
+        "roles": {
+          "task": {"value": "Phase-4.1", "entity_type": "project_phase"},
+          "condition": {"value": "density arrives", "entity_type": "gate_condition"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:3"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:strict_bundle_entry_gate",
+      "source_span": "configs/phase4_monitor_profiles.json and scripts/phase4_monitor_runner.py now treat the strict bundle as the canonical entry gate",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:strict_bundle_entry_gate",
+        "predicate": "configuration_policy",
+        "structural_signature": "configuration_policy(files,policy)",
+        "roles": {
+          "files": {
+            "value": "configs/phase4_monitor_profiles.json",
+            "entity_type": "repo_file",
+            "cardinality": "multi",
+            "members": [
+              "configs/phase4_monitor_profiles.json",
+              "scripts/phase4_monitor_runner.py"
+            ]
+          },
+          "policy": {"value": "strict bundle is canonical entry gate", "entity_type": "runtime_gate_policy"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:4"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:none_opt_out",
+      "source_span": "with \u201cnone\u201d as the opt-out",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:none_opt_out",
+        "predicate": "configuration_option",
+        "structural_signature": "configuration_option(option,effect)",
+        "roles": {
+          "option": {"value": "none", "entity_type": "config_value"},
+          "effect": {"value": "opt-out", "entity_type": "configuration_effect"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:5"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:contract_guard",
+      "source_span": "so code can\u2019t sneak past the contract",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:contract_guard",
+        "predicate": "guardrail",
+        "structural_signature": "guardrail(surface,protected_contract)",
+        "roles": {
+          "surface": {"value": "code path", "entity_type": "runtime_surface"},
+          "protected_contract": {"value": "strict bundle entry gate", "entity_type": "contract"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:6"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:docs_explain_block",
+      "source_span": "docs/phase4_density_monitor.md and docs/phase4_phase5_strategy.md explain ... Phase\u20114.1 is blocked unless every strict-check bullet ... passes",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:docs_explain_block",
+        "predicate": "documentation_claim",
+        "structural_signature": "documentation_claim(files,claim)",
+        "roles": {
+          "files": {
+            "value": "docs/phase4_density_monitor.md",
+            "entity_type": "repo_file",
+            "cardinality": "multi",
+            "members": [
+              "docs/phase4_density_monitor.md",
+              "docs/phase4_phase5_strategy.md"
+            ]
+          },
+          "claim": {"value": "Phase-4.1 blocked unless every strict-check bullet passes", "entity_type": "documented_policy"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:7"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:strict_checks",
+      "source_span": "ontology balance, bin counts/balance, effect size, persistence, monotonicity, three-pass debounce",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:strict_checks",
+        "predicate": "required_checks",
+        "structural_signature": "required_checks(gate,checks)",
+        "roles": {
+          "gate": {"value": "Phase-4.1 strict profile", "entity_type": "runtime_gate"},
+          "checks": {
+            "value": "ontology balance",
+            "entity_type": "check_family",
+            "cardinality": "multi",
+            "members": [
+              "ontology balance",
+              "bin counts/balance",
+              "effect size",
+              "persistence",
+              "monotonicity",
+              "three-pass debounce"
+            ]
+          }
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:8"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:waiting_intended_behavior",
+      "source_span": "waiting is the intended behavior",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:waiting_intended_behavior",
+        "predicate": "intended_behavior",
+        "structural_signature": "intended_behavior(subject,behavior)",
+        "roles": {
+          "subject": {"value": "Phase-4.1", "entity_type": "project_phase"},
+          "behavior": {"value": "waiting", "entity_type": "workflow_behavior"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:9"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:todo_waiting_density",
+      "source_span": "TODO.md records \u201cwaiting for density\u201d rather than \u201cfixing code\u201d",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:todo_waiting_density",
+        "predicate": "documentation_record",
+        "structural_signature": "documentation_record(file,recorded_state,not_state)",
+        "roles": {
+          "file": {"value": "TODO.md", "entity_type": "repo_file"},
+          "recorded_state": {"value": "waiting for density", "entity_type": "workflow_state"},
+          "not_state": {"value": "fixing code", "entity_type": "workflow_state"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:10"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:es_nq_reminder",
+      "source_span": "plus the ES/NQ ingest reminder you asked for",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:es_nq_reminder",
+        "predicate": "reminder_record",
+        "structural_signature": "reminder_record(topic,location)",
+        "roles": {
+          "topic": {"value": "ES/NQ ingest", "entity_type": "data_ingest_topic"},
+          "location": {"value": "TODO.md", "entity_type": "repo_file"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:11"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:daily_catalog_instruction",
+      "source_span": "If you want a daily catalog of why it\u2019s still closed, paste a strict-profile log line and I\u2019ll turn it into consistent blocking labels.",
+      "status": "candidate",
+      "residual": "partial",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:daily_catalog_instruction",
+        "predicate": "conditional_instruction",
+        "structural_signature": "conditional_instruction(condition,input,output)",
+        "roles": {
+          "condition": {"value": "daily catalog requested", "entity_type": "user_option"},
+          "input": {"value": "strict-profile log line", "entity_type": "runtime_log"},
+          "output": {"value": "consistent blocking labels", "entity_type": "operator_view"}
+        },
+        "qualifiers": {"polarity": "positive", "condition": "if requested"},
+        "wrapper": {"status": "conditional_offer", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:12"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:feed_es_nq",
+      "source_span": "keep feeding ES/NQ proposals/prices and log the blocking reason each run",
+      "status": "candidate",
+      "residual": "partial",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:feed_es_nq",
+        "predicate": "recommended_next_action",
+        "structural_signature": "recommended_next_action(action,object,logging)",
+        "roles": {
+          "action": {"value": "feed", "entity_type": "operator_action"},
+          "object": {"value": "ES/NQ proposals/prices", "entity_type": "market_data"},
+          "logging": {"value": "blocking reason each run", "entity_type": "run_log"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "requested_next_action", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:13"]
+      }
+    },
+    {
+      "fact_id": "fact:phase4:opens_after_three",
+      "source_span": "once the strict profile reports OPEN three times the gate opens automatically",
+      "status": "supported",
+      "residual": "exact",
+      "predicate_atom": {
+        "atom_id": "atom:phase4:opens_after_three",
+        "predicate": "gate_transition_rule",
+        "structural_signature": "gate_transition_rule(gate,condition,effect)",
+        "roles": {
+          "gate": {"value": "Phase-4.1 strict profile", "entity_type": "runtime_gate"},
+          "condition": {"value": "OPEN three times", "entity_type": "debounce_condition"},
+          "effect": {"value": "gate opens automatically", "entity_type": "gate_effect"}
+        },
+        "qualifiers": {"polarity": "positive"},
+        "wrapper": {"status": "asserted_progress_update", "evidence_only": true},
+        "provenance": ["statement:ffa5d006a43da9dc71cd3aedf1410535eee35dc2:14"]
+      }
+    }
+  ],
+  "summary": {
+    "fact_count": 15,
+    "status_counts": {
+      "supported": 13,
+      "candidate": 2
+    },
+    "residual_counts": {
+      "exact": 13,
+      "partial": 2
+    }
+  },
+  "authority_boundary": {
+    "review_only": true,
+    "raw_text_not_authority": true,
+    "supplied_atoms_not_automatic_extraction": true,
+    "no_live_stati_baker_mutation": true,
+    "no_fact_promotion_without_receipts": true
+  }
+}

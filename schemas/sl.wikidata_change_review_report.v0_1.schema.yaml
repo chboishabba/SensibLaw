@@ -1,0 +1,362 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: sl.wikidata_change_review_report.v0_1
+type: object
+additionalProperties: true
+required:
+  - schema_version
+  - packet_schema_version
+  - focus_item
+  - authority_policy
+  - edit_authority
+  - property_scope
+  - check_families
+  - check_coverage
+  - assumptions
+  - baseline
+  - candidate_reports
+  - review_summary
+properties:
+  schema_version:
+    type: string
+    const: sl.wikidata_change_review_report.v0_1
+  packet_schema_version:
+    type: string
+    const: sl.wikidata_change_review_packet.v0_1
+  focus_item:
+    type: string
+  authority_policy:
+    type: string
+    const: review_only
+  edit_authority:
+    type: boolean
+    const: false
+  property_scope:
+    type: array
+    items:
+      type: string
+  check_families:
+    type: array
+    description: Requested review-only diagnostic families echoed from the ChangeReviewPacket.
+    items:
+      type: string
+      enum:
+        - subclass_consistency
+        - class_order_pressure
+        - metaclass_pressure
+        - disjointness
+        - downstream_use
+        - minimality
+        - mereology
+        - temporal_exclusivity
+  pressure_attribution_surface:
+    type: array
+    description: "Optional review-only attribution buckets echoed or emitted by the runtime to locate pressure in the bounded slice. These buckets are diagnostic only: no edit authority, no fabricated PNF receipts, no labels by inspection, and no monotonicity claim except over a filter-respecting edit stream."
+    items:
+      type: string
+      enum:
+        - local
+        - upstream
+        - sibling
+        - downstream
+        - temporal_mereology
+        - metaclass_order
+        - disjointness
+  pressure_attribution:
+    type: object
+    description: Optional packet-level review-only pressure component evidence emitted by the runtime.
+    additionalProperties: true
+  pnf_index:
+    type: object
+    description: "Optional review-only dream-machine PNF index surface for locating report evidence. This surface is report-only: it must not fabricate receipts, does not grant live edit authority, and carries no truth claim beyond the bounded report inputs."
+    additionalProperties: false
+    properties:
+      receipt_index:
+        type: array
+        description: Review-only receipt locators supplied by the report; entries are not fabricated receipts.
+        items:
+          type: object
+          additionalProperties: true
+      predicate_pnf_index:
+        type: array
+        description: Review-only predicate PNF locators for reviewer navigation.
+        items:
+          type: object
+          additionalProperties: true
+      structural_signature_index:
+        type: array
+        description: Review-only structural signature locators for bounded report evidence.
+        items:
+          type: object
+          additionalProperties: true
+      constraint_pnf_index:
+        type: array
+        description: Review-only constraint PNF locators for bounded checks.
+        items:
+          type: object
+          additionalProperties: true
+      shape_pnf_index:
+        type: array
+        description: Review-only shape PNF locators for bounded candidate comparison.
+        items:
+          type: object
+          additionalProperties: true
+      residual_index:
+        type: array
+        description: Review-only residual locators; entries do not assert human-assigned residual labels by inspection.
+        items:
+          type: object
+          additionalProperties: true
+      pressure_index:
+        type: array
+        description: Review-only pressure locators aligned with pressure attribution buckets.
+        items:
+          type: object
+          additionalProperties: true
+      candidate_index:
+        type: array
+        description: Review-only candidate locators for report candidate rows.
+        items:
+          type: object
+          additionalProperties: true
+      mutation_pnf_index:
+        type: array
+        description: Review-only in-memory mutation PNF locators; entries do not describe live edits.
+        items:
+          type: object
+          additionalProperties: true
+      disposition_index:
+        type: array
+        description: Review-only disposition locators for report outcomes.
+        items:
+          type: object
+          additionalProperties: true
+      promotion_boundary:
+        type: object
+        description: Review-only promotion boundary metadata; this does not promote candidates or grant edit authority.
+        additionalProperties: true
+  pnf_grounding:
+    $ref: "#/definitions/pnf_to_wikidata_grounding_surface"
+  wikidata_grounding:
+    $ref: "#/definitions/pnf_to_wikidata_grounding_surface"
+  check_coverage:
+    type: object
+    additionalProperties: true
+    required:
+      - requested
+      - run
+      - omitted
+      - deferred
+      - status
+    properties:
+      requested:
+        type: array
+        items:
+          type: string
+      run:
+        type: array
+        items:
+          type: string
+      omitted:
+        type: array
+      deferred:
+        type: array
+      status:
+        type: string
+        enum:
+          - complete
+          - partial
+  assumptions:
+    type: object
+    additionalProperties: true
+    required:
+      - review_only
+      - in_memory_candidate_mutation_only
+      - no_live_wikidata_write
+      - no_human_assigned_residual_labels
+    properties:
+      review_only:
+        type: boolean
+      in_memory_candidate_mutation_only:
+        type: boolean
+      no_live_wikidata_write:
+        type: boolean
+      no_human_assigned_residual_labels:
+        type: boolean
+      no_fabricated_pnf_receipts:
+        type: boolean
+      no_labels_by_inspection:
+        type: boolean
+      monotonicity_filter_respecting_only:
+        type: boolean
+      no_fabricated_qids_pids:
+        type: boolean
+  baseline:
+    type: object
+    additionalProperties: true
+    required:
+      - diagnostic_counts
+      - blocker_count
+  candidate_reports:
+    type: array
+    items:
+      type: object
+      additionalProperties: true
+      required:
+        - candidate_id
+        - operation
+        - disposition
+        - authority_policy
+        - edit_authority
+        - mutation_summary
+        - diagnostic_delta
+        - baseline_blocker_count
+        - candidate_blocker_count
+      properties:
+        candidate_id:
+          type: string
+        operation:
+          type: string
+          description: >
+            Candidate operation echoed from the packet. The *_obligation values
+            are abstract review obligations only; they do not identify real
+            Wikidata QIDs/PIDs, create entities or properties, or carry edit
+            authority.
+        disposition:
+          type: string
+          enum:
+            - checked_safe_reviewable
+            - held
+            - contradictory
+            - insufficiently_supported
+        authority_policy:
+          type: string
+          const: review_only
+        edit_authority:
+          type: boolean
+          const: false
+        mutation_summary:
+          type: object
+          additionalProperties: true
+        diagnostic_delta:
+          type: object
+          additionalProperties:
+            type: integer
+        pressure_delta:
+          type: object
+          additionalProperties:
+            type: integer
+        pressure_attribution:
+          type: object
+          additionalProperties: true
+        pressure_attribution_surface:
+          type: array
+          items:
+            type: string
+        grounding_delta:
+          type: object
+          additionalProperties:
+            type: integer
+        candidate_grounding:
+          type: object
+          additionalProperties: true
+        held_reasons:
+          type: array
+          items:
+            type: string
+        review_reasons:
+          type: array
+          items:
+            type: string
+        candidate_obligation:
+          type: boolean
+        promotion_required:
+          type: boolean
+        obligation_type:
+          type:
+            - string
+            - "null"
+        obligation_payload:
+          type: object
+          additionalProperties: true
+        abstract_candidates:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        candidate_obligation_report:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+        baseline_blocker_count:
+          type: integer
+        candidate_blocker_count:
+          type: integer
+  review_summary:
+    type: object
+    additionalProperties: true
+    required:
+      - candidate_count
+      - disposition_counts
+      - best_blocker_count
+      - non_authoritative
+    properties:
+      candidate_count:
+        type: integer
+      disposition_counts:
+        type: object
+        additionalProperties:
+          type: integer
+      best_blocker_count:
+        type: integer
+      non_authoritative:
+        type: boolean
+        const: true
+definitions:
+  pnf_to_wikidata_grounding_surface:
+    type: object
+    description: >
+      Optional review-only grounding surface echoing or reporting
+      PredicatePNF-to-Wikidata candidate grounding. Direction is only
+      PredicatePNF_to_Wikidata. Candidate QIDs, PIDs, and statement shapes must
+      come from packet-supplied candidates; this surface must not fabricate
+      Wikidata identifiers, PNFEmissionReceipt objects, or edit authority.
+    additionalProperties: true
+    required:
+      - direction
+      - authority_policy
+      - candidate_source_policy
+      - qid_pid_policy
+      - receipt_policy
+      - edit_authority
+    properties:
+      direction:
+        type: string
+        const: PredicatePNF_to_Wikidata
+      authority_policy:
+        type: string
+        const: review_only
+      candidate_source_policy:
+        type: string
+        const: packet_supplied_candidates_only
+      qid_pid_policy:
+        type: string
+        const: no_fabricated_qids_or_pids
+      receipt_policy:
+        type: string
+        const: no_fabricated_PNFEmissionReceipt
+      edit_authority:
+        type: boolean
+        const: false
+      predicate_pnf_refs:
+        type: array
+        description: Packet-supplied PredicatePNF locators or references.
+        items:
+          type: object
+          additionalProperties: true
+      candidate_wikidata_shapes:
+        type: array
+        description: Packet-supplied candidate QID/PID/statement-shape rows.
+        items:
+          type: object
+          additionalProperties: true

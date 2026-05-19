@@ -1,0 +1,98 @@
+{
+  "fixture_id": "archive_freetext_probe_v0_1",
+  "description": "Small DB-derived free-text query probe for StatiBaker task/Kanban projection.",
+  "source": {
+    "resolver": "robust-context-fetch",
+    "db": "~/chat_archive.sqlite",
+    "decision_reason": "db_cross_thread_analysis",
+    "thread_title": "Phase-4 Data Wait",
+    "note": "Excerpt selected from a local archive query result; live web fetch was not used."
+  },
+  "ontology_snapshot_id": "project_ontology_archive_probe",
+  "grounding_catalog": {
+    "groundings": {
+      "Phase-4 readiness": [
+        {
+          "grounded_node": "local:phase4_readiness",
+          "grounded_label": "Phase-4 readiness",
+          "grounding_residual": "exact_grounding",
+          "topic_closure": [
+            {
+              "topic_id": "local:phase4",
+              "topic_label": "Phase-4",
+              "ontology_path": ["Phase-4 readiness", "Phase-4"],
+              "relation_path": ["local project ontology"],
+              "topic_depth": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "project_context": {
+    "context_id": "gamma:archive_probe",
+    "source_refs": ["archive_freetext_probe_v0_1"],
+    "context_pnfs": [
+      {
+        "atom_id": "ctx:schema:candidate",
+        "predicate_family": "task_schema",
+        "structural_signature": "TaskSchemaPNF",
+        "lifecycle_effect": "create_candidate",
+        "roles": {"lifecycle_effect": "create_candidate"}
+      },
+      {
+        "atom_id": "ctx:entity:phase4",
+        "predicate_family": "project_ontology",
+        "structural_signature": "ProjectOntologyPNF",
+        "label": "Phase-4 readiness",
+        "roles": {"object": "Phase-4 readiness", "feature": "Phase-4 readiness"}
+      }
+    ]
+  },
+  "documents": [
+    {
+      "doc_id": "archive_phase4_query_probe",
+      "source_type": "chat_archive_query",
+      "provenance": {
+        "source": "chat_archive",
+        "thread_title": "Phase-4 Data Wait"
+      },
+      "segments": [
+        {
+          "segment_id": "archive_phase4_query_probe:s1",
+          "speaker": "user",
+          "text": "What are our blockers?\nHow can we move forwards?",
+          "atoms": [
+            {
+              "atom_id": "archive_probe:a1",
+              "predicate": "requests_next_action_analysis",
+              "task_pnf": {
+                "predicate_family": "decision",
+                "action_type": "identify",
+                "lifecycle_effect": "create_candidate",
+                "qualifiers": {
+                  "modality": "interrogative_request",
+                  "scope": "blockers_and_forward_path"
+                }
+              },
+              "roles": {
+                "object": "Phase-4 readiness",
+                "requester": "user"
+              },
+              "wrapper_state": "requested",
+              "acceptance_criteria": "blockers and next actions are identified from the current project state",
+              "priority": "high"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "task_count": 1,
+    "object": "Phase-4 readiness",
+    "status": "candidate",
+    "column": "Inbox",
+    "context_residual": "partial"
+  }
+}

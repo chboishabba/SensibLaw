@@ -1,0 +1,171 @@
+@startuml
+title PDF Recitation: Latent Type Recovery from Text and Graph
+
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #0F172A
+  DiamondBackgroundColor #E0F2FE
+  DiamondBorderColor #0369A1
+}
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #C2410C
+  FontColor #1F2937
+}
+skinparam arrow {
+  Color #475569
+  FontColor #334155
+}
+
+start
+
+:1. Natural language already has structure
+Example: "I walked the dog";
+note right
+Page 1 witness:
+- "I" = subject / agent
+- "walked" = predicate / action
+- "dog" = object / patient
+- cat / rat = nearby object-type fillers
+
+The first move is role binding, not ontology lookup.
+end note
+
+:2. Predicate roles imply soft typing
+subject / predicate / object / typed participant;
+note right
+Roles create slots.
+Slots imply acceptable fillers.
+Acceptable fillers create soft type pressure.
+end note
+
+:3. Soft typing creates pressure
+where explicit ontology is too weak;
+note right
+Pages 2-5:
+- Wikidata assertions are useful but incomplete
+- domain pressure asks for stricter semantics
+- some needed constraints do not exist explicitly
+- strict typing is a local result, not the starting point
+end note
+
+:4. Finland / UMK / Eurovision exposes layer collapse
+selection competition != national participation;
+note right
+Clean 2025 pattern:
+- Q126165306 = Uuden Musiikin Kilpailu 2025
+- instance of UMK edition
+- part of series: Uuden Musiikin Kilpailu
+- part of: Finland in Eurovision 2025
+
+Collapsed 2013 pattern:
+- Q2226274 = Finland in Eurovision 2013
+- aliases/description carry UMK2013 / UMK13
+- typing and series mix national participation
+  with selection competition edition
+
+Latent split:
+UMK 2013 -> selects/supports/is part of
+Finland's Eurovision 2013 participation.
+end note
+
+:5. Q27968055 exposes order/type pathology
+recurring event edition? event? metaclass? second-order class?;
+note right
+Q27968055 witness:
+- current P279 includes Q1656682 event
+  and Q3331189 version/edition/translation
+- nearby diagnostic surface:
+  P31 / P279 / P1269 / P2738 / P11260 / P8225
+- pressure is about order:
+  edition, event, metaclass, second-order class
+- safer posture:
+  underspecify via Q24017414
+  rather than keep wrong superclass
+end note
+
+:6. Wikidata is too large and flat for direct global repair
+extract latent residual structure instead;
+note right
+Pages 3-5 architecture:
+Wikidata ontology
+-> latent structure
+-> residual
+-> feature
+-> constraint
+-> domain projector
+-> reviewable signal
+
+The system does not globally solve Wikidata.
+It projects bounded repair surfaces.
+end note
+
+:7. PNF / ITIR becomes the typed predicate carrier
+roles + qualifiers + provenance + graph alignment;
+note right
+Pages 6-8:
+- CAT -> mammal -> animal
+- local graph reasoning over neighborhoods
+- Wikipedia text + Wikidata graph -> PNF
+- PNF -> typed graph
+- corpus search becomes evidence
+- "where did I talk about dogs?"
+  can resolve through typed graph structure
+
+PNF is the carrier for roles,
+qualifiers, provenance, and residual state.
+end note
+
+:8. Corpus and multilingual divergence become evidence
+English collapse vs Finnish distinction;
+note right
+Pages 8-10:
+- canonical article hierarchy
+- Simple Wiki / ordinary Wikipedia contrast
+- pressure + signal + locus of control
+- binary, conditional, functional, and floating signals
+- machine translation proposes cross-language mappings
+- multilingual consistency exposes hidden type distinctions
+end note
+
+:9. Domain projector emits bounded repair proposals
+split / underspecify / remove bad superclass / hold;
+note right
+Outputs are not global truth claims.
+
+They are bounded review signals:
+- split collapsed entity
+- underspecify instead of assert wrong superclass
+- remove bad superclass
+- hold for order review
+- propose new relation or type
+end note
+
+:Abstract mechanism
+weak text/graph claim -> predicate extraction
+-> role binding -> soft type inference
+-> ontology and corpus alignment
+-> residual analysis -> constraint pressure
+-> typed predicate envelope -> bounded proposal;
+note right
+General engine:
+ITIR is a modular structural reasoning layer.
+It converts language and weak graph data into typed,
+provenance-bearing predicate envelopes, then checks
+them against ontology, authority, domain constraints,
+and corpus pressure before emitting review signals.
+end note
+
+stop
+
+legend bottom
+Thread source: OCR to PlantUML
+Online UUID: 69fadea6-bd2c-8399-b430-ae4f29b50293
+Resolver retrieved the thread live on 2026-05-06.
+endlegend
+
+@enduml

@@ -1,0 +1,274 @@
+@startuml
+title PDF Recitation: Latent Type Recovery from Text and Graph
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam wrapWidth 145
+skinparam rectangle {
+  RoundCorner 8
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #0F172A
+}
+skinparam package {
+  RoundCorner 8
+  BackgroundColor #FFFFFF
+  BorderColor #94A3B8
+  FontColor #0F172A
+}
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #C2410C
+  FontColor #1F2937
+}
+
+rectangle "1. Natural language already has structure\nExample: \"I walked the dog\"" as S1
+rectangle "2. Predicate roles imply soft typing\nsubject / predicate / object / typed participant" as S2
+rectangle "3. Soft typing creates pressure\nwhere explicit ontology is too weak" as S3
+rectangle "4. Finland / UMK / Eurovision exposes layer collapse\nselection competition != national participation" as S4
+rectangle "5. Q27968055 exposes order/type pathology\nrecurring event edition? event? metaclass? second-order class?" as S5
+rectangle "6. Wikidata is too large and flat for direct global repair\nextract latent residual structure instead" as S6
+rectangle "7. PNF / ITIR becomes the typed predicate carrier\nroles + qualifiers + provenance + graph alignment" as S7
+rectangle "8. Corpus and multilingual divergence become evidence\nEnglish collapse vs Finnish distinction" as S8
+rectangle "9. Domain projector emits bounded repair proposals\nsplit / underspecify / remove bad superclass / hold" as S9
+
+S1 --> S2
+S2 --> S3
+S3 --> S4
+S4 --> S5
+S5 --> S6
+S6 --> S7
+S7 --> S8
+S8 --> S9
+
+package "Page 1 witness: predicate-role structure" as PREDICATE {
+  rectangle "\"I\"\nsubject / agent" as P_I
+  rectangle "\"walked\"\npredicate / action" as P_WALK
+  rectangle "\"dog\"\nobject / patient" as P_DOG
+  rectangle "\"cat\" / \"rat\"\nnearby object-type neighborhood" as P_NEAR
+
+  P_I --> P_WALK : subject
+  P_WALK --> P_DOG : object
+  P_DOG ..> P_NEAR : comparable fillers
+}
+
+S1 -down-> PREDICATE : concrete sentence
+PREDICATE -down-> S2
+
+package "Pages 2-5: soft typing pressure" as SOFT {
+  rectangle "Wikidata assertion surface" as ST_WD
+  rectangle "Soft type inference\nfrom role, participation, and context" as ST_SOFT
+  rectangle "Domain pressure\nasks for more specific semantics" as ST_PRESSURE
+  rectangle "Strict local type\nonly after constraint support" as ST_STRICT
+  rectangle "Missing constraint\nmay not exist explicitly in Wikidata" as ST_MISSING
+
+  ST_WD --> ST_SOFT
+  ST_SOFT --> ST_PRESSURE
+  ST_PRESSURE --> ST_STRICT
+  ST_MISSING ..> ST_PRESSURE
+}
+
+S2 -down-> SOFT : inference step
+SOFT -down-> S3 : pressure appears
+
+package "Finland / UMK / Eurovision: layer collapse witness" as FINLAND {
+  package "Clean 2025 pattern" {
+    rectangle "Q126165306\nUuden Musiikin Kilpailu 2025" as F_UMK2025
+    rectangle "instance of:\nUMK edition" as F_UMKTYPE
+    rectangle "part of series:\nUuden Musiikin Kilpailu" as F_SERIES
+    rectangle "part of:\nFinland in Eurovision 2025" as F_FIN2025
+
+    F_UMK2025 --> F_UMKTYPE
+    F_UMK2025 --> F_SERIES
+    F_UMK2025 --> F_FIN2025
+  }
+
+  package "Collapsed 2013 pattern" {
+    rectangle "Q2226274\nFinland in Eurovision 2013" as F_Q222
+    rectangle "English label:\nFinland in Eurovision 2013" as F_EN
+    rectangle "Aliases / description:\nUMK2013 / UMK13" as F_ALIAS
+    rectangle "Mixed typing:\nrecurring event edition\n+ nation in Eurovision" as F_MIXTYPE
+    rectangle "Mixed series:\nFinland in Eurovision\n+ Uuden Musiikin Kilpailu" as F_MIXSERIES
+
+    F_Q222 --> F_EN
+    F_Q222 --> F_ALIAS
+    F_Q222 --> F_MIXTYPE
+    F_Q222 --> F_MIXSERIES
+  }
+
+  package "Latent split implied by evidence" {
+    rectangle "Object A:\nUMK 2013\nselection competition edition" as F_LATENT_UMK
+    rectangle "Relation:\nselects / supports / is part of" as F_REL
+    rectangle "Object B:\nFinland in Eurovision 2013\nnational participation object" as F_LATENT_FIN
+
+    F_LATENT_UMK --> F_REL
+    F_REL --> F_LATENT_FIN
+  }
+
+  F_ALIAS --> F_LATENT_UMK
+  F_MIXSERIES --> F_LATENT_UMK
+  F_EN --> F_LATENT_FIN
+  F_MIXTYPE --> F_LATENT_FIN
+}
+
+S4 -down-> FINLAND : concrete witness
+FINLAND -down-> S5 : same pathology class
+
+package "Q27968055: disjointness and order pressure" as Q279 {
+  rectangle "Q27968055\nrecurring event edition" as Q_ITEM
+  rectangle "Current P279 values:\nQ1656682 event\nQ3331189 version, edition or translation" as Q_VALUES
+  rectangle "Diagnostic properties:\nP31 / P279 / P1269 / P2738 / P11260 / P8225" as Q_PROPS
+  rectangle "Mixed-order pressure\nedition / event / metaclass\nsecond-order or third-order" as Q_ORDER
+  rectangle "Q3331189 problem\nwritten-work class leaks into event edition" as Q_Q333
+  rectangle "Safer repair posture\nP279 Q24017414 or underspecify\nrather than assert wrong superclass" as Q_UNDER
+  rectangle "Repair signal\nremove bad superclass;\npossibly split upstream relation/type" as Q_REPAIR
+
+  Q_ITEM --> Q_VALUES
+  Q_VALUES --> Q_ORDER
+  Q_PROPS --> Q_ORDER
+  Q_Q333 --> Q_ORDER
+  Q_ORDER --> Q_UNDER
+  Q_UNDER --> Q_REPAIR
+}
+
+S5 -down-> Q279 : metaclass witness
+Q279 -down-> S6 : motivates residual extraction
+
+package "Pages 3-5: latent residual recovery" as LATENT {
+  rectangle "Current Wikidata ontology\nlarge, flat, weakly global" as L_WD
+  rectangle "Latent structure\nimplicit regularities" as L_LATENT
+  rectangle "Residual\nwhat explicit ontology fails to settle" as L_RESIDUAL
+  rectangle "Feature\ncandidate structural signal" as L_FEATURE
+  rectangle "Constraint\nlocal pressure toward stricter typing" as L_CONSTRAINT
+  rectangle "Domain projector\nbounded view, not global fix" as L_PROJECTOR
+  rectangle "Signal\nreviewable output" as L_SIGNAL
+
+  L_WD --> L_LATENT
+  L_LATENT --> L_RESIDUAL
+  L_RESIDUAL --> L_FEATURE
+  L_FEATURE --> L_CONSTRAINT
+  L_CONSTRAINT --> L_PROJECTOR
+  L_PROJECTOR --> L_SIGNAL
+}
+
+S6 -down-> LATENT : recovery architecture
+LATENT -down-> S7
+
+package "Pages 6-8: PNF, graph neighborhood, corpus" as PNF {
+  package "Local ontology neighborhood" {
+    rectangle "CAT" as C_CAT
+    rectangle "mammal" as C_MAMMAL
+    rectangle "animal" as C_ANIMAL
+    rectangle "Logic(n)\nlocal graph reasoning" as C_LOGIC
+    rectangle "Query book" as C_QUERY
+
+    C_CAT --> C_MAMMAL
+    C_MAMMAL --> C_ANIMAL
+    C_ANIMAL --> C_LOGIC
+    C_QUERY --> C_CAT
+  }
+
+  package "Wikipedia + Wikidata -> PNF" {
+    rectangle "Wikipedia text" as W_TEXT
+    rectangle "Wikidata graph" as W_GRAPH
+    rectangle "PNF carrier" as W_PNF
+    rectangle "Typed graph" as W_TYPED
+    rectangle "Corpus search:\nwhere did I talk about dogs?" as W_CORPUS
+    rectangle "dog -> P31 species\nand pet animal" as W_DOG
+
+    W_TEXT --> W_PNF
+    W_GRAPH --> W_PNF
+    W_PNF --> W_TYPED
+    W_CORPUS --> W_DOG
+  }
+
+  package "Authority pressure" {
+    rectangle "Fully typed structure" as T_FULL
+    rectangle "Canonical article hierarchy" as T_HIER
+    rectangle "Simple Wiki" as T_SIMPLE
+    rectangle "Pressure + signal" as T_SIGNAL
+    rectangle "Locus of control" as T_CONTROL
+
+    T_FULL --> T_HIER
+    T_HIER --> T_SIMPLE
+    T_SIGNAL --> T_CONTROL
+  }
+}
+
+S7 -down-> PNF : carrier mechanics
+PNF -down-> S8
+
+package "Pages 9-10: multilingual and signal proposal" as MULTI {
+  package "Signal exploration" {
+    rectangle "Current Wikidata ontology" as G_ONTO
+    rectangle "Binary assertions" as G_BIN
+    rectangle "Conditional structures" as G_COND
+    rectangle "Functions" as G_FUNC
+    rectangle "Float\nlatent / graded signal" as G_FLOAT
+    rectangle "Recovered structure" as G_STRUCT
+
+    G_ONTO --> G_BIN
+    G_ONTO --> G_COND
+    G_ONTO --> G_FUNC
+    G_FUNC --> G_FLOAT
+    G_FLOAT --> G_STRUCT
+  }
+
+  package "Machine translation proposal" {
+    rectangle "Wikipedia language editions" as M_WIKI
+    rectangle "Machine translation" as M_MT
+    rectangle "Candidate mappings" as M_MAP
+    rectangle "Latent semantic alignment" as M_ALIGN
+    rectangle "Proposal" as M_PROPOSAL
+
+    M_WIKI --> M_MT
+    M_MT --> M_MAP
+    M_ALIGN --> M_PROPOSAL
+    M_MAP --> M_PROPOSAL
+  }
+}
+
+S8 -down-> MULTI : divergence as evidence
+MULTI -down-> S9
+
+package "Abstract mechanism: weak claims -> typed repair signals" as MECHANISM {
+  rectangle "Input\ntext / article / claim / graph slice" as A_INPUT
+  rectangle "Predicate extraction" as A_EXTRACT
+  rectangle "Role binding" as A_ROLES
+  rectangle "Soft type inference" as A_SOFT
+  rectangle "Ontology + corpus alignment" as A_ALIGN
+  rectangle "Residual analysis" as A_RESIDUAL
+  rectangle "Constraint / authority pressure" as A_CONSTRAINT
+  rectangle "Typed predicate envelope\nroles + qualifiers + provenance" as A_ENVELOPE
+  rectangle "Bounded proposal\nsplit / underspecify / remove / hold" as A_PROPOSAL
+
+  A_INPUT --> A_EXTRACT
+  A_EXTRACT --> A_ROLES
+  A_ROLES --> A_SOFT
+  A_SOFT --> A_ALIGN
+  A_ALIGN --> A_RESIDUAL
+  A_RESIDUAL --> A_CONSTRAINT
+  A_CONSTRAINT --> A_ENVELOPE
+  A_ENVELOPE --> A_PROPOSAL
+}
+
+S9 -down-> MECHANISM : reusable formal system
+
+note bottom of MECHANISM
+Outputs are not global truth claims.
+They are bounded review signals: split, underspecify,
+remove bad superclass, hold for order review,
+or propose a new relation/type.
+end note
+
+note bottom of S9
+Thread source:
+OCR to PlantUML, online UUID
+69fadea6-bd2c-8399-b430-ae4f29b50293.
+The resolver retrieved the thread live on
+2026-05-06.
+end note
+
+@enduml

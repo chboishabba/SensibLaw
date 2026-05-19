@@ -38,6 +38,29 @@ Compact snapshot of the current architecture and next seam.
   top-level parser doctrine
 
 ## Active lanes
+- bounded Wikidata ontology-repair candidate comparison:
+  - `wikidata compare-candidates` now evaluates a review-only
+    `ChangeReviewPacket` against a bounded slice
+  - current fixture is synthetic `Q27968055`
+  - candidate mutations are in-memory only and reports carry
+    `edit_authority: false`
+  - this is Level 0 of the broader global structural-coherence roadmap, not a
+    QID-only repair bot or Wikidata edit authority
+  - bounded `mereology` / `temporal_exclusivity` coverage is now wired for
+    `P361`/`P527`-style review packets, using curated policy only inside the
+    supplied slice
+  - reports can now carry pressure attribution buckets and candidate
+    `held_*`/review reasons, so Q27968055-style local fixes can still surface
+    upstream ontology pressure without turning that caveat into edit authority
+- semantic-memory bridge:
+  - future lane is pinned at
+    `docs/planning/semantic_memory_bridge_future_lane_20260506.md`
+  - first helper builds `sl.semantic_memory_index.v0_1` from supplied atoms,
+    grounding candidates, and ontology closure paths
+  - retrieval returns source snippets plus explanation paths, e.g.
+    "great dane" matching a "dogs" query through `Great Dane -> dog breed -> dog`
+  - boundary remains private memory retrieval only: no live entity linking, no
+    fabricated QIDs/PIDs, no public Wikidata truth, and no belief inference
 - operator-only relation-equivalence work on one ambiguous seed
 - additive relation graph and structure metrics over the shared spine
 - bounded extraction-profile layer above the parser spine

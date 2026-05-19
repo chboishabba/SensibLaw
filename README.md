@@ -46,6 +46,9 @@ SensibLaw currently provides:
 - deterministic review/report surfaces instead of free-form narrative output
 - provenance-backed JSON artifacts and handoff bundles
 - bounded Wikidata diagnostics over pinned slices
+- a first deterministic semantic-memory helper that turns supplied atoms,
+  grounding rows, and ontology closure paths into private retrieval records
+  with explanation paths
 - derived legal-follow graph surfaces whose follow pressure remains additive
   workflow metadata rather than legal truth or decision authority
 - export/handoff paths into downstream reasoning and review layers such as
@@ -240,6 +243,62 @@ The stronger parser doctrine is now:
 The important design choice is that SensibLaw is not trying to be "the model
 that knows the answer." It is trying to preserve source traceability while
 making reviewable structure.
+
+## Semantic-Memory Bridge
+
+The semantic-memory bridge is the private-memory counterpart to the Wikidata
+grounding work:
+
+```text
+raw note/transcript -> ITIR atoms / PredicatePNF -> supplied grounding candidates
+  -> ontology closure -> semantic memory index -> natural-language retrieval
+```
+
+The first runtime helper is intentionally small and deterministic. It consumes
+packet-supplied atom/grounding/closure rows and emits explainable retrieval
+records, for example matching a note that says "great dane" to a later query
+about "dogs" because the supplied ontology path contains
+`Great Dane -> dog breed -> dog`.
+
+The first StatiBaker free-text -> todo/Kanban Level-0 helper sits on the same
+boundary. It treats `TaskLike(Γ, TaskPNF)` as a structural action-frame judgment
+over a normalized task PNF carrier plus Γ as `ProjectContextPNFIndex`. Γ is not
+a hand-maintained project blob; it is a normalized PNF index derived from
+canonical text and structured project systems. A candidate is task-like only
+when its task PNF has a receipt-bearing residual/meet comparison against the
+Γ-PNF indexes and the frame is `Actionable`, `ProjectRelevant`, and either a
+`PromotableWrapper` with receipt support or a `HasLifecycleTransition`; frames
+that are `ClosedOrNegated` or `PurelyPhatic` remain non-tasks. spaCy and
+dependency frames may contribute evidence for the PNF/action frame, but they are
+not taskhood authority. The helper emits candidate task receipts and a read-only
+Kanban projection for SB-facing review; it must not mine raw keywords, keyword
+lists, hand-maintained blobs, or list-shaped text from free text as tasks. It
+does not mutate live StatiBaker state, mark work complete, or promote tasks by
+itself. Promotion, completion, and any SB state transition require explicit
+receipts from the runtime or downstream governance layer.
+
+The first corpus-style StatiBaker probe is pinned at
+`tests/fixtures/statibaker_kanban/archive_freetext_probe_v0_1.json`. It uses a
+small local chat-archive query excerpt from `robust-context-fetch` as the source
+free text, then supplies the normalized `TaskPNF`, grounding catalog, and Γ
+fixture needed for deterministic review. The test proves the current boundary:
+real free text can drive a candidate card only after typed extraction and Γ meet,
+not by raw keyword mining.
+
+The bidirectional timeline probe is pinned at
+`tests/fixtures/statibaker_kanban/archive_thread_timeline_probe_v0_1.json`. It
+uses 10 archive-derived seed tasks to prove that task timelines are reciprocal
+reconciliations between a task hypothesis and canonical thread evidence: prior
+events can reinterpret the seed, later events can update, close, block, reframe,
+or spawn successor tasks, and each task-timeline receipt traces back to a source
+archive event. This remains a read-only proof surface with source anchors,
+`TaskPNF`, Γ residuals, and lifecycle receipts; it does not mutate StatiBaker,
+mark tasks complete, or promote archive-derived tasks by itself.
+
+This is private retrieval support, not public Wikidata truth. It does not run
+live entity linking, fabricate QIDs/PIDs, infer user beliefs, write edits, or
+promote ontology claims. Groundings remain residual-bearing and
+snapshot-relative.
 
 One caution matters here: a lane-local facade is not the same thing as a
 cross-lane canonical substrate. Files such as
@@ -678,6 +737,25 @@ Why that matters:
 - a later reviewer can inspect what was extracted
 - uncertainty and disagreement can stay visible
 - downstream systems do not need to depend on ad hoc notes
+
+The first pinned fact-extraction probe is
+`tests/fixtures/fact_intake/fact_extraction_probe_v0_1.json`. It proves the
+bounded read-only path:
+
+```text
+canonical text / statement receipts
+  -> PredicatePNF observation class
+  -> residual comparison
+  -> fact candidate status
+```
+
+The probe covers ordinary observation facts, procedural facts, uncertain
+fragments, contradictions, lifecycle/successor/blocker facts, constraint
+carriers, constraint violations, cross-fibre `no_typed_meet`, and missing
+receipt blockers. It does not treat raw sentences, LLM summaries, keywords, or
+Wikidata labels as facts; every promoted or held candidate remains tied to
+source/excerpt/statement/observation receipts and a review-only authority
+policy.
 
 ### 2. Run bounded Wikidata review/diagnostic workflows
 
