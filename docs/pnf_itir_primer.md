@@ -51,6 +51,22 @@ source material -> parser/reducer output -> PredicatePNF carrier
   -> residual comparison -> bounded review/read-model artifact
 ```
 
+Concise diagram:
+
+![PNF / ITIR concise flow](planning/pnf_itir_concise_flow_20260521.svg)
+
+```text
+weak text or graph claim
+  -> parser / reducer emits explicit predicate roles
+  -> PredicatePNF carrier
+       predicate + structural_signature
+       roles + qualifiers + wrapper + provenance
+  -> residual meet against supplied evidence or context
+       exact | partial | no_typed_meet | contradiction
+  -> bounded review signal
+       hold | split | weaken | remove | candidate receipt
+```
+
 This lets lanes ask narrower questions:
 
 - does this candidate have the same structural signature as known evidence?
@@ -159,32 +175,40 @@ location role is missing. A carrier saying Ada did not sign Contract A conflicts
 through polarity. A carrier with a different structural signature, such as a
 payment event, has no typed meet.
 
-## Worked Task Example
+## Worked Wikidata Review Example
 
-A project note says: "Follow up on the Kanboard sync report." The runtime must
-first supply a typed task carrier and project context index. A simplified
-`TaskPNF` might bind:
+A bounded review packet may ask whether a supplied Wikidata candidate should
+weaken an over-specific relation. The runtime must first supply the predicate
+carrier and candidate grounding; the carrier does not invent QIDs, PIDs, or edit
+authority.
+
+A simplified PNF carrier might bind:
 
 ```json
 {
-  "predicate": "follow_up",
-  "structural_signature": "TaskCardPNF",
+  "atom_id": "review:predicate:1",
+  "predicate": "has_superclass",
+  "structural_signature": "WikidataSubclassClaimPNF",
+  "domain": "wikidata_review",
   "roles": {
-    "action": {"value": "follow up", "entity_type": "task_action"},
-    "object": {"value": "Kanboard sync report", "entity_type": "artifact"}
+    "item": {"value": "Q-example-local", "entity_type": "wikidata_item"},
+    "candidate_superclass": {
+      "value": "Q-supplied-broader-class",
+      "entity_type": "wikidata_item"
+    }
   },
   "qualifiers": {"polarity": "positive"},
-  "wrapper": {"status": "candidate", "evidence_only": true},
-  "provenance": ["archive:thread:example"]
+  "wrapper": {"status": "review_candidate", "evidence_only": true},
+  "provenance": ["review_packet:row:4"]
 }
 ```
 
-The task-memory lane then compares this carrier against a supplied
-`ProjectContextPNFIndex`. If the project context meet is supported and the
-action frame is actionable and project relevant, the lane may emit a candidate
-task receipt and read-only Kanban projection. It still does not mutate
-StatiBaker, complete the task, or promote the candidate without explicit
-downstream receipts.
+The Wikidata review lane can compare that carrier with supplied graph,
+constraint, and corpus evidence. An exact or partial meet may support a bounded
+review disposition such as hold, weaken, split, or remove. A contradiction may
+block the candidate. No typed meet may abstain. In all cases, the output remains
+a review signal; it is not a live Wikidata edit, a fabricated identifier, or a
+PNF receipt created from label inspection.
 
 ## Implementation Map
 
@@ -205,6 +229,8 @@ Current public usage surfaces:
 Supporting architecture notes:
 
 - `docs/planning/pnf_itir_typed_predicate_integrated_20260506.puml`
+- `docs/planning/pnf_itir_concise_flow_20260521.puml`
+  (`.png` and `.svg` renderings are checked in beside it)
 - `docs/planning/semantic_memory_bridge_future_lane_20260506.md`
 - `docs/planning/wikidata_pnf_residual_review_example_20260429.md`
 - `docs/planning/wikidata_temporal_pnf_constraint_contract_20260502.md`

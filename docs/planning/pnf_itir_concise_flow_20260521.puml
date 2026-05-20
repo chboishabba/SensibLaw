@@ -1,0 +1,30 @@
+@startuml
+title PNF / ITIR Concise Flow
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+
+start
+
+:Weak text or graph claim;
+:Parser / reducer emits explicit predicate roles;
+:PredicatePNF carrier
+predicate + structural_signature
+roles + qualifiers + wrapper + provenance;
+:Residual meet against supplied evidence or context
+exact | partial | no_typed_meet | contradiction;
+:Bounded review signal
+hold | split | weaken | remove | candidate receipt;
+note right
+PNF is comparison evidence, not authority.
+Downstream governance decides promotion, mutation, or edit staging.
+end note
+
+stop
+
+@enduml
