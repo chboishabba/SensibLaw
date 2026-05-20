@@ -254,6 +254,10 @@ raw note/transcript -> ITIR atoms / PredicatePNF -> supplied grounding candidate
   -> ontology closure -> semantic memory index -> natural-language retrieval
 ```
 
+For the canonical public explanation of PNF as ITIR's typed predicate carrier,
+including residual comparison and authority boundaries, see
+`docs/pnf_itir_primer.md`.
+
 The first runtime helper is intentionally small and deterministic. It consumes
 packet-supplied atom/grounding/closure rows and emits explainable retrieval
 records, for example matching a note that says "great dane" to a later query

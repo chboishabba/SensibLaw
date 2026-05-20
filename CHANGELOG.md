@@ -17,6 +17,10 @@
 # Changelog
 
 ## Unreleased
+- Added `docs/pnf_itir_primer.md` as the canonical public PNF / ITIR typed
+  predicate carrier primer. It explains implemented carrier fields, residual
+  comparison, public use sites, and authority boundaries without changing
+  runtime behavior.
 - Documented Claire/Superraptor's `Wikibase-Wikidata-Pipeline` and `wikiodk`
   as adjacent Wikibase/Wikidata reference surfaces for the OCTF roadmap. The
   docs now distinguish external transport/sandbox capabilities from the
