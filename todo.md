@@ -1,5 +1,39 @@
 # SensibLaw TODO
 
+- [P0] Keep the affidavit/Wikidata typed reconciliation slice aligned with the
+  DASHI formal object grammar.
+  - DONE: add the first operational contract at
+    `docs/planning/affidavit_wikidata_typed_reconciliation_contract_20260606.md`
+  - DONE: land `src/fact_intake/typed_claim_reconciliation.py` with canonical
+    affidavit relation labels, root projection, bucket projection, evidence
+    state, and separate non-promoting `promotion_state`
+  - DONE: pin the `walked the dog` / `did not walk the dog` fixture as
+    `explicit_dispute`, root `invalidates`, bucket `disputed`, without
+    deciding truth
+  - DONE: normalize object-type assertions such as `6 is a 1-morphism` with
+    `witness_status`, `review_status`, witness metadata, and non-promoting
+    `promotion_state`
+  - DONE: materialize Wikidata row negative-authority fields:
+    `truth_claimed = false` and `live_edit_authority = false`
+  - DONE: mark caller-supplied relation hints with
+    `relation_derivation = caller_hint`
+  - current no-go list:
+    - no Wikidata row becomes truth, contradiction, proof, edit authority, or
+      promotion merely by rank
+    - no object-type claim becomes a morphism classification without a named
+      category/bicategory context and typing rule
+    - no relation bucket decides legal sufficiency or real-world truth
+    - no runtime Python contract is treated as an Agda proof
+  - next honest implementation seams:
+    - add first-class revision-window/statement-id fields for Wikidata rows
+      when an importer supplies them
+    - thread typed reconciliation envelopes into the persisted affidavit
+      read-model only after the storage contract is explicit
+    - add fixture coverage for `explicit_exclusion_witness=True` on
+      different positive object-type claims
+    - add a direct bridge test that compares a Python row envelope against the
+      documented DASHI field grammar
+
 - [P0] Keep the Wikidata ontology-repair lane honest as it moves from bounded
   candidate comparison toward the global structural-coherence roadmap.
   - DONE: land the first review-only `ChangeReviewPacket` harness:

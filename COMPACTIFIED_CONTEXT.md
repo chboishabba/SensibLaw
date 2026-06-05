@@ -38,6 +38,40 @@ Compact snapshot of the current architecture and next seam.
   top-level parser doctrine
 
 ## Active lanes
+- affidavit/Wikidata typed reconciliation:
+  - current contract:
+    `docs/planning/affidavit_wikidata_typed_reconciliation_contract_20260606.md`
+  - current helper:
+    `src/fact_intake/typed_claim_reconciliation.py`
+  - purpose: operational Python carrier layer for proposition/response rows,
+    object-type assertions, and Wikidata statement rows that stays aligned with
+    the DASHI formal object grammar
+  - relation labels are the canonical affidavit finite vocabulary:
+    `exact_support`, `equivalent_support`, `explicit_dispute`,
+    `implicit_dispute`, `partial_overlap`, `adjacent_event`, `substitution`,
+    `procedural_nonanswer`, `unrelated`
+  - dog fixture boundary: `walked the dog` versus `did not walk the dog`
+    reduces to `explicit_dispute` / `invalidates` / `disputed`; it does not
+    decide truth
+  - object-type boundary: `6 is a 1-morphism` is a typed-object assertion, not
+    a proof. It remains witness/context pending unless a category or
+    bicategory context and typing rule are supplied
+  - Wikidata boundary: QID/PID/value rows are provenance/evidence carriers with
+    qualifier/reference metadata; rank and deprecation do not become truth,
+    contradiction, proof, edit authority, or promotion
+  - current formalism review result against DASHI:
+    - relation algebra alignment: passed
+    - dog dispute fixture: aligned
+    - object-type witness/review/promotion fields: now materialized
+    - Wikidata `truth_claimed = false` and `live_edit_authority = false`: now
+      materialized
+    - caller hints: now marked with `relation_derivation = caller_hint`
+  - remaining honest seams:
+    - add first-class statement IDs and revision windows when importers supply
+      them
+    - thread envelopes into persisted affidavit read-model tables only after a
+      storage contract is explicit
+    - add direct Python-vs-DASHI field grammar fixture coverage
 - bounded Wikidata ontology-repair candidate comparison:
   - `wikidata compare-candidates` now evaluates a review-only
     `ChangeReviewPacket` against a bounded slice
