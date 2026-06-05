@@ -104,6 +104,21 @@ from .google_public_import import (
     load_google_sheet_units_from_url,
     parse_google_public_url,
 )
+from .typed_claim_reconciliation import (
+    AFFIDAVIT_RELATION_TYPES,
+    RELATION_BUCKETS,
+    RELATION_ROOTS,
+    TYPED_CLAIM_RECONCILIATION_VERSION,
+    build_typed_relation,
+    normalize_object_type_claim,
+    normalize_polarity,
+    normalize_proposition,
+    normalize_response_unit,
+    normalize_text,
+    normalize_token,
+    normalize_wikidata_claim_row,
+    reduce_typed_relation,
+)
 
 __all__ = [
     "EVENT_ASSEMBLER_VERSION",
@@ -193,4 +208,17 @@ __all__ = [
     "resolve_fact_run_link",
     "resolve_fact_run_id",
     "STORY_WAVES",
+    "AFFIDAVIT_RELATION_TYPES",
+    "RELATION_BUCKETS",
+    "RELATION_ROOTS",
+    "TYPED_CLAIM_RECONCILIATION_VERSION",
+    "build_typed_relation",
+    "normalize_object_type_claim",
+    "normalize_polarity",
+    "normalize_proposition",
+    "normalize_response_unit",
+    "normalize_text",
+    "normalize_token",
+    "normalize_wikidata_claim_row",
+    "reduce_typed_relation",
 ]
