@@ -103,6 +103,39 @@ _KNOWN_WITNESS_RELATIONS: dict[str, str] = {
     "exclusive_contradiction": "exclusive_contradiction",
 }
 
+_CLASSIFICATION_RELATION_FORMALISM = {
+    "relation_types": [
+        "same",
+        "equivalent",
+        "refines",
+        "reclassifies",
+        "domain_gap",
+        "excluded_by_witness",
+        "unsupported_out_of_domain",
+        "unknown",
+    ],
+    "relation_roots": ["supports", "invalidates", "non_resolving", "unanswered"],
+    "relation_leaves": [
+        "same",
+        "alias_equivalent",
+        "refinement_candidate",
+        "reclassification_candidate",
+        "cross_domain_gap",
+        "exclusive_contradiction",
+        "unsupported_out_of_domain_candidate",
+        "unknown_class_relation",
+    ],
+    "basis_values": [
+        "explicit_claim",
+        "explicit_witness",
+        "alias_witness",
+        "residual_meet",
+        "domain_heuristic",
+        "sequence_adjacency",
+        "unknown",
+    ],
+}
+
 
 def collect_canonical_story_pnf_receipts(
     source: Any,
@@ -645,6 +678,71 @@ def _infer_class_domain(class_label: str) -> str:
     return "general"
 
 
+def _classification_claim_root(class_label: str) -> str:
+    normalized = _normalize_class_label(class_label)
+    if not normalized:
+        return "unknown"
+    base = re.sub(r"^\d+[\s\-_]*", "", normalized)
+    if base and base != normalized:
+        return base
+    domain = _infer_class_domain(normalized)
+    if domain != "general":
+        return domain
+    return normalized
+
+
+def _classification_relation_metadata(status: str, *, edge_type: str) -> dict[str, str]:
+    status = str(status or "unknown_class_relation")
+    if status == "same":
+        relation_type = "same"
+        relation_root = "supports"
+        relation_leaf = "same"
+        basis = "explicit_claim" if edge_type in {"classified_as", "not_classified_as", "claim_root_leaf", "leaf_class_projection"} else "sequence_adjacency"
+    elif status == "alias_equivalent":
+        relation_type = "equivalent"
+        relation_root = "supports"
+        relation_leaf = "alias_equivalent"
+        basis = "alias_witness"
+    elif status == "refinement_candidate":
+        relation_type = "refines"
+        relation_root = "supports"
+        relation_leaf = "refinement_candidate"
+        basis = "explicit_witness"
+    elif status == "reclassification_candidate":
+        relation_type = "reclassifies"
+        relation_root = "non_resolving"
+        relation_leaf = "reclassification_candidate"
+        basis = "explicit_witness"
+    elif status == "exclusive_contradiction":
+        relation_type = "excluded_by_witness"
+        relation_root = "invalidates"
+        relation_leaf = "exclusive_contradiction"
+        basis = "explicit_witness"
+    elif status == "cross_domain_gap":
+        relation_type = "domain_gap"
+        relation_root = "non_resolving"
+        relation_leaf = "cross_domain_gap"
+        basis = "domain_heuristic"
+    elif status == "unsupported_out_of_domain_candidate":
+        relation_type = "unsupported_out_of_domain"
+        relation_root = "non_resolving"
+        relation_leaf = "unsupported_out_of_domain_candidate"
+        basis = "explicit_witness"
+    else:
+        relation_type = "unknown"
+        relation_root = "unanswered"
+        relation_leaf = "unknown_class_relation"
+        basis = "unknown"
+    if edge_type == "residual_support":
+        basis = "residual_meet"
+    return {
+        "relation_type": relation_type,
+        "relation_root": relation_root,
+        "relation_leaf": relation_leaf,
+        "relation_basis": basis,
+    }
+
+
 def build_classification_discovery_lattice(
     emission_receipts: Sequence[Mapping[str, Any]],
     *,
@@ -669,6 +767,10 @@ def build_classification_discovery_lattice(
             "subject": _normalize_subject(claim["subject"]),
             "class": _canonical_class_alias(aliases, _normalize_class_label(claim["class"])),
             "polarity": claim["polarity"],
+            "classification_claim_root": _classification_claim_root(
+                _canonical_class_alias(aliases, _normalize_class_label(claim["class"]))
+            ),
+            "classification_leaf": _canonical_class_alias(aliases, _normalize_class_label(claim["class"])),
             "sequence": claim.get("sequence"),
             "thread": claim.get("thread"),
             "source": claim.get("source"),
@@ -712,14 +814,18 @@ def build_classification_discovery_lattice(
         status: str,
         metadata: Mapping[str, Any] | None = None,
     ) -> None:
+        relation_metadata = _classification_relation_metadata(status, edge_type=kind)
         edge_payload: dict[str, Any] = {
             "id": _stable_id("class-edge", {"source": source, "target": target, "kind": kind, "status": status}),
             "source": source,
             "target": target,
             "type": kind,
             "status": status,
+            **relation_metadata,
         }
         if metadata:
+            if "relation_basis" in metadata:
+                edge_payload["relation_basis"] = metadata["relation_basis"]
             edge_payload.update(metadata)
         edges.append(edge_payload)
 
@@ -757,14 +863,50 @@ def build_classification_discovery_lattice(
         for claim in subject_claims[subject]:
             class_label = claim["class"]
             class_node = f"class:{class_label}"
+            claim_root = claim["classification_claim_root"]
+            claim_leaf = claim["classification_leaf"]
+            root_node = f"classification_claim_root:{subject_node}:{claim_root}"
+            leaf_node = f"classification_leaf:{subject_node}:{claim_leaf}"
             _add_node(class_node, "class", class_label)
+            _add_node(root_node, "classification_claim_root", claim_root)
+            _add_node(leaf_node, "classification_leaf", claim_leaf)
+            _add_edge(
+                source=root_node,
+                target=leaf_node,
+                kind="claim_root_leaf",
+                status="same",
+                metadata={
+                    "subject": subject_node,
+                    "classification_claim_root": claim_root,
+                    "classification_leaf": claim_leaf,
+                    "relation_basis": "explicit_claim",
+                },
+            )
+            _add_edge(
+                source=leaf_node,
+                target=class_node,
+                kind="leaf_class_projection",
+                status="same",
+                metadata={
+                    "subject": subject_node,
+                    "classification_claim_root": claim_root,
+                    "classification_leaf": claim_leaf,
+                    "relation_basis": "explicit_claim",
+                },
+            )
             role = "classified_as" if claim["polarity"] == "positive" else "not_classified_as"
             _add_edge(
                 source=subject_id,
                 target=class_node,
                 kind=role,
                 status="same",
-                metadata={"subject": subject_node, "emission_id": claim["emission_id"]},
+                metadata={
+                    "subject": subject_node,
+                    "emission_id": claim["emission_id"],
+                    "classification_claim_root": claim_root,
+                    "classification_leaf": claim_leaf,
+                    "relation_basis": "explicit_claim",
+                },
             )
             if claim.get("thread"):
                 thread_id = f"thread:{_normalize_subject(str(claim['thread']))}"
@@ -796,12 +938,13 @@ def build_classification_discovery_lattice(
 
         claim_pairs = list(zip(subject_claims[subject], subject_claims[subject][1:]))
         for left, right in claim_pairs:
-            status = _class_pair_relation_status(
+            relation = _class_pair_relation(
                 left,
                 right,
                 witness_context,
                 subject,
             )
+            status = relation["status"]
             status = status or "same"
             _add_edge(
                 source=f"class:{left['class']}",
@@ -812,6 +955,11 @@ def build_classification_discovery_lattice(
                     "subject": subject,
                     "left_emission_id": left["emission_id"],
                     "right_emission_id": right["emission_id"],
+                    "left_classification_claim_root": left["classification_claim_root"],
+                    "right_classification_claim_root": right["classification_claim_root"],
+                    "left_classification_leaf": left["classification_leaf"],
+                    "right_classification_leaf": right["classification_leaf"],
+                    "relation_basis": relation["relation_basis"],
                 },
             )
             if status in {"cross_domain_gap", "unsupported_out_of_domain_candidate", "exclusive_contradiction"}:
@@ -820,6 +968,10 @@ def build_classification_discovery_lattice(
                     target=f"class:{right['class']}",
                     kind="needs_bridge",
                     status=status,
+                    metadata={
+                        "subject": subject,
+                        "relation_basis": relation["relation_basis"],
+                    },
                 )
 
         class_pairs = _ordered_class_pairs([claim["class"] for claim in subject_claims[subject]])
@@ -842,7 +994,7 @@ def build_classification_discovery_lattice(
             )
             if not left_claim or not right_claim:
                 continue
-            class_relation_status = _class_pair_relation_status(
+            class_relation = _class_pair_relation(
                 left_claim,
                 right_claim,
                 witness_context,
@@ -852,9 +1004,14 @@ def build_classification_discovery_lattice(
                 source=f"class:{left_class}",
                 target=f"class:{right_class}",
                 kind="class_relation",
-                status=class_relation_status,
+                status=class_relation["status"],
                 metadata={
                     "subject": subject,
+                    "left_classification_claim_root": left_claim["classification_claim_root"],
+                    "right_classification_claim_root": right_claim["classification_claim_root"],
+                    "left_classification_leaf": left_claim["classification_leaf"],
+                    "right_classification_leaf": right_claim["classification_leaf"],
+                    "relation_basis": class_relation["relation_basis"],
                 },
             )
 
@@ -868,6 +1025,7 @@ def build_classification_discovery_lattice(
                 continue
             residual = meet_atom(left_atom, right_atom)
             status = _residual_classification_status(left, right, residual, witness_context)
+            relation = _classification_relation_metadata(status, edge_type="residual_support")
             residual_id = _stable_id(
                 "class-residual",
                 {
@@ -892,6 +1050,7 @@ def build_classification_discovery_lattice(
                     "residual_level": str(residual.level.name).lower(),
                     "left_emission_id": left["emission_id"],
                     "right_emission_id": right["emission_id"],
+                    "relation_basis": "residual_meet",
                 },
             )
             _add_edge(
@@ -904,6 +1063,7 @@ def build_classification_discovery_lattice(
                     "residual_level": str(residual.level.name).lower(),
                     "left_emission_id": left["emission_id"],
                     "right_emission_id": right["emission_id"],
+                    "relation_basis": "residual_meet",
                 },
             )
             residuals.append(
@@ -913,6 +1073,8 @@ def build_classification_discovery_lattice(
                     "right_emission_id": right["emission_id"],
                     "residual_level": str(residual.level.name).lower(),
                     "status": status,
+                    **relation,
+                    "relation_basis": "residual_meet",
                 }
             )
 
@@ -921,6 +1083,7 @@ def build_classification_discovery_lattice(
 
     return {
         "schema": CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA,
+        "relation_formalism": _CLASSIFICATION_RELATION_FORMALISM,
         "nodes": nodes,
         "edges": edges,
         "residual_receipts": residuals,
@@ -1158,12 +1321,12 @@ def _lookup_class_relation_witness(
     return None
 
 
-def _class_pair_relation_status(
+def _class_pair_relation(
     left: Mapping[str, Any],
     right: Mapping[str, Any],
     witness_context: list[dict[str, str]],
     subject: str,
-) -> str:
+) -> dict[str, str]:
     left_class = _normalize_class_label(str(left.get("class") or ""))
     right_class = _normalize_class_label(str(right.get("class") or ""))
     left_subject = _normalize_subject(str(left.get("subject") or ""))
@@ -1172,8 +1335,16 @@ def _class_pair_relation_status(
         left_polarity = str(left.get("polarity") or "positive")
         right_polarity = str(right.get("polarity") or "positive")
         if left_polarity == right_polarity:
-            return "same"
-        return "exclusive_contradiction"
+            status = "same"
+            metadata = _classification_relation_metadata(status, edge_type="class_relation")
+            metadata["relation_basis"] = "explicit_claim"
+            metadata["status"] = status
+            return metadata
+        status = "exclusive_contradiction"
+        metadata = _classification_relation_metadata(status, edge_type="class_relation")
+        metadata["relation_basis"] = "explicit_claim"
+        metadata["status"] = status
+        return metadata
 
     witness = _lookup_class_relation_witness(
         left_class=left_class,
@@ -1182,11 +1353,34 @@ def _class_pair_relation_status(
         witness_context=witness_context,
     )
     if witness is not None:
-        return witness.get("status") or "unknown_class_relation"
+        status = witness.get("status") or "unknown_class_relation"
+        metadata = _classification_relation_metadata(status, edge_type="class_relation")
+        if status == "alias_equivalent":
+            metadata["relation_basis"] = "alias_witness"
+        else:
+            metadata["relation_basis"] = "explicit_witness"
+        metadata["status"] = status
+        return metadata
 
     if _infer_class_domain(left_class) != _infer_class_domain(right_class):
-        return "cross_domain_gap"
-    return "unknown_class_relation"
+        status = "cross_domain_gap"
+        metadata = _classification_relation_metadata(status, edge_type="class_relation")
+        metadata["relation_basis"] = "domain_heuristic"
+        metadata["status"] = status
+        return metadata
+    status = "unknown_class_relation"
+    metadata = _classification_relation_metadata(status, edge_type="class_relation")
+    metadata["status"] = status
+    return metadata
+
+
+def _class_pair_relation_status(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+    witness_context: list[dict[str, str]],
+    subject: str,
+) -> str:
+    return _class_pair_relation(left, right, witness_context, subject)["status"]
 
 
 def _ordered_class_pairs(values: Sequence[str]) -> list[tuple[str, str]]:
