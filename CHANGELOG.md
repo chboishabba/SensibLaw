@@ -17,6 +17,11 @@
 # Changelog
 
 ## Unreleased
+- Added a suite-wide story PNF fanout boundary note documenting how the planned
+  `collect_canonical_story_pnf_receipts(...)` helper should reuse the existing
+  regex authority contract, utterance latent-fibre evidence layer, observer
+  boundaries, and residual lattice without becoming promotion or mutation
+  authority.
 - Added `docs/pnf_itir_primer.md` as the canonical public PNF / ITIR typed
   predicate carrier primer, with a concise flow diagram and bounded Wikidata
   review example. It explains implemented carrier fields, residual comparison,

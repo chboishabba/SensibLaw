@@ -126,6 +126,10 @@ SensibLaw surfaces:
 - Tree-sitter code observers may contribute bounded syntax-backed
   `PredicatePNF` carriers for code-structure review, under
   `planning/tree_sitter_code_pnf_observer_contract_20260605.md`
+- suite-wide story PNF fanout should treat PNF as a shared evidence layer for
+  SensibLaw, StatiBaker, TiRCorder, OpenRecall, Mirror, chat/history, and
+  `itir-svelte`, under
+  `planning/suite_story_pnf_fanout_boundary_20260606.md`
 - shared reducer interfaces expose `PredicatePNF` for downstream adapter
   boundaries
 
