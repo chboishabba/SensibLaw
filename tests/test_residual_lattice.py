@@ -170,6 +170,74 @@ def test_meet_atom_detects_negation_conflict_on_comparable_atoms() -> None:
     assert residual.provenance == ("d:4",)
 
 
+def test_meet_atom_tracks_non_polar_qualifier_support() -> None:
+    query = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive", tense="past"),
+        domain="utterance_event",
+    )
+    candidate = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive", tense="past"),
+        provenance=("d:tense",),
+        domain="utterance_event",
+    )
+
+    residual = meet_atom(query, candidate)
+
+    assert residual.level is ResidualLevel.EXACT
+    assert residual.shared_qualifiers == {"tense": "past"}
+
+
+def test_meet_atom_returns_partial_for_missing_non_polar_qualifier() -> None:
+    query = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive", tense="past"),
+        domain="utterance_event",
+    )
+    candidate = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive"),
+        provenance=("d:no-tense",),
+        domain="utterance_event",
+    )
+
+    residual = meet_atom(query, candidate)
+
+    assert residual.level is ResidualLevel.PARTIAL
+    assert residual.missing_qualifiers == ("tense",)
+
+
+def test_meet_atom_returns_no_typed_meet_for_incompatible_bound_qualifier() -> None:
+    query = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive", tense="past"),
+        domain="utterance_event",
+    )
+    candidate = PredicateAtom(
+        predicate="walk",
+        structural_signature="utterance_event:walk",
+        roles={"subject": TypedArg(value="i"), "object": TypedArg(value="dog")},
+        qualifiers=QualifierState(polarity="positive", tense="present"),
+        provenance=("d:present",),
+        domain="utterance_event",
+    )
+
+    residual = meet_atom(query, candidate)
+
+    assert residual.level is ResidualLevel.NO_TYPED_MEET
+
+
 def test_join_residual_keeps_contradiction_absorbing() -> None:
     contradiction = Residual(
         level=ResidualLevel.CONTRADICTION,

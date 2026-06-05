@@ -1,0 +1,21 @@
+{
+  "manifest_id": "benchmark_matrix_v1",
+  "lanes": {
+    "projection": {
+      "expected": {"structural_hash": "projection-a", "provenance_count": 2, "disposition": "review", "non_authoritative": true, "runtime_ms": 10},
+      "observed": {"structural_hash": "projection-a", "provenance_count": 2, "disposition": "review", "non_authoritative": true, "runtime_ms": 12}
+    },
+    "review": {
+      "expected": {"structural_hash": "review-a", "provenance_count": 1, "disposition": "requires_review", "non_authoritative": true, "runtime_ms": 8}
+    },
+    "live-cached": {
+      "expected": {"structural_hash": "cached-a", "provenance_count": 1, "disposition": "cached", "non_authoritative": true, "runtime_ms": 5}
+    },
+    "hotspot-eval": {
+      "expected": {"structural_hash": "hotspot-a", "provenance_count": 1, "disposition": "advisory", "non_authoritative": true, "runtime_ms": 9}
+    },
+    "baseline-compare": {
+      "expected": {"structural_hash": "baseline-a", "provenance_count": 1, "disposition": "same", "non_authoritative": true, "runtime_ms": 6}
+    }
+  }
+}

@@ -39,6 +39,15 @@ from .residual_lattice import (
     join_typed_args,
     meet_atom,
 )
+from .utterance_latent_fibres import (
+    LATENT_FIBRE_INDEX_SCHEMA,
+    LatentFibreCandidate,
+    UtteranceLatentIndex,
+    enrich_utterance_atoms,
+    load_latent_index,
+    meet_atom_with_latent_fibres,
+    parse_latent_index,
+)
 
 __all__ = [
     "FastTextLanguageDetector",
@@ -74,4 +83,11 @@ __all__ = [
     "join_residual",
     "join_typed_args",
     "meet_atom",
+    "LATENT_FIBRE_INDEX_SCHEMA",
+    "LatentFibreCandidate",
+    "UtteranceLatentIndex",
+    "enrich_utterance_atoms",
+    "load_latent_index",
+    "meet_atom_with_latent_fibres",
+    "parse_latent_index",
 ]

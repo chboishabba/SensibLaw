@@ -1,0 +1,57 @@
+{
+  "artifact_id": "sensiblaw-utterance-latent-fibres-v0_1",
+  "build_stats": {
+    "candidate_count": 1,
+    "corpus_file_count": 0,
+    "corpus_text_count": 4,
+    "manifest_count": 1,
+    "source_seed_sha256": "sha256:local-pinned-utterance-latent-fibres-v0_1"
+  },
+  "derived_fibre_candidates": [
+    {
+      "candidate_id": "fibre:walk-amble:canonical",
+      "canonical": true,
+      "confidence": 0.91,
+      "diagnostics_only": false,
+      "evidence_count": 4,
+      "evidence_refs": [
+        "default-local:walk:1",
+        "default-local:walk:2",
+        "default-local:amble:1",
+        "default-local:amble:2"
+      ],
+      "high_precision": false,
+      "model_refs": [],
+      "provenance_refs": [
+        "SensibLaw/data/latent_fibres/utterance_latent_fibres.v0_1.json"
+      ],
+      "relation": "same_family_candidate",
+      "role_context_signatures": [],
+      "signal_count": 2,
+      "source_predicate": "walk",
+      "target_predicate": "amble"
+    }
+  ],
+  "extraction_profile": {
+    "builder": "SensibLaw/scripts/build_utterance_latent_fibres.py",
+    "name": "local-pnf-candidate-manifest",
+    "version": "v0_1"
+  },
+  "model_assets": [],
+  "predicate_nodes": {
+    "amble": {
+      "observation_count": 2
+    },
+    "walk": {
+      "observation_count": 2
+    }
+  },
+  "role_context_signatures": {},
+  "schema_version": "sl.utterance_latent_fibre_index.v0_1",
+  "source_corpus": {
+    "manifest_hash": "sha256:local-pinned-utterance-latent-fibres-v0_1",
+    "manifest_id": "local-utterance-latent-fibre-corpus",
+    "source_count": 1,
+    "text_count": 4
+  }
+}

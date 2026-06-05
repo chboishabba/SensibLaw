@@ -47,8 +47,10 @@ while preserving what remains unresolved.
 The intended flow is:
 
 ```text
-source material -> parser/reducer output -> PredicatePNF carrier
-  -> residual comparison -> bounded review/read-model artifact
+raw source -> lexical_hint_v1/parser observation -> structured carrier/receipt
+  -> optional utterance_latent_fibre / code_observation_v1 / persisted
+     authority receipt
+  -> PredicatePNF -> residual review -> promoted artifact
 ```
 
 Concise diagram:
@@ -121,6 +123,9 @@ SensibLaw surfaces:
   closure paths for private retrieval records
 - StatiBaker task-memory helpers use `TaskPNF` plus `ProjectContextPNFIndex` as
   a project-context meet, not as raw keyword tasking
+- Tree-sitter code observers may contribute bounded syntax-backed
+  `PredicatePNF` carriers for code-structure review, under
+  `planning/tree_sitter_code_pnf_observer_contract_20260605.md`
 - shared reducer interfaces expose `PredicatePNF` for downstream adapter
   boundaries
 
@@ -143,10 +148,25 @@ PNF does not:
 - promote facts, tasks, edits, or workflow state without downstream receipts
 - define evaluation scoring, model judgment payloads, prompt suites, or query
   suites
+- treat Tree-sitter parse output as runtime truth, task completion evidence, or
+  Kanban movement authority
+- treat regex-derived lexical hints as semantic observer rows or direct
+  `PredicatePNF` sources
+- treat utterance lexical overlap as semantic projection unless corroborated by
+  structured source/receipt rows (including utterance latent fibres, code
+  observations, DB/schema evidence, runtime/test receipts, or human review)
 
 Parser output, dependency frames, headings, labels, wrapper text, and raw
 keywords may contribute evidence to a PNF carrier, but they are not promotion
-authority.
+authority. Regex-derived matches are lower still: they are `lexical_hint_v1`
+only unless corroborated by a tokenizer/parser span, spaCy/fallback parser
+bundle, Tree-sitter row, DB/schema receipt, runtime/test receipt, or human
+review receipt.
+
+Utterance latent-fibre enrichment, when enabled, adds evidence metadata (`support_fibres`,
+`latent_grounding`, `semantic_comparison_mode`). Unsupported cases remain
+`semantic_comparison_mode == abstained` and must not be treated as semantic
+evidence authority.
 
 ## Worked Fact Example
 
@@ -174,6 +194,41 @@ exactly. A query that also requires a location may meet it partially because the
 location role is missing. A carrier saying Ada did not sign Contract A conflicts
 through polarity. A carrier with a different structural signature, such as a
 payment event, has no typed meet.
+
+## Worked Utterance Example
+
+Plain utterances use the same carrier shape. The utterance projector does not
+compare raw sentences as bags of words; it emits an evidence-only event carrier
+with an action predicate, typed role support, non-polar qualifiers, and a
+polarity sign.
+
+For example, `I walked the dog` may project to:
+
+```json
+{
+  "predicate": "walk",
+  "structural_signature": "utterance_event:walk",
+  "domain": "utterance_event",
+  "roles": {
+    "subject": {"value": "i", "entity_type": "actor"},
+    "action": {"value": "walk", "entity_type": "action"},
+    "object": {"value": "dog", "entity_type": "object"}
+  },
+  "qualifiers": {"polarity": "positive"},
+  "wrapper": {"status": "structural_projection", "evidence_only": true}
+}
+```
+
+`I did not walk the dog` projects to the same support coordinates with
+`polarity: negative` and negation provenance. Those carriers have the same
+subject/action/object support and opposite sign, so their residual is a
+polarity contradiction.
+
+Tense, modality, certainty, condition, temporal scope, and jurisdiction scope
+are support qualifiers when the parser or upstream reducer binds them
+explicitly. Missing qualifier support yields a partial residual. Incompatible
+bound qualifier support yields no typed meet unless a later temporal-family
+lane proves a shared temporal scope. Polarity remains the carrier sign.
 
 ## Worked Wikidata Review Example
 

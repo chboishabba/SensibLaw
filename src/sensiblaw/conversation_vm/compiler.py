@@ -8,6 +8,7 @@ available, and otherwise emits abstention-visible local carriers.
 from __future__ import annotations
 
 import importlib
+import time
 from typing import Any, Callable
 
 from .schema import TURN_DELTA_SCHEMA, receipt, stable_id
@@ -21,18 +22,28 @@ except ModuleNotFoundError:  # pragma: no cover - installed package import path
         segment_sentences = None  # type: ignore[assignment]
 
 
-def compile_turn(turn: dict[str, Any] | str) -> dict[str, Any]:
+_PROJECTOR_UNSET = object()
+_PROJECTOR_CACHE: Callable[[str], list[dict[str, Any]]] | None | object = _PROJECTOR_UNSET
+
+
+def compile_turn(turn: dict[str, Any] | str, metrics_callback: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
     payload = _coerce_turn(turn)
     text = str(payload.get("text", ""))
     turn_id = str(payload.get("turn_id") or stable_id("turn", {"text": text, "meta": payload.get("metadata", {})}))
 
     source = _source_record(turn_id, text, payload)
-    excerpts = _excerpt_records(source, text)
+    with _MetricSpan(metrics_callback, "segmentation", turn_id=turn_id, input_chars=len(text)):
+        excerpts = _excerpt_records(source, text)
     statements = [_statement_record(source, excerpt) for excerpt in excerpts]
     observations = _observation_records(source, excerpts, statements, payload)
-    atoms, pnfs, projection_abstentions = _predicate_records(statements, payload)
-    residuals = _residual_records(atoms)
-    gates = _promotion_gates(source, excerpts, statements, observations, atoms)
+    atoms, pnfs, projection_abstentions = _predicate_records(statements, payload, metrics_callback, turn_id)
+    with _MetricSpan(metrics_callback, "residual_pair_construction", turn_id=turn_id, atom_count=len(atoms)):
+        residuals = _residual_records(atoms)
+    with _MetricSpan(metrics_callback, "pnf_receipt_construction", turn_id=turn_id, atom_count=len(atoms), residual_count=len(residuals)):
+        pnf_emission_receipts = _pnf_emission_receipts(atoms, pnfs)
+        pnf_residual_receipts = _pnf_residual_receipts(residuals, pnf_emission_receipts)
+    with _MetricSpan(metrics_callback, "gate_construction", turn_id=turn_id, atom_count=len(atoms)):
+        gates = _promotion_gates(source, excerpts, statements, observations, atoms)
 
     abstentions = list(projection_abstentions)
     if not atoms:
@@ -55,6 +66,8 @@ def compile_turn(turn: dict[str, Any] | str) -> dict[str, Any]:
         "observations": observations,
         "predicate_atoms": atoms,
         "predicate_pnfs": pnfs,
+        "pnf_emission_receipts": pnf_emission_receipts,
+        "pnf_residual_receipts": pnf_residual_receipts,
         "residual_comparisons": residuals,
         "promotion_gates": gates,
         "proof_obligations": _proof_obligations(gates),
@@ -128,7 +141,22 @@ def _excerpt_records(source: dict[str, Any], text: str) -> list[dict[str, Any]]:
 def _sentence_spans(text: str) -> list[tuple[int, int]]:
     if segment_sentences is not None:
         sentences = segment_sentences(text)
-        return [(sentence.start_char, sentence.end_char) for sentence in sentences if sentence.text.strip()]
+        spans: list[tuple[int, int]] = []
+        cursor = 0
+        for sentence in sentences:
+            sentence_text = str(sentence.text or "").strip()
+            if not sentence_text:
+                continue
+            found = text.find(sentence_text, cursor)
+            if found >= 0:
+                start = found
+                end = found + len(sentence_text)
+            else:
+                start = int(sentence.start_char)
+                end = int(sentence.end_char)
+            spans.append((start, end))
+            cursor = end
+        return spans
 
     spans: list[tuple[int, int]] = []
     start = 0
@@ -195,60 +223,68 @@ def _observation_records(
 def _predicate_records(
     statements: list[dict[str, Any]],
     payload: dict[str, Any],
+    metrics_callback: Callable[[dict[str, Any]], None] | None = None,
+    turn_id: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     supplied_atoms = payload.get("predicate_atoms")
     if supplied_atoms:
-        atoms = [_normalize_supplied_atom(atom) for atom in supplied_atoms]
+        with _MetricSpan(metrics_callback, "projection", turn_id=turn_id, statement_count=len(statements), supplied_atom_count=len(supplied_atoms)):
+            atoms = [_normalize_supplied_atom(atom) for atom in supplied_atoms]
     else:
-        projector = _optional_projector()
+        with _MetricSpan(metrics_callback, "projector_probe", turn_id=turn_id, statement_count=len(statements)):
+            projector = _optional_projector()
         atoms = []
-        for statement in statements:
-            projected = _project_with_fallback(projector, statement)
-            for atom in projected:
-                atom_id = stable_id("atom", {"statement_id": statement["id"], "atom": atom})
-                atom_receipt = receipt("predicate-atom-projected", atom_id, statement["receipt_ids"], {"statement_id": statement["id"]})
-                atoms.append(
-                    {
-                        "id": atom_id,
-                        "statement_id": statement["id"],
-                        "predicate": atom["predicate"],
-                        "arguments": atom["arguments"],
-                        "polarity": atom.get("polarity", "positive"),
-                        "status": "candidate",
-                        "projection_method": atom.get("projection_method", "conversation_vm_structural_parser"),
-                        "receipt_ids": [atom_receipt["id"], *statement["receipt_ids"]],
-                    }
-                )
+        with _MetricSpan(metrics_callback, "projection", turn_id=turn_id, statement_count=len(statements)):
+            for statement in statements:
+                projected = _project_with_fallback(projector, statement)
+                for atom in projected:
+                    atom_id = stable_id("atom", {"statement_id": statement["id"], "atom": atom})
+                    atom_receipt = receipt("predicate-atom-projected", atom_id, statement["receipt_ids"], {"statement_id": statement["id"]})
+                    atoms.append(
+                        {
+                            "id": atom_id,
+                            "statement_id": statement["id"],
+                            "predicate": atom["predicate"],
+                            "arguments": atom["arguments"],
+                            "polarity": atom.get("polarity", "positive"),
+                            "status": "candidate",
+                            "projection_method": atom.get("projection_method", "conversation_vm_structural_parser"),
+                            "receipt_ids": [atom_receipt["id"], *statement["receipt_ids"]],
+                            **_optional_atom_fields(atom),
+                        }
+                    )
 
     pnfs = []
     abstentions = []
-    for atom in atoms:
-        pnf_id = stable_id("pnf", {"atom_id": atom["id"], "predicate": atom["predicate"], "arguments": atom["arguments"]})
-        tokens = _normal_tokens(" ".join(str(arg) for arg in atom["arguments"]))
-        if tokens:
-            pnfs.append(
-                {
-                    "id": pnf_id,
-                    "atom_id": atom["id"],
-                    "normal_form": {
-                        "predicate": atom["predicate"],
-                        "polarity": atom.get("polarity", "positive"),
-                        "arguments": tokens,
-                    },
-                    "status": "candidate",
-                    "receipt_ids": atom.get("receipt_ids", []),
-                }
-            )
-        else:
-            abstentions.append(
-                {
-                    "id": stable_id("abstain", {"atom_id": atom["id"], "reason": "no-typed-meet"}),
-                    "status": "abstained",
-                    "reason": "no-typed-meet",
-                    "atom_id": atom["id"],
-                    "receipt_ids": atom.get("receipt_ids", []),
-                }
-            )
+    with _MetricSpan(metrics_callback, "pnf_construction", turn_id=turn_id, atom_count=len(atoms)):
+        for atom in atoms:
+            pnf_id = stable_id("pnf", {"atom_id": atom["id"], "predicate": atom["predicate"], "arguments": atom["arguments"]})
+            tokens = _normal_tokens(" ".join(str(arg) for arg in atom["arguments"]))
+            if tokens:
+                pnfs.append(
+                    {
+                        "id": pnf_id,
+                        "atom_id": atom["id"],
+                        "normal_form": {
+                            "predicate": atom["predicate"],
+                            "polarity": atom.get("polarity", "positive"),
+                            "arguments": tokens,
+                            **_normal_form_optional_fields(atom),
+                        },
+                        "status": "candidate",
+                        "receipt_ids": atom.get("receipt_ids", []),
+                    }
+                )
+            else:
+                abstentions.append(
+                    {
+                        "id": stable_id("abstain", {"atom_id": atom["id"], "reason": "no-typed-meet"}),
+                        "status": "abstained",
+                        "reason": "no-typed-meet",
+                        "atom_id": atom["id"],
+                        "receipt_ids": atom.get("receipt_ids", []),
+                    }
+                )
     return atoms, pnfs, abstentions
 
 
@@ -263,7 +299,12 @@ def _project_with_fallback(projector: Callable[[str], list[dict[str, Any]]] | No
 
 
 def _optional_projector() -> Callable[[str], list[dict[str, Any]]] | None:
+    global _PROJECTOR_CACHE
+    if _PROJECTOR_CACHE is not _PROJECTOR_UNSET:
+        return _PROJECTOR_CACHE  # type: ignore[return-value]
     for module_name, function_name in (
+        ("src.sensiblaw.interfaces.shared_reducer", "collect_canonical_predicate_atoms"),
+        ("sensiblaw.interfaces.shared_reducer", "collect_canonical_predicate_atoms"),
         ("src.sensiblaw.interfaces.shared_reducer", "collect_canonical_relational_bundle"),
         ("sensiblaw.interfaces.shared_reducer", "collect_canonical_relational_bundle"),
         ("shared_reducer", "project_predicate_atoms"),
@@ -281,16 +322,138 @@ def _optional_projector() -> Callable[[str], list[dict[str, Any]]] | None:
                 return _relations_to_atoms(result)
             if isinstance(result, dict):
                 result = result.get("predicate_atoms", [])
-            return [dict(item) for item in result]
+            projected = []
+            for item in result:
+                if hasattr(item, "to_dict"):
+                    projected.append(_projected_item_to_dict(dict(item.to_dict())))
+                else:
+                    projected.append(_projected_item_to_dict(dict(item)))
+            return projected
 
+        _PROJECTOR_CACHE = projector
         return projector
+    _PROJECTOR_CACHE = None
     return None
+
+
+def reset_projector_cache_for_tests() -> None:
+    global _PROJECTOR_CACHE
+    _PROJECTOR_CACHE = _PROJECTOR_UNSET
+
+
+def _projected_item_to_dict(item: dict[str, Any]) -> dict[str, Any]:
+    qualifiers = item.get("qualifiers") if isinstance(item.get("qualifiers"), dict) else {}
+    item.setdefault("polarity", qualifiers.get("polarity", "positive"))
+    if "arguments" not in item:
+        item["arguments"] = _arguments_from_roles(item.get("roles"))
+    item.setdefault("projection_method", "sensiblaw.shared_reducer.collect_canonical_predicate_atoms")
+    return item
+
+
+def _arguments_from_roles(roles: Any) -> list[str]:
+    if not isinstance(roles, dict):
+        return []
+    ordered_names = ("subject", "actor", "object", "argument", "recipient", "target")
+    arguments: list[str] = []
+    seen: set[str] = set()
+    for role_name in ordered_names:
+        value = _role_value(roles.get(role_name))
+        if value and value not in seen:
+            arguments.append(value)
+            seen.add(value)
+    for role_name in sorted(str(key) for key in roles):
+        if role_name in {"action", *ordered_names}:
+            continue
+        value = _role_value(roles.get(role_name))
+        if value and value not in seen:
+            arguments.append(value)
+            seen.add(value)
+    return arguments
+
+
+def _role_value(role: Any) -> str | None:
+    if isinstance(role, dict):
+        value = role.get("value")
+        if value is not None:
+            return str(value)
+    if role is not None:
+        return str(role)
+    return None
+
+
+def _optional_atom_fields(atom: dict[str, Any]) -> dict[str, Any]:
+    fields: dict[str, Any] = {}
+    for key in (
+        "roles",
+        "qualifiers",
+        "structural_signature",
+        "domain",
+        "modifiers",
+        "wrapper",
+        "provenance",
+        "atom_id",
+        "support_fibres",
+        "latent_grounding",
+        "semantic_comparison_mode",
+    ):
+        value = atom.get(key)
+        if value not in (None, {}, [], ()):
+            fields[key] = value
+    return fields
+
+
+def _normal_form_optional_fields(atom: dict[str, Any]) -> dict[str, Any]:
+    fields: dict[str, Any] = {}
+    if isinstance(atom.get("roles"), dict):
+        fields["roles"] = atom["roles"]
+    if isinstance(atom.get("qualifiers"), dict):
+        fields["qualifiers"] = atom["qualifiers"]
+    if atom.get("structural_signature"):
+        fields["structural_signature"] = atom["structural_signature"]
+    if atom.get("domain"):
+        fields["domain"] = atom["domain"]
+    if atom.get("support_fibres"):
+        fields["support_fibres"] = atom["support_fibres"]
+    if atom.get("latent_grounding"):
+        fields["latent_grounding"] = atom["latent_grounding"]
+    if atom.get("semantic_comparison_mode") and atom.get("semantic_comparison_mode") != "exact":
+        fields["semantic_comparison_mode"] = atom["semantic_comparison_mode"]
+    return fields
+
+
+class _MetricSpan:
+    def __init__(self, callback: Callable[[dict[str, Any]], None] | None, stage: str, **fields: Any) -> None:
+        self.callback = callback
+        self.stage = stage
+        self.fields = fields
+        self.started = 0.0
+
+    def __enter__(self) -> "_MetricSpan":
+        self.started = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        if self.callback is None:
+            return
+        row = {
+            "component": "conversation_vm.compiler",
+            "stage": self.stage,
+            "elapsed_ms": round((time.perf_counter() - self.started) * 1000, 6),
+            **self.fields,
+        }
+        try:
+            self.callback(row)
+        except Exception:
+            pass
 
 
 def _relations_to_atoms(bundle: dict[str, Any]) -> list[dict[str, Any]]:
     atoms_by_id = {atom["id"]: atom for atom in bundle.get("atoms", []) if isinstance(atom, dict)}
     projected: list[dict[str, Any]] = []
     for relation in bundle.get("relations", []):
+        relation_type = str(relation.get("type") or "relation")
+        if relation_type not in {"predicate", "temporal", "composition"}:
+            continue
         roles = {}
         for role in relation.get("roles", []):
             atom_id = role.get("atom")
@@ -301,11 +464,20 @@ def _relations_to_atoms(bundle: dict[str, Any]) -> list[dict[str, Any]]:
                 "provenance": [str(atom_id)] if atom_id else [],
             }
         if roles:
+            predicate = relation_type
+            arguments = [value["value"] for value in roles.values()]
+            if relation_type == "predicate" and roles.get("head", {}).get("value"):
+                predicate = str(roles["head"]["value"]).lower()
+                arguments = [
+                    value["value"]
+                    for role_name, value in roles.items()
+                    if role_name != "head" and str(value.get("value") or "")
+                ]
             projected.append(
                 {
-                    "predicate": str(relation.get("type") or "relation"),
+                    "predicate": predicate,
                     "roles": roles,
-                    "arguments": [value["value"] for value in roles.values()],
+                    "arguments": arguments,
                     "polarity": "positive",
                     "projection_method": "sensiblaw.shared_reducer.collect_canonical_relational_bundle",
                 }
@@ -355,20 +527,58 @@ def _normalize_supplied_atom(atom: dict[str, Any]) -> dict[str, Any]:
         "status": atom.get("status", "candidate"),
         "projection_method": atom.get("projection_method", "supplied-predicate-atom"),
         "receipt_ids": list(atom.get("receipt_ids", [])),
+        **_optional_atom_fields(atom),
     }
+
+
+def _atom_support_signature(atom: dict[str, Any]) -> tuple[Any, ...]:
+    roles = atom.get("roles")
+    qualifiers = atom.get("qualifiers")
+    if isinstance(roles, dict):
+        role_parts = []
+        for key in sorted(roles):
+            if key == "action":
+                continue
+            value = _role_value(roles.get(key))
+            if value:
+                role_parts.append((key, value))
+        qualifier_parts = []
+        if isinstance(qualifiers, dict):
+            qualifier_parts = [
+                (key, str(value))
+                for key, value in sorted(qualifiers.items())
+                if key != "polarity" and value not in (None, "", "unknown")
+            ]
+        return (
+            atom.get("domain"),
+            atom.get("structural_signature") or atom.get("predicate"),
+            atom.get("predicate"),
+            tuple(role_parts),
+            tuple(qualifier_parts),
+        )
+    return (
+        atom.get("predicate"),
+        tuple(atom.get("arguments") or []),
+    )
 
 
 def _residual_records(atoms: list[dict[str, Any]]) -> list[dict[str, Any]]:
     residuals = []
     for left_index, left in enumerate(atoms):
         for right in atoms[left_index + 1 :]:
-            same_body = left["predicate"] == right["predicate"] and left["arguments"] == right["arguments"]
+            same_body = _atom_support_signature(left) == _atom_support_signature(right)
             if same_body and left.get("polarity") != right.get("polarity"):
                 status = "contested"
                 relation = "polarity-conflict"
+                residual_level = "contradiction"
+            elif _is_classification_tension(left, right):
+                status = "contested"
+                relation = "classification-tension"
+                residual_level = "contradiction"
             else:
                 status = "abstained"
                 relation = "no-typed-meet"
+                residual_level = "no_typed_meet"
             residuals.append(
                 {
                     "id": stable_id("resid", {"left": left["id"], "right": right["id"], "relation": relation}),
@@ -376,10 +586,125 @@ def _residual_records(atoms: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "right_atom_id": right["id"],
                     "relation": relation,
                     "status": status,
+                    "residual_level": residual_level,
                     "receipt_ids": sorted(left.get("receipt_ids", []) + right.get("receipt_ids", [])),
                 }
             )
     return residuals
+
+
+def _is_classification_tension(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    if left.get("predicate") != "be/classify" or right.get("predicate") != "be/classify":
+        return False
+    if left.get("domain") != "classification" or right.get("domain") != "classification":
+        return False
+    if left.get("polarity") == right.get("polarity"):
+        return False
+    left_subject = _role_value((left.get("roles") or {}).get("agent") if isinstance(left.get("roles"), dict) else None)
+    right_subject = _role_value((right.get("roles") or {}).get("agent") if isinstance(right.get("roles"), dict) else None)
+    left_theme = _role_value((left.get("roles") or {}).get("theme") if isinstance(left.get("roles"), dict) else None)
+    right_theme = _role_value((right.get("roles") or {}).get("theme") if isinstance(right.get("roles"), dict) else None)
+    return bool(left_subject and left_subject == right_subject and left_theme and right_theme and left_theme != right_theme)
+
+
+def _pnf_emission_receipts(atoms: list[dict[str, Any]], pnfs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    pnf_by_atom = {str(pnf.get("atom_id")): pnf for pnf in pnfs if pnf.get("atom_id")}
+    receipts = []
+    for atom in atoms:
+        atom_id = str(atom.get("id") or "")
+        pnf = pnf_by_atom.get(atom_id)
+        if not atom_id or pnf is None:
+            continue
+        source_span = _atom_source_span(atom)
+        emitted_atom = {
+            "predicate": atom.get("predicate"),
+            "structural_signature": atom.get("structural_signature") or atom.get("predicate"),
+            "roles": atom.get("roles") or {},
+            "qualifiers": atom.get("qualifiers") or {"polarity": atom.get("polarity", "positive")},
+            "wrapper": atom.get("wrapper") or {"status": "structural_projection", "evidence_only": True},
+            "provenance": atom.get("provenance") or [],
+            "domain": atom.get("domain"),
+            "arguments": atom.get("arguments") or [],
+        }
+        receipt_id = stable_id("pnfr", {"atom_id": atom_id, "pnf_id": pnf.get("id"), "emitted_atom": emitted_atom, "source_span": source_span})
+        receipts.append(
+            {
+                "id": receipt_id,
+                "schema": "sl.pnf_emission_receipt.v0_1",
+                "status": "available",
+                "parser_profile": "sensiblaw.conversation_vm.compile_turn.v0_1",
+                "reducer_profile": atom.get("projection_method", "unknown"),
+                "source_span": source_span,
+                "atom_id": atom_id,
+                "pnf_id": pnf.get("id"),
+                "emitted_atom": emitted_atom,
+                "receipt_ids": sorted(set(atom.get("receipt_ids") or [])),
+            }
+        )
+    return receipts
+
+
+def _atom_source_span(atom: dict[str, Any]) -> dict[str, Any]:
+    provenance = atom.get("provenance") or []
+    for item in provenance:
+        text = str(item)
+        for prefix in ("copular:", "head:", "arg:", "subject:", "neg:"):
+            if text.startswith(prefix):
+                try:
+                    start, end = text[len(prefix) :].split("-", 1)
+                    return {"provenance_ref": text, "start": int(start), "end": int(end)}
+                except ValueError:
+                    continue
+    return {"provenance": list(provenance)}
+
+
+def _pnf_residual_receipts(
+    residuals: list[dict[str, Any]],
+    pnf_emission_receipts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    receipt_by_atom = {str(item.get("atom_id")): item for item in pnf_emission_receipts if item.get("atom_id")}
+    receipts = []
+    for residual in residuals:
+        if residual.get("status") != "contested":
+            continue
+        left = receipt_by_atom.get(str(residual.get("left_atom_id")))
+        right = receipt_by_atom.get(str(residual.get("right_atom_id")))
+        missing = []
+        if left is None:
+            missing.append("leftEmissionReceipt")
+        if right is None:
+            missing.append("rightEmissionReceipt")
+        payload = {
+            "residual_id": residual.get("id"),
+            "left_emission_receipt_id": left.get("id") if left else None,
+            "right_emission_receipt_id": right.get("id") if right else None,
+            "residual_level": residual.get("residual_level", "contradiction"),
+            "relation": residual.get("relation"),
+            "residual_computation_profile": "sensiblaw.conversation_vm.residual_records.v0_1",
+            "hecke_candidate_pool_receipt_id": None,
+            "runtime_provider_status": "missingHeckeCandidatePoolReceiptId",
+        }
+        status = "diagnostic" if missing else "available_without_hecke_candidate_pool"
+        if missing:
+            payload["missing_fields"] = missing
+        receipt_id = stable_id("pnfres", payload)
+        receipts.append(
+            {
+                "id": receipt_id,
+                "schema": "sl.pnf_residual_receipt.v0_1",
+                "status": status,
+                "left_atom_id": residual.get("left_atom_id"),
+                "right_atom_id": residual.get("right_atom_id"),
+                "left_emission_receipt_id": payload["left_emission_receipt_id"],
+                "right_emission_receipt_id": payload["right_emission_receipt_id"],
+                "residual_id": residual.get("id"),
+                "residual_level": payload["residual_level"],
+                "relation": residual.get("relation"),
+                "payload": payload,
+                "receipt_ids": sorted(set(residual.get("receipt_ids") or [])),
+            }
+        )
+    return receipts
 
 
 def _promotion_gates(

@@ -102,6 +102,9 @@ class PredicatePNF:
     provenance: tuple[str, ...] = ()
     atom_id: str | None = None
     domain: str | None = None
+    support_fibres: tuple[Mapping[str, Any], ...] = ()
+    latent_grounding: Mapping[str, Any] = field(default_factory=dict)
+    semantic_comparison_mode: str = "exact"
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -117,6 +120,12 @@ class PredicatePNF:
             payload["atom_id"] = self.atom_id
         if self.domain is not None:
             payload["domain"] = self.domain
+        if self.support_fibres:
+            payload["support_fibres"] = [dict(item) for item in self.support_fibres]
+        if self.latent_grounding:
+            payload["latent_grounding"] = dict(self.latent_grounding)
+        if self.semantic_comparison_mode != "exact":
+            payload["semantic_comparison_mode"] = self.semantic_comparison_mode
         return payload
 
 
@@ -148,11 +157,16 @@ class Residual:
     level: ResidualLevel
     shared_roles: Mapping[str, TypedArg] = field(default_factory=dict)
     missing_roles: tuple[str, ...] = ()
+    shared_qualifiers: Mapping[str, str] = field(default_factory=dict)
+    missing_qualifiers: tuple[str, ...] = ()
     contradictions: tuple[str, ...] = ()
     provenance: tuple[str, ...] = ()
+    semantic_comparison_mode: str = "exact"
+    semantic_relation: str | None = None
+    latent_grounding: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "level": self.level.name.lower(),
             "shared_roles": {
                 key: value.to_dict() for key, value in self.shared_roles.items()
@@ -161,6 +175,17 @@ class Residual:
             "contradictions": list(self.contradictions),
             "provenance": list(self.provenance),
         }
+        if self.shared_qualifiers:
+            payload["shared_qualifiers"] = dict(self.shared_qualifiers)
+        if self.missing_qualifiers:
+            payload["missing_qualifiers"] = list(self.missing_qualifiers)
+        if self.semantic_comparison_mode != "exact":
+            payload["semantic_comparison_mode"] = self.semantic_comparison_mode
+        if self.semantic_relation is not None:
+            payload["semantic_relation"] = self.semantic_relation
+        if self.latent_grounding:
+            payload["latent_grounding"] = dict(self.latent_grounding)
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,6 +296,12 @@ def _normalize_provenance(raw: Any) -> tuple[str, ...]:
     return (str(raw),)
 
 
+def _normalize_mapping_tuple(raw: Any) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(raw, Iterable) or isinstance(raw, (str, bytes, bytearray)):
+        return ()
+    return tuple(dict(item) for item in raw if isinstance(item, Mapping))
+
+
 def _default_structural_signature(predicate: str, roles: Mapping[str, TypedArg]) -> str:
     return predicate
 
@@ -338,6 +369,12 @@ def _normalize_wrapper(raw: Any) -> WrapperState:
     return WrapperState()
 
 
+def _qualifier_support(qualifiers: QualifierState) -> dict[str, str]:
+    payload = qualifiers.to_dict()
+    payload.pop("polarity", None)
+    return {key: str(value) for key, value in payload.items() if value is not None}
+
+
 def coerce_predicate_atom(atom: PredicateAtom | Mapping[str, Any]) -> PredicateAtom | None:
     """Normalize an explicit predicate/role carrier into a stable atom."""
 
@@ -377,6 +414,9 @@ def coerce_predicate_atom(atom: PredicateAtom | Mapping[str, Any]) -> PredicateA
         provenance=provenance,
         atom_id=str(atom_id) if atom_id is not None else None,
         domain=str(domain) if domain is not None else None,
+        support_fibres=_normalize_mapping_tuple(atom.get("support_fibres")),
+        latent_grounding=_normalize_generic_mapping(atom.get("latent_grounding")),
+        semantic_comparison_mode=str(atom.get("semantic_comparison_mode") or "exact"),
     )
 
 
@@ -487,12 +527,23 @@ def join_residual(left: Residual, right: Residual) -> Residual:
         RoleState(bindings=left.shared_roles, contradictions=left.contradictions),
         RoleState(bindings=right.shared_roles, contradictions=right.contradictions),
     )
+    shared_qualifiers = dict(left.shared_qualifiers)
+    shared_qualifiers.update(right.shared_qualifiers)
     return Residual(
         level=level,
         shared_roles=role_state.bindings,
         missing_roles=tuple(sorted(set(left.missing_roles).union(right.missing_roles))),
+        shared_qualifiers=shared_qualifiers,
+        missing_qualifiers=tuple(sorted(set(left.missing_qualifiers).union(right.missing_qualifiers))),
         contradictions=role_state.contradictions,
         provenance=tuple(sorted(set(left.provenance).union(right.provenance))),
+        semantic_comparison_mode=(
+            left.semantic_comparison_mode
+            if left.semantic_comparison_mode != "exact"
+            else right.semantic_comparison_mode
+        ),
+        semantic_relation=left.semantic_relation or right.semantic_relation,
+        latent_grounding=dict(left.latent_grounding or right.latent_grounding),
     )
 
 
@@ -546,10 +597,40 @@ def meet_atom(
             provenance=candidate.provenance,
         )
 
+    query_qualifier_support = _qualifier_support(query.qualifiers)
+    candidate_qualifier_support = _qualifier_support(candidate.qualifiers)
+    shared_qualifiers: dict[str, str] = {}
+    missing_qualifiers = set(query_qualifier_support)
+    for key, query_value in query_qualifier_support.items():
+        candidate_value = candidate_qualifier_support.get(key)
+        if candidate_value is None:
+            continue
+        missing_qualifiers.discard(key)
+        if candidate_value != query_value:
+            return Residual(
+                level=ResidualLevel.NO_TYPED_MEET,
+                provenance=candidate.provenance,
+            )
+        shared_qualifiers[key] = query_value
+
+    if missing_qualifiers:
+        return Residual(
+            level=ResidualLevel.PARTIAL,
+            shared_roles={
+                role: value
+                for role, value in joined_role_state.bindings.items()
+                if role in compared_candidate_state.bindings
+            },
+            shared_qualifiers=shared_qualifiers,
+            missing_qualifiers=tuple(sorted(missing_qualifiers)),
+            provenance=candidate.provenance,
+        )
+
     if query.qualifiers.polarity != candidate.qualifiers.polarity:
         return Residual(
             level=ResidualLevel.CONTRADICTION,
             contradictions=("polarity conflict",),
+            shared_qualifiers=shared_qualifiers,
             provenance=candidate.provenance,
         )
 
@@ -562,6 +643,7 @@ def meet_atom(
                 if role in compared_candidate_state.bindings
             },
             missing_roles=tuple(sorted(missing_roles)),
+            shared_qualifiers=shared_qualifiers,
             provenance=candidate.provenance,
         )
 
@@ -572,6 +654,7 @@ def meet_atom(
             for role, value in joined_role_state.bindings.items()
             if role in compared_candidate_state.bindings
         },
+        shared_qualifiers=shared_qualifiers,
         provenance=candidate.provenance,
     )
 

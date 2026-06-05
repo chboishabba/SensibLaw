@@ -65,6 +65,7 @@ from src.activation import (
 )
 
 from . import receipts as receipts_cli
+from . import code_observer as code_observer_cli
 
 
 def _print_json(data: object, *, sort_keys: bool = False) -> None:
@@ -1716,6 +1717,20 @@ def _handle_wikidata_disjointness_report(args: argparse.Namespace) -> None:
         )
         return
     _print_json(report)
+
+
+def _handle_wikidata_benchmark_matrix(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_benchmark_matrix import run_benchmark_matrix
+
+    report = run_benchmark_matrix(args.manifest, lanes=args.lane, network_mode=args.network_mode)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json({"output": str(args.output), "schema": report["schema"], "status": report["status"]})
+        return
+    _print_json(report, sort_keys=True)
 
 
 def _handle_extract_frl(args: argparse.Namespace) -> None:
@@ -4052,6 +4067,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional path to write the disjointness report JSON",
     )
     wikidata_disjointness_report.set_defaults(func=_handle_wikidata_disjointness_report)
+    wikidata_benchmark_matrix = wikidata_sub.add_parser(
+        "benchmark-matrix",
+        help="Run the cache-only Wikidata benchmark lane matrix",
+    )
+    wikidata_benchmark_matrix.add_argument("--manifest", type=Path)
+    wikidata_benchmark_matrix.add_argument(
+        "--lane",
+        action="append",
+        choices=["projection", "review", "live-cached", "hotspot-eval", "baseline-compare"],
+    )
+    wikidata_benchmark_matrix.add_argument(
+        "--network-mode",
+        choices=["cache-only", "live-refresh"],
+        default="cache-only",
+    )
+    wikidata_benchmark_matrix.add_argument("--output", type=Path)
+    wikidata_benchmark_matrix.set_defaults(func=_handle_wikidata_benchmark_matrix)
+
+    code_observer_cli.add_parser(sub)
 
     pdf_fetch = sub.add_parser("pdf-fetch", help="Ingest a PDF and extract rules")
     pdf_fetch.add_argument("path", type=Path)

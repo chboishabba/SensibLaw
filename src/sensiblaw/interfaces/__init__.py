@@ -65,6 +65,15 @@ from .shared_reducer import (
     tokenize_canonical_with_spans,
 )
 from .story_importer import StoryImporter
+from .story_pnf_receipts import (
+    CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA,
+    AUTHORITY_BOUNDARY,
+    STORY_PNF_RECEIPTS_SCHEMA,
+    SUPPORTED_SOURCE_PROFILES,
+    collect_canonical_story_pnf_receipts,
+    build_classification_discovery_lattice,
+    render_classification_discovery_lattice_png,
+)
 from .text_adapter import build_canonical_conversation_text
 
 _staged_exports = []
@@ -135,6 +144,8 @@ else:
 
 __all__ = [
     "CandidateResidual",
+    "AUTHORITY_BOUNDARY",
+    "CLASSIFICATION_DISCOVERY_LATTICE_SCHEMA",
     "InteractionMode",
     "InteractionProjectionReceipt",
     "LexemeOccurrence",
@@ -155,10 +166,13 @@ __all__ = [
     "RoleState",
     "SIGNAL_STATE_VERSION",
     "SUPPORTED_EXTRACTION_PROFILE",
+    "STORY_PNF_RECEIPTS_SCHEMA",
     "SignalAtom",
     "SignalSpan",
     "SignalState",
     "StoryImporter",
+    "SUPPORTED_SOURCE_PROFILES",
+    "build_classification_discovery_lattice",
     "StructureOccurrence",
     "TimeRangeHeader",
     "TypedArg",
@@ -179,6 +193,7 @@ __all__ = [
     "collect_canonical_predicate_pnfs",
     "collect_canonical_predicate_pnfs_from_units",
     "collect_canonical_relational_bundle",
+    "collect_canonical_story_pnf_receipts",
     "collect_canonical_structural_ir_feed",
     "collect_canonical_structural_ir_feed_from_units",
     "collect_canonical_structure_occurrences",
@@ -211,4 +226,5 @@ __all__ = [
     "tokenize_canonical_detailed",
     "tokenize_canonical_with_spans",
     "tokenize_presemantic_text",
+    "render_classification_discovery_lattice_png",
 ] + _staged_exports

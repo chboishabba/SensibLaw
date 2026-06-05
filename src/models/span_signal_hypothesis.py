@@ -33,5 +33,20 @@ class SpanSignalHypothesis:
             "metadata": self.metadata or {},
         }
 
+    def to_lexical_hint_record(self) -> Dict[str, Any]:
+        """Serialize regex/scan output as a non-semantic lexical hint."""
+
+        record = self.to_record()
+        record.update(
+            {
+                "schema": "lexical_hint_v1",
+                "hint_kind": "span_signal",
+                "pnf_candidates": [],
+                "non_authoritative": True,
+                "bounded": True,
+            }
+        )
+        return record
+
 
 __all__ = ["SpanSignalHypothesis"]
