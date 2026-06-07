@@ -17,6 +17,17 @@
 # Changelog
 
 ## Unreleased
+- Added and formalism-reviewed the affidavit/Wikidata typed reconciliation
+  slice. The new contract and helper normalize proposition/response rows,
+  object-type assertions, and Wikidata statement rows under the canonical
+  affidavit relation vocabulary while keeping relation labels, roots, buckets,
+  evidence state, and proof promotion separate. The pinned examples cover
+  `walked the dog` versus `did not walk the dog` as `explicit_dispute`,
+  `6 is a 1-morphism` as witness/context pending unless a typing context and
+  rule are supplied, and Wikidata rows as provenance carriers with
+  `truth_claimed = false`, `live_edit_authority = false`, and non-promoting
+  `promotion_state`. Caller-supplied relation hints are marked
+  `relation_derivation = caller_hint`.
 - Added a suite-wide story PNF fanout boundary note documenting how the planned
   `collect_canonical_story_pnf_receipts(...)` helper should reuse the existing
   regex authority contract, utterance latent-fibre evidence layer, observer

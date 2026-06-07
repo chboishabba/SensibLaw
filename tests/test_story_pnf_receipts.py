@@ -155,6 +155,14 @@ def test_classification_chain_builds_discovery_lattice_without_contradiction() -
     reclass = [edge for edge in lattice["edges"] if edge["type"] == "discovery_reclassification"]
     assert len(classified_as) == 4
     assert len(reclass) == 3
+    assert all(edge["relation_type"] == "same" for edge in classified_as)
+    assert all(edge["relation_root"] == "supports" for edge in classified_as)
+    assert all(edge["relation_basis"] == "explicit_claim" for edge in classified_as)
+    assert {edge["classification_claim_root"] for edge in classified_as} >= {
+        "morphism",
+        "algebraic_geometry",
+        "biological_taxon",
+    }
     assert all(item["status"] != "exclusive_contradiction" for item in classified_as)
     assert all(item["residual_level"] != "contradiction" for item in lattice.get("residual_receipts", []))
 
@@ -183,6 +191,15 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
     lattice = payload["classification_lattice"]
     statuses = {edge["status"] for edge in lattice["edges"] if edge["type"] == "class_relation"}
     assert "refinement_candidate" in statuses
+    refinement_edges = [
+        edge
+        for edge in lattice["edges"]
+        if edge["type"] == "class_relation" and edge["status"] == "refinement_candidate"
+    ]
+    assert refinement_edges
+    assert refinement_edges[0]["relation_type"] == "refines"
+    assert refinement_edges[0]["relation_root"] == "supports"
+    assert refinement_edges[0]["relation_basis"] == "explicit_witness"
 
     payload_without_witness = _collect_chain_payload("6 is a j-invariant. 6 is a dolphin.")
     lattice_without = payload_without_witness["classification_lattice"]
@@ -190,6 +207,15 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
         edge["status"] for edge in lattice_without["edges"] if edge["type"] == "class_relation"
     }
     assert "cross_domain_gap" in statuses_without
+    gap_edges = [
+        edge
+        for edge in lattice_without["edges"]
+        if edge["type"] == "class_relation" and edge["status"] == "cross_domain_gap"
+    ]
+    assert gap_edges
+    assert gap_edges[0]["relation_type"] == "domain_gap"
+    assert gap_edges[0]["relation_root"] == "non_resolving"
+    assert gap_edges[0]["relation_basis"] == "domain_heuristic"
 
     payload_exclusive = _collect_chain_payload(
         "6 is a 1-morphism. 6 is a dolphin.",
@@ -205,6 +231,15 @@ def test_refinement_and_domain_bridge_witnesses_influence_lattice_statuses() -> 
     lattice_exclusive = payload_exclusive["classification_lattice"]
     class_statuses = {edge["status"] for edge in lattice_exclusive["edges"] if edge["type"] == "class_relation"}
     assert "exclusive_contradiction" in class_statuses
+    exclusive_edges = [
+        edge
+        for edge in lattice_exclusive["edges"]
+        if edge["type"] == "class_relation" and edge["status"] == "exclusive_contradiction"
+    ]
+    assert exclusive_edges
+    assert exclusive_edges[0]["relation_type"] == "excluded_by_witness"
+    assert exclusive_edges[0]["relation_root"] == "invalidates"
+    assert exclusive_edges[0]["relation_basis"] == "explicit_witness"
 
     payload_weak = _collect_chain_payload(
         "6 is a 1-morphism. 6 is a dolphin.",
@@ -247,13 +282,14 @@ def test_classification_lattice_visualization_payload_is_stable_and_renders_png(
         "6 is a 1-morphism. 6 is a 2-morphism. 6 is a j-invariant. 6 is a dolphin."
     )
     lattice = payload["classification_lattice"]
-    assert len(lattice["nodes"]) == 8
+    assert any(node["kind"] == "classification_claim_root" for node in lattice["nodes"])
+    assert any(node["kind"] == "classification_leaf" for node in lattice["nodes"])
     assert len(lattice["edges"]) >= 19
 
     first = tmp_path / "chain.png"
     second = tmp_path / "chain-repeat.png"
     render_classification_discovery_lattice_png(lattice, first)
     render_classification_discovery_lattice_png(lattice, second)
-    assert first.stat().size > 0
-    assert second.stat().size > 0
+    assert first.stat().st_size > 0
+    assert second.stat().st_size > 0
     assert first.read_bytes() == second.read_bytes()

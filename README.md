@@ -46,6 +46,9 @@ SensibLaw currently provides:
 - deterministic review/report surfaces instead of free-form narrative output
 - provenance-backed JSON artifacts and handoff bundles
 - bounded Wikidata diagnostics over pinned slices
+- typed claim reconciliation for affidavit-style proposition/response rows,
+  object-type assertions, and Wikidata statement rows, with relation labels
+  separated from proof promotion
 - a first deterministic semantic-memory helper that turns supplied atoms,
   grounding rows, and ontology closure paths into private retrieval records
   with explanation paths
@@ -53,6 +56,42 @@ SensibLaw currently provides:
   workflow metadata rather than legal truth or decision authority
 - export/handoff paths into downstream reasoning and review layers such as
   Zelph
+
+## Typed Claim Reconciliation Boundary
+
+The current typed reconciliation slice is documented in
+`docs/planning/affidavit_wikidata_typed_reconciliation_contract_20260606.md`
+and implemented in `src/fact_intake/typed_claim_reconciliation.py`.
+
+It exists to keep the affidavit/Wikidata lane aligned with the DASHI formal
+objects without importing theorem or truth authority. Its finite relation
+labels are the affidavit-style labels:
+
+- `exact_support`
+- `equivalent_support`
+- `explicit_dispute`
+- `implicit_dispute`
+- `partial_overlap`
+- `adjacent_event`
+- `substitution`
+- `procedural_nonanswer`
+- `unrelated`
+
+The practical examples are intentionally small:
+
+- `Alex walked the dog` versus `Alex did not walk the dog` reduces to
+  `explicit_dispute`, root `invalidates`, bucket `disputed`, with no proof
+  promotion and no truth decision.
+- `6 is a 1-morphism` is an object-type assertion, not a relation proof. It
+  remains `typing_context_missing` / `witness_pending` unless a named category
+  or bicategory context and typing rule are supplied.
+- Wikidata rows are QID/PID/value evidence carriers. Rank and deprecation are
+  operational metadata only; rows explicitly carry `truth_claimed = false`,
+  `live_edit_authority = false`, and non-promoting `promotion_state`.
+
+Caller-supplied relation hints are permitted as evidence metadata, but they are
+machine-marked with `relation_derivation = caller_hint` so they cannot be
+mistaken for derived reconciliation.
 
 ## Observation Substrate Doctrine
 
