@@ -39,6 +39,16 @@ from .residual_lattice import (
     join_typed_args,
     meet_atom,
 )
+from .dashi_carrier_motif_spine import (
+    CARRIER_MOTIF_MODIFIER_KEY,
+    CARRIER_MOTIF_SCHEMA,
+    CarrierMotif,
+    CarrierMotifAnnotation,
+    CarrierRole,
+    ProjectionTarget,
+    attach_carrier_motif_modifier,
+    coerce_carrier_motif_annotation,
+)
 from .utterance_latent_fibres import (
     LATENT_FIBRE_INDEX_SCHEMA,
     LatentFibreCandidate,
@@ -83,6 +93,14 @@ __all__ = [
     "join_residual",
     "join_typed_args",
     "meet_atom",
+    "CARRIER_MOTIF_MODIFIER_KEY",
+    "CARRIER_MOTIF_SCHEMA",
+    "CarrierMotif",
+    "CarrierMotifAnnotation",
+    "CarrierRole",
+    "ProjectionTarget",
+    "attach_carrier_motif_modifier",
+    "coerce_carrier_motif_annotation",
     "LATENT_FIBRE_INDEX_SCHEMA",
     "LatentFibreCandidate",
     "UtteranceLatentIndex",
