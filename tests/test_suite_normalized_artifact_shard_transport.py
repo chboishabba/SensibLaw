@@ -19,12 +19,19 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
                 "sink_uri": "hf://datasets/zelph/private",
                 "object_uri": "hf://objects/zelph/private-object",
                 "criteria": {"kind": "shared-shard"},
+                "raw_text": "should not surface",
+                "full_receipts": [{"receipt_id": "r:1"}],
+                "spans": [{"start": 1, "end": 2}],
+                "support_count": 2,
+                "contradiction_count": 1,
             },
             {
                 "selector_kind": "section",
                 "selector_id": "sel:2",
                 "sink_uris": ["hf://datasets/zelph/other"],
                 "transport_object_uri": "hf://objects/zelph/section-object",
+                "criteria": {"kind": "section", "span": {"start": 3, "end": 4}},
+                "diagnostics": {"trace": "noisy"},
             },
         ],
         selected_shard_ids=["shard:1", "shard:2", "shard:1"],
@@ -35,6 +42,8 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
             "source_run_id": "run:9",
             "sink_uri": "hf://datasets/zelph/sink",
             "object_uri": "hf://objects/zelph/sink-object",
+            "raw_text": "should not surface",
+            "diagnostics": {"trace": "noisy"},
         },
     )
 
@@ -100,6 +109,7 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
         {
             "selector_kind": "section",
             "selector_id": "sel:2",
+            "criteria": {"kind": "section"},
         },
     ]
     assert artifact["route_selectors"] == artifact["selectors"]
@@ -118,9 +128,82 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
         "selected_section_count": 3,
     }
 
+    projection = artifact["review_packet_projection"]
+    assert projection == {
+        "authority_label": "transport_view",
+        "authority_boundary": {
+            "authority_class": "transport_view",
+            "candidate_only": True,
+            "derived": True,
+            "partial_view": True,
+            "transport_only": True,
+            "complete_closure": False,
+            "excludes": [
+                "raw_text",
+                "full_receipts",
+                "spans",
+                "sink/object_uris",
+                "bulky_diagnostics",
+            ],
+        },
+        "candidate_facts": [
+            {"fact_kind": "selected_shard", "fact_ref": "shard:1"},
+            {"fact_kind": "selected_shard", "fact_ref": "shard:2"},
+            {"fact_kind": "selected_shard", "fact_ref": "shard:1"},
+            {"fact_kind": "selected_section", "fact_ref": "intro"},
+            {"fact_kind": "selected_section", "fact_ref": "methods"},
+            {"fact_kind": "selected_section", "fact_ref": "intro"},
+        ],
+        "candidate_refs": ["sel:1", "sel:2"],
+        "route_selectors": [
+            {
+                "selector_kind": "metadata",
+                "selector_id": "sel:1",
+                "criteria": {"kind": "shared-shard"},
+                "support_count": 2,
+                "contradiction_count": 1,
+            },
+            {
+                "selector_kind": "section",
+                "selector_id": "sel:2",
+                "criteria": {"kind": "section"},
+            },
+        ],
+        "citations": ["sel:1", "sel:2"],
+        "provenance_refs": [
+            "upstream:root",
+            "upstream:delta",
+            "zelph:artifact:1",
+            "rev-2026-06-22",
+            "build:42",
+            "run:9",
+            "semantic_context.suite_normalized_artifact",
+        ],
+        "support_count": 2,
+        "contradiction_count": 1,
+        "artifact_ref": "zelph:artifact:1",
+        "artifact_revision": "rev-2026-06-22",
+        "artifact_class": "shared_shard_transport",
+        "source_system": "Zelph-HF",
+    }
+
     assert artifact["authority"]["promotion_receipt_ref"] is None
     assert "zelph:artifact:1" not in artifact["lineage"]["upstream_artifact_ids"]
-    assert "sink_uri" not in json.dumps(artifact)
-    assert "sink_uris" not in json.dumps(artifact)
-    assert "object_uri" not in json.dumps(artifact)
-    assert "object_uris" not in json.dumps(artifact)
+    artifact_json = json.dumps(artifact)
+    assert "hf://datasets/zelph/private" not in artifact_json
+    assert "hf://objects/zelph/private-object" not in artifact_json
+    assert "hf://datasets/zelph/other" not in artifact_json
+    assert "hf://objects/zelph/section-object" not in artifact_json
+    assert "hf://datasets/zelph/sink" not in artifact_json
+    assert "hf://objects/zelph/sink-object" not in artifact_json
+    assert "should not surface" not in artifact_json
+    assert "noisy" not in artifact_json
+    assert "r:1" not in artifact_json
+    assert all(
+        "span" not in selector.get("criteria", {})
+        for selector in artifact["review_packet_projection"]["route_selectors"]
+    )
+    assert all(
+        "raw_text" not in selector and "full_receipts" not in selector and "diagnostics" not in selector
+        for selector in artifact["review_packet_projection"]["route_selectors"]
+    )

@@ -28,6 +28,78 @@ def _nonempty_strings(values: Sequence[Any]) -> list[str]:
     return seen
 
 
+_TRANSPORT_REVIEW_PACKET_EXCLUDED_FIELDS = {
+    "body",
+    "char_end",
+    "char_start",
+    "content",
+    "diagnostic",
+    "diagnostics",
+    "end",
+    "excerpt",
+    "excerpt_text",
+    "full_receipt",
+    "full_receipts",
+    "full_text",
+    "graph_diagnostics",
+    "logs",
+    "message",
+    "object_uri",
+    "object_uris",
+    "object_url",
+    "object_urls",
+    "raw_text",
+    "receipt",
+    "receipts",
+    "span",
+    "span_end",
+    "span_start",
+    "spans",
+    "start",
+    "text",
+    "token_end",
+    "token_start",
+    "sink_uri",
+    "sink_uris",
+    "sink_url",
+    "sink_urls",
+    "trace",
+    "transport_object_uri",
+    "transport_object_uris",
+    "transport_sink_uri",
+    "transport_sink_uris",
+}
+
+
+def _strip_transport_review_packet_fields(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        normalized: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if key_text in _TRANSPORT_REVIEW_PACKET_EXCLUDED_FIELDS:
+                continue
+            normalized[key_text] = _strip_transport_review_packet_fields(item)
+        return normalized
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_strip_transport_review_packet_fields(item) for item in value]
+    return value
+
+
+def _normalize_transport_projection_refs(values: Sequence[Any]) -> list[str]:
+    return _nonempty_strings(values)
+
+
+def _optional_projection_count(
+    *sources: Mapping[str, Any],
+    keys: Sequence[str],
+) -> int | None:
+    for source in sources:
+        for key in keys:
+            if key in source:
+                return _int(source.get(key))
+    return None
+
+
 def _normalize_text_ref(candidate: Mapping[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(candidate, Mapping):
         return None
@@ -546,35 +618,136 @@ def build_affidavit_coverage_review_normalized_artifact(
 
 
 def _strip_sink_uri_fields(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        normalized: dict[str, Any] = {}
-        for key, item in value.items():
-            key_text = str(key)
-            if key_text in {
-                "sink_uri",
-                "sink_uris",
-                "sink_url",
-                "sink_urls",
-                "object_uri",
-                "object_uris",
-                "object_url",
-                "object_urls",
-                "transport_sink_uri",
-                "transport_sink_uris",
-                "transport_object_uri",
-                "transport_object_uris",
-            }:
-                continue
-            normalized[key_text] = _strip_sink_uri_fields(item)
-        return normalized
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_strip_sink_uri_fields(item) for item in value]
-    return value
+    return _strip_transport_review_packet_fields(value)
+
+
+def _build_transport_review_packet_projection(
+    *,
+    artifact_id: str,
+    artifact_revision: str,
+    artifact_class: str,
+    selectors: Sequence[Any],
+    selected_shard_ids: Sequence[str],
+    selected_sections: Sequence[str],
+    upstream_artifact_ids: Sequence[str],
+    build_provenance: Mapping[str, Any] | None,
+    source_system: str,
+) -> dict[str, Any]:
+    provenance_source = dict(build_provenance) if isinstance(build_provenance, Mapping) else {}
+    normalized_selectors = [
+        _strip_transport_review_packet_fields(selector)
+        for selector in selectors
+        if isinstance(selector, Mapping)
+    ]
+    candidate_facts = [
+        {"fact_kind": "selected_shard", "fact_ref": shard_id}
+        for shard_id in selected_shard_ids
+    ]
+    candidate_facts.extend(
+        {"fact_kind": "selected_section", "fact_ref": section_id}
+        for section_id in selected_sections
+    )
+    candidate_refs = _normalize_transport_projection_refs(
+        [selector.get("selector_id") for selector in selectors if isinstance(selector, Mapping)]
+    )
+    provenance_refs = _normalize_transport_projection_refs(
+        [
+            *upstream_artifact_ids,
+            artifact_id,
+            artifact_revision,
+            provenance_source.get("build_id"),
+            provenance_source.get("source_run_id"),
+            provenance_source.get("source_artifact_id"),
+            provenance_source.get("anchor_ref"),
+            "semantic_context.suite_normalized_artifact",
+        ]
+    )
+    citation_refs = _normalize_transport_projection_refs(
+        [
+            *candidate_refs,
+            *[
+                ref
+                for selector in selectors
+                if isinstance(selector, Mapping)
+                for ref in (
+                    [selector.get("citation_ref")]
+                    + (
+                        list(selector.get("citation_refs"))
+                        if isinstance(selector.get("citation_refs"), Sequence)
+                        and not isinstance(selector.get("citation_refs"), (str, bytes, bytearray))
+                        else []
+                    )
+                    + (
+                        list(selector.get("provenance_refs"))
+                        if isinstance(selector.get("provenance_refs"), Sequence)
+                        and not isinstance(selector.get("provenance_refs"), (str, bytes, bytearray))
+                        else []
+                    )
+                )
+            ],
+        ]
+    )
+    support_count = _optional_projection_count(
+        provenance_source,
+        *[selector for selector in selectors if isinstance(selector, Mapping)],
+        keys=("support_count", "supported_count", "supporting_count"),
+    )
+    contradiction_count = _optional_projection_count(
+        provenance_source,
+        *[selector for selector in selectors if isinstance(selector, Mapping)],
+        keys=(
+            "contradiction_count",
+            "contradicted_count",
+            "contradicting_count",
+            "counter_count",
+            "opposition_count",
+        ),
+    )
+    projection: dict[str, Any] = {
+        "authority_label": "transport_view",
+        "authority_boundary": {
+            "authority_class": "transport_view",
+            "candidate_only": True,
+            "derived": True,
+            "partial_view": True,
+            "transport_only": True,
+            "complete_closure": False,
+            "excludes": [
+                "raw_text",
+                "full_receipts",
+                "spans",
+                "sink/object_uris",
+                "bulky_diagnostics",
+            ],
+        },
+        "candidate_facts": candidate_facts,
+        "candidate_refs": candidate_refs,
+        "route_selectors": normalized_selectors,
+        "citations": citation_refs,
+        "provenance_refs": provenance_refs,
+        "artifact_ref": artifact_id,
+        "artifact_revision": artifact_revision,
+        "artifact_class": artifact_class,
+        "source_system": source_system,
+    }
+    if support_count is not None:
+        projection["support_count"] = support_count
+    if contradiction_count is not None:
+        projection["contradiction_count"] = contradiction_count
+    return projection
 
 
 def _normalize_zelph_selector(selector: Any) -> Any:
     if isinstance(selector, Mapping):
-        return _strip_sink_uri_fields(selector)
+        normalized = dict(_strip_transport_review_packet_fields(selector))
+        normalized.pop("support_count", None)
+        normalized.pop("contradiction_count", None)
+        normalized.pop("supported_count", None)
+        normalized.pop("contradicted_count", None)
+        normalized.pop("contradicting_count", None)
+        normalized.pop("counter_count", None)
+        normalized.pop("opposition_count", None)
+        return normalized
     return selector
 
 
@@ -604,7 +777,18 @@ def build_zelph_shard_transport_normalized_artifact(
     normalized_sections = _nonempty_texts(selected_sections)
     normalized_upstream_artifact_ids = _nonempty_texts(upstream_artifact_ids or [])
     normalized_build_provenance = (
-        _strip_sink_uri_fields(build_provenance) if isinstance(build_provenance, Mapping) else None
+        _strip_transport_review_packet_fields(build_provenance) if isinstance(build_provenance, Mapping) else None
+    )
+    review_packet_projection = _build_transport_review_packet_projection(
+        artifact_id=artifact_id,
+        artifact_revision=artifact_revision,
+        artifact_class=artifact_class,
+        selectors=selectors,
+        selected_shard_ids=normalized_shard_ids,
+        selected_sections=normalized_sections,
+        upstream_artifact_ids=normalized_upstream_artifact_ids,
+        build_provenance=build_provenance,
+        source_system=source_system or "Zelph-HF",
     )
 
     artifact = {
@@ -659,6 +843,7 @@ def build_zelph_shard_transport_normalized_artifact(
         "route_selectors": normalized_selectors,
         "selected_shard_ids": normalized_shard_ids,
         "selected_sections": normalized_sections,
+        "review_packet_projection": review_packet_projection,
         "summary": {
             "artifact_class": artifact_class,
             "artifact_revision": artifact_revision,
