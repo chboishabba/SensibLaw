@@ -367,13 +367,55 @@ def enrich_workbench_with_zelph(
         else:
             rule_status = str(engine_result["status"])
 
-    enriched = _apply_inferred_triples(workbench, _dedupe_triples(triples))
+    enriched = _apply_inferred_triples(workbench, _resolve_wiki_sentinel_bindings(_dedupe_triples(triples)))
     enriched["zelph"] = {
         **enriched["zelph"],
         "rule_status": rule_status,
         "engine": engine_result,
     }
     return enriched
+
+
+def _resolve_wiki_sentinel_bindings(triples: list[dict[str, str]]) -> list[dict[str, str]]:
+    reversion_subjects = {
+        str(triple.get("subject") or "").strip()
+        for triple in triples
+        if str(triple.get("predicate") or "") == "signal_class"
+        and str(triple.get("object") or "") == "reversion_edit"
+        and str(triple.get("subject") or "").strip()
+    }
+    bound_users = {
+        str(triple.get("object") or "").strip()
+        for triple in triples
+        if str(triple.get("predicate") or "") == "by user"
+        and str(triple.get("subject") or "").strip() in reversion_subjects
+        and str(triple.get("object") or "").strip()
+    }
+    if not bound_users:
+        return triples
+
+    resolved: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for triple in triples:
+        subject = str(triple.get("subject") or "").strip()
+        predicate = str(triple.get("predicate") or "").strip()
+        obj = str(triple.get("object") or "").strip()
+        if subject == "U" and predicate == "is" and obj == "wiki sentinel":
+            continue
+        key = (subject, predicate, obj)
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved.append({"subject": subject, "predicate": predicate, "object": obj})
+
+    for user in sorted(bound_users):
+        key = (user, "is", "wiki sentinel")
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved.append({"subject": user, "predicate": "is", "object": "wiki sentinel"})
+
+    return resolved
 
 
 def _dedupe_triples(triples: list[dict[str, str]]) -> list[dict[str, str]]:

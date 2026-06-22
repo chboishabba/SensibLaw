@@ -543,3 +543,120 @@ def build_affidavit_coverage_review_normalized_artifact(
     if text_ref:
         artifact["text_ref"] = text_ref
     return artifact
+
+
+def _strip_sink_uri_fields(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        normalized: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if key_text in {
+                "sink_uri",
+                "sink_uris",
+                "sink_url",
+                "sink_urls",
+                "transport_sink_uri",
+                "transport_sink_uris",
+            }:
+                continue
+            normalized[key_text] = _strip_sink_uri_fields(item)
+        return normalized
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_strip_sink_uri_fields(item) for item in value]
+    return value
+
+
+def _normalize_zelph_selector(selector: Any) -> Any:
+    if isinstance(selector, Mapping):
+        return _strip_sink_uri_fields(selector)
+    return selector
+
+
+def _nonempty_texts(values: Sequence[Any]) -> list[str]:
+    normalized: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            normalized.append(text)
+    return normalized
+
+
+def build_zelph_shard_transport_normalized_artifact(
+    *,
+    artifact_id: str,
+    artifact_revision: str,
+    artifact_class: str,
+    selectors: Sequence[Any],
+    selected_shard_ids: Sequence[Any],
+    selected_sections: Sequence[Any],
+    upstream_artifact_ids: Sequence[Any] | None = None,
+    build_provenance: Mapping[str, Any] | None = None,
+    source_system: str = "Zelph-HF",
+) -> dict[str, Any]:
+    normalized_selectors = [_normalize_zelph_selector(selector) for selector in selectors]
+    normalized_shard_ids = _nonempty_texts(selected_shard_ids)
+    normalized_sections = _nonempty_texts(selected_sections)
+    normalized_upstream_artifact_ids = _nonempty_texts(upstream_artifact_ids or [])
+    normalized_build_provenance = (
+        _strip_sink_uri_fields(build_provenance) if isinstance(build_provenance, Mapping) else None
+    )
+
+    artifact = {
+        "schema_version": SUITE_NORMALIZED_ARTIFACT_SCHEMA_VERSION,
+        "artifact_role": "transport_view",
+        "artifact_id": artifact_id,
+        "canonical_identity": {
+            "identity_class": "zelph_shard_transport",
+            "identity_key": f"{artifact_class}:{artifact_id}:{artifact_revision}",
+            "aliases": [
+                artifact_id,
+                artifact_revision,
+                artifact_class,
+            ],
+        },
+        "provenance_anchor": {
+            "source_system": source_system or "Zelph-HF",
+            "source_artifact_id": artifact_id,
+            "anchor_kind": "zelph_shard_transport",
+            "anchor_ref": "semantic_context.suite_normalized_artifact",
+        },
+        "context_envelope_ref": {
+            "envelope_id": artifact_id,
+            "envelope_kind": "zelph_shard_transport",
+        },
+        "authority": {
+            "authority_class": "transport_view",
+            "candidate": True,
+            "derived": True,
+            "transport_only": True,
+            "promotion_receipt_ref": None,
+        },
+        "lineage": {
+            "upstream_artifact_ids": normalized_upstream_artifact_ids,
+            "build_provenance": normalized_build_provenance or {},
+            "artifact_revision": artifact_revision,
+            "artifact_class": artifact_class,
+        },
+        "invariants": {
+            "partial_view": True,
+            "subset_of_artifact": True,
+            "complete_closure": False,
+            "truth_authority": False,
+            "promotion_authority": False,
+        },
+        "selectors": normalized_selectors,
+        "selected_shard_ids": normalized_shard_ids,
+        "selected_sections": normalized_sections,
+        "summary": {
+            "artifact_class": artifact_class,
+            "artifact_revision": artifact_revision,
+            "source_system": source_system or "Zelph-HF",
+            "partial_view": True,
+            "partial_load": True,
+            "candidate_only": True,
+            "selector_count": len(normalized_selectors),
+            "selected_shard_count": len(normalized_shard_ids),
+            "selected_section_count": len(normalized_sections),
+        },
+    }
+    return artifact

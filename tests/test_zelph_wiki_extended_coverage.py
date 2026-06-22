@@ -189,16 +189,18 @@ def test_zelph_db_atom_ingest_and_sentinel_inference() -> None:
 
     # 2. Verify Zelph bridge generated engine output for the atom 
     triples = workbench["zelph"]["triples"]
-    print(f"DEBUG: SENTINEL TRIPLES: {json.dumps(triples, indent=2)}")
 
-    # Check that the logic inferring Sentinel33 as a wiki sentinel successfully ran
-    sentinel_inferred = False
-    for t in triples:
-        if t["subject"] == "Sentinel33" and t["predicate"] == "is" and t["object"] == "wiki sentinel":
-            sentinel_inferred = True
-            break
+    sentinel_inferred = any(
+        t["subject"] == "Sentinel33" and t["predicate"] == "is" and t["object"] == "wiki sentinel"
+        for t in triples
+    )
+    leaked_generic_u = any(
+        t["subject"] == "U" and t["predicate"] == "is" and t["object"] == "wiki sentinel"
+        for t in triples
+    )
 
     assert sentinel_inferred, f"Zelph failed to use recursive lists to deduce Sentinel33 is a wiki sentinel. Triples: {json.dumps(triples, indent=2)}"
+    assert not leaked_generic_u, f"Zelph leaked an unbound wiki-sentinel variable. Triples: {json.dumps(triples, indent=2)}"
 
 def test_zelph_identifies_authority_transfer_risk() -> None:
     conn = sqlite3.connect(":memory:")
