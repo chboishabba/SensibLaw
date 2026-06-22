@@ -3521,7 +3521,10 @@ def _extract_bundle_unit(raw: Mapping[str, Any]) -> str | None:
     if unit is None and isinstance(raw.get("mainsnak"), Mapping):
         mainsnak = raw.get("mainsnak")
         if isinstance(mainsnak, Mapping) and isinstance(mainsnak.get("datavalue"), Mapping):
-            unit = mainsnak.get("datavalue", {}).get("value", {}).get("unit")
+            datavalue = mainsnak.get("datavalue", {})
+            value = datavalue.get("value") if isinstance(datavalue, Mapping) else None
+            if isinstance(value, Mapping):
+                unit = value.get("unit")
     if unit is None:
         return None
     normalized = _stringify(unit).strip()
