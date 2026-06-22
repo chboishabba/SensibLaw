@@ -17,12 +17,14 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
                 "selector_kind": "metadata",
                 "selector_id": "sel:1",
                 "sink_uri": "hf://datasets/zelph/private",
+                "object_uri": "hf://objects/zelph/private-object",
                 "criteria": {"kind": "shared-shard"},
             },
             {
                 "selector_kind": "section",
                 "selector_id": "sel:2",
                 "sink_uris": ["hf://datasets/zelph/other"],
+                "transport_object_uri": "hf://objects/zelph/section-object",
             },
         ],
         selected_shard_ids=["shard:1", "shard:2", "shard:1"],
@@ -32,6 +34,7 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
             "build_id": "build:42",
             "source_run_id": "run:9",
             "sink_uri": "hf://datasets/zelph/sink",
+            "object_uri": "hf://objects/zelph/sink-object",
         },
     )
 
@@ -66,6 +69,12 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
     assert "admissibility" not in authority
     assert "promotion_authority" not in authority
 
+    assert artifact["non_authority_flags"] == {
+        "truth_authority": False,
+        "promotion_authority": False,
+        "transport_authority": False,
+    }
+
     assert artifact["invariants"] == {
         "partial_view": True,
         "subset_of_artifact": True,
@@ -93,6 +102,7 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
             "selector_id": "sel:2",
         },
     ]
+    assert artifact["route_selectors"] == artifact["selectors"]
     assert artifact["selected_shard_ids"] == ["shard:1", "shard:2", "shard:1"]
     assert artifact["selected_sections"] == ["intro", "methods", "intro"]
     assert artifact["summary"] == {
@@ -103,6 +113,7 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
         "partial_load": True,
         "candidate_only": True,
         "selector_count": 2,
+        "route_selector_count": 2,
         "selected_shard_count": 3,
         "selected_section_count": 3,
     }
@@ -111,3 +122,5 @@ def test_build_zelph_shard_transport_normalized_artifact_is_candidate_only_and_p
     assert "zelph:artifact:1" not in artifact["lineage"]["upstream_artifact_ids"]
     assert "sink_uri" not in json.dumps(artifact)
     assert "sink_uris" not in json.dumps(artifact)
+    assert "object_uri" not in json.dumps(artifact)
+    assert "object_uris" not in json.dumps(artifact)

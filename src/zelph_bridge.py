@@ -341,7 +341,11 @@ def _apply_inferred_triples(workbench: Mapping[str, Any], triples: list[dict[str
         "version": ZELPH_BRIDGE_VERSION,
         "rule_status": "portable_ok" if inferred_by_fact_id else "portable_noop",
         "facts_serialized_count": len(serialized_fact_lines.splitlines()) if serialized_fact_lines else 0,
-        "inferred_fact_count": sum(1 for payload in inferred_by_fact_id.values() if payload.get("signal_classes")),
+        "inferred_fact_count": sum(
+            1
+            for payload in inferred_by_fact_id.values()
+            if payload.get("signal_classes") or payload.get("source_signal_classes")
+        ),
         "inferred_by_fact_id": inferred_by_fact_id,
         "active_packs": active_packs,
         "triples": triples,

@@ -555,8 +555,14 @@ def _strip_sink_uri_fields(value: Any) -> Any:
                 "sink_uris",
                 "sink_url",
                 "sink_urls",
+                "object_uri",
+                "object_uris",
+                "object_url",
+                "object_urls",
                 "transport_sink_uri",
                 "transport_sink_uris",
+                "transport_object_uri",
+                "transport_object_uris",
             }:
                 continue
             normalized[key_text] = _strip_sink_uri_fields(item)
@@ -631,6 +637,11 @@ def build_zelph_shard_transport_normalized_artifact(
             "transport_only": True,
             "promotion_receipt_ref": None,
         },
+        "non_authority_flags": {
+            "truth_authority": False,
+            "promotion_authority": False,
+            "transport_authority": False,
+        },
         "lineage": {
             "upstream_artifact_ids": normalized_upstream_artifact_ids,
             "build_provenance": normalized_build_provenance or {},
@@ -645,6 +656,7 @@ def build_zelph_shard_transport_normalized_artifact(
             "promotion_authority": False,
         },
         "selectors": normalized_selectors,
+        "route_selectors": normalized_selectors,
         "selected_shard_ids": normalized_shard_ids,
         "selected_sections": normalized_sections,
         "summary": {
@@ -655,6 +667,7 @@ def build_zelph_shard_transport_normalized_artifact(
             "partial_load": True,
             "candidate_only": True,
             "selector_count": len(normalized_selectors),
+            "route_selector_count": len(normalized_selectors),
             "selected_shard_count": len(normalized_shard_ids),
             "selected_section_count": len(normalized_sections),
         },
