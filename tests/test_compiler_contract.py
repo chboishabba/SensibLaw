@@ -8,6 +8,7 @@ from src.policy.compiler_contract import (
     build_gwb_public_handoff_contract,
     build_gwb_public_review_contract,
     build_wikidata_migration_pack_contract,
+    normalize_compiler_contract,
     normalize_promoted_outcomes,
 )
 from src.policy.product_gate import build_product_gate
@@ -146,6 +147,44 @@ def test_build_wikidata_migration_pack_contract() -> None:
     assert payload["derived_products"][0]["role"] == "migration_review_pack"
 
 
+def test_wikidata_shared_gate_record_stays_canonical_and_fail_closed() -> None:
+    compiler_contract = build_wikidata_migration_pack_contract(
+        {
+            "source_slice": {"window_ids": ["t1_previous", "t2_current"]},
+            "summary": {
+                "candidate_count": 4,
+                "checked_safe_subset": ["a", "b"],
+                "abstained": ["d"],
+                "requires_review_count": 1,
+            },
+        }
+    )
+
+    gate = build_product_gate(
+        lane="wikidata_nat",
+        product_ref="wikidata_migration_pack",
+        compiler_contract=compiler_contract,
+    )
+
+    assert gate == {
+        "schema_version": "sl.product_gate.v0_1",
+        "lane": "wikidata_nat",
+        "product_ref": "wikidata_migration_pack",
+        "decision": "audit",
+        "reason": "mixed_promote_review_or_abstain_pressure",
+        "evidence": {
+            "promoted_count": 2,
+            "review_count": 1,
+            "abstained_count": 1,
+            "product_roles": [
+                "migration_review_pack",
+                "checked_safe_export_surface",
+                "bucket_summary",
+            ],
+        },
+    }
+
+
 def test_build_product_gate_promotes_when_only_promoted_pressure_exists() -> None:
     gate = build_product_gate(
         lane="au",
@@ -257,4 +296,70 @@ def test_normalize_promoted_outcomes_fails_closed_on_malformed_input() -> None:
         "review_count": 3,
         "abstained_count": 0,
         "outcome_labels": ["covered", "review_required"],
+    }
+
+
+def test_normalize_compiler_contract_fails_closed_on_partial_malformed_input() -> None:
+    normalized = normalize_compiler_contract(
+        {
+            "lane": " wikidata_nat ",
+            "evidence_bundle": {
+                "bundle_kind": " revision_text_evidence_bundle ",
+                "source_family": None,
+                "source_count": "-2",
+                "item_count": "4",
+                "item_label": " candidate ",
+            },
+            "promoted_outcomes": {
+                "outcome_family": None,
+                "promoted_count": "2",
+                "review_count": object(),
+                "abstained_count": "-1",
+                "outcome_labels": ["checked_safe", "", "checked_safe"],
+            },
+            "derived_products": [
+                {
+                    "product_kind": " packet ",
+                    "role": " migration_review_pack ",
+                    "default_surface": 1,
+                },
+                {
+                    "product_kind": " packet ",
+                    "role": " migration_review_pack ",
+                    "default_surface": True,
+                },
+                {
+                    "product_kind": "",
+                    "role": "ignored",
+                    "default_surface": False,
+                },
+                "not-a-product",
+            ],
+        }
+    )
+
+    assert normalized == {
+        "schema_version": "sl.compiler_contract.v0_1",
+        "lane": "wikidata_nat",
+        "evidence_bundle": {
+            "bundle_kind": "revision_text_evidence_bundle",
+            "source_family": "",
+            "source_count": 0,
+            "item_count": 4,
+            "item_label": "candidate",
+        },
+        "promoted_outcomes": {
+            "outcome_family": "",
+            "promoted_count": 2,
+            "review_count": 0,
+            "abstained_count": 0,
+            "outcome_labels": ["checked_safe"],
+        },
+        "derived_products": [
+            {
+                "product_kind": "packet",
+                "role": "migration_review_pack",
+                "default_surface": True,
+            }
+        ],
     }

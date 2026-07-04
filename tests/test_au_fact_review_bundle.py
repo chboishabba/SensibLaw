@@ -36,6 +36,15 @@ from src.policy.legal_follow_graph import (
     build_au_legal_follow_graph,
     build_au_legal_follow_operator_view,
 )
+from src.policy.au_lane_receipts import (
+    attach_au_fact_review_bundle_linkage_receipt,
+    build_au_fact_review_bundle_with_linkage_receipt,
+)
+from src.policy.au_linkage_depth import (
+    AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
+    build_au_fact_review_bundle_linkage_case,
+)
+from src.policy.linkage_depth import audit_linkage_depth_case
 
 
 def _seed_au_fixture_db(db_path: Path) -> str:
@@ -259,6 +268,11 @@ def test_au_semantic_report_adapts_into_fact_review_bundle(tmp_path: Path) -> No
     assert bundle["compiler_contract"] == bundle["semantic_context"]["compiler_contract"]
     assert bundle["promotion_gate"]["product_ref"] == "au_fact_review_bundle"
     assert bundle["promotion_gate"] == bundle["semantic_context"]["promotion_gate"]
+    assert bundle["operator_workflow_surface"] == bundle["semantic_context"]["operator_workflow_surface"]
+    assert bundle["operator_workflow_surface"]["summary"]["gate_decision"] == bundle["promotion_gate"]["decision"]
+    assert bundle["operator_workflow_surface"]["summary"]["promoted_count"] == bundle["compiler_contract"]["promoted_outcomes"]["promoted_count"]
+    assert bundle["operator_workflow_surface"]["summary"]["review_count"] == bundle["compiler_contract"]["promoted_outcomes"]["review_count"]
+    assert bundle["operator_workflow_surface"]["summary"]["abstained_count"] == bundle["compiler_contract"]["promoted_outcomes"]["abstained_count"]
     assert len(bundle["review_claim_records"]) == len(bundle["review_queue"])
     first_review_claim = bundle["review_claim_records"][0]
     assert first_review_claim["schema_version"] == REVIEW_CLAIM_RECORD_SCHEMA_VERSION
@@ -389,6 +403,9 @@ def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_sub
     assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
     assert report["run_id"] == bundle["run"]["fact_run_id"]
     assert report["semantic_run_id"] == bundle["run"]["semantic_run_id"]
+    assert report["compiler_contract"] == bundle["compiler_contract"]
+    assert report["promotion_gate"] == bundle["promotion_gate"]
+    assert report["operator_workflow_surface"] == bundle["operator_workflow_surface"]
     assert report["summary"]["claim_count"] == len(bundle["review_queue"])
     assert report["summary"]["must_review_count"] == len(bundle["review_queue"])
     first_claim = report["claims"][0]
@@ -399,6 +416,95 @@ def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_sub
     assert first_claim["convergence"]["convergence_state"] == "NORMALIZED"
     assert first_claim["conflict_set"]["conflict_type"] == "none"
     assert first_claim["action_policy"]["actionability"] == "must_review"
+
+
+def test_au_fact_review_bundle_remains_receipt_free(tmp_path: Path) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+
+    assert "linkage_depth_receipt" not in bundle
+
+
+def test_au_fact_review_bundle_lane_wrapper_attaches_linkage_receipt(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    timeline_run_id = _seed_au_fixture_db(db_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_gwb_semantic_schema(conn)
+        ensure_au_semantic_schema(conn)
+        result = run_au_semantic_pipeline(conn)
+        persist_authority_ingest_receipt(
+            conn,
+            {
+                "version": "authority.ingest.v1",
+                "authority_kind": "austlii",
+                "ingest_mode": "known_authority_fetch",
+                "citation": "[1936] HCA 40",
+                "selection_reason": "by_citation:[1936] HCA 40",
+                "resolved_url": "https://www.austlii.edu.au/cgi-bin/viewdoc/au/cases/cth/HCA/1936/40.html",
+                "content_type": "text/html",
+                "content_length": 120,
+                "content_sha256": hashlib.sha256(b"house-v-the-king").hexdigest(),
+                "body_preview_text": "House v The King judgment excerpt discussing the High Court appeal.",
+                "segments": [
+                    {
+                        "segment_kind": "paragraph",
+                        "paragraph_number": 1,
+                        "segment_text": "House v The King concerned an appeal heard by the High Court.",
+                    }
+                ],
+            },
+        )
+        semantic_report = build_au_semantic_report(conn, run_id=result["run_id"])
+        source_payload = load_run_payload_from_normalized(conn, timeline_run_id) or {}
+        source_events = source_payload.get("events") if isinstance(source_payload.get("events"), list) else []
+        payload = build_fact_intake_payload_from_au_semantic_report(semantic_report, timeline_events=source_events)
+        persist_fact_intake_payload(conn, payload)
+        record_fact_workflow_link(
+            conn,
+            workflow_kind="au_semantic",
+            workflow_run_id=result["run_id"],
+            fact_run_id=payload["run"]["run_id"],
+            source_label=payload["run"]["source_label"],
+        )
+        bundle = build_au_fact_review_bundle_with_linkage_receipt(
+            conn,
+            fact_run_id=payload["run"]["run_id"],
+            semantic_report=semantic_report,
+            source_events=source_events,
+        )
+
+    receipt = bundle["linkage_depth_receipt"]
+    assert receipt["contract"]["contract_id"] == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
+    assert receipt["diagnostics"]["linkage_depth_status"] == "complete"
+    assert receipt["diagnostics"]["authority_boundary_visibility"] == "complete"
+    assert receipt["diagnostics"]["instrument_or_jurisdiction_visible"] is True
+    assert receipt["diagnostics"]["candidate_vs_promoted_visibility"] is True
+    assert receipt["diagnostics"]["anchor_to_tranche_reachability"]["all_reachable"] is True
+
+
+def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: Path) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+
+    case = build_au_fact_review_bundle_linkage_case(bundle)
+    audited = audit_linkage_depth_case(case)
+
+    assert case["contract"]["contract_id"] == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
+    assert audited["linkage_depth_status"] == "complete"
+    assert audited["typed_path_depth"] == 7
+    assert audited["authority_boundary_visibility"] == "complete"
+    assert audited["instrument_or_jurisdiction_visible"] is True
+    assert audited["candidate_vs_promoted_visibility"] is True
+    assert any(node["layer"] == "authority_surface" for node in case["nodes"])
+    assert any(node["layer"] == "provision_or_legal_ref_container" for node in case["nodes"])
+
+
+def test_au_fact_review_bundle_linkage_receipt_can_attach_to_existing_bundle(tmp_path: Path) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+
+    wrapped = attach_au_fact_review_bundle_linkage_receipt(bundle)
+
+    assert "linkage_depth_receipt" in wrapped
+    assert "linkage_depth_receipt" not in bundle
 
 
 def test_au_authority_follow_queue_supporting_legislation_counts(tmp_path: Path) -> None:

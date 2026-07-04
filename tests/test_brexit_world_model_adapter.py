@@ -20,6 +20,10 @@ def test_build_brexit_review_world_model_report() -> None:
     assert report["artifact_id"] == payload["normalized_metrics_v1"]["artifact_id"]
     assert report["lane_id"] == payload["promotion_gate"]["lane"]
     assert report["decision"] == payload["promotion_gate"]["decision"]
+    assert report["promotion_gate"] == payload["promotion_gate"]
+    assert report["compiler_contract"] == payload["compiler_contract"]
+    assert report["operator_workflow_surface"]["summary"]["gate_decision"] == payload["promotion_gate"]["decision"]
+    assert report["operator_workflow_surface"]["summary"]["review_count"] == payload["compiler_contract"]["promoted_outcomes"]["review_count"]
     assert report["summary"]["claim_count"] == len(report["claims"])
     assert report["summary"]["archive_claim_count"] == len(payload["archive_follow_rows"])
     assert report["summary"]["review_row_claim_count"] >= 1

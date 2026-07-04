@@ -85,6 +85,34 @@ def test_build_lane_governance_snapshot_carries_legal_follow_pressure_when_prese
     assert snapshot["legal_follow_pressure"]["value"] == "high"
 
 
+def test_build_lane_governance_snapshot_prefers_shared_promotion_gate_when_present() -> None:
+    snapshot = build_lane_governance_snapshot(
+        {
+            "lane_id": "gwb_broader_review",
+            "summary": {
+                "claim_count": 3,
+                "must_review_count": 0,
+                "must_abstain_count": 0,
+            },
+            "claims": [],
+            "promotion_gate": {
+                "lane": "gwb",
+                "product_ref": "gwb_broader_review",
+                "decision": "audit",
+                "reason": "mixed_promote_review_or_abstain_pressure",
+                "evidence": {
+                    "promoted_count": 2,
+                    "review_count": 1,
+                    "abstained_count": 0,
+                    "product_roles": ["operator_review_summary"],
+                },
+            },
+        }
+    )
+
+    assert snapshot["promotion_gate_decision"] == "audit"
+
+
 def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tmp_path: Path) -> None:
     def fake_get(_url: str, **_kwargs):
         raise RuntimeError("dialing blocked")

@@ -10,6 +10,8 @@ from scripts.materialize_wikidata_migration_pack import (
     _resolve_qid_rows,
 )
 from src.ontology.wikidata import build_wikidata_migration_pack, build_wikidata_split_plan
+from src.policy.compiler_contract import build_wikidata_migration_pack_contract
+from src.policy.product_gate import build_product_gate
 
 
 def test_load_qids_from_file_supports_text_lines(tmp_path: Path) -> None:
@@ -244,6 +246,12 @@ def test_materializer_writes_climate_observation_claim_and_enriched_pack(monkeyp
     assert migration_pack["compiler_contract"]["evidence_bundle"]["bundle_kind"] == "revision_text_evidence_bundle"
     assert migration_pack["promotion_gate"]["decision"] in {"promote", "audit", "abstain"}
     assert migration_pack["promotion_gate"]["product_ref"] == "wikidata_migration_pack"
+    assert migration_pack["pilot_metrics"]["candidate_count"] == 1
+    assert migration_pack["readiness_surface"]["state"] == "review_first"
+    assert "pilot_metrics" not in migration_pack["compiler_contract"]
+    assert "readiness_surface" not in migration_pack["compiler_contract"]
+    assert "pilot_metrics" not in migration_pack["promotion_gate"]
+    assert "readiness_surface" not in migration_pack["promotion_gate"]
     assert migration_pack["candidates"][0]["promotion_class"] == "review_only"
     assert migration_pack["candidates"][0]["promotion_eligibility"]["eligible"] is False
     assert migration_pack["candidates"][0]["promotion_gate"]["decision"] == "review_only"
@@ -305,6 +313,12 @@ def test_build_wikidata_migration_pack_marks_climate_direct_rows() -> None:
     assert candidate["phase2_actions"] == []
     assert candidate["normalization_contract"]["phase2_eligible"] is True
     assert migration_pack["summary"]["family_summary"]["C"] == 1
+    assert migration_pack["compiler_contract"] == build_wikidata_migration_pack_contract(migration_pack)
+    assert migration_pack["promotion_gate"] == build_product_gate(
+        lane="wikidata_nat",
+        product_ref="wikidata_migration_pack",
+        compiler_contract=migration_pack["compiler_contract"],
+    )
 
 
 def test_build_wikidata_split_plan_emits_climate_model_axis() -> None:

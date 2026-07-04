@@ -17,6 +17,42 @@
 # Changelog
 
 ## Unreleased
+- Extended the generic linkage-adapter tranche so adapters can now emit
+  lane-local projection and collection fragments without widening the shared
+  audit core. The same adapter kit now powers
+  `src/ontology/wikidata_superclass_linkage.py` for the `Q43229`
+  superclass-pressure lane and `src/policy/brexit_linkage.py` for the bounded
+  Brexit archive/policy-intent lane, while receipt attachment stays at
+  `src/ontology/wikidata_lane_receipts.py` and
+  `src/sources/national_archives/brexit_lane_receipts.py`. Underlying report
+  builders remain receipt-free.
+- Added the first generic linkage-adapter kit in
+  `src/policy/linkage_adapters.py` and used it to land
+  `src/policy/gwb_narrative_linkage.py` as the first adapter-composition proof.
+  The new GWB narrative/timeline receipt composes source, document, parse,
+  candidate, coalescence, authority, external-bridge, and tranche fragments
+  over the shared `src/policy/linkage_depth.py` audit core while keeping
+  `build_gwb_semantic_report(...)` receipt-free and attaching the receipt only
+  in `src/policy/gwb_lane_receipts.py`.
+- Added the Phase G.1 AU linkage-depth adopter on top of the shared
+  `src/policy/linkage_depth.py` control-plane. The new
+  `src/policy/au_linkage_depth.py` and `src/policy/au_lane_receipts.py` keep
+  `build_au_fact_review_bundle(...)` receipt-free while attaching the lane
+  receipt at the wrapper boundary, and the AU contract now proves
+  source/event/legal-ref -> parsed support -> claim candidate -> authority ->
+  review bundle -> tranche depth with additive open-string visibility
+  diagnostics for authority boundaries, instrument/jurisdiction visibility, and
+  candidate-vs-promoted visibility.
+- Extracted the shared linkage-depth control-plane into
+  `src/policy/linkage_depth.py` and moved WD-specific geometry back behind thin
+  compatibility wrappers in `src/ontology/wikidata_linkage_depth.py` and
+  `src/ontology/wikidata_lane_receipts.py`. The same tranche also lands
+  `gwb_broader_review` as the first non-WD adopter through
+  `src/policy/gwb_linkage_depth.py` and `src/policy/gwb_lane_receipts.py`,
+  keeping the underlying world-model builder receipt-free while attaching the
+  lane receipt at the wrapper boundary. Planning docs now freeze the next AU
+  legal authority contract and the later affidavit reconciliation/coverage
+  contract family so the extracted core stays broader than WD geometry.
 - Added and formalism-reviewed the affidavit/Wikidata typed reconciliation
   slice. The new contract and helper normalize proposition/response rows,
   object-type assertions, and Wikidata statement rows under the canonical

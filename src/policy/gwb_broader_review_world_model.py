@@ -7,6 +7,9 @@ from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence
 from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
 from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
+from src.policy.compiler_contract import normalize_compiler_contract
+from src.policy.operator_workflow_surface import build_operator_workflow_surface
+from src.policy.product_gate import normalize_product_gate
 
 
 GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION = "sl.gwb_broader_review_world_model.v0_1"
@@ -65,8 +68,18 @@ def build_gwb_broader_review_world_model_report(payload: Mapping[str, Any]) -> d
     if not artifact_id:
         raise ValueError("GWB broader-review world-model adapter requires artifact_id")
 
-    promotion_gate = payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else {}
+    compiler_contract = normalize_compiler_contract(
+        payload.get("compiler_contract") if isinstance(payload.get("compiler_contract"), Mapping) else None
+    )
+    promotion_gate = normalize_product_gate(
+        payload.get("promotion_gate") if isinstance(payload.get("promotion_gate"), Mapping) else None
+    )
     workflow_summary = payload.get("workflow_summary") if isinstance(payload.get("workflow_summary"), Mapping) else {}
+    operator_workflow_surface = build_operator_workflow_surface(
+        compiler_contract=compiler_contract,
+        promotion_gate=promotion_gate,
+        workflow_summary=workflow_summary,
+    )
     operator_views = payload.get("operator_views") if isinstance(payload.get("operator_views"), Mapping) else {}
     legal_follow_view = (
         operator_views.get("legal_follow_graph")
@@ -99,10 +112,10 @@ def build_gwb_broader_review_world_model_report(payload: Mapping[str, Any]) -> d
                 "verification_status": _as_text(row.get("resolution_status")) or "open",
                 "provenance_chain": {
                     "artifact_id": artifact_id,
-                    "lane": _as_text(promotion_gate.get("lane")) or "gwb",
-                    "promotion_decision": _as_text(promotion_gate.get("decision")),
-                    "workflow_stage": _as_text(workflow_summary.get("stage")),
-                    "recommended_view": _as_text(workflow_summary.get("recommended_view")),
+                    "lane": _as_text(operator_workflow_surface.get("lane")) or "gwb",
+                    "promotion_decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+                    "workflow_stage": _as_text(operator_workflow_surface.get("stage")),
+                    "recommended_view": _as_text(operator_workflow_surface.get("recommended_view")),
                     "route_target": _as_text(row.get("route_target")),
                 },
             }
@@ -133,8 +146,8 @@ def build_gwb_broader_review_world_model_report(payload: Mapping[str, Any]) -> d
             root_artifact_id=artifact_id,
             provenance={
                 "source_family": "gwb_legal_follow",
-                "lane": _as_text(promotion_gate.get("lane")) or "gwb",
-                "workflow_stage": _as_text(workflow_summary.get("stage")),
+                "lane": _as_text(operator_workflow_surface.get("lane")) or "gwb",
+                "workflow_stage": _as_text(operator_workflow_surface.get("stage")),
                 "route_target": _as_text(row.get("route_target")),
             },
             evidence_status=_as_text(row.get("resolution_status")) or "open",
@@ -178,9 +191,13 @@ def build_gwb_broader_review_world_model_report(payload: Mapping[str, Any]) -> d
         "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
         "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
         "artifact_id": artifact_id,
-        "lane_id": _as_text(promotion_gate.get("lane")) or "gwb",
+        "lane_id": _as_text(operator_workflow_surface.get("lane")) or "gwb",
         "family_id": GWB_BROADER_REVIEW_FAMILY_ID,
-        "decision": _as_text(promotion_gate.get("decision")),
+        "decision": _as_text(operator_workflow_surface.get("summary", {}).get("gate_decision")),
+        "compiler_contract": compiler_contract,
+        "promotion_gate": promotion_gate,
+        "workflow_summary": dict(workflow_summary),
+        "operator_workflow_surface": operator_workflow_surface,
         "claims": claims,
         "summary": {
             "claim_count": len(claims),

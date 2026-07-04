@@ -3,8 +3,10 @@ from pathlib import Path
 
 from src.ontology.wikidata_nat_cohort_d_review import (
     WIKIDATA_NAT_COHORT_D_REVIEW_CONTROL_INDEX_SCHEMA_VERSION,
+    _build_control_index_workflow_summary,
     build_wikidata_nat_cohort_d_review_control_index,
 )
+from src.policy.decision_surface import build_decision_surface
 
 
 def _load_fixture(name: str) -> dict:
@@ -53,3 +55,46 @@ def test_cohort_d_review_control_index_builder_accepts_batch_reports() -> None:
     assert len(report["batch_entries"]) == 2
     assert report["workflow_summary"]["stage"] == "inspect"
     assert report["workflow_summary"]["recommended_view"] == "batch_entries"
+
+
+def test_cohort_d_control_index_workflow_summary_uses_shared_decision_surface() -> None:
+    summary = _build_control_index_workflow_summary(
+        all_batches_ready=False,
+        batch_count=2,
+        case_count=5,
+        total_queue_size=3,
+        total_unresolved_packet_ref_count=1,
+        promotion_guard="hold",
+    )
+
+    assert summary == build_decision_surface(
+        counts={
+            "batch_count": 2,
+            "case_count": 5,
+            "total_queue_size": 3,
+            "total_unresolved_packet_ref_count": 1,
+        },
+        promotion_gate={"decision": "hold"},
+        rules=[
+            {
+                "count_key": "total_unresolved_packet_ref_count",
+                "stage": "inspect",
+                "title": "",
+                "recommended_view": "batch_entries",
+                "reason_template": "{total_unresolved_packet_ref_count} unresolved packet reference(s) and {batch_count} batch(es) still need readiness review.",
+            },
+            {
+                "count_key": "total_queue_size",
+                "stage": "decide",
+                "title": "",
+                "recommended_view": "batch_entries",
+                "reason_template": "{total_queue_size} queued packet review item(s) remain across {case_count} case(s).",
+            },
+        ],
+        default_step={
+            "stage": "inspect",
+            "title": "",
+            "recommended_view": "batch_entries",
+            "reason_template": "{total_unresolved_packet_ref_count} unresolved packet reference(s) and {batch_count} batch(es) still need readiness review.",
+        },
+    )

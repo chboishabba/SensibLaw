@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from src.models.proposition_identity import build_proposition_identity_dict
-from src.models.proposition_relation import build_proposition_relation_dict
-from src.models.review_claim_record import build_review_candidate_dict, build_review_claim_record_dict
+from src.models.review_claim_record import build_review_claim_record_dict
+from src.policy.candidate_surface import build_candidate_surface
+from src.policy.claim_surface import (
+    build_claim_identity_surface,
+    build_claim_relation_surface,
+)
 from src.policy.review_targeting_contract import GWBTargetingCandidate, GWBTargetingResult, build_gwb_targeting_result
+from src.policy.text_surface import build_text_surface
 
 
 def _clean_text(value: Any) -> str:
@@ -20,29 +24,13 @@ def _build_review_text(
     anchor_refs: Mapping[str, Any] | None = None,
     text_ref: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    rendered = _clean_text(text)
-    if not rendered:
-        return None
-    payload: dict[str, Any] = {
-        "text": rendered,
-        "text_role": text_role,
-        "source_kind": source_kind,
-    }
-    clean_anchor_refs = {
-        str(key): value
-        for key, value in (anchor_refs or {}).items()
-        if value not in (None, "", [], {})
-    }
-    if clean_anchor_refs:
-        payload["anchor_refs"] = clean_anchor_refs
-    clean_text_ref = {
-        str(key): value
-        for key, value in (text_ref or {}).items()
-        if value not in (None, "", [], {})
-    }
-    if clean_text_ref:
-        payload["text_ref"] = clean_text_ref
-    return payload
+    return build_text_surface(
+        text=text,
+        text_role=text_role,
+        source_kind=source_kind,
+        anchor_refs=anchor_refs,
+        text_ref=text_ref,
+    )
 
 
 def _build_text_ref(row: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -78,7 +66,7 @@ def _build_review_candidate(
     anchor_refs: Mapping[str, Any] | None = None,
     target_proposition_id: Any | None = None,
 ) -> dict[str, Any]:
-    return build_review_candidate_dict(
+    return build_candidate_surface(
         candidate_id=str(candidate_id or "").strip(),
         candidate_kind=candidate_kind,
         source_kind=str(source_kind or "").strip(),
@@ -184,7 +172,7 @@ def build_review_candidate_from_composed_candidate_node(
     if wrapper_status:
         selection_basis["authority_wrapper_status"] = wrapper_status
 
-    return build_review_candidate_dict(
+    return build_candidate_surface(
         candidate_id=candidate_id,
         candidate_kind=candidate_kind,
         source_kind="composed_candidate_node",
@@ -242,7 +230,7 @@ def build_affidavit_target_proposition_identity(
     if not best_source_row_id:
         return None
     proposition_id = f"{lane}_source_row_prop:{cohort_id}:{best_source_row_id}"
-    return build_proposition_identity_dict(
+    return build_claim_identity_surface(
         proposition_id=proposition_id,
         family_id=family_id,
         cohort_id=cohort_id,
@@ -300,7 +288,7 @@ def build_affidavit_proposition_relation(
     ).strip()
     if not best_source_row_id:
         return None
-    return build_proposition_relation_dict(
+    return build_claim_relation_surface(
         relation_id=f"{lane}_review_rel:{cohort_id}:{proposition_id}:{relation_kind}:{best_source_row_id}",
         source_proposition_id=proposition_id,
         target_proposition_id=str(target_identity.get("proposition_id") or "").strip(),
@@ -340,7 +328,7 @@ def build_review_queue_target_proposition_identity(
         return None
     event_id = event_ids[0]
     proposition_id = f"{lane}_event_prop:{cohort_id}:{event_id}"
-    return build_proposition_identity_dict(
+    return build_claim_identity_surface(
         proposition_id=proposition_id,
         family_id=family_id,
         cohort_id=cohort_id,
@@ -402,7 +390,7 @@ def build_review_queue_proposition_relation(
     ).strip()
     if not event_id:
         return None
-    return build_proposition_relation_dict(
+    return build_claim_relation_surface(
         relation_id=f"{lane}_review_rel:{cohort_id}:{claim_id}:{relation_kind}:{event_id}",
         source_proposition_id=claim_id,
         target_proposition_id=str(target_identity.get("proposition_id") or "").strip(),
@@ -444,7 +432,7 @@ def build_review_item_target_proposition_identity(
     normalized_seed_id = str(seed_id or "").strip()
     if not normalized_seed_id:
         return None
-    return build_proposition_identity_dict(
+    return build_claim_identity_surface(
         proposition_id=f"{lane}_review_item_prop:{cohort_id}:{normalized_seed_id}",
         family_id=family_id,
         cohort_id=cohort_id,
@@ -529,7 +517,7 @@ def attach_review_item_relations_by_seed_id(
             if target_proposition_id:
                 review_candidate_payload["target_proposition_id"] = target_proposition_id
             copied["review_candidate"] = review_candidate_payload
-        copied["proposition_relation"] = build_proposition_relation_dict(
+        copied["proposition_relation"] = build_claim_relation_surface(
             relation_id=(
                 f"{copied.get('lane')}_review_rel:{copied.get('cohort_id')}:"
                 f"{copied.get('claim_id')}:{relation_kind}:{seed_id}"
@@ -682,7 +670,7 @@ def build_review_claim_records_from_review_rows(
         claim_id = str(row.get(claim_id_key) or "").strip()
         if not claim_id:
             continue
-        proposition_identity = build_proposition_identity_dict(
+        proposition_identity = build_claim_identity_surface(
             proposition_id=claim_id,
             family_id=family_id,
             cohort_id=cohort_id,
@@ -793,7 +781,7 @@ def build_review_claim_records_from_queue_rows(
         claim_id = str(row.get(claim_id_key) or "").strip()
         if not claim_id:
             continue
-        proposition_identity = build_proposition_identity_dict(
+        proposition_identity = build_claim_identity_surface(
             proposition_id=claim_id,
             family_id=family_id,
             cohort_id=cohort_id,
@@ -988,7 +976,7 @@ def build_review_claim_records_from_affidavit_rows(
         claim_id = str(row.get(claim_id_key) or "").strip()
         if not claim_id:
             continue
-        proposition_identity = build_proposition_identity_dict(
+        proposition_identity = build_claim_identity_surface(
             proposition_id=claim_id,
             family_id=family_id,
             cohort_id=cohort_id,

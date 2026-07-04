@@ -1,0 +1,283 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any, Mapping
+
+from src.policy.gwb_broader_review_world_model import (
+    GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
+)
+from src.policy.linkage_depth import (
+    LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION,
+    build_expected_layer_contract,
+    build_linkage_depth_case,
+    build_linkage_depth_receipt,
+)
+
+GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID = "gwb_broader_review_linkage"
+
+
+def _text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def build_gwb_broader_review_linkage_contract() -> dict[str, Any]:
+    return build_expected_layer_contract(
+        contract_id=GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
+        domain="gwb_broader_review_linkage",
+        anchor_kind="source_follow_anchor",
+        expected_layers=[
+            "source_anchor",
+            "source_container",
+            "domain_candidate",
+            "authority_surface",
+            "review_surface",
+            "tranche_anchor",
+        ],
+        required_bridges=[
+            ["source_anchor", "source_container"],
+            ["source_container", "domain_candidate"],
+            ["domain_candidate", "authority_surface"],
+            ["authority_surface", "review_surface"],
+            ["review_surface", "tranche_anchor"],
+        ],
+        terminal_anchor="tranche_anchor",
+        required_authority_boundaries=[
+            "gwb_legal_follow_queue",
+            "gwb_operator_workflow_surface",
+            "workflow_tranche_anchor",
+        ],
+        notes=[
+            "GWB uses the legal-follow queue as the native spine; WD enrichment stays optional.",
+            "This first non-WD adopter proves the shared control-plane does not depend on Wikidata geometry.",
+        ],
+        linkage_policy={
+            "native_spine": "legal_follow_queue",
+            "wd_bridge_requirement": "optional",
+        },
+    )
+
+
+def _build_gwb_broader_review_linkage_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
+    if _text(report.get("schema_version")) != GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION:
+        raise ValueError("GWB broader review linkage case requires world-model report payload")
+
+    claims = [row for row in report.get("claims", []) if isinstance(row, Mapping)]
+    if not claims:
+        raise ValueError("GWB broader review linkage case requires at least one claim")
+
+    artifact_id = _text(report.get("artifact_id"))
+    lane_id = _text(report.get("lane_id")) or "gwb"
+    authority_node_id = f"operator_authority_surface:{artifact_id}"
+    review_node_id = f"broader_review_surface:{artifact_id}"
+    tranche_node_id = f"workflow_tranche_anchor:{artifact_id}"
+
+    nodes = [
+        {
+            "id": authority_node_id,
+            "layer": "authority_surface",
+            "label": f"GWB operator authority surface {artifact_id}",
+            "metadata": {
+                "artifact_id": artifact_id,
+                "lane_id": lane_id,
+                "decision": _text(report.get("decision")),
+                "authority_surface": "gwb_operator_workflow_surface",
+            },
+        },
+        {
+            "id": review_node_id,
+            "layer": "review_surface",
+            "label": f"GWB broader-review world-model surface {artifact_id}",
+            "metadata": {
+                "artifact_id": artifact_id,
+                "family_id": _text(report.get("family_id")),
+                "claim_count": int(report.get("summary", {}).get("claim_count", 0) or 0),
+            },
+        },
+        {
+            "id": tranche_node_id,
+            "layer": "tranche_anchor",
+            "label": f"GWB workflow/tranche anchor {artifact_id}",
+            "metadata": {
+                "artifact_id": artifact_id,
+                "workflow_stage": _text(report.get("workflow_summary", {}).get("stage")),
+                "gate_decision": _text(report.get("promotion_gate", {}).get("decision")),
+                "authority_surface": "workflow_tranche_anchor",
+            },
+        },
+    ]
+    edges = [
+        {
+            "source": authority_node_id,
+            "target": review_node_id,
+            "kind": "world_model_projection",
+            "metadata": {
+                "from_layer": "authority_surface",
+                "to_layer": "review_surface",
+                "authority_surface": "gwb_operator_workflow_surface",
+            },
+        },
+        {
+            "source": review_node_id,
+            "target": tranche_node_id,
+            "kind": "workflow_tranche_projection",
+            "metadata": {
+                "from_layer": "review_surface",
+                "to_layer": "tranche_anchor",
+                "authority_surface": "workflow_tranche_anchor",
+                "promotion_status": _text(report.get("promotion_gate", {}).get("decision")) or "audit",
+            },
+        },
+    ]
+    anchor_ids: list[str] = []
+
+    for claim in claims:
+        claim_id = _text(claim.get("claim_id"))
+        if not claim_id:
+            continue
+        source_anchor_id = f"source_follow_anchor:{claim_id}"
+        queue_item_id = f"legal_follow_queue_item:{claim_id}"
+        candidate_id = f"legal_follow_claim_candidate:{claim_id}"
+        anchor_ids.append(source_anchor_id)
+
+        nat_claim = claim.get("nat_claim") if isinstance(claim.get("nat_claim"), Mapping) else {}
+        qualifiers = nat_claim.get("qualifiers") if isinstance(nat_claim.get("qualifiers"), Mapping) else {}
+        source_refs = qualifiers.get("source_refs")
+        nodes.extend(
+            [
+                {
+                    "id": source_anchor_id,
+                    "layer": "source_anchor",
+                    "label": f"source follow anchor {claim_id}",
+                    "metadata": {
+                        "claim_id": claim_id,
+                        "source_refs": list(source_refs) if isinstance(source_refs, list) else [],
+                        "route_target": _text(qualifiers.get("route_target")),
+                    },
+                },
+                {
+                    "id": queue_item_id,
+                    "layer": "source_container",
+                    "label": f"legal-follow queue item {claim_id}",
+                    "metadata": {
+                        "claim_id": claim_id,
+                        "resolution_status": _text(qualifiers.get("resolution_status")),
+                        "authority_yield": _text(qualifiers.get("authority_yield")),
+                        "priority_rank": int(qualifiers.get("priority_rank", 0) or 0),
+                    },
+                },
+                {
+                    "id": candidate_id,
+                    "layer": "domain_candidate",
+                    "label": f"legal-follow claim/review candidate {claim_id}",
+                    "metadata": {
+                        "claim_id": claim_id,
+                        "claim_status": _text(claim.get("status")),
+                        "evidence_count": int(claim.get("evidence_count", 0) or 0),
+                        "family_id": _text(claim.get("family_id")),
+                    },
+                },
+            ]
+        )
+        edges.extend(
+            [
+                {
+                    "source": source_anchor_id,
+                    "target": queue_item_id,
+                    "kind": "follow_anchor_projection",
+                    "metadata": {
+                        "from_layer": "source_anchor",
+                        "to_layer": "source_container",
+                        "authority_surface": "gwb_legal_follow_queue",
+                    },
+                },
+                {
+                    "source": queue_item_id,
+                    "target": candidate_id,
+                    "kind": "queue_claim_projection",
+                    "metadata": {
+                        "from_layer": "source_container",
+                        "to_layer": "domain_candidate",
+                        "authority_surface": "gwb_legal_follow_queue",
+                    },
+                },
+                {
+                    "source": candidate_id,
+                    "target": authority_node_id,
+                    "kind": "operator_review_projection",
+                    "metadata": {
+                        "from_layer": "domain_candidate",
+                        "to_layer": "authority_surface",
+                        "authority_surface": "gwb_operator_workflow_surface",
+                        "promotion_status": _text(claim.get("status")) or "review",
+                    },
+                },
+            ]
+        )
+
+    return build_linkage_depth_case(
+        case_id="gwb_broader_review",
+        case_kind="legal_follow_fixture",
+        lane_id=lane_id,
+        contract_id=GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
+        case_source="emitted_bridge_artifact",
+        notes=[
+            "Bounded GWB broader-review linkage case projected from the queue-backed world-model surface.",
+            "This first non-WD adopter preserves native legal-follow depth without requiring a WD bridge.",
+        ],
+        expected_anchor_ids=anchor_ids,
+        expected_terminal_ids=[tranche_node_id],
+        nodes=nodes,
+        edges=edges,
+        contract=build_gwb_broader_review_linkage_contract(),
+    )
+
+
+def build_gwb_broader_review_linkage_case(report: Mapping[str, Any]) -> dict[str, Any]:
+    receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
+    if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
+        return build_linkage_depth_case(
+            case_id=_text(receipt.get("case_id")) or "gwb_broader_review",
+            case_kind="legal_follow_fixture",
+            contract_id=_text((receipt.get("contract") or {}).get("contract_id")) or GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
+            expected_anchor_ids=receipt.get("expected_anchor_ids", []),
+            expected_terminal_ids=receipt.get("expected_terminal_ids", []),
+            nodes=receipt.get("nodes", []),
+            edges=receipt.get("edges", []),
+            lane_id=_text(receipt.get("lane_id")) or "gwb",
+            case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
+            notes=["Bounded GWB broader review case loaded from the emitted lane receipt."],
+            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_gwb_broader_review_linkage_contract(),
+        )
+    return _build_gwb_broader_review_linkage_case_payload(report)
+
+
+def build_gwb_broader_review_linkage_receipt(
+    report: Mapping[str, Any],
+    *,
+    contract: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    contract_payload = (
+        dict(contract)
+        if isinstance(contract, Mapping)
+        else build_gwb_broader_review_linkage_contract()
+    )
+    case_payload = _build_gwb_broader_review_linkage_case_payload(report)
+    receipt = build_linkage_depth_receipt(
+        case=case_payload,
+        contract=contract_payload,
+        source_mode="emitted_bridge_artifact",
+        notes=[
+            "Lane-level linkage receipt for the GWB broader-review world-model surface.",
+            "The shared core audits this without learning GWB-specific queue geometry.",
+        ],
+    )
+    receipt["contract"] = deepcopy(contract_payload)
+    return receipt
+
+
+__all__ = [
+    "GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID",
+    "build_gwb_broader_review_linkage_case",
+    "build_gwb_broader_review_linkage_contract",
+    "build_gwb_broader_review_linkage_receipt",
+]

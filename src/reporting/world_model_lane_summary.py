@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from src.policy.product_gate import normalize_product_gate
 from src.reporting.governance_gate import (
     LaneGovernanceSnapshot,
     evaluate_multi_lane_gate,
@@ -79,9 +80,21 @@ def build_lane_governance_snapshot(report: Mapping[str, Any]) -> dict[str, Any]:
         for claim in claims
         if _as_text((claim.get("action_policy") or {}).get("actionability")) == "can_recommend"
     )
+    promotion_gate = normalize_product_gate(
+        report.get("promotion_gate") if isinstance(report.get("promotion_gate"), Mapping) else None
+    )
+    operator_workflow_surface = (
+        report.get("operator_workflow_surface")
+        if isinstance(report.get("operator_workflow_surface"), Mapping)
+        else {}
+    )
 
     decision = "hold"
-    if can_act_count > 0:
+    if _as_text(promotion_gate.get("decision")):
+        decision = _as_text(promotion_gate.get("decision"))
+    elif _as_text((operator_workflow_surface.get("summary") or {}).get("gate_decision")):
+        decision = _as_text((operator_workflow_surface.get("summary") or {}).get("gate_decision"))
+    elif can_act_count > 0:
         decision = "promote"
     elif must_review_count > 0 and must_abstain_count == 0:
         decision = "audit"

@@ -1733,6 +1733,158 @@ def _handle_wikidata_benchmark_matrix(args: argparse.Namespace) -> None:
     _print_json(report, sort_keys=True)
 
 
+def _handle_wikidata_lane_status(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_status import build_wikidata_lane_status
+
+    report = build_wikidata_lane_status()
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_count": report["summary"]["lane_count"],
+                "direct_zelph_096_lane_ids": report["summary"]["direct_zelph_096_lane_ids"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_lane_bundle(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_status import build_wikidata_lane_bundle
+
+    report = build_wikidata_lane_bundle(args.lane)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_id": report["lane_id"],
+                "promotion_status": report["promotion_status"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_lane_graph(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_status import build_wikidata_lane_graph
+
+    report = build_wikidata_lane_graph(args.lane)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_id": report["lane_id"],
+                "flatness_posture": report["flatness_indicators"]["flatness_posture"],
+                "duplicate_node_id_count": report["emission_diagnostics"]["duplicate_node_id_count"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_lane_flatness(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_flatness_audit import build_wikidata_lane_flatness_audit
+
+    report = build_wikidata_lane_flatness_audit()
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_count": report["summary"]["lane_count"],
+                "duplicate_identity_lane_ids": report["summary"]["duplicate_identity_lane_ids"],
+                "renderer_followup_status": report["summary"]["renderer_followup_status"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_linkage_depth(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_linkage_depth import build_wikidata_linkage_depth_audit
+
+    report = build_wikidata_linkage_depth_audit(case_id=args.case)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "case_count": report["summary"]["case_count"],
+                "complete_case_ids": report["summary"]["complete_case_ids"],
+                "anchor_failure_case_ids": report["summary"]["anchor_failure_case_ids"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_lane_plan(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_status import build_wikidata_lane_plan
+
+    report = build_wikidata_lane_plan(args.lane)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_id": report["lane_id"],
+                "overall_status": report["readiness"]["overall_status"],
+                "query_pressure_count": len(report["query_pressures"]),
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
+def _handle_wikidata_lane_proof(args: argparse.Namespace) -> None:
+    from src.ontology.wikidata_lane_status import build_wikidata_lane_proof
+
+    report = build_wikidata_lane_proof(args.lane)
+    if args.output:
+        args.output.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _print_json(
+            {
+                "output": str(args.output),
+                "schema_version": report["schema_version"],
+                "lane_id": report["lane_id"],
+                "overall_status": report["acceptance"]["overall_status"],
+                "hosted_wd_acceptance_status": report["acceptance"]["hosted_wd_acceptance_status"],
+            }
+        )
+        return
+    _print_json(report, sort_keys=True)
+
+
 def _handle_extract_frl(args: argparse.Namespace) -> None:
     from src.ingestion.frl import fetch_acts
 
@@ -4084,6 +4236,91 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wikidata_benchmark_matrix.add_argument("--output", type=Path)
     wikidata_benchmark_matrix.set_defaults(func=_handle_wikidata_benchmark_matrix)
+    wikidata_lane_status = wikidata_sub.add_parser(
+        "lane-status",
+        help="Run the current executable Wikidata lane status audit",
+    )
+    wikidata_lane_status.add_argument("--output", type=Path)
+    wikidata_lane_status.set_defaults(func=_handle_wikidata_lane_status)
+    wikidata_lane_bundle = wikidata_sub.add_parser(
+        "lane-bundle",
+        help="Emit the normalized review bundle for one Wikidata lane",
+    )
+    wikidata_lane_bundle.add_argument(
+        "--lane",
+        required=True,
+        choices=[
+            "change_review_packet",
+            "climate_review_demonstrator",
+            "disjointness_report",
+            "hotspot_eval",
+            "nat_live_follow_preflight",
+        ],
+    )
+    wikidata_lane_bundle.add_argument("--output", type=Path)
+    wikidata_lane_bundle.set_defaults(func=_handle_wikidata_lane_bundle)
+    wikidata_lane_graph = wikidata_sub.add_parser(
+        "lane-graph",
+        help="Emit the latent slice graph report for one Wikidata lane",
+    )
+    wikidata_lane_graph.add_argument(
+        "--lane",
+        required=True,
+        choices=[
+            "change_review_packet",
+            "climate_review_demonstrator",
+            "disjointness_report",
+            "hotspot_eval",
+            "nat_live_follow_preflight",
+        ],
+    )
+    wikidata_lane_graph.add_argument("--output", type=Path)
+    wikidata_lane_graph.set_defaults(func=_handle_wikidata_lane_graph)
+    wikidata_lane_flatness = wikidata_sub.add_parser(
+        "lane-flatness",
+        help="Audit current Wikidata lane graphs for non-visual flatness and projection-loss signals",
+    )
+    wikidata_lane_flatness.add_argument("--output", type=Path)
+    wikidata_lane_flatness.set_defaults(func=_handle_wikidata_lane_flatness)
+    wikidata_linkage_depth = wikidata_sub.add_parser(
+        "linkage-depth",
+        help="Audit PNF x Zelph/WD linkage depth on bounded synthetic and real-text cases",
+    )
+    wikidata_linkage_depth.add_argument(
+        "--case",
+        choices=[
+            "climate_review_demonstrator",
+            "dog_soft_stitch",
+        ],
+        help="Optional single linkage-depth case to audit",
+    )
+    wikidata_linkage_depth.add_argument("--output", type=Path)
+    wikidata_linkage_depth.set_defaults(func=_handle_wikidata_linkage_depth)
+    wikidata_lane_plan = wikidata_sub.add_parser(
+        "lane-plan",
+        help="Emit the adjacent Zelph discovery plan for one Wikidata lane when available",
+    )
+    wikidata_lane_plan.add_argument(
+        "--lane",
+        required=True,
+        choices=[
+            "climate_review_demonstrator",
+            "nat_live_follow_preflight",
+        ],
+    )
+    wikidata_lane_plan.add_argument("--output", type=Path)
+    wikidata_lane_plan.set_defaults(func=_handle_wikidata_lane_plan)
+    wikidata_lane_proof = wikidata_sub.add_parser(
+        "lane-proof",
+        help="Emit the direct Zelph proof surface for one Wikidata lane when available",
+    )
+    wikidata_lane_proof.add_argument(
+        "--lane",
+        required=True,
+        choices=["disjointness_report"],
+    )
+    wikidata_lane_proof.add_argument("--output", type=Path)
+    wikidata_lane_proof.set_defaults(func=_handle_wikidata_lane_proof)
 
     code_observer_cli.add_parser(sub)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from .compiler_contract import normalize_promoted_outcomes
+from .compiler_contract import normalize_compiler_contract
 from .diagnostic_graph_metrics import (
     build_graph_diagnostics,
     build_graph_revision_stability,
@@ -213,16 +213,9 @@ def build_au_fact_review_bundle_normalized_artifact(
     graph_payload: Mapping[str, Any] | None = None,
     baseline_graph_diagnostics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    evidence_bundle = (
-        compiler_contract.get("evidence_bundle")
-        if isinstance(compiler_contract.get("evidence_bundle"), Mapping)
-        else {}
-    )
-    promoted_outcomes = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    evidence_bundle = normalized_contract["evidence_bundle"]
+    promoted_outcomes = normalized_contract["promoted_outcomes"]
     gate_decision = str(promotion_gate.get("decision") or "").strip()
     gate_reason = str(promotion_gate.get("reason") or "").strip()
 
@@ -287,12 +280,12 @@ def build_au_fact_review_bundle_normalized_artifact(
         },
         "lineage": {
             "upstream_artifact_ids": upstream_artifact_ids,
-            "profile_version": str(compiler_contract.get("schema_version") or ""),
+            "profile_version": str(normalized_contract.get("schema_version") or ""),
         },
         "follow_obligation": follow_obligation,
         "unresolved_pressure_status": unresolved_pressure_status,
         "summary": {
-            "lane": str(compiler_contract.get("lane") or "au"),
+            "lane": str(normalized_contract.get("lane") or "au"),
             "source_family": source_family,
             "item_label": item_label,
             "source_count": _int(evidence_bundle.get("source_count")),
@@ -311,7 +304,7 @@ def build_au_fact_review_bundle_normalized_artifact(
         artifact["graph_diagnostics"] = build_suite_graph_diagnostics(
             graph_payload=graph_payload,
             source_artifact_id=semantic_run_id,
-            source_lane=str(compiler_contract.get("lane") or "au"),
+            source_lane=str(normalized_contract.get("lane") or "au"),
             substrate_kind="legal_follow_graph",
             projection_role="suite_normalized_artifact",
             graph_version=str(graph_payload.get("version") or ""),
@@ -342,16 +335,9 @@ def build_gwb_public_review_normalized_artifact(
     graph_payload: Mapping[str, Any] | None = None,
     baseline_graph_diagnostics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    evidence_bundle = (
-        compiler_contract.get("evidence_bundle")
-        if isinstance(compiler_contract.get("evidence_bundle"), Mapping)
-        else {}
-    )
-    promoted_outcomes = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    evidence_bundle = normalized_contract["evidence_bundle"]
+    promoted_outcomes = normalized_contract["promoted_outcomes"]
     gate_decision = str(promotion_gate.get("decision") or "").strip()
     gate_reason = str(promotion_gate.get("reason") or "").strip()
     workflow_stage = str(workflow_summary.get("stage") or "").strip()
@@ -395,12 +381,12 @@ def build_gwb_public_review_normalized_artifact(
         },
         "lineage": {
             "upstream_artifact_ids": [source_ref],
-            "profile_version": str(compiler_contract.get("schema_version") or ""),
+            "profile_version": str(normalized_contract.get("schema_version") or ""),
         },
         "follow_obligation": follow_obligation,
         "unresolved_pressure_status": unresolved_pressure_status,
         "summary": {
-            "lane": str(compiler_contract.get("lane") or "gwb"),
+            "lane": str(normalized_contract.get("lane") or "gwb"),
             "source_family": source_family,
             "item_label": item_label,
             "source_count": _int(evidence_bundle.get("source_count")),
@@ -420,7 +406,7 @@ def build_gwb_public_review_normalized_artifact(
         artifact["graph_diagnostics"] = build_suite_graph_diagnostics(
             graph_payload=graph_payload,
             source_artifact_id=source_ref,
-            source_lane=str(compiler_contract.get("lane") or "gwb"),
+            source_lane=str(normalized_contract.get("lane") or "gwb"),
             substrate_kind="legal_follow_graph",
             projection_role="suite_normalized_artifact",
             graph_version=str(graph_payload.get("version") or ""),
@@ -442,16 +428,9 @@ def build_gwb_broader_review_normalized_artifact(
     graph_payload: Mapping[str, Any] | None = None,
     baseline_graph_diagnostics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    evidence_bundle = (
-        compiler_contract.get("evidence_bundle")
-        if isinstance(compiler_contract.get("evidence_bundle"), Mapping)
-        else {}
-    )
-    promoted_outcomes = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    evidence_bundle = normalized_contract["evidence_bundle"]
+    promoted_outcomes = normalized_contract["promoted_outcomes"]
     gate_decision = str(promotion_gate.get("decision") or "").strip()
     gate_reason = str(promotion_gate.get("reason") or "").strip()
     workflow_stage = str(workflow_summary.get("stage") or "").strip()
@@ -495,12 +474,12 @@ def build_gwb_broader_review_normalized_artifact(
         },
         "lineage": {
             "upstream_artifact_ids": [source_ref],
-            "profile_version": str(compiler_contract.get("schema_version") or ""),
+            "profile_version": str(normalized_contract.get("schema_version") or ""),
         },
         "follow_obligation": follow_obligation,
         "unresolved_pressure_status": unresolved_pressure_status,
         "summary": {
-            "lane": str(compiler_contract.get("lane") or "gwb"),
+            "lane": str(normalized_contract.get("lane") or "gwb"),
             "source_family": source_family,
             "item_label": item_label,
             "source_count": _int(evidence_bundle.get("source_count")),
@@ -520,7 +499,7 @@ def build_gwb_broader_review_normalized_artifact(
         artifact["graph_diagnostics"] = build_suite_graph_diagnostics(
             graph_payload=graph_payload,
             source_artifact_id=source_ref,
-            source_lane=str(compiler_contract.get("lane") or "gwb"),
+            source_lane=str(normalized_contract.get("lane") or "gwb"),
             substrate_kind="legal_follow_graph",
             projection_role="suite_normalized_artifact",
             graph_version=str(graph_payload.get("version") or ""),
@@ -540,16 +519,9 @@ def build_affidavit_coverage_review_normalized_artifact(
     source_input: Mapping[str, Any],
     workflow_summary: Mapping[str, Any],
 ) -> dict[str, Any]:
-    evidence_bundle = (
-        compiler_contract.get("evidence_bundle")
-        if isinstance(compiler_contract.get("evidence_bundle"), Mapping)
-        else {}
-    )
-    promoted_outcomes = normalize_promoted_outcomes(
-        compiler_contract.get("promoted_outcomes")
-        if isinstance(compiler_contract.get("promoted_outcomes"), Mapping)
-        else None
-    )
+    normalized_contract = normalize_compiler_contract(compiler_contract)
+    evidence_bundle = normalized_contract["evidence_bundle"]
+    promoted_outcomes = normalized_contract["promoted_outcomes"]
     gate_decision = str(promotion_gate.get("decision") or "").strip()
     gate_reason = str(promotion_gate.get("reason") or "").strip()
     workflow_stage = str(workflow_summary.get("stage") or "").strip()
@@ -592,12 +564,12 @@ def build_affidavit_coverage_review_normalized_artifact(
         },
         "lineage": {
             "upstream_artifact_ids": [source_ref],
-            "profile_version": str(compiler_contract.get("schema_version") or ""),
+            "profile_version": str(normalized_contract.get("schema_version") or ""),
         },
         "follow_obligation": follow_obligation,
         "unresolved_pressure_status": unresolved_pressure_status,
         "summary": {
-            "lane": str(compiler_contract.get("lane") or "affidavit"),
+            "lane": str(normalized_contract.get("lane") or "affidavit"),
             "source_family": source_family,
             "item_label": item_label,
             "source_count": _int(evidence_bundle.get("source_count")),
@@ -751,6 +723,96 @@ def _normalize_zelph_selector(selector: Any) -> Any:
     return selector
 
 
+def _zelph_manifest_artifact_id(manifest: Mapping[str, Any]) -> str:
+    hf_objects = manifest.get("hfObjects") if isinstance(manifest.get("hfObjects"), Mapping) else {}
+    manifest_object = hf_objects.get("manifest") if isinstance(hf_objects.get("manifest"), Mapping) else {}
+    manifest_path = str(manifest_object.get("path") or "").strip()
+    if manifest_path:
+        return manifest_path.rsplit("/", 1)[-1]
+    source = manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
+    bin_path = str(source.get("binPath") or "").strip()
+    if bin_path:
+        return bin_path.rsplit("/", 1)[-1]
+    return "zelph-hf-manifest"
+
+
+def _chunk_indices_from_selector(selector: Mapping[str, Any]) -> list[int]:
+    values: list[int] = []
+    explicit = selector.get("chunk_index")
+    if explicit not in {None, ""}:
+        values.append(_int(explicit))
+    raw_values = selector.get("chunk_indices")
+    if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes, bytearray)):
+        values.extend(_int(value) for value in raw_values)
+    return [value for value in values if value >= 0]
+
+
+def _derive_zelph_selected_shards(selectors: Sequence[Any]) -> list[str]:
+    selected: list[str] = []
+    for selector in selectors:
+        if not isinstance(selector, Mapping):
+            continue
+        section = str(selector.get("section") or selector.get("section_name") or "").strip()
+        if not section:
+            continue
+        for chunk_index in _chunk_indices_from_selector(selector):
+            selected.append(f"{section}:{chunk_index}")
+    return selected
+
+
+def _derive_zelph_selected_sections(selectors: Sequence[Any]) -> list[str]:
+    selected: list[str] = []
+    for selector in selectors:
+        if not isinstance(selector, Mapping):
+            continue
+        section = str(selector.get("section") or selector.get("section_name") or "").strip()
+        if section:
+            selected.append(section)
+    return selected
+
+
+def _summarize_zelph_manifest_provenance(
+    manifest: Mapping[str, Any],
+    *,
+    backend_capabilities: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    source = manifest.get("source") if isinstance(manifest.get("source"), Mapping) else {}
+    transport = manifest.get("transport") if isinstance(manifest.get("transport"), Mapping) else {}
+    selector_model = (
+        manifest.get("selectorModel") if isinstance(manifest.get("selectorModel"), Mapping) else {}
+    )
+    capabilities = (
+        manifest.get("capabilities") if isinstance(manifest.get("capabilities"), Mapping) else {}
+    )
+    sections = manifest.get("sections") if isinstance(manifest.get("sections"), Mapping) else {}
+    section_counts: dict[str, int] = {}
+    for name, value in sections.items():
+        if isinstance(value, Mapping):
+            section_counts[str(name)] = _int(value.get("chunkCount"))
+    summarized = {
+        "manifest_version": str(manifest.get("manifestVersion") or "").strip(),
+        "storage_mode": str(manifest.get("storageMode") or "").strip(),
+        "transport_primary": str(transport.get("primary") or "").strip(),
+        "transport_fallback": str(transport.get("fallback") or "").strip(),
+        "selector_unit": str(selector_model.get("unit") or "").strip(),
+        "supported_sections": _nonempty_strings(selector_model.get("supportedSections") or []),
+        "supported_operations": _nonempty_strings(selector_model.get("supportedOperations") or []),
+        "unsupported_operations": _nonempty_strings(selector_model.get("unsupportedOperations") or []),
+        "node_route_index": bool(capabilities.get("nodeRouteIndex")),
+        "header_probe": bool(capabilities.get("headerProbe")),
+        "selected_chunk_read": bool(capabilities.get("selectedChunkRead")),
+        "source_header_length_bytes": _int(source.get("headerLengthBytes")),
+        "source_total_chunk_count": _int(source.get("totalChunkCount")),
+        "source_total_chunk_bytes": _int(source.get("totalChunkBytes")),
+        "section_chunk_counts": section_counts,
+    }
+    if isinstance(backend_capabilities, Mapping):
+        sanitized_backend = _strip_transport_review_packet_fields(backend_capabilities)
+        if isinstance(sanitized_backend, Mapping) and sanitized_backend:
+            summarized["backend_capabilities"] = dict(sanitized_backend)
+    return summarized
+
+
 def _nonempty_texts(values: Sequence[Any]) -> list[str]:
     normalized: list[str] = []
     for value in values:
@@ -856,5 +918,71 @@ def build_zelph_shard_transport_normalized_artifact(
             "selected_shard_count": len(normalized_shard_ids),
             "selected_section_count": len(normalized_sections),
         },
+    }
+    return artifact
+
+
+def build_zelph_hf_transport_normalized_artifact(
+    *,
+    manifest: Mapping[str, Any],
+    selectors: Sequence[Any],
+    artifact_revision: str | None = None,
+    selected_shard_ids: Sequence[Any] | None = None,
+    selected_sections: Sequence[Any] | None = None,
+    upstream_artifact_ids: Sequence[Any] | None = None,
+    backend_capabilities: Mapping[str, Any] | None = None,
+    source_system: str = "Zelph-HF",
+) -> dict[str, Any]:
+    if not isinstance(manifest, Mapping):
+        raise ValueError("zelph hf transport normalized artifact requires manifest mapping")
+
+    manifest_version = str(manifest.get("manifestVersion") or "").strip()
+    if not manifest_version:
+        raise ValueError("zelph hf transport normalized artifact requires manifestVersion")
+
+    derived_shard_ids = _nonempty_texts(selected_shard_ids or _derive_zelph_selected_shards(selectors))
+    derived_sections = _nonempty_texts(selected_sections or _derive_zelph_selected_sections(selectors))
+    build_provenance = _summarize_zelph_manifest_provenance(
+        manifest,
+        backend_capabilities=backend_capabilities,
+    )
+    artifact = build_zelph_shard_transport_normalized_artifact(
+        artifact_id=_zelph_manifest_artifact_id(manifest),
+        artifact_revision=artifact_revision or str(manifest.get("createdAtUtc") or "").strip() or "unversioned",
+        artifact_class=manifest_version,
+        selectors=selectors,
+        selected_shard_ids=derived_shard_ids,
+        selected_sections=derived_sections,
+        upstream_artifact_ids=upstream_artifact_ids,
+        build_provenance=build_provenance,
+        source_system=source_system,
+    )
+    artifact["summary"].update(
+        {
+            "manifest_version": manifest_version,
+            "storage_mode": build_provenance.get("storage_mode"),
+            "transport_primary": build_provenance.get("transport_primary"),
+            "node_route_index": bool(build_provenance.get("node_route_index")),
+            "selected_chunk_read": bool(build_provenance.get("selected_chunk_read")),
+            "supported_operation_count": len(build_provenance.get("supported_operations") or []),
+            "supported_section_count": len(build_provenance.get("supported_sections") or []),
+        }
+    )
+    if isinstance(build_provenance.get("backend_capabilities"), Mapping):
+        artifact["summary"]["predicate_index_persistence"] = bool(
+            build_provenance["backend_capabilities"].get("predicate_index_persistence")
+        )
+    artifact["review_packet_projection"]["transport_capabilities"] = {
+        "manifest_version": manifest_version,
+        "transport_primary": build_provenance.get("transport_primary"),
+        "node_route_index": bool(build_provenance.get("node_route_index")),
+        "selected_chunk_read": bool(build_provenance.get("selected_chunk_read")),
+        "supported_operations": list(build_provenance.get("supported_operations") or []),
+        "supported_sections": list(build_provenance.get("supported_sections") or []),
+        **(
+            {"backend_capabilities": dict(build_provenance.get("backend_capabilities") or {})}
+            if isinstance(build_provenance.get("backend_capabilities"), Mapping)
+            else {}
+        ),
     }
     return artifact

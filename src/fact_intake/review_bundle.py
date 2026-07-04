@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from src.policy.compiler_contract import normalize_compiler_contract
+from src.policy.operator_workflow_surface import build_operator_workflow_surface
+from src.policy.product_gate import normalize_product_gate
+
 FACT_REVIEW_BUNDLE_VERSION = "fact.review.bundle.v1"
 
 
@@ -131,6 +135,7 @@ def build_bundle_workflow_summary(
     promotion_gate: Mapping[str, Any] | None = None,
     default_fact_id: str | None = None,
 ) -> dict[str, Any]:
+    normalized_promotion_gate = normalize_product_gate(promotion_gate)
     summary_counts = (
         review_summary.get("summary") if isinstance(review_summary.get("summary"), Mapping) else {}
     )
@@ -186,9 +191,7 @@ def build_bundle_workflow_summary(
     undated_event_count = int(chronology_summary.get("undated_event_count") or 0)
     no_event_fact_count = int(chronology_summary.get("no_event_fact_count") or 0)
     gate_decision = (
-        str(promotion_gate.get("decision") or "").strip()
-        if isinstance(promotion_gate, Mapping)
-        else None
+        str(normalized_promotion_gate.get("decision") or "").strip() or None
     )
 
     counts = {
@@ -214,7 +217,7 @@ def build_bundle_workflow_summary(
                 f"admissibility review pressure dominates promotion pressure."
             ),
             "counts": counts,
-            "promotion_gate": dict(promotion_gate or {}),
+            "promotion_gate": normalized_promotion_gate,
         }
     if authority_follow_queue_count > 0:
         return {
@@ -225,7 +228,7 @@ def build_bundle_workflow_summary(
             "focus_fact_id": default_fact_id,
             "reason": f"{authority_follow_queue_count} authority follow-up item(s) remain open.",
             "counts": counts,
-            "promotion_gate": dict(promotion_gate or {}),
+            "promotion_gate": normalized_promotion_gate,
         }
     if contested_followup_count > 0:
         return {
@@ -236,7 +239,7 @@ def build_bundle_workflow_summary(
             "focus_fact_id": default_fact_id,
             "reason": f"{contested_followup_count} contested item(s) still need follow-up.",
             "counts": counts,
-            "promotion_gate": dict(promotion_gate or {}),
+            "promotion_gate": normalized_promotion_gate,
         }
     if review_queue_count > 0:
         gate_note = " The current promotion gate is audit." if gate_decision == "audit" else ""
@@ -248,7 +251,7 @@ def build_bundle_workflow_summary(
             "focus_fact_id": default_fact_id,
             "reason": f"{review_queue_count} fact(s) remain in the review queue.{gate_note}",
             "counts": counts,
-            "promotion_gate": dict(promotion_gate or {}),
+            "promotion_gate": normalized_promotion_gate,
         }
     if undated_event_count > 0 or no_event_fact_count > 0:
         return {
@@ -262,7 +265,7 @@ def build_bundle_workflow_summary(
                 f"{no_event_fact_count} no-event fact(s)."
             ),
             "counts": counts,
-            "promotion_gate": dict(promotion_gate or {}),
+            "promotion_gate": normalized_promotion_gate,
         }
     return {
         "stage": "record",
@@ -272,7 +275,7 @@ def build_bundle_workflow_summary(
         "focus_fact_id": default_fact_id,
         "reason": "No open follow-up, review-queue, or chronology pressure is blocking the current bundle.",
         "counts": counts,
-        "promotion_gate": dict(promotion_gate or {}),
+        "promotion_gate": normalized_promotion_gate,
     }
 
 
@@ -300,20 +303,28 @@ def build_fact_review_bundle_payload(
     if chronology_summary_extras:
         chronology_summary.update(dict(chronology_summary_extras))
     semantic_context_dict = dict(semantic_context)
-    compiler_contract_dict = (
-        dict(compiler_contract)
+    compiler_contract_dict = normalize_compiler_contract(
+        compiler_contract
         if isinstance(compiler_contract, Mapping)
-        else dict(semantic_context_dict.get("compiler_contract", {}))
+        else semantic_context_dict.get("compiler_contract")
         if isinstance(semantic_context_dict.get("compiler_contract"), Mapping)
-        else {}
+        else None
     )
-    promotion_gate_dict = (
-        dict(promotion_gate)
+    promotion_gate_dict = normalize_product_gate(
+        promotion_gate
         if isinstance(promotion_gate, Mapping)
-        else dict(semantic_context_dict.get("promotion_gate", {}))
+        else semantic_context_dict.get("promotion_gate")
         if isinstance(semantic_context_dict.get("promotion_gate"), Mapping)
-        else {}
+        else None
     )
+    semantic_context_dict["compiler_contract"] = compiler_contract_dict
+    semantic_context_dict["promotion_gate"] = promotion_gate_dict
+    operator_workflow_surface = build_operator_workflow_surface(
+        compiler_contract=compiler_contract_dict,
+        promotion_gate=promotion_gate_dict,
+        workflow_summary=workflow_summary,
+    )
+    semantic_context_dict["operator_workflow_surface"] = operator_workflow_surface
     payload = {
         "version": FACT_REVIEW_BUNDLE_VERSION,
         "run": {
@@ -341,6 +352,7 @@ def build_fact_review_bundle_payload(
         "contested_summary": dict(review_summary.get("contested_summary", {})),
         "chronology_summary": chronology_summary,
         "workflow_summary": dict(workflow_summary or {}),
+        "operator_workflow_surface": operator_workflow_surface,
         "abstentions": dict(abstentions),
         "compiler_contract": compiler_contract_dict,
         "promotion_gate": promotion_gate_dict,

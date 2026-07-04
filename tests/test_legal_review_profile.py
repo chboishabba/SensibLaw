@@ -6,7 +6,9 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from src.ingestion.media_adapter import TextDocumentMediaAdapter, parse_canonical_text
+from src.policy.candidate_surface import build_candidate_surface
 from src.policy.legal_review_profile import build_legal_review_extract
+from src.policy.text_surface import build_text_surface
 
 
 def test_build_legal_review_extract_emits_review_text_from_parsed_units():
@@ -91,3 +93,53 @@ def test_build_legal_review_extract_emits_weak_singleton_candidate_only_when_hin
         "parse_profile": "legal_review",
     }
     assert "target_proposition_id" not in candidate
+
+
+def test_build_legal_review_extract_uses_shared_text_and_candidate_surfaces() -> None:
+    adapter = TextDocumentMediaAdapter(source_artifact_ref="legal-review-shared-surfaces")
+    canonical = adapter.adapt("5 The authority shall maintain records.")
+    parsed_envelope = parse_canonical_text(canonical, parse_profile="legal_review")
+
+    extract = build_legal_review_extract(
+        parsed_envelope,
+        lane="gwb",
+        family_id="gwb_legal_review",
+        cohort_id="gwb_legal_review_v1",
+        root_artifact_id="gwb_legal_review_v1",
+        source_family="gwb_legal_review",
+        singleton_target_hint={
+            "candidate_id": "target:1",
+            "candidate_kind": "review_item_target",
+        },
+    )
+
+    unit = parsed_envelope.parsed_units[0]
+    record = extract["review_claim_records"][0]
+    anchor_refs = {
+        **dict(unit.anchor_refs),
+        "parse_profile": parsed_envelope.parse_profile,
+    }
+    text_ref = {
+        "text_id": parsed_envelope.canonical_text.text_id,
+        "segment_id": unit.segment_id,
+        "unit_id": unit.unit_id,
+        "envelope_id": parsed_envelope.envelope_id,
+    }
+
+    assert record["review_text"] == build_text_surface(
+        text="5 The authority shall maintain records.",
+        source_kind="legal_review_source",
+        text_role="parsed_unit_text",
+        anchor_refs=anchor_refs,
+        text_ref=text_ref,
+    )
+    assert record["review_candidate"] == build_candidate_surface(
+        candidate_id="target:1",
+        candidate_kind="review_item_target",
+        source_kind="legal_review_source",
+        selection_basis={
+            "selection_mode": "explicit_singleton_hint",
+            "parse_profile": "legal_review",
+        },
+        anchor_refs=anchor_refs,
+    )

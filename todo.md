@@ -1031,6 +1031,15 @@
   - guided next-step workflow clarity through `itir-svelte`
   - a real annotation / QA workbench slice
   - more direct user-feedback evidence beyond proxy/story notes
+- [x] Freeze the current priority correction over the post-substrate user-story
+  read:
+  - guided `itir-svelte` workflow clarity and annotation/QA remain real gaps,
+    but they are no longer co-equal with the architecture lanes
+  - before more UI/workbench widening, keep these two P0s ahead:
+    - the cross-lane compiler normalization push
+    - shared cross-lane semantic surface extraction
+  - treat UI/workbench work as validation/consumption of those normalized
+    products unless a narrow operator blocker forces an earlier slice
 - [ ] Push the next reusable judgment-architecture split above the now-settled
   substrate layer:
   - use `../docs/planning/judgment_architecture_lane_split_20260402.md` as the

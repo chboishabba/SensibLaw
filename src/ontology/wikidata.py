@@ -5092,18 +5092,14 @@ def build_wikidata_migration_pack(
         ambiguous=ambiguous,
         requires_review_count=migration_pack["summary"]["requires_review_count"],
     )
+    migration_pack["pilot_metrics"] = pilot_metrics
+    migration_pack["readiness_surface"] = readiness_surface
     migration_pack["compiler_contract"] = build_wikidata_migration_pack_contract(migration_pack)
-    if isinstance(migration_pack["compiler_contract"], dict):
-        migration_pack["compiler_contract"]["pilot_metrics"] = pilot_metrics
-        migration_pack["compiler_contract"]["readiness_surface"] = readiness_surface
     migration_pack["promotion_gate"] = build_product_gate(
         lane="wikidata_nat",
         product_ref="wikidata_migration_pack",
         compiler_contract=migration_pack["compiler_contract"],
     )
-    if isinstance(migration_pack["promotion_gate"], dict):
-        migration_pack["promotion_gate"]["pilot_metrics"] = pilot_metrics
-        migration_pack["promotion_gate"]["readiness_surface"] = readiness_surface
     return migration_pack
 
 

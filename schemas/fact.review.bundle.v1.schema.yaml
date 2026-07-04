@@ -251,6 +251,8 @@ properties:
     type: object
   workflow_summary:
     type: object
+  operator_workflow_surface:
+    type: object
   review_claim_records:
     type: array
     items:
@@ -343,5 +345,6 @@ properties:
       text_debug: {type: object}
       compiler_contract: {type: object}
       promotion_gate: {type: object}
+      operator_workflow_surface: {type: object}
       suite_normalized_artifact: {type: object}
 additionalProperties: false

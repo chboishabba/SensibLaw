@@ -87,6 +87,15 @@ def _component_metrics(
     return len(component_sizes), _round(largest / len(node_ids))
 
 
+def _kind_counts(rows: Sequence[Mapping[str, Any]], key: str) -> dict[str, int]:
+    counts = Counter(
+        str(row.get(key) or "").strip()
+        for row in rows
+        if str(row.get(key) or "").strip()
+    )
+    return {kind: counts[kind] for kind in sorted(counts)}
+
+
 def build_graph_cone_diagnostics(
     *,
     graph_payload: Mapping[str, Any],
@@ -217,6 +226,10 @@ def build_graph_diagnostics(
             "component_count": component_count,
             "giant_component_ratio": giant_component_ratio,
             "branching_factor": _round(edge_count / node_count) if node_count else 0.0,
+        },
+        "distributions": {
+            "node_kind_counts": _kind_counts(nodes, "kind"),
+            "edge_kind_counts": _kind_counts(edges, "kind"),
         },
     }
     if cone_seed_node_kinds and cone_allowed_edge_types and cone_max_depth is not None:

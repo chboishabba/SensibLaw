@@ -38,6 +38,7 @@ from src.policy.legal_follow_graph import (
     build_au_legal_follow_graph,
     build_au_legal_follow_operator_view,
 )
+from src.policy.operator_workflow_surface import build_operator_workflow_surface
 from src.policy.product_gate import build_product_gate
 from src.policy.review_claim_records import build_review_claim_records_from_queue_rows
 from src.policy.reasoner_input_artifact import build_reasoner_input_artifact
@@ -935,6 +936,24 @@ def build_au_fact_review_bundle_world_model_report(
     run = review_bundle.get("run", {}) if isinstance(review_bundle.get("run"), Mapping) else {}
     run_id = str(run.get("fact_run_id") or "").strip()
     semantic_run_id = str(run.get("semantic_run_id") or "").strip()
+    compiler_contract = (
+        review_bundle.get("compiler_contract") if isinstance(review_bundle.get("compiler_contract"), Mapping) else None
+    )
+    promotion_gate = (
+        review_bundle.get("promotion_gate") if isinstance(review_bundle.get("promotion_gate"), Mapping) else None
+    )
+    workflow_summary = (
+        review_bundle.get("workflow_summary") if isinstance(review_bundle.get("workflow_summary"), Mapping) else None
+    )
+    operator_workflow_surface = (
+        review_bundle.get("operator_workflow_surface")
+        if isinstance(review_bundle.get("operator_workflow_surface"), Mapping)
+        else build_operator_workflow_surface(
+            compiler_contract=compiler_contract,
+            promotion_gate=promotion_gate,
+            workflow_summary=workflow_summary,
+        )
+    )
     review_queue = review_bundle.get("review_queue", [])
     if not isinstance(review_queue, Sequence) or isinstance(review_queue, (str, bytes, bytearray)):
         review_queue = []
@@ -1045,6 +1064,10 @@ def build_au_fact_review_bundle_world_model_report(
         "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
         "run_id": run_id,
         "semantic_run_id": semantic_run_id,
+        "compiler_contract": dict(compiler_contract or {}),
+        "promotion_gate": dict(promotion_gate or {}),
+        "workflow_summary": dict(workflow_summary or {}),
+        "operator_workflow_surface": dict(operator_workflow_surface),
         "claims": claims,
         "summary": {
             "claim_count": len(claims),
