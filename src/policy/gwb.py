@@ -26,7 +26,19 @@ def attach_receipt(artifact: Mapping[str, Any], *, profile: str = "broader_revie
         receipt_builder = builders[profile]
     except KeyError as exc:
         raise ValueError(f"unsupported gwb receipt profile: {profile}") from exc
-    return _attach_receipt(artifact, receipt_builder=receipt_builder)
+    source_artifact = artifact
+    if not isinstance(artifact.get("linkage_case"), Mapping):
+        try:
+            if profile == "broader_review":
+                source_artifact = _build_broader_review_report(dict(artifact))
+            else:
+                source_artifact = _build_narrative_report(dict(artifact), run_id=artifact.get("run_id"))
+        except ValueError as exc:
+            raise ValueError(
+                "linkage receipt attachment requires a linkage_case projection; "
+                "project_linkage_case(...) must run before attach_receipt(...)"
+            ) from exc
+    return _attach_receipt(source_artifact, receipt_builder=receipt_builder)
 
 
 def build_world_model(payload_or_conn: Any, *, profile: str = "broader_review", run_id: str | None = None) -> dict[str, Any]:

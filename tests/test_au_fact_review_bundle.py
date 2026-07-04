@@ -516,6 +516,7 @@ def test_au_fact_review_bundle_linkage_receipt_can_attach_to_existing_bundle(tmp
     wrapped = attach_receipt(bundle)
 
     assert "linkage_depth_receipt" in wrapped
+    assert wrapped["linkage_case"]["projection_kind"] == "linkage_case"
     assert "linkage_depth_receipt" not in bundle
 
 

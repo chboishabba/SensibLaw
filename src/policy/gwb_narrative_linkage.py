@@ -22,6 +22,7 @@ from src.policy.linkage_depth import (
 from src.policy.linkage_case_inputs import (
     case_from_linkage_projection,
     case_from_receipt,
+    require_case_from_projection_artifact,
 )
 
 GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID = "gwb_narrative_timeline_linkage"
@@ -359,7 +360,15 @@ def build_receipt(
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
-    case_payload = _build_case_payload(report)
+    case_payload = require_case_from_projection_artifact(
+        report,
+        case_kind="narrative_timeline_fixture",
+        default_case_id="gwb_narrative_timeline",
+        default_lane_id="gwb",
+        default_contract=contract_payload,
+        default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
+        default_notes=["GWB narrative/timeline case loaded from the projected linkage surface."],
+    )
     return build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,

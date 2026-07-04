@@ -74,7 +74,39 @@ def case_from_linkage_projection(
     )
 
 
+def require_case_from_projection_artifact(
+    artifact: Mapping[str, Any],
+    *,
+    case_kind: str,
+    default_case_id: str,
+    default_lane_id: str,
+    default_contract: Mapping[str, Any],
+    default_contract_id: str,
+    default_notes: Sequence[str] = (),
+    default_case_source: str = "projected_world_model_artifact",
+) -> dict[str, Any]:
+    if not isinstance(artifact, Mapping):
+        raise ValueError("linkage receipt attachment requires projected artifact mapping")
+    case = case_from_linkage_projection(
+        artifact.get("linkage_case"),
+        case_kind=case_kind,
+        default_case_id=default_case_id,
+        default_lane_id=default_lane_id,
+        default_contract=default_contract,
+        default_contract_id=default_contract_id,
+        default_notes=default_notes,
+        default_case_source=default_case_source,
+    )
+    if case is None:
+        raise ValueError(
+            "linkage receipt attachment requires a linkage_case projection; "
+            "project_linkage_case(...) must run before attach_receipt(...)"
+        )
+    return case
+
+
 __all__ = [
     "case_from_linkage_projection",
     "case_from_receipt",
+    "require_case_from_projection_artifact",
 ]

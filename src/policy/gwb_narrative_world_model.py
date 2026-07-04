@@ -67,8 +67,21 @@ def _relation_rows(report: Mapping[str, Any]) -> list[dict[str, Any]]:
     )
 
 
-def build_world_model(conn: Any, *, run_id: str) -> dict[str, Any]:
-    raw_report = build_gwb_semantic_report(conn, run_id=run_id)
+def _raw_report(source: Any, *, run_id: str | None = None) -> dict[str, Any]:
+    if isinstance(source, Mapping):
+        payload = deepcopy(dict(source))
+        payload_run_id = _text(payload.get("run_id"))
+        if run_id and payload_run_id and payload_run_id != run_id:
+            raise ValueError("gwb narrative world model received mismatched run_id for semantic report")
+        return payload
+    if not run_id:
+        raise ValueError("gwb narrative world model requires run_id when loading from a database connection")
+    return build_gwb_semantic_report(source, run_id=run_id)
+
+
+def build_world_model(conn: Any, *, run_id: str | None = None) -> dict[str, Any]:
+    raw_report = _raw_report(conn, run_id=run_id)
+    resolved_run_id = _text(raw_report.get("run_id")) or _text(run_id)
     profile = build_profile(
         profile_id=GWB_NARRATIVE_TIMELINE_PROFILE_ID,
         lane_family="gwb",
@@ -97,11 +110,11 @@ def build_world_model(conn: Any, *, run_id: str) -> dict[str, Any]:
                 _text(row.get("event_id")) for row in _mapping_rows(context.get("per_event_rows")) if _text(row.get("event_id"))
             ],
         },
-        context={"run_id": run_id, "per_event_rows": per_event_rows},
+        context={"run_id": resolved_run_id, "per_event_rows": per_event_rows},
     )
     claims = _relation_rows(raw_report)
     return _build_world_model(
-        model_id=run_id,
+        model_id=resolved_run_id,
         lane_family="gwb",
         model_status="candidate",
         source_mode="gwb_semantic_report",
@@ -116,7 +129,8 @@ def build_world_model(conn: Any, *, run_id: str) -> dict[str, Any]:
             "candidate_only_relation_count": len(_mapping_rows(raw_report.get("candidate_only_relations"))),
         },
         metadata={
-            "artifact_id": run_id,
+            "artifact_id": resolved_run_id,
+            "run_id": resolved_run_id,
             "lane_id": "gwb",
             "profile": profile,
             "adapter_stack": ["claim_nodes_from_mapping", "event_nodes_from_mapping", "timeline_nodes_from_mapping"],
@@ -124,7 +138,7 @@ def build_world_model(conn: Any, *, run_id: str) -> dict[str, Any]:
             "review_inputs": build_review_inputs(
                 raw_report,
                 field_names=("per_event", "promoted_relations", "candidate_only_relations", "source_documents", "review_summary"),
-                extra_fields={"run_id": run_id},
+                extra_fields={"run_id": resolved_run_id},
             ),
         },
     )
@@ -165,7 +179,7 @@ def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
     return report
 
 
-def build_report(conn: Any, *, run_id: str) -> dict[str, Any]:
+def build_report(conn: Any, *, run_id: str | None = None) -> dict[str, Any]:
     return project_report(build_world_model(conn, run_id=run_id))
 
 

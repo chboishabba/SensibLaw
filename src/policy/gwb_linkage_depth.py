@@ -14,6 +14,7 @@ from src.policy.linkage_depth import (
 from src.policy.linkage_case_inputs import (
     case_from_linkage_projection,
     case_from_receipt,
+    require_case_from_projection_artifact,
 )
 
 GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID = "gwb_broader_review_linkage"
@@ -272,7 +273,15 @@ def build_receipt(
         if isinstance(contract, Mapping)
         else build_contract()
     )
-    case_payload = _build_case_payload(report)
+    case_payload = require_case_from_projection_artifact(
+        report,
+        case_kind="legal_follow_fixture",
+        default_case_id="gwb_broader_review",
+        default_lane_id="gwb",
+        default_contract=contract_payload,
+        default_contract_id=GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
+        default_notes=["Bounded GWB broader review case loaded from the projected linkage surface."],
+    )
     receipt = build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,

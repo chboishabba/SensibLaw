@@ -16,6 +16,7 @@ from src.policy.linkage_depth import (
     build_linkage_depth_case,
     build_linkage_depth_receipt,
 )
+from src.policy.linkage_case_inputs import require_case_from_projection_artifact
 from src.policy.world_model import (
     build_state_node,
     build_world_model as build_candidate_world_model,
@@ -701,7 +702,15 @@ def build_receipt(
         if isinstance(contract, Mapping)
         else build_contract()
     )
-    case = build_case(report)
+    case = require_case_from_projection_artifact(
+        report,
+        case_kind="wd_structural_pressure_fixture",
+        default_case_id="wikidata_q43229_superclass_pressure",
+        default_lane_id=Q43229_LANE_FAMILY,
+        default_contract=contract_payload,
+        default_contract_id=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
+        default_notes=["Q43229 superclass-pressure case loaded from the projected linkage surface."],
+    )
     return build_linkage_depth_receipt(
         case=case,
         contract=contract_payload,

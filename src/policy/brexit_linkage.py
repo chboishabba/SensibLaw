@@ -20,6 +20,7 @@ from src.policy.linkage_depth import (
 from src.policy.linkage_case_inputs import (
     case_from_linkage_projection,
     case_from_receipt,
+    require_case_from_projection_artifact,
 )
 from src.sources.national_archives.brexit_national_archives_lane import (
     BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
@@ -318,7 +319,15 @@ def build_receipt(
         if isinstance(contract, Mapping)
         else build_contract()
     )
-    case = build_case(report)
+    case = require_case_from_projection_artifact(
+        report,
+        case_kind="archive_policy_fixture",
+        default_case_id="brexit_archive_policy_intent",
+        default_lane_id="brexit_national_archives_policy_intent",
+        default_contract=contract_payload,
+        default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
+        default_notes=["Brexit archive policy-intent case loaded from the projected linkage surface."],
+    )
     return build_linkage_depth_receipt(
         case=case,
         contract=contract_payload,

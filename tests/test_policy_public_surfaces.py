@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import pytest
 
 from src.ontology import nat
 from src.policy import au, brexit, gwb
@@ -33,3 +34,14 @@ def test_gwb_and_nat_use_profile_selectors_not_kind() -> None:
     assert "profile" in nat_attach.parameters
     assert "profile" in nat_build.parameters
     assert "profile" in nat_world_model.parameters
+
+
+def test_lane_receipts_require_projected_linkage_case_inputs() -> None:
+    with pytest.raises(ValueError, match="project_linkage_case"):
+        brexit.attach_receipt({"artifact_id": "brexit:raw"})
+
+    with pytest.raises(ValueError, match="project_linkage_case"):
+        gwb.attach_receipt({"artifact_id": "gwb:raw"})
+
+    with pytest.raises(ValueError, match="project_linkage_case"):
+        nat.attach_receipt({"artifact_id": "nat:raw"}, profile="q43229_superclass_pressure")

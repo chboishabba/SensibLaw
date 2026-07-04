@@ -11,7 +11,10 @@ from src.policy.linkage_workflows import build_report as _build_with_workflow
 
 
 def attach_receipt(artifact: Mapping[str, Any]) -> dict[str, Any]:
-    return _attach_receipt(artifact, receipt_builder=_build_receipt)
+    source_artifact = artifact
+    if not isinstance(artifact.get("linkage_case"), Mapping):
+        source_artifact = _build_projected_report(dict(artifact))
+    return _attach_receipt(source_artifact, receipt_builder=_build_receipt)
 
 
 def _build_bundle_artifact(

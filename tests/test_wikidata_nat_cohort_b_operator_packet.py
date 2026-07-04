@@ -9,9 +9,11 @@ from src.models.conflict import CONFLICT_SCHEMA_VERSION
 from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION
 from src.models.temporal import TEMPORAL_SCHEMA_VERSION
 from src.ontology.wikidata_nat_cohort_b_operator_packet import (
+    NAT_COHORT_B_OPERATOR_PACKET_LINKAGE_CONTRACT_ID,
     WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_SCHEMA_VERSION,
     WIKIDATA_NAT_COHORT_B_OPERATOR_PACKET_WORLD_MODEL_SCHEMA_VERSION,
     build_nat_cohort_b_operator_packet,
+    build_nat_cohort_b_operator_packet_world_model,
     build_nat_cohort_b_operator_packet_world_model_report,
 )
 from src.ontology.wikidata_nat_cohort_b_review_bucket import (
@@ -110,12 +112,31 @@ def test_build_nat_cohort_b_operator_packet_world_model_report_rebinds_packet_in
     assert report["decision"] == "review"
     assert report["summary"]["claim_count"] == 2
     assert report["summary"]["must_review_count"] == 2
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["world_model_ref"]["lane_family"] == "nat"
+    assert report["claim_table"]["projection_kind"] == "claim_table"
+    assert report["review_surface"]["projection_kind"] == "review_surface"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+    assert report["linkage_case"]["payload"]["contract_id"] == NAT_COHORT_B_OPERATOR_PACKET_LINKAGE_CONTRACT_ID
     first_claim = report["claims"][0]
     assert first_claim["status"] == "REVIEW_ONLY"
     assert first_claim["nat_claim"]["state_basis"] == "review_packet"
     assert first_claim["convergence"]["convergence_state"] == "NORMALIZED"
     assert first_claim["conflict_set"]["conflict_type"] == "none"
     assert first_claim["action_policy"]["actionability"] == "must_review"
+
+
+def test_build_nat_cohort_b_operator_packet_world_model_uses_shared_adapter_stack() -> None:
+    operator_packet = _load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json")
+
+    world_model = build_nat_cohort_b_operator_packet_world_model(operator_packet)
+
+    assert world_model["lane_family"] == "nat"
+    assert world_model["metadata"]["profile"]["profile_id"] == "nat_cohort_b_operator_packet"
+    assert world_model["metadata"]["selected_rows"] == operator_packet["selected_rows"]
+    assert world_model["summary"]["claim_count"] == 2
+    assert len(world_model["claims"]) == 2
+    assert all(claim["nat_claim"]["state"] == "review_claim" for claim in world_model["claims"])
 
 
 def test_build_nat_cohort_b_operator_packet_world_model_report_requires_operator_packet() -> None:

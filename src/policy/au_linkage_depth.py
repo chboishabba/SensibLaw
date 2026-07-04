@@ -13,6 +13,7 @@ from src.policy.linkage_depth import (
 from src.policy.linkage_case_inputs import (
     case_from_linkage_projection,
     case_from_receipt,
+    require_case_from_projection_artifact,
 )
 
 AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID = "au_fact_review_bundle_linkage"
@@ -547,8 +548,15 @@ def build_receipt(
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
-    artifact = _bundle_like_artifact(review_bundle) if isinstance(review_bundle, Mapping) else review_bundle
-    case_payload = _build_case_payload(artifact)
+    case_payload = require_case_from_projection_artifact(
+        review_bundle,
+        case_kind="legal_authority_fixture",
+        default_case_id="au_fact_review_bundle",
+        default_lane_id="au",
+        default_contract=contract_payload,
+        default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
+        default_notes=["AU fact-review linkage case loaded from the projected linkage surface."],
+    )
     receipt = build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,

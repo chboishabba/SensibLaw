@@ -18,6 +18,7 @@ from src.policy.linkage_depth import (
 from src.policy.linkage_case_inputs import (
     case_from_linkage_projection,
     case_from_receipt,
+    require_case_from_projection_artifact,
 )
 from src.policy.world_model import build_state_node, build_world_model as build_candidate_world_model
 from src.policy.world_model_profiles import build_profile
@@ -728,7 +729,15 @@ def build_climate_review_linkage_receipt(
         if isinstance(contract, Mapping)
         else build_sensiblaw_pnf_wd_linkage_contract()
     )
-    case_payload = build_climate_review_linkage_case_from_report(report)
+    case_payload = require_case_from_projection_artifact(
+        report,
+        case_kind="real_text_fixture",
+        default_case_id=CLIMATE_PROFILE_ID,
+        default_lane_id=CLIMATE_PROFILE_ID,
+        default_contract=contract_payload,
+        default_contract_id=SENSIBLAW_PNF_WD_LINKAGE_CONTRACT_ID,
+        default_notes=["Bounded real-text case loaded from the projected climate linkage surface."],
+    )
     return build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,
@@ -938,7 +947,15 @@ def build_disjointness_report_linkage_receipt(
         if isinstance(contract, Mapping)
         else build_wikidata_disjointness_review_linkage_contract()
     )
-    case_payload = build_disjointness_report_linkage_case_from_report(report)
+    case_payload = require_case_from_projection_artifact(
+        report,
+        case_kind="wd_structural_fixture",
+        default_case_id=DISJOINTNESS_PROFILE_ID,
+        default_lane_id=DISJOINTNESS_PROFILE_ID,
+        default_contract=contract_payload,
+        default_contract_id=WIKIDATA_DISJOINTNESS_REVIEW_LINKAGE_CONTRACT_ID,
+        default_notes=["Bounded disjointness case loaded from the projected linkage surface."],
+    )
     return build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,
