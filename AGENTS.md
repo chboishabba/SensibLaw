@@ -22,9 +22,23 @@ Hard rules:
 - Distinguish lane family from profile/fixture selectors in arguments and docs.
   Use names like `profile`, `artifact`, or `selector`, not vague overloads that
   collapse lane and report identity together.
+- Keep the distinction explicit in code and docs:
+  `nat` is the lane family, while `climate_review_demonstrator`,
+  `disjointness_report`, and `q43229_superclass_pressure` are profiles.
 - Canonical demo surfaces must be zero-glue. Prefer `module.build_report()` or
   `module.load_fixture(profile=...)` over call chains that make callers wire
   input-loading steps by hand.
+- Treat `world model` as a receipt-free latent carrier, not as a truth oracle
+  or a report synonym. Prefer the split:
+  `build_world_model(...) -> project_report(...) -> attach_receipt(...)`.
+- Keep the missing adapter layer explicit:
+  `artifact -> world_model_adapters -> CandidateWorldModel`.
+  Do not leave lane-local normalization semantics parked permanently in
+  `au_world_model.py`, `gwb_narrative_world_model.py`, or similar wrappers.
+- Prefer shared projections such as `project_report(...)`,
+  `project_claim_table(...)`, `project_timeline(...)`,
+  `project_review_surface(...)`, and `project_linkage_case(...)` before
+  inventing a lane-local report or review surface.
 - Before adding a new public helper, search for an existing generic workflow or
   adapter and extend that surface instead of introducing a lane-named callable.
 - If a proposed public function name contains both the lane name and the

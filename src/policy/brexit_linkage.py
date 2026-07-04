@@ -13,10 +13,13 @@ from src.policy.linkage_adapters import (
     merge_linkage_fragments,
 )
 from src.policy.linkage_depth import (
-    LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION,
     build_expected_layer_contract,
     build_linkage_depth_case,
     build_linkage_depth_receipt,
+)
+from src.policy.linkage_case_inputs import (
+    case_from_linkage_projection,
+    case_from_receipt,
 )
 from src.sources.national_archives.brexit_national_archives_lane import (
     BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
@@ -279,24 +282,29 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
 
 
 def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
-    receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
-    if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
-        return build_linkage_depth_case(
-            case_id=_text(receipt.get("case_id")) or "brexit_archive_policy_intent",
+    if isinstance(report, Mapping):
+        case = case_from_receipt(
+            report.get("linkage_depth_receipt"),
             case_kind="archive_policy_fixture",
-            contract_id=_text((receipt.get("contract") or {}).get("contract_id"))
-            or BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-            expected_anchor_ids=receipt.get("expected_anchor_ids", []),
-            expected_terminal_ids=receipt.get("expected_terminal_ids", []),
-            nodes=receipt.get("nodes", []),
-            edges=receipt.get("edges", []),
-            lane_id=_text(receipt.get("lane_id")) or "brexit_national_archives_policy_intent",
-            case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
-            notes=["Brexit archive policy-intent case loaded from emitted lane receipt."],
-            contract=receipt.get("contract")
-            if isinstance(receipt.get("contract"), Mapping)
-            else build_contract(),
+            default_case_id="brexit_archive_policy_intent",
+            default_lane_id="brexit_national_archives_policy_intent",
+            default_contract=build_contract(),
+            default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
+            default_notes=["Brexit archive policy-intent case loaded from emitted lane receipt."],
         )
+        if case is not None:
+            return case
+        case = case_from_linkage_projection(
+            report.get("linkage_case"),
+            case_kind="archive_policy_fixture",
+            default_case_id="brexit_archive_policy_intent",
+            default_lane_id="brexit_national_archives_policy_intent",
+            default_contract=build_contract(),
+            default_contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
+            default_notes=["Brexit archive policy-intent case loaded from projected linkage surface."],
+        )
+        if case is not None:
+            return case
     return _build_brexit_archive_policy_intent_case_payload(report)
 
 

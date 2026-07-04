@@ -17,6 +17,39 @@
 # Changelog
 
 ## Unreleased
+- add the missing generic artifact-to-world-model adapter layer in
+  `src/policy/world_model_adapters.py`. The shared adapter kit now owns
+  reusable claim/event/timeline/review-input normalization instead of leaving
+  that semantics inside lane-local world-model wrappers
+- add a generic candidate world-model control-plane in
+  `src/policy/world_model.py` and `src/policy/world_model_projections.py`,
+  treating world models as receipt-free latent carriers and reports as
+  projections over them
+- widen the shared projection family with generic claim-table, timeline,
+  review-surface, and linkage-case projections, and add
+  `src/policy/world_model_profiles.py` so lane/profile configuration stays
+  outside the audit core
+- migrate the NAT `q43229_superclass_pressure` profile onto the same
+  carrier/projection stack. `src/ontology/nat.py` now exposes
+  `build_world_model(profile=...)`, `src/ontology/wikidata_superclass_linkage.py`
+  now builds a shared candidate world model plus report/review/claim/linkage
+  projections, and the receipt path consumes the explicit `linkage_case`
+  projection instead of scraping bespoke report internals
+- migrate AU onto the same carrier/projection split through
+  `src/policy/au_world_model.py` and `src/policy/au.py`, keeping
+  `build_world_model(...) -> project_report(...) -> attach_receipt(...)`
+  visible at the lane boundary while storing linkage inputs on the projection
+  instead of scraping a bespoke lane artifact. AU claim packing now routes
+  through the generic review-claim adapter instead of hand-building
+  review-claim world-model records in the lane wrapper
+- rebind GWB broader review and Brexit archive/review world-model modules onto
+  the shared world-model builder/projection split while keeping linkage receipt
+  attachment at the lane boundary
+- normalize the public lane wrappers around generic verbs and `profile`
+  selectors. `src/policy/gwb.py` now routes narrative receipts through
+  `profile="narrative_timeline"` rather than `kind=...`, `src/policy/brexit.py`
+  now exposes `build_world_model(...)` and `load_records()`, and tests now
+  guard against lane-encoded wrapper exports
 - Tightened the linkage/public naming surface around the shared adapter core.
   New lane-prefill modules now expose generic verbs instead of lane-encoded
   callable names:
@@ -44,7 +77,9 @@
   candidate, coalescence, authority, external-bridge, and tranche fragments
   over the shared `src/policy/linkage_depth.py` audit core while keeping
   `build_gwb_semantic_report(...)` receipt-free and attaching the receipt only
-  in `src/policy/gwb_lane_receipts.py`.
+  in `src/policy/gwb_lane_receipts.py`. The matching
+  `src/policy/gwb_narrative_world_model.py` path now uses generic claim/event/
+  timeline adapters rather than lane-owned world-model packing logic.
 - Added the Phase G.1 AU linkage-depth adopter on top of the shared
   `src/policy/linkage_depth.py` control-plane. The new
   `src/policy/au_linkage_depth.py` and `src/policy/au_lane_receipts.py` keep

@@ -7,6 +7,7 @@ from SensibLaw.src.sources.national_archives.brexit_national_archives_lane impor
     BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
     build_manifest,
     build_report,
+    build_world_model,
     fetch_records,
     load_records,
 )
@@ -72,12 +73,18 @@ def test_brexit_world_model_report_rebinds_records_into_shared_substrate(monkeyp
 
     monkeypatch.setattr("SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get", fake_get)
     records = fetch_records(limit=1)
+    world_model = build_world_model(records)
     report = build_report(records)
 
     assert report["schema_version"] == BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION
     assert report["action_policy_schema_version"] == ACTION_POLICY_SCHEMA_VERSION
     assert report["summary"]["claim_count"] == 1
     assert report["summary"]["must_review_count"] == 1
+    assert world_model["metadata"]["adapter_stack"] == [
+        "claim_state_records",
+        "authority_surface_rows",
+        "review_inputs",
+    ]
 
     claim = report["claims"][0]
     assert claim["status"] == "REVIEW_ONLY"

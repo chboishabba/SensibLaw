@@ -5,11 +5,13 @@ from pathlib import Path
 
 from src.ontology.nat import attach_receipt, load_fixture
 from src.ontology.wikidata_superclass_linkage import (
+    Q43229_PROFILE_ID,
     WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
     WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
     build_case,
     build_contract,
     build_report,
+    build_world_model,
 )
 from src.policy.linkage_depth import audit_linkage_depth_case
 
@@ -34,6 +36,30 @@ def test_q43229_superclass_pressure_report_remains_receipt_free() -> None:
     assert "linkage_depth_receipt" not in report
 
 
+def test_q43229_superclass_pressure_world_model_and_projections_reuse_shared_stack() -> None:
+    world_model = build_world_model(
+        review_bucket=_load_fixture("wikidata_nat_cohort_b_review_bucket_20260402.json"),
+        operator_packet=_load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json"),
+        operator_queue=_load_fixture("wikidata_nat_cohort_b_operator_queue_20260402.json"),
+        operator_report=_load_fixture("wikidata_nat_cohort_b_operator_report_20260402.json"),
+        batch_report=_load_fixture("wikidata_nat_cohort_b_operator_batch_report_20260402.json"),
+    )
+    report = build_report(
+        review_bucket=_load_fixture("wikidata_nat_cohort_b_review_bucket_20260402.json"),
+        operator_packet=_load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json"),
+        operator_queue=_load_fixture("wikidata_nat_cohort_b_operator_queue_20260402.json"),
+        operator_report=_load_fixture("wikidata_nat_cohort_b_operator_report_20260402.json"),
+        batch_report=_load_fixture("wikidata_nat_cohort_b_operator_batch_report_20260402.json"),
+    )
+
+    assert world_model["lane_family"] == "nat"
+    assert world_model["metadata"]["profile"]["profile_id"] == Q43229_PROFILE_ID
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["review_surface"]["projection_kind"] == "review_surface"
+    assert report["claim_table"]["projection_kind"] == "claim_table"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+
+
 def test_q43229_superclass_lane_wrapper_attaches_receipt() -> None:
     report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
 
@@ -48,7 +74,7 @@ def test_q43229_superclass_lane_wrapper_attaches_receipt() -> None:
 
 
 def test_q43229_superclass_case_projects_adapter_composed_geometry() -> None:
-    report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
+    report = load_fixture(profile="q43229_superclass_pressure", with_receipt=False)
 
     case = build_case(report)
     audited = audit_linkage_depth_case(
@@ -58,6 +84,7 @@ def test_q43229_superclass_case_projects_adapter_composed_geometry() -> None:
 
     assert audited["linkage_depth_status"] == "complete"
     assert audited["typed_path_depth"] == 6
+    assert case["case_source"] == "projected_world_model_artifact"
     assert audited["bridge_completeness"][-1]["source_layer"] == "review_surface"
     assert audited["bridge_completeness"][-1]["target_layer"] == "tranche_anchor"
     assert {

@@ -4,9 +4,6 @@ import json
 from pathlib import Path
 
 from scripts.build_gwb_broader_review import build_gwb_broader_review
-from SensibLaw.src.fact_intake.au_review_bundle import (
-    build_au_fact_review_bundle_world_model_report,
-)
 from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
 from SensibLaw.src.ontology.wikidata_nat_cohort_b_operator_packet import (
     build_nat_cohort_b_operator_packet_world_model_report,
@@ -19,6 +16,7 @@ from SensibLaw.src.reporting.world_model_lane_summary import (
 from src.policy.gwb_broader_review_world_model import (
     build_gwb_broader_review_world_model_report,
 )
+from src.policy.au_world_model import build_report as build_au_world_model_report
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
     build_report,
     fetch_records,
@@ -128,7 +126,7 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
 
     nat_report = build_nat_claim_convergence_report(_load_nat_verification_runs_fixture())
     bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path)
-    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_report = build_au_world_model_report(bundle)
     gwb_result = build_gwb_broader_review(tmp_path / "gwb")
     gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)

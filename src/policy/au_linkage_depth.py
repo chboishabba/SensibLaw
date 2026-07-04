@@ -10,6 +10,10 @@ from src.policy.linkage_depth import (
     build_linkage_depth_case,
     build_linkage_depth_receipt,
 )
+from src.policy.linkage_case_inputs import (
+    case_from_linkage_projection,
+    case_from_receipt,
+)
 
 AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID = "au_fact_review_bundle_linkage"
 
@@ -125,6 +129,38 @@ def _workflow_anchor_metadata(review_bundle: Mapping[str, Any]) -> dict[str, Any
         "recommended_view": _text(workflow_summary.get("recommended_view")),
         "gate_decision": _text(promotion_gate.get("decision")),
         "authority_surface": "workflow_tranche_anchor",
+    }
+
+
+def _bundle_like_artifact(artifact: Mapping[str, Any]) -> Mapping[str, Any]:
+    if _text(artifact.get("version")) == "fact.review.bundle.v1":
+        return artifact
+
+    projection = artifact.get("projection") if isinstance(artifact.get("projection"), Mapping) else {}
+    linkage_inputs = projection.get("metadata", {}).get("linkage_inputs") if isinstance(projection.get("metadata"), Mapping) else {}
+    if not isinstance(linkage_inputs, Mapping):
+        linkage_inputs = {}
+    if not linkage_inputs:
+        review_surface = artifact.get("review_surface") if isinstance(artifact.get("review_surface"), Mapping) else {}
+        linkage_inputs = review_surface.get("metadata", {}).get("linkage_inputs") if isinstance(review_surface.get("metadata"), Mapping) else {}
+        if not isinstance(linkage_inputs, Mapping):
+            linkage_inputs = {}
+
+    if not linkage_inputs:
+        return artifact
+
+    return {
+        "version": "fact.review.bundle.v1",
+        "run": deepcopy(dict(linkage_inputs.get("run") or {})),
+        "review_queue": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("review_queue"))],
+        "sources": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("sources"))],
+        "events": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("events"))],
+        "source_documents": [deepcopy(dict(row)) for row in _mapping_rows(linkage_inputs.get("source_documents"))],
+        "operator_views": deepcopy(dict(linkage_inputs.get("operator_views") or {})),
+        "workflow_summary": deepcopy(dict(linkage_inputs.get("workflow_summary") or {})),
+        "operator_workflow_surface": deepcopy(dict(linkage_inputs.get("operator_workflow_surface") or {})),
+        "promotion_gate": deepcopy(dict(linkage_inputs.get("promotion_gate") or {})),
+        "compiler_contract": deepcopy(dict(linkage_inputs.get("compiler_contract") or {})),
     }
 
 
@@ -478,22 +514,31 @@ def _build_case_payload(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_case(review_bundle: Mapping[str, Any]) -> dict[str, Any]:
-    receipt = review_bundle.get("linkage_depth_receipt") if isinstance(review_bundle, Mapping) else None
-    if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
-        return build_linkage_depth_case(
-            case_id=_text(receipt.get("case_id")) or "au_fact_review_bundle",
+    if isinstance(review_bundle, Mapping):
+        case = case_from_receipt(
+            review_bundle.get("linkage_depth_receipt"),
             case_kind="legal_authority_fixture",
-            contract_id=_text((receipt.get("contract") or {}).get("contract_id")) or AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-            expected_anchor_ids=receipt.get("expected_anchor_ids", []),
-            expected_terminal_ids=receipt.get("expected_terminal_ids", []),
-            nodes=receipt.get("nodes", []),
-            edges=receipt.get("edges", []),
-            lane_id=_text(receipt.get("lane_id")) or "au",
-            case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
-            notes=["AU fact-review linkage case loaded from the emitted lane receipt."],
-            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_contract(),
+            default_case_id="au_fact_review_bundle",
+            default_lane_id="au",
+            default_contract=build_contract(),
+            default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
+            default_notes=["AU fact-review linkage case loaded from the emitted lane receipt."],
         )
-    return _build_case_payload(review_bundle)
+        if case is not None:
+            return case
+        case = case_from_linkage_projection(
+            review_bundle.get("linkage_case"),
+            case_kind="legal_authority_fixture",
+            default_case_id="au_fact_review_bundle",
+            default_lane_id="au",
+            default_contract=build_contract(),
+            default_contract_id=AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
+            default_notes=["AU fact-review linkage case loaded from the projected linkage surface."],
+        )
+        if case is not None:
+            return case
+    artifact = _bundle_like_artifact(review_bundle) if isinstance(review_bundle, Mapping) else review_bundle
+    return _build_case_payload(artifact)
 
 
 def build_receipt(
@@ -502,7 +547,8 @@ def build_receipt(
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
-    case_payload = _build_case_payload(review_bundle)
+    artifact = _bundle_like_artifact(review_bundle) if isinstance(review_bundle, Mapping) else review_bundle
+    case_payload = _build_case_payload(artifact)
     receipt = build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,
@@ -519,11 +565,11 @@ def build_receipt(
 def build_report_with_receipt(
     review_bundle: Mapping[str, Any],
 ) -> dict[str, Any]:
-    from src.fact_intake.au_review_bundle import build_au_fact_review_bundle_world_model_report
+    from src.policy.au_world_model import build_report
 
-    report = build_au_fact_review_bundle_world_model_report(review_bundle)
+    report = build_report(review_bundle)
     artifact = deepcopy(dict(report))
-    artifact["linkage_depth_receipt"] = build_receipt(review_bundle)
+    artifact["linkage_depth_receipt"] = build_receipt(report)
     return artifact
 
 

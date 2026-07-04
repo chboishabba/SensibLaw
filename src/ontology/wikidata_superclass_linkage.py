@@ -16,6 +16,17 @@ from src.policy.linkage_depth import (
     build_linkage_depth_case,
     build_linkage_depth_receipt,
 )
+from src.policy.world_model import (
+    build_state_node,
+    build_world_model as build_candidate_world_model,
+)
+from src.policy.world_model_profiles import build_profile
+from src.policy.world_model_projections import (
+    project_claim_table,
+    project_linkage_case,
+    project_report as project_world_model_report,
+    project_review_surface,
+)
 
 WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION = (
     "sl.wikidata_q43229_superclass_pressure_report.v0_1"
@@ -24,6 +35,8 @@ WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID = (
     "wikidata_q43229_superclass_pressure_linkage"
 )
 Q43229_TARGET_QID = "Q43229"
+Q43229_LANE_FAMILY = "nat"
+Q43229_PROFILE_ID = "q43229_superclass_pressure"
 
 
 def _text(value: Any) -> str:
@@ -87,6 +100,25 @@ def build_report(
     operator_report: Mapping[str, Any],
     batch_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    return project_report(
+        build_world_model(
+            review_bucket=review_bucket,
+            operator_packet=operator_packet,
+            operator_queue=operator_queue,
+            operator_report=operator_report,
+            batch_report=batch_report,
+        )
+    )
+
+
+def build_world_model(
+    *,
+    review_bucket: Mapping[str, Any],
+    operator_packet: Mapping[str, Any],
+    operator_queue: Mapping[str, Any],
+    operator_report: Mapping[str, Any],
+    batch_report: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     lane_id = _text(operator_packet.get("lane_id")) or _text(operator_report.get("lane_id"))
     packet_id = _text(operator_packet.get("packet_id"))
     report_id = _text(operator_report.get("report_id"))
@@ -113,45 +145,218 @@ def build_report(
             if packet_id and _text(row.get("packet_id")) == packet_id:
                 case_rows.append(dict(row))
 
-    return {
-        "schema_version": WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
-        "lane_id": lane_id,
-        "cohort_id": cohort_id,
-        "target_instance_of_qid": Q43229_TARGET_QID,
-        "packet_id": packet_id,
-        "report_id": report_id,
-        "batch_status": _text(batch_report.get("batch_status")) if isinstance(batch_report, Mapping) else "",
-        "decision": _text(operator_packet.get("decision")) or _text(operator_report.get("report_status")) or "review",
-        "governance": dict(operator_report.get("governance"))
+    decision = _text(operator_packet.get("decision")) or _text(operator_report.get("report_status")) or "review"
+    governance = (
+        dict(operator_report.get("governance"))
         if isinstance(operator_report.get("governance"), Mapping)
         else dict(operator_packet.get("governance"))
         if isinstance(operator_packet.get("governance"), Mapping)
+        else {}
+    )
+    summary = {
+        "packet_row_count": len(packet_rows),
+        "review_bucket_row_count": len(bucket_rows),
+        "queue_row_count": len(queue_rows),
+        "report_row_count": len(report_rows),
+        "case_count": len(case_rows),
+        "review_first": bool(operator_packet.get("summary", {}).get("review_first"))
+        or bool(operator_report.get("summary", {}).get("review_first")),
+        "variance_flag_counts": dict(operator_report.get("summary", {}).get("variance_flag_counts", {}))
+        if isinstance(operator_report.get("summary"), Mapping)
+        else dict(operator_packet.get("summary", {}).get("variance_flag_counts", {}))
+        if isinstance(operator_packet.get("summary"), Mapping)
         else {},
-        "packet_rows": packet_rows,
-        "review_bucket_rows": bucket_rows,
-        "queue_rows": queue_rows,
-        "report_rows": report_rows,
-        "case_rows": case_rows,
-        "triage_prompts": _string_list(operator_packet.get("triage_prompts")),
-        "recommendations": _string_list(operator_report.get("recommendations")),
-        "summary": {
-            "packet_row_count": len(packet_rows),
-            "review_bucket_row_count": len(bucket_rows),
-            "queue_row_count": len(queue_rows),
-            "report_row_count": len(report_rows),
-            "case_count": len(case_rows),
-            "review_first": bool(operator_packet.get("summary", {}).get("review_first"))
-            or bool(operator_report.get("summary", {}).get("review_first")),
-            "variance_flag_counts": dict(operator_report.get("summary", {}).get("variance_flag_counts", {}))
-            if isinstance(operator_report.get("summary"), Mapping)
-            else dict(operator_packet.get("summary", {}).get("variance_flag_counts", {}))
-            if isinstance(operator_packet.get("summary"), Mapping)
-            else {},
-            "priority_counts": dict(operator_report.get("summary", {}).get("priority_counts", {}))
-            if isinstance(operator_report.get("summary"), Mapping)
-            else {},
-        },
+        "priority_counts": dict(operator_report.get("summary", {}).get("priority_counts", {}))
+        if isinstance(operator_report.get("summary"), Mapping)
+        else {},
     }
+    claims = [
+        build_state_node(
+            node_id=f"claim:{_row_key(row)}",
+            node_kind="statement_edge_candidate",
+            label=f"Superclass-pressure candidate {_row_key(row)}",
+            status="candidate",
+            source_anchor_ids=[f"wd_source_anchor:{_row_key(row)}"],
+            authority_surface="wd_source_discussion",
+            promotion_status="candidate_only",
+            metadata={
+                "row_id": _text(row.get("row_id")),
+                "entity_qid": _text(row.get("entity_qid")),
+                "instance_of_qid": _text(row.get("instance_of_qid")),
+                "variance_flags": _string_list(row.get("variance_flags")),
+                "reviewer_questions": _string_list(row.get("reviewer_questions")),
+                "candidate_vs_promoted_visibility": True,
+            },
+        )
+        for row in packet_rows
+        if _row_key(row)
+    ]
+    authority_surfaces = [
+        build_state_node(
+            node_id=f"authority:{name}",
+            node_kind="authority_surface",
+            label=name.replace("_", " "),
+            status="reviewed",
+            authority_surface=name,
+            promotion_status="review_only",
+        )
+        for name in (
+            "wd_source_discussion",
+            "wd_class_lattice_pressure_surface",
+            "wd_community_review_surface",
+            "workflow_tranche_anchor",
+        )
+    ]
+    profile = build_profile(
+        profile_id=Q43229_PROFILE_ID,
+        lane_family=Q43229_LANE_FAMILY,
+        source_kinds=[
+            "wikidata_review_bucket",
+            "wikidata_operator_packet",
+            "wikidata_operator_queue",
+            "wikidata_operator_report",
+        ],
+        authority_surfaces=[
+            "wd_source_discussion",
+            "wd_class_lattice_pressure_surface",
+            "wd_community_review_surface",
+            "workflow_tranche_anchor",
+        ],
+        external_bridges=["wikidata"],
+        promotion_policy="review_only",
+        default_projection_kinds=["report", "claim_table", "review_surface", "linkage_case"],
+        metadata={"target_instance_of_qid": Q43229_TARGET_QID},
+    )
+    return build_candidate_world_model(
+        model_id=packet_id or report_id or Q43229_PROFILE_ID,
+        lane_family=Q43229_LANE_FAMILY,
+        model_status="candidate",
+        source_mode="bounded_wikidata_review_artifacts",
+        claims=claims,
+        authority_surfaces=authority_surfaces,
+        summary=summary,
+        metadata={
+            "profile": profile,
+            "profile_id": Q43229_PROFILE_ID,
+            "lane_id": lane_id,
+            "cohort_id": cohort_id,
+            "target_instance_of_qid": Q43229_TARGET_QID,
+            "packet_id": packet_id,
+            "report_id": report_id,
+            "batch_status": _text(batch_report.get("batch_status")) if isinstance(batch_report, Mapping) else "",
+            "decision": decision,
+            "governance": governance,
+            "packet_rows": packet_rows,
+            "review_bucket_rows": bucket_rows,
+            "queue_rows": queue_rows,
+            "report_rows": report_rows,
+            "case_rows": case_rows,
+            "triage_prompts": _string_list(operator_packet.get("triage_prompts")),
+            "recommendations": _string_list(operator_report.get("recommendations")),
+        },
+    )
+
+
+def _report_payload_from_world_model(world_model: Mapping[str, Any]) -> dict[str, Any]:
+    metadata = world_model.get("metadata") if isinstance(world_model.get("metadata"), Mapping) else {}
+    summary = world_model.get("summary") if isinstance(world_model.get("summary"), Mapping) else {}
+    return {
+        "schema_version": WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
+        "lane_id": _text(metadata.get("lane_id")),
+        "cohort_id": _text(metadata.get("cohort_id")),
+        "target_instance_of_qid": _text(metadata.get("target_instance_of_qid")) or Q43229_TARGET_QID,
+        "packet_id": _text(metadata.get("packet_id")),
+        "report_id": _text(metadata.get("report_id")),
+        "batch_status": _text(metadata.get("batch_status")),
+        "decision": _text(metadata.get("decision")) or "review",
+        "governance": dict(metadata.get("governance")) if isinstance(metadata.get("governance"), Mapping) else {},
+        "packet_rows": [dict(row) for row in _mapping_rows(metadata.get("packet_rows"))],
+        "review_bucket_rows": [dict(row) for row in _mapping_rows(metadata.get("review_bucket_rows"))],
+        "queue_rows": [dict(row) for row in _mapping_rows(metadata.get("queue_rows"))],
+        "report_rows": [dict(row) for row in _mapping_rows(metadata.get("report_rows"))],
+        "case_rows": [dict(row) for row in _mapping_rows(metadata.get("case_rows"))],
+        "triage_prompts": _string_list(metadata.get("triage_prompts")),
+        "recommendations": _string_list(metadata.get("recommendations")),
+        "summary": dict(summary),
+    }
+
+
+def _build_linkage_projection(world_model: Mapping[str, Any]) -> dict[str, Any]:
+    case = _build_q43229_superclass_pressure_case_payload(_report_payload_from_world_model(world_model))
+    return project_linkage_case(
+        world_model,
+        case_id=case["case_id"],
+        contract_id=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
+        nodes=case["nodes"],
+        edges=case["edges"],
+        expected_anchor_ids=case["expected_anchor_ids"],
+        expected_terminal_ids=case["expected_terminal_ids"],
+        notes=case["notes"],
+        metadata={
+            "projection_role": "linkage_case",
+            "contract_id": WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
+        },
+    )
+
+
+def project_report(world_model: Mapping[str, Any]) -> dict[str, Any]:
+    model = world_model if isinstance(world_model, Mapping) else {}
+    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    summary = model.get("summary") if isinstance(model.get("summary"), Mapping) else {}
+    report_payload = _report_payload_from_world_model(model)
+    review_surface = project_review_surface(
+        model,
+        review_rows=report_payload["report_rows"],
+        workflow_summary={
+            "decision": report_payload["decision"],
+            "review_first": bool(summary.get("review_first")),
+            "priority_counts": dict(summary.get("priority_counts", {})),
+        },
+        summary={"review_row_count": len(report_payload["report_rows"])},
+        metadata={"profile_id": Q43229_PROFILE_ID},
+    )
+    claim_table = project_claim_table(
+        model,
+        claim_rows=model.get("claims"),
+        summary={"row_count": len(model.get("claims", []))},
+        metadata={"profile_id": Q43229_PROFILE_ID},
+    )
+    linkage_case = _build_linkage_projection(model)
+    return project_world_model_report(
+        model,
+        schema_version=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
+        artifact_id=report_payload["report_id"] or report_payload["packet_id"] or model.get("model_id"),
+        lane_id=report_payload["lane_id"] or Q43229_LANE_FAMILY,
+        family_id=Q43229_PROFILE_ID,
+        promotion_gate={
+            "decision": report_payload["decision"],
+            "reason": "q43229_superclass_pressure_review_only",
+            "requires_human_review": True,
+        },
+        workflow_summary=review_surface["payload"]["workflow_summary"],
+        claims=model.get("claims"),
+        summary=summary,
+        projection_metadata={"profile_id": Q43229_PROFILE_ID},
+        extra_fields={
+            "cohort_id": report_payload["cohort_id"],
+            "target_instance_of_qid": report_payload["target_instance_of_qid"],
+            "packet_id": report_payload["packet_id"],
+            "report_id": report_payload["report_id"],
+            "batch_status": report_payload["batch_status"],
+            "decision": report_payload["decision"],
+            "governance": report_payload["governance"],
+            "packet_rows": report_payload["packet_rows"],
+            "review_bucket_rows": report_payload["review_bucket_rows"],
+            "queue_rows": report_payload["queue_rows"],
+            "report_rows": report_payload["report_rows"],
+            "case_rows": report_payload["case_rows"],
+            "triage_prompts": report_payload["triage_prompts"],
+            "recommendations": report_payload["recommendations"],
+            "review_surface": review_surface,
+            "claim_table": claim_table,
+            "linkage_case": linkage_case,
+        },
+    )
 
 
 def build_contract() -> dict[str, Any]:
@@ -464,6 +669,25 @@ def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
             if isinstance(receipt.get("contract"), Mapping)
             else build_contract(),
         )
+    linkage_projection = report.get("linkage_case") if isinstance(report, Mapping) else None
+    if (
+        isinstance(linkage_projection, Mapping)
+        and _text(linkage_projection.get("projection_kind")) == "linkage_case"
+    ):
+        payload = linkage_projection.get("payload") if isinstance(linkage_projection.get("payload"), Mapping) else {}
+        return build_linkage_depth_case(
+            case_id=_text(payload.get("case_id")) or "wikidata_q43229_superclass_pressure",
+            case_kind="wd_structural_pressure_fixture",
+            contract_id=_text(payload.get("contract_id")) or WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
+            expected_anchor_ids=payload.get("expected_anchor_ids", []),
+            expected_terminal_ids=payload.get("expected_terminal_ids", []),
+            nodes=payload.get("nodes", []),
+            edges=payload.get("edges", []),
+            lane_id=_text((linkage_projection.get("source_model") or {}).get("lane_family")) or Q43229_LANE_FAMILY,
+            case_source="projected_world_model_artifact",
+            notes=payload.get("notes", []),
+            contract=build_contract(),
+        )
     return _build_q43229_superclass_pressure_case_payload(report)
 
 
@@ -491,10 +715,13 @@ def build_receipt(
 
 __all__ = [
     "Q43229_TARGET_QID",
+    "Q43229_PROFILE_ID",
     "WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID",
     "WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION",
     "build_case",
     "build_contract",
     "build_receipt",
     "build_report",
+    "build_world_model",
+    "project_report",
 ]

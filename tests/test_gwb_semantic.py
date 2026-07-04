@@ -17,7 +17,7 @@ from src.gwb_us_law.semantic import (
 )
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
-from src.policy.gwb import attach_receipt, build_semantic_report
+from src.policy.gwb import attach_receipt, build_report, build_world_model
 from src.policy.gwb_narrative_linkage import (
     GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
     build_case,
@@ -245,7 +245,7 @@ def test_gwb_semantic_lane_wrapper_attaches_narrative_linkage_receipt(tmp_path: 
         ensure_gwb_semantic_schema(conn)
         import_gwb_us_law_seed_payload(conn, payload)
         result = run_gwb_semantic_pipeline(conn)
-        report = build_semantic_report(conn, run_id=result["run_id"], with_receipt=True)
+        report = build_report(conn, profile="narrative_timeline", run_id=result["run_id"], with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["contract"]["contract_id"] == GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID
@@ -257,6 +257,42 @@ def test_gwb_semantic_lane_wrapper_attaches_narrative_linkage_receipt(tmp_path: 
         == ["complete"]
     )
     assert any(node["layer"] == "external_candidate" for node in receipt["nodes"])
+
+
+def test_gwb_narrative_world_model_uses_generic_adapter_stack(tmp_path: Path) -> None:
+    db_path = tmp_path / "itir.sqlite"
+    seed_path = Path(__file__).resolve().parents[1] / "data" / "ontology" / "gwb_us_law_linkage_seed_v1.json"
+    payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    timeline_payload = {
+        "generated_at": "2026-07-04T00:00:00Z",
+        "parser": {"name": "fixture"},
+        "source_timeline": {"path": str(tmp_path / "wiki_timeline_gwb.json"), "snapshot": None},
+        "events": [
+            {
+                "event_id": "ev1",
+                "anchor": {"year": 2006, "text": "October 17, 2006"},
+                "section": "Legislation",
+                "text": "On October 17, 2006, Bush signed the Military Commissions Act of 2006 into law.",
+                "source_id": "book://decision-points.pdf#page=396",
+            }
+        ],
+    }
+    persist_wiki_timeline_aoo_run(db_path=db_path, out_payload=timeline_payload, timeline_path=tmp_path / "wiki_timeline_gwb.json")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        ensure_bridge_schema(conn)
+        ensure_seeded_bridge_slice(conn)
+        ensure_gwb_us_law_schema(conn)
+        ensure_gwb_semantic_schema(conn)
+        import_gwb_us_law_seed_payload(conn, payload)
+        result = run_gwb_semantic_pipeline(conn)
+        world_model = build_world_model(conn, profile="narrative_timeline", run_id=result["run_id"])
+
+    assert world_model["metadata"]["adapter_stack"] == [
+        "claim_nodes_from_mapping",
+        "event_nodes_from_mapping",
+        "timeline_nodes_from_mapping",
+    ]
 
 
 def test_gwb_narrative_timeline_linkage_case_projects_composed_adapter_geometry(tmp_path: Path) -> None:
@@ -300,7 +336,7 @@ def test_gwb_narrative_timeline_linkage_case_projects_composed_adapter_geometry(
         ensure_gwb_semantic_schema(conn)
         import_gwb_us_law_seed_payload(conn, payload)
         result = run_gwb_semantic_pipeline(conn)
-        report = build_gwb_semantic_report(conn, run_id=result["run_id"])
+        report = build_report(conn, profile="narrative_timeline", run_id=result["run_id"], with_receipt=False)
 
     case = build_case(report)
     audited = audit_linkage_depth_case(case, contract=case["contract"])
@@ -313,6 +349,10 @@ def test_gwb_narrative_timeline_linkage_case_projects_composed_adapter_geometry(
     assert audited["visibility_requirements"]["cross_source_provenance_visibility"]["values"] == ["complete"]
     assert any(node["layer"] == "parsed_form" for node in case["nodes"])
     assert any(node["layer"] == "external_candidate" for node in case["nodes"])
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["timeline"]["projection_kind"] == "timeline"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+    assert case["case_source"] == "projected_world_model_artifact"
 
 
 def test_attach_gwb_narrative_timeline_linkage_receipt_wraps_existing_report(tmp_path: Path) -> None:
@@ -351,7 +391,7 @@ def test_attach_gwb_narrative_timeline_linkage_receipt_wraps_existing_report(tmp
         result = run_gwb_semantic_pipeline(conn)
         report = build_gwb_semantic_report(conn, run_id=result["run_id"])
 
-    wrapped = attach_receipt(report, kind="narrative_timeline")
+    wrapped = attach_receipt(report, profile="narrative_timeline")
     assert wrapped["linkage_depth_receipt"]["contract"]["contract_id"] == GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID
     assert wrapped["linkage_depth_receipt"]["case_id"] == "gwb_narrative_timeline"
 

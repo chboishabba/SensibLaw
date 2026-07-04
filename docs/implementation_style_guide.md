@@ -19,11 +19,21 @@ Lane identity belongs in:
 - the module name
 - the registry key
 - the fixture/demo selector
+- the lane-family wrapper such as `nat`
 
 Lane identity does **not** belong in public callable names.
 
+Profile identity belongs in selectors such as:
+
+- `climate_review_demonstrator`
+- `disjointness_report`
+- `q43229_superclass_pressure`
+- `broader_review`
+- `narrative_timeline`
+
 Prefer:
 
+- `build_world_model`
 - `build_report`
 - `build_case`
 - `build_contract`
@@ -52,13 +62,34 @@ Current generic linkage stack:
 - `src/policy/linkage_adapters.py`
 - `src/policy/linkage_depth.py`
 - `src/policy/linkage_workflows.py`
+- `src/policy/world_model.py`
+- `src/policy/world_model_adapters.py`
+- `src/policy/world_model_projections.py`
+- `src/policy/world_model_profiles.py`
 
 Rule:
 
+- the world model carries candidate latent state
+- projections expose reports, timelines, or claim tables
 - the core audits
 - the adapters emit
 - the workflow helper attaches
 - the lane module prefills
+
+World-model rule:
+
+- `world_model.py` owns carrier types only
+- `world_model_adapters.py` owns artifact-to-carrier transformation
+- `world_model_projections.py` owns inspectable views
+- lane-local `*_world_model.py` files are transitional wrappers and should
+  collapse toward profile config plus field mapping
+- `build_world_model(...)` stays receipt-free
+- `project_report(world_model)` stays receipt-free
+- `project_claim_table(world_model)` stays receipt-free
+- `project_timeline(world_model)` stays receipt-free
+- `project_review_surface(world_model)` stays receipt-free
+- `project_linkage_case(world_model)` stays receipt-free
+- `attach_receipt(...)` happens only at the lane boundary
 
 Do not put lane-specific control-plane logic into the shared helpers unless the
 same audit concept is genuinely needed by multiple lanes.

@@ -8,11 +8,24 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 import requests
 
-from src.models.action_policy import ACTION_POLICY_SCHEMA_VERSION, build_action_policy_record
-from src.models.convergence import CONVERGENCE_SCHEMA_VERSION, build_convergence_record
-from src.models.conflict import CONFLICT_SCHEMA_VERSION, build_conflict_set
-from src.models.nat_claim import NAT_CLAIM_SCHEMA_VERSION, build_nat_claim_dict
-from src.models.temporal import TEMPORAL_SCHEMA_VERSION, build_temporal_envelope
+from src.policy.world_model import build_world_model as _build_world_model
+from src.policy.world_model_adapters import (
+    ACTION_POLICY_SCHEMA_VERSION,
+    CONFLICT_SCHEMA_VERSION,
+    CONVERGENCE_SCHEMA_VERSION,
+    NAT_CLAIM_SCHEMA_VERSION,
+    TEMPORAL_SCHEMA_VERSION,
+    ClaimStateRecordMapping,
+    build_authority_surface_rows,
+    build_claim_state_records,
+    build_review_inputs,
+)
+from src.policy.world_model_projections import (
+    project_claim_table,
+    project_linkage_case,
+    project_report as _project_report,
+    project_review_surface,
+)
 
 
 BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION = "sl.brexit_national_archives_world_model.v0_1"
@@ -233,130 +246,139 @@ def write_manifest(path: Path) -> Path:
     return path
 
 
-def build_report(
+def build_world_model(
     records: Sequence[Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     if records is None:
         records = load_records()
-    claims: list[dict[str, Any]] = []
-
-    for record in records:
-        if not isinstance(record, Mapping):
-            continue
-        doc_id = str(record.get("doc_id") or "").strip()
-        if not doc_id:
-            continue
-        lane_id = "brexit_national_archives_policy_intent"
-        root_artifact_id = str(record.get("url") or doc_id).strip()
-        canonical_form = {
-            "subject": doc_id,
-            "property": "brexit_policy_intent",
-            "value": str(record.get("title") or "").strip(),
-            "rank": "normal",
-            "window_id": str(record.get("anchor_date") or "").strip(),
-            "qualifiers": {
+    lane_id = "brexit_national_archives_policy_intent"
+    normalized_records = [record for record in records if isinstance(record, Mapping)]
+    context = {"lane_id": lane_id}
+    claims = build_claim_state_records(
+        normalized_records,
+        family_id=lane_id,
+        context=context,
+        mapping=ClaimStateRecordMapping(
+            claim_id="doc_id",
+            candidate_id="doc_id",
+            cohort_id=lambda _record, context: context["lane_id"],
+            root_artifact_id=lambda record, _context: str(record.get("url") or record.get("doc_id") or "").strip(),
+            run_id=lambda record, _context: str(record.get("anchor_date") or "").strip(),
+            source_unit_id=lambda record, _context: f"brexit_archive:{str(record.get('doc_id') or '').strip()}",
+            source_family=lambda _record, _context: "brexit_national_archives",
+            authority_level=lambda _record, _context: "archive_record",
+            claim_status=lambda _record, _context: "REVIEW_ONLY",
+            nat_claim_state=lambda _record, _context: "REVIEW_ONLY",
+            evidence_status=lambda _record, _context: "single_run",
+            source_property=lambda _record, _context: "brexit_archive_record",
+            target_property=lambda _record, _context: "brexit_policy_intent",
+            state_basis=lambda _record, _context: "brexit_national_archives",
+            provenance_chain=lambda record, context: {
+                "lane_id": context["lane_id"],
+                "doc_id": str(record.get("doc_id") or "").strip(),
                 "collection": str(record.get("collection") or "").strip(),
-                "authority_role": str(record.get("authority_role") or "").strip(),
-                "anchor_date": str(record.get("anchor_date") or "").strip(),
-                "intent_tags": list(record.get("intent_tags") or []),
+                "live_fetch": bool(record.get("live_fetch")),
             },
-            "references": [
-                {"source_url": [str(record.get("url") or "").strip()]}
-            ]
-            if str(record.get("url") or "").strip()
-            else [],
-        }
-        evidence_paths = [
-            {
-                "source_unit_id": f"brexit_archive:{doc_id}",
-                "root_artifact_id": root_artifact_id,
-                "source_family": "brexit_national_archives",
-                "authority_level": "archive_record",
-                "verification_status": "review_only",
-                "provenance_chain": {
-                    "lane_id": lane_id,
-                    "doc_id": doc_id,
+            canonical_form=lambda record, _context: {
+                "subject": str(record.get("doc_id") or "").strip(),
+                "property": "brexit_policy_intent",
+                "value": str(record.get("title") or "").strip(),
+                "rank": "normal",
+                "window_id": str(record.get("anchor_date") or "").strip(),
+                "qualifiers": {
                     "collection": str(record.get("collection") or "").strip(),
-                    "live_fetch": bool(record.get("live_fetch")),
+                    "authority_role": str(record.get("authority_role") or "").strip(),
+                    "anchor_date": str(record.get("anchor_date") or "").strip(),
+                    "intent_tags": list(record.get("intent_tags") or []),
                 },
-                "run_id": str(record.get("anchor_date") or "").strip(),
-            }
-        ]
-        claim = {
-            "claim_id": doc_id,
-            "family_id": lane_id,
-            "cohort_id": lane_id,
-            "candidate_id": doc_id,
-            "status": "REVIEW_ONLY",
-            "state_basis": "brexit_national_archives",
-            "evidence_paths": evidence_paths,
-            "canonical_form": canonical_form,
-            "nat_claim": build_nat_claim_dict(
-                claim_id=doc_id,
-                family_id=lane_id,
-                cohort_id=lane_id,
-                candidate_id=doc_id,
-                canonical_form=canonical_form,
-                source_property="brexit_archive_record",
-                target_property="brexit_policy_intent",
-                state="REVIEW_ONLY",
-                state_basis="brexit_national_archives",
-                root_artifact_id=root_artifact_id,
-                provenance={
-                    "lane_id": lane_id,
-                    "collection": str(record.get("collection") or "").strip(),
-                    "live_fetch": bool(record.get("live_fetch")),
-                },
-                evidence_status="single_run",
-            ),
-        }
-        claim["convergence"] = build_convergence_record(
-            claim_id=doc_id,
-            evidence_paths=evidence_paths,
-            independent_root_artifact_ids=[root_artifact_id],
-            claim_status="REVIEW_ONLY",
-        )
-        claim["temporal"] = build_temporal_envelope(
-            claim_id=doc_id,
-            evidence_paths=evidence_paths,
-            independent_root_artifact_ids=[root_artifact_id],
-        )
-        claim["conflict_set"] = build_conflict_set(
-            claim_id=doc_id,
-            candidate_ids=[doc_id],
-            evidence_rows=[
-                {
-                    "run_id": str(record.get("anchor_date") or "").strip(),
-                    "root_artifact_id": root_artifact_id,
-                    "canonical_form": canonical_form,
-                }
-            ],
-        )
-        claim["action_policy"] = build_action_policy_record(
-            claim_id=doc_id,
-            claim_status="REVIEW_ONLY",
-            convergence=claim["convergence"],
-            temporal=claim["temporal"],
-            conflict_set=claim["conflict_set"],
-        )
-        claims.append(claim)
-
-    return {
-        "schema_version": BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
-        "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
-        "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
-        "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
-        "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
-        "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
-        "lane_id": "brexit_national_archives_policy_intent",
-        "claims": claims,
-        "summary": {
-            "claim_count": len(claims),
-            "must_review_count": sum(
-                1
-                for claim in claims
-                if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
-            ),
-            "live_fetch_count": sum(1 for claim in claims if claim["evidence_paths"][0]["provenance_chain"].get("live_fetch")),
-        },
+                "references": (
+                    [{"source_url": [str(record.get("url") or "").strip()]}]
+                    if str(record.get("url") or "").strip()
+                    else []
+                ),
+            },
+        ),
+    )
+    summary = {
+        "claim_count": len(claims),
+        "must_review_count": sum(
+            1
+            for claim in claims
+            if str(claim.get("action_policy", {}).get("actionability") or "") == "must_review"
+        ),
+        "live_fetch_count": sum(1 for claim in claims if claim["evidence_paths"][0]["provenance_chain"].get("live_fetch")),
     }
+    return _build_world_model(
+        model_id=f"{lane_id}:{len(claims)}",
+        lane_family=lane_id,
+        model_status="candidate",
+        source_mode="archive_record_sequence",
+        claims=claims,
+        authority_surfaces=build_authority_surface_rows([f"archive_authority_surface:{lane_id}"]),
+        summary=summary,
+        metadata={
+            "lane_id": lane_id,
+            "claim_schema_version": NAT_CLAIM_SCHEMA_VERSION,
+            "convergence_schema_version": CONVERGENCE_SCHEMA_VERSION,
+            "temporal_schema_version": TEMPORAL_SCHEMA_VERSION,
+            "conflict_schema_version": CONFLICT_SCHEMA_VERSION,
+            "action_policy_schema_version": ACTION_POLICY_SCHEMA_VERSION,
+            "adapter_stack": [
+                "claim_state_records",
+                "authority_surface_rows",
+                "review_inputs",
+            ],
+            "linkage_inputs": build_review_inputs(
+                {"records": normalized_records},
+                field_names=("records",),
+                extra_fields={"lane_id": lane_id},
+            ),
+        },
+    )
+
+
+def project_report(world_model: Mapping[str, Any]) -> Mapping[str, Any]:
+    model = dict(world_model)
+    metadata = model.get("metadata") if isinstance(model.get("metadata"), Mapping) else {}
+    report = _project_report(
+        world_model=model,
+        schema_version=BREXIT_NATIONAL_ARCHIVES_WORLD_MODEL_SCHEMA_VERSION,
+        artifact_id=str(model.get("model_id") or ""),
+        lane_id=str(metadata.get("lane_id") or "brexit_national_archives_policy_intent"),
+        family_id=str(model.get("lane_family") or metadata.get("lane_id") or "brexit_national_archives_policy_intent"),
+        claims=model.get("claims") if isinstance(model.get("claims"), Sequence) else None,
+        summary=model.get("summary") if isinstance(model.get("summary"), Mapping) else None,
+        extra_fields={
+            "claim_schema_version": str(metadata.get("claim_schema_version") or ""),
+            "convergence_schema_version": str(metadata.get("convergence_schema_version") or ""),
+            "temporal_schema_version": str(metadata.get("temporal_schema_version") or ""),
+            "conflict_schema_version": str(metadata.get("conflict_schema_version") or ""),
+            "action_policy_schema_version": str(metadata.get("action_policy_schema_version") or ""),
+        },
+    )
+    report["claim_table"] = project_claim_table(model)
+    report["review_surface"] = project_review_surface(
+        model,
+        workflow_summary={},
+        operator_workflow_surface={},
+    )
+    from src.policy.brexit_linkage import build_case as build_linkage_case
+
+    linkage_case_payload = build_linkage_case(report)
+    report["linkage_case"] = project_linkage_case(
+        model,
+        case_id=str(linkage_case_payload.get("case_id") or "brexit_archive_policy_intent"),
+        contract_id=str(linkage_case_payload.get("contract_id") or ""),
+        nodes=linkage_case_payload.get("nodes", []),
+        edges=linkage_case_payload.get("edges", []),
+        expected_anchor_ids=linkage_case_payload.get("expected_anchor_ids", []),
+        expected_terminal_ids=linkage_case_payload.get("expected_terminal_ids", []),
+        notes=linkage_case_payload.get("notes", []),
+    )
+    return report
+
+
+def build_report(
+    records: Sequence[Mapping[str, Any]] | None = None,
+) -> Mapping[str, Any]:
+    return project_report(build_world_model(records))

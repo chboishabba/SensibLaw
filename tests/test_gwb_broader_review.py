@@ -8,10 +8,11 @@ from scripts import build_gwb_broader_review as module
 from scripts.build_gwb_broader_review import ARTIFACT_VERSION, build_gwb_broader_review
 from src.policy.gwb_broader_review_world_model import (
     GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-    build_gwb_broader_review_world_model_report,
+    build_report as build_world_model_report,
+    build_world_model,
 )
 from src.policy.gwb import build_report
-from src.policy.gwb_linkage_depth import GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
+from src.policy.gwb_linkage_depth import GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID, build_case
 from src.policy.linkage_depth import LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
 
 
@@ -106,24 +107,24 @@ def test_build_gwb_broader_review(tmp_path: Path) -> None:
     assert normalized["artifact_id"] == "gwb_broader_review_v1"
     assert normalized["review_item_status_counts"] == {
         "accepted": 15,
-        "review_required": 5,
+        "review_required": 4,
         "held": 0,
     }
     assert normalized["source_status_counts"] == {
         "accepted": 39,
-        "review_required": 20,
+        "review_required": 14,
         "held": 0,
     }
     assert normalized["dominant_primary_workload"] == "linkage_pressure"
     assert normalized["primary_workload_counts"]["linkage_pressure"] == 8
     assert normalized["primary_workload_counts"]["event_or_time_pressure"] == 3
-    assert normalized["candidate_signal_count"] == 70
-    assert normalized["provisional_queue_row_count"] == 70
-    assert normalized["provisional_bundle_count"] == 19
-    assert normalized["review_required_source_ratio"] == 0.333333
-    assert normalized["candidate_signal_density"] == 3.5
-    assert normalized["provisional_row_density"] == 3.5
-    assert normalized["provisional_bundle_density"] == 0.95
+    assert normalized["candidate_signal_count"] == 46
+    assert normalized["provisional_queue_row_count"] == 46
+    assert normalized["provisional_bundle_count"] == 13
+    assert normalized["review_required_source_ratio"] == 0.264151
+    assert normalized["candidate_signal_density"] == 3.285714
+    assert normalized["provisional_row_density"] == 3.285714
+    assert normalized["provisional_bundle_density"] == 0.928571
 
     assert any(row["source_kind"] == "seed_family_support" for row in payload["source_review_rows"])
     assert any(row["source_kind"] == "merged_promoted_relation" for row in payload["source_review_rows"])
@@ -271,9 +272,17 @@ def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_pa
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
-    report = build_gwb_broader_review_world_model_report(payload)
+    world_model = build_world_model(payload)
+    report = build_world_model_report(payload)
 
     assert report["schema_version"] == GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION
+    assert world_model["model_id"] == payload["normalized_metrics_v1"]["artifact_id"]
+    assert world_model["claims"] == report["claims"]
+    assert report["world_model_ref"]["model_id"] == world_model["model_id"]
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["claim_table"]["projection_kind"] == "claim_table"
+    assert report["review_surface"]["projection_kind"] == "review_surface"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
     assert report["family_id"] == "gwb_broader_review"
     assert report["lane_id"] == "gwb"
     assert report["promotion_gate"] == payload["promotion_gate"]
@@ -286,7 +295,21 @@ def test_gwb_broader_review_world_model_report_rebinds_legal_follow_queue(tmp_pa
     first_claim = report["claims"][0]
     assert first_claim["nat_claim"]["property"] == "legal_follow_target"
     assert first_claim["action_policy"]["actionability"] == "must_review"
+    assert world_model["metadata"]["adapter_stack"] == [
+        "review_claim_records",
+        "authority_surface_rows",
+        "review_inputs",
+    ]
     assert "linkage_depth_receipt" not in report
+
+
+def test_gwb_broader_review_linkage_case_uses_projected_input_before_receipt(tmp_path: Path) -> None:
+    result = build_gwb_broader_review(tmp_path / "out")
+    payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+    report = build_world_model_report(payload)
+    case = build_case(report)
+
+    assert case["case_source"] == "projected_world_model_artifact"
 
 
 def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(tmp_path: Path) -> None:

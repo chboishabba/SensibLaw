@@ -22,7 +22,9 @@ from src.ontology.wikidata_linkage_depth import (
     audit_linkage_depth_case,
     build_dog_soft_stitch_linkage_case,
     build_climate_review_linkage_case,
+    build_climate_review_linkage_case_from_report,
     build_disjointness_report_linkage_case,
+    build_disjointness_report_linkage_case_from_report,
     build_sensiblaw_pnf_wd_linkage_contract,
     build_wikidata_disjointness_review_linkage_contract,
     build_wikidata_linkage_depth_audit,
@@ -100,7 +102,7 @@ def test_wikidata_linkage_depth_audit_passes_synthetic_and_real_cases() -> None:
             "dog_soft_stitch",
             "climate_review_demonstrator",
         ],
-        "emitted_artifact_case_count": 2,
+        "emitted_artifact_case_count": 0,
         "contract_ids": [
             "sensiblaw_pnf_wd_linkage",
             "wikidata_disjointness_review_linkage",
@@ -111,12 +113,12 @@ def test_wikidata_linkage_depth_audit_passes_synthetic_and_real_cases() -> None:
     assert by_id["dog_soft_stitch"]["typed_path_depth"] == 7
     assert by_id["dog_soft_stitch"]["wd_promotion_blocked"] is True
     assert by_id["climate_review_demonstrator"]["lane_id"] == "climate_review_demonstrator"
-    assert by_id["climate_review_demonstrator"]["case_source"] == "emitted_bridge_artifact"
+    assert by_id["climate_review_demonstrator"]["case_source"] == "projected_world_model_artifact"
     assert by_id["climate_review_demonstrator"]["linkage_depth_status"] == "complete"
     assert by_id["climate_review_demonstrator"]["anchor_to_tranche_reachability"]["anchor_count"] == 3
     assert by_id["climate_review_demonstrator"]["collapse_origin"] == "none"
     assert by_id["disjointness_report"]["contract_id"] == "wikidata_disjointness_review_linkage"
-    assert by_id["disjointness_report"]["case_source"] == "emitted_bridge_artifact"
+    assert by_id["disjointness_report"]["case_source"] == "projected_world_model_artifact"
     assert by_id["disjointness_report"]["typed_path_depth"] == 6
     assert by_id["disjointness_report"]["wd_soft_stitch_present"] is False
     assert by_id["disjointness_report"]["anchor_to_tranche_reachability"]["anchor_count"] == 1
@@ -138,6 +140,15 @@ def test_climate_review_demonstrator_emits_linkage_depth_receipt() -> None:
         for edge in receipt["edges"]
         if edge["kind"] == "wd_soft_stitch"
     )
+
+
+def test_climate_review_demonstrator_projects_linkage_case_before_receipt() -> None:
+    report = load_fixture(profile="climate_review_demonstrator", with_receipt=False)
+    case = build_climate_review_linkage_case_from_report(report)
+
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+    assert case["case_source"] == "projected_world_model_artifact"
 
 
 def test_disjointness_report_emits_linkage_depth_receipt() -> None:
@@ -163,6 +174,15 @@ def test_disjointness_report_emits_linkage_depth_receipt() -> None:
         "review_surface_projection",
         "review_packet_projection",
     ]
+
+
+def test_disjointness_report_projects_linkage_case_before_receipt() -> None:
+    report = load_fixture(profile="disjointness_report", with_receipt=False)
+    case = build_disjointness_report_linkage_case_from_report(report)
+
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+    assert case["case_source"] == "projected_world_model_artifact"
 
 
 def test_generic_climate_demonstrator_remains_receipt_free() -> None:

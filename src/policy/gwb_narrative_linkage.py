@@ -19,6 +19,10 @@ from src.policy.linkage_depth import (
     build_linkage_depth_case,
     build_linkage_depth_receipt,
 )
+from src.policy.linkage_case_inputs import (
+    case_from_linkage_projection,
+    case_from_receipt,
+)
 
 GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID = "gwb_narrative_timeline_linkage"
 
@@ -323,21 +327,29 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
-    receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
-    if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
-        return build_linkage_depth_case(
-            case_id=_text(receipt.get("case_id")) or "gwb_narrative_timeline",
+    if isinstance(report, Mapping):
+        case = case_from_receipt(
+            report.get("linkage_depth_receipt"),
             case_kind="narrative_timeline_fixture",
-            contract_id=_text((receipt.get("contract") or {}).get("contract_id")) or GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
-            expected_anchor_ids=receipt.get("expected_anchor_ids", []),
-            expected_terminal_ids=receipt.get("expected_terminal_ids", []),
-            nodes=receipt.get("nodes", []),
-            edges=receipt.get("edges", []),
-            lane_id=_text(receipt.get("lane_id")) or "gwb",
-            case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
-            notes=["GWB narrative/timeline case loaded from the emitted lane receipt."],
-            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_contract(),
+            default_case_id="gwb_narrative_timeline",
+            default_lane_id="gwb",
+            default_contract=build_contract(),
+            default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
+            default_notes=["GWB narrative/timeline case loaded from the emitted lane receipt."],
         )
+        if case is not None:
+            return case
+        case = case_from_linkage_projection(
+            report.get("linkage_case"),
+            case_kind="narrative_timeline_fixture",
+            default_case_id="gwb_narrative_timeline",
+            default_lane_id="gwb",
+            default_contract=build_contract(),
+            default_contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
+            default_notes=["GWB narrative/timeline case loaded from the projected linkage surface."],
+        )
+        if case is not None:
+            return case
     return _build_case_payload(report)
 
 

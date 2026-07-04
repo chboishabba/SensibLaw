@@ -7,12 +7,17 @@ from typing import Any, Mapping
 from src.ontology.wikidata import build_wikidata_climate_review_demonstrator
 from src.ontology.wikidata_disjointness import load_disjointness_slice, project_wikidata_disjointness_payload
 from src.ontology.wikidata_linkage_depth import (
+    build_climate_review_report,
     build_climate_review_linkage_receipt,
+    build_climate_review_world_model,
+    build_disjointness_report,
     build_disjointness_report_linkage_receipt,
+    build_disjointness_world_model,
 )
 from src.ontology.wikidata_superclass_linkage import (
     build_receipt as build_superclass_receipt,
     build_report as build_superclass_report,
+    build_world_model as build_superclass_world_model,
 )
 from src.policy.linkage_workflows import attach_receipt as _attach_receipt
 
@@ -42,9 +47,23 @@ def attach_receipt(artifact: Mapping[str, Any], *, profile: str) -> dict[str, An
 
 
 def build_report(profile: str, **kwargs: Any) -> dict[str, Any]:
-    if profile != "q43229_superclass_pressure":
-        raise ValueError(f"unsupported nat report profile: {profile}")
-    return build_superclass_report(**kwargs)
+    if profile == "climate_review_demonstrator":
+        return build_climate_review_report()
+    if profile == "disjointness_report":
+        return build_disjointness_report()
+    if profile == "q43229_superclass_pressure":
+        return build_superclass_report(**kwargs)
+    raise ValueError(f"unsupported nat report profile: {profile}")
+
+
+def build_world_model(profile: str, **kwargs: Any) -> dict[str, Any]:
+    if profile == "climate_review_demonstrator":
+        return build_climate_review_world_model()
+    if profile == "disjointness_report":
+        return build_disjointness_world_model()
+    if profile == "q43229_superclass_pressure":
+        return build_superclass_world_model(**kwargs)
+    raise ValueError(f"unsupported nat world-model profile: {profile}")
 
 
 def load_fixture(profile: str, *, with_receipt: bool = False) -> dict[str, Any]:
@@ -52,26 +71,9 @@ def load_fixture(profile: str, *, with_receipt: bool = False) -> dict[str, Any]:
     fixture_root = sensiblaw_root / "tests" / "fixtures" / "wikidata"
 
     if profile == "climate_review_demonstrator":
-        climate_root = (
-            sensiblaw_root
-            / "data"
-            / "ontology"
-            / "wikidata_migration_packs"
-            / "p5991_p14143_climate_pilot_20260328"
-        )
-        artifact = build_wikidata_climate_review_demonstrator(
-            _read_json(climate_root / "migration_pack.json"),
-            climate_text_payload=_read_json(
-                climate_root / "climate_text_source_q10403939_akademiska_hus_scope1_2018_2020.json"
-            ),
-            review_packet=_read_json(fixture_root / "wikidata_nat_review_packet_20260401.json"),
-        )
+        artifact = build_climate_review_report()
     elif profile == "disjointness_report":
-        artifact = project_wikidata_disjointness_payload(
-            load_disjointness_slice(
-                fixture_root / "disjointness_p2738_fixed_construction_real_pack_v1" / "slice.json"
-            )
-        )
+        artifact = build_disjointness_report()
     elif profile == "q43229_superclass_pressure":
         artifact = build_superclass_report(
             review_bucket=_read_json(fixture_root / "wikidata_nat_cohort_b_review_bucket_20260402.json"),
@@ -91,5 +93,6 @@ def load_fixture(profile: str, *, with_receipt: bool = False) -> dict[str, Any]:
 __all__ = [
     "attach_receipt",
     "build_report",
+    "build_world_model",
     "load_fixture",
 ]

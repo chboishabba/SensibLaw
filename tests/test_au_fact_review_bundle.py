@@ -16,7 +16,6 @@ from src.fact_intake import (
     EVENT_ASSEMBLER_VERSION,
     FACT_REVIEW_BUNDLE_VERSION,
     build_au_fact_review_bundle,
-    build_au_fact_review_bundle_world_model_report,
     build_fact_intake_payload_from_au_semantic_report,
     persist_fact_intake_payload,
     persist_authority_ingest_receipt,
@@ -41,6 +40,8 @@ from src.policy.au_linkage_depth import (
     AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
     build_case,
 )
+from src.policy.au_world_model import build_report as build_world_model_report
+from src.policy.au_world_model import build_world_model as build_world_model_carrier
 from src.policy.linkage_depth import audit_linkage_depth_case
 
 
@@ -390,7 +391,7 @@ def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_sub
 ) -> None:
     bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
 
-    report = build_au_fact_review_bundle_world_model_report(bundle)
+    report = build_world_model_report(bundle)
 
     assert report["schema_version"] == AU_FACT_REVIEW_BUNDLE_WORLD_MODEL_SCHEMA_VERSION
     assert report["claim_schema_version"] == NAT_CLAIM_SCHEMA_VERSION
@@ -403,6 +404,12 @@ def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_sub
     assert report["compiler_contract"] == bundle["compiler_contract"]
     assert report["promotion_gate"] == bundle["promotion_gate"]
     assert report["operator_workflow_surface"] == bundle["operator_workflow_surface"]
+    assert report["world_model_ref"]["model_id"] == bundle["run"]["fact_run_id"]
+    assert report["projection"]["projection_kind"] == "report"
+    assert report["review_surface"]["projection_kind"] == "review_surface"
+    assert report["claim_table"]["projection_kind"] == "claim_table"
+    assert report["linkage_case"]["projection_kind"] == "linkage_case"
+    assert report["world_model_ref"]["model_id"] == report["projection"]["source_model"]["model_id"]
     assert report["summary"]["claim_count"] == len(bundle["review_queue"])
     assert report["summary"]["must_review_count"] == len(bundle["review_queue"])
     first_claim = report["claims"][0]
@@ -413,6 +420,12 @@ def test_au_fact_review_bundle_world_model_report_rebinds_bundle_into_shared_sub
     assert first_claim["convergence"]["convergence_state"] == "NORMALIZED"
     assert first_claim["conflict_set"]["conflict_type"] == "none"
     assert first_claim["action_policy"]["actionability"] == "must_review"
+    world_model = build_world_model_carrier(bundle)
+    assert world_model["metadata"]["adapter_stack"] == [
+        "review_claim_records",
+        "authority_surface_rows",
+        "review_inputs",
+    ]
 
 
 def test_au_fact_review_bundle_remains_receipt_free(tmp_path: Path) -> None:
@@ -482,8 +495,8 @@ def test_au_fact_review_bundle_lane_wrapper_attaches_linkage_receipt(tmp_path: P
 
 def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: Path) -> None:
     bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
-
-    case = build_case(bundle)
+    report = build_world_model_report(bundle)
+    case = build_case(report)
     audited = audit_linkage_depth_case(case)
 
     assert case["contract"]["contract_id"] == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
@@ -494,6 +507,7 @@ def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: P
     assert audited["candidate_vs_promoted_visibility"] is True
     assert any(node["layer"] == "authority_surface" for node in case["nodes"])
     assert any(node["layer"] == "provision_or_legal_ref_container" for node in case["nodes"])
+    assert case["case_source"] == "projected_world_model_artifact"
 
 
 def test_au_fact_review_bundle_linkage_receipt_can_attach_to_existing_bundle(tmp_path: Path) -> None:

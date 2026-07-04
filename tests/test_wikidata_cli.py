@@ -9,13 +9,13 @@ sys.path.insert(0, str(ROOT))
 
 from cli import __main__ as cli_main
 from scripts.build_gwb_broader_review import build_gwb_broader_review
-from SensibLaw.src.fact_intake.au_review_bundle import build_au_fact_review_bundle_world_model_report
 from SensibLaw.src.ontology.wikidata_nat_cohort_b_operator_packet import (
     build_nat_cohort_b_operator_packet_world_model_report,
 )
 from src.policy.gwb_broader_review_world_model import (
     build_gwb_broader_review_world_model_report,
 )
+from src.policy.au_world_model import build_report as build_au_world_model_report
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
     build_report,
     fetch_records,
@@ -1280,7 +1280,7 @@ def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) ->
     nat_path.write_text(json.dumps(nat_report), encoding="utf-8")
 
     bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au")
-    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_report = build_au_world_model_report(bundle)
     au_path = tmp_path / "au_report.json"
     au_path.write_text(json.dumps(au_report), encoding="utf-8")
 
@@ -1365,7 +1365,7 @@ def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch
     nat_path.write_text(json.dumps(nat_report), encoding="utf-8")
 
     bundle, *_ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au_alias")
-    au_report = build_au_fact_review_bundle_world_model_report(bundle)
+    au_report = build_au_world_model_report(bundle)
     au_path = tmp_path / "au_report.json"
     au_path.write_text(json.dumps(au_report), encoding="utf-8")
 
