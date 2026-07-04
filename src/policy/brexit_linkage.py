@@ -35,7 +35,7 @@ def _mapping_rows(value: Any) -> list[Mapping[str, Any]]:
     return [row for row in value if isinstance(row, Mapping)]
 
 
-def build_brexit_archive_policy_intent_linkage_contract() -> dict[str, Any]:
+def build_contract() -> dict[str, Any]:
     return build_expected_layer_contract(
         contract_id=BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
         domain="brexit_archive_policy_intent_linkage",
@@ -274,11 +274,11 @@ def _build_brexit_archive_policy_intent_case_payload(report: Mapping[str, Any]) 
         expected_terminal_ids=[tranche_node_id],
         nodes=fragment.get("nodes", []),
         edges=fragment.get("edges", []),
-        contract=build_brexit_archive_policy_intent_linkage_contract(),
+        contract=build_contract(),
     )
 
 
-def build_brexit_archive_policy_intent_linkage_case(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
     receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
     if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
         return build_linkage_depth_case(
@@ -295,12 +295,12 @@ def build_brexit_archive_policy_intent_linkage_case(report: Mapping[str, Any]) -
             notes=["Brexit archive policy-intent case loaded from emitted lane receipt."],
             contract=receipt.get("contract")
             if isinstance(receipt.get("contract"), Mapping)
-            else build_brexit_archive_policy_intent_linkage_contract(),
+            else build_contract(),
         )
     return _build_brexit_archive_policy_intent_case_payload(report)
 
 
-def build_brexit_archive_policy_intent_linkage_receipt(
+def build_receipt(
     report: Mapping[str, Any],
     *,
     contract: Mapping[str, Any] | None = None,
@@ -308,9 +308,9 @@ def build_brexit_archive_policy_intent_linkage_receipt(
     contract_payload = (
         dict(contract)
         if isinstance(contract, Mapping)
-        else build_brexit_archive_policy_intent_linkage_contract()
+        else build_contract()
     )
-    case = build_brexit_archive_policy_intent_linkage_case(report)
+    case = build_case(report)
     return build_linkage_depth_receipt(
         case=case,
         contract=contract_payload,
@@ -324,7 +324,7 @@ def build_brexit_archive_policy_intent_linkage_receipt(
 
 __all__ = [
     "BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID",
-    "build_brexit_archive_policy_intent_linkage_case",
-    "build_brexit_archive_policy_intent_linkage_contract",
-    "build_brexit_archive_policy_intent_linkage_receipt",
+    "build_case",
+    "build_contract",
+    "build_receipt",
 ]

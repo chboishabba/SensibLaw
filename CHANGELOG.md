@@ -17,6 +17,17 @@
 # Changelog
 
 ## Unreleased
+- Tightened the linkage/public naming surface around the shared adapter core.
+  New lane-prefill modules now expose generic verbs instead of lane-encoded
+  callable names:
+  - `src/ontology/nat.py`
+  - `src/policy/brexit.py`
+  - `src/policy/au.py`
+  - `src/policy/gwb.py`
+  Backing helpers now route through `src/policy/linkage_workflows.py`, while
+  deleted `*_lane_receipts.py` wrappers no longer carry public lane-specific
+  method names. Added `docs/implementation_style_guide.md` and updated
+  `AGENTS.md` so agents must read the ITIR/SensibLaw style rules before coding.
 - Extended the generic linkage-adapter tranche so adapters can now emit
   lane-local projection and collection fragments without widening the shared
   audit core. The same adapter kit now powers

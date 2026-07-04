@@ -49,7 +49,7 @@ def _is_external_source(document_id: str) -> bool:
     return lowered.startswith("wikidata:") or "wikidata.org" in lowered or "wikipedia.org" in lowered
 
 
-def build_gwb_narrative_timeline_linkage_contract() -> dict[str, Any]:
+def build_contract() -> dict[str, Any]:
     return build_expected_layer_contract(
         contract_id=GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
         domain="gwb_narrative_timeline_linkage",
@@ -92,7 +92,7 @@ def build_gwb_narrative_timeline_linkage_contract() -> dict[str, Any]:
     )
 
 
-def _build_gwb_narrative_timeline_linkage_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
+def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
     run_id = _text(report.get("run_id"))
     if not run_id:
         raise ValueError("GWB narrative/timeline linkage case requires semantic report run_id")
@@ -318,11 +318,11 @@ def _build_gwb_narrative_timeline_linkage_case_payload(report: Mapping[str, Any]
         expected_terminal_ids=merged.get("expected_terminal_ids", []),
         nodes=merged.get("nodes", []),
         edges=merged.get("edges", []),
-        contract=build_gwb_narrative_timeline_linkage_contract(),
+        contract=build_contract(),
     )
 
 
-def build_gwb_narrative_timeline_linkage_case(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
     receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
     if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
         return build_linkage_depth_case(
@@ -336,18 +336,18 @@ def build_gwb_narrative_timeline_linkage_case(report: Mapping[str, Any]) -> dict
             lane_id=_text(receipt.get("lane_id")) or "gwb",
             case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
             notes=["GWB narrative/timeline case loaded from the emitted lane receipt."],
-            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_gwb_narrative_timeline_linkage_contract(),
+            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_contract(),
         )
-    return _build_gwb_narrative_timeline_linkage_case_payload(report)
+    return _build_case_payload(report)
 
 
-def build_gwb_narrative_timeline_linkage_receipt(
+def build_receipt(
     report: Mapping[str, Any],
     *,
     contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    contract_payload = dict(contract) if isinstance(contract, Mapping) else build_gwb_narrative_timeline_linkage_contract()
-    case_payload = _build_gwb_narrative_timeline_linkage_case_payload(report)
+    contract_payload = dict(contract) if isinstance(contract, Mapping) else build_contract()
+    case_payload = _build_case_payload(report)
     return build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,
@@ -361,7 +361,7 @@ def build_gwb_narrative_timeline_linkage_receipt(
 
 __all__ = [
     "GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID",
-    "build_gwb_narrative_timeline_linkage_case",
-    "build_gwb_narrative_timeline_linkage_contract",
-    "build_gwb_narrative_timeline_linkage_receipt",
+    "build_case",
+    "build_contract",
+    "build_receipt",
 ]

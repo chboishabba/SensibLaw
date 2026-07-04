@@ -3,6 +3,33 @@
 ## Project Structure & Module Organization
 Python orchestration lives under `src/` (`sensiblaw`, `sensiblaw_streamlit`, `fastapi`, and `pydantic` packages) with shared utilities in `scripts/` and CLI-ready entry points in `sensiblaw/`. UI assets and experimental dashboards sit in `sensiblaw_streamlit/` and `ui/`, while legal corpora and fixtures reside in `data/` and `examples/`. Keep unit tests in the parallel `tests/` tree; reuse fixtures in `tests/fixtures/` and seeded payloads in `tests/templates/`. Design notes, automation walkthroughs, and deep dives belong in `docs/`.
 
+## Required Reading
+Before writing code, read:
+
+- `README.md`
+- `docs/itir_vs_sl.md`
+- `docs/implementation_style_guide.md`
+
+Do not start from generic Python repo habits alone. SensibLaw follows ITIR
+style rules that prefer lane-prefilled modules over lane-specific callable
+names.
+
+Hard rules:
+
+- If the module name already carries the lane or domain, public function names
+  must stay generic: `build_report`, `build_case`, `build_contract`,
+  `build_receipt`, `attach_receipt`, `load_fixture`, `load_records`.
+- Distinguish lane family from profile/fixture selectors in arguments and docs.
+  Use names like `profile`, `artifact`, or `selector`, not vague overloads that
+  collapse lane and report identity together.
+- Canonical demo surfaces must be zero-glue. Prefer `module.build_report()` or
+  `module.load_fixture(profile=...)` over call chains that make callers wire
+  input-loading steps by hand.
+- Before adding a new public helper, search for an existing generic workflow or
+  adapter and extend that surface instead of introducing a lane-named callable.
+- If a proposed public function name contains both the lane name and the
+  operation, stop and refactor.
+
 ## Build, Test, and Development Commands
 Create a virtual environment and install tooling: `pip install -e .[dev,test]`. Run `pytest` for the full Python test suite, and scope to modules with `pytest tests/streaming/test_versioned_store.py`. Format with `ruff format` and lint via `ruff check --fix`; run `ruff check --select I` if imports need sorting. Verify type coverage using `mypy .`. For dashboards, launch `streamlit run streamlit_app.py`. Invoke the CLI with `python -m sensiblaw.cli --help` when iterating locally.
 

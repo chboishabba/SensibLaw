@@ -190,7 +190,7 @@ def _build_claim(
     return claim
 
 
-def build_brexit_review_world_model_report(payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_report(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
         raise ValueError("Brexit world-model adapter requires broader review payload")
     if _as_text(payload.get("fixture_kind")) != "gwb_broader_review":
@@ -297,5 +297,5 @@ def build_brexit_review_world_model_report(payload: Mapping[str, Any]) -> dict[s
 
 __all__ = [
     "BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION",
-    "build_brexit_review_world_model_report",
+    "build_report",
 ]

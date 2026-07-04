@@ -268,15 +268,15 @@ def build_dog_soft_stitch_linkage_case() -> dict[str, Any]:
 
 
 def _load_climate_review_demonstrator_report() -> dict[str, Any]:
-    from .wikidata_lane_receipts import load_climate_review_demonstrator_with_linkage_receipt
+    from .nat import load_fixture
 
-    return load_climate_review_demonstrator_with_linkage_receipt()
+    return load_fixture(profile="climate_review_demonstrator", with_receipt=True)
 
 
 def _load_disjointness_report() -> dict[str, Any]:
-    from .wikidata_lane_receipts import load_disjointness_report_with_linkage_receipt
+    from .nat import load_fixture
 
-    return load_disjointness_report_with_linkage_receipt()
+    return load_fixture(profile="disjointness_report", with_receipt=True)
 
 
 def _build_climate_review_linkage_case_payload(

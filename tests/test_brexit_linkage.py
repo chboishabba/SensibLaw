@@ -1,23 +1,19 @@
 from __future__ import annotations
 
+from src.policy.brexit import attach_receipt, build_report
 from src.policy.brexit_linkage import (
     BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-    build_brexit_archive_policy_intent_linkage_case,
-    build_brexit_archive_policy_intent_linkage_contract,
+    build_case,
+    build_contract,
 )
 from src.policy.linkage_depth import audit_linkage_depth_case
-from src.sources.national_archives.brexit_lane_receipts import (
-    attach_brexit_archive_policy_intent_linkage_receipt,
-    build_brexit_national_archives_world_model_report_with_linkage_receipt,
-)
 from src.sources.national_archives.brexit_national_archives_lane import (
-    build_brexit_national_archives_world_model_report,
-    normalized_archive_records,
+    build_report as build_prefilled_report,
 )
 
 
 def test_brexit_archive_world_model_builder_remains_receipt_free() -> None:
-    report = build_brexit_national_archives_world_model_report(normalized_archive_records())
+    report = build_prefilled_report()
 
     assert report["lane_id"] == "brexit_national_archives_policy_intent"
     assert report["summary"]["claim_count"] == 2
@@ -25,9 +21,7 @@ def test_brexit_archive_world_model_builder_remains_receipt_free() -> None:
 
 
 def test_brexit_archive_lane_wrapper_attaches_receipt() -> None:
-    report = build_brexit_national_archives_world_model_report_with_linkage_receipt(
-        normalized_archive_records()
-    )
+    report = build_report(with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["contract"]["contract_id"] == BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID
@@ -40,14 +34,12 @@ def test_brexit_archive_lane_wrapper_attaches_receipt() -> None:
 
 
 def test_brexit_archive_case_projects_adapter_geometry() -> None:
-    report = build_brexit_national_archives_world_model_report_with_linkage_receipt(
-        normalized_archive_records()
-    )
+    report = build_report(with_receipt=True)
 
-    case = build_brexit_archive_policy_intent_linkage_case(report)
+    case = build_case(report)
     audited = audit_linkage_depth_case(
         case,
-        contract=build_brexit_archive_policy_intent_linkage_contract(),
+        contract=build_contract(),
     )
 
     assert audited["linkage_depth_status"] == "complete"
@@ -67,9 +59,9 @@ def test_brexit_archive_case_projects_adapter_geometry() -> None:
 
 
 def test_attach_brexit_archive_receipt_wraps_existing_report() -> None:
-    report = build_brexit_national_archives_world_model_report(normalized_archive_records())
+    report = build_prefilled_report()
 
-    wrapped = attach_brexit_archive_policy_intent_linkage_receipt(report)
+    wrapped = attach_receipt(report)
 
     assert "linkage_depth_receipt" in wrapped
     assert "linkage_depth_receipt" not in report

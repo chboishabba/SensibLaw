@@ -17,8 +17,8 @@ from src.policy.gwb_broader_review_world_model import (
     build_gwb_broader_review_world_model_report,
 )
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
-    build_brexit_national_archives_world_model_report,
-    fetch_brexit_archive_records,
+    build_report,
+    fetch_records,
 )
 from SensibLaw.tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
 from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
@@ -1298,7 +1298,7 @@ def test_wikidata_world_model_lane_summary_cli(tmp_path, capsys, monkeypatch) ->
         "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
         lambda _url, **_kwargs: (_ for _ in ()).throw(RuntimeError("dialing blocked")),
     )
-    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_report = build_report(fetch_records(limit=1))
     brexit_path = tmp_path / "brexit_report.json"
     brexit_path.write_text(json.dumps(brexit_report), encoding="utf-8")
 
@@ -1383,7 +1383,7 @@ def test_report_world_model_lane_summary_cli_alias(tmp_path, capsys, monkeypatch
         "SensibLaw.src.sources.national_archives.brexit_national_archives_lane.requests.get",
         lambda _url, **_kwargs: (_ for _ in ()).throw(RuntimeError("dialing blocked")),
     )
-    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_report = build_report(fetch_records(limit=1))
     brexit_path = tmp_path / "brexit_report.json"
     brexit_path.write_text(json.dumps(brexit_report), encoding="utf-8")
 

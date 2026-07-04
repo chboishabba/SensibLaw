@@ -20,8 +20,8 @@ from src.policy.gwb_broader_review_world_model import (
     build_gwb_broader_review_world_model_report,
 )
 from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
-    build_brexit_national_archives_world_model_report,
-    fetch_brexit_archive_records,
+    build_report,
+    fetch_records,
 )
 from src.ontology.wikidata_nat_automation_graduation import build_nat_claim_convergence_report
 
@@ -132,7 +132,7 @@ def test_build_world_model_lane_summary_aggregates_rebound_lanes(monkeypatch, tm
     gwb_result = build_gwb_broader_review(tmp_path / "gwb")
     gwb_payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
     gwb_report = build_gwb_broader_review_world_model_report(gwb_payload)
-    brexit_report = build_brexit_national_archives_world_model_report(fetch_brexit_archive_records(limit=1))
+    brexit_report = build_report(fetch_records(limit=1))
     reviewer_report = build_nat_cohort_b_operator_packet_world_model_report(
         _load_cohort_b_operator_packet_fixture()
     )

@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import src.ontology.wikidata_linkage_depth as wikidata_linkage_depth
 from scripts.build_gwb_broader_review import build_gwb_broader_review
-from src.policy.gwb_lane_receipts import (
-    build_gwb_broader_review_world_model_report_with_linkage_receipt,
-)
+from src.policy.au import attach_receipt as attach_au_receipt
+from src.policy.brexit import build_report
+from src.policy.gwb import build_report as build_gwb_report
 from src.policy.gwb_linkage_depth import (
     GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
-    build_gwb_broader_review_linkage_case,
+    build_case as build_gwb_case,
 )
-from src.policy.au_lane_receipts import attach_au_fact_review_bundle_linkage_receipt
 from src.policy.au_linkage_depth import (
     AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-    build_au_fact_review_bundle_linkage_case,
+    build_case as build_au_case,
 )
 from src.policy.linkage_depth import build_linkage_depth_audit
 from src.ontology.wikidata_linkage_depth import (
@@ -30,24 +32,24 @@ from src.ontology.wikidata_disjointness import (
     load_disjointness_slice,
     project_wikidata_disjointness_payload,
 )
-from src.ontology.wikidata_lane_receipts import (
-    load_q43229_superclass_pressure_report_with_linkage_receipt,
-    load_climate_review_demonstrator_with_linkage_receipt,
-    load_disjointness_report_with_linkage_receipt,
-)
+from src.ontology.nat import load_fixture
 from src.ontology.wikidata_superclass_linkage import (
     WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
-    build_wikidata_q43229_superclass_pressure_linkage_case,
+    build_case as build_q43229_case,
 )
 from src.policy.brexit_linkage import (
     BREXIT_ARCHIVE_POLICY_INTENT_LINKAGE_CONTRACT_ID,
-    build_brexit_archive_policy_intent_linkage_case,
+    build_case as build_brexit_case,
 )
-from src.sources.national_archives.brexit_lane_receipts import (
-    build_brexit_national_archives_world_model_report_with_linkage_receipt,
-)
-from src.sources.national_archives.brexit_national_archives_lane import normalized_archive_records
 from tests.test_au_fact_review_bundle import _prepare_au_fact_review_bundle_fixture
+
+
+def _sensiblaw_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _read_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def test_expected_layer_contract_matches_phase_e_contract_shape() -> None:
@@ -121,7 +123,7 @@ def test_wikidata_linkage_depth_audit_passes_synthetic_and_real_cases() -> None:
 
 
 def test_climate_review_demonstrator_emits_linkage_depth_receipt() -> None:
-    report = load_climate_review_demonstrator_with_linkage_receipt()
+    report = load_fixture(profile="climate_review_demonstrator", with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["schema_version"] == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
@@ -139,7 +141,7 @@ def test_climate_review_demonstrator_emits_linkage_depth_receipt() -> None:
 
 
 def test_disjointness_report_emits_linkage_depth_receipt() -> None:
-    report = load_disjointness_report_with_linkage_receipt()
+    report = load_fixture(profile="disjointness_report", with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     contract = build_wikidata_disjointness_review_linkage_contract()
@@ -164,8 +166,6 @@ def test_disjointness_report_emits_linkage_depth_receipt() -> None:
 
 
 def test_generic_climate_demonstrator_remains_receipt_free() -> None:
-    from src.ontology.wikidata_lane_receipts import _read_json, _sensiblaw_root
-
     root = _sensiblaw_root()
     climate_root = (
         root
@@ -187,8 +187,6 @@ def test_generic_climate_demonstrator_remains_receipt_free() -> None:
 
 
 def test_generic_disjointness_report_remains_receipt_free() -> None:
-    from src.ontology.wikidata_lane_receipts import _sensiblaw_root
-
     root = _sensiblaw_root()
     report = project_wikidata_disjointness_payload(
         load_disjointness_slice(
@@ -234,20 +232,18 @@ def test_linkage_depth_audit_detects_projection_collapse_when_pnf_bridge_is_remo
 
 def test_shared_core_audits_mixed_wd_gwb_and_au_contracts(tmp_path) -> None:
     gwb_result = build_gwb_broader_review(tmp_path / "gwb-out")
-    import json
-    from pathlib import Path
 
     payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
-    gwb_report = build_gwb_broader_review_world_model_report_with_linkage_receipt(payload)
+    gwb_report = build_gwb_report(payload, with_receipt=True)
     au_bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au-fixture")
-    au_bundle = attach_au_fact_review_bundle_linkage_receipt(au_bundle)
+    au_bundle = attach_au_receipt(au_bundle)
 
     audit = build_linkage_depth_audit(
         cases=[
             build_climate_review_linkage_case(),
             build_disjointness_report_linkage_case(),
-            build_gwb_broader_review_linkage_case(gwb_report),
-            build_au_fact_review_bundle_linkage_case(au_bundle),
+            build_gwb_case(gwb_report),
+            build_au_case(au_bundle),
         ],
         audit_scope="mixed_wd_gwb_au_linkage_depth",
     )
@@ -276,22 +272,20 @@ def test_shared_core_audits_mixed_wd_gwb_au_q43229_and_brexit_contracts(tmp_path
     from pathlib import Path
 
     payload = json.loads(Path(gwb_result["artifact_path"]).read_text(encoding="utf-8"))
-    gwb_report = build_gwb_broader_review_world_model_report_with_linkage_receipt(payload)
+    gwb_report = build_gwb_report(payload, with_receipt=True)
     au_bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path / "au-fixture")
-    au_bundle = attach_au_fact_review_bundle_linkage_receipt(au_bundle)
-    q43229_report = load_q43229_superclass_pressure_report_with_linkage_receipt()
-    brexit_report = build_brexit_national_archives_world_model_report_with_linkage_receipt(
-        normalized_archive_records()
-    )
+    au_bundle = attach_au_receipt(au_bundle)
+    q43229_report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
+    brexit_report = build_report(with_receipt=True)
 
     audit = build_linkage_depth_audit(
         cases=[
             build_climate_review_linkage_case(),
             build_disjointness_report_linkage_case(),
-            build_gwb_broader_review_linkage_case(gwb_report),
-            build_au_fact_review_bundle_linkage_case(au_bundle),
-            build_wikidata_q43229_superclass_pressure_linkage_case(q43229_report),
-            build_brexit_archive_policy_intent_linkage_case(brexit_report),
+            build_gwb_case(gwb_report),
+            build_au_case(au_bundle),
+            build_q43229_case(q43229_report),
+            build_brexit_case(brexit_report),
         ],
         audit_scope="mixed_wd_gwb_au_q43229_brexit_linkage_depth",
     )

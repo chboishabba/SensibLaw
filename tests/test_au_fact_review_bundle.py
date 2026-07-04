@@ -36,13 +36,10 @@ from src.policy.legal_follow_graph import (
     build_au_legal_follow_graph,
     build_au_legal_follow_operator_view,
 )
-from src.policy.au_lane_receipts import (
-    attach_au_fact_review_bundle_linkage_receipt,
-    build_au_fact_review_bundle_with_linkage_receipt,
-)
+from src.policy.au import attach_receipt, build_report
 from src.policy.au_linkage_depth import (
     AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID,
-    build_au_fact_review_bundle_linkage_case,
+    build_case,
 )
 from src.policy.linkage_depth import audit_linkage_depth_case
 
@@ -466,11 +463,12 @@ def test_au_fact_review_bundle_lane_wrapper_attaches_linkage_receipt(tmp_path: P
             fact_run_id=payload["run"]["run_id"],
             source_label=payload["run"]["source_label"],
         )
-        bundle = build_au_fact_review_bundle_with_linkage_receipt(
+        bundle = build_report(
             conn,
             fact_run_id=payload["run"]["run_id"],
             semantic_report=semantic_report,
             source_events=source_events,
+            with_receipt=True,
         )
 
     receipt = bundle["linkage_depth_receipt"]
@@ -485,7 +483,7 @@ def test_au_fact_review_bundle_lane_wrapper_attaches_linkage_receipt(tmp_path: P
 def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: Path) -> None:
     bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
 
-    case = build_au_fact_review_bundle_linkage_case(bundle)
+    case = build_case(bundle)
     audited = audit_linkage_depth_case(case)
 
     assert case["contract"]["contract_id"] == AU_FACT_REVIEW_BUNDLE_LINKAGE_CONTRACT_ID
@@ -501,7 +499,7 @@ def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: P
 def test_au_fact_review_bundle_linkage_receipt_can_attach_to_existing_bundle(tmp_path: Path) -> None:
     bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
 
-    wrapped = attach_au_fact_review_bundle_linkage_receipt(bundle)
+    wrapped = attach_receipt(bundle)
 
     assert "linkage_depth_receipt" in wrapped
     assert "linkage_depth_receipt" not in bundle

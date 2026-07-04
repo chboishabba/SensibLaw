@@ -101,7 +101,7 @@ class BrexitNationalArchivesLane:
         }
 
 
-def build_brexit_national_archives_manifest() -> Mapping[str, Any]:
+def build_manifest() -> Mapping[str, Any]:
     lane = BrexitNationalArchivesLane()
     return lane.manifest()
 
@@ -136,7 +136,7 @@ class FetchedArchiveRecord(NormalizedArchiveRecord):
     live_fetch: bool = False
 
 
-def normalized_archive_records() -> Sequence[Mapping[str, Any]]:
+def load_records() -> Sequence[Mapping[str, Any]]:
     lane = BrexitNationalArchivesLane()
     records: list[Mapping[str, Any]] = []
     for target in lane.targets:
@@ -176,7 +176,7 @@ def _render_record_from_payload(target: BrexitArchiveTarget, payload: Mapping[st
     return asdict(record)
 
 
-def fetch_brexit_archive_records(limit: int = 1) -> Sequence[Mapping[str, Any]]:
+def fetch_records(limit: int = 1) -> Sequence[Mapping[str, Any]]:
     rows: list[Mapping[str, Any]] = []
     with FIXTURE_FILE.open(encoding="utf-8") as handle:
         fixture_payload = json.load(handle)
@@ -208,7 +208,7 @@ def fetch_brexit_archive_records(limit: int = 1) -> Sequence[Mapping[str, Any]]:
     return rows
 
 
-def national_archives_follow_operator_contract() -> Mapping[str, Any]:
+def build_operator_contract() -> Mapping[str, Any]:
     return {
         "scope": "bounded UK National Archives Brexit intent follow",
         "constraints": [
@@ -227,15 +227,17 @@ def national_archives_follow_operator_contract() -> Mapping[str, Any]:
     }
 
 
-def write_brexit_manifest(path: Path) -> Path:
-    data = build_brexit_national_archives_manifest()
+def write_manifest(path: Path) -> Path:
+    data = build_manifest()
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 
-def build_brexit_national_archives_world_model_report(
-    records: Sequence[Mapping[str, Any]],
+def build_report(
+    records: Sequence[Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
+    if records is None:
+        records = load_records()
     claims: list[dict[str, Any]] = []
 
     for record in records:

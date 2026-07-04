@@ -79,7 +79,7 @@ def _q43229_rows_by_field(rows: Sequence[Mapping[str, Any]], *, key_field: str) 
     return filtered
 
 
-def build_wikidata_q43229_superclass_pressure_report(
+def build_report(
     *,
     review_bucket: Mapping[str, Any],
     operator_packet: Mapping[str, Any],
@@ -154,7 +154,7 @@ def build_wikidata_q43229_superclass_pressure_report(
     }
 
 
-def build_wikidata_q43229_superclass_pressure_linkage_contract() -> dict[str, Any]:
+def build_contract() -> dict[str, Any]:
     return build_expected_layer_contract(
         contract_id=WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
         domain="wikidata_q43229_superclass_pressure",
@@ -441,11 +441,11 @@ def _build_q43229_superclass_pressure_case_payload(report: Mapping[str, Any]) ->
         expected_terminal_ids=[tranche_node_id],
         nodes=fragment.get("nodes", []),
         edges=fragment.get("edges", []),
-        contract=build_wikidata_q43229_superclass_pressure_linkage_contract(),
+        contract=build_contract(),
     )
 
 
-def build_wikidata_q43229_superclass_pressure_linkage_case(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
     receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
     if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
         return build_linkage_depth_case(
@@ -462,12 +462,12 @@ def build_wikidata_q43229_superclass_pressure_linkage_case(report: Mapping[str, 
             notes=["Q43229 superclass pressure case loaded from emitted lane receipt."],
             contract=receipt.get("contract")
             if isinstance(receipt.get("contract"), Mapping)
-            else build_wikidata_q43229_superclass_pressure_linkage_contract(),
+            else build_contract(),
         )
     return _build_q43229_superclass_pressure_case_payload(report)
 
 
-def build_wikidata_q43229_superclass_pressure_linkage_receipt(
+def build_receipt(
     report: Mapping[str, Any],
     *,
     contract: Mapping[str, Any] | None = None,
@@ -475,9 +475,9 @@ def build_wikidata_q43229_superclass_pressure_linkage_receipt(
     contract_payload = (
         dict(contract)
         if isinstance(contract, Mapping)
-        else build_wikidata_q43229_superclass_pressure_linkage_contract()
+        else build_contract()
     )
-    case = build_wikidata_q43229_superclass_pressure_linkage_case(report)
+    case = build_case(report)
     return build_linkage_depth_receipt(
         case=case,
         contract=contract_payload,
@@ -493,8 +493,8 @@ __all__ = [
     "Q43229_TARGET_QID",
     "WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID",
     "WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION",
-    "build_wikidata_q43229_superclass_pressure_linkage_case",
-    "build_wikidata_q43229_superclass_pressure_linkage_contract",
-    "build_wikidata_q43229_superclass_pressure_linkage_receipt",
-    "build_wikidata_q43229_superclass_pressure_report",
+    "build_case",
+    "build_contract",
+    "build_receipt",
+    "build_report",
 ]

@@ -23,7 +23,7 @@ def test_build_outputs_archive_rows(tmp_path: Path, monkeypatch):
         ]
 
     monkeypatch.setattr(
-        "SensibLaw.scripts.build_gwb_broader_review.fetch_brexit_archive_records",
+        "SensibLaw.scripts.build_gwb_broader_review.fetch_records",
         fake_fetch,
     )
     result = build_gwb_broader_review(output_dir=tmp_path)

@@ -103,11 +103,11 @@ except ModuleNotFoundError:
     from policy.suite_normalized_artifact import build_gwb_broader_review_normalized_artifact
 try:
     from SensibLaw.src.sources.national_archives.brexit_national_archives_lane import (
-        fetch_brexit_archive_records,
+        fetch_records,
     )
 except ModuleNotFoundError:
     from src.sources.national_archives.brexit_national_archives_lane import (
-        fetch_brexit_archive_records,
+        fetch_records,
     )
 
 ARTIFACT_VERSION = "gwb_broader_review_v1"
@@ -584,7 +584,7 @@ def build_gwb_broader_review(
     provisional_review_rows = _build_provisional_rows(source_review_rows)
     provisional_review_bundles = _build_bundles(provisional_review_rows)
 
-    archive_follow_rows = fetch_brexit_archive_records(limit=1)
+    archive_follow_rows = fetch_records(limit=1)
     archive_live_rows = [row for row in archive_follow_rows if row.get("live_fetch")]
     if archive_live_rows:
         source_review_rows.append(

@@ -5,16 +5,16 @@ from pathlib import Path
 
 from src.sources.national_archives.brexit_world_model_adapter import (
     BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
-    build_brexit_review_world_model_report,
+    build_report,
 )
 
 
-def test_build_brexit_review_world_model_report() -> None:
+def test_build_report() -> None:
     payload = json.loads(
         Path("SensibLaw/tmp_out/gwb_broader_review_v1.json").read_text(encoding="utf-8")
     )
 
-    report = build_brexit_review_world_model_report(payload)
+    report = build_report(payload)
 
     assert report["schema_version"] == BREXIT_REVIEW_WORLD_MODEL_SCHEMA_VERSION
     assert report["artifact_id"] == payload["normalized_metrics_v1"]["artifact_id"]

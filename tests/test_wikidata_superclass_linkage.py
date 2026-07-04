@@ -3,16 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.ontology.wikidata_lane_receipts import (
-    attach_wikidata_q43229_superclass_pressure_linkage_receipt,
-    load_q43229_superclass_pressure_report_with_linkage_receipt,
-)
+from src.ontology.nat import attach_receipt, load_fixture
 from src.ontology.wikidata_superclass_linkage import (
     WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID,
     WIKIDATA_Q43229_SUPERCLASS_PRESSURE_REPORT_SCHEMA_VERSION,
-    build_wikidata_q43229_superclass_pressure_linkage_case,
-    build_wikidata_q43229_superclass_pressure_linkage_contract,
-    build_wikidata_q43229_superclass_pressure_report,
+    build_case,
+    build_contract,
+    build_report,
 )
 from src.policy.linkage_depth import audit_linkage_depth_case
 
@@ -22,7 +19,7 @@ def _load_fixture(name: str) -> dict:
 
 
 def test_q43229_superclass_pressure_report_remains_receipt_free() -> None:
-    report = build_wikidata_q43229_superclass_pressure_report(
+    report = build_report(
         review_bucket=_load_fixture("wikidata_nat_cohort_b_review_bucket_20260402.json"),
         operator_packet=_load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json"),
         operator_queue=_load_fixture("wikidata_nat_cohort_b_operator_queue_20260402.json"),
@@ -38,7 +35,7 @@ def test_q43229_superclass_pressure_report_remains_receipt_free() -> None:
 
 
 def test_q43229_superclass_lane_wrapper_attaches_receipt() -> None:
-    report = load_q43229_superclass_pressure_report_with_linkage_receipt()
+    report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["contract"]["contract_id"] == WIKIDATA_Q43229_SUPERCLASS_PRESSURE_LINKAGE_CONTRACT_ID
@@ -51,12 +48,12 @@ def test_q43229_superclass_lane_wrapper_attaches_receipt() -> None:
 
 
 def test_q43229_superclass_case_projects_adapter_composed_geometry() -> None:
-    report = load_q43229_superclass_pressure_report_with_linkage_receipt()
+    report = load_fixture(profile="q43229_superclass_pressure", with_receipt=True)
 
-    case = build_wikidata_q43229_superclass_pressure_linkage_case(report)
+    case = build_case(report)
     audited = audit_linkage_depth_case(
         case,
-        contract=build_wikidata_q43229_superclass_pressure_linkage_contract(),
+        contract=build_contract(),
     )
 
     assert audited["linkage_depth_status"] == "complete"
@@ -78,7 +75,7 @@ def test_q43229_superclass_case_projects_adapter_composed_geometry() -> None:
 
 
 def test_attach_q43229_superclass_receipt_wraps_existing_report() -> None:
-    report = build_wikidata_q43229_superclass_pressure_report(
+    report = build_report(
         review_bucket=_load_fixture("wikidata_nat_cohort_b_review_bucket_20260402.json"),
         operator_packet=_load_fixture("wikidata_nat_cohort_b_operator_packet_20260402.json"),
         operator_queue=_load_fixture("wikidata_nat_cohort_b_operator_queue_20260402.json"),
@@ -86,7 +83,7 @@ def test_attach_q43229_superclass_receipt_wraps_existing_report() -> None:
         batch_report=_load_fixture("wikidata_nat_cohort_b_operator_batch_report_20260402.json"),
     )
 
-    wrapped = attach_wikidata_q43229_superclass_pressure_linkage_receipt(report)
+    wrapped = attach_receipt(report, profile="q43229_superclass_pressure")
 
     assert "linkage_depth_receipt" in wrapped
     assert "linkage_depth_receipt" not in report

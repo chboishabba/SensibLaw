@@ -20,7 +20,7 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def build_gwb_broader_review_linkage_contract() -> dict[str, Any]:
+def build_contract() -> dict[str, Any]:
     return build_expected_layer_contract(
         contract_id=GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
         domain="gwb_broader_review_linkage",
@@ -57,7 +57,7 @@ def build_gwb_broader_review_linkage_contract() -> dict[str, Any]:
     )
 
 
-def _build_gwb_broader_review_linkage_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
+def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
     if _text(report.get("schema_version")) != GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION:
         raise ValueError("GWB broader review linkage case requires world-model report payload")
 
@@ -228,11 +228,11 @@ def _build_gwb_broader_review_linkage_case_payload(report: Mapping[str, Any]) ->
         expected_terminal_ids=[tranche_node_id],
         nodes=nodes,
         edges=edges,
-        contract=build_gwb_broader_review_linkage_contract(),
+        contract=build_contract(),
     )
 
 
-def build_gwb_broader_review_linkage_case(report: Mapping[str, Any]) -> dict[str, Any]:
+def build_case(report: Mapping[str, Any]) -> dict[str, Any]:
     receipt = report.get("linkage_depth_receipt") if isinstance(report, Mapping) else None
     if isinstance(receipt, Mapping) and _text(receipt.get("schema_version")) == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION:
         return build_linkage_depth_case(
@@ -246,12 +246,12 @@ def build_gwb_broader_review_linkage_case(report: Mapping[str, Any]) -> dict[str
             lane_id=_text(receipt.get("lane_id")) or "gwb",
             case_source=_text(receipt.get("source_mode")) or "emitted_bridge_artifact",
             notes=["Bounded GWB broader review case loaded from the emitted lane receipt."],
-            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_gwb_broader_review_linkage_contract(),
+            contract=receipt.get("contract") if isinstance(receipt.get("contract"), Mapping) else build_contract(),
         )
-    return _build_gwb_broader_review_linkage_case_payload(report)
+    return _build_case_payload(report)
 
 
-def build_gwb_broader_review_linkage_receipt(
+def build_receipt(
     report: Mapping[str, Any],
     *,
     contract: Mapping[str, Any] | None = None,
@@ -259,9 +259,9 @@ def build_gwb_broader_review_linkage_receipt(
     contract_payload = (
         dict(contract)
         if isinstance(contract, Mapping)
-        else build_gwb_broader_review_linkage_contract()
+        else build_contract()
     )
-    case_payload = _build_gwb_broader_review_linkage_case_payload(report)
+    case_payload = _build_case_payload(report)
     receipt = build_linkage_depth_receipt(
         case=case_payload,
         contract=contract_payload,
@@ -277,7 +277,7 @@ def build_gwb_broader_review_linkage_receipt(
 
 __all__ = [
     "GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID",
-    "build_gwb_broader_review_linkage_case",
-    "build_gwb_broader_review_linkage_contract",
-    "build_gwb_broader_review_linkage_receipt",
+    "build_case",
+    "build_contract",
+    "build_receipt",
 ]

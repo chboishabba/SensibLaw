@@ -17,13 +17,10 @@ from src.gwb_us_law.semantic import (
 )
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
 from src.ontology.entity_bridge import ensure_bridge_schema, ensure_seeded_bridge_slice
-from src.policy.gwb_lane_receipts import (
-    attach_gwb_narrative_timeline_linkage_receipt,
-    build_gwb_semantic_report_with_linkage_receipt,
-)
+from src.policy.gwb import attach_receipt, build_semantic_report
 from src.policy.gwb_narrative_linkage import (
     GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID,
-    build_gwb_narrative_timeline_linkage_case,
+    build_case,
 )
 from src.policy.linkage_depth import audit_linkage_depth_case
 from src.wiki_timeline.sqlite_store import persist_wiki_timeline_aoo_run
@@ -248,7 +245,7 @@ def test_gwb_semantic_lane_wrapper_attaches_narrative_linkage_receipt(tmp_path: 
         ensure_gwb_semantic_schema(conn)
         import_gwb_us_law_seed_payload(conn, payload)
         result = run_gwb_semantic_pipeline(conn)
-        report = build_gwb_semantic_report_with_linkage_receipt(conn, run_id=result["run_id"])
+        report = build_semantic_report(conn, run_id=result["run_id"], with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["contract"]["contract_id"] == GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID
@@ -305,7 +302,7 @@ def test_gwb_narrative_timeline_linkage_case_projects_composed_adapter_geometry(
         result = run_gwb_semantic_pipeline(conn)
         report = build_gwb_semantic_report(conn, run_id=result["run_id"])
 
-    case = build_gwb_narrative_timeline_linkage_case(report)
+    case = build_case(report)
     audited = audit_linkage_depth_case(case, contract=case["contract"])
 
     assert case["contract"]["contract_id"] == GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID
@@ -354,7 +351,7 @@ def test_attach_gwb_narrative_timeline_linkage_receipt_wraps_existing_report(tmp
         result = run_gwb_semantic_pipeline(conn)
         report = build_gwb_semantic_report(conn, run_id=result["run_id"])
 
-    wrapped = attach_gwb_narrative_timeline_linkage_receipt(report)
+    wrapped = attach_receipt(report, kind="narrative_timeline")
     assert wrapped["linkage_depth_receipt"]["contract"]["contract_id"] == GWB_NARRATIVE_TIMELINE_LINKAGE_CONTRACT_ID
     assert wrapped["linkage_depth_receipt"]["case_id"] == "gwb_narrative_timeline"
 

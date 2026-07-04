@@ -10,9 +10,7 @@ from src.policy.gwb_broader_review_world_model import (
     GWB_BROADER_REVIEW_WORLD_MODEL_SCHEMA_VERSION,
     build_gwb_broader_review_world_model_report,
 )
-from src.policy.gwb_lane_receipts import (
-    build_gwb_broader_review_world_model_report_with_linkage_receipt,
-)
+from src.policy.gwb import build_report
 from src.policy.gwb_linkage_depth import GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID
 from src.policy.linkage_depth import LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
 
@@ -295,7 +293,7 @@ def test_gwb_broader_review_lane_receipt_attaches_at_wrapper_boundary(tmp_path: 
     result = build_gwb_broader_review(tmp_path / "out")
     payload = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
 
-    report = build_gwb_broader_review_world_model_report_with_linkage_receipt(payload)
+    report = build_report(payload, with_receipt=True)
 
     receipt = report["linkage_depth_receipt"]
     assert receipt["schema_version"] == LINKAGE_DEPTH_RECEIPT_SCHEMA_VERSION
