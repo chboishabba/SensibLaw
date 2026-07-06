@@ -9,7 +9,31 @@ diagnostics such as the current Wikidata work.
 
 ## Public Interface Boundary
 
-The supported downstream import boundary is `sensiblaw.interfaces`.
+The supported downstream product boundary now includes a generic bounded
+world-model surface under `sensiblaw`:
+
+- `build_world_model(data)`
+- `project_report(world_model)`
+- `project_claim_table(world_model)`
+- `project_timeline(world_model)`
+- `project_review_surface(world_model)`
+- `project_linkage_case(world_model)`
+- `attach_receipt(projection_or_report)`
+
+This is the data-in/world-model-out boundary. Downstream callers should not
+need to know NAT, GWB, AU, Brexit, affidavit, or other historical lane names
+to use it.
+
+The public boundary must not require lane selectors, scenario selectors, or
+adapter overrides such as `profile=...`, `kind=...`, or `adapter_hint=...`.
+Historical lane wrappers may still carry internal compatibility metadata, but
+that routing is not part of the product API.
+
+The older lane modules remain as demonstrations and compatibility shims. They
+must call the same generic product API rather than owning separate semantics.
+
+The supported downstream import boundary for the older evidence/extraction
+surface remains `sensiblaw.interfaces`.
 
 Implemented public surface now:
 - canonical text adaptation through `build_canonical_conversation_text(...)`

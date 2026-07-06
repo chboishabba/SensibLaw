@@ -50,6 +50,11 @@
   `profile="narrative_timeline"` rather than `kind=...`, `src/policy/brexit.py`
   now exposes `build_world_model(...)` and `load_records()`, and tests now
   guard against lane-encoded wrapper exports
+- harden the generic product boundary so `build_input_envelope(...)` and
+  `build_world_model(...)` no longer accept public lane/scenario selector
+  leakage such as `adapter_hint=...`. Historical lane routing now stays behind
+  internal compatibility metadata inside demo wrappers instead of the exported
+  data-in/world-model-out API
 - Tightened the linkage/public naming surface around the shared adapter core.
   New lane-prefill modules now expose generic verbs instead of lane-encoded
   callable names:

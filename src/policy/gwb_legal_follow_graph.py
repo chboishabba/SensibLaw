@@ -340,7 +340,7 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
         if str(row.get("kind") or "") in {"source_family", "linkage_kind", "support_kind", "review_status", "predicate"}
     ][:8]
     node_map = {str(row.get("id") or ""): row for row in nodes if str(row.get("id") or "").strip()}
-    follow_source_links: dict[str, list[dict[str, str]]] = {}
+    follow_source_links: dict[str, list[dict[str, Any]]] = {}
     for edge in edges:
         if str(edge.get("kind") or "") != "follows_source":
             continue
@@ -350,11 +350,54 @@ def build_gwb_legal_follow_operator_view(graph: Mapping[str, Any]) -> dict[str, 
             continue
         source_row = node_map.get(source_id) or {}
         metadata = edge.get("metadata") if isinstance(edge.get("metadata"), Mapping) else {}
+        source_metadata = source_row.get("metadata") if isinstance(source_row.get("metadata"), Mapping) else {}
         follow_source_links.setdefault(target_id, []).append(
             {
                 "source_row_id": str(source_row.get("metadata", {}).get("source_row_id") or ""),
                 "source_label": str(source_row.get("label") or source_id),
                 "receipt_kind": str(metadata.get("receipt_kind") or ""),
+                "event_ids": [
+                    str(value)
+                    for value in source_metadata.get("event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_paths": [
+                    str(value)
+                    for value in source_metadata.get("source_paths", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_urls": [
+                    str(value)
+                    for value in source_metadata.get("source_urls", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "citation_refs": [
+                    dict(value)
+                    for value in source_metadata.get("citation_refs", [])
+                    if isinstance(value, Mapping)
+                ],
+                "merged_event_ids": [
+                    str(value)
+                    for value in source_metadata.get("merged_event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "ordering_edge_ids": [
+                    str(value)
+                    for value in source_metadata.get("ordering_edge_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "braid_support_basis": [
+                    str(value)
+                    for value in source_metadata.get("braid_support_basis", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "braid_candidate_link_ids": [
+                    str(value)
+                    for value in source_metadata.get("braid_candidate_link_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "event_lineage_depth": str(source_metadata.get("event_lineage_depth") or "").strip(),
+                "cross_source_braid_depth": str(source_metadata.get("cross_source_braid_depth") or "").strip(),
             }
         )
     sample_edges = [
@@ -618,6 +661,80 @@ def build_gwb_legal_follow_graph(
                 "source_row_id": source_row_id or None,
                 "review_status": str(row.get("review_status") or "").strip() or None,
                 "primary_workload_class": str(row.get("primary_workload_class") or "").strip() or None,
+                "event_ids": [
+                    str(value)
+                    for value in row.get("event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_ids": [
+                    str(value)
+                    for value in row.get("source_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_paths": [
+                    str(value)
+                    for value in row.get("source_paths", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_urls": [
+                    str(value)
+                    for value in row.get("source_urls", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "citation_refs": [
+                    dict(value)
+                    for value in row.get("citation_refs", [])
+                    if isinstance(value, Mapping)
+                ],
+                "merged_event_ids": [
+                    str(value)
+                    for value in row.get("merged_event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "ordering_edge_ids": [
+                    str(value)
+                    for value in row.get("ordering_edge_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "braid_support_basis": [
+                    str(value)
+                    for value in row.get("braid_support_basis", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "braid_candidate_link_ids": [
+                    str(value)
+                    for value in row.get("braid_candidate_link_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "event_lineage_depth": str(
+                    (
+                        row.get("metadata")
+                        if isinstance(row.get("metadata"), Mapping)
+                        else {}
+                    ).get("event_lineage_depth")
+                    or ""
+                ).strip()
+                or None,
+                "cross_source_braid_depth": str(
+                    (
+                        row.get("metadata")
+                        if isinstance(row.get("metadata"), Mapping)
+                        else {}
+                    ).get("cross_source_braid_depth")
+                    or ""
+                ).strip()
+                or None,
+                "candidate_vs_promoted_visibility": (
+                    True
+                    if (
+                        (
+                            row.get("metadata")
+                            if isinstance(row.get("metadata"), Mapping)
+                            else {}
+                        ).get("candidate_vs_promoted_visibility")
+                    )
+                    else None
+                ),
             },
         )
         if seed_id:

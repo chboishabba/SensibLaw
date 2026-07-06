@@ -24,6 +24,53 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _source_ref_event_lineage_depth(source_refs: Any) -> str:
+    refs = [row for row in source_refs if isinstance(row, Mapping)] if isinstance(source_refs, list) else []
+    if not refs:
+        return "missing"
+    complete = False
+    partial = False
+    for ref in refs:
+        event_ids = [str(value).strip() for value in ref.get("event_ids", []) if str(value).strip()]
+        source_paths = [str(value).strip() for value in ref.get("source_paths", []) if str(value).strip()]
+        source_urls = [str(value).strip() for value in ref.get("source_urls", []) if str(value).strip()]
+        citation_refs = [row for row in ref.get("citation_refs", []) if isinstance(row, Mapping)]
+        if event_ids and (source_paths or source_urls or citation_refs):
+            complete = True
+        elif event_ids or source_paths or source_urls or citation_refs:
+            partial = True
+    if complete:
+        return "complete"
+    if partial:
+        return "partial"
+    return "missing"
+
+
+def _source_ref_cross_source_braid_depth(source_refs: Any) -> str:
+    refs = [row for row in source_refs if isinstance(row, Mapping)] if isinstance(source_refs, list) else []
+    if not refs:
+        return "missing"
+    values = {
+        _text(ref.get("cross_source_braid_depth"))
+        for ref in refs
+        if _text(ref.get("cross_source_braid_depth"))
+    }
+    if "complete" in values:
+        return "complete"
+    if "partial" in values:
+        return "partial"
+    if "candidate_only" in values:
+        return "candidate_only"
+    for ref in refs:
+        merged_event_ids = [str(value).strip() for value in ref.get("merged_event_ids", []) if str(value).strip()]
+        ordering_edge_ids = [str(value).strip() for value in ref.get("ordering_edge_ids", []) if str(value).strip()]
+        if merged_event_ids and ordering_edge_ids:
+            return "complete"
+        if merged_event_ids or ordering_edge_ids:
+            return "partial"
+    return "missing"
+
+
 def build_contract() -> dict[str, Any]:
     return build_expected_layer_contract(
         contract_id=GWB_BROADER_REVIEW_LINKAGE_CONTRACT_ID,
@@ -49,6 +96,12 @@ def build_contract() -> dict[str, Any]:
             "gwb_legal_follow_queue",
             "gwb_operator_workflow_surface",
             "workflow_tranche_anchor",
+        ],
+        required_visibility_fields=[
+            "queue_review_depth",
+            "event_lineage_depth",
+            "cross_source_braid_depth",
+            "candidate_vs_promoted_visibility",
         ],
         notes=[
             "GWB uses the legal-follow queue as the native spine; WD enrichment stays optional.",
@@ -146,6 +199,8 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
         nat_claim = claim.get("nat_claim") if isinstance(claim.get("nat_claim"), Mapping) else {}
         qualifiers = nat_claim.get("qualifiers") if isinstance(nat_claim.get("qualifiers"), Mapping) else {}
         source_refs = qualifiers.get("source_refs")
+        event_lineage_depth = _source_ref_event_lineage_depth(source_refs)
+        cross_source_braid_depth = _source_ref_cross_source_braid_depth(source_refs)
         nodes.extend(
             [
                 {
@@ -156,6 +211,8 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "claim_id": claim_id,
                         "source_refs": list(source_refs) if isinstance(source_refs, list) else [],
                         "route_target": _text(qualifiers.get("route_target")),
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
                 {
@@ -167,6 +224,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "resolution_status": _text(qualifiers.get("resolution_status")),
                         "authority_yield": _text(qualifiers.get("authority_yield")),
                         "priority_rank": int(qualifiers.get("priority_rank", 0) or 0),
+                        "queue_review_depth": "complete",
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
                 {
@@ -178,6 +238,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "claim_status": _text(claim.get("status")),
                         "evidence_count": int(claim.get("evidence_count", 0) or 0),
                         "family_id": _text(claim.get("family_id")),
+                        "candidate_vs_promoted_visibility": True,
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
             ]
@@ -192,6 +255,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "from_layer": "source_anchor",
                         "to_layer": "source_container",
                         "authority_surface": "gwb_legal_follow_queue",
+                        "queue_review_depth": "complete",
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
                 {
@@ -202,6 +268,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "from_layer": "source_container",
                         "to_layer": "domain_candidate",
                         "authority_surface": "gwb_legal_follow_queue",
+                        "queue_review_depth": "complete",
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
                 {
@@ -213,6 +282,9 @@ def _build_case_payload(report: Mapping[str, Any]) -> dict[str, Any]:
                         "to_layer": "authority_surface",
                         "authority_surface": "gwb_operator_workflow_surface",
                         "promotion_status": _text(claim.get("status")) or "review",
+                        "candidate_vs_promoted_visibility": True,
+                        "event_lineage_depth": event_lineage_depth,
+                        "cross_source_braid_depth": cross_source_braid_depth,
                     },
                 },
             ]

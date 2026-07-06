@@ -7,6 +7,7 @@ import sqlite3
 from pathlib import Path
 
 import jsonschema
+import pytest
 import yaml
 
 from src.au_semantic.linkage import ensure_au_semantic_schema, import_au_semantic_seed_payload
@@ -510,14 +511,22 @@ def test_au_fact_review_bundle_linkage_case_projects_bundle_geometry(tmp_path: P
     assert case["case_source"] == "projected_world_model_artifact"
 
 
-def test_au_fact_review_bundle_linkage_receipt_can_attach_to_existing_bundle(tmp_path: Path) -> None:
+def test_au_fact_review_bundle_linkage_receipt_rejects_raw_bundle(tmp_path: Path) -> None:
     bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
 
-    wrapped = attach_receipt(bundle)
+    with pytest.raises(ValueError, match="project_linkage_case"):
+        attach_receipt(bundle)
+
+
+def test_au_fact_review_bundle_linkage_receipt_attaches_to_projected_report(tmp_path: Path) -> None:
+    bundle, _, _, _ = _prepare_au_fact_review_bundle_fixture(tmp_path)
+    report = build_world_model_report(bundle)
+
+    wrapped = attach_receipt(report)
 
     assert "linkage_depth_receipt" in wrapped
     assert wrapped["linkage_case"]["projection_kind"] == "linkage_case"
-    assert "linkage_depth_receipt" not in bundle
+    assert "linkage_depth_receipt" not in report
 
 
 def test_au_authority_follow_queue_supporting_legislation_counts(tmp_path: Path) -> None:

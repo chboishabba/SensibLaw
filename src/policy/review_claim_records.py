@@ -688,6 +688,41 @@ def build_review_claim_records_from_review_rows(
             anchor_refs={
                 "source_row_id": claim_id,
                 "seed_id": str(row.get("seed_id") or "").strip(),
+                "event_ids": [
+                    str(value)
+                    for value in row.get("event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_ids": [
+                    str(value)
+                    for value in row.get("source_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_paths": [
+                    str(value)
+                    for value in row.get("source_paths", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "source_urls": [
+                    str(value)
+                    for value in row.get("source_urls", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "citation_refs": [
+                    dict(value)
+                    for value in row.get("citation_refs", [])
+                    if isinstance(value, Mapping)
+                ],
+                "merged_event_ids": [
+                    str(value)
+                    for value in row.get("merged_event_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
+                "ordering_edge_ids": [
+                    str(value)
+                    for value in row.get("ordering_edge_ids", [])
+                    if isinstance(value, str) and str(value).strip()
+                ],
             },
         )
         records.append(
@@ -715,6 +750,41 @@ def build_review_claim_records_from_review_rows(
                     "source_row_id": claim_id,
                     "source_family": str(row.get("source_family") or "").strip(),
                     "seed_id": str(row.get("seed_id") or "").strip(),
+                    "event_ids": [
+                        str(value)
+                        for value in row.get("event_ids", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
+                    "source_ids": [
+                        str(value)
+                        for value in row.get("source_ids", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
+                    "source_paths": [
+                        str(value)
+                        for value in row.get("source_paths", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
+                    "source_urls": [
+                        str(value)
+                        for value in row.get("source_urls", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
+                    "citation_refs": [
+                        dict(value)
+                        for value in row.get("citation_refs", [])
+                        if isinstance(value, Mapping)
+                    ],
+                    "merged_event_ids": [
+                        str(value)
+                        for value in row.get("merged_event_ids", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
+                    "ordering_edge_ids": [
+                        str(value)
+                        for value in row.get("ordering_edge_ids", [])
+                        if isinstance(value, str) and str(value).strip()
+                    ],
                     "upstream_artifact_ids": [
                         value
                         for value in (root_artifact_id, cohort_id)
@@ -749,6 +819,21 @@ def build_review_claim_records_from_review_rows(
                     anchor_refs={
                         "source_row_id": claim_id,
                         "seed_id": str(row.get("seed_id") or "").strip(),
+                        "event_ids": [
+                            str(value)
+                            for value in row.get("event_ids", [])
+                            if isinstance(value, str) and str(value).strip()
+                        ],
+                        "merged_event_ids": [
+                            str(value)
+                            for value in row.get("merged_event_ids", [])
+                            if isinstance(value, str) and str(value).strip()
+                        ],
+                        "ordering_edge_ids": [
+                            str(value)
+                            for value in row.get("ordering_edge_ids", [])
+                            if isinstance(value, str) and str(value).strip()
+                        ],
                     },
                     text_ref=_build_text_ref(row),
                 ),

@@ -3,18 +3,15 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from src.fact_intake.au_review_bundle import build_au_fact_review_bundle as _build_bundle
-from src.policy.au_linkage_depth import build_receipt as _build_receipt
-from src.policy.au_world_model import build_report as _build_projected_report
-from src.policy.au_world_model import build_world_model as _build_world_model_from_bundle
-from src.policy.linkage_workflows import attach_receipt as _attach_receipt
-from src.policy.linkage_workflows import build_report as _build_with_workflow
+from src.policy.world_model_runtime import (
+    attach_receipt as _attach_receipt,
+    build_world_model as _build_world_model_from_input,
+    project_report as _project_report,
+)
 
 
 def attach_receipt(artifact: Mapping[str, Any]) -> dict[str, Any]:
-    source_artifact = artifact
-    if not isinstance(artifact.get("linkage_case"), Mapping):
-        source_artifact = _build_projected_report(dict(artifact))
-    return _attach_receipt(source_artifact, receipt_builder=_build_receipt)
+    return _attach_receipt(artifact)
 
 
 def _build_bundle_artifact(
@@ -47,7 +44,7 @@ def build_world_model(
         semantic_report=semantic_report,
         source_events=source_events,
     )
-    return _build_world_model_from_bundle(bundle)
+    return _build_world_model_from_input(bundle)
 
 
 def build_report(
@@ -58,19 +55,17 @@ def build_report(
     source_events: list[Mapping[str, Any]] | None = None,
     with_receipt: bool = False,
 ) -> dict[str, Any]:
-    return _build_with_workflow(
-        report_builder=lambda *args, **kwargs: _build_projected_report(
-            _build_bundle_artifact(*args, **kwargs),
-        ),
-        report_kwargs={
-            "conn": conn,
-            "fact_run_id": fact_run_id,
-            "semantic_report": semantic_report,
-            "source_events": source_events,
-        },
-        receipt_builder=_build_receipt,
-        with_receipt=with_receipt,
+    report = _project_report(
+        build_world_model(
+            conn,
+            fact_run_id=fact_run_id,
+            semantic_report=semantic_report,
+            source_events=source_events,
+        )
     )
+    if not with_receipt:
+        return report
+    return _attach_receipt(report)
 
 
 __all__ = [

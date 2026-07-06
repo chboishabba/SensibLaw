@@ -96,15 +96,32 @@ same audit concept is genuinely needed by multiple lanes.
 
 ## User-Surface Rule
 
-Users should not be required to write lane glue code for common demonstrations.
-Provide a lane module with generic verbs and prefilled selectors instead.
+Users should not be required to know lane names or write lane glue code.
+The primary product boundary is generic:
 
-Examples:
+- `build_world_model(data)`
+- `project_report(world_model)`
+- `project_claim_table(world_model)`
+- `project_timeline(world_model)`
+- `project_review_surface(world_model)`
+- `project_linkage_case(world_model)`
+- `attach_receipt(...)`
+
+Do not widen this boundary with lane/scenario selectors or adapter overrides
+such as `profile=...`, `kind=...`, or `adapter_hint=...`. Demo and
+compatibility wrappers may still carry internal routing metadata, but the
+exported product API should remain data-in/world-model-out.
+
+Lane modules may remain for demonstrations or compatibility only.
+
+Examples of demo/compat layers:
 
 - `src/ontology/nat.py` with `load_fixture(profile="climate_review_demonstrator")`
 - `src/policy/brexit.py`
 - `src/policy/au.py`
 - `src/policy/gwb.py`
+
+These are not the preferred product entry points.
 
 ## Refactor Rule
 
