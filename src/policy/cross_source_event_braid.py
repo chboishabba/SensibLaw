@@ -633,8 +633,9 @@ def bind_atom_pnf(row: dict[str, Any], parent_row: dict[str, Any]) -> None:
         subject = _extract_inherited_actor(parent_row)
 
         if best.fragment_subclass == "birth":
+            atom_subject = _extract_inherited_actor(row) if row.get("event_roles") else subject
             parent_actor = _extract_inherited_actor(parent_row)
-            if subject["canonical_key"] != parent_actor["canonical_key"]:
+            if atom_subject["canonical_key"] != parent_actor["canonical_key"]:
                 row["is_blocked_birth_event"] = True
 
         time_anchor: dict[str, Any] = {}
@@ -1441,27 +1442,27 @@ def _compute_component_relevance(
 
     receipts: list[dict[str, Any]] = []
     for fpnf in fragment_pnfs:
-        subj = fpnf.get("subject_role")
-        pred = fpnf.get("predicate_spine")
-        obj = fpnf.get("object_role")
-        time = fpnf.get("time_anchor")
-        span = fpnf.get("source_span")
+        subj = fpnf.subject_role
+        pred = fpnf.predicate_spine
+        obj = fpnf.object_role
+        time = fpnf.time_anchor
+        span = fpnf.source_span
         p_level = classify_pnf_closure(
-            subject_filled=bool(subj and subj.get("canonical_key")),
+            subject_filled=bool(subj and subj.canonical_key),
             predicate_filled=bool(pred),
-            object_filled=bool(obj and obj.get("canonical_key")),
-            time_filled=bool(time and (time.get("start_date") or time.get("end_date"))),
+            object_filled=bool(obj and obj.canonical_key),
+            time_filled=bool(time and (time.start_date or time.end_date)),
             has_source_span=bool(span),
             has_receipt=False,
         )
 
-        fallback = fpnf.get("fallback_used", False)
-        roles_filled = sum(1 for r in [fpnf.get("subject_role"), fpnf.get("predicate_spine"), fpnf.get("object_role")] if r)
+        fallback = fpnf.fallback_used
+        roles_filled = sum(1 for r in [fpnf.subject_role, fpnf.predicate_spine, fpnf.object_role] if r)
         pb_level = projection_basis_from_fallback(fallback, roles_filled)
 
         rc_level = ResidualCompatibilityLevel.no_typed_meet
 
-        fpnf_depth = fpnf.get("fragment_subclass", "generic_relation")
+        fpnf_depth = fpnf.fragment_subclass
         fragment_scored = fpnf_depth in ("office_range", "proclamation", "ownership", "education", "marriage", "birth")
         if fragment_scored and c_level in (ConnectednessLevel.clustered, ConnectednessLevel.braid_connected):
             ld_level = LinkageDepthLevel.fragment_pnf
@@ -1470,10 +1471,10 @@ def _compute_component_relevance(
         else:
             ld_level = LinkageDepthLevel.flat_shortcut
 
-        span = fpnf.get("source_span")
+        span = fpnf.source_span
         ss_level = classify_source_span(
-            has_raw_span=bool(span and span.get("raw_text")),
-            has_normalized_span=bool(span and span.get("canonical_key")),
+            has_raw_span=bool(span and span.raw_start is not None),
+            has_normalized_span=bool(span and span.normalized_start is not None),
             has_receipt=False,
         )
 
@@ -1489,13 +1490,13 @@ def _compute_component_relevance(
             connected_component_size=int(connectedness),
             source_family_count=source_family_count,
             longest_path_len=int(node_depth),
-            closed_role_count=sum(1 for r in [fpnf.get("subject_role"), fpnf.get("object_role")] if r),
+            closed_role_count=sum(1 for r in [fpnf.subject_role, fpnf.object_role] if r),
             total_role_count=2,
             fallback_field_count=1 if fallback else 0,
         )
 
         receipts.append({
-            "fragment_id": fpnf.get("fragment_id"),
+            "fragment_id": fpnf.fragment_id,
             "export_class": receipt.export_class.value,
             "blocked_reasons": list(receipt.blocked_reasons),
             "basis": list(receipt.basis),
