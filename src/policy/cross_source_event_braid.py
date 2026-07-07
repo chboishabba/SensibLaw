@@ -8,7 +8,21 @@ from src.policy.fragment_grammar import (
     FragmentMatch,
 )
 from src.policy.fragment_pnf import (
+    ConnectednessLevel,
+    DepthLevel,
+    LinkageDepthLevel,
+    PNFClosureLevel,
+    ProjectionBasisLevel,
+    ReferentialityLevel,
+    ResidualCompatibilityLevel,
+    SourceSpanLevel,
     SourceSpanRef,
+    build_braid_relevance_receipt,
+    classify_connectedness,
+    classify_pnf_closure,
+    classify_referentiality,
+    classify_source_span,
+    projection_basis_from_fallback,
 )
 
 
@@ -1391,26 +1405,113 @@ def summarize_cross_source_event_braid(payload: Mapping[str, Any]) -> dict[str, 
     }
 
 
-def build_cross_source_event_braid(source_family_runs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    source_event_rows = _normalize_source_event_rows(source_family_runs)
-    candidate_links = _build_cross_document_candidates(source_event_rows)
-    promoted_links = [
-        row
-        for row in candidate_links
-        if _text(row.get("link_type")) == "same_event_as" and _text(row.get("promotion_status")) == "promoted"
-    ]
-    merged_event_lookup, merged_events = _cluster_promoted_links(source_event_rows, promoted_links)
-    ordering_edges = _build_ordering_edges(source_event_rows, merged_event_lookup)
-    collapse_points = [
-        {
-            "collapse_kind": "merged_event",
-            "merged_event_id": row["merged_event_id"],
-            "source_event_count": len(row.get("source_event_ids", [])),
-            "source_family_count": len(row.get("source_families", [])),
-        }
-        for row in merged_events
-        if len(row.get("source_event_ids", [])) > 1
-    ]
+def _compute_component_relevance(
+    row: dict[str, Any],
+    *,
+    connectedness: float,
+    referentiality: float,
+    node_depth: float,
+    merged_event: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    fragment_pnfs = row.get("fragment_pnfs") or []
+    if not fragment_pnfs:
+        return []
+
+    c_level: ConnectednessLevel
+    if connectedness == 0:
+        c_level = ConnectednessLevel.isolated
+    elif connectedness >= 3:
+        c_level = ConnectednessLevel.braid_connected
+    elif connectedness >= 2:
+        c_level = ConnectednessLevel.clustered
+    else:
+        c_level = ConnectednessLevel.linked
+
+    source_family_count = len(merged_event.get("source_families", [])) if merged_event else (1 if row.get("source_family") else 0)
+    if source_family_count >= 3:
+        rf_level = ReferentialityLevel.cross_source
+    elif source_family_count >= 2:
+        rf_level = ReferentialityLevel.multi_family
+    elif source_family_count >= 1:
+        rf_level = ReferentialityLevel.same_family_multi_span
+    else:
+        rf_level = ReferentialityLevel.single_source
+
+    d_level = DepthLevel.braid_depth if node_depth > 2 else (DepthLevel.document_depth if node_depth > 1 else (DepthLevel.sentence_depth if node_depth > 0 else DepthLevel.fragment_depth))
+
+    receipts: list[dict[str, Any]] = []
+    for fpnf in fragment_pnfs:
+        subj = fpnf.get("subject_role")
+        pred = fpnf.get("predicate_spine")
+        obj = fpnf.get("object_role")
+        time = fpnf.get("time_anchor")
+        span = fpnf.get("source_span")
+        p_level = classify_pnf_closure(
+            subject_filled=bool(subj and subj.get("canonical_key")),
+            predicate_filled=bool(pred),
+            object_filled=bool(obj and obj.get("canonical_key")),
+            time_filled=bool(time and (time.get("start_date") or time.get("end_date"))),
+            has_source_span=bool(span),
+            has_receipt=False,
+        )
+
+        fallback = fpnf.get("fallback_used", False)
+        roles_filled = sum(1 for r in [fpnf.get("subject_role"), fpnf.get("predicate_spine"), fpnf.get("object_role")] if r)
+        pb_level = projection_basis_from_fallback(fallback, roles_filled)
+
+        rc_level = ResidualCompatibilityLevel.no_typed_meet
+
+        fpnf_depth = fpnf.get("fragment_subclass", "generic_relation")
+        fragment_scored = fpnf_depth in ("office_range", "proclamation", "ownership", "education", "marriage", "birth")
+        if fragment_scored and c_level in (ConnectednessLevel.clustered, ConnectednessLevel.braid_connected):
+            ld_level = LinkageDepthLevel.fragment_pnf
+        elif c_level in (ConnectednessLevel.linked, ConnectednessLevel.clustered):
+            ld_level = LinkageDepthLevel.source_span
+        else:
+            ld_level = LinkageDepthLevel.flat_shortcut
+
+        span = fpnf.get("source_span")
+        ss_level = classify_source_span(
+            has_raw_span=bool(span and span.get("raw_text")),
+            has_normalized_span=bool(span and span.get("canonical_key")),
+            has_receipt=False,
+        )
+
+        receipt = build_braid_relevance_receipt(
+            connectedness_level=c_level,
+            referentiality_level=rf_level,
+            depth_level=d_level,
+            pnf_closure_level=p_level,
+            residual_compatibility_level=rc_level,
+            projection_basis_level=pb_level,
+            linkage_depth_level=ld_level,
+            source_span_level=ss_level,
+            connected_component_size=int(connectedness),
+            source_family_count=source_family_count,
+            longest_path_len=int(node_depth),
+            closed_role_count=sum(1 for r in [fpnf.get("subject_role"), fpnf.get("object_role")] if r),
+            total_role_count=2,
+            fallback_field_count=1 if fallback else 0,
+        )
+
+        receipts.append({
+            "fragment_id": fpnf.get("fragment_id"),
+            "export_class": receipt.export_class.value,
+            "blocked_reasons": list(receipt.blocked_reasons),
+            "basis": list(receipt.basis),
+            "connectedness_level": receipt.connectedness_level.value,
+            "referentiality_level": receipt.referentiality_level.value,
+            "depth_level": receipt.depth_level.value,
+            "pnf_closure_level": receipt.pnf_closure_level.value,
+            "residual_compatibility_level": receipt.residual_compatibility_level.value,
+            "projection_basis_level": receipt.projection_basis_level.value,
+            "linkage_depth_level": receipt.linkage_depth_level.value,
+            "source_span_level": receipt.source_span_level.value,
+        })
+
+    return receipts
+
+
 def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
     from collections import defaultdict, deque
     
@@ -1539,6 +1640,16 @@ def compute_braid_relevance_metrics(payload: dict[str, Any]) -> None:
                 "referential_support"
             ]
         }
+
+        component_receipts = _compute_component_relevance(
+            row,
+            connectedness=connectedness,
+            referentiality=referentiality,
+            node_depth=node_depth,
+            merged_event=me,
+        )
+        if component_receipts:
+            row["fragment_pnf_receipts"] = component_receipts
 
 
 def build_cross_source_event_braid(source_family_runs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
