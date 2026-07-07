@@ -660,3 +660,155 @@ def test_fragment_pnf_projection_receipt() -> None:
     )
     assert receipt.fragment_id == "test:frag:0000"
     assert receipt.projection_status == ProjectionBasisLevel.grammar_projected
+
+
+# ── project_fragment_pnf adapter ─────────────────────────────────────────
+
+def _make_test_fragment(
+    *,
+    subclass: str = "office_range",
+    predicate: str = "served_as",
+    subject_key: str = "actor:gwb",
+    subject_label: str = "GWB",
+    object_key: str = "office:governor",
+    object_label: str = "Governor",
+    fallback: bool = False,
+) -> FragmentPNF:
+    return FragmentPNF(
+        fragment_id="test:frag:0000",
+        parent_event_id="evt:001",
+        fragment_surface="test surface",
+        fragment_surface_class="cv_cell",
+        fragment_subclass=subclass,
+        grammar_id="test_grammar_v0",
+        grammar_match_strength=GrammarMatchStrength.fallback_bundle if fallback else GrammarMatchStrength.exact_pattern,
+        subject_role=TypedRole(canonical_key=subject_key, canonical_label=subject_label),
+        predicate_spine=predicate,
+        object_role=TypedRole(canonical_key=object_key, canonical_label=object_label),
+        time_anchor=TimeAnchor(start_date="1995", end_date="2000", precision="range"),
+        pnf_basis=("test_basis",),
+        fallback_used=fallback,
+    )
+
+
+def test_project_single_fragment_to_predicate_atom() -> None:
+    from src.policy.project_fragment_pnf import project_fragment_pnf
+
+    fragment = _make_test_fragment()
+    atom, receipt = project_fragment_pnf(fragment)
+
+    assert atom is not None
+    assert atom.predicate == "served_as"
+    assert atom.domain == "fragment_pnf_projection"
+    assert atom.wrapper.evidence_only is True
+    assert atom.wrapper.status == "fragment_projection"
+    assert "subject" in atom.roles
+    assert "object" in atom.roles
+    assert "action" in atom.roles
+    assert atom.roles["subject"].value == "actor:gwb"
+    assert atom.roles["object"].value == "office:governor"
+    assert atom.roles["action"].value == "served_as"
+    assert atom.atom_id == "test:frag:0000"
+
+    assert receipt.fragment_id == "test:frag:0000"
+    assert receipt.projection_status == ProjectionBasisLevel.grammar_projected
+    assert receipt.predicate_atom_ref == "test:frag:0000"
+
+
+def test_project_fallback_fragment() -> None:
+    from src.policy.project_fragment_pnf import project_fragment_pnf
+
+    fragment = _make_test_fragment(fallback=True)
+    atom, receipt = project_fragment_pnf(fragment)
+
+    assert atom is not None
+    assert receipt.projection_status == ProjectionBasisLevel.fallback_projected
+    assert "fragment_projection" in atom.wrapper.status
+
+
+def test_project_missing_predicate_returns_none() -> None:
+    from src.policy.project_fragment_pnf import project_fragment_pnf
+
+    fragment = _make_test_fragment(predicate="")
+    atom, receipt = project_fragment_pnf(fragment)
+    assert atom is None
+    assert receipt.projection_status == ProjectionBasisLevel.unprojectable
+    assert "missing_predicate_spine" in receipt.blocked_reasons
+
+
+def test_project_missing_roles_returns_none() -> None:
+    from src.policy.project_fragment_pnf import project_fragment_pnf
+
+    fragment = FragmentPNF(
+        fragment_id="test:frag:0000",
+        parent_event_id="evt:001",
+        fragment_surface="blank",
+        fragment_surface_class="fallback",
+        fragment_subclass="generic",
+        grammar_id="fallback_grammar_v0",
+        grammar_match_strength=GrammarMatchStrength.fallback_bundle,
+        predicate_spine="some_action",
+    )
+    atom, receipt = project_fragment_pnf(fragment)
+    assert atom is None
+    assert receipt.projection_status == ProjectionBasisLevel.partial_projected
+    assert "missing_roles" in receipt.blocked_reasons
+
+
+def test_project_multiple_fragments() -> None:
+    from src.policy.project_fragment_pnf import project_fragment_pnfs
+
+    f1 = _make_test_fragment(predicate="served_as", object_key="office:gov")
+    f2 = _make_test_fragment(predicate="graduated_from", object_key="edu:yale", subclass="education")
+    f3 = FragmentPNF(
+        fragment_id="test:frag:0002",
+        parent_event_id="evt:001",
+        fragment_surface="empty",
+        fragment_surface_class="fallback",
+        fragment_subclass="generic",
+        grammar_id="fallback_grammar_v0",
+        grammar_match_strength=GrammarMatchStrength.fallback_bundle,
+    )
+
+    atoms, receipts = project_fragment_pnfs([f1, f2, f3])
+    assert len(atoms) == 2
+    assert len(receipts) == 3
+    assert atoms[0].predicate == "served_as"
+    assert atoms[1].predicate == "graduated_from"
+    assert receipts[2].projection_status == ProjectionBasisLevel.unprojectable
+
+
+def test_project_row_fragment_pnfs() -> None:
+    from src.policy.project_fragment_pnf import project_row_fragment_pnfs
+
+    row = {
+        "fragment_pnfs": [
+            _make_test_fragment(predicate="served_as", object_key="office:gov"),
+            _make_test_fragment(predicate="graduated_from", object_key="edu:yale", subclass="education"),
+        ],
+    }
+    result = project_row_fragment_pnfs(row)
+    assert "projected_predicate_atoms" in result
+    assert "fragment_projection_receipts" in result
+    assert len(result["projected_predicate_atoms"]) == 2
+    assert result["projected_predicate_atoms"][0]["predicate"] == "served_as"
+    assert result["projected_predicate_atoms"][1]["predicate"] == "graduated_from"
+    assert result["projected_predicate_atoms"][0]["domain"] == "fragment_pnf_projection"
+
+
+def test_project_row_no_fragments() -> None:
+    from src.policy.project_fragment_pnf import project_row_fragment_pnfs
+
+    row: dict[str, Any] = {}
+    result = project_row_fragment_pnfs(row)
+    assert result["projected_predicate_atoms"] == []
+    assert result["fragment_projection_receipts"] == []
+
+
+def test_project_row_empty_list() -> None:
+    from src.policy.project_fragment_pnf import project_row_fragment_pnfs
+
+    row = {"fragment_pnfs": []}
+    result = project_row_fragment_pnfs(row)
+    assert result["projected_predicate_atoms"] == []
+    assert result["fragment_projection_receipts"] == []
