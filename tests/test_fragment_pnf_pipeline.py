@@ -20,6 +20,7 @@ from src.policy.fragment_pnf import (
     ExportClass,
     ExportLanePolicy,
     FragmentPNF,
+    FragmentPNFDepthReceipt,
     FragmentPNFProjectionReceipt,
     GrammarMatchStrength,
     LinkageDepthLevel,
@@ -812,3 +813,133 @@ def test_project_row_empty_list() -> None:
     result = project_row_fragment_pnfs(row)
     assert result["projected_predicate_atoms"] == []
     assert result["fragment_projection_receipts"] == []
+
+
+# ── linkage_depth layer ──────────────────────────────────────────────────
+
+def test_linkage_depth_flat_shortcut() -> None:
+    from src.policy.fragment_linkage_depth import assess_linkage_depth
+
+    row = {
+        "source_path": "/tmp/doc.txt",
+        "text": "Bush was president",
+        "anchor": {"text": "2001"},
+    }
+    receipt = assess_linkage_depth(row)
+    assert receipt.source_span_present is True
+    assert receipt.fragment_pnf_present is False
+    assert receipt.sentence_pnf_present is False
+    assert receipt.braid_attachment_present is False
+    assert receipt.flat_shortcut_detected is True
+    assert receipt.role_erasure_detected is False
+
+
+def test_linkage_depth_with_fragment_pnf() -> None:
+    from src.policy.fragment_linkage_depth import assess_linkage_depth
+
+    row = {
+        "source_path": "/tmp/doc.txt",
+        "fragment_pnfs": [{"fragment_id": "test"}],
+        "text": "Governor 1995-2000",
+    }
+    receipt = assess_linkage_depth(row)
+    assert receipt.source_span_present is True
+    assert receipt.fragment_pnf_present is True
+    assert receipt.flat_shortcut_detected is False
+    assert receipt.role_erasure_detected is True
+
+
+def test_linkage_depth_with_predicate_atoms() -> None:
+    from src.policy.fragment_linkage_depth import assess_linkage_depth
+
+    row = {
+        "source_path": "/tmp/doc.txt",
+        "fragment_pnfs": [{"fragment_id": "test"}],
+        "projected_predicate_atoms": [{"predicate": "served_as"}],
+        "text": "Governor 1995-2000",
+    }
+    receipt = assess_linkage_depth(row)
+    assert receipt.sentence_pnf_present is True
+    assert receipt.flat_shortcut_detected is False
+    assert receipt.role_erasure_detected is False
+
+
+def test_linkage_depth_with_braid_attachment() -> None:
+    from src.policy.fragment_linkage_depth import assess_linkage_depth
+
+    row = {
+        "source_path": "/tmp/doc.txt",
+        "fragment_pnfs": [{"fragment_id": "test"}],
+        "projected_predicate_atoms": [{"predicate": "served_as"}],
+        "braid_metrics": {"connectedness": 2},
+        "text": "Governor 1995-2000",
+    }
+    receipt = assess_linkage_depth(row)
+    assert receipt.braid_attachment_present is True
+    assert receipt.flat_shortcut_detected is False
+
+
+def test_linkage_depth_no_source_span() -> None:
+    from src.policy.fragment_linkage_depth import assess_linkage_depth
+
+    row = {"text": "some text"}
+    receipt = assess_linkage_depth(row)
+    assert receipt.source_span_present is False
+    assert receipt.flat_shortcut_detected is False
+    assert receipt.role_erasure_detected is False
+
+
+def test_classify_linkage_depth_level() -> None:
+    from src.policy.fragment_linkage_depth import classify_linkage_depth_level
+
+    r0 = FragmentPNFDepthReceipt(braid_attachment_present=True)
+    assert classify_linkage_depth_level(r0) == LinkageDepthLevel.braid_node
+
+    r1 = FragmentPNFDepthReceipt(document_pnf_present=True)
+    assert classify_linkage_depth_level(r1) == LinkageDepthLevel.document_pnf
+
+    r2 = FragmentPNFDepthReceipt(sentence_pnf_present=True)
+    assert classify_linkage_depth_level(r2) == LinkageDepthLevel.sentence_pnf
+
+    r3 = FragmentPNFDepthReceipt(fragment_pnf_present=True)
+    assert classify_linkage_depth_level(r3) == LinkageDepthLevel.fragment_pnf
+
+    r4 = FragmentPNFDepthReceipt(source_span_present=True)
+    assert classify_linkage_depth_level(r4) == LinkageDepthLevel.source_span
+
+    r5 = FragmentPNFDepthReceipt()
+    assert classify_linkage_depth_level(r5) == LinkageDepthLevel.flat_shortcut
+
+
+def test_assess_and_store_linkage_depth() -> None:
+    from src.policy.fragment_linkage_depth import assess_and_store_linkage_depth
+
+    row = {
+        "source_path": "/tmp/doc.txt",
+        "anchor": {"text": "2001"},
+        "fragment_pnfs": [{"fragment_id": "test"}],
+        "projected_predicate_atoms": [{"predicate": "served_as"}],
+        "braid_metrics": {"connectedness": 3},
+        "text": "Governor 1995-2000",
+    }
+    assess_and_store_linkage_depth(row)
+    assert "linkage_depth_receipt" in row
+    assert "linkage_depth_level" in row
+    assert "flat_shortcut_detected" in row
+    assert row["linkage_depth_level"] == "braid_node"
+    assert row["flat_shortcut_detected"] is False
+    assert row["linkage_depth_receipt"]["braid_attachment_present"] is True
+
+
+def test_assess_rows_linkage_depth() -> None:
+    from src.policy.fragment_linkage_depth import assess_rows_linkage_depth
+
+    rows = [
+        {"source_path": "/tmp/a.txt", "text": "flat"},
+        {"source_path": "/tmp/b.txt", "fragment_pnfs": [{"fragment_id": "t"}], "text": "deep"},
+    ]
+    assess_rows_linkage_depth(rows)
+    assert rows[0]["flat_shortcut_detected"] is True
+    assert rows[0]["linkage_depth_level"] == "source_span"
+    assert rows[1]["flat_shortcut_detected"] is False
+    assert rows[1]["linkage_depth_level"] == "fragment_pnf"
