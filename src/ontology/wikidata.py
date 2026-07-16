@@ -27,7 +27,9 @@ from .wikidata_review_packet_variant_compare import (
     compare_review_packet_variants,
 )
 from src.policy.compiler_contract import build_wikidata_migration_pack_contract
+from src.policy.domain_pressure import build_pressure_assessment
 from src.policy.product_gate import build_product_gate
+from src.policy.statement_family_context import build_statement_family_context
 
 
 SCHEMA_VERSION = "wikidata_projection_v0_1"
@@ -42,7 +44,9 @@ WIKIDATA_CLIMATE_REVIEW_DEMONSTRATOR_SCHEMA_VERSION = (
 WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION = "sl.wikidata.climate_text_source.v1"
 SOURCE_UNIT_SCHEMA_VERSION = "sl.source_unit.v1"
 WIKIDATA_REVIEW_PACKET_SCHEMA_VERSION = "sl.wikidata_review_packet.v0_1"
-WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION = "sl.wikidata_review_packet.semantic_layer.v0_1"
+WIKIDATA_REVIEW_PACKET_SEMANTIC_LAYER_VERSION = (
+    "sl.wikidata_review_packet.semantic_layer.v0_1"
+)
 DEFAULT_FIND_QUALIFIER_PROPERTIES = ("P166", "P39", "P54", "P6")
 DEFAULT_PROPERTY_FILTER = ("P279", "P31")
 PROPERTY_PROFILES = {
@@ -68,17 +72,17 @@ CLIMATE_MODEL_ACCEPTED_UNITS = frozenset({"Q57084755", "Q57084901", "co2e"})
 SUBJECT_RESOLUTION_SCHEMA_VERSION = "sl.wikidata_subject_resolution.v0_1"
 COMPANY_SUBJECT_TYPE_QIDS = frozenset(
     {
-        "Q783794",   # company
+        "Q783794",  # company
         "Q6881511",  # enterprise
         "Q4830453",  # business
     }
 )
 NON_COMPANY_SUBJECT_TYPE_QIDS = frozenset(
     {
-        "Q5",        # human
-        "Q43229",    # organization
-        "Q16334295", # group of humans
-        "Q618123",   # geographical object
+        "Q5",  # human
+        "Q43229",  # organization
+        "Q16334295",  # group of humans
+        "Q618123",  # geographical object
     }
 )
 PROPERTY_PRIORITY = {
@@ -89,7 +93,9 @@ PROPERTY_PRIORITY = {
 }
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 MEDIAWIKI_API_ENDPOINT = "https://www.wikidata.org/w/api.php"
-ENTITY_EXPORT_TEMPLATE = "https://www.wikidata.org/wiki/Special:EntityData/{qid}.json?revision={revid}"
+ENTITY_EXPORT_TEMPLATE = (
+    "https://www.wikidata.org/wiki/Special:EntityData/{qid}.json?revision={revid}"
+)
 REQUEST_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "SensibLaw-Wikidata-QualifierDrift/0.1",
@@ -143,6 +149,7 @@ class StatementBundle:
     unit: str | None
     qualifiers: tuple[tuple[str, tuple[str, ...]], ...]
     references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+    statement_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -155,65 +162,29 @@ def _bundle_qualifier_map(bundle: StatementBundle) -> dict[str, tuple[str, ...]]
     return {prop: values for prop, values in bundle.qualifiers}
 
 
-def _bundle_qualifier_signature(bundle: StatementBundle) -> tuple[tuple[str, tuple[str, ...]], ...]:
+def _bundle_qualifier_signature(
+    bundle: StatementBundle,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
     return tuple(sorted(bundle.qualifiers))
-
-
-def _time_qualifier_value_count(bundle: StatementBundle) -> int:
-    qualifier_map = _bundle_qualifier_map(bundle)
-    return sum(len(qualifier_map.get(prop, tuple())) for prop in TEMPORAL_QUALIFIER_PROPERTIES)
-
-
-def _has_time_range(bundle: StatementBundle) -> bool:
-    qualifier_map = _bundle_qualifier_map(bundle)
-    return "P580" in qualifier_map and "P582" in qualifier_map
 
 
 def _detect_independent_axes(
     bundle: StatementBundle,
-    *,
-    slot_bundles: Sequence[StatementBundle],
-    distinct_values: set[str],
 ) -> list[dict[str, Any]]:
+    """Return only multiplicity carried by this one statement GUID.
+
+    Sibling diversity belongs to the generic statement-family context and must
+    never make an otherwise atomic GUID split-required.
+    """
+
     axes: list[dict[str, Any]] = []
     qualifier_map = _bundle_qualifier_map(bundle)
-
-    if len(distinct_values) > 1:
-        axes.append(
-            {
-                "property": "__value__",
-                "cardinality": len(distinct_values),
-                "source": "slot",
-                "reason": "multi_value_slot",
-            }
-        )
-
-    qualifier_properties = {
-        prop for sibling in slot_bundles for prop, _ in sibling.qualifiers
-    } | set(qualifier_map)
-    for prop in sorted(qualifier_properties):
-        slot_values = {
-            value
-            for sibling in slot_bundles
-            for sibling_prop, sibling_values in sibling.qualifiers
-            if sibling_prop == prop
-            for value in sibling_values
-        }
-        bundle_values = set(qualifier_map.get(prop, tuple()))
-        if len(slot_values) > 1:
+    for prop, values in sorted(qualifier_map.items()):
+        if len(values) > 1:
             axes.append(
                 {
                     "property": prop,
-                    "cardinality": len(slot_values),
-                    "source": "slot",
-                    "reason": "multi_valued_dimension",
-                }
-            )
-        elif len(bundle_values) > 1:
-            axes.append(
-                {
-                    "property": prop,
-                    "cardinality": len(bundle_values),
+                    "cardinality": len(values),
                     "source": "bundle",
                     "reason": "multi_valued_dimension",
                 }
@@ -225,8 +196,6 @@ def _detect_independent_axes(
 def _split_required_reasons(
     bundle: StatementBundle,
     *,
-    slot_bundles: Sequence[StatementBundle],
-    distinct_values: set[str],
     independent_axes: Sequence[Mapping[str, Any]],
     climate_profile: Mapping[str, Any] | None = None,
 ) -> list[str]:
@@ -236,28 +205,25 @@ def _split_required_reasons(
         if axis.get("reason")
     ]
     qualifier_map = _bundle_qualifier_map(bundle)
-    has_temporal_detail = any(prop in qualifier_map for prop in TEMPORAL_QUALIFIER_PROPERTIES)
 
-    sibling_same_value = [sibling for sibling in slot_bundles if _stringify(sibling.value) == _stringify(bundle.value)]
-    sibling_signatures = {_bundle_qualifier_signature(sibling) for sibling in sibling_same_value}
-    if len(sibling_signatures) > 1:
-        reasons.append("duplicate_value_diff_qualifiers")
-
-    sibling_temporal_signatures = {
-        tuple(sorted((prop, values) for prop, values in _bundle_qualifier_map(sibling).items() if prop in TEMPORAL_QUALIFIER_PROPERTIES))
-        for sibling in slot_bundles
-        if any(prop in _bundle_qualifier_map(sibling) for prop in TEMPORAL_QUALIFIER_PROPERTIES)
+    temporal_values = {
+        prop: values
+        for prop, values in qualifier_map.items()
+        if prop in TEMPORAL_QUALIFIER_PROPERTIES
     }
-    if not has_temporal_detail and sibling_temporal_signatures:
-        reasons.append("missing_time_qualifier_in_temporal_slot")
-    elif len({signature for signature in sibling_temporal_signatures if signature}) > 1:
-        reasons.append("mixed_temporal_resolution")
-
-    if _time_qualifier_value_count(bundle) > 1:
+    if any(len(values) > 1 for values in temporal_values.values()):
         reasons.append("multiple_time_qualifiers")
-
-    if _has_time_range(bundle):
-        reasons.append("time_range_requires_split")
+    if "P585" in temporal_values and (
+        "P580" in temporal_values or "P582" in temporal_values
+    ):
+        reasons.append("mixed_point_and_range_time")
+    _, temporal_issues = _resolve_bundle_year(bundle)
+    reasons.extend(
+        issue
+        for issue in temporal_issues
+        if issue
+        in {"multi_year_range", "partial_time_range", "multiple_point_in_time_years"}
+    )
     if climate_profile is not None:
         climate_status = _stringify(climate_profile.get("status"))
         if climate_status == "split":
@@ -274,6 +240,29 @@ def _split_required_reasons(
             )
 
     return sorted(set(reasons))
+
+
+def _build_family_contexts(
+    bundles: Sequence[StatementBundle],
+) -> dict[str, dict[str, Any]]:
+    """Adapt Wikibase bundles to the generic statement-family carrier."""
+
+    records = [
+        {
+            "subject": bundle.subject,
+            "property": bundle.property,
+            "statement_id": bundle.statement_id
+            or f"{bundle.subject}|{bundle.property}|{index}",
+            "value": bundle.value,
+            "qualifiers": _bundle_qualifier_map(bundle),
+        }
+        for index, bundle in enumerate(bundles, start=1)
+    ]
+    return build_statement_family_context(
+        records,
+        scope_properties=GHG_SCOPE_PROPERTIES,
+        complete=True,
+    )
 
 
 def _extract_year_candidates(values: Sequence[str]) -> tuple[str, ...]:
@@ -297,7 +286,11 @@ def _resolve_bundle_year(bundle: StatementBundle) -> tuple[str | None, list[str]
     start_years = _extract_year_candidates(qualifier_map.get("P580", ()))
     end_years = _extract_year_candidates(qualifier_map.get("P582", ()))
     if start_years and end_years:
-        if len(start_years) == 1 and len(end_years) == 1 and start_years[0] == end_years[0]:
+        if (
+            len(start_years) == 1
+            and len(end_years) == 1
+            and start_years[0] == end_years[0]
+        ):
             return start_years[0], issues
         issues.append("multi_year_range")
         return None, issues
@@ -319,7 +312,12 @@ def _extract_bundle_scope_values(bundle: StatementBundle) -> tuple[str, ...]:
 
 def _extract_bundle_method_values(bundle: StatementBundle) -> tuple[str, ...]:
     qualifier_map = _bundle_qualifier_map(bundle)
-    return tuple(sorted(_stringify(value) for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())))
+    return tuple(
+        sorted(
+            _stringify(value)
+            for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())
+        )
+    )
 
 
 def _extract_bundle_unit_id(bundle: StatementBundle) -> str | None:
@@ -420,14 +418,18 @@ def _build_candidate_execution_hints(
     model_validation: Mapping[str, Any],
 ) -> dict[str, Any]:
     qualifier_map = _bundle_qualifier_map(bundle)
-    execution_backend = "qs3" if bundle.rank in {"preferred", "deprecated"} else "openrefine"
+    execution_backend = (
+        "qs3" if bundle.rank in {"preferred", "deprecated"} else "openrefine"
+    )
     return {
         "execution_ready": bool(model_validation.get("execution_ready")),
         "target_property": target_property,
         "resolved_year": model_validation.get("resolved_year"),
         "resolved_scope": model_validation.get("resolved_scope"),
         "scope_values": list(model_validation.get("scope_values", [])),
-        "determination_method_values": list(model_validation.get("determination_method_values", [])),
+        "determination_method_values": list(
+            model_validation.get("determination_method_values", [])
+        ),
         "resolved_unit_qid": model_validation.get("resolved_unit_qid"),
         "qualifier_properties": sorted(qualifier_map),
         "execution_backend": execution_backend,
@@ -450,9 +452,13 @@ def _build_subject_type_context(window: WindowSlice) -> dict[str, Any]:
     subclass_of_by_subject: dict[str, list[str]] = {}
     for bundle in window.bundles:
         if bundle.property == "P31":
-            instance_of_by_subject.setdefault(bundle.subject, []).append(_stringify(bundle.value))
+            instance_of_by_subject.setdefault(bundle.subject, []).append(
+                _stringify(bundle.value)
+            )
         elif bundle.property == "P279":
-            subclass_of_by_subject.setdefault(bundle.subject, []).append(_stringify(bundle.value))
+            subclass_of_by_subject.setdefault(bundle.subject, []).append(
+                _stringify(bundle.value)
+            )
     return {
         "instance_of_by_subject": {
             qid: sorted({value for value in values if value})
@@ -473,7 +479,9 @@ def _collect_subject_type_ancestors(
     ancestors: set[str] = set()
     traversal: list[dict[str, str]] = []
     ambiguous_roots: list[str] = []
-    stack: list[tuple[str, str | None]] = [(_stringify(type_qid), None) for type_qid in type_qids if _stringify(type_qid)]
+    stack: list[tuple[str, str | None]] = [
+        (_stringify(type_qid), None) for type_qid in type_qids if _stringify(type_qid)
+    ]
     seen: set[str] = set()
     while stack:
         current, parent = stack.pop()
@@ -482,12 +490,17 @@ def _collect_subject_type_ancestors(
         seen.add(current)
         ancestors.add(current)
         if parent is not None:
-            traversal.append({"from_qid": parent, "to_qid": current, "property": "P279"})
+            traversal.append(
+                {"from_qid": parent, "to_qid": current, "property": "P279"}
+            )
         for parent_qid in subclass_of_by_subject.get(current, ()):
             normalized_parent = _stringify(parent_qid)
             if not normalized_parent:
                 continue
-            if normalized_parent in COMPANY_SUBJECT_TYPE_QIDS and normalized_parent in NON_COMPANY_SUBJECT_TYPE_QIDS:
+            if (
+                normalized_parent in COMPANY_SUBJECT_TYPE_QIDS
+                and normalized_parent in NON_COMPANY_SUBJECT_TYPE_QIDS
+            ):
                 ambiguous_roots.append(normalized_parent)
             stack.append((normalized_parent, current))
     return sorted(ancestors), traversal, sorted(set(ambiguous_roots))
@@ -520,8 +533,12 @@ def _build_subject_resolution(
         type_qids=direct_instance_of,
         subclass_of_by_subject=subclass_of_by_subject,
     )
-    company_matches = sorted(qid for qid in ancestry_qids if qid in COMPANY_SUBJECT_TYPE_QIDS)
-    non_company_matches = sorted(qid for qid in ancestry_qids if qid in NON_COMPANY_SUBJECT_TYPE_QIDS)
+    company_matches = sorted(
+        qid for qid in ancestry_qids if qid in COMPANY_SUBJECT_TYPE_QIDS
+    )
+    non_company_matches = sorted(
+        qid for qid in ancestry_qids if qid in NON_COMPANY_SUBJECT_TYPE_QIDS
+    )
     evidence = [
         {
             "property": "P31",
@@ -555,7 +572,11 @@ def _build_subject_resolution(
     else:
         subject_family = "unknown"
         status = "unresolved"
-        resolution_basis = "conflicting_typed_evidence" if company_matches and non_company_matches else "typed_evidence_not_mapped"
+        resolution_basis = (
+            "conflicting_typed_evidence"
+            if company_matches and non_company_matches
+            else "typed_evidence_not_mapped"
+        )
         resolved_via = None
         matched_type_qids = sorted(set(company_matches + non_company_matches))
 
@@ -578,7 +599,11 @@ def _ghg_semantic_family_for_candidate(
     model_validation: Mapping[str, Any],
 ) -> str:
     resolved_scope = _stringify(model_validation.get("resolved_scope"))
-    scope_values = [_stringify(value) for value in model_validation.get("scope_values", []) if _stringify(value).strip()]
+    scope_values = [
+        _stringify(value)
+        for value in model_validation.get("scope_values", [])
+        if _stringify(value).strip()
+    ]
     if resolved_scope and resolved_scope != "TOTAL":
         return "scope_specific_emissions"
     if resolved_scope == "TOTAL":
@@ -595,7 +620,11 @@ def _reporting_period_kind_for_candidate(
 ) -> str:
     issues = {_stringify(value) for value in model_validation.get("issues", [])}
     qualifiers = claim_bundle_before.get("qualifiers", {})
-    qualifier_keys = {_stringify(key) for key in qualifiers} if isinstance(qualifiers, Mapping) else set()
+    qualifier_keys = (
+        {_stringify(key) for key in qualifiers}
+        if isinstance(qualifiers, Mapping)
+        else set()
+    )
     if "multi_year_range" in issues:
         return "multi_year_range"
     if "partial_time_range" in issues:
@@ -605,7 +634,11 @@ def _reporting_period_kind_for_candidate(
     if "P585" in qualifier_keys:
         return "single_reporting_period"
     if "P580" in qualifier_keys or "P582" in qualifier_keys:
-        return "single_interval_period" if _stringify(model_validation.get("resolved_year")).strip() else "fiscal_year"
+        return (
+            "single_interval_period"
+            if _stringify(model_validation.get("resolved_year")).strip()
+            else "fiscal_year"
+        )
     return "unresolved"
 
 
@@ -629,7 +662,11 @@ def _method_resolution_for_candidate(
     model_validation: Mapping[str, Any],
 ) -> str:
     issues = {_stringify(value) for value in model_validation.get("issues", [])}
-    method_values = [_stringify(value) for value in model_validation.get("determination_method_values", []) if _stringify(value).strip()]
+    method_values = [
+        _stringify(value)
+        for value in model_validation.get("determination_method_values", [])
+        if _stringify(value).strip()
+    ]
     if "missing_determination_method" in issues:
         return "missing_but_inferable"
     if "non_ghg_protocol_method" in issues:
@@ -747,17 +784,32 @@ def _build_candidate_family_classifier(
     signals: list[str] = []
     blocking_signals: list[str] = []
     phase2_actions: list[str] = []
-    issues = {_stringify(value) for value in model_validation.get("issues", []) if _stringify(value).strip()}
-    subject_family = _subject_family_for_candidate(subject_resolution=subject_resolution)
-    ghg_semantic_family = _ghg_semantic_family_for_candidate(model_validation=model_validation)
+    issues = {
+        _stringify(value)
+        for value in model_validation.get("issues", [])
+        if _stringify(value).strip()
+    }
+    subject_family = _subject_family_for_candidate(
+        subject_resolution=subject_resolution
+    )
+    ghg_semantic_family = _ghg_semantic_family_for_candidate(
+        model_validation=model_validation
+    )
     reporting_period_kind = _reporting_period_kind_for_candidate(
         claim_bundle_before=claim_bundle_before,
         model_validation=model_validation,
     )
-    scope_resolution = _scope_resolution_for_candidate(model_validation=model_validation)
-    method_resolution = _method_resolution_for_candidate(model_validation=model_validation)
+    scope_resolution = _scope_resolution_for_candidate(
+        model_validation=model_validation
+    )
+    method_resolution = _method_resolution_for_candidate(
+        model_validation=model_validation
+    )
 
-    climate_lane = source_property in CLIMATE_MODEL_SOURCE_PROPERTIES and target_property in CLIMATE_MODEL_TARGET_PROPERTIES
+    climate_lane = (
+        source_property in CLIMATE_MODEL_SOURCE_PROPERTIES
+        and target_property in CLIMATE_MODEL_TARGET_PROPERTIES
+    )
     if climate_lane:
         signals.append("ghg_property_family")
     if _stringify(model_validation.get("resolved_year")).strip():
@@ -784,8 +836,17 @@ def _build_candidate_family_classifier(
     if not _stringify(model_validation.get("resolved_unit_qid")).strip():
         phase2_actions.append("normalize_unit")
 
-    hard_blocking_issues = {"multi_year_range", "partial_time_range", "multiple_point_in_time_years", "non_climate_unit"}
-    ontology_mismatch_issues = {"non_ghg_protocol_method", "multiple_determination_methods", "multiple_scope_values"}
+    hard_blocking_issues = {
+        "multi_year_range",
+        "partial_time_range",
+        "multiple_point_in_time_years",
+        "non_climate_unit",
+    }
+    ontology_mismatch_issues = {
+        "non_ghg_protocol_method",
+        "multiple_determination_methods",
+        "multiple_scope_values",
+    }
     blocking_signals.extend(sorted(hard_blocking_issues & issues))
     blocking_signals.extend(sorted(ontology_mismatch_issues & issues))
     if classification in {"abstain", "non_equivalent"}:
@@ -800,33 +861,40 @@ def _build_candidate_family_classifier(
         bucket = "E"
         bucket_label = "blocked"
         confidence = 0.98
-        explanation = "hard blocker prevents safe migration or deterministic normalization"
-    elif classification in {"ambiguous_semantics", "needs_human_review", "non_equivalent", "qualifier_drift", "reference_drift"} or ontology_mismatch_issues & issues:
+        explanation = (
+            "hard blocker prevents safe migration or deterministic normalization"
+        )
+    elif (
+        classification
+        in {
+            "ambiguous_semantics",
+            "needs_human_review",
+            "non_equivalent",
+            "qualifier_drift",
+            "reference_drift",
+        }
+        or ontology_mismatch_issues & issues
+    ):
         bucket = "D"
         bucket_label = "ontology_mismatch"
         confidence = 0.9
         explanation = "row does not cleanly align to the target GHG ontology without semantic review"
-    elif (
-        subject_family == "company"
-        and (
-            classification == "split_required"
-            or _stringify(model_validation.get("status")) == "model_safe_with_split"
-        )
+    elif subject_family == "company" and (
+        classification == "split_required"
+        or _stringify(model_validation.get("status")) == "model_safe_with_split"
     ):
         bucket = "B"
         bucket_label = "deterministic_split"
         confidence = 0.9
         explanation = "row is structurally valid but requires deterministic decomposition before promotion"
-    elif (
-        subject_family == "company"
-        and (
+    elif subject_family == "company" and (
         classification in {"safe_equivalent", "safe_with_reference_transfer"}
         and not requires_review
         and _stringify(model_validation.get("status")) == "model_safe"
         and method_resolution == "recognized_method"
         and _stringify(model_validation.get("resolved_unit_qid")).strip()
-        and reporting_period_kind in {"single_reporting_period", "single_interval_period"}
-        )
+        and reporting_period_kind
+        in {"single_reporting_period", "single_interval_period"}
     ):
         bucket = "A"
         bucket_label = "clean_direct"
@@ -863,7 +931,9 @@ def _build_candidate_family_classifier(
         "method_resolution": method_resolution,
         "phase2_actions": phase2_actions,
         "normalization_contract": normalization_contract,
-        "phase2_method_inference": _build_phase2_method_inference(method_resolution=method_resolution),
+        "phase2_method_inference": _build_phase2_method_inference(
+            method_resolution=method_resolution
+        ),
         "phase2_scope_inference": _build_phase2_scope_inference(
             scope_resolution=scope_resolution,
             model_validation=model_validation,
@@ -888,8 +958,13 @@ def _build_candidate_promotion_gate(
 ) -> dict[str, Any]:
     model_status = _stringify(model_validation.get("status"))
     model_valid = bool(model_validation.get("valid"))
-    execution_ready = bool(model_validation.get("execution_ready") or execution_hints.get("execution_ready"))
-    subject_family = _subject_family_for_candidate(subject_resolution=subject_resolution)
+    execution_ready = bool(
+        model_validation.get("execution_ready")
+        or execution_hints.get("execution_ready")
+    )
+    subject_family = _subject_family_for_candidate(
+        subject_resolution=subject_resolution
+    )
     instance_of_allowed = subject_family == "company"
 
     if not instance_of_allowed:
@@ -948,6 +1023,217 @@ def _build_candidate_promotion_gate(
     }
 
 
+def _build_climate_pressure_assessment(
+    *,
+    candidate_id: str,
+    source_property: str,
+    target_property: str,
+    classification: str,
+    family_bucket: str,
+    model_validation: Mapping[str, Any],
+    subject_resolution: Mapping[str, Any],
+    claim_bundle_before: Mapping[str, Any],
+    family_classifier: Mapping[str, Any],
+    statement_family_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Adapt the climate profile's evidence into the generic pressure carrier."""
+
+    model_status = _stringify(model_validation.get("status"))
+    subject_family = _subject_family_for_candidate(
+        subject_resolution=subject_resolution
+    )
+    reporting_period_kind = _stringify(family_classifier.get("reporting_period_kind"))
+    scope_resolution = _stringify(family_classifier.get("scope_resolution"))
+    method_resolution = _stringify(family_classifier.get("method_resolution"))
+    issue_values = sorted(
+        {
+            _stringify(value)
+            for value in model_validation.get("issues", [])
+            if _stringify(value)
+        }
+    )
+    references = claim_bundle_before.get("references", [])
+    has_references = (
+        isinstance(references, Sequence)
+        and not isinstance(references, (str, bytes, bytearray))
+        and bool(references)
+    )
+
+    model_state = (
+        "exact"
+        if model_status == "model_safe"
+        else "partial"
+        if model_status == "model_safe_with_split"
+        else "contradictory"
+        if bool(model_validation.get("valid")) is False
+        else "unresolved"
+    )
+    subject_state = (
+        "exact"
+        if subject_family == "company"
+        else "contradictory"
+        if subject_family == "non_company"
+        else "unresolved"
+    )
+    temporal_state = (
+        "exact"
+        if reporting_period_kind
+        in {"single_reporting_period", "single_interval_period"}
+        else "partial"
+        if reporting_period_kind == "fiscal_year"
+        else "unresolved"
+    )
+    qualifier_state = (
+        "partial"
+        if method_resolution == "missing_but_inferable"
+        or scope_resolution == "unresolved"
+        else "exact"
+        if model_state == "exact"
+        else model_state
+    )
+    partition_state = _stringify(statement_family_context.get("scope_partition_state"))
+    total_relation = _stringify(
+        statement_family_context.get("total_component_relation")
+    )
+    family_residuals: list[dict[str, Any]] = []
+    if partition_state == "overlapping":
+        family_residuals.append(
+            {
+                "residual_kind": "scope_overlap",
+                "state": "contradictory",
+                "expected": {"scope_partition": "non_overlapping"},
+                "observed": deepcopy(dict(statement_family_context)),
+                "evidence_refs": statement_family_context.get(
+                    "duplicate_scope_statement_ids", []
+                ),
+                "summary": "sibling statements reuse a scope and require a hold or reconstruction review",
+            }
+        )
+    elif partition_state == "overloaded":
+        family_residuals.append(
+            {
+                "residual_kind": "unknown_scope_partition",
+                "state": "partial",
+                "expected": {"scope_partition": "one scope per statement"},
+                "observed": deepcopy(dict(statement_family_context)),
+                "summary": "one atomic statement carries multiple scope values",
+            }
+        )
+    elif partition_state == "incomplete":
+        family_residuals.append(
+            {
+                "residual_kind": "unknown_scope_partition",
+                "state": "unresolved",
+                "expected": {"scope_partition": "complete sibling family"},
+                "observed": deepcopy(dict(statement_family_context)),
+                "coverage_state": "incomplete",
+                "summary": "family coverage is insufficient for a partition inference",
+            }
+        )
+    if total_relation == "contradiction":
+        family_residuals.append(
+            {
+                "residual_kind": "component_total_contradiction",
+                "state": "contradictory",
+                "expected": {
+                    "component_total_relation": "reconciled_or_not_applicable"
+                },
+                "observed": deepcopy(dict(statement_family_context)),
+                "summary": "scoped component sum contradicts the separately stated total",
+            }
+        )
+    if "multi_year_range" in issue_values:
+        family_residuals.append(
+            {
+                "residual_kind": "period_mismatch",
+                "state": "partial",
+                "expected": {"period": "one annual or normalized reporting period"},
+                "observed": {"issues": issue_values},
+                "evidence_refs": ["multi_year_range"],
+                "summary": "the source statement spans multiple years and requires hold or repair review",
+            }
+        )
+
+    return build_pressure_assessment(
+        candidate_ref=candidate_id,
+        domain_invariant_ref="wikidata:climate_ghg_p5991_to_p14143:v0_1",
+        coverage_state="observed",
+        review_disposition=family_bucket,
+        evidence_refs=[source_property, target_property, *issue_values],
+        residuals=[
+            {
+                "residual_kind": "target_model",
+                "state": model_state,
+                "expected": {
+                    "property": target_property,
+                    "model": "ghg_climate_migration",
+                },
+                "observed": {"property": source_property, "model_status": model_status},
+                "evidence_refs": issue_values,
+                "summary": "documented target model compared with the supplied statement",
+            },
+            {
+                "residual_kind": "subject_type",
+                "state": subject_state,
+                "expected": {"subject_family": "company"},
+                "observed": {"subject_family": subject_family or "unknown"},
+                "evidence_refs": [
+                    _stringify(value)
+                    for value in subject_resolution.get("matched_type_qids", [])
+                    if _stringify(value)
+                ],
+                "summary": "subject eligibility is separate from statement-model alignment",
+            },
+            {
+                "residual_kind": "qualifier_structure",
+                "state": qualifier_state,
+                "expected": {
+                    "method": "recognized_or_reviewed",
+                    "scope": "resolved_or_conditional",
+                },
+                "observed": {
+                    "method_resolution": method_resolution,
+                    "scope_resolution": scope_resolution,
+                },
+                "summary": "qualifier/model shape remains diagnostic only",
+            },
+            {
+                "residual_kind": "reference_structure",
+                "state": "exact" if has_references else "unresolved",
+                "expected": {"reference_policy": "profile_not_yet_evaluated"},
+                "observed": {"references_present": has_references},
+                "coverage_state": "observed" if has_references else "uninspected",
+                "summary": "absence of a reference policy is not treated as a failed reference",
+            },
+            {
+                "residual_kind": "temporal_structure",
+                "state": temporal_state,
+                "expected": {"period": "single_or_explicitly_normalized"},
+                "observed": {
+                    "reporting_period_kind": reporting_period_kind or "unknown"
+                },
+                "summary": "period semantics may require normalization or abstention",
+            },
+            {
+                "residual_kind": "split_structure",
+                "state": "partial" if classification == "split_required" else "exact",
+                "expected": {"cardinality": "one_semantic_statement_per_target"},
+                "observed": {"classification": classification},
+                "summary": "a split is a reviewable structural residual, not a failed migration",
+            },
+            {
+                "residual_kind": "peer_cohort",
+                "state": "unresolved",
+                "expected": {"cohort": "trusted_conforming_members_pending"},
+                "observed": {"cohort_members": 0},
+                "coverage_state": "uninspected",
+                "summary": "peer evidence is intentionally unavailable until governed cohort admission exists",
+            },
+            *family_residuals,
+        ],
+    )
+
+
 def _candidate_defect_kind(candidate: Mapping[str, Any]) -> str:
     promotion_gate = candidate.get("promotion_gate", {})
     if not isinstance(promotion_gate, Mapping):
@@ -981,7 +1267,9 @@ def _build_migration_pack_pilot_surface(
             continue
         candidate_id = _stringify(candidate.get("candidate_id"))
         promotion_class = _stringify(candidate.get("promotion_class"))
-        promotion_class_counts[promotion_class] = promotion_class_counts.get(promotion_class, 0) + 1
+        promotion_class_counts[promotion_class] = (
+            promotion_class_counts.get(promotion_class, 0) + 1
+        )
         if bool(candidate.get("execution_ready")):
             execution_ready_candidate_count += 1
         if promotion_class == "full_auto":
@@ -1001,20 +1289,30 @@ def _build_migration_pack_pilot_surface(
     pilot_metrics = {
         "candidate_count": candidate_count,
         "checked_safe_candidate_count": safe_subset_count,
-        "checked_safe_yield": safe_subset_count / candidate_count if candidate_count else 0.0,
+        "checked_safe_yield": safe_subset_count / candidate_count
+        if candidate_count
+        else 0.0,
         "execution_ready_candidate_count": execution_ready_candidate_count,
         "ready_candidate_count": ready_candidate_count,
-        "ready_yield": ready_candidate_count / candidate_count if candidate_count else 0.0,
+        "ready_yield": ready_candidate_count / candidate_count
+        if candidate_count
+        else 0.0,
         "full_auto_candidate_count": full_auto_count,
         "full_auto_rate": full_auto_count / candidate_count if candidate_count else 0.0,
         "semi_auto_candidate_count": semi_auto_count,
         "semi_auto_rate": semi_auto_count / candidate_count if candidate_count else 0.0,
         "review_only_candidate_count": review_only_count,
-        "review_only_rate": review_only_count / candidate_count if candidate_count else 0.0,
+        "review_only_rate": review_only_count / candidate_count
+        if candidate_count
+        else 0.0,
         "hard_defect_count": hard_defect_count,
-        "hard_defect_rate": hard_defect_count / candidate_count if candidate_count else 0.0,
+        "hard_defect_rate": hard_defect_count / candidate_count
+        if candidate_count
+        else 0.0,
         "soft_defect_count": soft_defect_count,
-        "soft_defect_rate": soft_defect_count / candidate_count if candidate_count else 0.0,
+        "soft_defect_rate": soft_defect_count / candidate_count
+        if candidate_count
+        else 0.0,
         "requires_review_count": requires_review_count,
     }
     readiness_surface = {
@@ -1047,7 +1345,10 @@ def _claim_bundle_qualifier_map(raw: Mapping[str, Any]) -> dict[str, tuple[str, 
     qualifiers = raw.get("qualifiers", {})
     if not isinstance(qualifiers, Mapping):
         return {}
-    return { _stringify(prop): _normalize_value_list(value) for prop, value in qualifiers.items() }
+    return {
+        _stringify(prop): _normalize_value_list(value)
+        for prop, value in qualifiers.items()
+    }
 
 
 def _resolve_claim_bundle_year(raw: Mapping[str, Any]) -> tuple[str | None, list[str]]:
@@ -1074,7 +1375,12 @@ def _extract_claim_bundle_scope_values(raw: Mapping[str, Any]) -> tuple[str, ...
 
 def _extract_claim_bundle_method_values(raw: Mapping[str, Any]) -> tuple[str, ...]:
     qualifier_map = _claim_bundle_qualifier_map(raw)
-    return tuple(sorted(_stringify(value) for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())))
+    return tuple(
+        sorted(
+            _stringify(value)
+            for value in qualifier_map.get(GHG_DETERMINATION_METHOD_PROPERTY, ())
+        )
+    )
 
 
 def _extract_claim_bundle_unit_id(raw: Mapping[str, Any]) -> str | None:
@@ -1108,7 +1414,9 @@ def _build_split_execution_row(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "property": _stringify(claim_after.get("property")),
         "value": claim_after.get("value"),
         "rank": _stringify(claim_after.get("rank")),
-        "resolved_year": execution_hints.get("resolved_year") or model_validation.get("resolved_year") or resolved_year,
+        "resolved_year": execution_hints.get("resolved_year")
+        or model_validation.get("resolved_year")
+        or resolved_year,
         "scope_values": list(
             execution_hints.get("scope_values")
             or model_validation.get("scope_values")
@@ -1119,11 +1427,21 @@ def _build_split_execution_row(candidate: Mapping[str, Any]) -> dict[str, Any]:
             or model_validation.get("determination_method_values")
             or _extract_claim_bundle_method_values(claim_after)
         ),
-        "resolved_scope": execution_hints.get("resolved_scope") or model_validation.get("resolved_scope"),
-        "resolved_unit_qid": execution_hints.get("resolved_unit_qid") or model_validation.get("resolved_unit_qid") or _extract_claim_bundle_unit_id(claim_after),
-        "qualifiers": dict(claim_after.get("qualifiers", {})) if isinstance(claim_after.get("qualifiers"), Mapping) else {},
-        "references": list(claim_after.get("references", [])) if isinstance(claim_after.get("references"), list) else [],
-        "execution_ready": bool(execution_hints.get("execution_ready") or model_validation.get("execution_ready")),
+        "resolved_scope": execution_hints.get("resolved_scope")
+        or model_validation.get("resolved_scope"),
+        "resolved_unit_qid": execution_hints.get("resolved_unit_qid")
+        or model_validation.get("resolved_unit_qid")
+        or _extract_claim_bundle_unit_id(claim_after),
+        "qualifiers": dict(claim_after.get("qualifiers", {}))
+        if isinstance(claim_after.get("qualifiers"), Mapping)
+        else {},
+        "references": list(claim_after.get("references", []))
+        if isinstance(claim_after.get("references"), list)
+        else [],
+        "execution_ready": bool(
+            execution_hints.get("execution_ready")
+            or model_validation.get("execution_ready")
+        ),
     }
 
 
@@ -1145,8 +1463,7 @@ def _normalize_bridge_qualifiers(raw: Any) -> dict[str, tuple[str, ...]]:
     if not isinstance(raw, Mapping):
         raise ValueError("text observation qualifiers must be an object when present")
     return {
-        _stringify(prop): _normalize_value_list(value)
-        for prop, value in raw.items()
+        _stringify(prop): _normalize_value_list(value) for prop, value in raw.items()
     }
 
 
@@ -1166,10 +1483,19 @@ def _bridge_temporal_years(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str
 
 
 def _bridge_scope_values(qualifiers: Mapping[str, Sequence[str]]) -> tuple[str, ...]:
-    return tuple(sorted(set(_stringify(value) for value in qualifiers.get(SCOPE_QUALIFIER_PROPERTY, ()))))
+    return tuple(
+        sorted(
+            set(
+                _stringify(value)
+                for value in qualifiers.get(SCOPE_QUALIFIER_PROPERTY, ())
+            )
+        )
+    )
 
 
-def _bundle_qualifier_values(bundle: StatementBundle, property_pid: str) -> tuple[str, ...]:
+def _bundle_qualifier_values(
+    bundle: StatementBundle, property_pid: str
+) -> tuple[str, ...]:
     qualifier_map = _bundle_qualifier_map(bundle)
     return qualifier_map.get(property_pid, tuple())
 
@@ -1186,12 +1512,16 @@ def _climate_bundle_years(bundle: StatementBundle) -> tuple[str, ...]:
 def _climate_bundle_scope_values(bundle: StatementBundle) -> tuple[str, ...]:
     qualifier_map = _bundle_qualifier_map(bundle)
     values = set(_bridge_scope_values(qualifier_map))
-    values.update(_stringify(value) for value in _bundle_qualifier_values(bundle, "P518"))
+    values.update(
+        _stringify(value) for value in _bundle_qualifier_values(bundle, "P518")
+    )
     return tuple(sorted(value for value in values if value))
 
 
 def _climate_bundle_method_values(bundle: StatementBundle) -> tuple[str, ...]:
-    return tuple(sorted(set(_bundle_qualifier_values(bundle, CLIMATE_MODEL_METHOD_PROPERTY))))
+    return tuple(
+        sorted(set(_bundle_qualifier_values(bundle, CLIMATE_MODEL_METHOD_PROPERTY)))
+    )
 
 
 def _normalize_climate_unit(unit: str | None) -> str:
@@ -1234,16 +1564,24 @@ def _climate_bundle_model_profile(
     unit = _normalize_climate_unit(bundle.unit)
     unit_status = "unknown"
     if unit:
-        unit_status = "recognized" if unit in CLIMATE_MODEL_ACCEPTED_UNITS else "unrecognized"
+        unit_status = (
+            "recognized" if unit in CLIMATE_MODEL_ACCEPTED_UNITS else "unrecognized"
+        )
 
     slot_year_signatures = {
-        _climate_bundle_years(sibling) for sibling in slot_bundles if _climate_bundle_years(sibling)
+        _climate_bundle_years(sibling)
+        for sibling in slot_bundles
+        if _climate_bundle_years(sibling)
     }
     slot_scope_signatures = {
-        _climate_bundle_scope_values(sibling) for sibling in slot_bundles if _climate_bundle_scope_values(sibling)
+        _climate_bundle_scope_values(sibling)
+        for sibling in slot_bundles
+        if _climate_bundle_scope_values(sibling)
     }
     slot_method_signatures = {
-        _climate_bundle_method_values(sibling) for sibling in slot_bundles if _climate_bundle_method_values(sibling)
+        _climate_bundle_method_values(sibling)
+        for sibling in slot_bundles
+        if _climate_bundle_method_values(sibling)
     }
 
     reasons: list[str] = []
@@ -1304,9 +1642,21 @@ def _climate_model_pressure(
 
 def _climate_model_summary(profile: Mapping[str, Any]) -> str:
     unit = _stringify(profile.get("unit", "")).strip()
-    year_values = ",".join(_stringify(value) for value in profile.get("year_values", []) if _stringify(value).strip())
-    scope_values = ",".join(_stringify(value) for value in profile.get("scope_values", []) if _stringify(value).strip())
-    method_values = ",".join(_stringify(value) for value in profile.get("method_values", []) if _stringify(value).strip())
+    year_values = ",".join(
+        _stringify(value)
+        for value in profile.get("year_values", [])
+        if _stringify(value).strip()
+    )
+    scope_values = ",".join(
+        _stringify(value)
+        for value in profile.get("scope_values", [])
+        if _stringify(value).strip()
+    )
+    method_values = ",".join(
+        _stringify(value)
+        for value in profile.get("method_values", [])
+        if _stringify(value).strip()
+    )
     return (
         f"ghg_model={_stringify(profile.get('status'))}"
         f" year={year_values or 'unknown'}"
@@ -1335,7 +1685,11 @@ def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
             {
                 "start": int(anchor["start"]),
                 "end": int(anchor["end"]),
-                **({"text": _stringify(anchor.get("text"))} if anchor.get("text") is not None else {}),
+                **(
+                    {"text": _stringify(anchor.get("text"))}
+                    if anchor.get("text") is not None
+                    else {}
+                ),
             }
             for anchor in anchors
             if isinstance(anchor, Mapping) and "start" in anchor and "end" in anchor
@@ -1349,7 +1703,9 @@ def _normalize_text_observation(raw: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _stable_digest(payload: Mapping[str, Any]) -> str:
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    encoded = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
     return hashlib.sha1(encoded.encode("utf-8")).hexdigest()
 
 
@@ -1361,29 +1717,39 @@ def _normalize_climate_numeric_value(raw: str) -> str:
 
 
 def _extract_scope_tags_from_text(text: str) -> tuple[str, ...]:
-    return tuple(sorted(tag for tag, pattern in SCOPE_TAG_PATTERNS.items() if pattern.search(text)))
+    return tuple(
+        sorted(
+            tag for tag, pattern in SCOPE_TAG_PATTERNS.items() if pattern.search(text)
+        )
+    )
 
 
 def _normalize_string_list(raw: Any) -> tuple[str, ...]:
     if raw is None:
         return tuple()
     if isinstance(raw, (list, tuple)):
-        values = [_stringify(value).strip() for value in raw if _stringify(value).strip()]
+        values = [
+            _stringify(value).strip() for value in raw if _stringify(value).strip()
+        ]
         return tuple(sorted(set(values)))
     value = _stringify(raw).strip()
     return (value,) if value else tuple()
 
 
 def _extract_property_ids(text: str) -> list[str]:
-    return sorted(set(match.group(0) for match in PROPERTY_ID_PATTERN.finditer(text or "")))
+    return sorted(
+        set(match.group(0) for match in PROPERTY_ID_PATTERN.finditer(text or ""))
+    )
 
 
 def _extract_urls(text: str) -> list[str]:
-    return sorted(set(match.group(0).rstrip(".,)") for match in URL_PATTERN.finditer(text or "")))
+    return sorted(
+        set(match.group(0).rstrip(".,)") for match in URL_PATTERN.finditer(text or ""))
+    )
 
 
 def _anchor_excerpt(text: str, *, start: int, end: int) -> str:
-    return (text or "")[max(start, 0):max(end, 0)].strip()
+    return (text or "")[max(start, 0) : max(end, 0)].strip()
 
 
 def _source_unit_anchor_refs(source: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -1491,10 +1857,16 @@ def _parse_bounded_wiki_sections(text: str) -> dict[str, Any]:
     done_items = list(section_map.get("done", []))
     query_rows = list(section_map.get("queries", []))
     cohort_task_lines = [
-        item for item in todo_items
+        item
+        for item in todo_items
         if any(
             token in item.lower()
-            for token in ("instance", "statements", "migration for", "evaluate migration")
+            for token in (
+                "instance",
+                "statements",
+                "migration for",
+                "evaluate migration",
+            )
         )
     ]
     return {
@@ -1509,16 +1881,22 @@ def _parse_bounded_wiki_sections(text: str) -> dict[str, Any]:
     }
 
 
-def _normalize_follow_receipts(raw: Sequence[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+def _normalize_follow_receipts(
+    raw: Sequence[Mapping[str, Any]] | None,
+) -> list[dict[str, Any]]:
     receipts: list[dict[str, Any]] = []
     for index, receipt in enumerate(raw or []):
         if not isinstance(receipt, Mapping):
             raise ValueError("follow receipts must be objects")
-        receipt_id = _stringify(receipt.get("receipt_id", f"follow:{index + 1}")).strip()
+        receipt_id = _stringify(
+            receipt.get("receipt_id", f"follow:{index + 1}")
+        ).strip()
         url = _stringify(receipt.get("url", "")).strip()
         follow_reason = _stringify(receipt.get("follow_reason", "")).strip()
         if not receipt_id or not url or not follow_reason:
-            raise ValueError("follow receipts require receipt_id, url, and follow_reason")
+            raise ValueError(
+                "follow receipts require receipt_id, url, and follow_reason"
+            )
         receipts.append(
             {
                 "receipt_id": receipt_id,
@@ -1556,7 +1934,9 @@ def _bounded_follow_receipts_from_page_signals(
         follow_url = _stringify(url).strip()
         if not follow_url:
             continue
-        query_row = _stringify(query_rows[index]).strip() if index < len(query_rows) else ""
+        query_row = (
+            _stringify(query_rows[index]).strip() if index < len(query_rows) else ""
+        )
         extracted_evidence = [
             f"query_row: {query_row}" if query_row else f"query_link: {follow_url}",
         ]
@@ -1565,7 +1945,9 @@ def _bounded_follow_receipts_from_page_signals(
             "followed link not expanded into a deeper fetch in this packet slice",
         ]
         if query_row:
-            unresolved_uncertainty.append("query row should be checked against the reviewed split bundle")
+            unresolved_uncertainty.append(
+                "query row should be checked against the reviewed split bundle"
+            )
         receipts.append(
             {
                 "receipt_id": f"follow:query:{index + 1}",
@@ -1605,7 +1987,10 @@ def _select_split_plan(
     if not isinstance(plans, list):
         raise ValueError("split plan payload requires a plans array")
     for plan in plans:
-        if isinstance(plan, Mapping) and _stringify(plan.get("split_plan_id")) == split_plan_id:
+        if (
+            isinstance(plan, Mapping)
+            and _stringify(plan.get("split_plan_id")) == split_plan_id
+        ):
             return plan
     raise ValueError(f"split plan not found: {split_plan_id}")
 
@@ -1625,8 +2010,7 @@ def _review_packet_page_signals(source: Mapping[str, Any]) -> dict[str, Any]:
     ) or _anchor_text_by_label(source, "expected_reference_family")
     urls = _extract_urls(text)
     query_links = [
-        url for url in urls
-        if "w.wiki/" in url or "query.wikidata.org" in url
+        url for url in urls if "w.wiki/" in url or "query.wikidata.org" in url
     ]
     cited_links = list(query_links)
     outbound_links = [url for url in urls if url not in set(query_links)]
@@ -1659,7 +2043,11 @@ def _reviewer_view_for_packet(
         decision_focus.append("spot_check_qualifier_propagation")
     if page_signals.get("unresolved_questions"):
         decision_focus.append("resolve_page_open_questions")
-    todo_items = parsed_page.get("task_buckets", {}).get("todo", []) if isinstance(parsed_page.get("task_buckets"), Mapping) else []
+    todo_items = (
+        parsed_page.get("task_buckets", {}).get("todo", [])
+        if isinstance(parsed_page.get("task_buckets"), Mapping)
+        else []
+    )
     if todo_items:
         decision_focus.append("use_todo_bucket_as_review_checklist")
     uncertainty_flags: list[str] = []
@@ -1713,6 +2101,7 @@ def _packet_grounding_depth_row(
     packets = grounding_depth_summary.get("packets")
     if not isinstance(packets, Sequence):
         return None
+
     def _normalize_key(value: Any) -> str:
         normalized = _stringify(value).strip()
         return "" if normalized.lower() in {"", "null"} else normalized
@@ -1728,7 +2117,9 @@ def _packet_grounding_depth_row(
         if match_qid and _stringify(row.get("qid")) != match_qid:
             continue
         grounding_row = dict(row)
-        grounding_gap_class = _stringify(grounding_row.get("grounding_gap_class")).strip()
+        grounding_gap_class = _stringify(
+            grounding_row.get("grounding_gap_class")
+        ).strip()
         if grounding_gap_class.lower() in {"", "null"}:
             grounding_gap_class = _derive_grounding_gap_class(grounding_row)
         if grounding_gap_class == "live_receipts_ready_for_review":
@@ -1739,9 +2130,9 @@ def _packet_grounding_depth_row(
             ).strip()
             if recommended_follow_target.lower() in {"", "null"}:
                 grounding_row["recommended_follow_target"] = (
-                    "" if grounding_gap_class == "grounded" else _derive_grounding_recommended_target(
-                        grounding_gap_class
-                    )
+                    ""
+                    if grounding_gap_class == "grounded"
+                    else _derive_grounding_recommended_target(grounding_gap_class)
                 )
             else:
                 grounding_row["recommended_follow_target"] = recommended_follow_target
@@ -1759,7 +2150,8 @@ def _derive_grounding_gap_class(
     status = _stringify(grounding_row.get("grounding_status")).strip()
     if (
         status == "grounded"
-        and _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
+        and _stringify(grounding_row.get("live_follow_status"))
+        == "live_receipts_fetched"
         and grounding_row.get("live_follow_receipts")
     ):
         return "live_receipts_ready_for_review"
@@ -1782,10 +2174,9 @@ def _derive_grounding_gap_class(
         return "revision_evidence_missing"
     if missing:
         return "partial_revision_evidence"
-    if (
-        _stringify(grounding_row.get("live_follow_status")) == "live_receipts_fetched"
-        and grounding_row.get("live_follow_receipts")
-    ):
+    if _stringify(
+        grounding_row.get("live_follow_status")
+    ) == "live_receipts_fetched" and grounding_row.get("live_follow_receipts"):
         return "live_receipts_ready_for_review"
     return "ungrounded_other"
 
@@ -1872,12 +2263,15 @@ def _build_review_packet_semantic_decomposition(
             if _stringify(item).strip()
         ]
     normalized_anchor_refs = [
-        anchor for anchor in anchor_refs
-        if isinstance(anchor, Mapping) and _stringify(anchor.get("text_excerpt", "")).strip()
+        anchor
+        for anchor in anchor_refs
+        if isinstance(anchor, Mapping)
+        and _stringify(anchor.get("text_excerpt", "")).strip()
     ]
     split_plan_id = _stringify(split_review_context.get("split_plan_id", "")).strip()
     split_axes = [
-        axis for axis in split_review_context.get("merged_split_axes", [])
+        axis
+        for axis in split_review_context.get("merged_split_axes", [])
         if isinstance(axis, Mapping)
     ]
     source_candidate_ids = [
@@ -2050,7 +2444,9 @@ def build_wikidata_review_packet(
         f"{_stringify(source.get('source_unit_id'))}|"
         f"{_stringify(split_plan.get('split_plan_id'))}"
     )
-    packet_id = f"review-packet:{hashlib.sha1(packet_key.encode('utf-8')).hexdigest()[:16]}"
+    packet_id = (
+        f"review-packet:{hashlib.sha1(packet_key.encode('utf-8')).hexdigest()[:16]}"
+    )
     review_entity_qid = _stringify(split_plan.get("entity_qid"))
     grounding_depth_row = _packet_grounding_depth_row(
         grounding_depth_summary=grounding_depth_summary,
@@ -2095,9 +2491,15 @@ def build_wikidata_review_packet(
                 for axis in split_plan.get("merged_split_axes", [])
                 if isinstance(axis, Mapping)
             ],
-            "proposed_bundle_count": int(split_plan.get("proposed_bundle_count", 0) or 0),
-            "reference_propagation": _stringify(split_plan.get("reference_propagation")),
-            "qualifier_propagation": _stringify(split_plan.get("qualifier_propagation")),
+            "proposed_bundle_count": int(
+                split_plan.get("proposed_bundle_count", 0) or 0
+            ),
+            "reference_propagation": _stringify(
+                split_plan.get("reference_propagation")
+            ),
+            "qualifier_propagation": _stringify(
+                split_plan.get("qualifier_propagation")
+            ),
         },
         "parsed_page": parsed_page,
         "page_signals": page_signals,
@@ -2128,47 +2530,69 @@ def build_wikidata_review_packet(
             packet,
             source_text_by_url=follow_depth_source_text_by_url,
         )
-        semantic_decomposition["claim_boundaries"] = build_review_packet_claim_boundaries(
-            source_surface=packet["source_surface"],
-            split_review_context=packet["split_review_context"],
-            parsed_page=parsed_page,
-            page_signals=page_signals,
+        semantic_decomposition["claim_boundaries"] = (
+            build_review_packet_claim_boundaries(
+                source_surface=packet["source_surface"],
+                split_review_context=packet["split_review_context"],
+                parsed_page=parsed_page,
+                page_signals=page_signals,
+            )
         )
-        semantic_decomposition["cross_source_alignment"] = summarize_cross_source_alignment(
-            packet_id=packet_id,
-            wiki_surface={
-                "qid": _stringify(packet.get("review_entity_qid")),
-                "source": _stringify(packet["source_surface"]["origin"].get("source_type")),
-                "fields": list(parsed_page.get("query_rows", [])),
-                "summary": _stringify(packet["source_surface"]["origin"].get("title")),
-            },
-            query_slice={
-                "qid": _stringify(packet.get("review_entity_qid")),
-                "fields": list(parsed_page.get("query_rows", [])),
-                "summary": "query rows from parsed page",
-            },
-            split_bundle={
-                "primary_qid": _stringify(packet.get("review_entity_qid")),
-                "fields": [
-                    axis.get("property")
-                    for axis in packet["split_review_context"].get("merged_split_axes", [])
-                    if isinstance(axis, Mapping)
-                ],
-                "summary": _stringify(packet["split_review_context"].get("suggested_action")),
-            },
+        semantic_decomposition["cross_source_alignment"] = (
+            summarize_cross_source_alignment(
+                packet_id=packet_id,
+                wiki_surface={
+                    "qid": _stringify(packet.get("review_entity_qid")),
+                    "source": _stringify(
+                        packet["source_surface"]["origin"].get("source_type")
+                    ),
+                    "fields": list(parsed_page.get("query_rows", [])),
+                    "summary": _stringify(
+                        packet["source_surface"]["origin"].get("title")
+                    ),
+                },
+                query_slice={
+                    "qid": _stringify(packet.get("review_entity_qid")),
+                    "fields": list(parsed_page.get("query_rows", [])),
+                    "summary": "query rows from parsed page",
+                },
+                split_bundle={
+                    "primary_qid": _stringify(packet.get("review_entity_qid")),
+                    "fields": [
+                        axis.get("property")
+                        for axis in packet["split_review_context"].get(
+                            "merged_split_axes", []
+                        )
+                        if isinstance(axis, Mapping)
+                    ],
+                    "summary": _stringify(
+                        packet["split_review_context"].get("suggested_action")
+                    ),
+                },
+            )
         )
         semantic_decomposition["reviewer_actions"] = (
             build_wikidata_review_packet_reviewer_actions(packet)
         )
         if auto_comparison_variants:
-            semantic_decomposition["variant_comparison"] = compare_review_packet_variants(
-                primary_variant={
-                    "candidate_id": packet["split_review_context"].get("split_plan_id"),
-                    "suggested_action": packet["split_review_context"].get("suggested_action"),
-                    "merged_split_axes": packet["split_review_context"].get("merged_split_axes", []),
-                    "action": packet["split_review_context"].get("suggested_action"),
-                },
-                comparison_variants=auto_comparison_variants,
+            semantic_decomposition["variant_comparison"] = (
+                compare_review_packet_variants(
+                    primary_variant={
+                        "candidate_id": packet["split_review_context"].get(
+                            "split_plan_id"
+                        ),
+                        "suggested_action": packet["split_review_context"].get(
+                            "suggested_action"
+                        ),
+                        "merged_split_axes": packet["split_review_context"].get(
+                            "merged_split_axes", []
+                        ),
+                        "action": packet["split_review_context"].get(
+                            "suggested_action"
+                        ),
+                    },
+                    comparison_variants=auto_comparison_variants,
+                )
             )
         else:
             semantic_decomposition["variant_comparison"] = {
@@ -2255,9 +2679,15 @@ def build_nat_cohort_c_population_scan_from_sparql_results(
     for row in bindings:
         if not isinstance(row, Mapping):
             continue
-        item = row.get("item", {}).get("value") if isinstance(row.get("item"), Mapping) else None
+        item = (
+            row.get("item", {}).get("value")
+            if isinstance(row.get("item"), Mapping)
+            else None
+        )
         statement = (
-            row.get("statement", {}).get("value") if isinstance(row.get("statement"), Mapping) else None
+            row.get("statement", {}).get("value")
+            if isinstance(row.get("statement"), Mapping)
+            else None
         )
         if not item or not statement:
             continue
@@ -2268,7 +2698,11 @@ def build_nat_cohort_c_population_scan_from_sparql_results(
             if isinstance(row.get("itemLabel"), Mapping)
             else None
         )
-        p459 = row.get("p459", {}).get("value") if isinstance(row.get("p459"), Mapping) else None
+        p459 = (
+            row.get("p459", {}).get("value")
+            if isinstance(row.get("p459"), Mapping)
+            else None
+        )
         p459_label = (
             row.get("p459Label", {}).get("value")
             if isinstance(row.get("p459Label"), Mapping)
@@ -2512,7 +2946,9 @@ def build_nat_cohort_c_operator_packet(
         "sample_candidates": sample_candidates,
         "summary": {
             "candidate_count": len(sample_candidates),
-            "p459_status_counts": dict(scan_payload.get("summary", {}).get("p459_status_counts", {}))
+            "p459_status_counts": dict(
+                scan_payload.get("summary", {}).get("p459_status_counts", {})
+            )
             if isinstance(scan_payload.get("summary"), Mapping)
             else {},
             "review_first": True,
@@ -2529,10 +2965,14 @@ def build_nat_cohort_c_operator_packet(
     }
 
 
-def _source_unit_scope_tags(source: Mapping[str, Any], *, line_text: str) -> tuple[str, ...]:
+def _source_unit_scope_tags(
+    source: Mapping[str, Any], *, line_text: str
+) -> tuple[str, ...]:
     tags = set(_extract_scope_tags_from_text(line_text))
     tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_id", ""))))
-    tags.update(_extract_scope_tags_from_text(_stringify(source.get("source_unit_id", ""))))
+    tags.update(
+        _extract_scope_tags_from_text(_stringify(source.get("source_unit_id", "")))
+    )
     metadata = source.get("metadata")
     if isinstance(metadata, Mapping):
         tags.update(_normalize_string_list(metadata.get("scope_tags")))
@@ -2550,8 +2990,13 @@ def _iter_climate_text_line_spans(text: str) -> Iterable[tuple[int, int, str]]:
         return
 
 
-def adapt_legacy_climate_text_source_to_source_units(payload: Mapping[str, Any]) -> dict[str, Any]:
-    if _stringify(payload.get("schema_version", "")) != WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION:
+def adapt_legacy_climate_text_source_to_source_units(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if (
+        _stringify(payload.get("schema_version", ""))
+        != WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION
+    ):
         raise ValueError(
             f"climate text payload must use {WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION}"
         )
@@ -2570,7 +3015,9 @@ def adapt_legacy_climate_text_source_to_source_units(payload: Mapping[str, Any])
                 "source_unit_id": _stringify(source.get("source_unit_id", "")).strip(),
                 "revision": {
                     "revision_id": _stringify(source.get("revision_id", "")).strip(),
-                    "revision_timestamp": _stringify(source.get("revision_timestamp", "")).strip(),
+                    "revision_timestamp": _stringify(
+                        source.get("revision_timestamp", "")
+                    ).strip(),
                     "retrieval_method": "pdf_snapshot",
                 },
                 "origin": {
@@ -2604,7 +3051,9 @@ def _source_units_from_payload(payload: Mapping[str, Any]) -> list[Mapping[str, 
     return source_units
 
 
-def _extract_climate_text_rows_from_source_unit(source: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _extract_climate_text_rows_from_source_unit(
+    source: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     source_id = _stringify(source.get("source_id", "")).strip()
     entity_qid = _stringify(source.get("entity_qid", "")).strip()
     source_unit_id = _stringify(source.get("source_unit_id", "")).strip()
@@ -2615,7 +3064,14 @@ def _extract_climate_text_rows_from_source_unit(source: Mapping[str, Any]) -> li
     revision_id = _stringify(revision.get("revision_id", "")).strip()
     revision_timestamp = _stringify(revision.get("revision_timestamp", "")).strip()
     text = _stringify(content.get("text", ""))
-    if not source_id or not entity_qid or not source_unit_id or not revision_id or not revision_timestamp or not text:
+    if (
+        not source_id
+        or not entity_qid
+        or not source_unit_id
+        or not revision_id
+        or not revision_timestamp
+        or not text
+    ):
         raise ValueError(
             "source units require source_id, entity_qid, source_unit_id, revision.revision_id, revision.revision_timestamp, and content.text"
         )
@@ -2736,7 +3192,8 @@ def build_observation_claim_payload_from_source_units(
                 "trace_refs": [
                     f"revision:{row['revision_id']}",
                     f"source:{row['source_id']}",
-                ] + [f"scope_tag:{tag}" for tag in row.get("scope_tags", [])],
+                ]
+                + [f"scope_tag:{tag}" for tag in row.get("scope_tags", [])],
             }
             evidence_link["link_hash"] = _stable_digest(evidence_link)
 
@@ -2770,7 +3227,9 @@ def build_wikidata_phi_text_bridge_case(
     if not isinstance(claim_bundle, Mapping):
         raise ValueError("candidate requires claim_bundle_before")
 
-    normalized_observations = [_normalize_text_observation(row) for row in text_observations]
+    normalized_observations = [
+        _normalize_text_observation(row) for row in text_observations
+    ]
     bundle_subject = _stringify(claim_bundle.get("subject", ""))
     bundle_value = _stringify(claim_bundle.get("value"))
     bundle_qualifiers = _normalize_bridge_qualifiers(claim_bundle.get("qualifiers"))
@@ -2787,7 +3246,9 @@ def build_wikidata_phi_text_bridge_case(
 
     for observation in normalized_observations:
         checks: list[str] = []
-        observation_qualifiers = _normalize_bridge_qualifiers(observation.get("qualifiers"))
+        observation_qualifiers = _normalize_bridge_qualifiers(
+            observation.get("qualifiers")
+        )
         temporal_values = _bridge_temporal_values(observation_qualifiers)
         temporal_years = set(_bridge_temporal_years(observation_qualifiers))
         scope_values = _bridge_scope_values(observation_qualifiers)
@@ -2805,7 +3266,11 @@ def build_wikidata_phi_text_bridge_case(
         if observation["object"] == bundle_value:
             checks.append("value_match")
             aligned_objects.add(observation["object"])
-        elif bundle_temporal_years and temporal_years and bundle_temporal_years.isdisjoint(temporal_years):
+        elif (
+            bundle_temporal_years
+            and temporal_years
+            and bundle_temporal_years.isdisjoint(temporal_years)
+        ):
             missing_dimensions.append(
                 {
                     "kind": "value_mismatch_outside_bundle_period",
@@ -2815,7 +3280,11 @@ def build_wikidata_phi_text_bridge_case(
                     ),
                 }
             )
-        elif bundle_scope_values and scope_values and bundle_scope_values != set(scope_values):
+        elif (
+            bundle_scope_values
+            and scope_values
+            and bundle_scope_values != set(scope_values)
+        ):
             missing_dimensions.append(
                 {
                     "kind": "value_mismatch_outside_bundle_scope",
@@ -2836,7 +3305,10 @@ def build_wikidata_phi_text_bridge_case(
 
         if temporal_values:
             text_temporal_signatures.add(temporal_values)
-            if bundle_temporal_values and set(temporal_values) == bundle_temporal_values:
+            if (
+                bundle_temporal_values
+                and set(temporal_values) == bundle_temporal_values
+            ):
                 checks.append("temporal_match")
             elif not bundle_temporal_values:
                 missing_dimensions.append(
@@ -2879,7 +3351,9 @@ def build_wikidata_phi_text_bridge_case(
                 )
 
         if checks:
-            alignment.append({"observation_ref": observation["observation_ref"], "checks": checks})
+            alignment.append(
+                {"observation_ref": observation["observation_ref"], "checks": checks}
+            )
 
     if len(text_temporal_signatures) > 1:
         missing_dimensions.append(
@@ -2908,7 +3382,9 @@ def build_wikidata_phi_text_bridge_case(
     if conflicts:
         pressure = "contradiction"
         pressure_confidence = 0.78
-        pressure_summary = "Promoted text observations conflict with the current structured bundle."
+        pressure_summary = (
+            "Promoted text observations conflict with the current structured bundle."
+        )
     elif missing_dimensions:
         pressure = "split_pressure"
         pressure_confidence = 0.82
@@ -2916,11 +3392,15 @@ def build_wikidata_phi_text_bridge_case(
     elif alignment:
         pressure = "reinforce"
         pressure_confidence = 0.9
-        pressure_summary = "Promoted text observations reinforce the current structured bundle."
+        pressure_summary = (
+            "Promoted text observations reinforce the current structured bundle."
+        )
     else:
         pressure = "abstain"
         pressure_confidence = 0.2
-        pressure_summary = "Promoted text observations did not provide enough aligned support."
+        pressure_summary = (
+            "Promoted text observations did not provide enough aligned support."
+        )
 
     return {
         "schema_version": WIKIDATA_PHI_TEXT_BRIDGE_CASE_SCHEMA_VERSION,
@@ -2972,9 +3452,13 @@ def attach_wikidata_phi_text_bridge(
             candidate.setdefault("pressure_confidence", None)
             candidate.setdefault("pressure_summary", None)
             continue
-        bridge_case = build_wikidata_phi_text_bridge_case(candidate, text_observations=observation_rows)
+        bridge_case = build_wikidata_phi_text_bridge_case(
+            candidate, text_observations=observation_rows
+        )
         bridge_cases.append(bridge_case)
-        candidate["text_evidence_refs"] = [row["observation_ref"] for row in bridge_case["text_observations"]]
+        candidate["text_evidence_refs"] = [
+            row["observation_ref"] for row in bridge_case["text_observations"]
+        ]
         candidate["bridge_case_ref"] = bridge_case["bridge_case_ref"]
         candidate["pressure"] = bridge_case["pressure"]
         candidate["pressure_confidence"] = bridge_case["pressure_confidence"]
@@ -3002,10 +3486,12 @@ def attach_wikidata_phi_text_bridge_from_observation_claim(
         entity_qid = _stringify(candidate.get("entity_qid", ""))
         if not candidate_id or not entity_qid:
             continue
-        observations_by_candidate[candidate_id] = extract_phi_text_observations_from_observation_claim_payload(
-            observation_claim_payload,
-            subject_id=entity_qid,
-            predicate_allowlist=predicate_allowlist,
+        observations_by_candidate[candidate_id] = (
+            extract_phi_text_observations_from_observation_claim_payload(
+                observation_claim_payload,
+                subject_id=entity_qid,
+                predicate_allowlist=predicate_allowlist,
+            )
         )
 
     return attach_wikidata_phi_text_bridge(
@@ -3019,8 +3505,10 @@ def attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
     *,
     climate_text_payload: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    observation_claim_payload = build_observation_claim_payload_from_revision_locked_climate_text_sources(
-        climate_text_payload
+    observation_claim_payload = (
+        build_observation_claim_payload_from_revision_locked_climate_text_sources(
+            climate_text_payload
+        )
     )
     enriched = attach_wikidata_phi_text_bridge_from_observation_claim(
         migration_pack,
@@ -3035,7 +3523,9 @@ def attach_wikidata_phi_text_bridge_from_source_units(
     *,
     source_unit_payload: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    observation_claim_payload = build_observation_claim_payload_from_source_units(source_unit_payload)
+    observation_claim_payload = build_observation_claim_payload_from_source_units(
+        source_unit_payload
+    )
     enriched = attach_wikidata_phi_text_bridge_from_observation_claim(
         migration_pack,
         observation_claim_payload=observation_claim_payload,
@@ -3071,7 +3561,9 @@ def _select_demonstrator_candidates(
 
     packet_candidate_ids = (
         _normalize_string_list(
-            ((review_packet or {}).get("split_review_context") or {}).get("source_candidate_ids")
+            ((review_packet or {}).get("split_review_context") or {}).get(
+                "source_candidate_ids"
+            )
         )
         if isinstance(review_packet, Mapping)
         else []
@@ -3081,7 +3573,9 @@ def _select_demonstrator_candidates(
 
     resolved_entity_qid = str(entity_qid).strip() if entity_qid is not None else ""
     if not resolved_entity_qid and isinstance(review_packet, Mapping):
-        resolved_entity_qid = _stringify(review_packet.get("review_entity_qid", "")).strip()
+        resolved_entity_qid = _stringify(
+            review_packet.get("review_entity_qid", "")
+        ).strip()
 
     selected: list[dict[str, Any]] = []
     for row in candidates:
@@ -3096,15 +3590,23 @@ def _select_demonstrator_candidates(
         selected.append(row)
 
     if not selected:
-        raise ValueError("no candidates matched the requested review packet / entity / candidate ids")
+        raise ValueError(
+            "no candidates matched the requested review packet / entity / candidate ids"
+        )
     if not resolved_entity_qid:
         resolved_entity_qid = _stringify(selected[0].get("entity_qid", "")).strip()
 
     packet_context = {
-        "packet_id": _stringify((review_packet or {}).get("packet_id", "")).strip() or None,
-        "review_entity_qid": _stringify((review_packet or {}).get("review_entity_qid", "")).strip() or None,
+        "packet_id": _stringify((review_packet or {}).get("packet_id", "")).strip()
+        or None,
+        "review_entity_qid": _stringify(
+            (review_packet or {}).get("review_entity_qid", "")
+        ).strip()
+        or None,
         "split_plan_id": _stringify(
-            ((review_packet or {}).get("split_review_context") or {}).get("split_plan_id", "")
+            ((review_packet or {}).get("split_review_context") or {}).get(
+                "split_plan_id", ""
+            )
         ).strip()
         or None,
         "source_candidate_ids": selected_candidate_ids,
@@ -3158,7 +3660,14 @@ def _derive_demonstrator_candidate_disposition(
         rationale.extend([classification, pressure or "no_bridge_pressure"])
     else:
         rationale.extend(
-            [text for text in (classification or "unclassified", pressure or gate_decision or "held") if text]
+            [
+                text
+                for text in (
+                    classification or "unclassified",
+                    pressure or gate_decision or "held",
+                )
+                if text
+            ]
         )
 
     return {
@@ -3182,15 +3691,19 @@ def build_wikidata_climate_review_demonstrator(
     entity_qid: str | None = None,
     candidate_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    enriched_pack, observation_claim_payload = attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
-        migration_pack,
-        climate_text_payload=climate_text_payload,
+    enriched_pack, observation_claim_payload = (
+        attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+            migration_pack,
+            climate_text_payload=climate_text_payload,
+        )
     )
-    selected_candidates, packet_context, resolved_entity_qid = _select_demonstrator_candidates(
-        enriched_pack,
-        review_packet=review_packet,
-        entity_qid=entity_qid,
-        candidate_ids=candidate_ids,
+    selected_candidates, packet_context, resolved_entity_qid = (
+        _select_demonstrator_candidates(
+            enriched_pack,
+            review_packet=review_packet,
+            entity_qid=entity_qid,
+            candidate_ids=candidate_ids,
+        )
     )
     selected_candidate_ids = [
         _stringify(candidate.get("candidate_id", "")).strip()
@@ -3245,14 +3758,22 @@ def build_wikidata_climate_review_demonstrator(
         candidate_id = _stringify(candidate.get("candidate_id", "")).strip()
         bridge_case = bridge_case_map.get(candidate_id)
         if isinstance(bridge_case, Mapping):
-            pressure_key = _stringify(bridge_case.get("pressure", "")).strip() or "unclassified"
+            pressure_key = (
+                _stringify(bridge_case.get("pressure", "")).strip() or "unclassified"
+            )
             pressure_counts[pressure_key] = pressure_counts.get(pressure_key, 0) + 1
         candidate_dispositions.append(
-            _derive_demonstrator_candidate_disposition(candidate, bridge_case=bridge_case)
+            _derive_demonstrator_candidate_disposition(
+                candidate, bridge_case=bridge_case
+            )
         )
 
-    held_count = sum(1 for row in candidate_dispositions if row["final_state"] == "held")
-    promotable_count = sum(1 for row in candidate_dispositions if row["final_state"] == "promotable")
+    held_count = sum(
+        1 for row in candidate_dispositions if row["final_state"] == "held"
+    )
+    promotable_count = sum(
+        1 for row in candidate_dispositions if row["final_state"] == "promotable"
+    )
     final_state = (
         "promotable"
         if promotable_count and held_count == 0
@@ -3280,8 +3801,12 @@ def build_wikidata_climate_review_demonstrator(
     return {
         "schema_version": WIKIDATA_CLIMATE_REVIEW_DEMONSTRATOR_SCHEMA_VERSION,
         "inputs": {
-            "source_property": _stringify(migration_pack.get("source_property", "")).strip(),
-            "target_property": _stringify(migration_pack.get("target_property", "")).strip(),
+            "source_property": _stringify(
+                migration_pack.get("source_property", "")
+            ).strip(),
+            "target_property": _stringify(
+                migration_pack.get("target_property", "")
+            ).strip(),
             "entity_qid": resolved_entity_qid,
             "candidate_ids": selected_candidate_ids,
             "packet_context": packet_context,
@@ -3293,7 +3818,9 @@ def build_wikidata_climate_review_demonstrator(
             "candidates": selected_candidate_rows,
         },
         "text_side_predicate_carrier": {
-            "payload_version": _stringify(observation_claim_payload.get("payload_version", "")).strip(),
+            "payload_version": _stringify(
+                observation_claim_payload.get("payload_version", "")
+            ).strip(),
             "observation_count": len(filtered_observations),
             "claim_count": len(filtered_claims),
             "evidence_link_count": len(filtered_evidence_links),
@@ -3351,14 +3878,25 @@ def extract_phi_text_observations_from_observation_claim_payload(
     subject_id: str,
     predicate_allowlist: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
-    if _stringify(payload.get("payload_version", "")) != "sl.observation_claim.contract.v1":
-        raise ValueError("observation claim payload must use sl.observation_claim.contract.v1")
+    if (
+        _stringify(payload.get("payload_version", ""))
+        != "sl.observation_claim.contract.v1"
+    ):
+        raise ValueError(
+            "observation claim payload must use sl.observation_claim.contract.v1"
+        )
 
     observations = payload.get("observations")
     claims = payload.get("claims")
     evidence_links = payload.get("evidence_links")
-    if not isinstance(observations, list) or not isinstance(claims, list) or not isinstance(evidence_links, list):
-        raise ValueError("observation claim payload requires observations, claims, and evidence_links arrays")
+    if (
+        not isinstance(observations, list)
+        or not isinstance(claims, list)
+        or not isinstance(evidence_links, list)
+    ):
+        raise ValueError(
+            "observation claim payload requires observations, claims, and evidence_links arrays"
+        )
 
     observation_index = {
         _stringify(row.get("observation_id", "")): row
@@ -3370,7 +3908,11 @@ def extract_phi_text_observations_from_observation_claim_payload(
         for row in evidence_links
         if isinstance(row, Mapping) and _stringify(row.get("link_id", ""))
     }
-    allowed_predicates = {value.strip() for value in (predicate_allowlist or []) if value and value.strip()}
+    allowed_predicates = {
+        value.strip()
+        for value in (predicate_allowlist or [])
+        if value and value.strip()
+    }
     out: list[dict[str, Any]] = []
 
     for claim in claims:
@@ -3391,12 +3933,19 @@ def extract_phi_text_observations_from_observation_claim_payload(
             continue
         if _stringify(observation.get("status", "")) != "active":
             continue
-        if _stringify(observation.get("canonicality", "")) not in {"verified", "adjudicated"}:
+        if _stringify(observation.get("canonicality", "")) not in {
+            "verified",
+            "adjudicated",
+        }:
             continue
 
         anchors: list[dict[str, Any]] = []
         source_span = observation.get("source_span")
-        if isinstance(source_span, Mapping) and isinstance(source_span.get("start_char"), int) and isinstance(source_span.get("end_char"), int):
+        if (
+            isinstance(source_span, Mapping)
+            and isinstance(source_span.get("start_char"), int)
+            and isinstance(source_span.get("end_char"), int)
+        ):
             anchors.append(
                 {
                     "start": int(source_span["start_char"]),
@@ -3422,7 +3971,11 @@ def extract_phi_text_observations_from_observation_claim_payload(
         qualifiers: dict[str, Any] = {}
         if observed_at is not None:
             qualifiers["P585"] = _stringify(observed_at)
-        scope_tags = set(_extract_scope_tags_from_text(_stringify(observation.get("source_quote", ""))))
+        scope_tags = set(
+            _extract_scope_tags_from_text(
+                _stringify(observation.get("source_quote", ""))
+            )
+        )
         for link_id in claim.get("evidence_links", []):
             evidence_link = evidence_link_index.get(_stringify(link_id))
             if not isinstance(evidence_link, Mapping):
@@ -3494,11 +4047,15 @@ def _normalize_qualifiers(raw: Any) -> tuple[tuple[str, tuple[str, ...]], ...]:
     else:
         raise ValueError("qualifiers must be an object or list")
     return tuple(
-        sorted((_stringify(prop), _normalize_value_list(value)) for prop, value in items)
+        sorted(
+            (_stringify(prop), _normalize_value_list(value)) for prop, value in items
+        )
     )
 
 
-def _normalize_references(raw: Any) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]:
+def _normalize_references(
+    raw: Any,
+) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]:
     if raw is None:
         return tuple()
     if not isinstance(raw, list):
@@ -3508,7 +4065,10 @@ def _normalize_references(raw: Any) -> tuple[tuple[tuple[str, tuple[str, ...]], 
         if not isinstance(block, Mapping):
             raise ValueError("reference blocks must be objects")
         normalized = tuple(
-            sorted((_stringify(prop), _normalize_value_list(value)) for prop, value in block.items())
+            sorted(
+                (_stringify(prop), _normalize_value_list(value))
+                for prop, value in block.items()
+            )
         )
         blocks.append(normalized)
     return tuple(sorted(blocks))
@@ -3520,7 +4080,9 @@ def _extract_bundle_unit(raw: Mapping[str, Any]) -> str | None:
         unit = raw.get("value", {}).get("unit")
     if unit is None and isinstance(raw.get("mainsnak"), Mapping):
         mainsnak = raw.get("mainsnak")
-        if isinstance(mainsnak, Mapping) and isinstance(mainsnak.get("datavalue"), Mapping):
+        if isinstance(mainsnak, Mapping) and isinstance(
+            mainsnak.get("datavalue"), Mapping
+        ):
             datavalue = mainsnak.get("datavalue", {})
             value = datavalue.get("value") if isinstance(datavalue, Mapping) else None
             if isinstance(value, Mapping):
@@ -3536,6 +4098,7 @@ def _parse_bundle(raw: Mapping[str, Any]) -> StatementBundle:
     prop = raw.get("property")
     if not subject or not prop:
         raise ValueError("statement bundles require subject and property")
+    raw_statement_id = raw.get("statement_id")
     return StatementBundle(
         subject=_stringify(subject),
         property=_stringify(prop),
@@ -3544,10 +4107,15 @@ def _parse_bundle(raw: Mapping[str, Any]) -> StatementBundle:
         unit=_extract_bundle_unit(raw),
         qualifiers=_normalize_qualifiers(raw.get("qualifiers")),
         references=_normalize_references(raw.get("references")),
+        statement_id=_stringify(raw_statement_id)
+        if raw_statement_id is not None
+        else None,
     )
 
 
-def _extract_references_from_wikidata(raw_refs: Any) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]:
+def _extract_references_from_wikidata(
+    raw_refs: Any,
+) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]:
     if not isinstance(raw_refs, list):
         return tuple()
     blocks: list[dict[str, list[Any]]] = []
@@ -3576,7 +4144,9 @@ def _extract_references_from_wikidata(raw_refs: Any) -> tuple[tuple[tuple[str, t
     return _normalize_references(blocks)
 
 
-def _extract_qualifiers_from_wikidata(raw_quals: Any) -> tuple[tuple[str, tuple[str, ...]], ...]:
+def _extract_qualifiers_from_wikidata(
+    raw_quals: Any,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if not isinstance(raw_quals, Mapping):
         return tuple()
     normalized: dict[str, list[Any]] = {}
@@ -3632,7 +4202,9 @@ def build_slice_from_entity_exports(
             source_labels.append(source_name)
             entities = source.get("entities")
             if not isinstance(entities, Mapping):
-                raise ValueError("entity export payload requires top-level entities object")
+                raise ValueError(
+                    "entity export payload requires top-level entities object"
+                )
             for entity_id, entity in sorted(entities.items()):
                 if not isinstance(entity, Mapping):
                     continue
@@ -3659,11 +4231,22 @@ def build_slice_from_entity_exports(
                                 "value": extracted,
                                 "rank": _stringify(statement.get("rank", "normal")),
                                 "unit": _extract_bundle_unit(statement),
-                                "qualifiers": dict(_extract_qualifiers_from_wikidata(statement.get("qualifiers"))),
+                                "qualifiers": dict(
+                                    _extract_qualifiers_from_wikidata(
+                                        statement.get("qualifiers")
+                                    )
+                                ),
                                 "references": [
                                     {key: list(values) for key, values in block}
-                                    for block in _extract_references_from_wikidata(statement.get("references"))
+                                    for block in _extract_references_from_wikidata(
+                                        statement.get("references")
+                                    )
                                 ],
+                                "statement_id": (
+                                    _stringify(statement.get("id"))
+                                    if statement.get("id") is not None
+                                    else None
+                                ),
                             }
                         )
         windows.append(
@@ -3715,7 +4298,9 @@ def _http_get_json(
     return response.json()
 
 
-def _emit_progress(progress_callback: Any, stage: str, details: Mapping[str, Any]) -> None:
+def _emit_progress(
+    progress_callback: Any, stage: str, details: Mapping[str, Any]
+) -> None:
     if callable(progress_callback):
         progress_callback(stage, dict(details))
 
@@ -3788,10 +4373,7 @@ def _collect_current_qualifier_candidates(
                 "qualifier_property_count": len(qualifier_properties),
                 "qualifier_properties": qualifier_properties,
                 "statement_qualifier_sets": sorted(
-                    {
-                        item
-                        for item in candidate["statement_qualifier_sets"]
-                    },
+                    {item for item in candidate["statement_qualifier_sets"]},
                     key=lambda item: (len(item), item),
                 ),
             }
@@ -3831,7 +4413,9 @@ def _fetch_recent_revisions(
     ]
 
 
-def _fetch_entity_export_revision(qid: str, revid: int, *, timeout_seconds: int) -> dict[str, Any]:
+def _fetch_entity_export_revision(
+    qid: str, revid: int, *, timeout_seconds: int
+) -> dict[str, Any]:
     url = ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=revid)
     payload = _http_get_json(url, timeout_seconds=timeout_seconds)
     if not isinstance(payload, dict):
@@ -3879,8 +4463,12 @@ def _compare_slot_reports_for_qualifier_drift(
                 "qualifier_entropy": 0.0,
             },
         )
-        signatures_changed = left["qualifier_signatures"] != right["qualifier_signatures"]
-        property_set_changed = left["qualifier_property_set"] != right["qualifier_property_set"]
+        signatures_changed = (
+            left["qualifier_signatures"] != right["qualifier_signatures"]
+        )
+        property_set_changed = (
+            left["qualifier_property_set"] != right["qualifier_property_set"]
+        )
         entropy_delta = round(right["qualifier_entropy"] - left["qualifier_entropy"], 6)
         if not signatures_changed and not property_set_changed and entropy_delta == 0.0:
             continue
@@ -3915,7 +4503,9 @@ def _compare_slot_reports_for_qualifier_drift(
     return findings
 
 
-def _score_candidate(candidate: Mapping[str, Any], revisions: Sequence[Mapping[str, Any]]) -> tuple[int, list[str]]:
+def _score_candidate(
+    candidate: Mapping[str, Any], revisions: Sequence[Mapping[str, Any]]
+) -> tuple[int, list[str]]:
     property_pid = _stringify(candidate["property_pid"])
     qualifier_properties = set(candidate.get("qualifier_properties", []))
     statement_count = int(candidate.get("statement_count", 0))
@@ -4061,8 +4651,7 @@ def find_qualifier_drift_candidates(
         property_pid = candidate["property_pid"]
         revisions = candidate["recent_revision_ids"]
         revision_meta = {
-            item["revid"]: item["timestamp"]
-            for item in candidate["recent_revisions"]
+            item["revid"]: item["timestamp"] for item in candidate["recent_revisions"]
         }
         if len(revisions) < 2:
             stable_baselines.append(
@@ -4179,7 +4768,9 @@ def find_qualifier_drift_candidates(
                     },
                     "qualifier_drift": drift,
                     "entity_export_urls": {
-                        "from": ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=older_revid),
+                        "from": ENTITY_EXPORT_TEMPLATE.format(
+                            qid=qid, revid=older_revid
+                        ),
                         "to": ENTITY_EXPORT_TEMPLATE.format(qid=qid, revid=newer_revid),
                     },
                     "suggested_fixture_stem": f"{qid.lower()}_{property_pid.lower()}_{older_revid}_{newer_revid}",
@@ -4268,19 +4859,19 @@ def _qualifier_signature(qualifiers: tuple[tuple[str, tuple[str, ...]], ...]) ->
 
 
 def _reference_signature(
-    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...],
 ) -> str:
     return json.dumps(references, ensure_ascii=False, separators=(",", ":"))
 
 
 def _reference_property_set(
-    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...],
 ) -> list[str]:
     return sorted({prop for block in references for prop, _ in block})
 
 
 def _reference_metrics(
-    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...]
+    references: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...],
 ) -> tuple[int, int, int]:
     n_blocks = len(references)
     distinct_sources = set()
@@ -4350,7 +4941,9 @@ def _aggregate_window(window: WindowSlice, *, e0: int) -> Dict[str, Any]:
         slot["qualifier_signatures"].append(projected["audit"]["qualifier_signature"])
         slot["qualifier_property_sets"].append(qualifier_props)
         slot["reference_signatures"].append(projected["audit"]["reference_signature"])
-        slot["reference_property_sets"].append(tuple(_reference_property_set(bundle.references)))
+        slot["reference_property_sets"].append(
+            tuple(_reference_property_set(bundle.references))
+        )
         slot["value_set"].add(_stringify(bundle.value))
 
     result_slots: dict[str, dict[str, Any]] = {}
@@ -4430,8 +5023,12 @@ def _compare_slot_reports_for_reference_drift(
                 "reference_property_set": [],
             },
         )
-        signatures_changed = left["reference_signatures"] != right["reference_signatures"]
-        property_set_changed = left["reference_property_set"] != right["reference_property_set"]
+        signatures_changed = (
+            left["reference_signatures"] != right["reference_signatures"]
+        )
+        property_set_changed = (
+            left["reference_property_set"] != right["reference_property_set"]
+        )
         if not signatures_changed and not property_set_changed:
             continue
         severity = "low"
@@ -4518,7 +5115,10 @@ def _tarjan_scc(edges: Sequence[tuple[str, str]]) -> list[list[str]]:
     for node in sorted(nodes):
         if node not in indices:
             strongconnect(node)
-    return sorted((component for component in components if len(component) > 1), key=lambda c: (len(c), c))
+    return sorted(
+        (component for component in components if len(component) > 1),
+        key=lambda c: (len(c), c),
+    )
 
 
 def _find_mixed_order_nodes(window: WindowSlice) -> list[dict[str, Any]]:
@@ -4549,7 +5149,9 @@ def _find_mixed_order_nodes(window: WindowSlice) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     for node in sorted(roles):
         node_roles = roles[node]
-        if "subject_p31" in node_roles and ("subject_p279" in node_roles or "value_p279" in node_roles):
+        if "subject_p31" in node_roles and (
+            "subject_p279" in node_roles or "value_p279" in node_roles
+        ):
             findings.append(
                 {
                     "qid": node,
@@ -4593,9 +5195,7 @@ def _find_metaclass_candidates(window: WindowSlice) -> list[dict[str, Any]]:
     return findings
 
 
-def _infer_node_type(
-    node: str, instances: set[str], classes: set[str]
-) -> str:
+def _infer_node_type(node: str, instances: set[str], classes: set[str]) -> str:
     if node in instances and node in classes:
         return "ambiguous"
     if node in instances:
@@ -4640,12 +5240,18 @@ def _build_parthood_typing(window: WindowSlice) -> dict[str, Any]:
         confidence = "abstain"
         reasons: list[str] = []
         inverse_properties: list[str] = []
-        for inverse_property in sorted(PARTHOOD_INVERSE_RELATIONS.get(property_pid, frozenset())):
+        for inverse_property in sorted(
+            PARTHOOD_INVERSE_RELATIONS.get(property_pid, frozenset())
+        ):
             if (inverse_property, value, subject) in parthood_edges:
                 inverse_properties.append(inverse_property)
         inverse_present = bool(inverse_properties)
         inverse_relation = (
-            "same_property_redundant" if property_pid in inverse_properties else "cross_property_expected" if inverse_present else "none"
+            "same_property_redundant"
+            if property_pid in inverse_properties
+            else "cross_property_expected"
+            if inverse_present
+            else "none"
         )
 
         if subject_type == "class" and value_type == "class":
@@ -4675,7 +5281,10 @@ def _build_parthood_typing(window: WindowSlice) -> dict[str, Any]:
         if inverse_relation == "cross_property_expected":
             counts["cross_property_inverse"] += 1
 
-        if inverse_relation == "same_property_redundant" and bucket in {"class->class", "instance->instance"}:
+        if inverse_relation == "same_property_redundant" and bucket in {
+            "class->class",
+            "instance->instance",
+        }:
             pair_key = (property_pid, *sorted((subject, value)))
             if pair_key not in redundant_pairs:
                 counts["mixed_redundant"] += 1
@@ -4695,14 +5304,19 @@ def _build_parthood_typing(window: WindowSlice) -> dict[str, Any]:
                 "inverse_relation": inverse_relation,
                 "reasons": sorted(set(reasons)),
                 "inverse_present": inverse_present,
-                "mixed_redundancy_flag": inverse_relation == "same_property_redundant" and bucket == "instance->instance",
+                "mixed_redundancy_flag": inverse_relation == "same_property_redundant"
+                and bucket == "instance->instance",
             }
         )
 
     return {
         "classifications": sorted(
             typing_rows,
-            key=lambda item: (item["property_pid"], item["subject_qid"], item["value_qid"]),
+            key=lambda item: (
+                item["property_pid"],
+                item["subject_qid"],
+                item["value_qid"],
+            ),
         ),
         "counts": counts,
     }
@@ -4740,7 +5354,9 @@ def _build_reference_drift(
     )
 
 
-def _bundle_to_claim_bundle(bundle: StatementBundle, *, window_id: str, property_override: str | None = None) -> dict[str, Any]:
+def _bundle_to_claim_bundle(
+    bundle: StatementBundle, *, window_id: str, property_override: str | None = None
+) -> dict[str, Any]:
     return {
         "subject": bundle.subject,
         "property": property_override or bundle.property,
@@ -4748,12 +5364,18 @@ def _bundle_to_claim_bundle(bundle: StatementBundle, *, window_id: str, property
         "rank": bundle.rank,
         **({"unit": bundle.unit} if bundle.unit else {}),
         "qualifiers": {prop: list(values) for prop, values in bundle.qualifiers},
-        "references": [{prop: list(values) for prop, values in block} for block in bundle.references],
+        "references": [
+            {prop: list(values) for prop, values in block}
+            for block in bundle.references
+        ],
         "window_id": window_id,
+        **({"statement_id": bundle.statement_id} if bundle.statement_id else {}),
     }
 
 
-def _climate_split_model_axis(slot_candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+def _climate_split_model_axis(
+    slot_candidates: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
     year_signatures: set[str] = set()
     scope_signatures: set[tuple[str, ...]] = set()
     method_signatures: set[tuple[str, ...]] = set()
@@ -4775,10 +5397,7 @@ def _climate_split_model_axis(slot_candidates: Sequence[Mapping[str, Any]]) -> d
         return None
     reason_bits: list[str] = []
     if len(year_signatures) > 1:
-        reason_bits.append(
-            "years="
-            + "|".join(sorted(year_signatures))
-        )
+        reason_bits.append("years=" + "|".join(sorted(year_signatures)))
     if len(scope_signatures) > 1:
         reason_bits.append(
             "scopes="
@@ -4795,7 +5414,9 @@ def _climate_split_model_axis(slot_candidates: Sequence[Mapping[str, Any]]) -> d
         "property": "__ghg_model__",
         "source": "slot",
         "reason": "ghg_model_split_required;" + ";".join(reason_bits),
-        "cardinality": max(len(year_signatures), len(scope_signatures), len(method_signatures), 1),
+        "cardinality": max(
+            len(year_signatures), len(scope_signatures), len(method_signatures), 1
+        ),
     }
 
 
@@ -4805,6 +5426,7 @@ def build_wikidata_migration_pack(
     source_property: str,
     target_property: str,
     e0: int = 1,
+    selected_statement_ids: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     windows = load_windows(payload)
     if not windows:
@@ -4812,13 +5434,22 @@ def build_wikidata_migration_pack(
     filtered_windows = tuple(
         WindowSlice(
             window_id=window.window_id,
-            bundles=tuple(bundle for bundle in window.bundles if bundle.property == source_property),
+            bundles=tuple(
+                bundle
+                for bundle in window.bundles
+                if bundle.property == source_property
+            ),
         )
         for window in windows
     )
     current_window = filtered_windows[-1]
     previous_window = filtered_windows[-2] if len(filtered_windows) >= 2 else None
     current_full_window = windows[-1]
+    selected_ids = (
+        {str(statement_id) for statement_id in selected_statement_ids}
+        if selected_statement_ids is not None
+        else None
+    )
 
     slot_reports: dict[str, dict[str, Any]] = {}
     for window in filtered_windows:
@@ -4831,7 +5462,10 @@ def build_wikidata_migration_pack(
 
     bundles_by_slot: dict[str, list[StatementBundle]] = {}
     for bundle in current_window.bundles:
-        bundles_by_slot.setdefault(f"{bundle.subject}|{bundle.property}", []).append(bundle)
+        bundles_by_slot.setdefault(f"{bundle.subject}|{bundle.property}", []).append(
+            bundle
+        )
+    family_contexts = _build_family_contexts(current_window.bundles)
 
     candidates: list[dict[str, Any]] = []
     counts_by_bucket: dict[str, int] = {}
@@ -4843,14 +5477,31 @@ def build_wikidata_migration_pack(
     for slot_id in sorted(bundles_by_slot):
         slot_bundles = bundles_by_slot[slot_id]
         current_slot = slot_reports[current_window.window_id].get(slot_id, {})
-        previous_slot = slot_reports.get(previous_window.window_id, {}).get(slot_id, {}) if previous_window else {}
-        slot_present_in_previous = previous_window is not None and slot_id in slot_reports.get(previous_window.window_id, {})
-        qualifier_row = qualifier_drift_by_slot.get(slot_id) if slot_present_in_previous else None
-        reference_row = reference_drift_by_slot.get(slot_id) if slot_present_in_previous else None
-        distinct_values = set(current_slot.get("value_set", []))
+        previous_slot = (
+            slot_reports.get(previous_window.window_id, {}).get(slot_id, {})
+            if previous_window
+            else {}
+        )
+        slot_present_in_previous = (
+            previous_window is not None
+            and slot_id in slot_reports.get(previous_window.window_id, {})
+        )
+        qualifier_row = (
+            qualifier_drift_by_slot.get(slot_id) if slot_present_in_previous else None
+        )
+        reference_row = (
+            reference_drift_by_slot.get(slot_id) if slot_present_in_previous else None
+        )
+        family_context = family_contexts[slot_id]
 
         for index, bundle in enumerate(slot_bundles, start=1):
-            classification = "safe_with_reference_transfer" if bundle.references else "safe_equivalent"
+            if selected_ids is not None and bundle.statement_id not in selected_ids:
+                continue
+            classification = (
+                "safe_with_reference_transfer"
+                if bundle.references
+                else "safe_equivalent"
+            )
             confidence = 0.95 if not bundle.references else 0.9
             requires_review = False
             reasons: list[str] = []
@@ -4858,15 +5509,9 @@ def build_wikidata_migration_pack(
             pressure_confidence: float | None = None
             pressure_summary: str | None = None
             evidence_gate_met = int(current_slot.get("sum_e", 0)) >= max(int(e0), 1)
-            independent_axes = _detect_independent_axes(
-                bundle,
-                slot_bundles=slot_bundles,
-                distinct_values=distinct_values,
-            )
+            independent_axes = _detect_independent_axes(bundle)
             split_reasons = _split_required_reasons(
                 bundle,
-                slot_bundles=slot_bundles,
-                distinct_values=distinct_values,
                 independent_axes=independent_axes,
             )
             model_validation = _build_candidate_model_validation(
@@ -4901,7 +5546,20 @@ def build_wikidata_migration_pack(
                 confidence = 0.45
                 requires_review = True
                 reasons.append(f"qualifier_drift:{qualifier_row['severity']}")
-            if source_property in CLIMATE_MODEL_SOURCE_PROPERTIES and target_property in CLIMATE_MODEL_TARGET_PROPERTIES:
+            if family_context["scope_partition_state"] == "overlapping":
+                classification = "ambiguous_semantics"
+                confidence = 0.35
+                requires_review = True
+                reasons.append("family_scope_overlap")
+            elif family_context["total_component_relation"] == "contradiction":
+                classification = "ambiguous_semantics"
+                confidence = 0.35
+                requires_review = True
+                reasons.append("family_total_component_contradiction")
+            if (
+                source_property in CLIMATE_MODEL_SOURCE_PROPERTIES
+                and target_property in CLIMATE_MODEL_TARGET_PROPERTIES
+            ):
                 model_status = _stringify(model_validation.get("status"))
                 if model_status in {"model_safe", "model_safe_with_split"}:
                     model_year = _stringify(model_validation.get("resolved_year"))
@@ -4912,7 +5570,9 @@ def build_wikidata_migration_pack(
                     )
                     model_methods = ",".join(
                         _stringify(value)
-                        for value in model_validation.get("determination_method_values", [])
+                        for value in model_validation.get(
+                            "determination_method_values", []
+                        )
                         if _stringify(value).strip()
                     )
                     model_unit = _stringify(model_validation.get("resolved_unit_qid"))
@@ -4935,14 +5595,19 @@ def build_wikidata_migration_pack(
                             f"unit={model_unit or 'unknown'}; execution_ready="
                             f"{bool(model_validation.get('execution_ready'))}"
                         )
-                    if model_status == "model_safe_with_split" and classification in {"safe_equivalent", "safe_with_reference_transfer"}:
+                    if model_status == "model_safe_with_split" and classification in {
+                        "safe_equivalent",
+                        "safe_with_reference_transfer",
+                    }:
                         classification = "split_required"
                         confidence = 0.35
                         requires_review = True
 
             candidate_id = f"{slot_id}|{index}"
             action = _suggest_migration_action(classification=classification)
-            claim_bundle_before = _bundle_to_claim_bundle(bundle, window_id=current_window.window_id)
+            claim_bundle_before = _bundle_to_claim_bundle(
+                bundle, window_id=current_window.window_id
+            )
             claim_bundle_after = _bundle_to_claim_bundle(
                 bundle,
                 window_id=current_window.window_id,
@@ -4962,6 +5627,18 @@ def build_wikidata_migration_pack(
                 claim_bundle_before=claim_bundle_before,
                 subject_resolution=subject_resolution,
             )
+            domain_pressure_assessment = _build_climate_pressure_assessment(
+                candidate_id=candidate_id,
+                source_property=source_property,
+                target_property=target_property,
+                classification=classification,
+                family_bucket=_stringify(family_classifier.get("bucket")),
+                model_validation=model_validation,
+                subject_resolution=subject_resolution,
+                claim_bundle_before=claim_bundle_before,
+                family_classifier=family_classifier,
+                statement_family_context=family_context,
+            )
             promotion_gate = _build_candidate_promotion_gate(
                 classification=classification,
                 requires_review=requires_review,
@@ -4972,8 +5649,12 @@ def build_wikidata_migration_pack(
                 execution_hints=execution_hints,
                 subject_resolution=subject_resolution,
             )
-            counts_by_bucket[classification] = counts_by_bucket.get(classification, 0) + 1
-            family_summary[family_classifier["bucket"]] = family_summary.get(family_classifier["bucket"], 0) + 1
+            counts_by_bucket[classification] = (
+                counts_by_bucket.get(classification, 0) + 1
+            )
+            family_summary[family_classifier["bucket"]] = (
+                family_summary.get(family_classifier["bucket"], 0) + 1
+            )
             if classification in {"safe_equivalent", "safe_with_reference_transfer"}:
                 checked_safe_subset.append(candidate_id)
             elif classification == "abstain":
@@ -4982,13 +5663,21 @@ def build_wikidata_migration_pack(
                 ambiguous.append(candidate_id)
 
             qualifier_diff = {
-                "status": "no_previous_window" if previous_window is None else "unchanged",
+                "status": "no_previous_window"
+                if previous_window is None
+                else "unchanged",
                 "from_window": previous_window.window_id if previous_window else None,
                 "to_window": current_window.window_id,
                 "severity": None,
-                "qualifier_property_set_t1": previous_slot.get("qualifier_property_set", []),
-                "qualifier_property_set_t2": current_slot.get("qualifier_property_set", []),
-                "qualifier_signatures_t1": previous_slot.get("qualifier_signatures", []),
+                "qualifier_property_set_t1": previous_slot.get(
+                    "qualifier_property_set", []
+                ),
+                "qualifier_property_set_t2": current_slot.get(
+                    "qualifier_property_set", []
+                ),
+                "qualifier_signatures_t1": previous_slot.get(
+                    "qualifier_signatures", []
+                ),
                 "qualifier_signatures_t2": current_slot.get("qualifier_signatures", []),
             }
             if qualifier_row is not None:
@@ -4998,13 +5687,21 @@ def build_wikidata_migration_pack(
                 }
 
             reference_diff = {
-                "status": "no_previous_window" if previous_window is None else "unchanged",
+                "status": "no_previous_window"
+                if previous_window is None
+                else "unchanged",
                 "from_window": previous_window.window_id if previous_window else None,
                 "to_window": current_window.window_id,
                 "severity": None,
-                "reference_property_set_t1": previous_slot.get("reference_property_set", []),
-                "reference_property_set_t2": current_slot.get("reference_property_set", []),
-                "reference_signatures_t1": previous_slot.get("reference_signatures", []),
+                "reference_property_set_t1": previous_slot.get(
+                    "reference_property_set", []
+                ),
+                "reference_property_set_t2": current_slot.get(
+                    "reference_property_set", []
+                ),
+                "reference_signatures_t1": previous_slot.get(
+                    "reference_signatures", []
+                ),
                 "reference_signatures_t2": current_slot.get("reference_signatures", []),
             }
             if reference_row is not None:
@@ -5019,12 +5716,14 @@ def build_wikidata_migration_pack(
                     "entity_qid": bundle.subject,
                     "slot_id": slot_id,
                     "statement_index": index,
+                    "source_statement_id": bundle.statement_id,
                     "classification": classification,
                     "action": action,
                     "confidence": round(confidence, 6),
                     "requires_review": requires_review,
                     "reasons": sorted(set(reasons)),
                     "split_axes": independent_axes,
+                    "statement_family_context": family_context,
                     "text_evidence_refs": [],
                     "bridge_case_ref": None,
                     "claim_bundle_before": claim_bundle_before,
@@ -5041,6 +5740,7 @@ def build_wikidata_migration_pack(
                     "promotion_eligibility": promotion_gate["eligibility"],
                     "promotion_gate": promotion_gate,
                     "family_classifier": family_classifier,
+                    "domain_pressure_assessment": domain_pressure_assessment,
                     "family_bucket": family_classifier["bucket"],
                     "family_confidence": family_classifier["confidence"],
                     "subject_resolution": subject_resolution,
@@ -5050,23 +5750,39 @@ def build_wikidata_migration_pack(
                     "scope_resolution": family_classifier["scope_resolution"],
                     "method_resolution": family_classifier["method_resolution"],
                     "phase2_actions": family_classifier["phase2_actions"],
-                    "normalization_contract": family_classifier["normalization_contract"],
-                    "phase2_method_inference": family_classifier["phase2_method_inference"],
-                    "phase2_scope_inference": family_classifier["phase2_scope_inference"],
-                    "phase2_fiscal_normalization": family_classifier["phase2_fiscal_normalization"],
+                    "normalization_contract": family_classifier[
+                        "normalization_contract"
+                    ],
+                    "phase2_method_inference": family_classifier[
+                        "phase2_method_inference"
+                    ],
+                    "phase2_scope_inference": family_classifier[
+                        "phase2_scope_inference"
+                    ],
+                    "phase2_fiscal_normalization": family_classifier[
+                        "phase2_fiscal_normalization"
+                    ],
                     "qualifier_diff": qualifier_diff,
                     "reference_diff": reference_diff,
                 }
             )
 
-    candidates.sort(key=lambda item: (item["entity_qid"], item["statement_index"], item["candidate_id"]))
+    candidates.sort(
+        key=lambda item: (
+            item["entity_qid"],
+            item["statement_index"],
+            item["candidate_id"],
+        )
+    )
     migration_pack = {
         "schema_version": MIGRATION_PACK_SCHEMA_VERSION,
         "source_property": source_property,
         "target_property": target_property,
         "window_basis": {
             "current_window_id": current_window.window_id,
-            "previous_window_id": previous_window.window_id if previous_window else None,
+            "previous_window_id": previous_window.window_id
+            if previous_window
+            else None,
         },
         "source_slice": {
             "window_ids": [window.window_id for window in filtered_windows],
@@ -5082,7 +5798,9 @@ def build_wikidata_migration_pack(
             "checked_safe_subset": checked_safe_subset,
             "abstained": abstained,
             "ambiguous": ambiguous,
-            "requires_review_count": sum(1 for item in candidates if item["requires_review"]),
+            "requires_review_count": sum(
+                1 for item in candidates if item["requires_review"]
+            ),
         },
     }
     pilot_metrics, readiness_surface = _build_migration_pack_pilot_surface(
@@ -5094,7 +5812,9 @@ def build_wikidata_migration_pack(
     )
     migration_pack["pilot_metrics"] = pilot_metrics
     migration_pack["readiness_surface"] = readiness_surface
-    migration_pack["compiler_contract"] = build_wikidata_migration_pack_contract(migration_pack)
+    migration_pack["compiler_contract"] = build_wikidata_migration_pack_contract(
+        migration_pack
+    )
     migration_pack["promotion_gate"] = build_product_gate(
         lane="wikidata_nat",
         product_ref="wikidata_migration_pack",
@@ -5153,8 +5873,16 @@ def export_migration_pack_openrefine_csv(
             reference_diff = candidate.get("reference_diff", {})
             classification = _stringify(candidate.get("classification"))
             summary_counts[classification] = summary_counts.get(classification, 0) + 1
-            reasons = list(candidate.get("reasons", [])) if isinstance(candidate.get("reasons"), list) else []
-            split_axes = list(candidate.get("split_axes", [])) if isinstance(candidate.get("split_axes"), list) else []
+            reasons = (
+                list(candidate.get("reasons", []))
+                if isinstance(candidate.get("reasons"), list)
+                else []
+            )
+            split_axes = (
+                list(candidate.get("split_axes", []))
+                if isinstance(candidate.get("split_axes"), list)
+                else []
+            )
             split_axis_properties = [
                 _stringify(axis.get("property"))
                 for axis in split_axes
@@ -5177,18 +5905,36 @@ def export_migration_pack_openrefine_csv(
                     "classification": classification,
                     "action": suggested_action,
                     "confidence": _stringify(candidate.get("confidence")),
-                    "requires_review": "true" if bool(candidate.get("requires_review")) else "false",
+                    "requires_review": "true"
+                    if bool(candidate.get("requires_review"))
+                    else "false",
                     "suggested_action": suggested_action,
                     "split_axis_count": _stringify(len(split_axes)),
                     "split_axis_properties": "|".join(split_axis_properties),
-                    "qualifier_drift": "true" if _stringify(qualifier_diff.get("status")) == "qualifier_drift" else "false",
-                    "reference_drift": "true" if _stringify(reference_diff.get("status")) == "reference_drift" else "false",
+                    "qualifier_drift": "true"
+                    if _stringify(qualifier_diff.get("status")) == "qualifier_drift"
+                    else "false",
+                    "reference_drift": "true"
+                    if _stringify(reference_diff.get("status")) == "reference_drift"
+                    else "false",
                     "qualifier_diff_status": _stringify(qualifier_diff.get("status")),
                     "reference_diff_status": _stringify(reference_diff.get("status")),
-                    "qualifier_diff_severity": _stringify(qualifier_diff.get("severity")),
-                    "reference_diff_severity": _stringify(reference_diff.get("severity")),
-                    "reference_count": _stringify(len(before.get("references", [])) if isinstance(before.get("references"), list) else 0),
-                    "qualifier_count": _stringify(len(before.get("qualifiers", {})) if isinstance(before.get("qualifiers"), Mapping) else 0),
+                    "qualifier_diff_severity": _stringify(
+                        qualifier_diff.get("severity")
+                    ),
+                    "reference_diff_severity": _stringify(
+                        reference_diff.get("severity")
+                    ),
+                    "reference_count": _stringify(
+                        len(before.get("references", []))
+                        if isinstance(before.get("references"), list)
+                        else 0
+                    ),
+                    "qualifier_count": _stringify(
+                        len(before.get("qualifiers", {}))
+                        if isinstance(before.get("qualifiers"), Mapping)
+                        else 0
+                    ),
                     "reason_codes": "|".join(_stringify(item) for item in reasons),
                     "notes": "",
                 }
@@ -5241,7 +5987,9 @@ def export_migration_pack_checked_safe_csv(
                 continue
             before = candidate.get("claim_bundle_before", {})
             after = candidate.get("claim_bundle_after", {})
-            counts_by_bucket[classification] = counts_by_bucket.get(classification, 0) + 1
+            counts_by_bucket[classification] = (
+                counts_by_bucket.get(classification, 0) + 1
+            )
             row_count += 1
             writer.writerow(
                 {
@@ -5250,14 +5998,25 @@ def export_migration_pack_checked_safe_csv(
                     "slot_id": _stringify(candidate.get("slot_id")),
                     "statement_index": _stringify(candidate.get("statement_index")),
                     "classification": classification,
-                    "action": _stringify(candidate.get("action") or _suggest_migration_action(classification=classification)),
+                    "action": _stringify(
+                        candidate.get("action")
+                        or _suggest_migration_action(classification=classification)
+                    ),
                     "from_property": _stringify(before.get("property")),
-                    "to_property": _stringify(after.get("property") or migration_pack.get("target_property")),
+                    "to_property": _stringify(
+                        after.get("property") or migration_pack.get("target_property")
+                    ),
                     "value": _stringify(before.get("value")),
                     "rank": _stringify(before.get("rank")),
-                    "qualifiers_json": json.dumps(before.get("qualifiers", {}), ensure_ascii=False, sort_keys=True),
-                    "references_json": json.dumps(before.get("references", []), ensure_ascii=False, sort_keys=True),
-                    "target_claim_bundle_json": json.dumps(after, ensure_ascii=False, sort_keys=True),
+                    "qualifiers_json": json.dumps(
+                        before.get("qualifiers", {}), ensure_ascii=False, sort_keys=True
+                    ),
+                    "references_json": json.dumps(
+                        before.get("references", []), ensure_ascii=False, sort_keys=True
+                    ),
+                    "target_claim_bundle_json": json.dumps(
+                        after, ensure_ascii=False, sort_keys=True
+                    ),
                 }
             )
 
@@ -5284,7 +6043,9 @@ def verify_migration_pack_against_after_state(
 
     bundles_by_slot: dict[str, list[StatementBundle]] = {}
     for bundle in after_window.bundles:
-        bundles_by_slot.setdefault(f"{bundle.subject}|{bundle.property}", []).append(bundle)
+        bundles_by_slot.setdefault(f"{bundle.subject}|{bundle.property}", []).append(
+            bundle
+        )
 
     safe_classes = {"safe_equivalent", "safe_with_reference_transfer"}
     verification_rows: list[dict[str, Any]] = []
@@ -5300,22 +6061,39 @@ def verify_migration_pack_against_after_state(
         before_raw = candidate.get("claim_bundle_before")
         after_raw = candidate.get("claim_bundle_after")
         if not isinstance(before_raw, Mapping) or not isinstance(after_raw, Mapping):
-            raise ValueError("checked-safe candidates require claim_bundle_before and claim_bundle_after")
+            raise ValueError(
+                "checked-safe candidates require claim_bundle_before and claim_bundle_after"
+            )
 
         before_bundle = _parse_bundle(before_raw)
         after_bundle = _parse_bundle(after_raw)
-        after_slot_bundles = bundles_by_slot.get(f"{after_bundle.subject}|{after_bundle.property}", [])
-        source_slot_bundles = bundles_by_slot.get(f"{before_bundle.subject}|{before_bundle.property}", [])
+        after_slot_bundles = bundles_by_slot.get(
+            f"{after_bundle.subject}|{after_bundle.property}", []
+        )
+        source_slot_bundles = bundles_by_slot.get(
+            f"{before_bundle.subject}|{before_bundle.property}", []
+        )
 
-        exact_target_matches = sum(1 for bundle in after_slot_bundles if bundle == after_bundle)
+        exact_target_matches = sum(
+            1 for bundle in after_slot_bundles if bundle == after_bundle
+        )
         value_rank_matches = [
             bundle
             for bundle in after_slot_bundles
-            if _stringify(bundle.value) == _stringify(after_bundle.value) and bundle.rank == after_bundle.rank
+            if _stringify(bundle.value) == _stringify(after_bundle.value)
+            and bundle.rank == after_bundle.rank
         ]
-        qualifier_preserved = any(bundle.qualifiers == after_bundle.qualifiers for bundle in value_rank_matches)
-        reference_preserved = any(bundle.references == after_bundle.references for bundle in value_rank_matches)
-        source_still_present = any(bundle == before_bundle for bundle in source_slot_bundles)
+        qualifier_preserved = any(
+            bundle.qualifiers == after_bundle.qualifiers
+            for bundle in value_rank_matches
+        )
+        reference_preserved = any(
+            bundle.references == after_bundle.references
+            for bundle in value_rank_matches
+        )
+        source_still_present = any(
+            bundle == before_bundle for bundle in source_slot_bundles
+        )
 
         if exact_target_matches == 1:
             status = "verified"
@@ -5391,7 +6169,9 @@ def build_wikidata_split_plan(
         if not slot_candidates:
             continue
 
-        source_candidate_ids = [_stringify(item.get("candidate_id")) for item in slot_candidates]
+        source_candidate_ids = [
+            _stringify(item.get("candidate_id")) for item in slot_candidates
+        ]
         proposed_target_bundles: list[dict[str, Any]] = []
         execution_rows: list[dict[str, Any]] = []
         seen_bundle_signatures: set[str] = set()
@@ -5409,11 +6189,19 @@ def build_wikidata_split_plan(
             before = candidate.get("claim_bundle_before", {})
             after = candidate.get("claim_bundle_after", {})
             if not isinstance(before, Mapping) or not isinstance(after, Mapping):
-                raise ValueError("split-required candidates require before/after claim bundles")
+                raise ValueError(
+                    "split-required candidates require before/after claim bundles"
+                )
 
-            exact_reference_preservation = exact_reference_preservation and before.get("references") == after.get("references")
-            exact_qualifier_preservation = exact_qualifier_preservation and before.get("qualifiers") == after.get("qualifiers")
-            all_split_actions = all_split_actions and _stringify(candidate.get("action")) == "split"
+            exact_reference_preservation = exact_reference_preservation and before.get(
+                "references"
+            ) == after.get("references")
+            exact_qualifier_preservation = exact_qualifier_preservation and before.get(
+                "qualifiers"
+            ) == after.get("qualifiers")
+            all_split_actions = (
+                all_split_actions and _stringify(candidate.get("action")) == "split"
+            )
 
             bundle_signature = _claim_bundle_signature(after)
             if bundle_signature not in seen_bundle_signatures:
@@ -5422,7 +6210,9 @@ def build_wikidata_split_plan(
 
             execution_row = _build_split_execution_row(candidate)
             execution_rows.append(execution_row)
-            execution_ready = execution_ready and bool(execution_row.get("execution_ready"))
+            execution_ready = execution_ready and bool(
+                execution_row.get("execution_ready")
+            )
             resolved_year = _stringify(execution_row.get("resolved_year")).strip()
             if resolved_year:
                 resolved_years.add(resolved_year)
@@ -5433,10 +6223,16 @@ def build_wikidata_split_plan(
             resolved_unit = _stringify(execution_row.get("resolved_unit_qid")).strip()
             if resolved_unit:
                 resolved_units.add(resolved_unit)
-            execution_backend = "qs3" if _stringify(execution_row.get("rank")) in {"preferred", "deprecated"} else "openrefine"
+            execution_backend = (
+                "qs3"
+                if _stringify(execution_row.get("rank")) in {"preferred", "deprecated"}
+                else "openrefine"
+            )
             execution_backends.add(execution_backend)
 
-            model_classification = _stringify(candidate.get("model_classification")).strip()
+            model_classification = _stringify(
+                candidate.get("model_classification")
+            ).strip()
             if model_classification == "model_safe_with_split":
                 key = ("__ghg_model__", "model", "ontology_validated_split")
                 merged_axes[key] = {
@@ -5456,7 +6252,9 @@ def build_wikidata_split_plan(
                 )
                 cardinality = int(axis.get("cardinality", 0) or 0)
                 existing = merged_axes.get(key)
-                if existing is None or cardinality > int(existing.get("cardinality", 0) or 0):
+                if existing is None or cardinality > int(
+                    existing.get("cardinality", 0) or 0
+                ):
                     merged_axes[key] = {
                         "property": key[0],
                         "source": key[1],
@@ -5466,8 +6264,10 @@ def build_wikidata_split_plan(
 
         climate_model_axis = None
         if (
-            _stringify(migration_pack.get("source_property")) in CLIMATE_MODEL_SOURCE_PROPERTIES
-            and _stringify(migration_pack.get("target_property")) in CLIMATE_MODEL_TARGET_PROPERTIES
+            _stringify(migration_pack.get("source_property"))
+            in CLIMATE_MODEL_SOURCE_PROPERTIES
+            and _stringify(migration_pack.get("target_property"))
+            in CLIMATE_MODEL_TARGET_PROPERTIES
         ):
             climate_model_axis = _climate_split_model_axis(slot_candidates)
         if climate_model_axis is not None:
@@ -5494,8 +6294,12 @@ def build_wikidata_split_plan(
         elif not resolved_scopes and execution_rows:
             resolved_scope = "TOTAL"
         resolved_year = next(iter(resolved_years)) if len(resolved_years) == 1 else None
-        resolved_unit_qid = next(iter(resolved_units)) if len(resolved_units) == 1 else None
-        execution_backend = next(iter(execution_backends)) if len(execution_backends) == 1 else ""
+        resolved_unit_qid = (
+            next(iter(resolved_units)) if len(resolved_units) == 1 else None
+        )
+        execution_backend = (
+            next(iter(execution_backends)) if len(execution_backends) == 1 else ""
+        )
         plan_execution_ready = bool(
             structurally_decomposable
             and execution_ready
@@ -5507,7 +6311,11 @@ def build_wikidata_split_plan(
         if plan_execution_ready:
             status = "execution_ready"
         else:
-            status = "structurally_decomposable" if structurally_decomposable else "review_only"
+            status = (
+                "structurally_decomposable"
+                if structurally_decomposable
+                else "review_only"
+            )
         counts_by_status[status] = counts_by_status.get(status, 0) + 1
 
         plans.append(
@@ -5526,13 +6334,21 @@ def build_wikidata_split_plan(
                 "proposed_target_bundles": proposed_target_bundles,
                 "split_execution_rows": execution_rows,
                 "proposed_bundle_count": len(proposed_target_bundles),
-                "reference_propagation": "exact" if exact_reference_preservation else "review_required",
-                "qualifier_propagation": "exact" if exact_qualifier_preservation else "review_required",
+                "reference_propagation": "exact"
+                if exact_reference_preservation
+                else "review_required",
+                "qualifier_propagation": "exact"
+                if exact_qualifier_preservation
+                else "review_required",
                 "resolved_year": resolved_year,
                 "resolved_scope": resolved_scope,
                 "resolved_unit_qid": resolved_unit_qid,
                 "execution_backend": execution_backend,
-                "suggested_action": "migrate_with_split" if status == "execution_ready" else "review_structured_split" if structurally_decomposable else "review_only",
+                "suggested_action": "migrate_with_split"
+                if status == "execution_ready"
+                else "review_structured_split"
+                if structurally_decomposable
+                else "review_only",
             }
         )
 
@@ -5549,15 +6365,23 @@ def build_wikidata_split_plan(
 
 
 def project_wikidata_payload(
-    payload: Mapping[str, Any], *, e0: int = 1, profile: str | None = None, property_filter: Iterable[str] | None = None
+    payload: Mapping[str, Any],
+    *,
+    e0: int = 1,
+    profile: str | None = None,
+    property_filter: Iterable[str] | None = None,
 ) -> Dict[str, Any]:
     windows = load_windows(payload)
     selected_profile = (profile or "default").strip() or "default"
-    allowed = resolve_property_filter(profile=selected_profile, property_filter=property_filter)
+    allowed = resolve_property_filter(
+        profile=selected_profile, property_filter=property_filter
+    )
     filtered_windows = tuple(
         WindowSlice(
             window_id=window.window_id,
-            bundles=tuple(bundle for bundle in window.bundles if bundle.property in allowed),
+            bundles=tuple(
+                bundle for bundle in window.bundles if bundle.property in allowed
+            ),
         )
         for window in windows
     )
@@ -5579,7 +6403,11 @@ def project_wikidata_payload(
                 "slots": [slots[key] | {"slot_id": key} for key in sorted(slots)],
                 "diagnostics": {
                     "p279_sccs": [
-                        {"scc_id": f"{window.window_id}:scc:{idx + 1}", "members": members, "size": len(members)}
+                        {
+                            "scc_id": f"{window.window_id}:scc:{idx + 1}",
+                            "members": members,
+                            "size": len(members),
+                        }
                         for idx, members in enumerate(sccs)
                     ],
                     "mixed_order_nodes": mixed_order_nodes,
@@ -5598,7 +6426,9 @@ def project_wikidata_payload(
             left_present = slot_id in slot_reports[first]
             right_present = slot_id in slot_reports[second]
             left = slot_reports[first].get(slot_id, {"tau": 0, "sum_e": 0, "sum_c": 0})
-            right = slot_reports[second].get(slot_id, {"tau": 0, "sum_e": 0, "sum_c": 0})
+            right = slot_reports[second].get(
+                slot_id, {"tau": 0, "sum_e": 0, "sum_c": 0}
+            )
             delta_e = right["sum_e"] - left["sum_e"]
             delta_c = right["sum_c"] - left["sum_c"]
             indicator = 1 if left["tau"] != right["tau"] else 0
@@ -5656,9 +6486,13 @@ def project_wikidata_payload(
             "parthood_typing",
         ],
         "qualifier_drift_counts": qualifier_severity_counts,
-        "top_qualifier_drift_slot_ids": [item["slot_id"] for item in qualifier_drift[:5]],
+        "top_qualifier_drift_slot_ids": [
+            item["slot_id"] for item in qualifier_drift[:5]
+        ],
         "reference_drift_counts": reference_severity_counts,
-        "top_reference_drift_slot_ids": [item["slot_id"] for item in reference_drift[:5]],
+        "top_reference_drift_slot_ids": [
+            item["slot_id"] for item in reference_drift[:5]
+        ],
     }
 
     return {

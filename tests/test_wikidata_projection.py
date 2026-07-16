@@ -40,27 +40,49 @@ from src.ontology.wikidata_grounding_depth import build_grounding_depth_summary
 
 
 def _load_migration_pack_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.wikidata_migration_pack.v1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.wikidata_migration_pack.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
 def _load_bridge_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.wikidata_phi_text_bridge_case.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
 def _load_climate_text_source_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.wikidata.climate_text_source.v1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.wikidata.climate_text_source.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
 def _load_source_unit_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.source_unit.v1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.source_unit.v1.schema.yaml").read_text(encoding="utf-8")
+    )
 
 
 def _load_split_plan_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.wikidata_split_plan.v0_1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.wikidata_split_plan.v0_1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
 def _load_review_packet_schema() -> dict:
-    return yaml.safe_load(Path("schemas/sl.wikidata_review_packet.v0_1.schema.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load(
+        Path("schemas/sl.wikidata_review_packet.v0_1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
 
 
 def _load_wiki_revision_source_unit_fixture() -> dict:
@@ -343,9 +365,17 @@ def test_project_wikidata_payload_reports_sccs_and_mixed_order() -> None:
 
     assert report["schema_version"] == SCHEMA_VERSION
     assert report["bounded_slice"]["properties"] == ["P279", "P31"]
-    assert report["windows"][0]["diagnostics"]["p279_sccs"][0]["members"] == ["Q_pleb", "Q_ref"]
-    assert report["windows"][0]["diagnostics"]["mixed_order_nodes"][0]["qid"] == "Q_alpha"
-    assert report["windows"][0]["diagnostics"]["metaclass_candidates"][0]["qid"] == "Q_meta_class"
+    assert report["windows"][0]["diagnostics"]["p279_sccs"][0]["members"] == [
+        "Q_pleb",
+        "Q_ref",
+    ]
+    assert (
+        report["windows"][0]["diagnostics"]["mixed_order_nodes"][0]["qid"] == "Q_alpha"
+    )
+    assert (
+        report["windows"][0]["diagnostics"]["metaclass_candidates"][0]["qid"]
+        == "Q_meta_class"
+    )
     assert report["unstable_slots"][0]["slot_id"] == "Q_ref|P279"
     assert report["unstable_slots"][0]["tau_t1"] == 1
     assert report["unstable_slots"][0]["tau_t2"] == -1
@@ -394,11 +424,14 @@ def test_live_fixture_emits_mixed_order_and_nonzero_eii() -> None:
         node["qid"] == "Q21169592"
         for node in report["windows"][0]["diagnostics"]["mixed_order_nodes"]
     )
-    unstable = next(item for item in report["unstable_slots"] if item["slot_id"] == "Q9779|P31")
+    unstable = next(
+        item for item in report["unstable_slots"] if item["slot_id"] == "Q9779|P31"
+    )
     assert unstable["tau_t1"] == 1
     assert unstable["tau_t2"] == -1
     scc_member_sets = {
-        tuple(entry["members"]) for entry in report["windows"][0]["diagnostics"]["p279_sccs"]
+        tuple(entry["members"])
+        for entry in report["windows"][0]["diagnostics"]["p279_sccs"]
     }
     assert ("Q22652", "Q22698") in scc_member_sets
     assert ("Q188", "Q52040") in scc_member_sets
@@ -435,9 +468,7 @@ def test_real_imported_qualifier_slice_is_stable_baseline() -> None:
     report = project_wikidata_payload(payload, property_filter=("P166",))
 
     assert report["qualifier_drift"] == []
-    t1_slots = {
-        slot["slot_id"]: slot for slot in report["windows"][0]["slots"]
-    }
+    t1_slots = {slot["slot_id"]: slot for slot in report["windows"][0]["slots"]}
     assert t1_slots["Q28792860|P166"]["qualifier_property_set"] == ["P585"]
     assert t1_slots["Q1336181|P166"]["qualifier_property_set"] == [
         "P2241",
@@ -529,7 +560,9 @@ def test_project_wikidata_payload_reports_parthood_typing() -> None:
     }
 
 
-def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift() -> None:
+def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift() -> (
+    None
+):
     payload = {
         "windows": [
             {
@@ -602,7 +635,9 @@ def test_build_wikidata_migration_pack_classifies_reference_and_qualifier_drift(
     assert by_entity["Q3"]["claim_bundle_after"]["property"] == "P14143"
 
 
-def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists() -> None:
+def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists() -> (
+    None
+):
     payload = {
         "windows": [
             {
@@ -649,7 +684,9 @@ def test_build_wikidata_migration_pack_allows_normal_rank_when_evidence_exists()
     assert report["candidates"][0]["promotion_gate"]["decision"] == "review_only"
 
 
-def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_split_required() -> None:
+def test_build_wikidata_migration_pack_keeps_separate_temporal_statements_atomic() -> (
+    None
+):
     payload = {
         "windows": [
             {
@@ -695,32 +732,33 @@ def test_build_wikidata_migration_pack_graduates_temporal_multi_value_cases_to_s
         target_property="P14143",
     )
 
-    assert report["summary"]["counts_by_bucket"] == {"split_required": 2}
+    assert report["summary"]["counts_by_bucket"] == {"qualifier_drift": 2}
     for candidate in report["candidates"]:
-        assert candidate["classification"] == "split_required"
-        assert candidate["action"] == "split"
-        assert "multi_value_slot" in candidate["reasons"]
-        assert {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"} in candidate["split_axes"]
-        assert {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"} in candidate["split_axes"]
+        assert candidate["classification"] == "qualifier_drift"
+        assert candidate["action"] == "review"
+        assert "multi_value_slot" not in candidate["reasons"]
+        assert candidate["split_axes"] == []
         assert candidate["text_evidence_refs"] == []
         assert candidate["bridge_case_ref"] is None
-        assert candidate["pressure"] is None
-        assert candidate["pressure_confidence"] is None
-        assert candidate["pressure_summary"] is None
+        assert candidate["pressure"] == "reinforce"
+        assert candidate["pressure_confidence"] == 0.92
+        assert candidate["pressure_summary"].startswith("model_safe;")
         assert candidate["promotion_class"] == "review_only"
         assert candidate["promotion_eligibility"]["eligible"] is False
         assert candidate["promotion_gate"]["decision"] == "review_only"
         assert candidate["model_validation"]["lane"] == "ghg_climate_migration"
-        assert candidate["model_validation"]["status"] == "model_safe_with_split"
-        assert candidate["model_validation"]["execution_ready"] is True
+        assert candidate["model_validation"]["status"] == "model_safe"
+        assert candidate["model_validation"]["execution_ready"] is False
         assert candidate["model_validation"]["resolved_year"] in {"2023", "2024"}
         assert candidate["execution_hints"]["target_property"] == "P14143"
-        assert candidate["execution_hints"]["execution_ready"] is True
+        assert candidate["execution_hints"]["execution_ready"] is False
     assert report["bridge_cases"] == []
     jsonschema.validate(report, _load_migration_pack_schema())
 
 
-def test_build_wikidata_phi_text_bridge_case_emits_split_pressure_for_temporal_text_slices() -> None:
+def test_build_wikidata_phi_text_bridge_case_emits_split_pressure_for_temporal_text_slices() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -776,7 +814,9 @@ def test_build_wikidata_phi_text_bridge_case_emits_split_pressure_for_temporal_t
     jsonschema.validate(bridge_case, _load_bridge_schema())
 
 
-def test_build_wikidata_phi_text_bridge_case_treats_out_of_period_value_mismatch_as_split_pressure() -> None:
+def test_build_wikidata_phi_text_bridge_case_treats_out_of_period_value_mismatch_as_split_pressure() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -828,7 +868,9 @@ def test_build_wikidata_phi_text_bridge_case_treats_out_of_period_value_mismatch
     jsonschema.validate(bridge_case, _load_bridge_schema())
 
 
-def test_build_wikidata_phi_text_bridge_case_treats_scope_mismatch_as_split_pressure() -> None:
+def test_build_wikidata_phi_text_bridge_case_treats_scope_mismatch_as_split_pressure() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -936,7 +978,9 @@ def test_attach_wikidata_phi_text_bridge_enriches_migration_pack_additively() ->
     jsonschema.validate(enriched, _load_migration_pack_schema())
 
 
-def test_build_wikidata_relation_rows_projects_migration_candidates_to_relation_rows() -> None:
+def test_build_wikidata_relation_rows_projects_migration_candidates_to_relation_rows() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -994,10 +1038,26 @@ def test_build_wikidata_relation_rows_projects_migration_candidates_to_relation_
     assert rows[0]["structured_candidate"]["claim_bundle_before"]["references"] == [
         {"P248": ["Qsrc"]}
     ]
-    assert {"anchor_kind": "classification", "anchor_value": "safe_with_reference_transfer", "anchor_label": "safe_with_reference_transfer"} in rows[0]["candidate_anchors"]
-    assert {"anchor_kind": "review_action", "anchor_value": "migrate_with_refs", "anchor_label": "migrate_with_refs"} in rows[0]["candidate_anchors"]
-    assert {"anchor_kind": "review_pressure", "anchor_value": "reinforce", "anchor_label": "reinforce"} in rows[0]["candidate_anchors"]
-    assert {"anchor_kind": "text_evidence_ref", "anchor_value": "obs:1", "anchor_label": "obs:1"} in rows[0]["candidate_anchors"]
+    assert {
+        "anchor_kind": "classification",
+        "anchor_value": "safe_with_reference_transfer",
+        "anchor_label": "safe_with_reference_transfer",
+    } in rows[0]["candidate_anchors"]
+    assert {
+        "anchor_kind": "review_action",
+        "anchor_value": "migrate_with_refs",
+        "anchor_label": "migrate_with_refs",
+    } in rows[0]["candidate_anchors"]
+    assert {
+        "anchor_kind": "review_pressure",
+        "anchor_value": "reinforce",
+        "anchor_label": "reinforce",
+    } in rows[0]["candidate_anchors"]
+    assert {
+        "anchor_kind": "text_evidence_ref",
+        "anchor_value": "obs:1",
+        "anchor_label": "obs:1",
+    } in rows[0]["candidate_anchors"]
 
 
 def test_build_wikidata_relation_rows_canonicalizes_nested_values_stably() -> None:
@@ -1017,7 +1077,11 @@ def test_build_wikidata_relation_rows_canonicalizes_nested_values_stably() -> No
                     "claim_bundle_before": {
                         "subject": "Q9",
                         "property": "P5991",
-                        "value": {"amount": "100", "unit": "kg", "scopes": ["scope_1", "scope_2"]},
+                        "value": {
+                            "amount": "100",
+                            "unit": "kg",
+                            "scopes": ["scope_1", "scope_2"],
+                        },
                         "rank": "normal",
                         "qualifiers": {"P585": ["2024"]},
                         "references": [{"P248": "Qsrc"}],
@@ -1030,10 +1094,15 @@ def test_build_wikidata_relation_rows_canonicalizes_nested_values_stably() -> No
         }
     )
 
-    assert rows[0]["object"] == '{"amount":"100","scopes":["scope_1","scope_2"],"unit":"kg"}'
+    assert (
+        rows[0]["object"]
+        == '{"amount":"100","scopes":["scope_1","scope_2"],"unit":"kg"}'
+    )
 
 
-def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_contract_shape() -> None:
+def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_contract_shape() -> (
+    None
+):
     payload = {
         "payload_version": "sl.observation_claim.contract.v1",
         "observations": [
@@ -1055,7 +1124,9 @@ def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_
                 "source_unit_id": "unit:1",
                 "source_quote": "2019 emissions were 100.",
                 "source_span": {"start_char": 30, "end_char": 54},
-                "evidence_refs": [{"span_ref": "unit:1:30-54", "ref_type": "text_span"}],
+                "evidence_refs": [
+                    {"span_ref": "unit:1:30-54", "ref_type": "text_span"}
+                ],
                 "status": "active",
                 "canonicality": "adjudicated",
                 "payload_version": "sl.observation_claim.contract.v1",
@@ -1101,8 +1172,18 @@ def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_
             },
         ],
         "evidence_links": [
-            {"link_id": "link:1", "claim_id": "claim:1", "link_kind": "supporting", "link_hash": "lh1"},
-            {"link_id": "link:2", "claim_id": "claim:2", "link_kind": "supporting", "link_hash": "lh2"},
+            {
+                "link_id": "link:1",
+                "claim_id": "claim:1",
+                "link_kind": "supporting",
+                "link_hash": "lh1",
+            },
+            {
+                "link_id": "link:2",
+                "claim_id": "claim:2",
+                "link_kind": "supporting",
+                "link_hash": "lh2",
+            },
         ],
     }
 
@@ -1118,7 +1199,9 @@ def test_extract_phi_text_observations_from_observation_claim_payload_uses_real_
     assert observations[0]["qualifiers"]["P585"] == "2018"
 
 
-def test_extract_phi_text_observations_from_observation_claim_payload_carries_scope_tags_from_evidence_links() -> None:
+def test_extract_phi_text_observations_from_observation_claim_payload_carries_scope_tags_from_evidence_links() -> (
+    None
+):
     payload = {
         "payload_version": "sl.observation_claim.contract.v1",
         "observations": [
@@ -1176,7 +1259,9 @@ def test_extract_phi_text_observations_from_observation_claim_payload_carries_sc
         {
             "observation_ref": "claim:1",
             "source_ref": "unit:1",
-            "anchors": [{"start": 0, "end": 32, "text": "2018 scope 1 emissions were 100."}],
+            "anchors": [
+                {"start": 0, "end": 32, "text": "2018 scope 1 emissions were 100."}
+            ],
             "subject": "Q1",
             "predicate": "annual_emissions",
             "object": "100",
@@ -1186,7 +1271,9 @@ def test_extract_phi_text_observations_from_observation_claim_payload_carries_sc
     ]
 
 
-def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_producer() -> None:
+def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_producer() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -1230,7 +1317,9 @@ def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_produc
                 "source_unit_id": "unit:1",
                 "source_quote": "2019 emissions were 100.",
                 "source_span": {"start_char": 30, "end_char": 54},
-                "evidence_refs": [{"span_ref": "unit:1:30-54", "ref_type": "text_span"}],
+                "evidence_refs": [
+                    {"span_ref": "unit:1:30-54", "ref_type": "text_span"}
+                ],
                 "status": "active",
                 "canonicality": "verified",
                 "payload_version": "sl.observation_claim.contract.v1",
@@ -1276,8 +1365,18 @@ def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_produc
             },
         ],
         "evidence_links": [
-            {"link_id": "link:1", "claim_id": "claim:1", "link_kind": "supporting", "link_hash": "lh1"},
-            {"link_id": "link:2", "claim_id": "claim:2", "link_kind": "supporting", "link_hash": "lh2"},
+            {
+                "link_id": "link:1",
+                "claim_id": "claim:1",
+                "link_kind": "supporting",
+                "link_hash": "lh1",
+            },
+            {
+                "link_id": "link:2",
+                "claim_id": "claim:2",
+                "link_kind": "supporting",
+                "link_hash": "lh2",
+            },
         ],
     }
 
@@ -1294,7 +1393,9 @@ def test_attach_wikidata_phi_text_bridge_from_observation_claim_uses_real_produc
     jsonschema.validate(enriched, _load_migration_pack_schema())
 
 
-def test_build_observation_claim_payload_from_revision_locked_climate_text_sources_extracts_year_value_rows() -> None:
+def test_build_observation_claim_payload_from_revision_locked_climate_text_sources_extracts_year_value_rows() -> (
+    None
+):
     climate_text_payload = {
         "schema_version": WIKIDATA_CLIMATE_TEXT_SOURCE_SCHEMA_VERSION,
         "sources": [
@@ -1314,20 +1415,34 @@ def test_build_observation_claim_payload_from_revision_locked_climate_text_sourc
     }
 
     jsonschema.validate(climate_text_payload, _load_climate_text_source_schema())
-    observation_claim_payload = build_observation_claim_payload_from_revision_locked_climate_text_sources(
-        climate_text_payload
+    observation_claim_payload = (
+        build_observation_claim_payload_from_revision_locked_climate_text_sources(
+            climate_text_payload
+        )
     )
 
     contract_schema = yaml.safe_load(
-        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(encoding="utf-8")
+        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
     )
     jsonschema.validate(observation_claim_payload, contract_schema)
 
-    assert observation_claim_payload["payload_version"] == "sl.observation_claim.contract.v1"
+    assert (
+        observation_claim_payload["payload_version"]
+        == "sl.observation_claim.contract.v1"
+    )
     assert len(observation_claim_payload["observations"]) == 2
-    assert [row["observed_at"] for row in observation_claim_payload["observations"]] == ["2018", "2019"]
-    assert [row["object_id"] for row in observation_claim_payload["claims"]] == ["100", "100"]
-    trace_refs = [row["trace_refs"] for row in observation_claim_payload["evidence_links"]]
+    assert [
+        row["observed_at"] for row in observation_claim_payload["observations"]
+    ] == ["2018", "2019"]
+    assert [row["object_id"] for row in observation_claim_payload["claims"]] == [
+        "100",
+        "100",
+    ]
+    trace_refs = [
+        row["trace_refs"] for row in observation_claim_payload["evidence_links"]
+    ]
     assert trace_refs == [
         ["revision:123", "source:climate-src:1"],
         ["revision:123", "source:climate-src:1"],
@@ -1360,7 +1475,9 @@ def test_adapt_legacy_climate_text_source_to_source_units_is_schema_valid() -> N
     jsonschema.validate(payload, _load_source_unit_schema())
 
 
-def test_build_observation_claim_payload_from_source_units_extracts_html_snapshot_rows() -> None:
+def test_build_observation_claim_payload_from_source_units_extracts_html_snapshot_rows() -> (
+    None
+):
     source_unit_payload = {
         "schema_version": SOURCE_UNIT_SCHEMA_VERSION,
         "source_units": [
@@ -1389,18 +1506,29 @@ def test_build_observation_claim_payload_from_source_units_extracts_html_snapsho
     }
 
     jsonschema.validate(source_unit_payload, _load_source_unit_schema())
-    observation_claim_payload = build_observation_claim_payload_from_source_units(source_unit_payload)
+    observation_claim_payload = build_observation_claim_payload_from_source_units(
+        source_unit_payload
+    )
 
     contract_schema = yaml.safe_load(
-        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(encoding="utf-8")
+        Path("schemas/sl.observation_claim.contract.v1.schema.yaml").read_text(
+            encoding="utf-8"
+        )
     )
     jsonschema.validate(observation_claim_payload, contract_schema)
 
-    assert [row["observed_at"] for row in observation_claim_payload["observations"]] == ["2018", "2019"]
-    assert [row["object_id"] for row in observation_claim_payload["claims"]] == ["400", "600"]
+    assert [
+        row["observed_at"] for row in observation_claim_payload["observations"]
+    ] == ["2018", "2019"]
+    assert [row["object_id"] for row in observation_claim_payload["claims"]] == [
+        "400",
+        "600",
+    ]
 
 
-def test_build_observation_claim_payload_from_source_units_carries_scope_tags_from_metadata() -> None:
+def test_build_observation_claim_payload_from_source_units_carries_scope_tags_from_metadata() -> (
+    None
+):
     source_unit_payload = {
         "schema_version": SOURCE_UNIT_SCHEMA_VERSION,
         "source_units": [
@@ -1428,7 +1556,9 @@ def test_build_observation_claim_payload_from_source_units_carries_scope_tags_fr
         ],
     }
 
-    observation_claim_payload = build_observation_claim_payload_from_source_units(source_unit_payload)
+    observation_claim_payload = build_observation_claim_payload_from_source_units(
+        source_unit_payload
+    )
 
     assert observation_claim_payload["evidence_links"][0]["trace_refs"] == [
         "revision:snapshot:1",
@@ -1464,7 +1594,9 @@ def test_nat_wdu_sandbox_source_unit_fixture_is_schema_valid() -> None:
     ]
 
 
-def test_nat_lane_review_manifests_fixture_pins_five_cohorts_and_progress_model() -> None:
+def test_nat_lane_review_manifests_fixture_pins_five_cohorts_and_progress_model() -> (
+    None
+):
     payload = _load_nat_lane_review_manifests_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -1499,7 +1631,9 @@ def test_nat_lane_review_manifests_fixture_pins_five_cohorts_and_progress_model(
     assert payload["summary"]["next_priority_cohort"] == "business_family_reconciled"
 
 
-def test_nat_lane_review_manifests_fixture_keeps_business_family_population_pinned() -> None:
+def test_nat_lane_review_manifests_fixture_keeps_business_family_population_pinned() -> (
+    None
+):
     payload = _load_nat_lane_review_manifests_fixture()
 
     cohorts = {cohort["cohort_id"]: cohort for cohort in payload["cohorts"]}
@@ -1511,13 +1645,18 @@ def test_nat_lane_review_manifests_fixture_keeps_business_family_population_pinn
     assert all(cohort["status"] == "manifest_pinned" for cohort in payload["cohorts"])
 
 
-def test_nat_cohort_c_branch_fixture_pins_non_ghg_or_missing_p459_branch_state() -> None:
+def test_nat_cohort_c_branch_fixture_pins_non_ghg_or_missing_p459_branch_state() -> (
+    None
+):
     payload = _load_nat_cohort_c_branch_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
     assert payload["cohort_id"] == "non_ghg_protocol_or_missing_p459"
     assert payload["status"] == "branch_pinned"
-    assert payload["selection_rule"] == "determination method or standard (P459) is missing or not GHG protocol"
+    assert (
+        payload["selection_rule"]
+        == "determination method or standard (P459) is missing or not GHG protocol"
+    )
     assert payload["risk_level"] == "high"
     assert payload["population"] is None
     assert payload["next_gate"] == "review_first_population_scan"
@@ -1539,7 +1678,9 @@ def test_nat_cohort_c_branch_fixture_pins_non_ghg_or_missing_p459_branch_state()
     ]
 
 
-def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates() -> None:
+def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates() -> (
+    None
+):
     payload = _load_nat_cohort_c_population_scan_fixture()
 
     scan = build_nat_cohort_c_population_scan(payload)
@@ -1560,26 +1701,34 @@ def test_nat_cohort_c_population_scan_helper_normalizes_review_first_candidates(
     ]
 
 
-def test_nat_cohort_c_live_population_scan_result_normalizer_groups_statement_rows() -> None:
+def test_nat_cohort_c_live_population_scan_result_normalizer_groups_statement_rows() -> (
+    None
+):
     sparql_payload = {
         "results": {
             "bindings": [
                 {
                     "item": {"value": "https://www.wikidata.org/entity/Q1"},
                     "itemLabel": {"value": "Example One"},
-                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "statement": {
+                        "value": "https://www.wikidata.org/entity/statement/Q1-abc"
+                    },
                     "qualifier_pid": {"value": "P580"},
                 },
                 {
                     "item": {"value": "https://www.wikidata.org/entity/Q1"},
                     "itemLabel": {"value": "Example One"},
-                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q1-abc"},
+                    "statement": {
+                        "value": "https://www.wikidata.org/entity/statement/Q1-abc"
+                    },
                     "qualifier_pid": {"value": "P582"},
                 },
                 {
                     "item": {"value": "https://www.wikidata.org/entity/Q2"},
                     "itemLabel": {"value": "Example Two"},
-                    "statement": {"value": "https://www.wikidata.org/entity/statement/Q2-def"},
+                    "statement": {
+                        "value": "https://www.wikidata.org/entity/statement/Q2-def"
+                    },
                     "p459": {"value": "https://www.wikidata.org/entity/Q999"},
                     "p459Label": {"value": "Alt standard"},
                     "qualifier_pid": {"value": "P518"},
@@ -1604,7 +1753,9 @@ def test_nat_cohort_c_live_population_scan_result_normalizer_groups_statement_ro
     assert scan["sample_candidates"][1]["p459_status"] == "non_GHG_protocol"
 
 
-def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(monkeypatch) -> None:
+def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(
+    monkeypatch,
+) -> None:
     def _raise(*args, **kwargs):
         raise RuntimeError("boom")
 
@@ -1622,7 +1773,9 @@ def test_nat_cohort_c_live_population_scan_returns_fail_closed_when_query_fails(
     assert payload["failures"][0]["stage"] == "live_query"
 
 
-def test_nat_cohort_c_operator_packet_wraps_scan_payload_with_hold_or_review_decision() -> None:
+def test_nat_cohort_c_operator_packet_wraps_scan_payload_with_hold_or_review_decision() -> (
+    None
+):
     review_scan = _load_nat_cohort_c_population_scan_fixture()
     review_packet = build_nat_cohort_c_operator_packet(review_scan)
     assert review_packet["decision"] == "review"
@@ -1631,23 +1784,35 @@ def test_nat_cohort_c_operator_packet_wraps_scan_payload_with_hold_or_review_dec
         "fail_closed": True,
         "live_query_unavailable": False,
     }
-    assert review_packet["triage_prompts"][0].startswith("Review the candidate P459 status split")
+    assert review_packet["triage_prompts"][0].startswith(
+        "Review the candidate P459 status split"
+    )
 
     unavailable_scan = {
         "lane_id": "wikidata_nat_wdu_p5991_p14143",
         "cohort_id": "non_ghg_protocol_or_missing_p459",
         "scan_status": "live_population_scan_unavailable",
-        "summary": {"p459_status_counts": {}, "review_first": True, "policy_risk": "high"},
+        "summary": {
+            "p459_status_counts": {},
+            "review_first": True,
+            "policy_risk": "high",
+        },
         "sample_candidates": [],
-        "notes": ["The live preview helper is fail-closed when the Wikidata query endpoint is unavailable."],
+        "notes": [
+            "The live preview helper is fail-closed when the Wikidata query endpoint is unavailable."
+        ],
     }
     unavailable_packet = build_nat_cohort_c_operator_packet(unavailable_scan)
     assert unavailable_packet["decision"] == "hold"
     assert unavailable_packet["governance"]["live_query_unavailable"] is True
-    assert unavailable_packet["triage_prompts"][0].startswith("Live query was unavailable")
+    assert unavailable_packet["triage_prompts"][0].startswith(
+        "Live query was unavailable"
+    )
 
 
-def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materialization() -> None:
+def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materialization() -> (
+    None
+):
     payload = _load_nat_cohort_a_seed_slice_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -1663,7 +1828,9 @@ def test_nat_cohort_a_seed_slice_fixture_pins_business_family_subset_materializa
     assert payload["checked_safe_subset"] == []
 
 
-def test_nat_cohort_a_shape_scan_fixture_is_shape_clean_against_nat_expectations() -> None:
+def test_nat_cohort_a_shape_scan_fixture_is_shape_clean_against_nat_expectations() -> (
+    None
+):
     payload = _load_nat_cohort_a_shape_scan_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -1724,8 +1891,14 @@ def test_nat_cohort_a_split_plan_fixture_pins_two_review_only_slot_plans() -> No
     jsonschema.validate(payload, _load_split_plan_schema())
     assert payload["summary"]["plan_count"] == 2
     assert payload["summary"]["counts_by_status"] == {"structurally_decomposable": 2}
-    assert {plan["entity_qid"] for plan in payload["plans"]} == {"Q10403939", "Q10422059"}
-    assert all(plan["suggested_action"] == "review_structured_split" for plan in payload["plans"])
+    assert {plan["entity_qid"] for plan in payload["plans"]} == {
+        "Q10403939",
+        "Q10422059",
+    }
+    assert all(
+        plan["suggested_action"] == "review_structured_split"
+        for plan in payload["plans"]
+    )
 
 
 def test_nat_review_packet_fixture_is_schema_valid() -> None:
@@ -1781,8 +1954,13 @@ def test_build_wikidata_review_packet_attaches_nat_source_unit_to_split_plan() -
     assert payload["follow_receipts"][0]["extracted_evidence"] == [
         "query_row: https://w.wiki/KR5d all carbon footprint statements. 57835 results on march 27th"
     ]
-    assert payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
-    assert "use_todo_bucket_as_review_checklist" in payload["reviewer_view"]["decision_focus"]
+    assert (
+        payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+    )
+    assert (
+        "use_todo_bucket_as_review_checklist"
+        in payload["reviewer_view"]["decision_focus"]
+    )
     assert "page_open_questions" in payload["reviewer_view"]["uncertainty_flags"]
     assert "no_follow_receipts" not in payload["reviewer_view"]["uncertainty_flags"]
 
@@ -1797,11 +1975,17 @@ def test_build_wikidata_review_packet_captures_grounding_gap_signal() -> None:
         ),
     )
 
-    assert "grounding_gap_class=grounded" in payload["reviewer_view"]["uncertainty_flags"]
-    assert payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+    assert (
+        "grounding_gap_class=grounded" in payload["reviewer_view"]["uncertainty_flags"]
+    )
+    assert (
+        payload["reviewer_view"]["recommended_next_step"] == "review_structured_split"
+    )
 
 
-def test_build_wikidata_review_packet_overrides_next_step_for_live_receipt_review() -> None:
+def test_build_wikidata_review_packet_overrides_next_step_for_live_receipt_review() -> (
+    None
+):
     live_follow_results = [
         {
             "result_rows": [
@@ -1832,9 +2016,15 @@ def test_build_wikidata_review_packet_overrides_next_step_for_live_receipt_revie
         ),
     )
 
-    assert payload["reviewer_view"]["recommended_next_step"] == "review_live_follow_receipts"
+    assert (
+        payload["reviewer_view"]["recommended_next_step"]
+        == "review_live_follow_receipts"
+    )
     assert "review_live_follow_receipts" in payload["reviewer_view"]["decision_focus"]
-    assert "live_receipts_ready_for_review" in payload["reviewer_view"]["uncertainty_flags"]
+    assert (
+        "live_receipts_ready_for_review"
+        in payload["reviewer_view"]["uncertainty_flags"]
+    )
     assert "live_follow_receipts=1" in payload["reviewer_view"]["uncertainty_flags"]
 
 
@@ -1850,7 +2040,9 @@ def test_build_wikidata_review_packet_honors_explicit_empty_follow_receipts() ->
     assert "no_follow_receipts" in payload["reviewer_view"]["uncertainty_flags"]
 
 
-def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split_context_units() -> None:
+def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split_context_units() -> (
+    None
+):
     payload = build_wikidata_review_packet(
         source_unit_payload=_load_nat_wdu_sandbox_source_unit_fixture(),
         split_plan_payload=_load_nat_cohort_a_split_plan_fixture(),
@@ -1866,10 +2058,15 @@ def test_build_wikidata_review_packet_semantic_sidecar_includes_anchor_and_split
     assert "missing_evidence_surface" in unit_types
     assert "split_axis_surface" in unit_types
     assert "anchor_refs_not_promoted_to_grounded_claims" in semantic["missing_evidence"]
-    assert "split_context_not_lifted_into_semantic_decision_graph" in semantic["missing_evidence"]
+    assert (
+        "split_context_not_lifted_into_semantic_decision_graph"
+        in semantic["missing_evidence"]
+    )
 
 
-def test_nat_review_packet_attachment_coverage_fixture_expands_to_fifteen_rows() -> None:
+def test_nat_review_packet_attachment_coverage_fixture_expands_to_fifteen_rows() -> (
+    None
+):
     payload = _load_nat_review_packet_attachment_coverage_fixture()
 
     assert payload["packetized_split_rows"] == 15
@@ -1891,10 +2088,15 @@ def test_nat_review_packet_attachment_coverage_fixture_expands_to_fifteen_rows()
         "Q738421|P5991",
     ]
     assert len(payload["packet_slots"]) == 15
-    assert payload["ready_for_reviewers"][-1] == "Coverage index showing 15 / 53 packetized rows"
+    assert (
+        payload["ready_for_reviewers"][-1]
+        == "Coverage index showing 15 / 53 packetized rows"
+    )
 
 
-def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic_layers() -> None:
+def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic_layers() -> (
+    None
+):
     for qid, expected_step in [
         ("Q10416948", "review_structured_split"),
         ("Q56404383", "review_only"),
@@ -1904,7 +2106,8 @@ def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic
         assert payload["semantic_decomposition"]["separate_from_parsed_page"] is True
         assert payload["semantic_decomposition"]["candidate_units"]
         unit_types = {
-            unit["unit_type"] for unit in payload["semantic_decomposition"]["candidate_units"]
+            unit["unit_type"]
+            for unit in payload["semantic_decomposition"]["candidate_units"]
         }
         assert "follow_receipt_surface" in unit_types
         assert "anchor_surface" in unit_types
@@ -1916,7 +2119,9 @@ def test_nat_review_packet_sidecar_fixtures_include_follow_receipts_and_semantic
         assert payload["reviewer_view"]["recommended_next_step"] == expected_step
 
 
-def test_nat_cohort_a_classification_checkpoint_fixture_pins_split_required_seed_state() -> None:
+def test_nat_cohort_a_classification_checkpoint_fixture_pins_split_required_seed_state() -> (
+    None
+):
     payload = _load_nat_cohort_a_classification_checkpoint_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -1936,7 +2141,9 @@ def test_nat_cohort_a_classification_checkpoint_fixture_pins_split_required_seed
     }
 
 
-def test_nat_cohort_a_live_discovery_fixture_pins_ranked_business_family_shortlist() -> None:
+def test_nat_cohort_a_live_discovery_fixture_pins_ranked_business_family_shortlist() -> (
+    None
+):
     payload = _load_nat_cohort_a_live_discovery_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -1964,16 +2171,24 @@ def test_nat_cohort_a_live_discovery_fixture_pins_ranked_business_family_shortli
         "qualifier_count": 9,
         "selected_for_live_tranche": True,
     }
-    assert sum(1 for row in payload["discovered_rows"] if row["selected_for_live_tranche"]) == 4
+    assert (
+        sum(1 for row in payload["discovered_rows"] if row["selected_for_live_tranche"])
+        == 4
+    )
 
 
-def test_nat_cohort_a_live_tranche_fixture_pins_fail_closed_live_expansion_result() -> None:
+def test_nat_cohort_a_live_tranche_fixture_pins_fail_closed_live_expansion_result() -> (
+    None
+):
     payload = _load_nat_cohort_a_live_tranche_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
     assert payload["cohort_id"] == "business_family_reconciled"
     assert payload["status"] == "live_tranche_materialized"
-    assert payload["source_discovery_fixture"] == "wikidata_nat_cohort_a_live_discovery_20260401.json"
+    assert (
+        payload["source_discovery_fixture"]
+        == "wikidata_nat_cohort_a_live_discovery_20260401.json"
+    )
     assert payload["qids"] == ["Q30938280", "Q731938", "Q1785637", "Q738421"]
     assert payload["candidate_count"] == 188
     assert payload["checked_safe_subset_count"] == 0
@@ -1993,7 +2208,9 @@ def test_nat_cohort_a_live_tranche_fixture_pins_fail_closed_live_expansion_resul
     }
 
 
-def test_nat_cohort_a_checked_safe_hunt_fixture_pins_bounded_checked_safe_subset() -> None:
+def test_nat_cohort_a_checked_safe_hunt_fixture_pins_bounded_checked_safe_subset() -> (
+    None
+):
     payload = _load_nat_cohort_a_checked_safe_hunt_fixture()
 
     assert payload["lane_id"] == "wikidata_nat_wdu_p5991_p14143"
@@ -2015,13 +2232,22 @@ def test_nat_cohort_a_checked_safe_hunt_fixture_pins_bounded_checked_safe_subset
     }
 
 
-def test_build_observation_claim_payload_from_wiki_revision_source_unit_fixture() -> None:
+def test_build_observation_claim_payload_from_wiki_revision_source_unit_fixture() -> (
+    None
+):
     payload = _load_wiki_revision_source_unit_fixture()
 
-    observation_claim_payload = build_observation_claim_payload_from_source_units(payload)
+    observation_claim_payload = build_observation_claim_payload_from_source_units(
+        payload
+    )
 
-    assert observation_claim_payload["payload_version"] == "sl.observation_claim.contract.v1"
-    assert [row["observed_at"] for row in observation_claim_payload["observations"]] == ["2023"]
+    assert (
+        observation_claim_payload["payload_version"]
+        == "sl.observation_claim.contract.v1"
+    )
+    assert [
+        row["observed_at"] for row in observation_claim_payload["observations"]
+    ] == ["2023"]
     assert [row["object_id"] for row in observation_claim_payload["claims"]] == ["86"]
     assert observation_claim_payload["evidence_links"][0]["trace_refs"] == [
         "revision:987654321",
@@ -2030,7 +2256,9 @@ def test_build_observation_claim_payload_from_wiki_revision_source_unit_fixture(
     ]
 
 
-def test_attach_wikidata_phi_text_bridge_from_revision_locked_climate_text_builds_observation_claim_and_bridge() -> None:
+def test_attach_wikidata_phi_text_bridge_from_revision_locked_climate_text_builds_observation_claim_and_bridge() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -2065,9 +2293,11 @@ def test_attach_wikidata_phi_text_bridge_from_revision_locked_climate_text_build
         ],
     }
 
-    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
-        migration_pack,
-        climate_text_payload=climate_text_payload,
+    enriched, observation_claim_payload = (
+        attach_wikidata_phi_text_bridge_from_revision_locked_climate_text(
+            migration_pack,
+            climate_text_payload=climate_text_payload,
+        )
     )
 
     candidate = enriched["candidates"][0]
@@ -2114,16 +2344,21 @@ def test_build_wikidata_climate_review_demonstrator_for_real_q10403939_packet() 
     assert payload["text_side_predicate_carrier"]["observation_count"] == 3
     assert payload["text_side_predicate_carrier"]["claim_count"] == 3
     assert payload["residual_completeness_surface"]["bridge_case_count"] == 24
-    assert payload["residual_completeness_surface"]["pressure_counts"] == {"split_pressure": 24}
+    assert payload["residual_completeness_surface"]["pressure_counts"] == {
+        "split_pressure": 24
+    }
     assert payload["review_disposition"]["final_state"] == "held"
     assert payload["review_disposition"]["held_candidate_count"] == 24
     assert payload["review_disposition"]["promotable_candidate_count"] == 0
     assert {
-        row["disposition"] for row in payload["review_disposition"]["candidate_dispositions"]
+        row["disposition"]
+        for row in payload["review_disposition"]["candidate_dispositions"]
     } == {"held_split_review"}
 
 
-def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_claim_and_bridge() -> None:
+def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_claim_and_bridge() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -2171,9 +2406,11 @@ def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_cl
         ],
     }
 
-    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_source_units(
-        migration_pack,
-        source_unit_payload=source_unit_payload,
+    enriched, observation_claim_payload = (
+        attach_wikidata_phi_text_bridge_from_source_units(
+            migration_pack,
+            source_unit_payload=source_unit_payload,
+        )
     )
 
     candidate = enriched["candidates"][0]
@@ -2184,7 +2421,9 @@ def test_attach_wikidata_phi_text_bridge_from_source_units_builds_observation_cl
     jsonschema.validate(enriched, _load_migration_pack_schema())
 
 
-def test_attach_wikidata_phi_text_bridge_from_source_units_uses_scope_tags_for_scope_pressure() -> None:
+def test_attach_wikidata_phi_text_bridge_from_source_units_uses_scope_tags_for_scope_pressure() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -2233,9 +2472,11 @@ def test_attach_wikidata_phi_text_bridge_from_source_units_uses_scope_tags_for_s
         ],
     }
 
-    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_source_units(
-        migration_pack,
-        source_unit_payload=source_unit_payload,
+    enriched, observation_claim_payload = (
+        attach_wikidata_phi_text_bridge_from_source_units(
+            migration_pack,
+            source_unit_payload=source_unit_payload,
+        )
     )
 
     candidate = enriched["candidates"][0]
@@ -2246,10 +2487,15 @@ def test_attach_wikidata_phi_text_bridge_from_source_units_uses_scope_tags_for_s
         "kind": "scope_dimension_mismatch",
         "detail": "text scope tag(s) ['scope_1'] do not match bundle scope value(s) ['scope_2']",
     } in enriched["bridge_cases"][0]["comparison"]["missing_dimensions"]
-    assert observation_claim_payload["evidence_links"][0]["trace_refs"][-1] == "scope_tag:scope_1"
+    assert (
+        observation_claim_payload["evidence_links"][0]["trace_refs"][-1]
+        == "scope_tag:scope_1"
+    )
 
 
-def test_attach_wikidata_phi_text_bridge_from_wiki_revision_source_unit_fixture() -> None:
+def test_attach_wikidata_phi_text_bridge_from_wiki_revision_source_unit_fixture() -> (
+    None
+):
     migration_pack = build_wikidata_migration_pack(
         {
             "windows": [
@@ -2273,9 +2519,11 @@ def test_attach_wikidata_phi_text_bridge_from_wiki_revision_source_unit_fixture(
     )
     source_unit_payload = _load_wiki_revision_source_unit_fixture()
 
-    enriched, observation_claim_payload = attach_wikidata_phi_text_bridge_from_source_units(
-        migration_pack,
-        source_unit_payload=source_unit_payload,
+    enriched, observation_claim_payload = (
+        attach_wikidata_phi_text_bridge_from_source_units(
+            migration_pack,
+            source_unit_payload=source_unit_payload,
+        )
     )
 
     candidate = enriched["candidates"][0]
@@ -2287,10 +2535,15 @@ def test_attach_wikidata_phi_text_bridge_from_wiki_revision_source_unit_fixture(
         "kind": "scope_dimension_mismatch",
         "detail": "text scope tag(s) ['scope_1'] do not match bundle scope value(s) ['scope_2']",
     } in enriched["bridge_cases"][0]["comparison"]["missing_dimensions"]
-    assert observation_claim_payload["evidence_links"][0]["source_unit_id"] == "unit:wikipedia:example_corp:rev:20260401:lead"
+    assert (
+        observation_claim_payload["evidence_links"][0]["source_unit_id"]
+        == "unit:wikipedia:example_corp:rev:20260401:lead"
+    )
 
 
-def test_export_migration_pack_openrefine_csv_writes_flat_review_rows(tmp_path: Path) -> None:
+def test_export_migration_pack_openrefine_csv_writes_flat_review_rows(
+    tmp_path: Path,
+) -> None:
     migration_pack = {
         "target_property": "P14143",
         "candidates": [
@@ -2340,7 +2593,9 @@ def test_export_migration_pack_openrefine_csv_writes_flat_review_rows(tmp_path: 
     }
     out_path = tmp_path / "migration_pack_openrefine.csv"
 
-    report = export_migration_pack_openrefine_csv(migration_pack, output_path=str(out_path))
+    report = export_migration_pack_openrefine_csv(
+        migration_pack, output_path=str(out_path)
+    )
 
     rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
     assert report["row_count"] == 2
@@ -2360,7 +2615,9 @@ def test_export_migration_pack_openrefine_csv_writes_flat_review_rows(tmp_path: 
     assert rows[1]["reason_codes"] == "reference_drift:high"
 
 
-def test_export_migration_pack_checked_safe_csv_only_writes_safe_rows(tmp_path: Path) -> None:
+def test_export_migration_pack_checked_safe_csv_only_writes_safe_rows(
+    tmp_path: Path,
+) -> None:
     migration_pack = {
         "target_property": "P14143",
         "candidates": [
@@ -2412,7 +2669,9 @@ def test_export_migration_pack_checked_safe_csv_only_writes_safe_rows(tmp_path: 
     }
     out_path = tmp_path / "migration_pack_checked_safe.csv"
 
-    report = export_migration_pack_checked_safe_csv(migration_pack, output_path=str(out_path))
+    report = export_migration_pack_checked_safe_csv(
+        migration_pack, output_path=str(out_path)
+    )
 
     rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
     assert report["row_count"] == 1
@@ -2424,7 +2683,9 @@ def test_export_migration_pack_checked_safe_csv_only_writes_safe_rows(tmp_path: 
     assert '"P585": ["2024"]' in rows[0]["qualifiers_json"]
 
 
-def test_verify_migration_pack_against_after_state_reports_verified_and_missing() -> None:
+def test_verify_migration_pack_against_after_state_reports_verified_and_missing() -> (
+    None
+):
     migration_pack = {
         "source_property": "P5991",
         "target_property": "P14143",
@@ -2541,7 +2802,9 @@ def test_verify_migration_pack_against_after_state_reports_verified_and_missing(
     assert "Q3|P5991|1" not in by_id
 
 
-def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verified_rows() -> None:
+def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verified_rows() -> (
+    None
+):
     payload = _load_nat_cohort_a_gate_b_candidate_verification_run_fixture()
 
     report = verify_migration_pack_against_after_state(
@@ -2550,8 +2813,14 @@ def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verif
     )
 
     assert report["verification_scope"] == "checked_safe_subset_only"
-    assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count"]
-    assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+    assert (
+        report["summary"]["verified_candidate_count"]
+        == payload["expected_summary"]["verified_candidate_count"]
+    )
+    assert (
+        report["summary"]["counts_by_status"]
+        == payload["expected_summary"]["counts_by_status"]
+    )
     by_id = {row["candidate_id"]: row for row in report["rows"]}
     assert by_id["Q1068745|P5991|1"]["status"] == "verified"
     assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
@@ -2559,7 +2828,9 @@ def test_verify_nat_cohort_a_gate_b_candidate_verification_run_reports_two_verif
     assert by_id["Q1489170|P5991|1"]["source_still_present"] is True
 
 
-def test_verify_nat_cohort_a_gate_b_candidate_verification_runs_ready_reports_two_clean_runs() -> None:
+def test_verify_nat_cohort_a_gate_b_candidate_verification_runs_ready_reports_two_clean_runs() -> (
+    None
+):
     payload = _load_nat_cohort_a_gate_b_candidate_verification_runs_ready_fixture()
 
     assert len(payload["runs"]) == payload["expected_summary"]["run_count"]
@@ -2570,8 +2841,14 @@ def test_verify_nat_cohort_a_gate_b_candidate_verification_runs_ready_reports_tw
             run["after_payload"],
         )
         assert report["verification_scope"] == "checked_safe_subset_only"
-        assert report["summary"]["verified_candidate_count"] == payload["expected_summary"]["verified_candidate_count_per_run"]
-        assert report["summary"]["counts_by_status"] == payload["expected_summary"]["counts_by_status"]
+        assert (
+            report["summary"]["verified_candidate_count"]
+            == payload["expected_summary"]["verified_candidate_count_per_run"]
+        )
+        assert (
+            report["summary"]["counts_by_status"]
+            == payload["expected_summary"]["counts_by_status"]
+        )
         by_id = {row["candidate_id"]: row for row in report["rows"]}
         assert by_id["Q1068745|P5991|1"]["status"] == "verified"
         assert by_id["Q1068745|P5991|1"]["source_still_present"] is True
@@ -2592,8 +2869,18 @@ def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> Non
                 "classification": "split_required",
                 "action": "split",
                 "split_axes": [
-                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
-                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                    {
+                        "property": "__value__",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_value_slot",
+                    },
+                    {
+                        "property": "P585",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_valued_dimension",
+                    },
                 ],
                 "claim_bundle_before": {
                     "subject": "Q1",
@@ -2622,8 +2909,18 @@ def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> Non
                 "classification": "split_required",
                 "action": "split",
                 "split_axes": [
-                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
-                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                    {
+                        "property": "__value__",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_value_slot",
+                    },
+                    {
+                        "property": "P585",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_valued_dimension",
+                    },
                 ],
                 "claim_bundle_before": {
                     "subject": "Q1",
@@ -2662,7 +2959,9 @@ def test_build_wikidata_split_plan_emits_structural_plan_for_split_rows() -> Non
     jsonschema.validate(report, _load_split_plan_schema())
 
 
-def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_metadata_present() -> None:
+def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_metadata_present() -> (
+    None
+):
     migration_pack = {
         "source_property": "P5991",
         "target_property": "P14143",
@@ -2675,8 +2974,18 @@ def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_meta
                 "classification": "split_required",
                 "action": "split",
                 "split_axes": [
-                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
-                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                    {
+                        "property": "__value__",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_value_slot",
+                    },
+                    {
+                        "property": "P585",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_valued_dimension",
+                    },
                 ],
                 "model_validation": {
                     "lane": "ghg_climate_migration",
@@ -2730,8 +3039,18 @@ def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_meta
                 "classification": "split_required",
                 "action": "split",
                 "split_axes": [
-                    {"property": "__value__", "cardinality": 2, "source": "slot", "reason": "multi_value_slot"},
-                    {"property": "P585", "cardinality": 2, "source": "slot", "reason": "multi_valued_dimension"},
+                    {
+                        "property": "__value__",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_value_slot",
+                    },
+                    {
+                        "property": "P585",
+                        "cardinality": 2,
+                        "source": "slot",
+                        "reason": "multi_valued_dimension",
+                    },
                 ],
                 "model_validation": {
                     "lane": "ghg_climate_migration",
@@ -2789,7 +3108,10 @@ def test_build_wikidata_split_plan_promotes_execution_ready_rows_when_model_meta
     assert plan["suggested_action"] == "migrate_with_split"
     assert plan["resolved_scope"] == "TOTAL"
     assert plan["resolved_unit_qid"] == "Q57084755"
-    assert {row["resolved_year"] for row in plan["split_execution_rows"]} == {"2023", "2024"}
+    assert {row["resolved_year"] for row in plan["split_execution_rows"]} == {
+        "2023",
+        "2024",
+    }
     jsonschema.validate(report, _load_split_plan_schema())
 
 
@@ -2801,14 +3123,21 @@ def test_project_wikidata_payload_reports_pilot_pack_parthood_typing() -> None:
         / "parthood_pilot_pack_20260308"
     )
     payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
-    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+    expected = json.loads(
+        (fixture_root / "projection.json").read_text(encoding="utf-8")
+    )
 
     report = project_wikidata_payload(payload, property_filter=("P31", "P361", "P527"))
 
-    assert report["windows"][0]["diagnostics"]["parthood_typing"] == expected["parthood_typing"]
+    assert (
+        report["windows"][0]["diagnostics"]["parthood_typing"]
+        == expected["parthood_typing"]
+    )
     assert any(
         row["inverse_relation"] == "cross_property_expected"
-        for row in report["windows"][0]["diagnostics"]["parthood_typing"]["classifications"]
+        for row in report["windows"][0]["diagnostics"]["parthood_typing"][
+            "classifications"
+        ]
     )
 
 
@@ -2820,7 +3149,9 @@ def test_project_wikidata_payload_reports_imported_pack_parthood_typing() -> Non
         / "parthood_imported_pack_20260308"
     )
     payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
-    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+    expected = json.loads(
+        (fixture_root / "projection.json").read_text(encoding="utf-8")
+    )
 
     report = project_wikidata_payload(payload, property_filter=("P31", "P361", "P527"))
 
@@ -2828,12 +3159,17 @@ def test_project_wikidata_payload_reports_imported_pack_parthood_typing() -> Non
         report["windows"][0]["diagnostics"]["parthood_typing"]
         == expected["parthood_typing"]
     )
-    assert report["windows"][0]["diagnostics"]["parthood_typing"]["counts"][
-        "cross_property_inverse"
-    ] == 2
+    assert (
+        report["windows"][0]["diagnostics"]["parthood_typing"]["counts"][
+            "cross_property_inverse"
+        ]
+        == 2
+    )
 
 
-def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection() -> None:
+def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection() -> (
+    None
+):
     fixture_root = (
         Path(__file__).resolve().parent
         / "fixtures"
@@ -2841,7 +3177,9 @@ def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection()
         / "q100104196_p166_2277985537_2277985693"
     )
     payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
-    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+    expected = json.loads(
+        (fixture_root / "projection.json").read_text(encoding="utf-8")
+    )
 
     report = project_wikidata_payload(payload, property_filter=("P166",))
 
@@ -2852,7 +3190,9 @@ def test_repo_pinned_live_qualifier_drift_case_matches_materialized_projection()
     assert report["qualifier_drift"][0]["qualifier_property_set_t2"] == ["P585"]
 
 
-def test_repo_pinned_second_live_qualifier_drift_case_matches_materialized_projection() -> None:
+def test_repo_pinned_second_live_qualifier_drift_case_matches_materialized_projection() -> (
+    None
+):
     fixture_root = (
         Path(__file__).resolve().parent
         / "fixtures"
@@ -2860,7 +3200,9 @@ def test_repo_pinned_second_live_qualifier_drift_case_matches_materialized_proje
         / "q100152461_p54_2456615151_2456615274"
     )
     payload = json.loads((fixture_root / "slice.json").read_text(encoding="utf-8"))
-    expected = json.loads((fixture_root / "projection.json").read_text(encoding="utf-8"))
+    expected = json.loads(
+        (fixture_root / "projection.json").read_text(encoding="utf-8")
+    )
 
     report = project_wikidata_payload(payload, property_filter=("P54",))
 

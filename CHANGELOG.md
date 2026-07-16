@@ -1,3 +1,25 @@
+# 2026-07-17
+
+- Add candidate-only A1 atomic-total, A2 coherent scoped-component, and A3
+  separated-annual-series climate transformation profiles over the generic
+  rule carrier. Detector results retain predicate states, reason codes,
+  dependency groups, target-domain state, and explicit abstention; legacy A-E
+  labels cannot act as rule matches.
+- Add rate-limit-aware live discovery, composite QID/statement-GUID pagination,
+  and generic cumulative rule-coverage aggregation with cursor-gap and
+  duplicate-candidate rejection. The first two contiguous pages cover 400
+  revision-pinned statements across 28 dependency groups: 4 candidate-rule
+  matches, 115 no-rule rows, and 281 incomplete rows. The population is not
+  exhausted and no rule, edit, or execution manifest is approved.
+- Add generic family-member evidence hydration for period partition and
+  independently assessed member conformance. The climate profile supplies
+  normalized WD values, while the shared carrier preserves missing-member
+  abstention and computes family states. Generic page/cumulative coverage now
+  reports incomplete-evidence, exclusion, and deduplicated no-rule reason
+  histograms. Re-running the same 400 revision-pinned rows closed the omitted
+  sibling-assessment frontier: 4 candidate matches and 396 complete no-rule
+  holds across 28 dependency groups, with no approved rule or edit.
+
 # 2026-04-19
 
 - document the legal-follow pressure ownership split across `README.md`,
@@ -16,8 +38,123 @@
 
 # Changelog
 
+## 2026-07-17
+
+- Added generic dependency-group inventory support to transformation-rule
+  coverage. Profiles can now supply one deterministic primary obstruction,
+  secondary evidence, affected members, geometry, and a non-executing action;
+  coverage validates agreement across sibling rows and reports one family
+  record rather than inflating row-level reason counts.
+- Added normalized, profile-supplied period shapes to the generic statement
+  family carrier. An exactly reconciled, already-partitioned same-year
+  component family is now represented as
+  `same_annual_period_component_partition`, rather than as a period conflict.
+- Replayed the first two live composite discovery pages: 400 pinned statements
+  / 28 families remain a dry run with 4 candidate matches and no coverage
+  abstentions. The family inventory yields one coherent control family, 16
+  scope-partition families, and 11 total-reconciliation families; no rule,
+  edit, or execution authority changed.
+
 ## Unreleased
 
+- Strengthen generic governed-invariant receipts for context-dependent
+  approvals. A trusted contribution may now retain a deterministic statement
+  family conformance witness, selected-candidate-only scope, and dependency
+  group. Empirical feature rows separately count confirmed members and
+  independent dependency groups, so multiple statements from one report cannot
+  silently inflate cohort evidence. This remains diagnostic/review-governed and
+  authorizes no edit, promotion, or migration execution.
+
+- Add generic dry-run transformation-rule and coverage-report carriers. Domain
+  profiles can supply versioned structural rules and deterministic detector
+  outcomes; the shared policy layer reports exactly-one, review/repair,
+  conflicting, no-rule, and incomplete-coverage partitions while retaining no
+  execution-manifest, promotion, or edit authority.
+
+- Reissue the first Nat I1 contribution with its complete statement-family
+  conformance witness and dependency group, preserving the original I0 records
+  and replaying the remaining 24 candidates without residual changes. Run a
+  revision-pinned, non-editing 100-statement `company_direct` discovery page:
+  all 100 GUIDs reconciled; 78 compact conformance packets and 22 conflict
+  holds were emitted; all 4,950 peer edges correctly remained
+  `unknown_due_to_coverage`.
+
+- Record the first explicit, review-only model-conformance approval for the
+  revision-pinned `Q101416961|P5991|1` packet. The approved annual 2024
+  explicitly scoped component statement within a four-statement reconciled
+  family is eligible to create one trusted conforming member,
+  contribution receipt, and `I1` invariant snapshot; the approval explicitly
+  authorizes neither a Wikidata edit nor migration/promotion execution. The
+  remaining bounded-page rows will be replayed as new immutable assessments
+  rather than rewriting their `I0` evidence.
+
+- Widen the generic compact review-packet projection from split-only intake to
+  all reconciled candidates. Model-conformance packets, decomposition packets,
+  and family-conflict hold packets now have distinct review choices while
+  sharing the same typed residual profile. The climate materializer now emits
+  all 25 corrected live-page packets: 9 conformance candidates and 16 conflict
+  holds. Family overlap, component/total contradiction, multi-year period, and
+  unknown partition evidence are explicit residuals rather than hidden behind
+  a coarse A--E label. Packets remain review-only; no confirmation, invariant
+  contribution, promotion, or edit is created.
+
+- Correct statement-family classification for bounded Wikidata discovery.
+  `statement_family_context` now preserves GUID-level candidates while
+  recording complete sibling coverage, scope partitioning, overlap/duplicate
+  signals, and total/component reconciliation. The Q101416961 regression keeps
+  three scoped emissions components plus a matching total as separate annual
+  statements; it emits no false split plan or review packet. Same-year
+  `P580`/`P582` reporting ranges are one annual shape, while true multi-year,
+  partial, mixed, or multi-valued time remains reviewable.
+
+- Add generic immutable invariant replay: caller-supplied reassessments can be
+  checked against a named revised snapshot, projected to new residual profiles
+  and graph edges, and compared with retained source profiles without
+  retroactively changing an earlier review state.
+
+- Update the generic external-graph and Nat planning surfaces so ontology-class
+  merge is a conservative, review-only residual-topology proposal alongside
+  split and disjointness. A merge needs independent normative,
+  substitutability, conditionality, impact, provenance, and coverage evidence;
+  residual geometry alone cannot redirect classes, revise an invariant, or
+  edit Wikidata. Runtime merge proposal generation remains pending.
+
+- Add generic `TypedResidualProfile`, compact review-packet projection, and
+  deterministic typed residual-graph carriers. The same coverage-qualified
+  profile now drives both review and topology surfaces, preserving admissible
+  similarity, typed incompatibility, masked analogy, and coverage/context
+  unknown as distinct non-authoritative edges. The Nat materializer can emit
+  packets only for reconciled split-required rows; a live three-row page at
+  `Q101416961@2419927005` produced three review-only Family-B packets with no
+  confirmation, invariant contribution, promotion, or edit effect. Their
+  three graph edges correctly remain coverage-unknown until trusted cohort
+  evidence exists.
+
+- Add a generic review-confirmation artifact and explicit conversion to a
+  trusted invariant member. Confirmed split dispositions require an approved
+  split-plan reference; packets and classifier family labels remain evidence,
+  not reviewer decisions. Confirmations have no promotion or edit effect.
+
+- Add generic governed domain-invariant carriers. Independently reviewed,
+  revision-pinned, fully observed members can now produce deterministic
+  contribution and invariant-revision receipts; classifier dispositions alone,
+  held rows, and incomplete coverage fail admission. The carrier is
+  diagnostic/review-governed and does not promote or edit anything.
+
+- Add a bounded live `company_direct` discovery path for the `P5991 -> P14143`
+  review workflow. It persists deterministic WDQS query metadata and
+  statement-level rows, pins current entity exports, reconciles claim GUIDs,
+  and sends only reconciled source statements to the existing diagnostic
+  classifier. Discovery remains review-only and has no edit or promotion
+  authority.
+
+- Added generic `DomainPressureAssessment` carrier support and adapted Nat's
+  `P5991 -> P14143` climate profile to emit separately receipted target-model,
+  subject-type, qualifier, reference, temporal, split, and peer-cohort
+  residuals. The existing A--E migration family is preserved as a
+  review-disposition projection; assessments are diagnostic-only with no
+  promotion effect, and peer-cohort pressure remains unresolved until governed
+  cohort admission exists. Updated the migration-pack schema and focused tests.
 - Added a revision-pinned Wikibase entity-export adapter that validates the
   requested entity/revision and emits bounded generic label, alias, property,
   and statement observations. The first `Q1785637@2443793937` slice drives

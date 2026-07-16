@@ -33,6 +33,83 @@ cd SensibLaw
 ../.venv/bin/python -m cli.__main__ wikidata build-migration-pack --help
 ```
 
+## Bounded live discovery and reconciliation
+
+Live discovery is a separate, statement-level intake step.  It is not a
+property-renaming operation and it does not itself create a migration
+candidate.  For the current climate profile the source property is broad
+(`P5991`), whereas the target (`P14143`) is annual, entity-level greenhouse-gas
+emissions.  A discovery page therefore records a typed stratum before any
+classification is attempted.
+
+The first live stratum is deliberately narrow:
+
+```text
+direct P31 company/business/enterprise
++ source P5991 statement
++ no existing target P14143 statement on the subject
+```
+
+Direct `P31` membership is only a bounded discovery filter.  It is not a
+complete type closure and it does not by itself make a row migration-safe.
+Subsequent strata may include bounded-superclass company membership, product,
+person, event, non-enterprise organisation, unclear subject, and
+already-targeted rows, each with their own review policy.
+
+### Discovery manifest
+
+Every live page must persist a deterministic discovery manifest before entity
+retrieval.  The manifest contains:
+
+- schema and query version plus query hash;
+- endpoint, execution timestamp, deterministic ordering, page size, and
+  cursor;
+- source and target properties, selected subject-type stratum, and observed
+  row count;
+- per-row subject QID, source statement GUID, rank, direct P31 values, and
+  whether the subject already has the target property;
+- the raw WDQS response reference or content hash; and
+- an explicit declaration that discovery has no promotion or edit authority.
+
+### Revision-pinned reconciliation
+
+Discovery and entity retrieval happen at different times.  For every row in a
+bounded page, the materializer must retrieve a current revision-pinned entity
+export and reconcile the discovered statement GUID against that export before
+classification.  It records exactly one of:
+
+```text
+statement_reconciled
+statement_changed_since_discovery
+statement_missing
+entity_revision_unavailable
+```
+
+Only `statement_reconciled` rows may enter the climate classifier.  The
+classifier evaluates the complete statement family on that entity, rather than
+only an isolated statement, so temporal/scope splits and target-property
+coexistence remain visible.
+
+The resulting classifier input records the source statement GUID, quantity
+unit, rank, `P585` time, `P459` method, `P3831` role, `P518` part,
+statement-specific references, sibling source statements, and target-property
+coexistence.  Missing inspection remains an abstention, never evidence of an
+absent qualifier or reference.
+
+Implemented CLI path:
+
+```bash
+python scripts/materialize_wikidata_migration_pack.py \
+  --discover-company-direct --candidate-limit 25 \
+  --source-property P5991 --target-property P14143 \
+  --out-dir /tmp/nat-company-direct-page
+```
+
+It writes `manifest.json`, pinned current entity exports, a filtered current
+slice, and the existing review-first migration pack. The discovery section of
+the manifest is non-authoritative and records reconciliation outcomes even
+when no row is eligible to enter classification.
+
 ## How this produces recommendations
 
 This contract does not describe a system that invents new Wikidata ontology
@@ -128,6 +205,22 @@ Current `v0.1` interpretation:
 ## Candidate contract
 Each candidate row represents one current-window source-property statement
 bundle.
+
+### Atomic candidates and family context
+
+A candidate is one statement GUID. Other current claims with the same
+subject/property are retained as `statement_family_context`; they do not turn
+an atomic candidate into a multi-value statement. The context may report scope
+partitioning, duplicate/overlap signals, total/component reconciliation, and
+whether all sibling source claims were supplied.
+
+`split_required` is permitted only for an overloaded or otherwise ambiguous
+source statement (or a documented climate-model condition on that statement),
+not solely because siblings contain different values, years, or scopes. A
+complete family of separately stated scoped components and total is assessed
+as separate claims with `existing_partition_preserved`. A partial page must
+hydrate complete sibling context from the pinned export or abstain from
+family-level inference.
 
 Required fields:
 - `candidate_id`

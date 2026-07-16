@@ -49,10 +49,198 @@
     commit/worktree without committing, stashing, or rewriting unrelated user
     changes; record fixture revisions, commands, focused test counts, and
     lint/format results
+  - DONE: make the existing Nat climate-model comparison emit the first
+    generic, policy-anchored `DomainPressureAssessment`. It retains distinct
+    target-model, subject-type, qualifier, reference, temporal, split, and
+    peer-cohort residuals when mapping `P5991 -> P14143` rows to Family A/B/C/D/E.
+    The A--E bucket remains a review-disposition projection; the assessment is
+    diagnostic-only with no promotion effect, and peer evidence remains
+    explicitly unresolved until trusted-cohort admission exists.
+  - DONE: materialize a deterministic, bounded live `company_direct` discovery
+    manifest for `P5991 -> P14143`: statement GUID, rank, direct P31 stratum,
+    target-property coexistence, query/version/hash, timestamp, ordering, and
+    cursor. Reconcile each row against a current revision-pinned entity export
+    before classification. Only `statement_reconciled` rows enter the existing
+    Family A--E / `DomainPressureAssessment` path; changed, missing, or
+    unpinnable statements remain explicit non-classified outcomes. This is
+    discovery and review intake, never migration or edit authority.
+  - DONE: implement the bounded `--discover-company-direct` materializer path.
+    It writes a statement-level discovery manifest, pins current entity
+    exports, reconciles the exact source claim GUID, filters the classifier
+    input to reconciled statements only, and retains changed/missing/unpinnable
+    rows as explicit non-classified outcomes. The initial three-statement live
+    smoke page at `Q101416961@2419927005` exposed a classifier error: it
+    selected only three of four sibling source claims and misread normal family
+    multiplicity as per-GUID overload. Its review packets are preserved as
+    rejected classifier evidence, not as Family-B cases or an automated change.
+  - DONE: repair the generic atomic-statement/family-context boundary. The
+    shared `statement_family_context` carrier keeps page-selected GUIDs atomic
+    while hydrating every pinned sibling source claim; it records scope
+    partition, duplicate/overlap, total/component reconciliation, and complete
+    coverage separately. Q101416961 is the regression: three scoped components
+    plus total reconcile exactly, same-year `P580`/`P582` ranges remain annual
+    statements, and no split plan is emitted. The corrected live three-GUID
+    page now yields three Family-A `safe_with_reference_transfer` candidates,
+    zero review packets, and an empty diagnostic graph.
+  - DONE: add governed trusted-cohort admission and versioned invariant
+    refinement for policy-anchored DSP. `DomainInvariantSnapshot`,
+    `TrustedConformingMember`, `InvariantContributionReceipt`, and
+    `InvariantRevisionReceipt` must preserve policy requirements, empirically
+    confirmed regularities, conditional variation, exceptions, coverage, and
+    reviewer authority. Only independently confirmed conformant dispositions
+    train the invariant; held, unresolved, ambiguous, manual-reconstruction,
+    and coverage-incomplete cases do not.
+  - DONE: implement the shared `domain_invariants` carrier with
+    fail-closed trusted-member admission, deterministic policy/empirical/
+    conditional/noise snapshot aggregation, contribution receipts, and
+    revision receipts. Nat supplies climate-policy references and reviewer
+    records only; classifier Family A/B/C output alone must remain insufficient
+    for admission.
+  - DONE: add a generic review-confirmation artifact that references an
+    existing candidate/packet and an explicit reviewer decision. It must be the
+    only runtime bridge from an approved Family-B split (or confirmed A/C row)
+    to a trusted-invariant contribution; it remains non-promoting and
+    non-editing.
+  - DONE: project reconciled Family-B rows into compact, deterministic review
+    packets from the same generic `TypedResidualProfile` used by topology.
+    Packets must show source GUID/revision, statement family, years/scopes/
+    methods, split boundaries, target decomposition, qualifier/reference carry
+    plan, coverage, and confirmation choices. They are evidence for a later
+    explicit review confirmation, never a decision or invariant contribution.
+    The bounded live three-row page emitted three review-only packets at
+    `Q101416961@2419927005`; its Family-B split axes remained explicit. The
+    corresponding three-edge graph is correctly `unknown_due_to_coverage`
+    because peer-cohort pressure is unresolved before trusted admission.
+  - DONE: add the generic `TypedResidualProfile` carrier and deterministic
+    residual-graph construction. The graph preserves positive similarity,
+    negative incompatibility, masked analogy, and coverage/context unknown as
+    distinct edges. It deliberately does not cluster, spectralize, assign
+    classes, revise invariants, or propose edits.
+  - DONE: emit compact generic packets for every reconciled candidate in the
+    corrected 25-GUID page: 9 model-conformance candidates, 9 scope-overlap
+    holds, and 7 total/period-conflict holds. A hold packet must identify the
+    affected GUIDs, family relation, numeric/period evidence, coverage, repair
+    interpretations, and counterevidence; it is not a disguised split plan.
+  - IN PROGRESS: materialize the first explicit reviewer-confirmed conforming result
+    from a compact live packet. It may be a genuine Family-A substitution, a
+    repaired C row, or an approved Family-B split. Carry only the resulting
+    conforming target-statement features through `TrustedConformingMember` and
+    an invariant contribution receipt. Build `I1` as a new
+    `DomainInvariantSnapshot` and replay the remaining profiles against it
+    through a generic immutable replay receipt:
+    preserve every `I0` assessment/profile/graph, require the same candidate
+    and pinned source revision, and make every changed or still-unknown graph
+    relation explicit. The generic replay carrier validates supplied
+    reassessments; the climate profile, not the carrier, decides whether a
+    trusted member grounds a peer-cohort residual.
+    The reviewer has approved `Q101416961|P5991|1` at
+    `Q101416961@2419927005` as `confirmed_model_conformant` under
+    `reviewer:GPTofJohl`. Materialize only its trusted-member, contribution,
+    `I0 -> I1`, and immutable replay artifacts; no edit, promotion, or
+    migration execution is authorized. Preserve it as one selected statement
+    under a complete reconciled-family witness: record generic context and
+    dependency references so sibling GUIDs from one report are not silently
+    counted as independent cohort observations. DONE: the witness-aware reissue
+    is at `/tmp/nat-packets-live-25/invariant_i1_family_witness/`, with a
+    new I1 snapshot and an immutable replay of the remaining 24 rows. The old
+    temporary `invariant_i1/` directory remains historical only.
+  - NEXT: turn reviewed structural families into versioned migration-rule
+    candidates with deterministic applicability detectors. Measure the full
+    backlog by exactly-one-rule, review/repair-rule, conflicting-rule, no-rule,
+    and incomplete-coverage outcomes before execution is considered. Rule
+    approval requires reviewed positives and near misses, stratified validation,
+    revision-pinned manifests, and bounded canary/postflight checks; resemblance
+    alone never authorizes a migration.
+  - DONE: add generic dry-run `TransformationRule` and `RuleCoverageReport`
+    carriers. Profiles supply deterministic detector outcomes; the core records
+    exactly-one, review/repair, conflicting, no-rule, and incomplete-coverage
+    partitions without constructing an execution manifest or edit. Nat still
+    needs concrete rule candidates, a full-backlog dry run, and rule-level
+    review approval.
+  - IN PROGRESS: run Nat contract discovery and cumulative backlog coverage as
+    one sprint. DONE: candidate A1 atomic-total, A2 coherent scoped-component,
+    and A3 already-separated annual-series profiles now emit generic detector
+    results with predicate reason codes, dependency groups, explicit
+    counterexamples, and coverage abstention. Continue exercising refinements against
+    progressively wider revision-pinned pages rather than finalizing rules
+    before population measurement. A legacy Family-A label is not a rule
+    match. B1 split, C1 repair, and D/E exclusion contracts follow as bounded
+    evidence becomes available.
+  - NEXT: produce cumulative dry-run inventory counts by candidate rule,
+    dependency group, subject type, family shape, qualifier/year/method/unit/
+    reference pattern, and conflict type. Require exclusive explainable
+    matches before submitting any rule for rule-level review; then generate a
+    non-executing bounded canary manifest only after explicit rule approval.
+  - DONE: make wider online discovery rate-limit aware. Respect bounded
+    `Retry-After`/backoff and optional request pacing; never count a partially
+    revision-pinned page as dry-run coverage.
+  - DONE: replace QID-only statement discovery pagination with a
+    composite QID + statement-GUID cursor. Record the next cursor in each
+    discovery manifest and treat earlier QID-only pages as bounded samples,
+    not a lossless cumulative backlog inventory.
+  - DONE: combine composite-cursor pages through the generic cumulative
+    coverage carrier; reject cursor gaps and duplicate candidates, preserve
+    page report refs, and keep `population_exhausted=false` until the terminal
+    page is observed. The initial selected-row-only pass had 400 unique
+    candidates across 28 dependency groups, with 4 candidate-rule matches, 115
+    no-rule rows, and 281 coverage abstentions; that historic baseline exposed
+    the family-member evidence gap.
+  - DONE: hydrate selected discovery candidates from all sibling statements in
+    the existing revision-pinned entity exports. The same first two composite
+    pages now have 4 candidate matches, 396 complete no-rule/hold rows, and 0
+    coverage abstentions across 28 dependency groups; this is evidence-boundary
+    closure, not migration eligibility. Generic reports now include incomplete,
+    exclusion, and deduplicated no-rule reason histograms. NEXT: partition the
+    complete no-rule reasons into explicit exclusions or typed H/E holds, then
+    continue contiguous pages until a terminal short page proves exhaustion.
+  - NEXT: emit a dependency-group/family-geometry inventory for the hydrated
+    400-row prefix before adding B1/C1. Keep the generic coverage layer
+    responsible for grouping profile-supplied residual/action assessments;
+    keep climate annuality, scope, total, and statement-semantic interpretation
+    in the profile. Require a deterministic primary obstruction plus secondary
+    evidence and affected GUID subset per family. Refine the broad annual
+    partition reason into normalized supplied period shapes, and make sibling
+    dependency explicit: independently migratable, blocked by overlap or
+    contradiction, blocked pending sibling handling, or family reconstruction.
+    This remains diagnostic-only and must not widen A1/A2/A3 eligibility.
+  - DONE: generic coverage now preserves profile-supplied dependency-group
+    assessments and emits one deterministic inventory row per family. The
+    climate profile supplies normalized period shapes and an F1--F8 primary
+    geometry/action; the 400-row live prefix yielded F1=1, F4=16 and F5=11.
+    Q101416961 is the F1 control: same-year reconciled components are not a
+    period-overlap conflict. NEXT: inspect F4 into genuine source-GUID
+    overload versus valid partition, then turn F5 into typed total-conflict
+    evidence before creating B1/C1 or any member-independence policy.
+  - NEXT: feed bounded packet-derived candidate populations into the typed
+    residual graph and generate only reviewable nearby-class, split, merge,
+    disjointness, bridge-class, exception, or new-abstraction candidates. A
+    raw resemblance that fails entity-kind, domain/range, temporal,
+    source/PNF, superclass, or disjointness gates is an analogy, never an
+    ontology assignment.
+  - NEXT: generate review-only class-split, class-merge, disjointness,
+    bridge-superclass, nearby-class, new-abstraction, exception, and
+    misclassified-member
+    candidates from the typed residual graph. Every proposal must retain its
+    supporting population, counterevidence, coverage limits, and masked
+    analogies; Nat's organisation-level versus product/intensity/mixed-scope
+    distinction is the first meaningful split boundary. A direct merge must
+    additionally retain normative compatibility, conditional-distinction,
+    relation-substitutability, downstream-impact, and provenance-transfer
+    evidence; geometry convergence alone is a non-reviewable signal. Failing
+    merge gates must surface shared-superclass, bridge, conditional, alias,
+    held, blocked, or insufficient-coverage alternatives rather than a
+    redirect/edit.
+  - NEXT: emit comparable residual receipts and a runtime spectral-pressure
+    projection only for admitted exact/partial/no-typed-meet residuals. Keep
+    `scope_exceeded`/`unresolved` as typed abstentions; align output with
+    DASHI's `WikidataSpectralPressureBridge` and
+    `ExternalContextSafetyBoundary`, including incomplete/uninspected/invalid
+    observation abstention and no role, truth, authority, edit, repair, or
+    promotion consequence without explicit policy.
   - NEXT: add one shared external-context application operation and replay the
-    same observation through GWB, AU, Brexit, and Affidavit fixtures. Wrappers
-    may supply only local candidate refs, anchors, workflow metadata, and
-    outward receipt context; add normalized parity and no-role/no-authority
+    mature generic context through GWB, AU, Brexit, and Affidavit fixtures.
+    Wrappers may supply only local candidate refs, anchors, workflow metadata,
+    and outward receipt context; add normalized parity and no-role/no-authority
     inheritance tests.
   - NEXT: normalize supplied revision-pinned observation inputs across local
     exports, captured API responses, checked fixtures, and later routed Zelph
@@ -63,24 +251,12 @@
     `contradictory_within_observed_closure`, `closure_incomplete`,
     `profile_not_applicable`, and `invalid_observation`; never turn a path
     beyond the frontier into a global negative claim.
-  - NEXT: make existing Nat climate-model comparison explicit as the first
-    policy-anchored DSP source. Preserve distinct subject-type, target-model,
-    qualifier/reference, temporal/split, and peer-cohort pressure grounds when
-    mapping `P5991 -> P14143` rows to Family A/B/C/D/E; peer frequency never
-    overrides the documented model or reviewer policy.
   - NEXT: induce `ComparisonCohort` and `DomainStructuralSignature` from
     comparable, revision/coverage-qualified members as a second DSP source.
     Implement typed field observation states, reciprocal cohort/member pressure,
     and diagnostic-only `DomainPressureResult`; begin generic cohort induction
     with the city/capital proving set, not a hand-authored pharmacy-chain
     definition or the policy-anchored climate pilot.
-  - NEXT: emit comparable residual receipts and a runtime spectral-pressure
-    projection only for admitted exact/partial/no-typed-meet residuals. Keep
-    `scope_exceeded`/`unresolved` as typed abstentions; align output with
-    DASHI's `WikidataSpectralPressureBridge` and
-    `ExternalContextSafetyBoundary`, including incomplete/uninspected/invalid
-    observation abstention and no role, truth, authority, edit, repair, or
-    promotion consequence without explicit policy.
   - NEXT: add multi-view pressure adapters from article/simplification,
     Abstract Wikipedia, translation alignment, and domain cohorts. They must
     predict expected shape rather than copy peer values or collapse views into

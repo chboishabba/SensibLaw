@@ -63,6 +63,7 @@ properties:
         - requires_review
         - reasons
         - split_axes
+        - statement_family_context
         - text_evidence_refs
         - bridge_case_ref
         - pressure
@@ -103,6 +104,8 @@ properties:
           type: string
         statement_index:
           type: integer
+        source_statement_id:
+          type: [string, "null"]
         classification:
           type: string
           enum:
@@ -157,6 +160,49 @@ properties:
                   - slot
               reason:
                 type: string
+        statement_family_context:
+          type: object
+          additionalProperties: false
+          required:
+            - family_id
+            - coverage_complete
+            - member_statement_ids
+            - member_count
+            - scope_partition_state
+            - total_component_relation
+            - component_sum
+            - total_value
+            - duplicate_scope_statement_ids
+            - split_requirement
+          properties:
+            family_id:
+              type: string
+            coverage_complete:
+              type: boolean
+            member_statement_ids:
+              type: array
+              items:
+                type: string
+            member_count:
+              type: integer
+              minimum: 1
+            scope_partition_state:
+              type: string
+              enum: [already_partitioned, overloaded, overlapping, incomplete, unknown]
+            total_component_relation:
+              type: string
+              enum: [exact_reconciliation, approximate_reconciliation, contradiction, no_total, not_comparable]
+            component_sum:
+              type: [string, "null"]
+            total_value:
+              type: [string, "null"]
+            duplicate_scope_statement_ids:
+              type: array
+              items:
+                type: string
+            split_requirement:
+              type: string
+              enum: [none, existing_partition_preserved, new_split_required, manual_reconstruction]
         text_evidence_refs:
           type: array
           items:
@@ -325,6 +371,8 @@ properties:
           $ref: "#/definitions/claim_bundle"
         family_classifier:
           $ref: "#/definitions/family_classifier"
+        domain_pressure_assessment:
+          $ref: "#/definitions/domain_pressure_assessment"
         family_bucket:
           type: string
           enum: [A, B, C, D, E]
@@ -419,7 +467,97 @@ properties:
     type: object
   promotion_gate:
     type: object
+  pilot_metrics:
+    type: object
+  readiness_surface:
+    type: object
 definitions:
+  domain_pressure_assessment:
+    type: object
+    additionalProperties: false
+    required:
+      - schema_version
+      - candidate_ref
+      - domain_invariant_ref
+      - coverage_state
+      - residuals
+      - summary
+      - evidence_refs
+      - review_disposition
+      - authority
+      - promotion_effect
+    properties:
+      schema_version:
+        type: string
+        const: sl.domain_pressure_assessment.v0_1
+      candidate_ref:
+        type: string
+      domain_invariant_ref:
+        type: string
+      coverage_state:
+        type: string
+        enum: [observed, incomplete, uninspected, invalid]
+      residuals:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - residual_kind
+            - state
+            - expected
+            - observed
+            - evidence_refs
+            - summary
+          properties:
+            residual_kind:
+              type: string
+            state:
+              type: string
+              enum: [exact, partial, contradictory, unresolved]
+            expected:
+              type: object
+            observed:
+              type: object
+            evidence_refs:
+              type: array
+              items:
+                type: string
+            summary:
+              type: string
+            coverage_state:
+              type: string
+              enum: [observed, incomplete, uninspected, invalid]
+      summary:
+        type: object
+        additionalProperties: false
+        required: [residual_count, counts_by_state, has_unresolved]
+        properties:
+          residual_count:
+            type: integer
+          counts_by_state:
+            type: object
+            additionalProperties: false
+            required: [exact, partial, contradictory, unresolved]
+            properties:
+              exact: {type: integer}
+              partial: {type: integer}
+              contradictory: {type: integer}
+              unresolved: {type: integer}
+          has_unresolved:
+            type: boolean
+      evidence_refs:
+        type: array
+        items:
+          type: string
+      review_disposition:
+        type: string
+      authority:
+        type: string
+        const: diagnostic_only
+      promotion_effect:
+        type: string
+        const: not_evaluated
   family_classifier:
     type: object
     additionalProperties: false
@@ -548,6 +686,8 @@ definitions:
       resolution_basis:
         type: string
       window_id:
+        type: string
+      statement_id:
         type: string
       direct_instance_of:
         type: array

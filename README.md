@@ -58,6 +58,21 @@ local candidate or decide the bridge: those remain generic proposal and review
 records. Direct `P31` presence is usable diagnostic evidence; absence from an
 incomplete entity export remains an abstention, not a global missing-type claim.
 
+When an atomic candidate is confirmed only because a complete sibling/context
+set was inspected, generic review and invariant carriers retain both the
+candidate and a context witness. The contribution stays scoped to the selected
+candidate and is dependency-grouped, so several statements from one source
+family cannot be mistaken for independent cohort observations. This supports
+governed learning and later dry-run migration-rule coverage; it does not
+authorize edits or broad automation.
+
+Nat's current implementation sprint couples transformation-rule calibration
+to progressively wider live dry-run coverage. Candidate A1/A2/A3 contracts are
+evaluated with predicate-level reason codes and dependency-group preservation;
+legacy A-E classifier labels remain review projections rather than rule
+matches. Incomplete or conflicting family context must abstain, and no
+candidate rule produces an edit or execution manifest.
+
 An incomplete graph view is candidate-only and cannot support an exhaustive
 claim. A completeness-certified view must name its coverage policy, revision,
 selected graph coverage, and receipt. External identity neither replaces a
